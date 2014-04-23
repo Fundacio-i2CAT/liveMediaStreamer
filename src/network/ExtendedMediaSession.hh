@@ -38,6 +38,9 @@ public:
     //TODO: shouldn't it be const char* ?
     void setMediaSession(char* mediaSessionType, char* sessionName, char* sessionDescription);
     
+    /*TODO: this add and remove functions should be private functions, and there should be a 
+    *       public function that schedules the task in the event loop (for thread safetiness)
+    */
     Boolean addSubsession(MediaSubsession* subsession);
     Boolean removeSubsession(char const* subsessionName); //TODO: should we use something different? ControlPath?
     

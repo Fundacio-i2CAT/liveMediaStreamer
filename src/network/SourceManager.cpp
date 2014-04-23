@@ -55,6 +55,11 @@ void SourceManager::closeManager()
     //TODO:
 }
 
+void SourceManager::destroyInstance()
+{
+    //TODO:
+}
+
 void *startServer(void *args)
 {
     char* watch = (char*) args;
@@ -238,7 +243,7 @@ Boolean Session::initiateSession()
         }
         return True;
     } else if (this->client != NULL){
-        this->client->sendDescribeCommand(ExtendedRTSPClient::continueAfterDESCRIBE);
+        this->client->sendDescribeCommand(HandlersUtils::continueAfterDESCRIBE);
         return True;
     }
     
@@ -250,25 +255,6 @@ Session::~Session() {
     delete iter;
 }
 
-void subsessionAfterPlaying(void* clientData) 
-{
-    MediaSubsession* subsession = (MediaSubsession*)clientData;
-
-    Medium::close(subsession->sink);
-    subsession->sink = NULL;
-
-    MediaSession& session = subsession->parentSession();
-    MediaSubsessionIterator iter(session);
-    while ((subsession = iter.next()) != NULL) {
-        if (subsession->sink != NULL) return; 
-    }
-}
-
-void subsessionByeHandler(void* clientData) 
-{
-    MediaSubsession* subsession = (MediaSubsession*)clientData;
-    subsessionAfterPlaying(subsession);
-}
 
 Boolean Session::addSubsessionSink(UsageEnvironment& env, MediaSubsession *subsession)
 {
@@ -299,7 +285,7 @@ Boolean Session::addSubsessionSink(UsageEnvironment& env, MediaSubsession *subse
     
     // Also set a handler to be called if a RTCP "BYE" arrives for this subsession:
     if (subsession->rtcpInstance() != NULL) {
-        subsession->rtcpInstance()->setByeHandler(subsessionByeHandler, subsession);
+        subsession->rtcpInstance()->setByeHandler(HandlersUtils::subsessionByeHandler, subsession);
     }
     
     return True;

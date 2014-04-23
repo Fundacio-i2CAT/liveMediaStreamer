@@ -37,6 +37,7 @@ private:
     
 public:
     static SourceManager* getInstance();
+    static void destroyInstance();
     
     static void randomIdGenerator(char *s, const int len);
     

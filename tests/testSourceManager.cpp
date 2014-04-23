@@ -1,6 +1,6 @@
-#include "SourceManager.hh"
-#include "ExtendedMediaSession.hh"
-#include <liveMedia.hh>
+#include "../src/network/SourceManager.hh"
+#include "../src/network/ExtendedMediaSession.hh"
+#include <liveMedia/liveMedia.hh>
 
 
 #define V_MEDIUM "video"

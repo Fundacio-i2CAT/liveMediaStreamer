@@ -24,7 +24,8 @@
 #include "SourceManager.hh"
 #include "ExtendedMediaSession.hh"
 #include "ExtendedRTSPClient.hh"
-#include <H264VideoFileSink.hh>
+#include "Handlers.hh"
+#include <liveMedia/liveMedia.hh>
 
 #define RTSP_CLIENT_VERBOSITY_LEVEL 1
 #define FILE_SINK_RECEIVE_BUFFER_SIZE 200000
@@ -243,7 +244,7 @@ Boolean Session::initiateSession()
         }
         return True;
     } else if (this->client != NULL){
-        this->client->sendDescribeCommand(HandlersUtils::continueAfterDESCRIBE);
+        this->client->sendDescribeCommand(handlers::continueAfterDESCRIBE);
         return True;
     }
     
@@ -281,11 +282,11 @@ Boolean Session::addSubsessionSink(UsageEnvironment& env, MediaSubsession *subse
     }
     
     subsession->sink->startPlaying(*(subsession->readSource()),
-                       subsessionAfterPlaying, subsession);
+                       handlers::subsessionAfterPlaying, subsession);
     
     // Also set a handler to be called if a RTCP "BYE" arrives for this subsession:
     if (subsession->rtcpInstance() != NULL) {
-        subsession->rtcpInstance()->setByeHandler(HandlersUtils::subsessionByeHandler, subsession);
+        subsession->rtcpInstance()->setByeHandler(handlers::subsessionByeHandler, subsession);
     }
     
     return True;

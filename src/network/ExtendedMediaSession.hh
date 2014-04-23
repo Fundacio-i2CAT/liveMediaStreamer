@@ -24,7 +24,7 @@
 #ifndef _EXTENDED_MEDIA_SESSION_HH
 #define _EXTENDED_MEDIA_SESSION_HH
 
-#include <MediaSession.hh>
+#include <liveMedia/liveMedia.hh>
 
 class ExtendedMediaSubsession;
 

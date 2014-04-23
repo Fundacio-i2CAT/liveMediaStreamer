@@ -23,9 +23,9 @@
 #ifndef _SOURCE_MANAGER_HH
 #define _SOURCE_MANAGER_HH
 
-#include <RTSPClient.hh>
+#include <liveMedia/RTSPClient.hh>
 #include <pthread.h>
-#include <BasicUsageEnvironment.hh>
+#include <BasicUsageEnvironment/BasicUsageEnvironment.hh>
 
 #define ID_LENGTH 4
 

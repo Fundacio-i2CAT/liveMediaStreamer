@@ -21,11 +21,18 @@
  *            
  */
 
-#include "HandlersUtils.hh"
+#include "Handlers.hh"
+#include "ExtendedRTSPClient.hh"
+#include "SourceManager.hh"
 
-namespace HandlersUtils
+namespace handlers 
 {
-
+    void continueAfterSETUP(RTSPClient* rtspClient, int resultCode, char* resultString);
+    void continueAfterPLAY(RTSPClient* rtspClient, int resultCode, char* resultString);
+    void setupNextSubsession(RTSPClient* rtspClient);
+    void streamTimerHandler(void* clientData);
+    void shutdownStream(RTSPClient* rtspClient);
+    
     void continueAfterDESCRIBE(RTSPClient* rtspClient, int resultCode, char* resultString) 
     {
         do {
@@ -58,6 +65,26 @@ namespace HandlersUtils
         } while (0);
 
         shutdownStream(rtspClient);
+    }
+    
+    void subsessionAfterPlaying(void* clientData) 
+    {
+        MediaSubsession* subsession = (MediaSubsession*)clientData;
+
+        Medium::close(subsession->sink);
+        subsession->sink = NULL;
+
+        MediaSession& session = subsession->parentSession();
+        MediaSubsessionIterator iter(session);
+        while ((subsession = iter.next()) != NULL) {
+            if (subsession->sink != NULL) return; 
+        }
+    }
+    
+    void subsessionByeHandler(void* clientData) 
+    {
+        MediaSubsession* subsession = (MediaSubsession*)clientData;
+        subsessionAfterPlaying(subsession);
     }
 
     void continueAfterSETUP(RTSPClient* rtspClient, int resultCode, char* resultString) 
@@ -116,26 +143,6 @@ namespace HandlersUtils
         }
     }
 
-    void subsessionAfterPlaying(void* clientData) 
-    {
-        MediaSubsession* subsession = (MediaSubsession*)clientData;
-
-        Medium::close(subsession->sink);
-        subsession->sink = NULL;
-
-        MediaSession& session = subsession->parentSession();
-        MediaSubsessionIterator iter(session);
-        while ((subsession = iter.next()) != NULL) {
-            if (subsession->sink != NULL) return; 
-        }
-    }
-
-    void subsessionByeHandler(void* clientData) 
-    {
-        MediaSubsession* subsession = (MediaSubsession*)clientData;
-        subsessionAfterPlaying(subsession);
-    }
-    
     void setupNextSubsession(RTSPClient* rtspClient) 
     {
         UsageEnvironment& env = rtspClient->envir(); 
@@ -178,31 +185,31 @@ namespace HandlersUtils
     {
         UsageEnvironment& env = rtspClient->envir(); 
         StreamClientState& scs = ((ExtendedRTSPClient*)rtspClient)->scs; 
-
-    
+        
+        
         if (scs.session != NULL) { 
             Boolean someSubsessionsWereActive = False;
             MediaSubsessionIterator iter(*scs.session);
             MediaSubsession* subsession;
-
+            
             while ((subsession = iter.next()) != NULL) {
                 if (subsession->sink != NULL) {
                     Medium::close(subsession->sink);
                     subsession->sink = NULL;
-
+                    
                     if (subsession->rtcpInstance() != NULL) {
                         subsession->rtcpInstance()->setByeHandler(NULL, NULL); 
                     }
-
+                    
                     someSubsessionsWereActive = True;
                 }
             }
-
+            
             if (someSubsessionsWereActive) {
                 rtspClient->sendTeardownCommand(*scs.session, NULL);
             }
         }
-
+        
         env << "Closing the stream.\n";
         Medium::close(rtspClient);
     }

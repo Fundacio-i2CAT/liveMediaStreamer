@@ -5,7 +5,7 @@ extern "C" {
 #include <libavutil/avutil.h>
 }
 
-#include "VideoFrame.hh"
+#include "../../VideoFrame.hh"
 
 enum CodecType {H264, VP8, MJPEG, RAW};
 
@@ -18,7 +18,7 @@ class VideoDecoderLibav {
         bool decodeFrame(VideoFrame *codedFrame, VideoFrame *decodedFrame);
         bool configDecoder(CodecType cType, PixType pTyp);
         bool toBuffer(VideoFrame *decodedFrame);
-        int getFormat();
+        //int getFormat();
         
     private:
         AVCodec             *codec;

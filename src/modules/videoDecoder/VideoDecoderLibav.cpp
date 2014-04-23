@@ -41,7 +41,7 @@ bool VideoDecoderLibav::configDecoder(CodecType cType, PixType pType)
             break;
     }
     
-    frame = avcodec_alloc_frame();
+    frame = av_frame_alloc();
     
     codec = avcodec_find_decoder(codec_id);
     if (codec == NULL)
@@ -55,7 +55,7 @@ bool VideoDecoderLibav::configDecoder(CodecType cType, PixType pType)
         return false;
     }
     
-    codecCtx->get_format = &this->getFormat;
+    //codecCtx->get_format = &this->getFormat;
 
     //TODO: check why is it this
     if (codec->capabilities & CODEC_CAP_TRUNCATED){
@@ -69,14 +69,14 @@ bool VideoDecoderLibav::configDecoder(CodecType cType, PixType pType)
     //we can receive truncated frames
     codecCtx->flags2 |= CODEC_FLAG2_CHUNKS;
 
-    AVDictionary* dictionary = nullptr;
+    AVDictionary* dictionary = NULL;
     if (avcodec_open2(codecCtx, codec, &dictionary) < 0)
     {
         //TODO: error
         return false;
     }
     
-    frame = avcodec_alloc_frame();
+    frame = av_frame_alloc();
     
     return true;
 }
@@ -85,21 +85,22 @@ bool VideoDecoderLibav::toBuffer(VideoFrame *decodedFrame)
 {
     unsigned int length;
     
-    if (frame->format == codecCtx->get_format()){
+//    if (frame->format == codecCtx->get_format()){
     
-        length = avpicture_get_size(frame->dstFormat, codecCtx->width, 
-                                codecCtx->height)*sizeof(uint8_t));  
+        length = avpicture_get_size((AVPixelFormat) frame->format, codecCtx->width, 
+                                codecCtx->height)*sizeof(uint8_t);  
     
-        length = avpicture_layout((AVPicture *)frame, frame->format, codecCtx->width, codecCtx->height, decodedFrame->getFrame(), length);
+        length = avpicture_layout((AVPicture *)frame, (AVPixelFormat) frame->format, codecCtx->width, codecCtx->height, decodedFrame->getDataBuf(), length);
         
         if (length <= 0){
             return false;
         }
-    } else {
-        return false;
-    }
+//     } else {
+//         return false;
+//     }
    
-    decodedFrame->setFrameLength(length);
+    decodedFrame->setLength(length);
+    decodedFrame->setSize(codecCtx->width, codecCtx->height);
     
     return true;
 }
@@ -109,10 +110,10 @@ bool VideoDecoderLibav::decodeFrame(VideoFrame *codedFrame, VideoFrame *decodedF
     int len, gotFrame;
 
     pkt.size = codedFrame->getLength();
-    pkt.data = codedFrame->getFrame();
+    pkt.data = codedFrame->getDataBuf();
             
     while (pkt.size > 0) {
-        len = avcodec_decode_video2(codecCtx, frame, &gotFrame, pkt);
+        len = avcodec_decode_video2(codecCtx, frame, &gotFrame, &pkt);
 
         if(len < 0) {
             //TODO: error
@@ -137,23 +138,23 @@ bool VideoDecoderLibav::decodeFrame(VideoFrame *codedFrame, VideoFrame *decodedF
     return true;
 }
 
-int VideoDecoderLibav::getFormat(){
-    int pix_fmt;
-    
-    switch(fPixType){
-        case RGB24:
-            pix_fmt = PIX_FMT_RGB24;
-            break;
-        case RGB32:
-            pix_fmt = PIX_FMT_RGB32;
-            break;
-        case YUYV422:
-            pix_fmt = PIX_FMT_YUYV422;
-            break;
-        default:
-            //TODO: error
-            pix_fmt = -1;
-    }
-    
-    return pix_fmt;
-}
+// int VideoDecoderLibav::getFormat(){
+//     int pix_fmt;
+//     
+//     switch(fPixType){
+//         case RGB24:
+//             pix_fmt = PIX_FMT_RGB24;
+//             break;
+//         case RGB32:
+//             pix_fmt = PIX_FMT_RGB32;
+//             break;
+//         case YUYV422:
+//             pix_fmt = PIX_FMT_YUYV422;
+//             break;
+//         default:
+//             //TODO: error
+//             pix_fmt = -1;
+//     }
+//     
+//     return pix_fmt;
+// }

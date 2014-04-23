@@ -21,19 +21,16 @@
  *            
  */
 
-#ifndef _HANDLERS_UTILS_HH
-#define _HANDLERS_UTILS_HH
+#ifndef _HANDLERS_HH
+#define _HANDLERS_HH
 
-namespace HandlersUtils
+#include <RTSPClient.hh>
+
+namespace handlers
 {
-    static void continueAfterDESCRIBE(RTSPClient* rtspClient, int resultCode, char* resultString);
-    static void continueAfterSETUP(RTSPClient* rtspClient, int resultCode, char* resultString);
-    static void continueAfterPLAY(RTSPClient* rtspClient, int resultCode, char* resultString);
-    static void subsessionAfterPlaying(void* clientData);
-    static void subsessionByeHandler(void* clientData);
-    static void setupNextSubsession(RTSPClient* rtspClient);
-    static void streamTimerHandler(void* clientData);
-    static void shutdownStream(RTSPClient* rtspClient);
+    void continueAfterDESCRIBE(RTSPClient* rtspClient, int resultCode, char* resultString);
+    void subsessionAfterPlaying(void* clientData);
+    void subsessionByeHandler(void* clientData);
     
 };
 

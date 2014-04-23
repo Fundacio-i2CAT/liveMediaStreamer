@@ -27,7 +27,7 @@
 #define _EXTENDED_RTSP_CLIENT_HH
 
 #include "ExtendedMediaSession.hh"
-#include <RTSPClient.hh>
+#include <liveMedia/liveMedia.hh>
 
 class StreamClientState {
 public:

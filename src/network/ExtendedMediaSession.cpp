@@ -21,7 +21,7 @@
  *            
  */
 
-#include <BasicUsageEnvironment.hh>
+#include <BasicUsageEnvironment/BasicUsageEnvironment.hh>
 #include "ExtendedMediaSession.hh"
 
 

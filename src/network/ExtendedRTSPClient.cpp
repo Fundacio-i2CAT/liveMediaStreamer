@@ -24,7 +24,7 @@
 #include "ExtendedRTSPClient.hh"
 //TODO: this dependence shouldn't be here
 #include "SourceManager.hh"
-#include <BasicUsageEnvironment.hh>
+#include <BasicUsageEnvironment/BasicUsageEnvironment.hh>
 
 
 //Handlers

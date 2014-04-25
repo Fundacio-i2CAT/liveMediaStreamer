@@ -25,15 +25,20 @@
 #include "ExtendedMediaSession.hh"
 #include "ExtendedRTSPClient.hh"
 #include "Handlers.hh"
+#include "QueueSink.hh"
 #include <liveMedia/liveMedia.hh>
 
 #define RTSP_CLIENT_VERBOSITY_LEVEL 1
 #define FILE_SINK_RECEIVE_BUFFER_SIZE 200000
+#define CODED_VIDEO_FRAMES 512 //about one second at 25fps
+#define CODED_AUDIO_FRAMES 1024
+#define MAX_AUDIO_FRAME_SIZE 2048
+#define MAX_VIDEO_FRAME_SIZE 100000
 
 SourceManager *SourceManager::mngrInstance = NULL;
 
 SourceManager::SourceManager():
-    sessionList(HashTable::create(ONE_WORD_HASH_KEYS)), run(False), watch(0)
+    sessionList(HashTable::create(ONE_WORD_HASH_KEYS)), watch(0)
 {    
     TaskScheduler* scheduler = BasicTaskScheduler::createNew();
     this->env = BasicUsageEnvironment::createNew(*scheduler);
@@ -80,29 +85,23 @@ void *startServer(void *args)
 
 Boolean SourceManager::runManager()
 {
-    int ret;
     watch = 0;
-    ret = pthread_create(&mngrTh, NULL, startServer, &watch);
-    if (ret == 0){
-        run = True;
-    } else {
-        run = False;
-    }
-    return run;
+    mngrTh = std::thread(std::bind(startServer, &watch));
+    return mngrTh.joinable();
 }
 
 Boolean SourceManager::stopManager()
 {
     watch = 1;
-    if (run){
-        pthread_join(mngrTh, NULL);
+    if (mngrTh.joinable()){
+        mngrTh.join();
     }
     return True;
 }
 
 Boolean SourceManager::isRunning()
 {
-    return run;
+    return mngrTh.joinable();
 }
 
 Boolean SourceManager::addSession(char* id, char* mediaSessionType, char* sessionName, char* sessionDescription)
@@ -259,22 +258,30 @@ Session::~Session() {
 
 Boolean Session::addSubsessionSink(UsageEnvironment& env, MediaSubsession *subsession)
 {
-    char fileName[100];
-    strcpy(fileName,subsession->parentSession().sessionName());
-    strcat(fileName, subsession->mediumName());
-    strcat(fileName, ".");
-    strcat(fileName, subsession->codecName());
-    
-    //TODO: this should use or default queueSink
+//     char fileName[100];
+//     strcpy(fileName,subsession->parentSession().sessionName());
+//     strcat(fileName, subsession->mediumName());
+//     strcat(fileName, ".");
+//     strcat(fileName, subsession->codecName());
+//     
+//     //TODO: this should use or default queueSink
+//     if (strcmp(subsession->mediumName(), "audio") == 0) {
+//         subsession->sink = FileSink::createNew(env, 
+//                                                fileName, 
+//                                                FILE_SINK_RECEIVE_BUFFER_SIZE, False);
+//     } else if (strcmp(subsession->mediumName(), "video") == 0 && 
+//         strcmp(subsession->codecName(), "H264") == 0) {
+//         subsession->sink = H264VideoFileSink::createNew(env, 
+//                                                fileName,
+//                                                subsession->fmtp_spropparametersets(), FILE_SINK_RECEIVE_BUFFER_SIZE, False);
+//     }
+
     if (strcmp(subsession->mediumName(), "audio") == 0) {
-        subsession->sink = FileSink::createNew(env, 
-                                               fileName, 
-                                               FILE_SINK_RECEIVE_BUFFER_SIZE, False);
-    } else if (strcmp(subsession->mediumName(), "video") == 0 && 
-        strcmp(subsession->codecName(), "H264") == 0) {
-        subsession->sink = H264VideoFileSink::createNew(env, 
-                                               fileName,
-                                               subsession->fmtp_spropparametersets(), FILE_SINK_RECEIVE_BUFFER_SIZE, False);
+        FrameQueue *aQueue = FrameQueue::createNew(CODED_AUDIO_FRAMES, MAX_AUDIO_FRAME_SIZE, 0);
+        subsession->sink = QueueSink::createNew(env, aQueue);
+    } else if (strcmp(subsession->mediumName(), "video") == 0) { 
+        FrameQueue *vQueue = FrameQueue::createNew(CODED_VIDEO_FRAMES, MAX_VIDEO_FRAME_SIZE, 0);
+        subsession->sink = QueueSink::createNew(env, vQueue);
     }
     
     if (subsession->sink == NULL){

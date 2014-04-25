@@ -24,7 +24,7 @@
 #define _SOURCE_MANAGER_HH
 
 #include <liveMedia/RTSPClient.hh>
-#include <pthread.h>
+#include <thread>
 #include <BasicUsageEnvironment/BasicUsageEnvironment.hh>
 
 #define ID_LENGTH 4
@@ -60,12 +60,11 @@ public:
     
 private:
       
-    pthread_t mngrTh;
+    std::thread mngrTh;
     
     static SourceManager* mngrInstance;
     HashTable* sessionList;
     UsageEnvironment* env;
-    Boolean run;
     uint8_t watch;
     
 };

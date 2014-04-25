@@ -81,7 +81,7 @@ bool VideoDecoderLibav::configDecoder(CodecType cType, PixType pType)
     return true;
 }
 
-bool VideoDecoderLibav::toBuffer(VideoFrame *decodedFrame)
+bool VideoDecoderLibav::toBuffer(Frame *decodedFrame)
 {
     unsigned int length;
     
@@ -105,7 +105,7 @@ bool VideoDecoderLibav::toBuffer(VideoFrame *decodedFrame)
     return true;
 }
 
-bool VideoDecoderLibav::decodeFrame(VideoFrame *codedFrame, VideoFrame *decodedFrame)
+bool VideoDecoderLibav::decodeFrame(Frame *codedFrame, Frame *decodedFrame)
 {     
     int len, gotFrame;
 

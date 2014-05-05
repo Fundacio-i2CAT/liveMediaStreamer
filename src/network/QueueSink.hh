@@ -1,7 +1,7 @@
 #ifndef _QUEUE_SINK_HH
 #define _QUEUE_SINK_HH
 
-#include <MediaSink.hh>
+#include <liveMedia.hh>
 #ifndef _FRAME_QUEUE_HH
 #include "../Frame.hh"
 #include "../FrameQueue.hh"
@@ -10,10 +10,10 @@
 class QueueSink: public MediaSink {
 
 public:
-    static QueueSink* createNew(UsageEnvironment& env, FrameQueue *q);
+    static QueueSink* createNew(UsageEnvironment& env, char const* mediumName);
 
 protected:
-    QueueSink(UsageEnvironment& env, FrameQueue *q);
+    QueueSink(UsageEnvironment& env, char const* mediumName);
 
 
 protected: 

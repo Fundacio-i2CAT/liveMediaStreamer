@@ -26,8 +26,9 @@
 #ifndef _EXTENDED_RTSP_CLIENT_HH
 #define _EXTENDED_RTSP_CLIENT_HH
 
-#include "ExtendedMediaSession.hh"
-#include <liveMedia/liveMedia.hh>
+
+#include <liveMedia.hh>
+#include <BasicUsageEnvironment.hh>
 
 class StreamClientState {
 public:
@@ -49,10 +50,6 @@ public:
                   char const* applicationName = NULL,
                   portNumBits tunnelOverHTTPPortNum = 0);
     
-    //TODO: should they be static and defined inside the class?
-    static void continueAfterDESCRIBE(RTSPClient* rtspClient, int resultCode, char* resultString);
-    static void continueAfterSETUP(RTSPClient* rtspClient, int resultCode, char* resultString);
-    static void continueAfterPLAY(RTSPClient* rtspClient, int resultCode, char* resultString);
 
 protected:
     ExtendedRTSPClient(UsageEnvironment& env, char const* rtspURL,

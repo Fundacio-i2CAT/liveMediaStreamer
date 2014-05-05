@@ -18,11 +18,11 @@ void QueueSource::doGetNextFrame() {
             (TaskFunc*)QueueSource::staticDoGetNextFrame, this);
         return;
     }
-
-    memcpy(fTo, frame->getBuffer(), frame->getBufferLen());
-    fFrameSize = frame->getBufferLen(); // out
-    gettimeofday(&fPresentationTime, NULL); // out
-    fNumTruncatedBytes = 0; // out
+    
+    fFrameSize = frame->getLength();
+    memcpy(fTo, frame->getDataBuf(), fFrameSize);
+    fPresentationTime = frame->getPresentationTime();
+    fNumTruncatedBytes = 0; 
     queue->removeFrame();
 
     afterGetting(this);

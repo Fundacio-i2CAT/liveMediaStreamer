@@ -22,13 +22,6 @@
  */
 
 #include "ExtendedRTSPClient.hh"
-//TODO: this dependence shouldn't be here
-#include "SourceManager.hh"
-#include <BasicUsageEnvironment/BasicUsageEnvironment.hh>
-
-
-//Handlers
-
 
 
 ExtendedRTSPClient* ExtendedRTSPClient::createNew(UsageEnvironment& env, char const* rtspURL,

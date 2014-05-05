@@ -1,5 +1,5 @@
 /*
- *  SourceManager.hh - Class that handles multiple sessions dynamically.
+ *  SinkManager.hh - Class that handles multiple server sessions dynamically.
  *  Copyright (C) 2014  Fundació i2CAT, Internet i Innovació digital a Catalunya
  *
  *  This file is part of liveMediaStreamer.
@@ -20,70 +20,59 @@
  *  Authors:  David Cassany <david.cassany@i2cat.net>,
  *            
  */
-#ifndef _SOURCE_MANAGER_HH
-#define _SOURCE_MANAGER_HH
+#ifndef _SINK_MANAGER_HH
+#define _SINK_MANAGER_HH
 
-#include <liveMedia.hh>
+#define RTSP_PORT 8554
+
 #include <BasicUsageEnvironment.hh>
+#include <liveMedia.hh>
 #include <thread>
-#include <map>
+
 
 #define ID_LENGTH 4
 
-class Session;
 
-class SourceManager {
+class SinkManager {
 private:
-    SourceManager();
+    SinkManager();
     
 public:
-    static SourceManager* getInstance();
+    static SinkManager* getInstance();
     static void destroyInstance();
-      
-    bool runManager();
-    bool stopManager();
-    bool isRunning();
+    
+    //TODO: common with source manager, shall we add it in handlers namespace?
+    static void randomIdGenerator(char *s, const int len);
+    
+    Boolean runManager();
+    Boolean stopManager();
+    Boolean isRunning();
     
     void closeManager();
 
-    //Manually or RTSP or SDP
-    bool addSession(std::string id, Session* session);
-    Session* getSession(std::string id);
+    Boolean addSession(char* id, char const* streamName = NULL,
+                       char const* info = NULL,
+                       char const* description = NULL);
     
-    bool initiateAll();
-        
-    bool removeSession(std::string id);
+    ServerMediaSession* getSession(char* id); 
+    Boolean publishSession(char* id);
+    Boolean removeSession(char* id);
     
     UsageEnvironment* envir() { return env; }
     
 private:
-    static void* startServer(void *args);
       
     std::thread mngrTh;
     
-    static SourceManager* mngrInstance;
-    std::map<std::string, Session*> sessionList;
+    static SinkManager* mngrInstance;
+    HashTable* sessionList;
     UsageEnvironment* env;
     uint8_t watch;
     
+    RTSPServer* rtspServer;
+    
 };
 
-class Session {
-public:
-    static Session* createNewByURL(UsageEnvironment& env, std::string progName, std::string rtspURL);
-    static Session* createNew(UsageEnvironment& env, std::string sdp);
-    
-    virtual ~Session();
-    
-    bool initiateSession();
-    
-protected:
-    Session();
-    
-public:
-    RTSPClient* client;
-    MediaSession* session;
-    MediaSubsessionIterator* iter;
-};
+
 
 #endif

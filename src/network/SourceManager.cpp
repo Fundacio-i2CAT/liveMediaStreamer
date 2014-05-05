@@ -22,7 +22,6 @@
  */
 
 #include "SourceManager.hh"
-#include "ExtendedMediaSession.hh"
 #include "ExtendedRTSPClient.hh"
 #include "Handlers.hh"
 #include "QueueSink.hh"
@@ -30,43 +29,44 @@
 
 #define RTSP_CLIENT_VERBOSITY_LEVEL 1
 #define FILE_SINK_RECEIVE_BUFFER_SIZE 200000
-#define CODED_VIDEO_FRAMES 512 //about one second at 25fps
-#define CODED_AUDIO_FRAMES 1024
-#define MAX_AUDIO_FRAME_SIZE 2048
-#define MAX_VIDEO_FRAME_SIZE 100000
+
 
 SourceManager *SourceManager::mngrInstance = NULL;
 
-SourceManager::SourceManager():
-    sessionList(HashTable::create(ONE_WORD_HASH_KEYS)), watch(0)
+SourceManager::SourceManager(): watch(0)
 {    
     TaskScheduler* scheduler = BasicTaskScheduler::createNew();
     this->env = BasicUsageEnvironment::createNew(*scheduler);
     
-    
     mngrInstance = this;
 }
 
-SourceManager* 
-SourceManager::getInstance(){
+SourceManager* SourceManager::getInstance(){
     if (mngrInstance != NULL){
         return mngrInstance;
     }
-    srand(time(NULL));
+    
     return new SourceManager();
 }
 
 void SourceManager::closeManager()
 {
-    //TODO:
+    if (this->isRunning()){
+        this->stopManager();
+    }
 }
 
 void SourceManager::destroyInstance()
 {
-    //TODO:
+    SourceManager * mngrInstance = SourceManager::getInstance();
+    if (mngrInstance != NULL){
+        mngrInstance->closeManager();
+        delete[] mngrInstance;
+        mngrInstance = NULL;
+    }
 }
 
-void *startServer(void *args)
+void* SourceManager::startServer(void *args)
 {
     char* watch = (char*) args;
     SourceManager* instance = SourceManager::getInstance();
@@ -83,108 +83,74 @@ void *startServer(void *args)
     return NULL;
 }
 
-Boolean SourceManager::runManager()
+bool SourceManager::runManager()
 {
     watch = 0;
-    mngrTh = std::thread(std::bind(startServer, &watch));
+    mngrTh = std::thread(std::bind(SourceManager::startServer, &watch));
     return mngrTh.joinable();
 }
 
-Boolean SourceManager::stopManager()
+bool SourceManager::stopManager()
 {
     watch = 1;
     if (mngrTh.joinable()){
         mngrTh.join();
     }
-    return True;
+    return true;
 }
 
-Boolean SourceManager::isRunning()
+bool SourceManager::isRunning()
 {
     return mngrTh.joinable();
 }
 
-Boolean SourceManager::addSession(char* id, char* mediaSessionType, char* sessionName, char* sessionDescription)
+bool SourceManager::addSession(std::string id, Session* session)
 {   
-    Session* session = Session::createNew(*(this->env), mediaSessionType, sessionName, sessionDescription);
-    if (session == NULL){
-        envir()->setResultMsg("Failed creating a new session Session");
-        return False;
+    if (sessionList.find(id) != sessionList.end()){
+        envir()->setResultMsg("Failed adding session! Duplicated id!\n");
+        return false;
     }
+    sessionList[id] = session;
     
-    sessionList->Add(id, session);
-    
-    return True;
+    return true;
 }
 
-Boolean SourceManager::addRTSPSession(char* id, char const* progName, char const* rtspURL)
+
+
+bool SourceManager::removeSession(std::string id)
 {   
-    Session* session = Session::createNewByURL(*(this->env), progName, rtspURL);
-    if (session == NULL){
-        envir()->setResultMsg("Failed creating a new session Session");
-        return False;
+    if (sessionList.find(id) == sessionList.end()){
+        envir()->setResultMsg("Failed, no session with this id!\n");
+        return false;
     }
     
-    sessionList->Add(id, session);
+    sessionList.erase(sessionList.find(id));
     
-    return True;
+    return true;
 }
 
-Boolean SourceManager::removeSession(char* id)
+Session* SourceManager::getSession(std::string id)
 {
-    Boolean closed;
-    MediaSession* session;
-    
-    if ((session = (MediaSession *) sessionList->Lookup(id)) == NULL){
-        return False;
+    if(sessionList.find(id) != sessionList.end()){
+        return sessionList[id];
     }
-    
-    //TODO: manage closure
-    //closed = session->close();
-    
-    //if (closed){
-    //    return sessionList->remove(id);
-    //}
-    
-    return False;
+        
+    return NULL;
 }
 
-Session* SourceManager::getSession(char* sessionId)
+bool SourceManager::initiateAll()
 {
-    Session* session;
-    session = (Session*) sessionList->Lookup(sessionId);
-    
-    return session;
-}
-
-Boolean SourceManager::initiateAll()
-{
-    char const* id = (char *)malloc((ID_LENGTH+1)*sizeof(char));
-    Boolean init = False;
-    Session* session;
-    HashTable::Iterator* iter = HashTable::Iterator::create(*sessionList);
-    session = (Session *) iter->next(id);
-    while (session != NULL){
-        if (session->initiateSession()){
-            init = True;
+    bool init = false;
+    std::map<std::string,Session*>::iterator it;
+    for (it=sessionList.begin(); it!=sessionList.end(); ++it){
+        if (it->second->initiateSession()){
+            init = true;
         }
-        session = (Session *) iter->next(id);
     }
+    
     return init;
 }
 
-void SourceManager::randomIdGenerator(char *s, const int len) {
-    static const char alphanum[] =
-        "0123456789"
-        "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-        "abcdefghijklmnopqrstuvwxyz";
-
-    for (int i = 0; i < len; ++i) {
-        s[i] = alphanum[rand() % (sizeof(alphanum) - 1)];
-    }
-
-    s[len] = 0;
-}
 
 // Implementation of "Session"
 
@@ -192,37 +158,36 @@ Session::Session()
   : session(NULL), client(NULL), iter(NULL) {
 }
 
-Session* Session::createNew(UsageEnvironment& env, char* mediaSessionType, char* sessionName, char* sessionDescription)
+Session* Session::createNew(UsageEnvironment& env, std::string sdp)
 {    
     Session* newSession = new Session();
-    ExtendedMediaSession* mSession = ExtendedMediaSession::createNew(env);
+    MediaSession* mSession = MediaSession::createNew(env, sdp.c_str());
     
     if (mSession == NULL){
+        delete[] newSession;
         return NULL;
     }
     
-    mSession->setMediaSession(mediaSessionType, sessionName, sessionDescription);
-    
-    newSession->session = (MediaSession*) mSession;
+    newSession->session = mSession;
     
     return newSession;
 }
 
-Session* Session::createNewByURL(UsageEnvironment& env, char const* progName, char const* rtspURL)
+Session* Session::createNewByURL(UsageEnvironment& env, std::string progName, std::string rtspURL)
 {
     Session* session = new Session();
     
     
-    RTSPClient* rtspClient = ExtendedRTSPClient::createNew(env, rtspURL, RTSP_CLIENT_VERBOSITY_LEVEL, progName);
+    RTSPClient* rtspClient = ExtendedRTSPClient::createNew(env, rtspURL.c_str(), RTSP_CLIENT_VERBOSITY_LEVEL, progName.c_str());
     if (rtspClient == NULL) {
-        env << "Failed to create a RTSP client for URL \"" << rtspURL << "\": " << env.getResultMsg() << "\n";
+        env << "Failed to create a RTSP client for URL \"" << rtspURL.c_str() << "\": " << env.getResultMsg() << "\n";
         return NULL;
     }
     
     session->client = rtspClient;
 }
 
-Boolean Session::initiateSession()
+bool Session::initiateSession()
 {
     MediaSubsession* subsession;
     
@@ -233,7 +198,7 @@ Boolean Session::initiateSession()
         while (subsession != NULL) {
             if (!subsession->initiate()) {
                 env << "Failed to initiate the subsession: " << env.getResultMsg() << "\n";
-            } else if (!addSubsessionSink(env, subsession)){
+            } else if (!handlers::addSubsessionSink(env, subsession)){
                 env << "Failed to initiate subsession sink\n";
                 subsession->deInitiate();
             } else {
@@ -241,62 +206,33 @@ Boolean Session::initiateSession()
             }
             subsession = this->iter->next();
         }
-        return True;
+        return true;
     } else if (this->client != NULL){
         this->client->sendDescribeCommand(handlers::continueAfterDESCRIBE);
-        return True;
+        return true;
     }
     
-    return False;
+    return false;
 }
 
 Session::~Session() {
-    //TODO: finalize RTSPClient if any and MediaSession
-    delete iter;
+    MediaSubsession* subsession;
+    this->iter = new MediaSubsessionIterator(*(this->session));
+    subsession = this->iter->next();
+    while (subsession != NULL) {
+        subsession->deInitiate();
+        Medium::close(subsession->sink);
+        subsession = this->iter->next();
+    }
+    Medium::close(this->session);
+    delete[] iter;
+    
+    if (client != NULL) {
+        Medium::close(client);
+    }
 }
 
 
-Boolean Session::addSubsessionSink(UsageEnvironment& env, MediaSubsession *subsession)
-{
-//     char fileName[100];
-//     strcpy(fileName,subsession->parentSession().sessionName());
-//     strcat(fileName, subsession->mediumName());
-//     strcat(fileName, ".");
-//     strcat(fileName, subsession->codecName());
-//     
-//     //TODO: this should use or default queueSink
-//     if (strcmp(subsession->mediumName(), "audio") == 0) {
-//         subsession->sink = FileSink::createNew(env, 
-//                                                fileName, 
-//                                                FILE_SINK_RECEIVE_BUFFER_SIZE, False);
-//     } else if (strcmp(subsession->mediumName(), "video") == 0 && 
-//         strcmp(subsession->codecName(), "H264") == 0) {
-//         subsession->sink = H264VideoFileSink::createNew(env, 
-//                                                fileName,
-//                                                subsession->fmtp_spropparametersets(), FILE_SINK_RECEIVE_BUFFER_SIZE, False);
-//     }
 
-    if (strcmp(subsession->mediumName(), "audio") == 0) {
-        FrameQueue *aQueue = FrameQueue::createNew(CODED_AUDIO_FRAMES, MAX_AUDIO_FRAME_SIZE, 0);
-        subsession->sink = QueueSink::createNew(env, aQueue);
-    } else if (strcmp(subsession->mediumName(), "video") == 0) { 
-        FrameQueue *vQueue = FrameQueue::createNew(CODED_VIDEO_FRAMES, MAX_VIDEO_FRAME_SIZE, 0);
-        subsession->sink = QueueSink::createNew(env, vQueue);
-    }
-    
-    if (subsession->sink == NULL){
-        return False;
-    }
-    
-    subsession->sink->startPlaying(*(subsession->readSource()),
-                       handlers::subsessionAfterPlaying, subsession);
-    
-    // Also set a handler to be called if a RTCP "BYE" arrives for this subsession:
-    if (subsession->rtcpInstance() != NULL) {
-        subsession->rtcpInstance()->setByeHandler(handlers::subsessionByeHandler, subsession);
-    }
-    
-    return True;
-}
 
 

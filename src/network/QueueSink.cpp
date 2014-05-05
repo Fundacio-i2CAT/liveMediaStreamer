@@ -2,12 +2,23 @@
 #include <iostream>
 #include <sys/time.h>
 
-QueueSink::QueueSink(UsageEnvironment& env, FrameQueue *q)
-  : MediaSink(env), queue(q) {}
+#define CODED_VIDEO_FRAMES 512 
+#define CODED_AUDIO_FRAMES 1024
+#define MAX_AUDIO_FRAME_SIZE 2048
+#define MAX_VIDEO_FRAME_SIZE 100000
 
-QueueSink* QueueSink::createNew(UsageEnvironment& env, FrameQueue *q) 
+QueueSink::QueueSink(UsageEnvironment& env, char const* mediumName)
+  : MediaSink(env) {
+    if (strcmp(mediumName, "audio") == 0) {
+        queue = FrameQueue::createNew(CODED_AUDIO_FRAMES, MAX_AUDIO_FRAME_SIZE, 0);
+    } else if (strcmp(mediumName, "video") == 0) {
+        queue = FrameQueue::createNew(CODED_VIDEO_FRAMES, MAX_VIDEO_FRAME_SIZE, 0);
+    }   
+}
+
+QueueSink* QueueSink::createNew(UsageEnvironment& env, char const* mediumName) 
 {
-    return new QueueSink(env, q);
+    return new QueueSink(env, mediumName);
 }
 
 Boolean QueueSink::continuePlaying() 

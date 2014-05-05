@@ -1,6 +1,7 @@
 #include "../src/network/SourceManager.hh"
-#include "../src/network/ExtendedMediaSession.hh"
-#include <liveMedia/liveMedia.hh>
+#include <liveMedia.hh>
+#include <string>
+#include "../src/network/Handlers.hh"
 
 
 #define V_MEDIUM "video"
@@ -25,48 +26,34 @@ void usage(UsageEnvironment& env, char const* progName) {
 
 int main(int argc, char** argv) 
 {   
-    char* sessionId;
+    std::string sessionId;
+    std::string sdp;
+    Session* session;
     SourceManager *mngr = SourceManager::getInstance();
     
-    if (argc < 2) {
-        usage(*(mngr->envir()), argv[0]);
-        return 1;
-    }
-
-    for (int i = 1; i <= argc-1; ++i) {
-        char* id = (char *)malloc((ID_LENGTH+1)*sizeof(char));
-        SourceManager::randomIdGenerator(id, ID_LENGTH);
-        if (! mngr->addRTSPSession(id, argv[0], argv[i])) {
-            *(mngr->envir()) << "\nFailed to create new session: " << id << "\n";
-        }
-    }
+//     if (argc < 2) {
+//         usage(*(mngr->envir()), argv[0]);
+//         return 1;
+//     }
+// 
+//     for (int i = 1; i <= argc-1; ++i) {
+//         sessionId = handlers::randomIdGenerator(ID_LENGTH);
+//         session = Session::createNewByURL(*(mngr->envir()), argv[0], argv[i]);
+//         mngr->addSession(sessionId, session);
+//     }
     
-    sessionId = (char *)malloc((ID_LENGTH+1)*sizeof(char));
-    SourceManager::randomIdGenerator(sessionId, ID_LENGTH);
+    sessionId = handlers::randomIdGenerator(ID_LENGTH);
     
-    if (! mngr->addSession(sessionId, (char *) V_MEDIUM, (char *)"testSession", (char *)"this is a test")){
-        *(mngr->envir()) << "\nFailed to create new session: " << sessionId << "\n";
-    }
+    sdp = handlers::makeSessionSDP("testSession", "this is a test");
     
-    Session *session = mngr->getSession(sessionId);
+    sdp += handlers::makeSubsessionSDP(V_MEDIUM, PROTOCOL, PAYLOAD, V_CODEC, 
+                                       BANDWITH, V_TIME_STMP_FREQ, V_CLIENT_PORT);
+    sdp += handlers::makeSubsessionSDP(A_MEDIUM, PROTOCOL, PAYLOAD, A_CODEC, 
+                                       BANDWITH, A_TIME_STMP_FREQ, A_CLIENT_PORT);
     
-    ExtendedMediaSession *mSession = (ExtendedMediaSession *) session->session;
+    session = Session::createNew(*(mngr->envir()), sdp);
     
-    
-    ExtendedMediaSubsession *vSubsession = ExtendedMediaSubsession::createNew(*mSession);
-     
-    vSubsession->setMediaSubsession((char *) V_MEDIUM, (char *) PROTOCOL, 
-                                   (unsigned char) PAYLOAD, (char *) V_CODEC, BANDWITH, 
-                                   V_TIME_STMP_FREQ, V_CLIENT_PORT);
-    
-    ExtendedMediaSubsession *aSubsession = ExtendedMediaSubsession::createNew(*mSession);
-    
-    aSubsession->setMediaSubsession((char *) A_MEDIUM, (char *) PROTOCOL, 
-                                   (unsigned char) PAYLOAD, (char *) A_CODEC, BANDWITH, 
-                                   A_TIME_STMP_FREQ, A_CLIENT_PORT);
-    
-    mSession->addSubsession(vSubsession);
-    mSession->addSubsession(aSubsession);
+    mngr->addSession(sessionId, session);
        
     mngr->runManager();
     

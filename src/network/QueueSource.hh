@@ -2,9 +2,9 @@
 #ifndef _QUEUE_SOURCE_HH
 #define _QUEUE_SOURCE_HH
 
-#include <FramedSource.hh>
+#include <liveMedia.hh>
 #ifndef _FRAME_QUEUE_HH
-#include "FrameQueue.hh"
+#include "../FrameQueue.hh"
 #endif
 
 class QueueSource: public FramedSource {

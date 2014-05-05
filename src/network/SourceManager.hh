@@ -43,13 +43,13 @@ public:
     static void destroyInstance();
       
     bool runManager();
-    bool stopManager();
     bool isRunning();
     
     void closeManager();
 
     bool addSession(std::string id, Session* session);
     Session* getSession(std::string id);
+    std::list<FrameQueue*> getInputs() {return inputs; };
     
     void addFrameQueue(FrameQueue* queue);
     //TODO: determine who has to call it, should it be public?
@@ -59,7 +59,7 @@ public:
         
     bool removeSession(std::string id);
     
-    UsageEnvironment* envir() { return env; }
+    UsageEnvironment* envir() { return env; };
     
 private:
     static void* startServer(void *args);

@@ -25,7 +25,6 @@
 #include "ExtendedRTSPClient.hh"
 #include "Handlers.hh"
 #include "QueueSink.hh"
-#include <liveMedia/liveMedia.hh>
 
 #define RTSP_CLIENT_VERBOSITY_LEVEL 1
 #define FILE_SINK_RECEIVE_BUFFER_SIZE 200000
@@ -51,8 +50,12 @@ SourceManager* SourceManager::getInstance(){
 
 void SourceManager::closeManager()
 {
+    sessionList.clear();
     if (this->isRunning()){
-        this->stopManager();
+        watch = 1;
+        if (mngrTh.joinable()){
+            mngrTh.join();
+        }
     }
 }
 
@@ -76,7 +79,6 @@ void* SourceManager::startServer(void *args)
     }
     instance->envir()->taskScheduler().doEventLoop(watch); 
     
-    instance->closeManager();
     delete &instance->envir()->taskScheduler();
     instance->envir()->reclaim();
     
@@ -88,15 +90,6 @@ bool SourceManager::runManager()
     watch = 0;
     mngrTh = std::thread(std::bind(SourceManager::startServer, &watch));
     return mngrTh.joinable();
-}
-
-bool SourceManager::stopManager()
-{
-    watch = 1;
-    if (mngrTh.joinable()){
-        mngrTh.join();
-    }
-    return true;
 }
 
 bool SourceManager::isRunning()
@@ -124,7 +117,7 @@ bool SourceManager::removeSession(std::string id)
         return false;
     }
     
-    sessionList.erase(sessionList.find(id));
+    sessionList.erase(id);
     
     return true;
 }

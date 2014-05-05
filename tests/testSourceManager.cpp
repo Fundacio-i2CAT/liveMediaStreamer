@@ -2,6 +2,8 @@
 #include <liveMedia.hh>
 #include <string>
 #include "../src/network/Handlers.hh"
+#include <iostream>
+#include <csignal>
 
 
 #define V_MEDIUM "video"
@@ -18,10 +20,14 @@
 #define A_TIME_STMP_FREQ 44100
 
 
-
-void usage(UsageEnvironment& env, char const* progName) {
-  env << "Usage: " << progName << " <rtsp-url-1> ... <rtsp-url-N>\n";
-  env << "\t(where each <rtsp-url-i> is a \"rtsp://\" URL)\n";
+void signalHandler( int signum )
+{
+    std::cout << "Interrupt signal (" << signum << ") received.\n";
+    
+    SourceManager *mngr = SourceManager::getInstance();
+    mngr->closeManager();
+    
+    std::cout << "Manager closed\n";
 }
 
 int main(int argc, char** argv) 
@@ -30,6 +36,8 @@ int main(int argc, char** argv)
     std::string sdp;
     Session* session;
     SourceManager *mngr = SourceManager::getInstance();
+    
+    signal(SIGINT, signalHandler); 
     
     for (int i = 1; i <= argc-1; ++i) {
         sessionId = handlers::randomIdGenerator(ID_LENGTH);
@@ -51,15 +59,12 @@ int main(int argc, char** argv)
     mngr->addSession(sessionId, session);
        
     mngr->runManager();
-    
-    sleep(5);
-    
+       
     mngr->initiateAll();
     
-    sleep(20);
-    
-    mngr->closeManager();
-    mngr->stopManager();
+    while(mngr->isRunning()){
+        sleep(1);
+    }
     
     return 0;
 }

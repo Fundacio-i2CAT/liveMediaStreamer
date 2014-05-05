@@ -78,28 +78,28 @@ void *startServer(void *args)
     return NULL;
 }
 
-Boolean SinkManager::runManager()
+bool SinkManager::runManager()
 {
     watch = 0;
     mngrTh = std::thread(std::bind(startServer, &watch));
     return mngrTh.joinable();
 }
 
-Boolean SinkManager::stopManager()
+bool SinkManager::stopManager()
 {
     watch = 1;
     if (mngrTh.joinable()){
         mngrTh.join();
     }
-    return True;
+    return true;
 }
 
-Boolean SinkManager::isRunning()
+bool SinkManager::isRunning()
 {
     return mngrTh.joinable();
 }
 
-Boolean SinkManager::addSession(char* id, char const* streamName, 
+bool SinkManager::addSession(char* id, char const* streamName, 
                                 char const* info, char const* description)
 {   
     ServerMediaSession* session = 
@@ -107,21 +107,20 @@ Boolean SinkManager::addSession(char* id, char const* streamName,
         
     if (session == NULL){
         envir()->setResultMsg("Failed creating a new server session");
-        return False;
+        return false;
     }
     
     sessionList->Add(id, session);
     
-    return True;
+    return true;
 }
 
-Boolean SinkManager::removeSession(char* id)
+bool SinkManager::removeSession(char* id)
 {
-    Boolean closed;
     ServerMediaSession* session;
     
     if ((session = (ServerMediaSession *) sessionList->Lookup(id)) == NULL){
-        return False;
+        return false;
     }
     
     //TODO: manage closure, should add RTSP reference?
@@ -129,25 +128,24 @@ Boolean SinkManager::removeSession(char* id)
     //RTSPServer::closeAllClientSessionsForServerMediaSession()
     //session->deleteAllSubsessions()
     
-    return False;
+    return false;
 }
 
-Boolean SinkManager::publishSession(char* id)
+bool SinkManager::publishSession(char* id)
 {
-    Boolean closed;
     ServerMediaSession* session;
     
     if ((session = (ServerMediaSession *) sessionList->Lookup(id)) == NULL){
-        return False;
+        return false;
     }
     
     if (rtspServer == NULL){
-        return False;
+        return false;
     }
     
     rtspServer->addServerMediaSession(session);
     
-    return True;
+    return true;
 }
 
 ServerMediaSession* SinkManager::getSession(char* sessionId)

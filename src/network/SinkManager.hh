@@ -44,19 +44,19 @@ public:
     //TODO: common with source manager, shall we add it in handlers namespace?
     static void randomIdGenerator(char *s, const int len);
     
-    Boolean runManager();
-    Boolean stopManager();
-    Boolean isRunning();
+    bool runManager();
+    bool stopManager();
+    bool isRunning();
     
     void closeManager();
 
-    Boolean addSession(char* id, char const* streamName = NULL,
+    bool addSession(char* id, char const* streamName = NULL,
                        char const* info = NULL,
                        char const* description = NULL);
     
     ServerMediaSession* getSession(char* id); 
-    Boolean publishSession(char* id);
-    Boolean removeSession(char* id);
+    bool publishSession(char* id);
+    bool removeSession(char* id);
     
     UsageEnvironment* envir() { return env; }
     

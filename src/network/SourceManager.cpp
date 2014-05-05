@@ -151,6 +151,15 @@ bool SourceManager::initiateAll()
     return init;
 }
 
+void SourceManager::addFrameQueue(FrameQueue* queue)
+{
+    inputs.push_back(queue);
+}
+
+void SourceManager::removeFrameQueue(FrameQueue* queue)
+{
+    inputs.remove(queue);
+}
 
 // Implementation of "Session"
 

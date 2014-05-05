@@ -10,10 +10,10 @@
 class QueueSink: public MediaSink {
 
 public:
-    static QueueSink* createNew(UsageEnvironment& env, char const* mediumName);
+    static QueueSink* createNew(UsageEnvironment& env, FrameQueue* queue);
 
 protected:
-    QueueSink(UsageEnvironment& env, char const* mediumName);
+    QueueSink(UsageEnvironment& env, FrameQueue* queue);
 
 
 protected: 

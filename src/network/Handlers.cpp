@@ -23,9 +23,15 @@
 
 #include "Handlers.hh"
 #include "ExtendedRTSPClient.hh"
+#include "SourceManager.hh"
 #include "QueueSink.hh"
 #include <sstream>
 #include <algorithm>
+
+#define CODED_VIDEO_FRAMES 512 
+#define CODED_AUDIO_FRAMES 1024
+#define MAX_AUDIO_FRAME_SIZE 2048
+#define MAX_VIDEO_FRAME_SIZE 100000
 
 
 namespace handlers 
@@ -264,12 +270,24 @@ namespace handlers
     }
     
     bool addSubsessionSink(UsageEnvironment& env, MediaSubsession *subsession)
-    {      
-        subsession->sink = QueueSink::createNew(env, subsession->mediumName());
+    {
+        FrameQueue* queue;
+        SourceManager* mngr;
+        
+        if (strcmp(subsession->mediumName(), "audio") == 0) {
+            queue = FrameQueue::createNew(CODED_AUDIO_FRAMES, MAX_AUDIO_FRAME_SIZE, 0);
+        } else if (strcmp(subsession->mediumName(), "video") == 0) {
+            queue = FrameQueue::createNew(CODED_VIDEO_FRAMES, MAX_VIDEO_FRAME_SIZE, 0);
+        }
+        
+        subsession->sink = QueueSink::createNew(env, queue);
         
         if (subsession->sink == NULL){
             return false;
         }
+        
+        mngr = SourceManager::getInstance();
+        mngr->addFrameQueue(queue);
         
         subsession->sink->startPlaying(*(subsession->readSource()),
                                        handlers::subsessionAfterPlaying, subsession);
@@ -281,3 +299,9 @@ namespace handlers
         return true;
     }
 };
+
+
+
+
+
+

@@ -27,6 +27,8 @@
 #include <BasicUsageEnvironment.hh>
 #include <thread>
 #include <map>
+#include <list>
+#include "../FrameQueue.hh"
 
 #define ID_LENGTH 4
 
@@ -46,9 +48,12 @@ public:
     
     void closeManager();
 
-    //Manually or RTSP or SDP
     bool addSession(std::string id, Session* session);
     Session* getSession(std::string id);
+    
+    void addFrameQueue(FrameQueue* queue);
+    //TODO: determine who has to call it, should it be public?
+    void removeFrameQueue(FrameQueue* queue);
     
     bool initiateAll();
         
@@ -63,6 +68,7 @@ private:
     
     static SourceManager* mngrInstance;
     std::map<std::string, Session*> sessionList;
+    std::list<FrameQueue*> inputs;
     UsageEnvironment* env;
     uint8_t watch;
     

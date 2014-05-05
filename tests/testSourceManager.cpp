@@ -31,16 +31,11 @@ int main(int argc, char** argv)
     Session* session;
     SourceManager *mngr = SourceManager::getInstance();
     
-//     if (argc < 2) {
-//         usage(*(mngr->envir()), argv[0]);
-//         return 1;
-//     }
-// 
-//     for (int i = 1; i <= argc-1; ++i) {
-//         sessionId = handlers::randomIdGenerator(ID_LENGTH);
-//         session = Session::createNewByURL(*(mngr->envir()), argv[0], argv[i]);
-//         mngr->addSession(sessionId, session);
-//     }
+    for (int i = 1; i <= argc-1; ++i) {
+        sessionId = handlers::randomIdGenerator(ID_LENGTH);
+        session = Session::createNewByURL(*(mngr->envir()), argv[0], argv[i]);
+        mngr->addSession(sessionId, session);
+    }
     
     sessionId = handlers::randomIdGenerator(ID_LENGTH);
     
@@ -63,12 +58,9 @@ int main(int argc, char** argv)
     
     sleep(20);
     
+    mngr->closeManager();
+    mngr->stopManager();
+    
     return 0;
 }
-
-
-
-
-
-
 

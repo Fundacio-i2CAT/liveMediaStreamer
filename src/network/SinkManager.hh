@@ -28,9 +28,8 @@
 #include <BasicUsageEnvironment.hh>
 #include <liveMedia.hh>
 #include <thread>
-
-
-#define ID_LENGTH 4
+#include <map>
+#include <string>
 
 
 class SinkManager {
@@ -40,23 +39,17 @@ private:
 public:
     static SinkManager* getInstance();
     static void destroyInstance();
-    
-    //TODO: common with source manager, shall we add it in handlers namespace?
-    static void randomIdGenerator(char *s, const int len);
-    
-    Boolean runManager();
-    Boolean stopManager();
-    Boolean isRunning();
+
+    bool runManager();
+    bool isRunning();
     
     void closeManager();
 
-    Boolean addSession(char* id, char const* streamName = NULL,
-                       char const* info = NULL,
-                       char const* description = NULL);
+    bool addSession(std::string id, ServerMediaSession* session);
     
-    ServerMediaSession* getSession(char* id); 
-    Boolean publishSession(char* id);
-    Boolean removeSession(char* id);
+    ServerMediaSession* getSession(std::string id); 
+    bool publishSession(std::string id);
+    bool removeSession(std::string id);
     
     UsageEnvironment* envir() { return env; }
     
@@ -65,7 +58,7 @@ private:
     std::thread mngrTh;
     
     static SinkManager* mngrInstance;
-    HashTable* sessionList;
+    std::map<std::string, ServerMediaSession*> sessionList;
     UsageEnvironment* env;
     uint8_t watch;
     

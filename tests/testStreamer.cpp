@@ -1,7 +1,11 @@
 #include "../src/network/SourceManager.hh"
-#include "../src/network/SinkManager.hh"
-#include "../src/network/ExtendedMediaSession.hh"
 #include <liveMedia.hh>
+#include <string>
+#include "../src/network/Handlers.hh"
+#include <iostream>
+#include <csignal>
+#include "../src/network/H264QueueServerMediaSubsession.hh"
+#include "../src/network/SinkManager.hh"
 
 
 #define V_MEDIUM "video"
@@ -12,79 +16,63 @@
 #define V_CLIENT_PORT 6004
 #define V_TIME_STMP_FREQ 90000
 
-#define A_CODEC "AAC"
+#define A_CODEC "AC3"
 #define A_CLIENT_PORT 6006
 #define A_MEDIUM "audio"
 #define A_TIME_STMP_FREQ 44100
 
 
-
-void usage(UsageEnvironment& env, char const* progName) {
-  env << "Usage: " << progName << " NO ARGUMENTS!\n";
+void signalHandler( int signum )
+{
+    std::cout << "Interrupt signal (" << signum << ") received.\n";
+    
+    SourceManager *mngr = SourceManager::getInstance();
+    SinkManager* sMngr = SinkManager::getInstance();
+    mngr->closeManager();
+    sMngr->closeManager();
+    
+    std::cout << "Managers closed\n";
 }
 
 int main(int argc, char** argv) 
 {   
-    char* sessionId;
-    bool run = true;
+    std::string sessionId;
+    std::string sdp;
+    Session* session;
+    ServerMediaSession* sSession;
+    SourceManager* mngr = SourceManager::getInstance();
+    SinkManager* sMngr = SinkManager::getInstance();
+    FrameQueue* queue;
     
-    SourceManager *mngr = SourceManager::getInstance();
-    SinkManager sMngr = SinkManager::getInstance();
-       
-    mngr->runManager();
+    signal(SIGINT, signalHandler); 
+    
     sMngr->runManager();
+    mngr->runManager();
     
-    //Receiver
-    
-    sessionId = (char *)malloc((ID_LENGTH+1)*sizeof(char));
-    SourceManager::randomIdGenerator(sessionId, ID_LENGTH);
-    
-    if (! mngr->addSession(sessionId, (char *) V_MEDIUM, (char *)"testSession", (char *)"this is a test")){
-        *(mngr->envir()) << "\nFailed to create new session: " << sessionId << "\n";
+    for (int i = 1; i <= argc-1; ++i) {
+        sessionId = handlers::randomIdGenerator(ID_LENGTH);
+        session = Session::createNewByURL(*(mngr->envir()), argv[0], argv[i]);
+        mngr->addSession(sessionId, session);
     }
-    
-    Session *session = mngr->getSession(sessionId);
-    
-    ExtendedMediaSession *mSession = (ExtendedMediaSession *) session->session;
-    
-    
-    ExtendedMediaSubsession *vSubsession = ExtendedMediaSubsession::createNew(*mSession);
-     
-    vSubsession->setMediaSubsession((char *) V_MEDIUM, (char *) PROTOCOL, 
-                                   (unsigned char) PAYLOAD, (char *) V_CODEC, BANDWITH, 
-                                   V_TIME_STMP_FREQ, V_CLIENT_PORT);
-    
-    ExtendedMediaSubsession *aSubsession = ExtendedMediaSubsession::createNew(*mSession);
-    
-    aSubsession->setMediaSubsession((char *) A_MEDIUM, (char *) PROTOCOL, 
-                                   (unsigned char) PAYLOAD, (char *) A_CODEC, BANDWITH, 
-                                   A_TIME_STMP_FREQ, A_CLIENT_PORT);
-    
-    mSession->addSubsession(vSubsession);
-    mSession->addSubsession(aSubsession);
-    
+  
     mngr->initiateAll();
     
-    //Transmitter
-    char const* streamName = "h264_test";
-    char const* description = "restreaming h264 data";
+    sSession = ServerMediaSession::createNew(*(sMngr->envir()), "serverTestSession", 
+                                             "serverTestSession", 
+                                             "this is a server test");
+    sleep(1);
     
-    SinkManager::randomIdGenerator(sessionId, ID_LENGTH);
-    if (! sMngr->addSession(sessionId, streamName, streamName, description)){
-        return -1;
-    }        
-        
-    ServerMediaSession* sSession  = Mngr->getSession(sessionId); 
-    if (sSession == NULL){
-        return -1;
-    }
+    queue = mngr->getInputs().front();
     
-    sSession->addSubsession(H264QueueServerMediaSession
-               ::createNew(sMngr->envir(), queue, False));
+    sSession->addSubsession(H264QueueServerMediaSubsession::createNew(*(sMngr->envir()), 
+                                                                      queue, False));
     
+    sessionId = handlers::randomIdGenerator(ID_LENGTH);
+    sMngr->addSession(sessionId, sSession);
+    sMngr->publishSession(sessionId);
     
-    while(run){
-        usleep(1000);
+    while(mngr->isRunning() || sMngr->isRunning()){
+        sleep(1);
     }
     
     return 0;

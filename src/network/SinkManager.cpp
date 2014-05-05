@@ -27,8 +27,7 @@
 
 SinkManager *SinkManager::mngrInstance = NULL;
 
-SinkManager::SinkManager():
-    sessionList(HashTable::create(ONE_WORD_HASH_KEYS)), watch(0)
+SinkManager::SinkManager(): watch(0)
 {    
     TaskScheduler* scheduler = BasicTaskScheduler::createNew();
     this->env = BasicUsageEnvironment::createNew(*scheduler);
@@ -53,7 +52,10 @@ SinkManager::getInstance(){
 
 void SinkManager::closeManager()
 {
-    //TODO:
+    watch = 1;
+    if (mngrTh.joinable()){
+        mngrTh.join();
+    }
 }
 
 void SinkManager::destroyInstance()
@@ -71,104 +73,73 @@ void *startServer(void *args)
     }
     instance->envir()->taskScheduler().doEventLoop(watch); 
     
-    instance->closeManager();
     delete &instance->envir()->taskScheduler();
     instance->envir()->reclaim();
     
     return NULL;
 }
 
-Boolean SinkManager::runManager()
+bool SinkManager::runManager()
 {
     watch = 0;
     mngrTh = std::thread(std::bind(startServer, &watch));
     return mngrTh.joinable();
 }
 
-Boolean SinkManager::stopManager()
-{
-    watch = 1;
-    if (mngrTh.joinable()){
-        mngrTh.join();
-    }
-    return True;
-}
 
-Boolean SinkManager::isRunning()
+bool SinkManager::isRunning()
 {
     return mngrTh.joinable();
 }
 
-Boolean SinkManager::addSession(char* id, char const* streamName, 
-                                char const* info, char const* description)
+bool SinkManager::addSession(std::string id, ServerMediaSession* session)
 {   
-    ServerMediaSession* session = 
-        ServerMediaSession::createNew(*env, streamName, info, description);
-        
-    if (session == NULL){
-        envir()->setResultMsg("Failed creating a new server session");
-        return False;
+    if (sessionList.find(id) != sessionList.end()){
+        envir()->setResultMsg("Failed adding session! Duplicated id!\n");
+        return false;
     }
-    
-    sessionList->Add(id, session);
-    
-    return True;
+    sessionList[id] = session;
+    return true;
 }
 
-Boolean SinkManager::removeSession(char* id)
-{
-    Boolean closed;
-    ServerMediaSession* session;
-    
-    if ((session = (ServerMediaSession *) sessionList->Lookup(id)) == NULL){
-        return False;
+bool SinkManager::removeSession(std::string id)
+{   
+    if (sessionList.find(id) == sessionList.end()){
+        envir()->setResultMsg("Failed, no session found with this id!\n");
+        return false;
     }
-    
+   
     //TODO: manage closure, should add RTSP reference?
     
     //RTSPServer::closeAllClientSessionsForServerMediaSession()
     //session->deleteAllSubsessions()
     
-    return False;
+    sessionList.erase(id);
+    
+    return false;
 }
 
-Boolean SinkManager::publishSession(char* id)
-{
-    Boolean closed;
-    ServerMediaSession* session;
-    
-    if ((session = (ServerMediaSession *) sessionList->Lookup(id)) == NULL){
-        return False;
+bool SinkManager::publishSession(std::string id)
+{  
+    if (sessionList.find(id) == sessionList.end()){
+        envir()->setResultMsg("Failed, no session found with this id!\n");
+        return false;
     }
     
     if (rtspServer == NULL){
-        return False;
+        return false;
     }
     
-    rtspServer->addServerMediaSession(session);
+    rtspServer->addServerMediaSession(sessionList[id]);
     
-    return True;
+    return true;
 }
 
-ServerMediaSession* SinkManager::getSession(char* sessionId)
+ServerMediaSession* SinkManager::getSession(std::string id)
 {
-    ServerMediaSession* session;
-    session = (ServerMediaSession*) sessionList->Lookup(sessionId);
-    
-    return session;
-}
-
-
-void SinkManager::randomIdGenerator(char *s, const int len) {
-    static const char alphanum[] =
-        "0123456789"
-        "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-        "abcdefghijklmnopqrstuvwxyz";
-
-    for (int i = 0; i < len; ++i) {
-        s[i] = alphanum[rand() % (sizeof(alphanum) - 1)];
+    if(sessionList.find(id) != sessionList.end()){
+        return sessionList[id];
     }
-
-    s[len] = 0;
+    
+    return NULL;
 }
-

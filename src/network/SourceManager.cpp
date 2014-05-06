@@ -24,7 +24,6 @@
 #include "SourceManager.hh"
 #include "ExtendedRTSPClient.hh"
 #include "Handlers.hh"
-#include "QueueSink.hh"
 
 #define RTSP_CLIENT_VERBOSITY_LEVEL 1
 #define FILE_SINK_RECEIVE_BUFFER_SIZE 200000
@@ -144,14 +143,18 @@ bool SourceManager::initiateAll()
     return init;
 }
 
-void SourceManager::addFrameQueue(FrameQueue* queue)
+bool SourceManager::addFrameQueue(unsigned short port, FrameQueue* queue)
 {
-    inputs.push_back(queue);
+    if(inputs.find(port) != inputs.end()){
+        return false;
+    }
+    inputs[port] = queue;
+    return true;
 }
 
-void SourceManager::removeFrameQueue(FrameQueue* queue)
+void SourceManager::removeFrameQueue(unsigned short port)
 {
-    inputs.remove(queue);
+    inputs.erase(port);
 }
 
 // Implementation of "Session"
@@ -187,6 +190,8 @@ Session* Session::createNewByURL(UsageEnvironment& env, std::string progName, st
     }
     
     session->client = rtspClient;
+    
+    return session;
 }
 
 bool Session::initiateSession()

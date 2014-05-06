@@ -23,12 +23,20 @@
 #ifndef _SOURCE_MANAGER_HH
 #define _SOURCE_MANAGER_HH
 
+#ifndef _LIVEMEDIA_HH
 #include <liveMedia.hh>
+#endif
+
+#ifndef _BASIC_USAGE_ENVIRONMENT_HH
 #include <BasicUsageEnvironment.hh>
+#endif
+
+#ifndef _FRAME_QUEUE_HH
+#include "../FrameQueue.hh"
+#endif
+
 #include <thread>
 #include <map>
-#include <list>
-#include "../FrameQueue.hh"
 
 #define ID_LENGTH 4
 
@@ -49,11 +57,11 @@ public:
 
     bool addSession(std::string id, Session* session);
     Session* getSession(std::string id);
-    std::list<FrameQueue*> getInputs() {return inputs; };
+    std::map<unsigned short, FrameQueue*> getInputs() {return inputs; };
     
-    void addFrameQueue(FrameQueue* queue);
+    bool addFrameQueue(unsigned short port, FrameQueue* queue);
     //TODO: determine who has to call it, should it be public?
-    void removeFrameQueue(FrameQueue* queue);
+    void removeFrameQueue(unsigned short port);
     
     bool initiateAll();
         
@@ -68,7 +76,7 @@ private:
     
     static SourceManager* mngrInstance;
     std::map<std::string, Session*> sessionList;
-    std::list<FrameQueue*> inputs;
+    std::map<unsigned short, FrameQueue*> inputs;
     UsageEnvironment* env;
     uint8_t watch;
     

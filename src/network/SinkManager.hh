@@ -23,13 +23,19 @@
 #ifndef _SINK_MANAGER_HH
 #define _SINK_MANAGER_HH
 
-#define RTSP_PORT 8554
-
+#ifndef _BASIC_USAGE_ENVIRONMENT_HH
 #include <BasicUsageEnvironment.hh>
+#endif
+
+#ifndef _LIVEMEDIA_HH
 #include <liveMedia.hh>
+#endif
+
 #include <thread>
 #include <map>
 #include <string>
+
+#define RTSP_PORT 8554
 
 
 class SinkManager {

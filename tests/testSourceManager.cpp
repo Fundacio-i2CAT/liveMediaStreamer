@@ -1,7 +1,17 @@
-#include "../src/network/SourceManager.hh"
+#ifndef _LIVEMEDIA_HH
 #include <liveMedia.hh>
+#endif
+
 #include <string>
+
+#ifndef _HANDLERS_HH
 #include "../src/network/Handlers.hh"
+#endif
+
+#ifndef _SOURCE_MANAGER_HH
+#include "../src/network/SourceManager.hh"
+#endif
+
 #include <iostream>
 #include <csignal>
 

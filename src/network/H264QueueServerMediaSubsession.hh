@@ -25,7 +25,7 @@
 #define _H264_SERVER_MEDIA_SUBSESSION_HH
 
 #ifndef _LIVEMEDIA_HH
-#include <liveMedia.hh>
+#include <liveMedia/liveMedia.hh>
 #endif
 
 #ifndef _QUEUE_SERVER_MEDIA_SUBSESSION_HH

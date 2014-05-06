@@ -24,7 +24,7 @@
 #define _SOURCE_MANAGER_HH
 
 #ifndef _LIVEMEDIA_HH
-#include <liveMedia.hh>
+#include <liveMedia/liveMedia.hh>
 #endif
 
 #ifndef _BASIC_USAGE_ENVIRONMENT_HH

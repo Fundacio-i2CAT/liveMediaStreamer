@@ -2,7 +2,7 @@
 #define _QUEUE_SINK_HH
 
 #ifndef _LIVEMEDIA_HH
-#include <liveMedia.hh>
+#include <liveMedia/liveMedia.hh>
 #endif
 
 #ifndef _FRAME_QUEUE_HH

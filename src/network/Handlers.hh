@@ -25,7 +25,7 @@
 #define _HANDLERS_HH
 
 #ifndef _LIVEMEDIA_HH
-#include <liveMedia.hh>
+#include <liveMedia/liveMedia.hh>
 #endif
 
 #include <string>

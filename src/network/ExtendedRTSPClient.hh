@@ -28,7 +28,7 @@
 
 
 #ifndef _LIVEMEDIA_HH
-#include <liveMedia.hh>
+#include <liveMedia/liveMedia.hh>
 #endif
 
 #include <BasicUsageEnvironment.hh>

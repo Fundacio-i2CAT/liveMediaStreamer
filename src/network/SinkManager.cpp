@@ -99,17 +99,8 @@ bool SinkManager::isRunning()
     return mngrTh.joinable();
 }
 
-bool SinkManager::addSession(char* id, char const* streamName, 
-                                char const* info, char const* description)
+bool SinkManager::addSession(char* id, ServerMediaSession* session)
 {   
-    ServerMediaSession* session = 
-        ServerMediaSession::createNew(*env, streamName, info, description);
-        
-    if (session == NULL){
-        envir()->setResultMsg("Failed creating a new server session");
-        return false;
-    }
-    
     sessionList->Add(id, session);
     
     return true;
@@ -157,16 +148,4 @@ ServerMediaSession* SinkManager::getSession(char* sessionId)
 }
 
 
-void SinkManager::randomIdGenerator(char *s, const int len) {
-    static const char alphanum[] =
-        "0123456789"
-        "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-        "abcdefghijklmnopqrstuvwxyz";
-
-    for (int i = 0; i < len; ++i) {
-        s[i] = alphanum[rand() % (sizeof(alphanum) - 1)];
-    }
-
-    s[len] = 0;
-}
 

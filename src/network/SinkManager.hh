@@ -30,8 +30,6 @@
 #include <thread>
 
 
-#define ID_LENGTH 4
-
 
 class SinkManager {
 private:
@@ -41,18 +39,13 @@ public:
     static SinkManager* getInstance();
     static void destroyInstance();
     
-    //TODO: common with source manager, shall we add it in handlers namespace?
-    static void randomIdGenerator(char *s, const int len);
-    
     bool runManager();
     bool stopManager();
     bool isRunning();
     
     void closeManager();
 
-    bool addSession(char* id, char const* streamName = NULL,
-                       char const* info = NULL,
-                       char const* description = NULL);
+    bool addSession(char* id, ServerMediaSession* session);
     
     ServerMediaSession* getSession(char* id); 
     bool publishSession(char* id);

@@ -24,6 +24,15 @@
 #include "Handlers.hh"
 #include "ExtendedRTSPClient.hh"
 #include "SourceManager.hh"
+#include "QueueSink.hh"
+#include <sstream>
+#include <algorithm>
+
+#define CODED_VIDEO_FRAMES 512 
+#define CODED_AUDIO_FRAMES 1024
+#define MAX_AUDIO_FRAME_SIZE 2048
+#define MAX_VIDEO_FRAME_SIZE 100000
+
 
 namespace handlers 
 {
@@ -48,8 +57,7 @@ namespace handlers
             char* const sdpDescription = resultString;
             env << "Got a SDP description:\n" << sdpDescription << "\n";
 
-            //TODO: is it a good idea to initialize it as an ExtendedMediaSession?
-            scs.session = ExtendedMediaSession::createNew(env, sdpDescription);
+            scs.session = MediaSession::createNew(env, sdpDescription);
             delete[] sdpDescription; 
             if (scs.session == NULL) {
                 env << "Failed to create a MediaSession object from the SDP description: " << env.getResultMsg() << "\n";
@@ -100,7 +108,7 @@ namespace handlers
 
             env << "Set up the subsession (client ports " << scs.subsession->clientPortNum() << "-" << scs.subsession->clientPortNum()+1 << ")\n";
             
-            Session::addSubsessionSink(env, scs.subsession);
+            handlers::addSubsessionSink(env, scs.subsession);
 
         } while (0);
         delete[] resultString;
@@ -214,4 +222,86 @@ namespace handlers
         Medium::close(rtspClient);
     }
     
+    std::string makeSessionSDP(std::string sessionName, std::string sessionDescription)
+    {
+        std::stringstream sdp;
+        sdp << "v=0\n";
+        sdp << "o=- 0 0 IN IP4 127.0.0.1\n";
+        sdp << "s=" << sessionName << "\n";
+        sdp << "i=" << sessionDescription << "\n";
+        sdp << "t= 0 0\n";
+        
+        return sdp.str();
+    }
+    
+    std::string makeSubsessionSDP(std::string mediumName, std::string protocolName, 
+                                  unsigned int RTPPayloadFormat, 
+                                  std::string codecName, unsigned int bandwidth, 
+                                  unsigned int RTPTimestampFrequency, 
+                                  unsigned int clientPortNum) 
+    {
+        std::stringstream sdp;
+        sdp << "m=" << mediumName << " " << clientPortNum;
+        sdp << " RTP/AVP " << RTPPayloadFormat << "\n";
+        sdp << "c=IN IP4 127.0.0.1\n";
+        sdp << "b=AS:" << bandwidth << "\n";
+        sdp << "a=rtpmap:" << RTPPayloadFormat << " ";
+        sdp << codecName << "/" << RTPTimestampFrequency << "\n";
+        if (codecName.compare("H264") == 0){
+            sdp << "a=fmtp:" << RTPPayloadFormat << " packetization-mode=1\n";
+        }
+        
+        return sdp.str();
+    }
+    
+    char randAlphaNum(){
+        static const char alphanum[] =
+        "0123456789"
+        "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+        "abcdefghijklmnopqrstuvwxyz";
+        
+        return alphanum[rand() % (sizeof(alphanum) - 1)];
+    }
+    
+    std::string randomIdGenerator(unsigned int length) {
+        std::string id(length,0);
+        std::generate_n(id.begin(), length, randAlphaNum);
+        return id;
+    }
+    
+    bool addSubsessionSink(UsageEnvironment& env, MediaSubsession *subsession)
+    {
+        FrameQueue* queue;
+        SourceManager* mngr;
+        
+        if (strcmp(subsession->mediumName(), "audio") == 0) {
+            queue = FrameQueue::createNew(CODED_AUDIO_FRAMES, MAX_AUDIO_FRAME_SIZE, 0);
+        } else if (strcmp(subsession->mediumName(), "video") == 0) {
+            queue = FrameQueue::createNew(CODED_VIDEO_FRAMES, MAX_VIDEO_FRAME_SIZE, 0);
+        }
+        
+        subsession->sink = QueueSink::createNew(env, queue);
+        
+        if (subsession->sink == NULL){
+            return false;
+        }
+        
+        mngr = SourceManager::getInstance();
+        mngr->addFrameQueue(queue);
+        
+        subsession->sink->startPlaying(*(subsession->readSource()),
+                                       handlers::subsessionAfterPlaying, subsession);
+
+        if (subsession->rtcpInstance() != NULL) {
+            subsession->rtcpInstance()->setByeHandler(handlers::subsessionByeHandler, subsession);
+        }
+        
+        return true;
+    }
 };
+
+
+
+
+
+

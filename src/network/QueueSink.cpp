@@ -2,12 +2,15 @@
 #include <iostream>
 #include <sys/time.h>
 
-QueueSink::QueueSink(UsageEnvironment& env, FrameQueue *q)
-  : MediaSink(env), queue(q) {}
-
-QueueSink* QueueSink::createNew(UsageEnvironment& env, FrameQueue *q) 
+QueueSink::QueueSink(UsageEnvironment& env, FrameQueue* queue)
+  : MediaSink(env) 
 {
-    return new QueueSink(env, q);
+    this->queue = queue;   
+}
+
+QueueSink* QueueSink::createNew(UsageEnvironment& env, FrameQueue* queue) 
+{
+    return new QueueSink(env, queue);
 }
 
 Boolean QueueSink::continuePlaying() 

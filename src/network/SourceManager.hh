@@ -23,9 +23,12 @@
 #ifndef _SOURCE_MANAGER_HH
 #define _SOURCE_MANAGER_HH
 
-#include <liveMedia/RTSPClient.hh>
+#include <liveMedia.hh>
+#include <BasicUsageEnvironment.hh>
 #include <thread>
-#include <BasicUsageEnvironment/BasicUsageEnvironment.hh>
+#include <map>
+#include <list>
+#include "../FrameQueue.hh"
 
 #define ID_LENGTH 4
 
@@ -38,32 +41,34 @@ private:
 public:
     static SourceManager* getInstance();
     static void destroyInstance();
-    
-    static void randomIdGenerator(char *s, const int len);
-    
-    Boolean runManager();
-    Boolean stopManager();
-    Boolean isRunning();
+      
+    bool runManager();
+    bool isRunning();
     
     void closeManager();
 
-    //Manually or RTSP or SDP
-    Boolean addSession(char* id, char* mediaSessionType, char* sessionName, char* sessionDescription);
-    Boolean addRTSPSession(char* id, char const* progName, char const* rtspURL);
-    Session* getSession(char* id);
+    bool addSession(std::string id, Session* session);
+    Session* getSession(std::string id);
+    std::list<FrameQueue*> getInputs() {return inputs; };
     
-    Boolean initiateAll();
+    void addFrameQueue(FrameQueue* queue);
+    //TODO: determine who has to call it, should it be public?
+    void removeFrameQueue(FrameQueue* queue);
     
-    Boolean removeSession(char* id);
+    bool initiateAll();
+        
+    bool removeSession(std::string id);
     
-    UsageEnvironment* envir() { return env; }
+    UsageEnvironment* envir() { return env; };
     
 private:
+    static void* startServer(void *args);
       
     std::thread mngrTh;
     
     static SourceManager* mngrInstance;
-    HashTable* sessionList;
+    std::map<std::string, Session*> sessionList;
+    std::list<FrameQueue*> inputs;
     UsageEnvironment* env;
     uint8_t watch;
     
@@ -71,14 +76,12 @@ private:
 
 class Session {
 public:
-    static Session* createNewByURL(UsageEnvironment& env, char const* progName, char const* rtspURL);
-    static Session* createNew(UsageEnvironment& env, char* mediaSessionType, char* sessionName, char* sessionDescription);
+    static Session* createNewByURL(UsageEnvironment& env, std::string progName, std::string rtspURL);
+    static Session* createNew(UsageEnvironment& env, std::string sdp);
     
     virtual ~Session();
     
-    Boolean initiateSession();
-    
-    static Boolean addSubsessionSink(UsageEnvironment& env, MediaSubsession* subsession);
+    bool initiateSession();
     
 protected:
     Session();

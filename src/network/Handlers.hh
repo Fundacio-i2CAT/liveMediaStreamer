@@ -24,7 +24,8 @@
 #ifndef _HANDLERS_HH
 #define _HANDLERS_HH
 
-#include <RTSPClient.hh>
+#include <liveMedia.hh>
+#include <string>
 
 namespace handlers
 {
@@ -32,6 +33,16 @@ namespace handlers
     void subsessionAfterPlaying(void* clientData);
     void subsessionByeHandler(void* clientData);
     
+    std::string makeSessionSDP(std::string sessionName, std::string sessionDescription);
+    std::string makeSubsessionSDP(std::string mediumName, std::string protocolName, 
+                                  unsigned int RTPPayloadFormat, 
+                                  std::string codecName, unsigned int bandwidth, 
+                                  unsigned int RTPTimestampFrequency, 
+                                  unsigned int clientPortNum = 0);
+    
+    std::string randomIdGenerator(unsigned int length);
+    
+    bool addSubsessionSink(UsageEnvironment& env, MediaSubsession *subsession);
 };
 
 #endif

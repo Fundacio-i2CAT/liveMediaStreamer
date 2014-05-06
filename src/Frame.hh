@@ -1,37 +1,52 @@
+/*
+ *  Frame - AV Frame structure
+ *  Copyright (C) 2013  Fundació i2CAT, Internet i Innovació digital a Catalunya
+ *
+ *  This file is part of media-streamer.
+ *
+ *  This program is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ *  Authors: David Cassany <david.cassany@i2cat.net> 
+ *           Marc Palau <marc.palau@i2cat.net>
+ */
+
 #ifndef _FRAME_HH
 #define _FRAME_HH
 
 #include <sys/time.h>
 #include <chrono>
-
-#define DEFAULT_HEIGHT 1080
-#define DEFAULT_WIDTH 1920
-#define BYTES_PER_PIXEL 3
+#include "types.hh"
 
 using namespace std::chrono;
 
 class Frame {
     public:
-        Frame(unsigned int maxLength);
+        Frame();
               
-        void setLength(unsigned int length);
-        void setSize(unsigned int width, unsigned int height);
         void setPresentationTime(struct timeval pTime);
         void setUpdatedTime();
         
-        unsigned int getWidth() {return width;};
-        unsigned int getHeight() {return height;};
-        unsigned int getLength() {return frameLength;};
-        unsigned int getMaxLength() {return maxFrameLength;};
-        struct timeval getPresentationTime() {return presentationTime;};
-        system_clock::time_point getUpdatedTime() {return updatedTime;};
-        unsigned char *getDataBuf(){return frameBuff;};
+        struct timeval getPresentationTime();
+        system_clock::time_point getUpdatedTime();
+        virtual unsigned char *getDataBuf() {};
+        virtual unsigned char **getPlanarDataBuf() {};
+        virtual unsigned int getLength() {};
+        virtual unsigned int getMaxLength() {};
+        virtual void setLength(unsigned int length) {};
+        virtual bool isPlanar() {};
         
-    private:
-        unsigned int                frameLength;
-        unsigned int                maxFrameLength;
-        unsigned char               *frameBuff;
-        unsigned int                width, height;
+    protected:
         struct timeval              presentationTime;
         system_clock::time_point    updatedTime;
 };

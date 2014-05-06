@@ -1,5 +1,5 @@
 /*
- *  Frame - AV Frame structure
+ *  Types - AV types
  *  Copyright (C) 2013  Fundació i2CAT, Internet i Innovació digital a Catalunya
  *
  *  This file is part of media-streamer.
@@ -17,34 +17,20 @@
  *  You should have received a copy of the GNU General Public License
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- *  Authors: David Cassany <david.cassany@i2cat.net> 
- *           Marc Palau <marc.palau@i2cat.net>
+ *  Authors:  Marc Palau <marc.palau@i2cat.net>
  */
 
-#include "Frame.hh"
+#ifndef _TYPES_HH
+#define _TYPES_HH
 
-Frame::Frame()
-{
-    updatedTime = system_clock::now();
-}
+#define MAX_CHANNELS 4
+#define DEFAULT_HEIGHT 1080
+#define DEFAULT_WIDTH 1920
+#define BYTES_PER_PIXEL 3
 
-void Frame::setPresentationTime(struct timeval pTime)
-{
-    presentationTime = pTime;
-}
+enum CodecType {MULAW, OPUS};
 
-void Frame::setUpdatedTime()
-{
-    updatedTime = system_clock::now();
-}
+enum SampleFmt {U8, S16, S32, FLT, U8P, S16P, S32P, FLTP};
 
-struct timeval Frame::getPresentationTime()
-{
-    return presentationTime;
-}
 
-system_clock::time_point Frame::getUpdatedTime()
-{
-    return updatedTime;
-}
-
+#endif

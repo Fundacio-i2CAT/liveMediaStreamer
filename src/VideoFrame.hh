@@ -1,5 +1,5 @@
 /*
- *  Frame - AV Frame structure
+ *  VideoFrame - Video frame structure
  *  Copyright (C) 2013  Fundació i2CAT, Internet i Innovació digital a Catalunya
  *
  *  This file is part of media-streamer.
@@ -21,30 +21,20 @@
  *           Marc Palau <marc.palau@i2cat.net>
  */
 
+#ifndef _VIDEO_FRAME_HH
+#define _VIDEO_FRAME_HH
+
 #include "Frame.hh"
 
-Frame::Frame()
-{
-    updatedTime = system_clock::now();
-}
+class VideoFrame : public Frame {
+    
+    public:
+        void setSize(unsigned int width, unsigned int height);
+        unsigned int getWidth() {return width;};
+        unsigned int getHeight() {return height;};
+              
+    private:
+        unsigned int width, height;
+};
 
-void Frame::setPresentationTime(struct timeval pTime)
-{
-    presentationTime = pTime;
-}
-
-void Frame::setUpdatedTime()
-{
-    updatedTime = system_clock::now();
-}
-
-struct timeval Frame::getPresentationTime()
-{
-    return presentationTime;
-}
-
-system_clock::time_point Frame::getUpdatedTime()
-{
-    return updatedTime;
-}
-
+#endif

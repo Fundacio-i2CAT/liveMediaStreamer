@@ -1,5 +1,5 @@
 /*
- *  Frame - AV Frame structure
+ *  PlanarAudioFrame - Planar audio frame structure
  *  Copyright (C) 2013  Fundació i2CAT, Internet i Innovació digital a Catalunya
  *
  *  This file is part of media-streamer.
@@ -17,34 +17,27 @@
  *  You should have received a copy of the GNU General Public License
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- *  Authors: David Cassany <david.cassany@i2cat.net> 
- *           Marc Palau <marc.palau@i2cat.net>
+ *  Authors:  Marc Palau <marc.palau@i2cat.net>
  */
 
-#include "Frame.hh"
+#ifndef _PLANARAUDIOFRAME_HH
+#define _PLANARAUDIOFRAME_HH
 
-Frame::Frame()
-{
-    updatedTime = system_clock::now();
-}
+#include "AudioFrame.hh"
 
-void Frame::setPresentationTime(struct timeval pTime)
-{
-    presentationTime = pTime;
-}
+class PlanarAudioFrame : public AudioFrame {
+    public:
+        PlanarAudioFrame(unsigned int ch, unsigned int sRate, unsigned int maxSamples, CodecType codec, SampleFmt sFmt);
+        unsigned char** getPlanarDataBuf();
+        unsigned int getLength();
+        unsigned int getMaxLength();
+        void setLength(unsigned int length);
+        bool isPlanar();
 
-void Frame::setUpdatedTime()
-{
-    updatedTime = system_clock::now();
-}
+    private:
+        unsigned char* frameBuff[MAX_CHANNELS];
+        unsigned int bufferLen;
+        unsigned int bufferMaxLen;
+};
 
-struct timeval Frame::getPresentationTime()
-{
-    return presentationTime;
-}
-
-system_clock::time_point Frame::getUpdatedTime()
-{
-    return updatedTime;
-}
-
+#endif

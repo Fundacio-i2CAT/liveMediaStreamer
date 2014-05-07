@@ -22,11 +22,20 @@
  */
 
 #include "Handlers.hh"
-#include "ExtendedRTSPClient.hh"
-#include "SourceManager.hh"
-#include "QueueSink.hh"
 #include <sstream>
 #include <algorithm>
+
+#ifndef _QUEUE_SINK_HH
+#include "QueueSink.hh"
+#endif
+
+#ifndef _SOURCE_MANAGER_HH
+#include "SourceManager.hh"
+#endif
+
+#ifndef _EXTENDED_RTSP_CLIENT_HH
+#include "ExtendedRTSPClient.hh"
+#endif
 
 #define CODED_VIDEO_FRAMES 512 
 #define CODED_AUDIO_FRAMES 1024
@@ -254,7 +263,8 @@ namespace handlers
         return sdp.str();
     }
     
-    char randAlphaNum(){
+    char randAlphaNum()
+    {
         static const char alphanum[] =
         "0123456789"
         "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
@@ -263,7 +273,8 @@ namespace handlers
         return alphanum[rand() % (sizeof(alphanum) - 1)];
     }
     
-    std::string randomIdGenerator(unsigned int length) {
+    std::string randomIdGenerator(unsigned int length) 
+    {
         std::string id(length,0);
         std::generate_n(id.begin(), length, randAlphaNum);
         return id;
@@ -287,7 +298,7 @@ namespace handlers
         }
         
         mngr = SourceManager::getInstance();
-        mngr->addFrameQueue(queue);
+        mngr->addFrameQueue(subsession->clientPortNum(), queue);
         
         subsession->sink->startPlaying(*(subsession->readSource()),
                                        handlers::subsessionAfterPlaying, subsession);

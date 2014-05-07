@@ -25,10 +25,13 @@
 #ifndef _QUEUE_SERVER_MEDIA_SUBSESSION_HH
 #define _QUEUE_SERVER_MEDIA_SUBSESSION_HH
 
-//#ifndef _ON_DEMAND_SERVER_MEDIA_SUBSESSION_HH
-#include <liveMedia.hh>
-//#endif
+#ifndef _LIVEMEDIA_HH
+#include <liveMedia/liveMedia.hh>
+#endif
+
+#ifndef _FRAME_QUEUE_HH
 #include "../FrameQueue.hh"
+#endif
 
 class QueueServerMediaSubsession: public OnDemandServerMediaSubsession {
 protected: // we're a virtual base class

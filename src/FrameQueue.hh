@@ -1,7 +1,10 @@
 #ifndef _FRAME_QUEUE_HH
 #define _FRAME_QUEUE_HH
 
+#ifndef _FRAME_HH
 #include "Frame.hh"
+#endif
+
 #include <atomic>
 #include <sys/time.h>
 #include <chrono>

@@ -24,7 +24,10 @@
 #ifndef _HANDLERS_HH
 #define _HANDLERS_HH
 
-#include <liveMedia.hh>
+#ifndef _LIVEMEDIA_HH
+#include <liveMedia/liveMedia.hh>
+#endif
+
 #include <string>
 
 namespace handlers

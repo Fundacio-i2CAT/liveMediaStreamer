@@ -23,12 +23,19 @@
 #ifndef _SINK_MANAGER_HH
 #define _SINK_MANAGER_HH
 
-#define RTSP_PORT 8554
-
+#ifndef _BASIC_USAGE_ENVIRONMENT_HH
 #include <BasicUsageEnvironment.hh>
-#include <liveMedia.hh>
-#include <thread>
+#endif
 
+#ifndef _LIVEMEDIA_HH
+#include <liveMedia/liveMedia.hh>
+#endif
+
+#include <thread>
+#include <map>
+#include <string>
+
+#define RTSP_PORT 8554
 
 
 class SinkManager {
@@ -38,18 +45,17 @@ private:
 public:
     static SinkManager* getInstance();
     static void destroyInstance();
-    
+
     bool runManager();
-    bool stopManager();
     bool isRunning();
     
     void closeManager();
 
-    bool addSession(char* id, ServerMediaSession* session);
+    bool addSession(std::string id, ServerMediaSession* session);
     
-    ServerMediaSession* getSession(char* id); 
-    bool publishSession(char* id);
-    bool removeSession(char* id);
+    ServerMediaSession* getSession(std::string id); 
+    bool publishSession(std::string id);
+    bool removeSession(std::string id);
     
     UsageEnvironment* envir() { return env; }
     
@@ -58,7 +64,7 @@ private:
     std::thread mngrTh;
     
     static SinkManager* mngrInstance;
-    HashTable* sessionList;
+    std::map<std::string, ServerMediaSession*> sessionList;
     UsageEnvironment* env;
     uint8_t watch;
     

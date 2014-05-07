@@ -24,11 +24,17 @@
 #ifndef _H264_SERVER_MEDIA_SUBSESSION_HH
 #define _H264_SERVER_MEDIA_SUBSESSION_HH
 
-//#ifndef _ON_DEMAND_SERVER_MEDIA_SUBSESSION_HH
-#include <liveMedia.hh>
-//#endif
+#ifndef _LIVEMEDIA_HH
+#include <liveMedia/liveMedia.hh>
+#endif
+
+#ifndef _QUEUE_SERVER_MEDIA_SUBSESSION_HH
 #include "QueueServerMediaSubsession.hh"
+#endif
+
+#ifndef _QUEUE_SOURCE_HH
 #include "QueueSource.hh"
+#endif
 
 class H264QueueServerMediaSubsession: public QueueServerMediaSubsession {
 public:

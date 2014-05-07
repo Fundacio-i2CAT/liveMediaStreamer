@@ -27,8 +27,7 @@
 
 SinkManager *SinkManager::mngrInstance = NULL;
 
-SinkManager::SinkManager():
-    sessionList(HashTable::create(ONE_WORD_HASH_KEYS)), watch(0)
+SinkManager::SinkManager(): watch(0)
 {    
     TaskScheduler* scheduler = BasicTaskScheduler::createNew();
     this->env = BasicUsageEnvironment::createNew(*scheduler);
@@ -53,7 +52,10 @@ SinkManager::getInstance(){
 
 void SinkManager::closeManager()
 {
-    //TODO:
+    watch = 1;
+    if (mngrTh.joinable()){
+        mngrTh.join();
+    }
 }
 
 void SinkManager::destroyInstance()
@@ -71,7 +73,6 @@ void *startServer(void *args)
     }
     instance->envir()->taskScheduler().doEventLoop(watch); 
     
-    instance->closeManager();
     delete &instance->envir()->taskScheduler();
     instance->envir()->reclaim();
     
@@ -85,48 +86,43 @@ bool SinkManager::runManager()
     return mngrTh.joinable();
 }
 
-bool SinkManager::stopManager()
-{
-    watch = 1;
-    if (mngrTh.joinable()){
-        mngrTh.join();
-    }
-    return true;
-}
 
 bool SinkManager::isRunning()
 {
     return mngrTh.joinable();
 }
 
-bool SinkManager::addSession(char* id, ServerMediaSession* session)
+bool SinkManager::addSession(std::string id, ServerMediaSession* session)
 {   
-    sessionList->Add(id, session);
-    
+    if (sessionList.find(id) != sessionList.end()){
+        envir()->setResultMsg("Failed adding session! Duplicated id!\n");
+        return false;
+    }
+    sessionList[id] = session;
     return true;
 }
 
-bool SinkManager::removeSession(char* id)
-{
-    ServerMediaSession* session;
-    
-    if ((session = (ServerMediaSession *) sessionList->Lookup(id)) == NULL){
+bool SinkManager::removeSession(std::string id)
+{   
+    if (sessionList.find(id) == sessionList.end()){
+        envir()->setResultMsg("Failed, no session found with this id!\n");
         return false;
     }
-    
+   
     //TODO: manage closure, should add RTSP reference?
     
     //RTSPServer::closeAllClientSessionsForServerMediaSession()
     //session->deleteAllSubsessions()
     
+    sessionList.erase(id);
+    
     return false;
 }
 
-bool SinkManager::publishSession(char* id)
-{
-    ServerMediaSession* session;
-    
-    if ((session = (ServerMediaSession *) sessionList->Lookup(id)) == NULL){
+bool SinkManager::publishSession(std::string id)
+{  
+    if (sessionList.find(id) == sessionList.end()){
+        envir()->setResultMsg("Failed, no session found with this id!\n");
         return false;
     }
     
@@ -134,18 +130,16 @@ bool SinkManager::publishSession(char* id)
         return false;
     }
     
-    rtspServer->addServerMediaSession(session);
+    rtspServer->addServerMediaSession(sessionList[id]);
     
     return true;
 }
 
-ServerMediaSession* SinkManager::getSession(char* sessionId)
+ServerMediaSession* SinkManager::getSession(std::string id)
 {
-    ServerMediaSession* session;
-    session = (ServerMediaSession*) sessionList->Lookup(sessionId);
+    if(sessionList.find(id) != sessionList.end()){
+        return sessionList[id];
+    }
     
-    return session;
+    return NULL;
 }
-
-
-

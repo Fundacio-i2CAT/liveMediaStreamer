@@ -60,7 +60,7 @@ public:
     UsageEnvironment* envir() { return env; }
     
 private:
-      
+
     std::thread mngrTh;
     
     static SinkManager* mngrInstance;

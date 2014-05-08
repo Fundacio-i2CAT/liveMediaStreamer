@@ -12,7 +12,7 @@ using namespace std::chrono;
 
 class Frame {
     public:
-        Frame(unsigned int maxLength);
+        Frame(unsigned int maxLength = BYTES_PER_PIXEL*DEFAULT_HEIGHT*DEFAULT_WIDTH);
               
         void setLength(unsigned int length);
         void setSize(unsigned int width, unsigned int height);

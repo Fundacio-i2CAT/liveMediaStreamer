@@ -1,7 +1,7 @@
 #include "Frame.hh"
 
 
-Frame::Frame(unsigned int maxLength = BYTES_PER_PIXEL*DEFAULT_HEIGHT*DEFAULT_WIDTH)
+Frame::Frame(unsigned int maxLength)
 {
     frameLength = 0;
     maxFrameLength = maxLength;

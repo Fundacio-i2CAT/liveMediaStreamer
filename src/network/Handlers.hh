@@ -30,6 +30,12 @@
 
 #include <string>
 
+#define CODED_VIDEO_FRAMES 512 
+#define CODED_AUDIO_FRAMES 1024
+#define MAX_AUDIO_FRAME_SIZE 2048
+#define MAX_VIDEO_FRAME_SIZE 200000
+
+
 namespace handlers
 {
     void continueAfterDESCRIBE(RTSPClient* rtspClient, int resultCode, char* resultString);

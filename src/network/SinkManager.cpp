@@ -21,8 +21,11 @@
  *            
  */
 
-#ifndef _SINK_MANAGER_HH
+
 #include "SinkManager.hh"
+
+#ifndef _HANDLERS_HH
+#include "Handlers.hh"
 #endif
 
 SinkManager *SinkManager::mngrInstance = NULL;
@@ -33,10 +36,12 @@ SinkManager::SinkManager(): watch(0)
     this->env = BasicUsageEnvironment::createNew(*scheduler);
     
     //TODO: Add authentication security
-    RTSPServer* rtspServer = RTSPServer::createNew(*env, RTSP_PORT, NULL);
+    rtspServer = RTSPServer::createNew(*env, RTSP_PORT, NULL);
     if (rtspServer == NULL) {
         *env << "Failed to create RTSP server: " << env->getResultMsg() << "\n";
     }
+    
+    OutPacketBuffer::increaseMaxSizeTo(MAX_VIDEO_FRAME_SIZE);
     
     mngrInstance = this;
 }
@@ -131,6 +136,11 @@ bool SinkManager::publishSession(std::string id)
     }
     
     rtspServer->addServerMediaSession(sessionList[id]);
+    char* url = rtspServer->rtspURL(sessionList[id]);
+    UsageEnvironment& env = rtspServer->envir();
+    
+    env << "\n\nPlay this stream using the URL \"" << url << "\"\n";
+    delete[] url;
     
     return true;
 }

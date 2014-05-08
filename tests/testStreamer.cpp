@@ -1,11 +1,31 @@
-#include "../src/network/SourceManager.hh"
-#include <liveMedia.hh>
+#ifndef _LIVEMEDIA_HH
+#include <liveMedia/liveMedia.hh>
+#endif
+
 #include <string>
+
+#ifndef _HANDLERS_HH
 #include "../src/network/Handlers.hh"
+#endif
+
+#ifndef _SOURCE_MANAGER_HH
+#include "../src/network/SourceManager.hh"
+#endif
+
+#ifndef _SINK_MANAGER_HH
+#include "../src/network/SinkManager.hh"
+#endif
+
+#ifndef _H264_QUEUE_SERVER_MEDIA_SESSION_HH
+#include "../src/network/H264QueueServerMediaSubsession.hh"
+#endif
+
+#ifndef _FRAME_QUEUE_HH
+#include "../src/FrameQueue.hh"
+#endif
+
 #include <iostream>
 #include <csignal>
-#include "../src/network/H264QueueServerMediaSubsession.hh"
-#include "../src/network/SinkManager.hh"
 
 
 #define V_MEDIUM "video"
@@ -27,7 +47,7 @@ void signalHandler( int signum )
     std::cout << "Interrupt signal (" << signum << ") received.\n";
     
     SourceManager *mngr = SourceManager::getInstance();
-    SinkManager* sMngr = SinkManager::getInstance();
+    SinkManager *sMngr = SinkManager::getInstance();
     mngr->closeManager();
     sMngr->closeManager();
     
@@ -39,36 +59,59 @@ int main(int argc, char** argv)
     std::string sessionId;
     std::string sdp;
     Session* session;
-    ServerMediaSession* sSession;
-    SourceManager* mngr = SourceManager::getInstance();
-    SinkManager* sMngr = SinkManager::getInstance();
     FrameQueue* queue;
+    SourceManager *mngr = SourceManager::getInstance();
+    SinkManager *sMngr = SinkManager::getInstance();
+    
+    mngr->runManager();
+    sMngr->runManager();
     
     signal(SIGINT, signalHandler); 
     
-    sMngr->runManager();
-    mngr->runManager();
-    
+    //receiver sessions
     for (int i = 1; i <= argc-1; ++i) {
         sessionId = handlers::randomIdGenerator(ID_LENGTH);
         session = Session::createNewByURL(*(mngr->envir()), argv[0], argv[i]);
         mngr->addSession(sessionId, session);
     }
-  
+    
+     sessionId = handlers::randomIdGenerator(ID_LENGTH);
+     
+     sdp = handlers::makeSessionSDP("testSession", "this is a test");
+     
+     sdp += handlers::makeSubsessionSDP(V_MEDIUM, PROTOCOL, PAYLOAD, V_CODEC, 
+                                        BANDWITH, V_TIME_STMP_FREQ, V_CLIENT_PORT);
+//     sdp += handlers::makeSubsessionSDP(A_MEDIUM, PROTOCOL, PAYLOAD, A_CODEC, 
+//                                        BANDWITH, A_TIME_STMP_FREQ, A_CLIENT_PORT);
+//     
+    session = Session::createNew(*(mngr->envir()), sdp);
+    
+    mngr->addSession(sessionId, session);
+     
     mngr->initiateAll();
     
-    sSession = ServerMediaSession::createNew(*(sMngr->envir()), "serverTestSession", 
-                                             "serverTestSession", 
-                                             "this is a server test");
+    //transitter sessions
+    
+    //Let some time to initiate reciver sessions
     sleep(1);
     
-    queue = mngr->getInputs().front();
+    if (mngr->getInputs().empty()){
+        mngr->closeManager();
+        sMngr->closeManager();
+        return 1;
+    }
     
-    sSession->addSubsession(H264QueueServerMediaSubsession::createNew(*(sMngr->envir()), 
-                                                                      queue, False));
+    queue = mngr->getInputs().begin()->second;
     
     sessionId = handlers::randomIdGenerator(ID_LENGTH);
-    sMngr->addSession(sessionId, sSession);
+    
+    ServerMediaSession* servSession
+    = ServerMediaSession::createNew(*(sMngr->envir()), "testServerSession", 
+                                      "testServerSession", "this is a test");
+    servSession->addSubsession(H264QueueServerMediaSubsession::createNew(
+        *(sMngr->envir()), queue, True));
+    
+    sMngr->addSession(sessionId, servSession);
     sMngr->publishSession(sessionId);
     
     while(mngr->isRunning() || sMngr->isRunning()){
@@ -77,3 +120,5 @@ int main(int argc, char** argv)
     
     return 0;
 }
+
+

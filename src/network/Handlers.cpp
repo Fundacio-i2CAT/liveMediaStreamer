@@ -37,12 +37,6 @@
 #include "ExtendedRTSPClient.hh"
 #endif
 
-#define CODED_VIDEO_FRAMES 512 
-#define CODED_AUDIO_FRAMES 1024
-#define MAX_AUDIO_FRAME_SIZE 2048
-#define MAX_VIDEO_FRAME_SIZE 100000
-
-
 namespace handlers 
 {
     void continueAfterSETUP(RTSPClient* rtspClient, int resultCode, char* resultString);
@@ -231,6 +225,7 @@ namespace handlers
         Medium::close(rtspClient);
     }
     
+    //TODO: static method of SourceManager?
     std::string makeSessionSDP(std::string sessionName, std::string sessionDescription)
     {
         std::stringstream sdp;
@@ -280,6 +275,7 @@ namespace handlers
         return id;
     }
     
+    //TODO: static method of SourceManager?
     bool addSubsessionSink(UsageEnvironment& env, MediaSubsession *subsession)
     {
         FrameQueue* queue;

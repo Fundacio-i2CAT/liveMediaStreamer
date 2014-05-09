@@ -113,7 +113,9 @@ namespace handlers
                 break;
             }
 
-            env << "Set up the subsession (client ports " << scs.subsession->clientPortNum() << "-" << scs.subsession->clientPortNum()+1 << ")\n";
+            env << "Set up the subsession (client ports " << 
+                scs.subsession->clientPortNum() << "-" << 
+                scs.subsession->clientPortNum()+1 << ")\n";
             
             handlers::addSubsessionSink(env, scs.subsession);
 

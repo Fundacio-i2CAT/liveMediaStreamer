@@ -90,6 +90,7 @@ int main(int argc, char** argv)
     
     mngr->initiateAll();
     
+    //Let some time to initiate reciver sessions
     sleep(2);
     
     queue = mngr->getInputs().begin()->second;

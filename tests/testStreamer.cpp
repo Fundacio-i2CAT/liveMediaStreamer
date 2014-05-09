@@ -36,10 +36,10 @@
 #define V_CLIENT_PORT 6004
 #define V_TIME_STMP_FREQ 90000
 
-#define A_CODEC "AC3"
+#define A_CODEC "AAC"
 #define A_CLIENT_PORT 6006
 #define A_MEDIUM "audio"
-#define A_TIME_STMP_FREQ 44100
+#define A_TIME_STMP_FREQ 48000
 
 
 void signalHandler( int signum )
@@ -59,7 +59,7 @@ int main(int argc, char** argv)
     std::string sessionId;
     std::string sdp;
     Session* session;
-    FrameQueue* queue;
+    FrameQueue *vQueue, *aQueue;
     SourceManager *mngr = SourceManager::getInstance();
     SinkManager *sMngr = SinkManager::getInstance();
     
@@ -75,25 +75,27 @@ int main(int argc, char** argv)
         mngr->addSession(sessionId, session);
     }
     
-//     sessionId = handlers::randomIdGenerator(ID_LENGTH);
-//      
-//     sdp = handlers::makeSessionSDP("testSession", "this is a test");
-//      
-//     sdp += handlers::makeSubsessionSDP(V_MEDIUM, PROTOCOL, PAYLOAD, V_CODEC, 
-//                                         BANDWITH, V_TIME_STMP_FREQ, V_CLIENT_PORT);
-//     sdp += handlers::makeSubsessionSDP(A_MEDIUM, PROTOCOL, PAYLOAD, A_CODEC, 
-//                                        BANDWITH, A_TIME_STMP_FREQ, A_CLIENT_PORT);
-//     
-//     session = Session::createNew(*(mngr->envir()), sdp);
-//     
-//     mngr->addSession(sessionId, session);
+    sessionId = handlers::randomIdGenerator(ID_LENGTH);
+     
+    sdp = handlers::makeSessionSDP("testSession", "this is a test");
+     
+    sdp += handlers::makeSubsessionSDP(V_MEDIUM, PROTOCOL, PAYLOAD, V_CODEC, 
+                                        BANDWITH, V_TIME_STMP_FREQ, V_CLIENT_PORT);
+    sdp += handlers::makeSubsessionSDP(A_MEDIUM, PROTOCOL, PAYLOAD, A_CODEC, 
+                                       BANDWITH, A_TIME_STMP_FREQ, A_CLIENT_PORT);
+    
+    std::cout << sdp << std::endl;
+    
+    session = Session::createNew(*(mngr->envir()), sdp);
+    
+    mngr->addSession(sessionId, session);
      
     mngr->initiateAll();
     
     //transitter sessions
     
     //Let some time to initiate reciver sessions
-    sleep(1);
+    sleep(2);
     
     if (mngr->getInputs().empty()){
         mngr->closeManager();
@@ -101,15 +103,16 @@ int main(int argc, char** argv)
         return 1;
     }
     
-    queue = mngr->getInputs().begin()->second;
+    vQueue = mngr->getInputs()[6004];
+    aQueue = mngr->getInputs()[6006];
     
     sessionId = handlers::randomIdGenerator(ID_LENGTH);
     
     ServerMediaSession* servSession
-    = ServerMediaSession::createNew(*(sMngr->envir()), "testServerSession", 
-                                      "testServerSession", "this is a test");
+        = ServerMediaSession::createNew(*(sMngr->envir()), "testServerSession", 
+                                        "testServerSession", "this is a test");
     servSession->addSubsession(H264QueueServerMediaSubsession::createNew(
-        *(sMngr->envir()), queue, True));
+        *(sMngr->envir()), vQueue, True));
     
     sMngr->addSession(sessionId, servSession);
     sMngr->publishSession(sessionId);

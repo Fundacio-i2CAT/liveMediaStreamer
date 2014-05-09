@@ -32,6 +32,8 @@ protected:
                 unsigned durationInMicroseconds);
     virtual void afterGettingFrame(unsigned frameSize, struct timeval presentationTime);
 
+    void updateFrame();
+    
     FrameQueue* queue;
     Frame *frame;
 };

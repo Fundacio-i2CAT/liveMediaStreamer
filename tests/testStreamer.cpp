@@ -75,18 +75,18 @@ int main(int argc, char** argv)
         mngr->addSession(sessionId, session);
     }
     
-     sessionId = handlers::randomIdGenerator(ID_LENGTH);
-     
-     sdp = handlers::makeSessionSDP("testSession", "this is a test");
-     
-     sdp += handlers::makeSubsessionSDP(V_MEDIUM, PROTOCOL, PAYLOAD, V_CODEC, 
-                                        BANDWITH, V_TIME_STMP_FREQ, V_CLIENT_PORT);
+//     sessionId = handlers::randomIdGenerator(ID_LENGTH);
+//      
+//     sdp = handlers::makeSessionSDP("testSession", "this is a test");
+//      
+//     sdp += handlers::makeSubsessionSDP(V_MEDIUM, PROTOCOL, PAYLOAD, V_CODEC, 
+//                                         BANDWITH, V_TIME_STMP_FREQ, V_CLIENT_PORT);
 //     sdp += handlers::makeSubsessionSDP(A_MEDIUM, PROTOCOL, PAYLOAD, A_CODEC, 
 //                                        BANDWITH, A_TIME_STMP_FREQ, A_CLIENT_PORT);
 //     
-    session = Session::createNew(*(mngr->envir()), sdp);
-    
-    mngr->addSession(sessionId, session);
+//     session = Session::createNew(*(mngr->envir()), sdp);
+//     
+//     mngr->addSession(sessionId, session);
      
     mngr->initiateAll();
     

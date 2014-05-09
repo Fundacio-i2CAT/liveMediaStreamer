@@ -29,6 +29,10 @@
 #include "QueueSink.hh"
 #endif
 
+#ifndef _H264_QUEUE_SINK_HH
+#include "H264QueueSink.hh"
+#endif
+
 #ifndef _SOURCE_MANAGER_HH
 #include "SourceManager.hh"
 #endif
@@ -287,7 +291,12 @@ namespace handlers
             queue = FrameQueue::createNew(CODED_VIDEO_FRAMES, MAX_VIDEO_FRAME_SIZE, 0);
         }
         
-        subsession->sink = QueueSink::createNew(env, queue);
+        if (strcmp(subsession->codecName(), "H264") == 0) {
+            subsession->sink = H264QueueSink::createNew(env, queue, 
+                                                        subsession->fmtp_spropparametersets());
+        } else {
+            subsession->sink = QueueSink::createNew(env, queue);
+        }
         
         if (subsession->sink == NULL){
             return false;

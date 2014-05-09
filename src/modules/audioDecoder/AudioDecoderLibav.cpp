@@ -1,3 +1,4 @@
+
 /*
  *  AudioDecoderLibab - A libav-based audio decoder
  *  Copyright (C) 2013  Fundació i2CAT, Internet i Innovació digital a Catalunya
@@ -43,6 +44,29 @@ AudioDecoderLibav::AudioDecoderLibav()
     inFrame = av_frame_alloc();
 }
 
+AudioDecoderLibav::AudioDecoderLibav(CodecType cType, unsigned int inCh, SampleFmt outSFmt, int outCh, int outSRate)
+{
+    avcodec_register_all();
+
+    codec = NULL;
+    codecCtx = NULL;
+    resampleCtx = NULL;
+    inFrame = NULL;
+    av_init_packet(&pkt);
+    pkt.data = NULL;
+    pkt.size = 0;
+
+    inChannels = 0;
+    outChannels = 0;
+    inSampleRate = 0;
+    outSampleRate = 0;
+    inFrame = av_frame_alloc();
+
+    if(!configDecoder(cType, S16, inCh, 48000, outSFmt, outCh, outSRate)) {
+        //TODO: error msg
+    }
+}
+
 AudioDecoderLibav::AudioDecoderLibav(CodecType cType, SampleFmt inSFmt, int inCh, 
                             int inSRate, SampleFmt outSFmt, int outCh, int outSRate)
 {
@@ -85,10 +109,10 @@ bool AudioDecoderLibav::configDecoder(CodecType cType, SampleFmt inSFmt, int inC
     av_init_packet(&pkt);
     
     switch(fCodec){
-        case MULAW:
+        case PCMU:
             codec_id = AV_CODEC_ID_PCM_MULAW;
             break;
-        case OPUS:
+        case OPUS_C:
             codec_id = CODEC_ID_OPUS ;
             break;
         default:
@@ -110,7 +134,6 @@ bool AudioDecoderLibav::configDecoder(CodecType cType, SampleFmt inSFmt, int inC
     if (codecCtx == NULL) {
         return false;
     }
-
 
     switch(inSFmt){
         case U8:
@@ -183,9 +206,9 @@ bool AudioDecoderLibav::configDecoder(CodecType cType, SampleFmt inSFmt, int inC
     }
 
     codecCtx->channels = inChannels;
-    codecCtx->sample_fmt = inLibavSampleFmt;
     codecCtx->channel_layout = av_get_default_channel_layout(inChannels);
     codecCtx->sample_rate = inSampleRate;
+    codecCtx->sample_fmt = inLibavSampleFmt;
     
     AVDictionary* dictionary = NULL;
     if (avcodec_open2(codecCtx, codec, &dictionary) < 0)
@@ -273,6 +296,7 @@ int AudioDecoderLibav::resample(AVFrame* src, AudioFrame* dst)
                     src->nb_samples
                   );
 
+
         dst->setLength(samples*bytesPerSample);
         dst->setSamples(samples);
 
@@ -292,5 +316,5 @@ int AudioDecoderLibav::resample(AVFrame* src, AudioFrame* dst)
         dst->setLength(outChannels*samples*bytesPerSample);
         dst->setSamples(samples);
     }
-    
 }
+

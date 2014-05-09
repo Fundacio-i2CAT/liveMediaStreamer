@@ -41,7 +41,8 @@ namespace handlers
                                   unsigned int RTPPayloadFormat, 
                                   std::string codecName, unsigned int bandwidth, 
                                   unsigned int RTPTimestampFrequency, 
-                                  unsigned int clientPortNum = 0);
+                                  unsigned int clientPortNum = 0,
+                                  unsigned int channels = 0);
     
     std::string randomIdGenerator(unsigned int length);
     

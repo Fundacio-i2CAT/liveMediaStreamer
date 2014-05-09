@@ -21,6 +21,7 @@
  */
 
 #include "InterleavedAudioFrame.hh"
+#include <iostream>
 
 InterleavedAudioFrame::InterleavedAudioFrame(unsigned int ch, unsigned int sRate, unsigned int maxSamples, CodecType codec, SampleFmt sFmt)
 {

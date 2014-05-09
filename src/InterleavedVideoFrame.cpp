@@ -40,7 +40,7 @@ InterleavedVideoFrame::InterleavedVideoFrame(unsigned int width, unsigned height
     frameBuff = new unsigned char [bufferMaxLen]();
 }
 
-unsigned char* getBuffer()
+unsigned char* InterleavedVideoFrame::getDataBuf()
 {
     return frameBuff;
 }
@@ -60,7 +60,7 @@ void InterleavedVideoFrame::setLength(unsigned int length)
     bufferLen = length;
 }
 
-bool isPlanar()
+bool InterleavedVideoFrame::isPlanar()
 {
     return false;
 }

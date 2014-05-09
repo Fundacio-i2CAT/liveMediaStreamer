@@ -33,7 +33,7 @@ class VideoFrame : public Frame {
         unsigned int getWidth() {return width;};
         unsigned int getHeight() {return height;};
               
-    private:
+    protected:
         unsigned int width, height;
 };
 

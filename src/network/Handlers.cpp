@@ -37,6 +37,8 @@
 #include "ExtendedRTSPClient.hh"
 #endif
 
+#include <iostream>
+
 #define CODED_VIDEO_FRAMES 512 
 #define CODED_AUDIO_FRAMES 1024
 #define MAX_AUDIO_FRAME_SIZE 2048
@@ -50,6 +52,10 @@ namespace handlers
     void setupNextSubsession(RTSPClient* rtspClient);
     void streamTimerHandler(void* clientData);
     void shutdownStream(RTSPClient* rtspClient);
+    FrameQueue* createQueue(MediaSubsession *subsession);
+    FrameQueue* createVideoQueue(char const* codecName);
+    FrameQueue* createAudioQueue(unsigned char rtpPayloadFormat, char const* codecName, 
+                                 unsigned int channels = 0, unsigned int sampleRate = 0);
     
     void continueAfterDESCRIBE(RTSPClient* rtspClient, int resultCode, char* resultString) 
     {
@@ -247,15 +253,25 @@ namespace handlers
                                   unsigned int RTPPayloadFormat, 
                                   std::string codecName, unsigned int bandwidth, 
                                   unsigned int RTPTimestampFrequency, 
-                                  unsigned int clientPortNum) 
+                                  unsigned int clientPortNum,
+                                  unsigned int channels) 
     {
         std::stringstream sdp;
         sdp << "m=" << mediumName << " " << clientPortNum;
         sdp << " RTP/AVP " << RTPPayloadFormat << "\n";
         sdp << "c=IN IP4 127.0.0.1\n";
         sdp << "b=AS:" << bandwidth << "\n";
+
+        if (RTPPayloadFormat < 96) {
+            return sdp.str();
+        }
+
         sdp << "a=rtpmap:" << RTPPayloadFormat << " ";
-        sdp << codecName << "/" << RTPTimestampFrequency << "\n";
+        sdp << codecName << "/" << RTPTimestampFrequency;
+        if (channels != 0) {
+            sdp << "/" << channels;
+        } 
+        sdp << "\n";
         if (codecName.compare("H264") == 0){
             sdp << "a=fmtp:" << RTPPayloadFormat << " packetization-mode=1\n";
         }
@@ -284,12 +300,8 @@ namespace handlers
     {
         FrameQueue* queue;
         SourceManager* mngr;
-        
-        if (strcmp(subsession->mediumName(), "audio") == 0) {
-            queue = FrameQueue::createNew(CODED_AUDIO_FRAMES, MAX_AUDIO_FRAME_SIZE, 0);
-        } else if (strcmp(subsession->mediumName(), "video") == 0) {
-            queue = FrameQueue::createNew(CODED_VIDEO_FRAMES, MAX_VIDEO_FRAME_SIZE, 0);
-        }
+
+        queue = createQueue(subsession);
         
         subsession->sink = QueueSink::createNew(env, queue);
         
@@ -308,6 +320,66 @@ namespace handlers
         }
         
         return true;
+    }
+
+    FrameQueue* createQueue(MediaSubsession *subsession)
+    {
+        FrameQueue* queue;
+
+        if (strcmp(subsession->mediumName(), "audio") == 0) {
+            queue = createAudioQueue(subsession->rtpPayloadFormat(), subsession->codecName(), 
+                    subsession->numChannels(), subsession->rtpTimestampFrequency());
+        } else if (strcmp(subsession->mediumName(), "video") == 0) {
+            queue = createVideoQueue(subsession->codecName());
+        }
+
+        return queue;
+    }
+
+    FrameQueue* createVideoQueue(char const* codecName)
+    {
+        VideoType type;
+
+        if (strcmp(codecName, "H264") == 0) {
+            type = H264;
+        } else {
+            type = V_NONE;
+        }
+
+        return FrameQueue::createNew(type, 0);
+    }
+
+    FrameQueue* createAudioQueue(unsigned char rtpPayloadFormat, char const* codecName, unsigned channels, unsigned sampleRate)
+    {
+        AudioType type;
+
+        if (rtpPayloadFormat == 0) {
+            type = G711;
+            return FrameQueue::createNew(type, 0);
+        }
+
+        std::cout << "Payload: " << rtpPayloadFormat << std::endl;
+        std::cout << "Codec: " << codecName << std::endl;
+        std::cout << "Channels: " << channels << std::endl;
+        std::cout << "Sample Rate: " << sampleRate << std::endl;
+
+        if (strcmp(codecName, "OPUS") == 0) {
+            type = OPUS;
+        } else if (strcmp(codecName, "PCMU") == 0) {
+            if (channels == 2 && sampleRate == 48000) {
+                type = PCMU_2CH_48K_16;
+            } else if (channels == 1 && sampleRate == 48000) {
+                type = PCMU_1CH_48K_16;
+            } else if (channels == 2 && sampleRate == 8000) {
+                type = PCMU_2CH_8K_16;
+            } else {
+                type = A_NONE;
+            }
+        } else {
+            type = A_NONE;
+        }
+
+        return FrameQueue::createNew(type, 0);
     }
 };
 

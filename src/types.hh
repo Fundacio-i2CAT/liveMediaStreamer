@@ -27,10 +27,29 @@
 #define DEFAULT_HEIGHT 1080
 #define DEFAULT_WIDTH 1920
 #define BYTES_PER_PIXEL 3
+#define FRAMES_H264 100
+#define LENGTH_H264 2000
+#define FRAMES_OPUS 1000
+#define LENGTH_OPUS 2000
+#define FRAMES_PCMU 200
+#define MAX_SAMPLES_48K 9600 //200ms
+#define MAX_SAMPLES_8K 1600 //200ms
 
-enum CodecType {MULAW, OPUS};
+
+enum CodecType {PCMU, OPUS_C, PCM};
 
 enum SampleFmt {U8, S16, S32, FLT, U8P, S16P, S32P, FLTP};
+
+enum VideoType {H264, RGB24, RGB32, YUV422, YUV420, V_NONE};
+
+enum AudioType {
+    OPUS, 
+    G711, 
+    PCMU_2CH_48K_16, 
+    PCMU_1CH_48K_16, 
+    PCMU_2CH_8K_16,
+    A_NONE
+};
 
 
 #endif

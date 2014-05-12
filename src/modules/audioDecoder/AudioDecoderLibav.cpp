@@ -44,7 +44,7 @@ AudioDecoderLibav::AudioDecoderLibav()
     inFrame = av_frame_alloc();
 }
 
-AudioDecoderLibav::AudioDecoderLibav(CodecType cType, unsigned int inCh, SampleFmt outSFmt, int outCh, int outSRate)
+AudioDecoderLibav::AudioDecoderLibav(CodecType cType, SampleFmt outSFmt, int outCh, int outSRate)
 {
     avcodec_register_all();
 
@@ -57,33 +57,11 @@ AudioDecoderLibav::AudioDecoderLibav(CodecType cType, unsigned int inCh, SampleF
     pkt.size = 0;
 
     inChannels = 0;
-    outChannels = 0;
+    outChannels = outCh;
     inSampleRate = 0;
-    outSampleRate = 0;
-    inFrame = av_frame_alloc();
-
-    if(!configDecoder(cType, S16, inCh, 48000, outSFmt, outCh, outSRate)) {
-        //TODO: error msg
-    }
-}
-
-AudioDecoderLibav::AudioDecoderLibav(CodecType cType, SampleFmt inSFmt, int inCh, 
-                            int inSRate, SampleFmt outSFmt, int outCh, int outSRate)
-{
-    avcodec_register_all();
-
-    codec = NULL;
-    codecCtx = NULL;
-    resampleCtx = NULL;
-    inFrame = NULL;
-    av_init_packet(&pkt);
-    pkt.data = NULL;
-    pkt.size = 0;
-
-    inChannels = 0;
-    outChannels = 0;
-    inSampleRate = 0;
-    outSampleRate = 0;
+    outSampleRate = outSRate;
+    inSampleFmt = S_NONE;
+    outSampleFmt = outSFmt;
     inFrame = av_frame_alloc();
 
     if(!configDecoder(cType, inSFmt, inCh, inSRate, outSFmt, outCh, outSRate)) {
@@ -105,8 +83,6 @@ bool AudioDecoderLibav::configDecoder(CodecType cType, SampleFmt inSFmt, int inC
     outChannels = outCh;
     inSampleRate = inSRate;
     outSampleRate = outSRate;
-    
-    av_init_packet(&pkt);
     
     switch(fCodec){
         case PCMU:

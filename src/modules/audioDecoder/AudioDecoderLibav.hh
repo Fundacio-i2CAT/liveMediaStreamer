@@ -36,7 +36,6 @@ class AudioDecoderLibav {
     public:
         AudioDecoderLibav();
         ~AudioDecoderLibav();
-        AudioDecoderLibav(CodecType cType, unsigned int inCh, SampleFmt outSFmt, int outCh, int outSRate);
         AudioDecoderLibav(CodecType cType, SampleFmt inSFmt, int inCh, 
                             int inSRate, SampleFmt outSFmt, int outCh, int outSRate);
         bool decodeFrame(Frame* codedFrame, AudioFrame* decodedFrame);

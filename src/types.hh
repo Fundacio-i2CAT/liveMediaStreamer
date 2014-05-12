@@ -38,7 +38,7 @@
 
 enum CodecType {PCMU, OPUS_C, PCM};
 
-enum SampleFmt {U8, S16, S32, FLT, U8P, S16P, S32P, FLTP};
+enum SampleFmt {S_NONE, U8, S16, S32, FLT, U8P, S16P, S32P, FLTP};
 
 enum VideoType {H264, RGB24, RGB32, YUV422, YUV420, V_NONE};
 

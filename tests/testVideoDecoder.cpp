@@ -96,9 +96,7 @@ int main(int argc, char** argv)
     queue = mngr->getInputs().begin()->second;
     
     while(mngr->isRunning()){
-        if ((codedFrame = queue->getFront()) == NULL){
-            continue;
-        } else {
+        if ((codedFrame = queue->getFront()) != NULL){
             decoder->decodeFrame(codedFrame, rawFrame);
             queue->removeFrame();
             if (! rawFrames.is_open()){

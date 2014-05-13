@@ -18,7 +18,9 @@ class FrameQueue {
 public:
     static FrameQueue* createNew(unsigned maxPos, unsigned maxBuffSize, unsigned delay);
     Frame *getRear();
+    Frame *forceGetRear();
     Frame *getFront();
+    Frame *forceGetFront();
     void addFrame();
     void removeFrame();
     void flush();
@@ -29,6 +31,8 @@ protected:
     ~FrameQueue();
 
 private:
+    Frame *getOldie();
+    
     Frame* frames[MAX_FRAMES];
     std::atomic<int> rear;
     std::atomic<int> front;
@@ -36,7 +40,6 @@ private:
     int max;
     system_clock::time_point currentTime;
     milliseconds enlapsedTime;
-    
 };
 
 #endif

@@ -60,19 +60,17 @@ class Reader : public ProcessorInterface {
     
 public:
     void receiveFrame();
-    virtual void toProcess() = 0;
     void setQueue(FrameQueue *queue);
     
 protected:
     Reader(Writer *otherSide_ = NULL);
+    virtual void toProcess() = 0;
        
 };
 
 class Writer : public ProcessorInterface {
     
 protected:
-    friend class Reader;
-    
     Writer(Reader *otherSide_ = NULL);
     
     bool isQueueConnected();

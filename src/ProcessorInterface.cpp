@@ -111,12 +111,7 @@ Writer::Writer(Reader *otherSide_) : ProcessorInterface(otherSide_)
 void Writer::supplyFrame()
 {
     if (Reader *connectedTo_ = dynamic_cast<Reader *> (connectedTo)){
-        if (Reader *otherSide_ = dynamic_cast<Reader *> (otherSide)){
-            connectedTo_->receiveFrame();
-            if (otherSide_->frameQueue()->frameToRead()){
-                otherSide_->toProcess();
-            }
-        }
+        connectedTo_->receiveFrame();
     }
 }
 
@@ -168,7 +163,6 @@ void ReaderWriter::processFrame()
     
     bool newFrame = false;
     if ((org = reader->frameQueue()->getFront()) == NULL){
-        toProcess();
         return;
     }
     if (!isQueueConnected() && !connectQueue()){

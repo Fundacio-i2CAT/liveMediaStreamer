@@ -94,21 +94,12 @@ FrameQueue* ProcessorInterface::frameQueue() const
 
 Reader::Reader(Writer *otherSide_) : ProcessorInterface(otherSide_)
 {
-    wait = 0;
 }
 
 void Reader::receiveFrame(){
-    if (wait == 0){
+    if (frameQueue()->frameToRead()){
         toProcess();
     }
-    wait++;
-}
-
-int Reader::decreaseWait(){
-    if (wait > 0){
-        --wait;
-    }
-    return wait;
 }
 
 //Writer implementation
@@ -122,7 +113,7 @@ void Writer::supplyFrame()
     if (Reader *connectedTo_ = dynamic_cast<Reader *> (connectedTo)){
         if (Reader *otherSide_ = dynamic_cast<Reader *> (otherSide)){
             connectedTo_->receiveFrame();
-            if (otherSide_->decreaseWait() > 0){
+            if (otherSide_->frameQueue()->frameToRead()){
                 otherSide_->toProcess();
             }
         }

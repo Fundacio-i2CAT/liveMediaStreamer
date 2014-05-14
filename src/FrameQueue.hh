@@ -25,6 +25,8 @@ public:
     void removeFrame();
     void flush();
     int delay; //(ms)
+    const int getElements() {return elements;};
+    bool frameToRead();
 
 protected:
     FrameQueue(unsigned maxPos, unsigned maxBuffSize, unsigned delay);

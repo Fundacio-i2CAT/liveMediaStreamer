@@ -30,18 +30,10 @@ Frame* FrameQueue::getRear()
 
 Frame* FrameQueue::getFront() 
 {
-    if (elements <= 0) {
-        return NULL;
+    if(frameToRead()) {
+        return frames[front];
     }
-    
-    currentTime = system_clock::now();
-    enlapsedTime = duration_cast<milliseconds>(currentTime - frames[front]->getUpdatedTime());
-
-    if(enlapsedTime.count() < delay) {
-        return NULL;
-    }
-
-    return frames[front];
+    return NULL;
 }
 
 //TODO: add exception if elements > max
@@ -90,4 +82,14 @@ Frame* FrameQueue::forceGetFront()
 Frame* FrameQueue::getOldie()
 {
     return frames[(front + (max - 1)) % max]; 
+}
+
+bool FrameQueue::frameToRead()
+{
+    if (elements <= 0){
+        return false;
+    }
+    currentTime = system_clock::now();
+    enlapsedTime = duration_cast<milliseconds>(currentTime - frames[front]->getUpdatedTime());
+    return enlapsedTime.count() > delay;
 }

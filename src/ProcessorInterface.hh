@@ -60,12 +60,10 @@ class Reader : public ProcessorInterface {
     
 public:
     void receiveFrame();
-    int decreaseWait();
     virtual void toProcess() = 0;
     void setQueue(FrameQueue *queue);
     
 protected:
-    std::atomic<int> wait;
     Reader(Writer *otherSide_ = NULL);
        
 };

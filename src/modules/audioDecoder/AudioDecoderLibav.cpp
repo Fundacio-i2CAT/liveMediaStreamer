@@ -43,7 +43,7 @@ AudioDecoderLibav::AudioDecoderLibav()
     inFrame = av_frame_alloc();
 }
 
-bool AudioDecoderLibav::configure(CodecType cType, SampleFmt inSFmt, int inCh, 
+bool AudioDecoderLibav::configure(ACodecType cType, SampleFmt inSFmt, int inCh, 
                                     int inSRate, SampleFmt outSFmt, int outCh, int outSRate)
 {
     AVCodecID codec_id;
@@ -62,7 +62,7 @@ bool AudioDecoderLibav::configure(CodecType cType, SampleFmt inSFmt, int inCh,
         case PCMU:
             codec_id = AV_CODEC_ID_PCM_MULAW;
             break;
-        case OPUS_C:
+        case OPUS:
             codec_id = CODEC_ID_OPUS ;
             break;
         default:
@@ -92,9 +92,6 @@ bool AudioDecoderLibav::configure(CodecType cType, SampleFmt inSFmt, int inCh,
         case S16:
             inLibavSampleFmt = AV_SAMPLE_FMT_S16;
             break;
-        case S32:
-            inLibavSampleFmt = AV_SAMPLE_FMT_S32;
-            break;
         case FLT:
             inLibavSampleFmt = AV_SAMPLE_FMT_FLT;
             break;
@@ -103,9 +100,6 @@ bool AudioDecoderLibav::configure(CodecType cType, SampleFmt inSFmt, int inCh,
             break;
         case S16P:
             inLibavSampleFmt = AV_SAMPLE_FMT_S16P;
-            break;
-        case S32P:
-            inLibavSampleFmt = AV_SAMPLE_FMT_S32P;
             break;
         case FLTP:
             inLibavSampleFmt = AV_SAMPLE_FMT_FLTP;
@@ -125,10 +119,6 @@ bool AudioDecoderLibav::configure(CodecType cType, SampleFmt inSFmt, int inCh,
             outLibavSampleFmt = AV_SAMPLE_FMT_S16;
             bytesPerSample = av_get_bytes_per_sample(AV_SAMPLE_FMT_S16);
             break;
-        case S32:
-            outLibavSampleFmt = AV_SAMPLE_FMT_S32;
-            bytesPerSample = av_get_bytes_per_sample(AV_SAMPLE_FMT_S32);
-            break;
         case FLT:
             outLibavSampleFmt = AV_SAMPLE_FMT_FLT;
             bytesPerSample = av_get_bytes_per_sample(AV_SAMPLE_FMT_FLT);
@@ -140,10 +130,6 @@ bool AudioDecoderLibav::configure(CodecType cType, SampleFmt inSFmt, int inCh,
         case S16P:
             outLibavSampleFmt = AV_SAMPLE_FMT_S16P;
             bytesPerSample = av_get_bytes_per_sample(AV_SAMPLE_FMT_S16P);
-            break;
-        case S32P:
-            outLibavSampleFmt = AV_SAMPLE_FMT_S32P;
-            bytesPerSample = av_get_bytes_per_sample(AV_SAMPLE_FMT_S32P);
             break;
         case FLTP:
             outLibavSampleFmt = AV_SAMPLE_FMT_FLTP;

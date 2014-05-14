@@ -29,6 +29,10 @@
 #include "QueueSink.hh"
 #endif
 
+#ifndef _H264_QUEUE_SINK_HH
+#include "H264QueueSink.hh"
+#endif
+
 #ifndef _SOURCE_MANAGER_HH
 #include "SourceManager.hh"
 #endif
@@ -37,13 +41,15 @@
 #include "ExtendedRTSPClient.hh"
 #endif
 
+#ifndef _AUDIO_FRAME_QUEUE_HH
+#include "../AudioFrameQueue.hh"
+#endif
+
+#ifndef _VIDEO_FRAME_QUEUE_HH
+#include "../VideoFrameQueue.hh"
+#endif
+
 #include <iostream>
-
-#define CODED_VIDEO_FRAMES 512 
-#define CODED_AUDIO_FRAMES 1024
-#define MAX_AUDIO_FRAME_SIZE 2048
-#define MAX_VIDEO_FRAME_SIZE 100000
-
 
 namespace handlers 
 {
@@ -237,6 +243,7 @@ namespace handlers
         Medium::close(rtspClient);
     }
     
+    //TODO: static method of SourceManager?
     std::string makeSessionSDP(std::string sessionName, std::string sessionDescription)
     {
         std::stringstream sdp;
@@ -296,14 +303,24 @@ namespace handlers
         return id;
     }
     
+    //TODO: static method of SourceManager?
     bool addSubsessionSink(UsageEnvironment& env, MediaSubsession *subsession)
     {
         FrameQueue* queue;
         SourceManager* mngr;
 
         queue = createQueue(subsession);
+
+        if (queue == NULL){
+            return false;
+        }
         
-        subsession->sink = QueueSink::createNew(env, queue);
+        if (strcmp(subsession->codecName(), "H264") == 0) {
+            subsession->sink = H264QueueSink::createNew(env, queue, 
+                                                        subsession->fmtp_spropparametersets());
+        } else {
+            subsession->sink = QueueSink::createNew(env, queue);
+        }
         
         if (subsession->sink == NULL){
             return false;
@@ -338,48 +355,38 @@ namespace handlers
 
     FrameQueue* createVideoQueue(char const* codecName)
     {
-        VideoType type;
+        VCodecType codec;
 
         if (strcmp(codecName, "H264") == 0) {
-            type = H264;
+            codec = H264;
         } else {
-            type = V_NONE;
+            //TODO: codec not supported
         }
-
-        return FrameQueue::createNew(type, 0);
+        
+        return VideoFrameQueue::createNew(codec, 0);
     }
 
     FrameQueue* createAudioQueue(unsigned char rtpPayloadFormat, char const* codecName, unsigned channels, unsigned sampleRate)
     {
-        AudioType type;
+        ACodecType codec;
 
         if (rtpPayloadFormat == 0) {
-            type = G711;
-            return FrameQueue::createNew(type, 0);
+            codec = G711;
+            return AudioFrameQueue::createNew(codec, 0);
         }
-
-        std::cout << "Payload: " << rtpPayloadFormat << std::endl;
-        std::cout << "Codec: " << codecName << std::endl;
-        std::cout << "Channels: " << channels << std::endl;
-        std::cout << "Sample Rate: " << sampleRate << std::endl;
 
         if (strcmp(codecName, "OPUS") == 0) {
-            type = OPUS;
-        } else if (strcmp(codecName, "PCMU") == 0) {
-            if (channels == 2 && sampleRate == 48000) {
-                type = PCMU_2CH_48K_16;
-            } else if (channels == 1 && sampleRate == 48000) {
-                type = PCMU_1CH_48K_16;
-            } else if (channels == 2 && sampleRate == 8000) {
-                type = PCMU_2CH_8K_16;
-            } else {
-                type = A_NONE;
-            }
-        } else {
-            type = A_NONE;
+            codec = OPUS;
+            return AudioFrameQueue::createNew(codec, 0, sampleRate);
         }
 
-        return FrameQueue::createNew(type, 0);
+        if (strcmp(codecName, "PCMU") == 0) {
+            codec = PCMU;
+            return AudioFrameQueue::createNew(codec, 0, sampleRate, channels);
+        }
+
+        //TODO: error msg codec not supported
+        return NULL;
     }
 };
 

@@ -118,8 +118,8 @@ int main(int argc, char** argv)
     Frame *codedFrame;
     struct buffer *buffers;
 
-    CodecType inCType = OPUS_C;
-    CodecType outCType = PCM;
+    ACodecType inCType = OPUS;
+    ACodecType outCType = PCM;
     SampleFmt inSFmt = S16;
     unsigned int inCh = 2;
     unsigned int inSRate = 48000;

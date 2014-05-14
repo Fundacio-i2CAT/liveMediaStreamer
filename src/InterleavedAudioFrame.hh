@@ -27,7 +27,7 @@
 
 class InterleavedAudioFrame : public AudioFrame {
     public:
-        InterleavedAudioFrame(unsigned int ch, unsigned int sRate, unsigned int maxSamples, CodecType codec, SampleFmt sFmt);
+        InterleavedAudioFrame(unsigned int ch, unsigned int sRate, unsigned int maxSamples, ACodecType codec, SampleFmt sFmt);
         unsigned char* getDataBuf();
         unsigned int getLength();
         unsigned int getMaxLength();

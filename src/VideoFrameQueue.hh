@@ -1,6 +1,6 @@
 /*
- *  PlanarAudioFrame - Planar audio frame structure
- *  Copyright (C) 2013  Fundació i2CAT, Internet i Innovació digital a Catalunya
+ *  VideoFrameQueue - A lock-free video frame circular queue
+ *  Copyright (C) 2014  Fundació i2CAT, Internet i Innovació digital a Catalunya
  *
  *  This file is part of media-streamer.
  *
@@ -20,24 +20,29 @@
  *  Authors:  Marc Palau <marc.palau@i2cat.net>
  */
 
-#ifndef _PLANARAUDIOFRAME_HH
-#define _PLANARAUDIOFRAME_HH
+#ifndef _VIDEO_FRAME_QUEUE_HH
+#define _VIDEO_FRAME_QUEUE_HH
 
-#include "AudioFrame.hh"
+#ifndef _FRAME_QUEUE_HH
+#include "FrameQueue.hh"
+#endif
 
-class PlanarAudioFrame : public AudioFrame {
-    public:
-        PlanarAudioFrame(unsigned int ch, unsigned int sRate, unsigned int maxSamples, ACodecType codec, SampleFmt sFmt);
-        unsigned char** getPlanarDataBuf();
-        unsigned int getLength();
-        unsigned int getMaxLength();
-        void setLength(unsigned int length);
-        bool isPlanar();
+#include "Types.hh"
 
-    private:
-        unsigned char* frameBuff[MAX_CHANNELS];
-        unsigned int bufferLen;
-        unsigned int bufferMaxLen;
+class VideoFrameQueue : public FrameQueue {
+
+public:
+    static VideoFrameQueue* createNew(VCodecType codec, unsigned delay, unsigned width = 0, 
+                                            unsigned height = 0, PixType pixelFormat = P_NONE);
+
+protected:
+    VideoFrameQueue(VCodecType codec, unsigned delay, unsigned width, unsigned height, PixType pixelFormat);
+    VCodecType codec;
+    PixType pixelFormat;
+    unsigned width;
+    unsigned height;
+    bool config();
+
 };
 
 #endif

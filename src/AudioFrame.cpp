@@ -22,7 +22,7 @@
 
 #include "AudioFrame.hh"
 
-AudioFrame::AudioFrame(unsigned int ch, unsigned int sRate, unsigned int maxSamples, CodecType codec, SampleFmt sFmt)
+AudioFrame::AudioFrame(unsigned int ch, unsigned int sRate, unsigned int maxSamples, ACodecType codec, SampleFmt sFmt)
 {
     channels = ch;
     sampleRate = sRate;
@@ -40,8 +40,6 @@ AudioFrame::AudioFrame(unsigned int ch, unsigned int sRate, unsigned int maxSamp
         case S16:
             bytesPerSample = 2;
             break;
-        case S32P:
-        case S32:
         case FLTP:
         case FLT:
             bytesPerSample = 4;
@@ -68,7 +66,7 @@ void AudioFrame::setSampleFormat(SampleFmt sFmt)
     sampleFmt = sFmt;
 }
 
-void AudioFrame::setCodec(CodecType cType)
+void AudioFrame::setCodec(ACodecType cType)
 {
     fCodec = cType;
 }
@@ -83,7 +81,7 @@ void AudioFrame::setMaxSamples(unsigned int maxSamples)
     this->maxSamples = maxSamples;
 }
 
-CodecType AudioFrame::getCodec()
+ACodecType AudioFrame::getCodec()
 {
     return fCodec;
 }

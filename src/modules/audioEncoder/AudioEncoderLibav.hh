@@ -40,12 +40,12 @@ public:
     AudioEncoderLibav();
     ~AudioEncoderLibav();
     bool encodeFrame(AudioFrame* rawFrame, Frame* codedFrame);
-    bool configure(CodecType cType, SampleFmt sFmt, int ch, int sRate);
+    bool configure(ACodecType cType, SampleFmt sFmt, int ch, int sRate);
     int getSamplesPerFrame();
     int getChannels(){ return channels;};
     int getSampleRate() {return sampleRate;};
     SampleFmt getSampleFmt() {return sampleFmt;};
-    CodecType getCodec() {return fCodec;};
+    ACodecType getCodec() {return fCodec;};
 
 private:
     int resample(AudioFrame* src, AVFrame* dst);
@@ -58,7 +58,7 @@ private:
     SwrContext          *resampleCtx;
     int                 gotFrame;
 
-    CodecType           fCodec;
+    ACodecType           fCodec;
     SampleFmt           sampleFmt;
 
     int                 channels;

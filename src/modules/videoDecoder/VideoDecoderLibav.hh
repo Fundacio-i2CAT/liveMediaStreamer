@@ -1,35 +1,42 @@
-#define __STDC_CONSTANT_MACROS 1 
+#ifndef _VIDEO_DECODER_LIBAV_HH
+#define _VIDEO_DECODER_LIBAV_HH
+
+//#ifndef __STDC_CONSTANT_MACROS
+//#define __STDC_CONSTANT_MACROS
+//#endif
 
 extern "C" {
 #include <libavcodec/avcodec.h>
 #include <libavutil/avutil.h>
+#include <libswscale/swscale.h>
 }
 
-#include "../../Frame.hh"
+#ifndef _VIDEO_FRAME_HH
+#include "../../VideoFrame.hh"
+#endif
 
-enum CodecType {H264, VP8, MJPEG, RAW};
 
-enum PixType {RGB24, RGB32, YUYV422};
+
 
 class VideoDecoderLibav {
 
     public:
         VideoDecoderLibav();
         bool decodeFrame(Frame *codedFrame, Frame *decodedFrame);
-        bool configDecoder(CodecType cType, PixType pTyp);
-        bool toBuffer(Frame *decodedFrame);
-        //int getFormat();
+        bool configDecoder(VCodecType cType, PixType pTyp);
         
     private:
+        bool toBuffer(VideoFrame *decodedFrame);
+        
         AVCodec             *codec;
         AVCodecContext      *codecCtx;
-        //struct SwsContext   *imgConvertCtx;
-        AVFrame             *frame;
+        struct SwsContext   *imgConvertCtx;
+        AVFrame             *frame, *outFrame;
         AVPacket            pkt;
-        int                 gotFrame;
-        //unsigned int        fWidth, fHeight;
-        
-        CodecType           fCodec;
+        AVPixelFormat       pix_fmt;
+        AVCodecID           codec_id;
+        VCodecType           fCodec;
         PixType             fPixType;
 };
 
+#endif

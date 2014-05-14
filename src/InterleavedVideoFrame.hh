@@ -28,7 +28,7 @@
 class InterleavedVideoFrame : public VideoFrame {
     public:
         InterleavedVideoFrame(unsigned int maxLength);
-        InterleavedVideoFrame(unsigned int width, unsigned height);
+        InterleavedVideoFrame(unsigned int width, unsigned height, PixType pixelFormat);
         unsigned char* getDataBuf();
         unsigned int getLength();
         unsigned int getMaxLength();

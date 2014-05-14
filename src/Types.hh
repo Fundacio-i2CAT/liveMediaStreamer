@@ -26,31 +26,21 @@
 #define MAX_CHANNELS 4
 #define DEFAULT_HEIGHT 1080
 #define DEFAULT_WIDTH 1920
-#define BYTES_PER_PIXEL 3
-#define FRAMES_H264 100
-#define LENGTH_H264 2000
+#define DEFAULT_BYTES_PER_PIXEL 3
+#define DEFAULT_VIDEO_FRAMES 100
+#define LENGTH_H264 6000000 //6MB
 #define FRAMES_OPUS 1000
 #define LENGTH_OPUS 2000
-#define FRAMES_PCMU 200
-#define MAX_SAMPLES_48K 9600 //200ms
-#define MAX_SAMPLES_8K 1600 //200ms
+#define FRAMES_AUDIO_RAW 2000
+#define AUDIO_FRAME_TIME 100 //ms
 #define DEFAULT_FRAME_SAMPLES 960
 
+enum VCodecType {H264, VP8, MJPEG, RAW};
 
-enum CodecType {PCMU, OPUS_C, PCM};
+enum PixType {P_NONE, RGB24, RGB32, YUYV422};
 
-enum SampleFmt {S_NONE, U8, S16, S32, FLT, U8P, S16P, S32P, FLTP};
+enum ACodecType {G711, PCMU, OPUS, PCM};
 
-enum VideoType {H264, RGB24, RGB32, YUV422, YUV420, V_NONE};
-
-enum AudioType {
-    OPUS, 
-    G711, 
-    PCMU_2CH_48K_16, 
-    PCMU_1CH_48K_16, 
-    PCMU_2CH_8K_16,
-    A_NONE
-};
-
+enum SampleFmt {S_NONE, U8, S16, FLT, U8P, S16P, FLTP};
 
 #endif

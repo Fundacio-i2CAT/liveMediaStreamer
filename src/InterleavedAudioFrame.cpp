@@ -23,7 +23,7 @@
 #include "InterleavedAudioFrame.hh"
 #include <iostream>
 
-InterleavedAudioFrame::InterleavedAudioFrame(unsigned int ch, unsigned int sRate, unsigned int maxSamples, CodecType codec, SampleFmt sFmt)
+InterleavedAudioFrame::InterleavedAudioFrame(unsigned int ch, unsigned int sRate, unsigned int maxSamples, ACodecType codec, SampleFmt sFmt)
 {
     channels = ch;
     sampleRate = sRate;
@@ -39,7 +39,6 @@ InterleavedAudioFrame::InterleavedAudioFrame(unsigned int ch, unsigned int sRate
         case S16:
             bytesPerSample = 2;
             break;
-        case S32:
         case FLT:
             bytesPerSample = 4;
             break;

@@ -23,7 +23,7 @@
  #include "PlanarAudioFrame.hh"
  #include <iostream>
 
-PlanarAudioFrame::PlanarAudioFrame(unsigned int ch, unsigned int sRate, unsigned int maxSamples, CodecType codec, SampleFmt sFmt)
+PlanarAudioFrame::PlanarAudioFrame(unsigned int ch, unsigned int sRate, unsigned int maxSamples, ACodecType codec, SampleFmt sFmt)
 {
     channels = ch;
     sampleRate = sRate;
@@ -39,7 +39,6 @@ PlanarAudioFrame::PlanarAudioFrame(unsigned int ch, unsigned int sRate, unsigned
         case S16P:
             bytesPerSample = 2;
             break;
-        case S32P:
         case FLTP:
             bytesPerSample = 4;
             break;

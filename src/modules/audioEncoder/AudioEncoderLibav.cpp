@@ -40,7 +40,7 @@ AudioEncoderLibav::AudioEncoderLibav()
     internalLibavSampleFormat = AV_SAMPLE_FMT_S16;
 }
 
-bool AudioEncoderLibav::configure(CodecType cType, SampleFmt sFmt, int ch, int sRate)
+bool AudioEncoderLibav::configure(ACodecType cType, SampleFmt sFmt, int ch, int sRate)
 {
     AVCodecID codecID;
     AVSampleFormat libavSampleFmt;
@@ -56,7 +56,7 @@ bool AudioEncoderLibav::configure(CodecType cType, SampleFmt sFmt, int ch, int s
         case PCMU:
             codecID = AV_CODEC_ID_PCM_MULAW;
             break;
-        case OPUS_C:
+        case OPUS:
             codecID = CODEC_ID_OPUS;
             break;
         default:
@@ -84,9 +84,6 @@ bool AudioEncoderLibav::configure(CodecType cType, SampleFmt sFmt, int ch, int s
         case S16:
             libavSampleFmt = AV_SAMPLE_FMT_S16;
             break;
-        case S32:
-            libavSampleFmt = AV_SAMPLE_FMT_S32;
-            break;
         case FLT:
             libavSampleFmt = AV_SAMPLE_FMT_FLT;
             break;
@@ -95,9 +92,6 @@ bool AudioEncoderLibav::configure(CodecType cType, SampleFmt sFmt, int ch, int s
             break;
         case S16P:
             libavSampleFmt = AV_SAMPLE_FMT_S16P;
-            break;
-        case S32P:
-            libavSampleFmt = AV_SAMPLE_FMT_S32P;
             break;
         case FLTP:
             libavSampleFmt = AV_SAMPLE_FMT_FLTP;

@@ -25,11 +25,9 @@ public:
 protected:
     QueueSource(UsageEnvironment& env, FrameQueue *q);
         // called only by createNew()
-
-private: // redefined virtual functions:
     static void staticDoGetNextFrame(FramedSource* source);
 
-private:
+protected:
     FrameQueue* queue;
     Frame* frame;
     bool has_frame;

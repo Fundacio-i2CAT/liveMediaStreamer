@@ -21,6 +21,10 @@
  *            
  */
 
+#ifndef _QUEUE_SOURCE_HH
+#include "H264QueueSource.hh"
+#endif
+
 #include "H264QueueServerMediaSubsession.hh"
 
 H264QueueServerMediaSubsession*
@@ -103,7 +107,7 @@ FramedSource* H264QueueServerMediaSubsession::createNewStreamSource(unsigned /*c
     estBitrate = 500; // kbps, estimate
 
     // Create the video source:
-    QueueSource* queueSource = QueueSource::createNew(envir(), fQueue);
+    H264QueueSource* queueSource = H264QueueSource::createNew(envir(), fQueue);
     if (queueSource == NULL) return NULL;
 
     // Create a framer for the Video Elementary Stream:

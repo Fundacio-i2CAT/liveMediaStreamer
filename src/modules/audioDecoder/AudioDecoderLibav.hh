@@ -40,7 +40,7 @@ class AudioDecoderLibav {
         AudioDecoderLibav();
         ~AudioDecoderLibav();
         bool decodeFrame(Frame* codedFrame, AudioFrame* decodedFrame);
-        bool configure(CodecType cType, SampleFmt inSFmt, int inCh, 
+        bool configure(ACodecType cType, SampleFmt inSFmt, int inCh, 
                         int inSRate, SampleFmt outSFmt, int outCh, int outSRate);
         
     private:
@@ -54,7 +54,7 @@ class AudioDecoderLibav {
         int                 gotFrame;
         SwrContext          *resampleCtx;
         
-        CodecType           fCodec;
+        ACodecType          fCodec;
         SampleFmt           inSampleFmt;
         SampleFmt           outSampleFmt;
         int                 inChannels;

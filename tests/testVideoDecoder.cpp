@@ -12,21 +12,21 @@
 #include "../src/network/SourceManager.hh"
 #endif
 
-#ifndef _SINK_MANAGER_HH
-#include "../src/network/SinkManager.hh"
-#endif
-
-#ifndef _H264_QUEUE_SERVER_MEDIA_SESSION_HH
-#include "../src/network/H264QueueServerMediaSubsession.hh"
+#ifndef _VIDEO_DECODER_LIBAV_HH
+#include "../src/modules/videoDecoder/VideoDecoderLibav.hh"
 #endif
 
 #ifndef _FRAME_QUEUE_HH
 #include "../src/FrameQueue.hh"
 #endif
 
+#ifndef _INTERLEAVED_VIDEO_FRAME_HH
+#include "../src/InterleavedVideoFrame.hh"
+#endif
+
+#include <fstream>
 #include <iostream>
 #include <csignal>
-
 
 #define V_MEDIUM "video"
 #define PROTOCOL "RTP"
@@ -42,16 +42,14 @@
 #define A_TIME_STMP_FREQ 44100
 
 
-void signalHandler( int signum )
+void signalHandler(int signum)
 {
     std::cout << "Interrupt signal (" << signum << ") received.\n";
     
     SourceManager *mngr = SourceManager::getInstance();
-    SinkManager *sMngr = SinkManager::getInstance();
     mngr->closeManager();
-    sMngr->closeManager();
     
-    std::cout << "Managers closed\n";
+    std::cout << "Manager closed\n";
 }
 
 int main(int argc, char** argv) 
@@ -59,16 +57,20 @@ int main(int argc, char** argv)
     std::string sessionId;
     std::string sdp;
     Session* session;
-    FrameQueue* queue;
     SourceManager *mngr = SourceManager::getInstance();
-    SinkManager *sMngr = SinkManager::getInstance();
+    FrameQueue* queue;
+    Frame* codedFrame;
+    Frame* rawFrame = new InterleavedVideoFrame(DEFAULT_WIDTH, DEFAULT_HEIGHT, RGB24);
+    VideoDecoderLibav* decoder = new VideoDecoderLibav();
+    std::ofstream rawFrames;
     
-    mngr->runManager();
-    sMngr->runManager();
+    //condif decoder
+    if (! decoder->configDecoder(H264, RGB24)){
+        return 1;
+    }
     
     signal(SIGINT, signalHandler); 
     
-    //receiver sessions
     for (int i = 1; i <= argc-1; ++i) {
         sessionId = handlers::randomIdGenerator(ID_LENGTH);
         session = Session::createNewByURL(*(mngr->envir()), argv[0], argv[i]);
@@ -76,49 +78,44 @@ int main(int argc, char** argv)
     }
     
     sessionId = handlers::randomIdGenerator(ID_LENGTH);
-     
+    
     sdp = handlers::makeSessionSDP("testSession", "this is a test");
-     
+    
     sdp += handlers::makeSubsessionSDP(V_MEDIUM, PROTOCOL, PAYLOAD, V_CODEC, 
-                                        BANDWITH, V_TIME_STMP_FREQ, V_CLIENT_PORT);
+                                       BANDWITH, V_TIME_STMP_FREQ, V_CLIENT_PORT);
     // sdp += handlers::makeSubsessionSDP(A_MEDIUM, PROTOCOL, PAYLOAD, A_CODEC, 
     //                                    BANDWITH, A_TIME_STMP_FREQ, A_CLIENT_PORT);
     
     session = Session::createNew(*(mngr->envir()), sdp);
     
     mngr->addSession(sessionId, session);
-     
+    
+    mngr->runManager();
+    
     mngr->initiateAll();
     
-    //transitter sessions
-    
-    //Let some time to initiate reciver sessions
-    sleep(1);
-    
-    if (mngr->getInputs().empty()){
-        mngr->closeManager();
-        sMngr->closeManager();
-        return 1;
-    }
+    sleep(2);
     
     queue = mngr->getInputs().begin()->second;
     
-    sessionId = handlers::randomIdGenerator(ID_LENGTH);
-    
-    ServerMediaSession* servSession
-    = ServerMediaSession::createNew(*(sMngr->envir()), "testServerSession", 
-                                      "testServerSession", "this is a test");
-    servSession->addSubsession(H264QueueServerMediaSubsession::createNew(
-        *(sMngr->envir()), queue, True));
-    
-    sMngr->addSession(sessionId, servSession);
-    sMngr->publishSession(sessionId);
-    
-    while(mngr->isRunning() || sMngr->isRunning()){
-        sleep(1);
+    while(mngr->isRunning()){
+        if ((codedFrame = queue->getFront()) == NULL){
+            continue;
+        } else {
+            decoder->decodeFrame(codedFrame, rawFrame);
+            queue->removeFrame();
+            if (! rawFrames.is_open()){
+                rawFrames.open("frames.yuv", std::ios::out | std::ios::app | std::ios::binary);
+            } 
+            if (rawFrame->getLength() > 0) {
+                rawFrames.write(reinterpret_cast<const char*>(rawFrame->getDataBuf()), rawFrame->getLength());
+            }
+        }
+        usleep(1000);
     }
+    
+    rawFrames.close();
     
     return 0;
 }
-
 

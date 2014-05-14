@@ -32,10 +32,6 @@
 #include "QueueServerMediaSubsession.hh"
 #endif
 
-#ifndef _QUEUE_SOURCE_HH
-#include "QueueSource.hh"
-#endif
-
 class H264QueueServerMediaSubsession: public QueueServerMediaSubsession {
 public:
   static H264QueueServerMediaSubsession*

@@ -35,6 +35,7 @@ class VideoFrame : public Frame {
               
     protected:
         unsigned int width, height;
+        PixType pixelFormat;
 };
 
 #endif

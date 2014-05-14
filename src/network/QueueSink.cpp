@@ -18,10 +18,7 @@ Boolean QueueSink::continuePlaying()
     if (fSource == NULL) return False;
 
     //Check if there is any free slot in the queue
-    while ((frame = queue->getRear()) == NULL) {
-        std::cerr << "Queue overflow, flushing frames! Increase queue max position in order to fix this!" << std::endl;
-        queue->flush();
-    }
+    updateFrame();
 
     fSource->getNextFrame(frame->getDataBuf(), frame->getMaxLength(),
               afterGettingFrame, this,
@@ -48,4 +45,11 @@ void QueueSink::afterGettingFrame(unsigned frameSize, struct timeval presentatio
 
     // Then try getting the next frame:
     continuePlaying();
+}
+
+void QueueSink::updateFrame(){
+    while ((frame = queue->getRear()) == NULL) {
+        std::cerr << "Queue overflow!" << std::endl;
+        queue->flush();
+    }
 }

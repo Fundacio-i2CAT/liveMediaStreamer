@@ -1,6 +1,6 @@
 /*
- *  AudioDecoderLibab - Audio circular buffer
- *  Copyright (C) 2013  Fundació i2CAT, Internet i Innovació digital a Catalunya
+ *  AudioFrameQueue - A lock-free audio frame circular queue
+ *  Copyright (C) 2014  Fundació i2CAT, Internet i Innovació digital a Catalunya
  *
  *  This file is part of media-streamer.
  *
@@ -20,30 +20,33 @@
  *  Authors:  Marc Palau <marc.palau@i2cat.net>
  */
 
-#ifndef _AUDIOCIRCULARBUFFER_HH
-#define _AUDIOCIRCULARBUFFER_HH
+#ifndef _AUDIO_FRAME_QUEUE_HH
+#define _AUDIO_FRAME_QUEUE_HH
+
+#ifndef _FRAME_QUEUE_HH
+#include "FrameQueue.hh"
+#endif
 
 #include <atomic>
+#include <sys/time.h>
+#include <chrono>
 #include "Types.hh"
 
- class AudioCircularBuffer {
+using namespace std::chrono;
 
-    public:
-        AudioCircularBuffer(unsigned int chNumber, unsigned int chMaxLength, unsigned int bytesPerSmpl);
-        ~AudioCircularBuffer();
+class AudioFrameQueue : public FrameQueue {
 
-        bool pushBack(unsigned char **buffer, int samplesRequested);
-        bool popFront(unsigned char **buffer, int samplesRequested);
+public:
+    static AudioFrameQueue* createNew(ACodecType codec,  unsigned delay, unsigned sampleRate = 48000, unsigned channels = 2, SampleFmt sFmt = S16);
 
-    private:
-        std::atomic<int> byteCounter;
-        std::atomic<int> front;
-        std::atomic<int> rear;
-        unsigned int channels;
-        unsigned int bytesPerSample;
-        unsigned int chMaxSamples;
-        unsigned int channelMaxLength;
-        unsigned char *data[MAX_CHANNELS];
+protected:
+    AudioFrameQueue(ACodecType codec, SampleFmt sFmt, unsigned sampleRate, unsigned channels, unsigned delay);
+    ACodecType codec;
+    SampleFmt sampleFormat;
+    unsigned sampleRate;
+    unsigned channels;
+    bool config();
+
 };
 
 #endif

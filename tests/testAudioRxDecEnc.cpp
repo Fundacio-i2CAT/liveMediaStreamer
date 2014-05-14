@@ -13,7 +13,9 @@
 #endif
 
 #include "../src/PlanarAudioFrame.hh"
+#include "../src/InterleavedAudioFrame.hh"
 #include "../src/modules/audioDecoder/AudioDecoderLibav.hh"
+#include "../src/modules/audioEncoder/AudioEncoderLibav.hh"
 #include "../src/AudioCircularBuffer.hh"
 
 #include <iostream>
@@ -33,8 +35,8 @@
 bool should_stop = false;
 
 struct buffer {
-    uint8_t* data[8];
-    int data_len[8];
+    unsigned char* data;
+    int data_len;
 };
 
 void signalHandler( int signum )
@@ -47,38 +49,39 @@ void signalHandler( int signum )
     std::cout << "Manager closed\n";
 }
 
-void fillBuffer(struct buffer *b, Frame *pFrame, int channels, int channel_data_len) {
-    int i=0, j=0, counter=0;
-
-    for (i=0; i<channels; i++) {
-        memcpy(b->data[i] + b->data_len[i], pFrame->getPlanarDataBuf()[i], channel_data_len);
-        b->data_len[i] += channel_data_len; 
-    }
+void fillBuffer(struct buffer *b, Frame *pFrame) {
+    memcpy(b->data + b->data_len, pFrame->getDataBuf(), pFrame->getLength());
+    b->data_len += pFrame->getLength(); 
 }
 
-void saveBuffer(struct buffer *b) {
-    int i=0;
-
-    for (i=0; i<2; i++) {
-        FILE *audioChannel = NULL;
-        char filename[32];
-  
-        sprintf(filename, "channel%d.pcm", i);
-
-        audioChannel = fopen(filename, "wb");
-
-        if (b->data[i] != NULL) {
-            fwrite(b->data[i], b->data_len[i], 1, audioChannel);
-        }
-    
-        fclose(audioChannel);
-    }
-}
-
-void readingRoutine(struct buffer* b, AudioCircularBuffer* cb, AudioFrame* fr)
+void saveBuffer(struct buffer *b) 
 {
-    fr->setSamples(512);
+    FILE *audioChannel = NULL;
+    char filename[32];
+
+    sprintf(filename, "coded.opus");
+
+    audioChannel = fopen(filename, "wb");
+
+    if (b->data != NULL) {
+        fwrite(b->data, b->data_len, 1, audioChannel);
+    }
+
+    fclose(audioChannel);
+}
+
+void readingRoutine(struct buffer* b, AudioCircularBuffer* cb, AudioFrame* fr, AudioEncoderLibav* enc)
+{
+    fr->setSamples(enc->getSamplesPerFrame());
     fr->setLength(fr->getSamples()*fr->getBytesPerSample());
+
+    InterleavedAudioFrame* codedFrame = new InterleavedAudioFrame (
+                                                    enc->getChannels(), 
+                                                    enc->getSampleRate(), 
+                                                    enc->getSamplesPerFrame(), 
+                                                    enc->getCodec(), 
+                                                    S16
+                                                  );
 
     while(!should_stop) {
         if(!cb->popFront(fr->getPlanarDataBuf(), fr->getSamples())) {
@@ -87,7 +90,12 @@ void readingRoutine(struct buffer* b, AudioCircularBuffer* cb, AudioFrame* fr)
             continue;
         }
 
-    fillBuffer(b, fr, fr->getChannels(), fr->getLength());
+        if(!enc->encodeFrame(fr, codedFrame)) {
+            std::cerr << "Error encoding frame" << std::endl;
+        }
+
+        fillBuffer(b, codedFrame);
+        printf("Filled buffer! Frame size: %d\n", codedFrame->getLength());
     }
 
     saveBuffer(b);
@@ -101,6 +109,7 @@ int main(int argc, char** argv)
     Session* session;
     SourceManager *mngr = SourceManager::getInstance();
     AudioDecoderLibav* audioDecoder;
+    AudioEncoderLibav* audioEncoder;
     std::map<unsigned short, FrameQueue*> inputs;
     FrameQueue* q;
     AudioCircularBuffer* audioCirBuffer;
@@ -145,7 +154,15 @@ int main(int argc, char** argv)
     mngr->initiateAll();
 
     audioDecoder = new AudioDecoderLibav();
-    audioDecoder->configure(inCType, inSFmt, inCh, inSRate, outSFmt, outCh, outSRate);
+    if(!audioDecoder->configure(inCType, inSFmt, inCh, inSRate, outSFmt, outCh, outSRate)) {
+        std::cerr << "Error configuring decoder" << std::endl;
+    }
+
+    audioEncoder = new AudioEncoderLibav();
+    if(!audioEncoder->configure(PCMU, outSFmt, outCh, outSRate)) {
+        std::cerr << "Error configuring encoder" << std::endl;
+    }
+
     audioCirBuffer = new AudioCircularBuffer(outCh, chMaxSamples, bytesPerSample);
     aFrame = new PlanarAudioFrame(outCh, outSRate, chMaxSamples, outCType, outSFmt);
     destinationPlanarFrame = new PlanarAudioFrame(outCh, outSRate, chMaxSamples, outCType, outSFmt);
@@ -153,13 +170,10 @@ int main(int argc, char** argv)
     inputs = mngr->getInputs();
     q = inputs[A_CLIENT_PORT];
     buffers = new struct buffer;
-
-    for (int i=0; i<2; i++) {
-        buffers->data[i] = (uint8_t*)malloc(chMaxSamples * bytesPerSample * outSRate * 360);
-        buffers->data_len[i] = 0;
-    }
+    buffers->data = new unsigned char[chMaxSamples * bytesPerSample * outSRate * 360]();
+    buffers->data_len = 0;
     
-    std::thread readingThread(readingRoutine, buffers, audioCirBuffer, destinationPlanarFrame);
+    std::thread readingThread(readingRoutine, buffers, audioCirBuffer, destinationPlanarFrame, audioEncoder);
 
     while(mngr->isRunning()) {
         if ((codedFrame = q->getFront()) == NULL) {
@@ -173,8 +187,6 @@ int main(int argc, char** argv)
 
         q->removeFrame();
 
-       // fillBuffer(buffers, aFrame, aFrame->getChannels(), aFrame->getLength());
-        
         while(!audioCirBuffer->pushBack(aFrame->getPlanarDataBuf(), aFrame->getSamples())) {
             printf("Push back failed! Trying again\n");
             usleep(100);
@@ -182,7 +194,6 @@ int main(int argc, char** argv)
     }
 
     should_stop = true;
-    //saveBuffer(buffers);
     readingThread.join();
     
     return 0;

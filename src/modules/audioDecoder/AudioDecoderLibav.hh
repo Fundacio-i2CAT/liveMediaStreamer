@@ -1,5 +1,5 @@
 /*
- *  AudioDecoderLibab - A libav-based audio decoder
+ *  AudioDecoderLibav - A libav-based audio decoder
  *  Copyright (C) 2013  Fundació i2CAT, Internet i Innovació digital a Catalunya
  *
  *  This file is part of media-streamer.
@@ -24,6 +24,9 @@
 #define __STDC_CONSTANT_MACROS 1 
 #endif
 
+#ifndef _AUDIO_DECODER_LIBAV_HH
+#define _AUDIO_DECODER_LIBAV_HH
+
 extern "C" {
     #include <libavcodec/avcodec.h>
     #include <libswresample/swresample.h>
@@ -36,11 +39,9 @@ class AudioDecoderLibav {
     public:
         AudioDecoderLibav();
         ~AudioDecoderLibav();
-        AudioDecoderLibav(CodecType cType, SampleFmt inSFmt, int inCh, 
-                            int inSRate, SampleFmt outSFmt, int outCh, int outSRate);
         bool decodeFrame(Frame* codedFrame, AudioFrame* decodedFrame);
-        bool configDecoder(CodecType cType, SampleFmt inSFmt, int inCh, 
-                            int inSRate, SampleFmt outSFmt, int outCh, int outSRate);
+        bool configure(CodecType cType, SampleFmt inSFmt, int inCh, 
+                        int inSRate, SampleFmt outSFmt, int outCh, int outSRate);
         
     private:
 
@@ -64,4 +65,6 @@ class AudioDecoderLibav {
         unsigned char* auxBuff[1];
 
 };
+
+#endif
 

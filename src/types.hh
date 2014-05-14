@@ -34,6 +34,7 @@
 #define FRAMES_PCMU 200
 #define MAX_SAMPLES_48K 9600 //200ms
 #define MAX_SAMPLES_8K 1600 //200ms
+#define DEFAULT_FRAME_SAMPLES 960
 
 
 enum CodecType {PCMU, OPUS_C, PCM};

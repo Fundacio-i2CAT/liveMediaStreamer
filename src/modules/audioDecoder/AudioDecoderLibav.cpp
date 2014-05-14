@@ -1,7 +1,6 @@
-
 /*
- *  AudioDecoderLibab - A libav-based audio decoder
- *  Copyright (C) 2013  Fundació i2CAT, Internet i Innovació digital a Catalunya
+ *  AudioDecoderLibav - A libav-based audio decoder
+ *  Copyright (C) 2014  Fundació i2CAT, Internet i Innovació digital a Catalunya
  *
  *  This file is part of media-streamer.
  *
@@ -44,33 +43,8 @@ AudioDecoderLibav::AudioDecoderLibav()
     inFrame = av_frame_alloc();
 }
 
-AudioDecoderLibav::AudioDecoderLibav(CodecType cType, SampleFmt outSFmt, int outCh, int outSRate)
-{
-    avcodec_register_all();
-
-    codec = NULL;
-    codecCtx = NULL;
-    resampleCtx = NULL;
-    inFrame = NULL;
-    av_init_packet(&pkt);
-    pkt.data = NULL;
-    pkt.size = 0;
-
-    inChannels = 0;
-    outChannels = outCh;
-    inSampleRate = 0;
-    outSampleRate = outSRate;
-    inSampleFmt = S_NONE;
-    outSampleFmt = outSFmt;
-    inFrame = av_frame_alloc();
-
-    if(!configDecoder(cType, inSFmt, inCh, inSRate, outSFmt, outCh, outSRate)) {
-        //TODO: error msg
-    }
-}
-
-bool AudioDecoderLibav::configDecoder(CodecType cType, SampleFmt inSFmt, int inCh, 
-                    int inSRate, SampleFmt outSFmt, int outCh, int outSRate)
+bool AudioDecoderLibav::configure(CodecType cType, SampleFmt inSFmt, int inCh, 
+                                    int inSRate, SampleFmt outSFmt, int outCh, int outSRate)
 {
     AVCodecID codec_id;
     AVSampleFormat inLibavSampleFmt;
@@ -97,7 +71,7 @@ bool AudioDecoderLibav::configDecoder(CodecType cType, SampleFmt inSFmt, int inC
         break;
     }
     
-    avcodec_get_frame_defaults(inFrame);   
+    av_frame_unref(inFrame);   
     
     codec = avcodec_find_decoder(codec_id);
     if (codec == NULL)

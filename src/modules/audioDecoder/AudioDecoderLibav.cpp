@@ -179,11 +179,11 @@ bool AudioDecoderLibav::configure(ACodecType cType, SampleFmt inSFmt, int inCh,
     return true;
 }
 
-bool AudioDecoderLibav::decodeFrame(Frame* codedFrame, AudioFrame* decodedFrame)
+bool AudioDecoderLibav::decodeFrame(Frame* codedFrame, Frame* decodedFrame)
 {     
     int len, gotFrame;
 
-    //TODO: check if decoded frame configuration is the same as decoder configuration
+    AudioFrame* aDecodedFrame = dynamic_cast<AudioFrame*>(decodedFrame);
 
     pkt.size = codedFrame->getLength();
     pkt.data = codedFrame->getDataBuf();
@@ -197,7 +197,7 @@ bool AudioDecoderLibav::decodeFrame(Frame* codedFrame, AudioFrame* decodedFrame)
         }
 
         if (gotFrame){
-            resample(inFrame, decodedFrame);
+            resample(inFrame, aDecodedFrame);
         }
         
         if(pkt.data) {

@@ -39,7 +39,7 @@ class AudioEncoderLibav {
 public:
     AudioEncoderLibav();
     ~AudioEncoderLibav();
-    bool encodeFrame(AudioFrame* rawFrame, Frame* codedFrame);
+    bool encodeFrame(Frame* rawFrame, Frame* codedFrame);
     bool configure(ACodecType cType, SampleFmt sFmt, int ch, int sRate);
     int getSamplesPerFrame();
     int getChannels(){ return channels;};

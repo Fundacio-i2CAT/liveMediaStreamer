@@ -149,9 +149,6 @@ bool AudioEncoderLibav::configure(ACodecType cType, SampleFmt sFmt, int ch, int 
     * we calculate the size of the samples buffer in bytes */
     internalBufferSize = av_samples_get_buffer_size(NULL, codecCtx->channels, 
                                                       libavFrame->nb_samples, codecCtx->sample_fmt, 0);
-    printf("Channels: %d\n", codecCtx->channels);
-    printf("Frame size: %d\n", codecCtx->frame_size);
-    printf("SampleFmt: %d\n", codecCtx->sample_fmt);
 
     if (internalBufferSize < 0) {
        fprintf(stderr, "Could not get sample buffer size\n");
@@ -175,16 +172,18 @@ bool AudioEncoderLibav::configure(ACodecType cType, SampleFmt sFmt, int ch, int 
     return true;
 }
 
-bool AudioEncoderLibav::encodeFrame(AudioFrame* rawFrame, Frame* codedFrame)
+bool AudioEncoderLibav::encodeFrame(Frame* rawFrame, Frame* codedFrame)
 {     
     int ret, gotFrame;
+
+    AudioFrame* aRawFrame = dynamic_cast<AudioFrame*>(rawFrame);
 
     //set up buffer and buffer length pointers
     pkt.data = codedFrame->getDataBuf();
     pkt.size = codedFrame->getMaxLength();
 
     //resample in order to adapt to encoder constraints
-    resample(rawFrame, libavFrame);
+    resample(aRawFrame, libavFrame);
 
     ret = avcodec_encode_audio2(codecCtx, &pkt, libavFrame, &gotFrame);
 

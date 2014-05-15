@@ -102,6 +102,11 @@ void Reader::receiveFrame(){
     }
 }
 
+void Reader::setQueue(FrameQueue *queue)
+{
+    this->queue = queue;
+}
+
 //Writer implementation
 
 Writer::Writer(Reader *otherSide_) : ProcessorInterface(otherSide_)

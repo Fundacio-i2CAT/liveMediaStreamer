@@ -14,7 +14,7 @@ VideoDecoderLibav::VideoDecoderLibav()
     //av_log_set_callback(error_callback);
 }
 
-bool VideoDecoderLibav::configDecoder(CodecType cType, PixType pType)
+bool VideoDecoderLibav::configDecoder(VCodecType cType, PixType pType)
 {   
     av_init_packet(&pkt);
     
@@ -88,7 +88,7 @@ bool VideoDecoderLibav::configDecoder(CodecType cType, PixType pType)
     return true;
 }
 
-bool VideoDecoderLibav::toBuffer(Frame *decodedFrame)
+bool VideoDecoderLibav::toBuffer(VideoFrame *decodedFrame)
 {
     unsigned int length;
     
@@ -131,8 +131,9 @@ bool VideoDecoderLibav::toBuffer(Frame *decodedFrame)
 
 bool VideoDecoderLibav::decodeFrame(Frame *codedFrame, Frame *decodedFrame)
 {
-    int len, gotFrame = 0; 
-    
+    int len, gotFrame = 0;
+    VideoFrame* vDecodedFrame = dynamic_cast<VideoFrame*>(decodedFrame);
+
     pkt.size = codedFrame->getLength();
     pkt.data = codedFrame->getDataBuf();
    
@@ -147,7 +148,7 @@ bool VideoDecoderLibav::decodeFrame(Frame *codedFrame, Frame *decodedFrame)
         //TODO: something about B-frames?
         
         if (gotFrame){
-            if (toBuffer(decodedFrame) <= 0){
+            if (toBuffer(vDecodedFrame) <= 0){
                 //TODO: error
                 return false;
             }

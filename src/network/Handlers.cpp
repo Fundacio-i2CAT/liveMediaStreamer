@@ -41,6 +41,16 @@
 #include "ExtendedRTSPClient.hh"
 #endif
 
+#ifndef _AUDIO_FRAME_QUEUE_HH
+#include "../AudioFrameQueue.hh"
+#endif
+
+#ifndef _VIDEO_FRAME_QUEUE_HH
+#include "../VideoFrameQueue.hh"
+#endif
+
+#include <iostream>
+
 namespace handlers 
 {
     void continueAfterSETUP(RTSPClient* rtspClient, int resultCode, char* resultString);
@@ -48,6 +58,10 @@ namespace handlers
     void setupNextSubsession(RTSPClient* rtspClient);
     void streamTimerHandler(void* clientData);
     void shutdownStream(RTSPClient* rtspClient);
+    FrameQueue* createQueue(MediaSubsession *subsession);
+    FrameQueue* createVideoQueue(char const* codecName);
+    FrameQueue* createAudioQueue(unsigned char rtpPayloadFormat, char const* codecName, 
+                                 unsigned int channels = 0, unsigned int sampleRate = 0);
     
     void continueAfterDESCRIBE(RTSPClient* rtspClient, int resultCode, char* resultString) 
     {
@@ -248,15 +262,25 @@ namespace handlers
                                   unsigned int RTPPayloadFormat, 
                                   std::string codecName, unsigned int bandwidth, 
                                   unsigned int RTPTimestampFrequency, 
-                                  unsigned int clientPortNum) 
+                                  unsigned int clientPortNum,
+                                  unsigned int channels) 
     {
         std::stringstream sdp;
         sdp << "m=" << mediumName << " " << clientPortNum;
         sdp << " RTP/AVP " << RTPPayloadFormat << "\n";
         sdp << "c=IN IP4 127.0.0.1\n";
         sdp << "b=AS:" << bandwidth << "\n";
+
+        if (RTPPayloadFormat < 96) {
+            return sdp.str();
+        }
+
         sdp << "a=rtpmap:" << RTPPayloadFormat << " ";
-        sdp << codecName << "/" << RTPTimestampFrequency << "\n";
+        sdp << codecName << "/" << RTPTimestampFrequency;
+        if (channels != 0) {
+            sdp << "/" << channels;
+        } 
+        sdp << "\n";
         if (codecName.compare("H264") == 0){
             sdp << "a=fmtp:" << RTPPayloadFormat << " packetization-mode=1\n";
         }
@@ -286,11 +310,11 @@ namespace handlers
     {
         FrameQueue* queue;
         SourceManager* mngr;
-        
-        if (strcmp(subsession->mediumName(), "audio") == 0) {
-            queue = FrameQueue::createNew(CODED_AUDIO_FRAMES, MAX_AUDIO_FRAME_SIZE, 0);
-        } else if (strcmp(subsession->mediumName(), "video") == 0) {
-            queue = FrameQueue::createNew(CODED_VIDEO_FRAMES, MAX_VIDEO_FRAME_SIZE, 0);
+
+        queue = createQueue(subsession);
+
+        if (queue == NULL){
+            return false;
         }
         
         if (strcmp(subsession->codecName(), "H264") == 0) {
@@ -315,6 +339,56 @@ namespace handlers
         }
         
         return true;
+    }
+
+    FrameQueue* createQueue(MediaSubsession *subsession)
+    {
+        FrameQueue* queue;
+
+        if (strcmp(subsession->mediumName(), "audio") == 0) {
+            queue = createAudioQueue(subsession->rtpPayloadFormat(), subsession->codecName(), 
+                    subsession->numChannels(), subsession->rtpTimestampFrequency());
+        } else if (strcmp(subsession->mediumName(), "video") == 0) {
+            queue = createVideoQueue(subsession->codecName());
+        }
+
+        return queue;
+    }
+
+    FrameQueue* createVideoQueue(char const* codecName)
+    {
+        VCodecType codec;
+
+        if (strcmp(codecName, "H264") == 0) {
+            codec = H264;
+        } else {
+            //TODO: codec not supported
+        }
+        
+        return VideoFrameQueue::createNew(codec, 0);
+    }
+
+    FrameQueue* createAudioQueue(unsigned char rtpPayloadFormat, char const* codecName, unsigned channels, unsigned sampleRate)
+    {
+        ACodecType codec;
+
+        if (rtpPayloadFormat == 0) {
+            codec = G711;
+            return AudioFrameQueue::createNew(codec, 0);
+        }
+
+        if (strcmp(codecName, "OPUS") == 0) {
+            codec = OPUS;
+            return AudioFrameQueue::createNew(codec, 0, sampleRate);
+        }
+
+        if (strcmp(codecName, "PCMU") == 0) {
+            codec = PCMU;
+            return AudioFrameQueue::createNew(codec, 0, sampleRate, channels);
+        }
+
+        //TODO: error msg codec not supported
+        return NULL;
     }
 };
 

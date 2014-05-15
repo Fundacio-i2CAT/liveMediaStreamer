@@ -1,5 +1,5 @@
 /*
- *  Frame - AV Frame structure
+ *  InterleavedVideoFrame - Interleaved video frame structure
  *  Copyright (C) 2013  Fundació i2CAT, Internet i Innovació digital a Catalunya
  *
  *  This file is part of media-streamer.
@@ -17,34 +17,28 @@
  *  You should have received a copy of the GNU General Public License
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- *  Authors: David Cassany <david.cassany@i2cat.net> 
- *           Marc Palau <marc.palau@i2cat.net>
+ *  Authors:  Marc Palau <marc.palau@i2cat.net>
  */
 
-#include "Frame.hh"
+#ifndef _INTERLEAVED_VIDEO_FRAME_HH
+#define _INTERLEAVED_VIDEO_FRAME_HH
 
-Frame::Frame()
-{
-    updatedTime = system_clock::now();
-}
+#include "VideoFrame.hh"
 
-void Frame::setPresentationTime(struct timeval pTime)
-{
-    presentationTime = pTime;
-}
+class InterleavedVideoFrame : public VideoFrame {
+    public:
+        InterleavedVideoFrame(unsigned int maxLength);
+        InterleavedVideoFrame(unsigned int width, unsigned height, PixType pixelFormat);
+        unsigned char* getDataBuf();
+        unsigned int getLength();
+        unsigned int getMaxLength();
+        void setLength(unsigned int length);
+        bool isPlanar();
+              
+    private:
+        unsigned char *frameBuff;
+        unsigned int bufferLen;
+        unsigned int bufferMaxLen;
+};
 
-void Frame::setUpdatedTime()
-{
-    updatedTime = system_clock::now();
-}
-
-struct timeval Frame::getPresentationTime()
-{
-    return presentationTime;
-}
-
-system_clock::time_point Frame::getUpdatedTime()
-{
-    return updatedTime;
-}
-
+#endif

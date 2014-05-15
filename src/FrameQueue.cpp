@@ -3,22 +3,6 @@
 #include <iostream>
 
 
-FrameQueue* FrameQueue::createNew(unsigned maxPos, unsigned maxBuffSize, unsigned delay) 
-{
-    return new FrameQueue(maxPos, maxBuffSize, delay);
-}
-
-FrameQueue::FrameQueue(unsigned maxPos, unsigned maxBuffSize, unsigned delay) 
-{
-    max = maxPos;
-    rear = 0;
-    front = 0;
-    this->delay = delay; //(ms)
-    for (int i = 0; i < max; i++) {
-        frames[i] = new Frame(maxBuffSize);
-    }
-}
-
 Frame* FrameQueue::getRear() 
 {
     if (elements >= max) {

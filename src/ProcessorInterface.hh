@@ -38,7 +38,7 @@ class ProcessorInterface {
     
 protected:
     ProcessorInterface(ProcessorInterface *otherSide_ = NULL);
-    virtual ~ProcessorInterface();
+    virtual ~ProcessorInterface() {};
    
 public:
     static void connect(ProcessorInterface *, ProcessorInterface *);

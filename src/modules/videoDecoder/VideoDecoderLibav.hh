@@ -11,23 +11,22 @@ extern "C" {
 #include <libswscale/swscale.h>
 }
 
-#ifndef _FRAME_HH
-#include "../../Frame.hh"
+#ifndef _VIDEO_FRAME_HH
+#include "../../VideoFrame.hh"
 #endif
 
-enum CodecType {H264, VP8, MJPEG, RAW};
 
-enum PixType {RGB24, RGB32, YUYV422};
+
 
 class VideoDecoderLibav {
 
     public:
         VideoDecoderLibav();
         bool decodeFrame(Frame *codedFrame, Frame *decodedFrame);
-        bool configDecoder(CodecType cType, PixType pTyp);
+        bool configDecoder(VCodecType cType, PixType pTyp);
         
     private:
-        bool toBuffer(Frame *decodedFrame);
+        bool toBuffer(VideoFrame *decodedFrame);
         
         AVCodec             *codec;
         AVCodecContext      *codecCtx;
@@ -36,7 +35,7 @@ class VideoDecoderLibav {
         AVPacket            pkt;
         AVPixelFormat       pix_fmt;
         AVCodecID           codec_id;
-        CodecType           fCodec;
+        VCodecType           fCodec;
         PixType             fPixType;
 };
 

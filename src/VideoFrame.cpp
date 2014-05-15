@@ -1,5 +1,5 @@
 /*
- *  Frame - AV Frame structure
+ *  VideoFrame - Video frame structure
  *  Copyright (C) 2013  Fundació i2CAT, Internet i Innovació digital a Catalunya
  *
  *  This file is part of media-streamer.
@@ -21,34 +21,10 @@
  *           Marc Palau <marc.palau@i2cat.net>
  */
 
-#ifndef _FRAME_HH
-#define _FRAME_HH
+ #include "VideoFrame.hh"
 
-#include <sys/time.h>
-#include <chrono>
-#include "Types.hh"
-
-using namespace std::chrono;
-
-class Frame {
-    public:
-        Frame();
-              
-        void setPresentationTime(struct timeval pTime);
-        void setUpdatedTime();
-        
-        struct timeval getPresentationTime();
-        system_clock::time_point getUpdatedTime();
-        virtual unsigned char *getDataBuf() {};
-        virtual unsigned char **getPlanarDataBuf() {};
-        virtual unsigned int getLength() {};
-        virtual unsigned int getMaxLength() {};
-        virtual void setLength(unsigned int length) {};
-        virtual bool isPlanar() {};
-        
-    protected:
-        struct timeval              presentationTime;
-        system_clock::time_point    updatedTime;
-};
-
-#endif
+void VideoFrame::setSize(unsigned int width, unsigned int height)
+{
+    this->width = width;
+    this->height = height;
+}

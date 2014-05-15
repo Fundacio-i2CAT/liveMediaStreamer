@@ -8,6 +8,8 @@
 #include <atomic>
 #include <sys/time.h>
 #include <chrono>
+#include "Types.hh"
+
 
 #define MAX_FRAMES 2000000
 
@@ -16,25 +18,21 @@ using namespace std::chrono;
 class FrameQueue {
 
 public:
-    static FrameQueue* createNew(unsigned maxPos, unsigned maxBuffSize, unsigned delay);
-    Frame *getRear();
-    Frame *forceGetRear();
-    Frame *getFront();
-    Frame *forceGetFront();
-    void addFrame();
-    void removeFrame();
-    void flush();
+    virtual Frame *getRear();
+    virtual Frame *getFront();
+    virtual void addFrame();
+    virtual void removeFrame();
+    virtual void flush();
+    virtual Frame *forceGetRear();
+    virtual Frame *forceGetFront();
     int delay; //(ms)
     const int getElements() {return elements;};
     bool frameToRead();
 
 protected:
-    FrameQueue(unsigned maxPos, unsigned maxBuffSize, unsigned delay);
-    ~FrameQueue();
-
-private:
+    virtual bool config() {};
     Frame *getOldie();
-    
+
     Frame* frames[MAX_FRAMES];
     std::atomic<int> rear;
     std::atomic<int> front;
@@ -42,6 +40,8 @@ private:
     int max;
     system_clock::time_point currentTime;
     milliseconds enlapsedTime;
+
+    
 };
 
 #endif

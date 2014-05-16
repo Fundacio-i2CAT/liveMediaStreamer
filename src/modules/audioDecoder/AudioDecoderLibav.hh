@@ -33,13 +33,15 @@ extern "C" {
 }
 
 #include "../../AudioFrame.hh"
+#include "../../ProcessorInterface.hh"
 
-class AudioDecoderLibav {
+class AudioDecoderLibav : public ReaderWriter {
 
     public:
         AudioDecoderLibav();
         ~AudioDecoderLibav();
-        bool decodeFrame(Frame* codedFrame, Frame* decodedFrame);
+        bool doProcessFrame(Frame *org, Frame *dst);
+        FrameQueue* allocQueue();
         bool configure(ACodecType cType, SampleFmt inSFmt, int inCh, 
                         int inSRate, SampleFmt outSFmt, int outCh, int outSRate);
         

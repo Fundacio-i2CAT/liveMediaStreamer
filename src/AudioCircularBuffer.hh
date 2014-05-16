@@ -20,30 +20,53 @@
  *  Authors:  Marc Palau <marc.palau@i2cat.net>
  */
 
-#ifndef _AUDIOCIRCULARBUFFER_HH
-#define _AUDIOCIRCULARBUFFER_HH
+#ifndef _AUDIO_CIRCULAR_BUFFER_HH
+#define _AUDIO_CIRCULAR_BUFFER_HH
 
 #include <atomic>
 #include "Types.hh"
+#include "FrameQueue.hh"
+#include "AudioFrame.hh"
 
- class AudioCircularBuffer {
+ class AudioCircularBuffer : public FrameQueue {
 
     public:
-        AudioCircularBuffer(unsigned int chNumber, unsigned int chMaxLength, unsigned int bytesPerSmpl);
+        static AudioCircularBuffer* createNew(unsigned int ch, unsigned int sRate, unsigned int maxSamples, SampleFmt sFmt);
         ~AudioCircularBuffer();
+
+        Frame *getRear();
+        Frame *getFront();
+        void addFrame();
+        void removeFrame();
+        void flush();
+        Frame *forceGetRear();
+        Frame *forceGetFront();
+        int delay; //(ms)
+        bool frameToRead() {};
+        int getFreeSamples();
+
+    protected:
+        bool config();
+
+
+    private:
+        AudioCircularBuffer(unsigned int ch, unsigned int sRate, unsigned int maxSamples, SampleFmt sFmt);
 
         bool pushBack(unsigned char **buffer, int samplesRequested);
         bool popFront(unsigned char **buffer, int samplesRequested);
-
-    private:
+        bool forcePushBack(unsigned char **buffer, int samplesRequested);
+        
         std::atomic<int> byteCounter;
-        std::atomic<int> front;
-        std::atomic<int> rear;
-        unsigned int channels;
-        unsigned int bytesPerSample;
-        unsigned int chMaxSamples;
-        unsigned int channelMaxLength;
+        unsigned channels;
+        unsigned sampleRate;
+        unsigned bytesPerSample;
+        unsigned chMaxSamples;
+        unsigned channelMaxLength;
         unsigned char *data[MAX_CHANNELS];
+        SampleFmt sampleFormat;
+
+        PlanarAudioFrame* inputFrame;
+        PlanarAudioFrame* outputFrame;
 };
 
 #endif

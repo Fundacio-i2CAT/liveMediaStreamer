@@ -64,7 +64,7 @@ public:
     
 protected:
     Reader(Writer *otherSide_ = NULL);
-    virtual void toProcess() = 0;
+    virtual void toProcess() {};
        
 };
 

@@ -1,5 +1,5 @@
 /*
- *  VideoFrameQueue - A lock-free video frame circular queue
+ *  AVFramedQueue - A lock-free AV frame circular queue
  *  Copyright (C) 2014  Fundació i2CAT, Internet i Innovació digital a Catalunya
  *
  *  This file is part of media-streamer.
@@ -20,16 +20,35 @@
  *  Authors:  Marc Palau <marc.palau@i2cat.net>
  */
 
-#ifndef _VIDEO_FRAME_QUEUE_HH
-#define _VIDEO_FRAME_QUEUE_HH
+#ifndef _AV_FRAMED_QUEUE_HH
+#define _AV_FRAMED_QUEUE_HH
 
-#ifndef _FRAME_QUEUE_HH
 #include "FrameQueue.hh"
-#endif
 
-#include "Types.hh"
+class AVFramedQueue : public FrameQueue {
 
-class VideoFrameQueue : public FrameQueue {
+public:
+    Frame *getRear();
+    Frame *getFront();
+    void addFrame();
+    void removeFrame();
+    void flush();
+    Frame *forceGetRear();
+    Frame *forceGetFront();
+    int delay; //(ms)
+    const int getElements() {return elements;};
+    bool frameToRead();
+
+protected:
+    Frame *getOldie();
+
+    Frame* frames[MAX_FRAMES];
+    std::atomic<int> elements;
+    int max;
+    
+};
+
+class VideoFrameQueue : public AVFramedQueue {
 
 public:
     static VideoFrameQueue* createNew(VCodecType codec, unsigned delay, unsigned width = 0, 
@@ -41,6 +60,22 @@ protected:
     PixType pixelFormat;
     unsigned width;
     unsigned height;
+    bool config();
+
+};
+
+class AudioFrameQueue : public AVFramedQueue {
+
+public:
+    static AudioFrameQueue* createNew(ACodecType codec,  unsigned delay, unsigned sampleRate = 48000, unsigned channels = 2, SampleFmt sFmt = S16);
+
+protected:
+    AudioFrameQueue(ACodecType codec, SampleFmt sFmt, unsigned sampleRate, unsigned channels, unsigned delay);
+
+    ACodecType codec;
+    SampleFmt sampleFormat;
+    unsigned sampleRate;
+    unsigned channels;
     bool config();
 
 };

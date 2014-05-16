@@ -41,12 +41,8 @@
 #include "ExtendedRTSPClient.hh"
 #endif
 
-#ifndef _AUDIO_FRAME_QUEUE_HH
-#include "../AudioFrameQueue.hh"
-#endif
-
-#ifndef _VIDEO_FRAME_QUEUE_HH
-#include "../VideoFrameQueue.hh"
+#ifndef _AV_FRAMED_QUEUE_HH
+#include "../AVFramedQueue.hh"
 #endif
 
 #include <iostream>

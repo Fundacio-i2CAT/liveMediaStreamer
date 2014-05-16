@@ -51,69 +51,84 @@ AudioFrame::AudioFrame(unsigned int ch, unsigned int sRate, unsigned int maxSamp
     }
 }
 
-void AudioFrame::setChannelNumber(unsigned int ch)
+//////////////////////////////////////////////////
+//INTERLEAVED AUDIO FRAME METHODS IMPLEMENTATION//
+//////////////////////////////////////////////////
+
+InterleavedAudioFrame* InterleavedAudioFrame::createNew(unsigned int ch, unsigned int sRate, unsigned int maxSamples, ACodecType codec, SampleFmt sFmt)
+{
+    return new InterleavedAudioFrame(ch, sRate, maxSamples, codec, sFmt);
+}
+
+InterleavedAudioFrame::InterleavedAudioFrame(unsigned int ch, unsigned int sRate, unsigned int maxSamples, ACodecType codec, SampleFmt sFmt)
 {
     channels = ch;
-}
-
-void AudioFrame::setSampleRate(unsigned int sRate)
-{
     sampleRate = sRate;
-}
-
-void AudioFrame::setSampleFormat(SampleFmt sFmt)
-{
+    fCodec = codec;
     sampleFmt = sFmt;
+    samples = 0;
+    this->maxSamples = maxSamples; 
+
+    switch(sampleFmt){
+        case U8:
+            bytesPerSample = 1;
+            break;
+        case S16:
+            bytesPerSample = 2;
+            break;
+        case FLT:
+            bytesPerSample = 4;
+            break;
+        default:
+            //TODO: error
+            bytesPerSample = 0;
+        break;
+    }
+
+    bufferMaxLen = bytesPerSample * maxSamples * channels;
+    
+    frameBuff = new unsigned char [bufferMaxLen]();
 }
 
-void AudioFrame::setCodec(ACodecType cType)
+/////////////////////////////////////////////
+//PLANAR AUDIO FRAME METHODS IMPLEMENTATION//
+/////////////////////////////////////////////
+
+PlanarAudioFrame* PlanarAudioFrame::createNew(unsigned int ch, unsigned int sRate, unsigned int maxSamples, ACodecType codec, SampleFmt sFmt)
 {
-    fCodec = cType;
+    return new PlanarAudioFrame(ch, sRate, maxSamples, codec, sFmt);
 }
 
-void AudioFrame::setSamples(unsigned int samples)
+PlanarAudioFrame::PlanarAudioFrame(unsigned int ch, unsigned int sRate, unsigned int maxSamples, ACodecType codec, SampleFmt sFmt)
 {
-    this->samples = samples;
-}
+    channels = ch;
+    sampleRate = sRate;
+    fCodec = codec;
+    sampleFmt = sFmt;
+    samples = 0;
+    this->maxSamples = maxSamples; 
 
-void AudioFrame::setMaxSamples(unsigned int maxSamples)
-{
-    this->maxSamples = maxSamples;
-}
+    switch(sampleFmt){
+        case U8P:
+            bytesPerSample = 1;
+            break;
+        case S16P:
+            bytesPerSample = 2;
+            break;
+        case FLTP:
+            bytesPerSample = 4;
+            break;
+        default:
+            //TODO: error
+            bytesPerSample = 0;
+        break;
+    }
 
-ACodecType AudioFrame::getCodec()
-{
-    return fCodec;
-}
+    bufferMaxLen = bytesPerSample * maxSamples;
 
-SampleFmt AudioFrame::getSampleFmt()
-{
-    return sampleFmt;
-}
-
-unsigned int AudioFrame::getChannels()
-{
-    return channels;
-}
-
-unsigned int AudioFrame::getSampleRate()
-{
-    return sampleRate;
-}
-
-unsigned int AudioFrame::getSamples()
-{
-    return samples;
-}
-
-unsigned int AudioFrame::getMaxSamples()
-{
-    return maxSamples;
-}
-
-unsigned int AudioFrame::getBytesPerSample()
-{
-    return bytesPerSample;
+    for (int i=0; i<channels; i++) {
+        frameBuff[i] = new unsigned char [bufferMaxLen]();
+    }
 }
 
       

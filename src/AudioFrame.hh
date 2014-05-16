@@ -31,24 +31,56 @@ class AudioFrame : public Frame {
         AudioFrame(unsigned int ch, unsigned int sRate, unsigned int maxSamples, ACodecType codec, SampleFmt sFmt);
         AudioFrame() {};
 
-        void setChannelNumber(unsigned int ch);
-        void setSampleRate(unsigned int sRate);
-        void setSampleFormat(SampleFmt sFmt);
-        void setCodec(ACodecType cType);
-        void setSamples(unsigned int samples);
-        void setMaxSamples(unsigned int maxSamples);
-        ACodecType getCodec();
-        SampleFmt getSampleFmt();
-        unsigned int getChannels();
-        unsigned int getSampleRate();
-        unsigned int getSamples();
-        unsigned int getMaxSamples();
-        unsigned int getBytesPerSample();
+        void setChannelNumber(unsigned int ch) {channels = ch;};
+        void setSampleRate(unsigned int sRate) {sampleRate = sRate;};
+        void setSampleFormat(SampleFmt sFmt) {sampleFmt = sFmt;};
+        void setCodec(ACodecType cType) {fCodec = cType;};
+        void setSamples(unsigned int samples) {this->samples = samples;};
+        void setMaxSamples(unsigned int maxSamples) {this->maxSamples = maxSamples;};
+        ACodecType getCodec() {return fCodec;};
+        SampleFmt getSampleFmt() {return sampleFmt;};
+        unsigned int getChannels() {return channels;};
+        unsigned int getSampleRate() {return sampleRate;};
+        unsigned int getSamples() {return samples;};
+        unsigned int getMaxSamples() {return maxSamples;};
+        unsigned int getBytesPerSample() {return bytesPerSample;};
               
     protected:
         unsigned int channels, sampleRate, samples, maxSamples, bytesPerSample; 
         ACodecType fCodec;
         SampleFmt sampleFmt;
+};
+
+class InterleavedAudioFrame : public AudioFrame {
+    public:
+        static InterleavedAudioFrame* createNew(unsigned int ch, unsigned int sRate, unsigned int maxSamples, ACodecType codec, SampleFmt sFmt);
+        unsigned char* getDataBuf() {return frameBuff;};
+        unsigned int getLength() {return bufferLen;};
+        unsigned int getMaxLength() {return bufferMaxLen;};
+        bool isPlanar() {return false;};
+        void setLength(unsigned int length) {bufferLen = length;}; 
+
+    private:
+        InterleavedAudioFrame(unsigned int ch, unsigned int sRate, unsigned int maxSamples, ACodecType codec, SampleFmt sFmt);
+        unsigned char *frameBuff;
+        unsigned int bufferLen;
+        unsigned int bufferMaxLen;
+};
+
+class PlanarAudioFrame : public AudioFrame {
+    public:
+        static PlanarAudioFrame* createNew(unsigned int ch, unsigned int sRate, unsigned int maxSamples, ACodecType codec, SampleFmt sFmt);
+        unsigned char** getPlanarDataBuf() {return frameBuff;};
+        unsigned int getLength() {return bufferLen;};
+        unsigned int getMaxLength() {return bufferMaxLen;};
+        bool isPlanar() {return true;};
+        void setLength(unsigned int length) {bufferLen = length;}; 
+
+    private:
+        PlanarAudioFrame(unsigned int ch, unsigned int sRate, unsigned int maxSamples, ACodecType codec, SampleFmt sFmt);
+        unsigned char* frameBuff[MAX_CHANNELS];
+        unsigned int bufferLen;
+        unsigned int bufferMaxLen;
 };
 
 #endif

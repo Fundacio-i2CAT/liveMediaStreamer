@@ -21,6 +21,7 @@
  */
 
 #include "AudioDecoderLibav.hh"
+#include "../../AVFramedQueue.hh"
 #include <iostream>
 #include <stdio.h>
 
@@ -179,14 +180,14 @@ bool AudioDecoderLibav::configure(ACodecType cType, SampleFmt inSFmt, int inCh,
     return true;
 }
 
-bool AudioDecoderLibav::decodeFrame(Frame* codedFrame, Frame* decodedFrame)
+bool AudioDecoderLibav::doProcessFrame(Frame *org, Frame *dst)
 {     
     int len, gotFrame;
 
-    AudioFrame* aDecodedFrame = dynamic_cast<AudioFrame*>(decodedFrame);
+    AudioFrame* aDecodedFrame = dynamic_cast<AudioFrame*>(dst);
 
-    pkt.size = codedFrame->getLength();
-    pkt.data = codedFrame->getDataBuf();
+    pkt.size = org->getLength();
+    pkt.data = org->getDataBuf();
             
     while (pkt.size > 0) {
         len = avcodec_decode_audio4(codecCtx, inFrame, &gotFrame, &pkt);
@@ -207,6 +208,11 @@ bool AudioDecoderLibav::decodeFrame(Frame* codedFrame, Frame* decodedFrame)
     }
         
     return true;
+}
+
+FrameQueue* AudioDecoderLibav::allocQueue()
+{
+    return AudioFrameQueue::createNew(PCM,  0, outSampleRate, outChannels, outSampleFmt);
 }
 
 AudioDecoderLibav::~AudioDecoderLibav()

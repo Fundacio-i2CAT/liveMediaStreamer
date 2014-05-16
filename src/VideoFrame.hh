@@ -38,4 +38,22 @@ class VideoFrame : public Frame {
         PixType pixelFormat;
 };
 
+class InterleavedVideoFrame : public VideoFrame {
+    public:
+        static InterleavedVideoFrame* createNew(unsigned int maxLength);
+        static InterleavedVideoFrame* createNew(unsigned int width, unsigned height, PixType pixelFormat);
+        unsigned char* getDataBuf() {return frameBuff;};
+        unsigned int getLength() {return bufferLen;};
+        unsigned int getMaxLength() {return bufferMaxLen;};
+        void setLength(unsigned int length) {bufferLen = length;};
+        bool isPlanar() {return false;};
+              
+    private:
+        InterleavedVideoFrame(unsigned int maxLength);
+        InterleavedVideoFrame(unsigned int width, unsigned height, PixType pixelFormat);
+        unsigned char *frameBuff;
+        unsigned int bufferLen;
+        unsigned int bufferMaxLen;
+};
+
 #endif

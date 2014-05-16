@@ -12,8 +12,7 @@
 #include "../src/network/SourceManager.hh"
 #endif
 
-#include "../src/PlanarAudioFrame.hh"
-#include "../src/InterleavedAudioFrame.hh"
+#include "../src/AudioFrame.hh"
 #include "../src/modules/audioDecoder/AudioDecoderLibav.hh"
 #include "../src/modules/audioEncoder/AudioEncoderLibav.hh"
 #include "../src/AudioCircularBuffer.hh"
@@ -70,12 +69,11 @@ void saveBuffer(struct buffer *b)
     fclose(audioChannel);
 }
 
-void readingRoutine(struct buffer* b, AudioCircularBuffer* cb, AudioFrame* fr, AudioEncoderLibav* enc)
+void readingRoutine(struct buffer* b, AudioCircularBuffer* cb, AudioEncoderLibav* enc)
 {
-    fr->setSamples(enc->getSamplesPerFrame());
-    fr->setLength(fr->getSamples()*fr->getBytesPerSample());
+    Frame *fr;
 
-    InterleavedAudioFrame* codedFrame = new InterleavedAudioFrame (
+    InterleavedAudioFrame* codedFrame = InterleavedAudioFrame::createNew (
                                                     enc->getChannels(), 
                                                     enc->getSampleRate(), 
                                                     enc->getSamplesPerFrame(), 
@@ -84,8 +82,9 @@ void readingRoutine(struct buffer* b, AudioCircularBuffer* cb, AudioFrame* fr, A
                                                   );
 
     while(!should_stop) {
-        if(!cb->popFront(fr->getPlanarDataBuf(), fr->getSamples())) {
-           // printf("POP failed\n");
+        fr = cb->getFront();
+
+        if(!fr) {
             usleep(100);
             continue;
         }
@@ -113,7 +112,7 @@ int main(int argc, char** argv)
     std::map<unsigned short, FrameQueue*> inputs;
     FrameQueue* q;
     AudioCircularBuffer* audioCirBuffer;
-    PlanarAudioFrame* aFrame;
+    Frame* aFrame;
     PlanarAudioFrame* destinationPlanarFrame;
     Frame *codedFrame;
     struct buffer *buffers;
@@ -163,9 +162,7 @@ int main(int argc, char** argv)
         std::cerr << "Error configuring encoder" << std::endl;
     }
 
-    audioCirBuffer = new AudioCircularBuffer(outCh, chMaxSamples, bytesPerSample);
-    aFrame = new PlanarAudioFrame(outCh, outSRate, chMaxSamples, outCType, outSFmt);
-    destinationPlanarFrame = new PlanarAudioFrame(outCh, outSRate, chMaxSamples, outCType, outSFmt);
+    audioCirBuffer = AudioCircularBuffer::createNew(outCh, outSRate, chMaxSamples, outSFmt);
 
     inputs = mngr->getInputs();
     q = inputs[A_CLIENT_PORT];
@@ -173,7 +170,7 @@ int main(int argc, char** argv)
     buffers->data = new unsigned char[chMaxSamples * bytesPerSample * outSRate * 360]();
     buffers->data_len = 0;
     
-    std::thread readingThread(readingRoutine, buffers, audioCirBuffer, destinationPlanarFrame, audioEncoder);
+    std::thread readingThread(readingRoutine, buffers, audioCirBuffer, audioEncoder);
 
     while(mngr->isRunning()) {
         if ((codedFrame = q->getFront()) == NULL) {
@@ -181,16 +178,14 @@ int main(int argc, char** argv)
             continue;
         }
 
-        if(!audioDecoder->decodeFrame(codedFrame, aFrame)) {
+        aFrame = audioCirBuffer->getRear();
+
+        if(!audioDecoder->doProcessFrame(codedFrame, aFrame)) {
             std::cout << "Error decoding frames\n";
         }
 
         q->removeFrame();
-
-        while(!audioCirBuffer->pushBack(aFrame->getPlanarDataBuf(), aFrame->getSamples())) {
-            printf("Push back failed! Trying again\n");
-            usleep(100);
-        }
+        audioCirBuffer->addFrame();
     }
 
     should_stop = true;

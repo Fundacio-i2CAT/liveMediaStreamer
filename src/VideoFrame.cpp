@@ -28,3 +28,53 @@ void VideoFrame::setSize(unsigned int width, unsigned int height)
     this->width = width;
     this->height = height;
 }
+
+//////////////////////////////////////////////////
+//INTERLEAVED VIDEO FRAME METHODS IMPLEMENTATION//
+//////////////////////////////////////////////////
+
+InterleavedVideoFrame* InterleavedVideoFrame::createNew(unsigned int maxLength)
+{
+    return new InterleavedVideoFrame(maxLength);
+}
+
+InterleavedVideoFrame* InterleavedVideoFrame::createNew(unsigned int width, unsigned height, PixType pixelFormat)
+{
+    return new InterleavedVideoFrame(width, height, pixelFormat);
+}
+
+InterleavedVideoFrame::InterleavedVideoFrame(unsigned int maxLength)
+{
+    width = 0;
+    height = 0;
+    bufferLen = 0;
+    bufferMaxLen = maxLength;
+    frameBuff = new unsigned char [bufferMaxLen]();
+}
+
+InterleavedVideoFrame::InterleavedVideoFrame(unsigned int width, unsigned height, PixType pixelFormat)
+{
+    this->width = width;
+    this->height = height;
+    this->pixelFormat = pixelFormat;
+
+    int bytesPerPixel;
+
+    switch (pixelFormat) {
+        case RGB24:
+            bytesPerPixel = 3;
+            break;
+        case RGB32:
+            bytesPerPixel = 4;
+            break;
+        case YUYV422:
+            bytesPerPixel = 2;
+            break;
+        default:
+            bytesPerPixel = DEFAULT_BYTES_PER_PIXEL;
+            break;
+    }
+    bufferLen = 0;
+    bufferMaxLen = width * height * bytesPerPixel;
+    frameBuff = new unsigned char [bufferMaxLen]();
+}

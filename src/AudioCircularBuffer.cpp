@@ -35,20 +35,105 @@ int mod (int a, int b)
     return ret;
 }
 
-AudioCircularBuffer::AudioCircularBuffer(unsigned int chNumber, unsigned int chMaxSamples, unsigned int bytesPerSmpl)
+AudioCircularBuffer* AudioCircularBuffer::createNew(unsigned int ch, unsigned int sRate, unsigned int maxSamples, SampleFmt sFmt)
+{
+    return new AudioCircularBuffer(ch, sRate, maxSamples, sFmt);
+}
+
+
+Frame* AudioCircularBuffer::getRear()
+{
+    return inputFrame;
+}
+
+Frame* AudioCircularBuffer::getFront()
+{
+    if (!popFront(outputFrame->getPlanarDataBuf(), outputFrame->getSamples())) {
+        std::cerr << "There is not enough data to fill a frame. Impossible to get frame!\n";
+        return NULL;
+    }
+
+    return outputFrame;
+}
+
+void AudioCircularBuffer::addFrame()
+{
+    forcePushBack(inputFrame->getPlanarDataBuf(), inputFrame->getSamples());
+}
+
+void AudioCircularBuffer::removeFrame()
+{
+    return;
+}
+
+void AudioCircularBuffer::flush() 
+{
+    return;
+}
+
+
+Frame* AudioCircularBuffer::forceGetRear()
+{
+    return getRear();
+}
+
+Frame* AudioCircularBuffer::forceGetFront()
+{
+    if (!popFront(outputFrame->getPlanarDataBuf(), outputFrame->getSamples())) {
+        std::cerr << "There is not enough data to fill a frame. Impossible to get frame!\n";
+    }
+
+    return outputFrame;
+}
+
+AudioCircularBuffer::AudioCircularBuffer(unsigned int ch, unsigned int sRate, unsigned int maxSamples, SampleFmt sFmt)
 {
     byteCounter = 0;
     front = 0;
     rear = 0;
-    channels = chNumber;
-    this->chMaxSamples = chMaxSamples;
-    bytesPerSample = bytesPerSmpl;
-    channelMaxLength = chMaxSamples * bytesPerSmpl;
+    channels = ch;
+    sampleRate = sRate;
+    this->chMaxSamples = maxSamples;
+    sampleFormat = sFmt;
+
+    config();
+}
+
+bool AudioCircularBuffer::config()
+{
+    switch(sampleFormat) {
+        case U8P:
+            bytesPerSample = 1;
+            break;
+        case S16P:
+            bytesPerSample = 2;
+            break;
+        case FLTP:
+            bytesPerSample = 4;
+            break;
+        case S_NONE:
+        case U8:
+        case S16:
+        case FLT:
+            bytesPerSample = 0;
+            std::cerr << "Only planar sample formats are supported (U8P, S16P, FLTP)\n";
+            break;
+    }
+
+    channelMaxLength = chMaxSamples * bytesPerSample;
 
     for (int i=0; i<channels; i++) {
         data[i] = new unsigned char [channelMaxLength]();
     }
+
+    inputFrame = PlanarAudioFrame::createNew(channels, sampleRate, chMaxSamples, PCM, sampleFormat);
+    outputFrame = PlanarAudioFrame::createNew(channels, sampleRate, chMaxSamples, PCM, sampleFormat);
+
+    return true;
 }
+
+
+
 
 AudioCircularBuffer::~AudioCircularBuffer()
 {
@@ -120,3 +205,25 @@ bool AudioCircularBuffer::popFront(unsigned char **buffer, int samplesRequested)
 
     return true;
 }
+
+int AudioCircularBuffer::getFreeSamples()
+{
+    int freeBytes = channelMaxLength - byteCounter;
+
+    if (freeBytes == 0) {
+        return freeBytes;
+    }
+
+    return (freeBytes/bytesPerSample);
+}
+
+bool AudioCircularBuffer::forcePushBack(unsigned char **buffer, int samplesRequested)
+{
+    if(!pushBack(inputFrame->getPlanarDataBuf(), inputFrame->getSamples())) {
+        std::cerr << "There is not enough free space in the buffer. Discarding " 
+        << inputFrame->getSamples() - getFreeSamples() << "samples.\n";
+        if (getFreeSamples() != 0) {
+            pushBack(inputFrame->getPlanarDataBuf(), getFreeSamples());
+        }
+    }
+} 

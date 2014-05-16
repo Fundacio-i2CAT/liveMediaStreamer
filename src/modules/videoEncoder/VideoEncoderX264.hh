@@ -1,5 +1,5 @@
-//#ifndef I2CAT_VIDEO_ENCODER_X264_H
-//#define I2CAT_VIDEO_ENCODER_X264_H
+#ifndef _VIDEO_ENCODER_X264_HH
+#define _VIDEO_ENCODER_X264_HH
 
 #include <stdint.h>
 

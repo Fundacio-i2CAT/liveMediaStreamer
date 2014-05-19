@@ -64,6 +64,7 @@
         unsigned channelMaxLength;
         unsigned char *data[MAX_CHANNELS];
         SampleFmt sampleFormat;
+        bool outputFrameAlreadyRead;
 
         PlanarAudioFrame* inputFrame;
         PlanarAudioFrame* outputFrame;

@@ -33,6 +33,7 @@
     public:
         static AudioCircularBuffer* createNew(unsigned int ch, unsigned int sRate, unsigned int maxSamples, SampleFmt sFmt);
         ~AudioCircularBuffer();
+        void setOutputFrameSamples(int samples); 
 
         Frame *getRear();
         Frame *getFront();

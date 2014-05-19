@@ -80,6 +80,7 @@ void readingRoutine(struct buffer* b, AudioCircularBuffer* cb, AudioEncoderLibav
                                                     enc->getCodec(), 
                                                     S16
                                                   );
+    cb->setOutputFrameSamples(enc->getSamplesPerFrame());
 
     while(!should_stop) {
         fr = cb->getFront();
@@ -119,9 +120,6 @@ int main(int argc, char** argv)
 
     ACodecType inCType = OPUS;
     ACodecType outCType = PCM;
-    SampleFmt inSFmt = S16;
-    unsigned int inCh = 2;
-    unsigned int inSRate = 48000;
     SampleFmt outSFmt = S16P;
     unsigned int outCh = 2;
     unsigned int outSRate = 48000;
@@ -153,9 +151,6 @@ int main(int argc, char** argv)
     mngr->initiateAll();
 
     audioDecoder = new AudioDecoderLibav();
-    if(!audioDecoder->configure(inCType, inSFmt, inCh, inSRate, outSFmt, outCh, outSRate)) {
-        std::cerr << "Error configuring decoder" << std::endl;
-    }
 
     audioEncoder = new AudioEncoderLibav();
     if(!audioEncoder->configure(PCMU, outSFmt, outCh, outSRate)) {

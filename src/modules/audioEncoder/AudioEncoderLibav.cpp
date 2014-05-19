@@ -51,6 +51,8 @@ bool AudioEncoderLibav::configure(ACodecType cType, SampleFmt sFmt, int ch, int 
     sampleRate = sRate;
     internalChannels = ch;
     internalSampleRate = sRate;
+
+    fprintf(stderr, "channels: %d\n", internalChannels);
     
     switch(fCodec) {
         case PCMU:
@@ -121,7 +123,7 @@ bool AudioEncoderLibav::configure(ACodecType cType, SampleFmt sFmt, int ch, int 
     }
 
     if (swr_init(resampleCtx) < 0) {
-        fprintf(stderr, "Error initializing resample context\n");
+        fprintf(stderr, "Error initializing encoder resample context\n");
         return false;
     } 
 
@@ -236,10 +238,5 @@ int AudioEncoderLibav::resample(AudioFrame* src, AVFrame* dst)
                   );
 
     }
-}
-
-int AudioEncoderLibav::getSamplesPerFrame()
-{
-    return samplesPerFrame;
 }
 

@@ -35,6 +35,9 @@ extern "C" {
 #include "../../AudioFrame.hh"
 #include "../../ProcessorInterface.hh"
 
+#define DEFAULT_CHANNELS 2
+#define DEFAULT_SAMPLE_RATE 48000
+
 class AudioDecoderLibav : public ReaderWriter {
 
     public:
@@ -42,12 +45,13 @@ class AudioDecoderLibav : public ReaderWriter {
         ~AudioDecoderLibav();
         bool doProcessFrame(Frame *org, Frame *dst);
         FrameQueue* allocQueue();
-        bool configure(ACodecType cType, SampleFmt inSFmt, int inCh, 
-                        int inSRate, SampleFmt outSFmt, int outCh, int outSRate);
+        void configure(SampleFmt sampleFormat, int channels, int sampleRate);
         
     private:
 
         bool resample(AVFrame* src, AudioFrame* dst);
+        void setInputParams(ACodecType codec, SampleFmt sampleFormat, int channels, int sampleRate);
+        bool config();
 
         AVCodec             *codec;
         AVCodecContext      *codecCtx;
@@ -55,6 +59,9 @@ class AudioDecoderLibav : public ReaderWriter {
         AVPacket            pkt;
         int                 gotFrame;
         SwrContext          *resampleCtx;
+        AVCodecID           codecID;
+        AVSampleFormat      inLibavSampleFmt;
+        AVSampleFormat      outLibavSampleFmt;
         
         ACodecType          fCodec;
         SampleFmt           inSampleFmt;
@@ -63,8 +70,9 @@ class AudioDecoderLibav : public ReaderWriter {
         int                 outChannels;
         int                 inSampleRate;
         int                 outSampleRate;
-        unsigned int bytesPerSample;
-        unsigned char* auxBuff[1];
+        unsigned int        bytesPerSample;
+        unsigned char       *auxBuff[1];
+        bool                needsConfig;
 
 };
 

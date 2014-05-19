@@ -41,7 +41,7 @@ public:
     ~AudioEncoderLibav();
     bool encodeFrame(Frame* rawFrame, Frame* codedFrame);
     bool configure(ACodecType cType, SampleFmt sFmt, int ch, int sRate);
-    int getSamplesPerFrame();
+    int getSamplesPerFrame(){ return samplesPerFrame;};
     int getChannels(){ return channels;};
     int getSampleRate() {return sampleRate;};
     SampleFmt getSampleFmt() {return sampleFmt;};

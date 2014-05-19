@@ -29,7 +29,7 @@ void VideoFrame::setSize(unsigned int width, unsigned int height)
     this->height = height;
 }
 
-void VideoFrame::setPixelFormat(PixFormat pixelFormat)
+void VideoFrame::setPixelFormat(PixType pixelFormat)
 {
     this->pixelFormat = pixelFormat;
 }

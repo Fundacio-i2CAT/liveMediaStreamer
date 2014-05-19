@@ -33,7 +33,7 @@ class VideoFrame : public Frame {
 		void setPixelFormat(PixType pixelFormat);
         unsigned int getWidth() {return width;};
         unsigned int getHeight() {return height;};
-		PixType getPixelFormat() {return pixelFormat};
+		PixType getPixelFormat() {return pixelFormat;};
               
     protected:
         unsigned int width, height;

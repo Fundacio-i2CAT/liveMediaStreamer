@@ -31,6 +31,10 @@
 #define A_TIME_STMP_FREQ 48000
 #define A_CHANNELS 2
 
+#define CHANNEL_MAX_SAMPLES 3000
+#define OUT_CHANNELS 2
+#define OUT_SAMPLE_RATE 48000
+
 bool should_stop = false;
 
 struct buffer {
@@ -74,25 +78,28 @@ void readingRoutine(struct buffer* b, AudioCircularBuffer* cb, AudioEncoderLibav
     Frame *fr;
 
     InterleavedAudioFrame* codedFrame = InterleavedAudioFrame::createNew (
-                                                    enc->getChannels(), 
-                                                    enc->getSampleRate(), 
-                                                    enc->getSamplesPerFrame(), 
+                                                    OUT_CHANNELS, 
+                                                    OUT_SAMPLE_RATE, 
+                                                    CHANNEL_MAX_SAMPLES, 
                                                     enc->getCodec(), 
                                                     S16
                                                   );
-    cb->setOutputFrameSamples(enc->getSamplesPerFrame());
+
+    cb->setOutputFrameSamples(DEFAULT_FRAME_SAMPLES);
 
     while(!should_stop) {
         fr = cb->getFront();
 
         if(!fr) {
-            usleep(100);
+            usleep(500);
             continue;
         }
 
-        if(!enc->encodeFrame(fr, codedFrame)) {
+        if(!enc->doProcessFrame(fr, codedFrame)) {
             std::cerr << "Error encoding frame" << std::endl;
         }
+
+        cb->setOutputFrameSamples(enc->getSamplesPerFrame());
 
         fillBuffer(b, codedFrame);
         printf("Filled buffer! Frame size: %d\n", codedFrame->getLength());
@@ -121,9 +128,6 @@ int main(int argc, char** argv)
     ACodecType inCType = OPUS;
     ACodecType outCType = PCM;
     SampleFmt outSFmt = S16P;
-    unsigned int outCh = 2;
-    unsigned int outSRate = 48000;
-    unsigned int chMaxSamples = 3000;
     unsigned int bytesPerSample = 2;
 
     
@@ -153,16 +157,14 @@ int main(int argc, char** argv)
     audioDecoder = new AudioDecoderLibav();
 
     audioEncoder = new AudioEncoderLibav();
-    if(!audioEncoder->configure(PCMU, outSFmt, outCh, outSRate)) {
-        std::cerr << "Error configuring encoder" << std::endl;
-    }
+    audioEncoder->configure(PCMU);
 
-    audioCirBuffer = AudioCircularBuffer::createNew(outCh, outSRate, chMaxSamples, outSFmt);
+    audioCirBuffer = AudioCircularBuffer::createNew(OUT_CHANNELS, OUT_SAMPLE_RATE, CHANNEL_MAX_SAMPLES, outSFmt);
 
     inputs = mngr->getInputs();
     q = inputs[A_CLIENT_PORT];
     buffers = new struct buffer;
-    buffers->data = new unsigned char[chMaxSamples * bytesPerSample * outSRate * 360]();
+    buffers->data = new unsigned char[CHANNEL_MAX_SAMPLES * bytesPerSample * OUT_SAMPLE_RATE * 360]();
     buffers->data_len = 0;
     
     std::thread readingThread(readingRoutine, buffers, audioCirBuffer, audioEncoder);

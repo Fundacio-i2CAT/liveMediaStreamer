@@ -33,22 +33,28 @@ extern "C" {
 }
 
 #include "../../AudioFrame.hh"
+#include "../../ProcessorInterface.hh"
 
-class AudioEncoderLibav {
+class AudioEncoderLibav : public ReaderWriter {
 
 public:
     AudioEncoderLibav();
     ~AudioEncoderLibav();
-    bool encodeFrame(Frame* rawFrame, Frame* codedFrame);
-    bool configure(ACodecType cType, SampleFmt sFmt, int ch, int sRate);
+    
+    bool doProcessFrame(Frame *org, Frame *dst);
+    FrameQueue* allocQueue();
+
     int getSamplesPerFrame(){ return samplesPerFrame;};
     int getChannels(){ return channels;};
     int getSampleRate() {return sampleRate;};
     SampleFmt getSampleFmt() {return sampleFmt;};
     ACodecType getCodec() {return fCodec;};
+    void configure(ACodecType codec);
 
 private:
     int resample(AudioFrame* src, AVFrame* dst);
+    void setInputParams(SampleFmt sampleFormat, int channels, int sampleRate);
+    bool config();
 
     AVCodec             *codec;
     AVCodecContext      *codecCtx;
@@ -56,10 +62,14 @@ private:
     AVPacket            pkt;
     AVSampleFormat      internalLibavSampleFormat;
     SwrContext          *resampleCtx;
+    AVCodecID           codecID;
+    AVSampleFormat      libavSampleFmt;
     int                 gotFrame;
+    bool                needsConfig;
 
-    ACodecType           fCodec;
+    ACodecType          fCodec;
     SampleFmt           sampleFmt;
+    SampleFmt           internalSampleFmt;
 
     int                 channels;
     int                 internalChannels;
@@ -67,8 +77,8 @@ private:
     int                 internalSampleRate;
     int                 samplesPerFrame;
     int                 internalBufferSize;
-    unsigned char*      internalBuffer;
-    unsigned char* auxBuff[1];    
+    unsigned char       *internalBuffer;
+    unsigned char       *auxBuff[1];    
 };
 
 #endif

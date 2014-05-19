@@ -221,7 +221,7 @@ void AudioDecoderLibav::setInputParams(ACodecType codec, SampleFmt sampleFormat,
     inChannels = channels;
     inSampleRate = sampleRate;
 
-     switch(fCodec){
+     switch(fCodec) {
         case PCMU:
             codecID = AV_CODEC_ID_PCM_MULAW;
             break;
@@ -233,7 +233,7 @@ void AudioDecoderLibav::setInputParams(ACodecType codec, SampleFmt sampleFormat,
             break;
     }
     
-    switch(inSampleFmt){
+    switch(inSampleFmt) {
         case U8:
             inLibavSampleFmt = AV_SAMPLE_FMT_U8;
             break;

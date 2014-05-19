@@ -41,7 +41,7 @@ class ProcessorInterface {
     
 protected:
     ProcessorInterface(ProcessorInterface *otherSide_ = NULL);
-    virtual ~ProcessorInterface();
+    virtual ~ProcessorInterface() {};
    
 public:
     static void connect(ProcessorInterface *, ProcessorInterface *);
@@ -97,7 +97,6 @@ protected:
 private:
     //TODO these might have to be protected virtual
     Frame *org, *dst;
-    std::atomic<bool> enabled;
 };
 
 #endif

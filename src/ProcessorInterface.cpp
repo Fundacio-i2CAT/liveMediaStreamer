@@ -97,6 +97,11 @@ Reader::Reader(Writer *otherSide_) : ProcessorInterface(otherSide_)
 }
 
 
+void Reader::setQueue(FrameQueue *queue)
+{
+    this->queue = queue;
+}
+
 //Writer implementation
 
 Writer::Writer(Reader *otherSide_) : ProcessorInterface(otherSide_)

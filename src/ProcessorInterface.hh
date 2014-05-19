@@ -21,6 +21,9 @@
  *            
  */
 
+#ifndef _PROCESSOR_INTERFACE_HH
+#define _PROCESSOR_INTERFACE_HH
+
 #include <atomic>
 
 #ifndef _FRAME_HH
@@ -58,13 +61,12 @@ protected:
 
 class Reader : public ProcessorInterface {
     
-public:
-    void receiveFrame();
-    void setQueue(FrameQueue *queue);
-    
 protected:
+    friend class Writer;
+    
+    void setQueue(FrameQueue *queue);
     Reader(Writer *otherSide_ = NULL);
-    virtual void toProcess() = 0;
+    virtual bool demandFrame() = 0;
        
 };
 
@@ -74,7 +76,7 @@ protected:
     Writer(Reader *otherSide_ = NULL);
     
     bool isQueueConnected();
-    void supplyFrame();
+    virtual void supplyFrame(bool newFrame) = 0;
     virtual FrameQueue* allocQueue() = 0;
     bool connectQueue();    
 };
@@ -82,15 +84,20 @@ protected:
 class ReaderWriter : public Reader, public Writer {  
 
 public:
-    void processFrame();
-
+    bool processFrame();
+    
 protected:
     ReaderWriter();
     
     virtual bool doProcessFrame(Frame *org, Frame *dst) = 0;
+    virtual bool demandFrame();
+    virtual void supplyFrame(bool newFrame);
+    
 
 private:
     //TODO these might have to be protected virtual
     Frame *org, *dst;
+    std::atomic<bool> enabled;
 };
 
+#endif

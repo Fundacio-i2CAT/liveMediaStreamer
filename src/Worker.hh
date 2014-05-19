@@ -20,3 +20,35 @@
  *  Authors:  David Cassany <david.cassany@i2cat.net>,
  *            
  */
+
+#ifndef _WORKER_HH
+#define _WORKER_HH
+
+#include <thread>
+
+#ifndef _PROCESSOR_INTERFACE_HH
+#include "ProcessorInterface.hh"
+#endif
+
+class Worker {
+    
+public:
+    Worker(ReaderWriter *processor_);
+    
+    bool start();
+    bool isRunning();
+    void stop();
+    void enable();
+    void disable();
+    bool isEnabled();
+    
+private:
+    void process();
+    
+    ReaderWriter *processor;
+    std::thread thread;
+    std::atomic<bool> run;
+    std::atomic<bool> enabled;
+};
+
+#endif

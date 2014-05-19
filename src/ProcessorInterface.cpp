@@ -96,23 +96,11 @@ Reader::Reader(Writer *otherSide_) : ProcessorInterface(otherSide_)
 {
 }
 
-void Reader::receiveFrame(){
-    if (frameQueue()->frameToRead()){
-        toProcess();
-    }
-}
 
 //Writer implementation
 
 Writer::Writer(Reader *otherSide_) : ProcessorInterface(otherSide_)
 {
-}
-
-void Writer::supplyFrame()
-{
-    if (Reader *connectedTo_ = dynamic_cast<Reader *> (connectedTo)){
-        connectedTo_->receiveFrame();
-    }
 }
 
 bool Writer::isQueueConnected(){
@@ -148,7 +136,7 @@ bool Writer::connectQueue(){
 
 //ReaderWriter implementation
 
-ReaderWriter::ReaderWriter() : Reader(NULL), Writer(NULL)
+ReaderWriter::ReaderWriter() : Reader(NULL), Writer(NULL), enabled(false)
 {
     Reader *reader = this;
     Writer *writer = this;
@@ -156,25 +144,41 @@ ReaderWriter::ReaderWriter() : Reader(NULL), Writer(NULL)
     writer->setOtherSide(reader);
 }
 
-void ReaderWriter::processFrame()
+bool ReaderWriter::demandFrame()
 {
     Reader *reader = this;
     Writer *writer = this;
-    
-    bool newFrame = false;
     if ((org = reader->frameQueue()->getFront()) == NULL){
-        return;
+        //TODO: log error message
+        return false;
     }
     if (!isQueueConnected() && !connectQueue()){
-        //TODO: error message
-        return;
+        //TODO: log error message
+        return false;
     }
     dst = writer->frameQueue()->forceGetRear();
-    newFrame = doProcessFrame(org, dst);
+    return true;
+}
+
+void ReaderWriter::supplyFrame(bool newFrame)
+{
+    Reader *reader = this;
+    Writer *writer = this;
     reader->frameQueue()->removeFrame();
     if (newFrame){
         writer->frameQueue()->addFrame();
-        supplyFrame();
     }
 }
+
+bool ReaderWriter::processFrame()
+{
+    bool newFrame;
+    if (!demandFrame()){
+        return false;
+    }
+    newFrame = doProcessFrame(org, dst);
+    supplyFrame(newFrame);
+    return true;
+}
+
 

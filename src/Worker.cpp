@@ -20,3 +20,71 @@
  *  Authors:  David Cassany <david.cassany@i2cat.net>,
  *            
  */
+
+#define ACTIVE 400
+#define IDLE 20
+#define TIMEOUT 400
+
+#include <chrono>
+#include "Worker.hh"
+
+
+
+Worker::Worker(ReaderWriter *processor_): processor(processor_), run(false), enabled(false)
+{ 
+}
+
+void Worker::process()
+{
+    int idleCount = 0;
+    std::chrono::microseconds active(ACTIVE);
+    std::chrono::milliseconds idle(IDLE);
+    
+    while(run){
+        while(enabled && processor->processFrame()){
+            idleCount = 0;
+        }
+        if (idleCount == TIMEOUT){
+            idleCount++;
+            std::this_thread::sleep_for(active);
+        } else {
+            std::this_thread::sleep_for(idle);
+        }
+    }
+}
+
+bool Worker::start()
+{
+    thread = std::thread(&Worker::process, this);
+    return thread.joinable();
+}
+
+bool Worker::isRunning()
+{
+    return thread.joinable();
+}
+
+void Worker::stop()
+{
+    if (isRunning()){
+        run = false;
+        if (isRunning()){
+            thread.join();
+        }
+    }
+}
+
+void Worker::enable()
+{
+    enabled = true;
+}
+
+void Worker::disable()
+{
+    enabled = false;
+}
+
+bool Worker::isEnabled()
+{
+    return enabled;
+}

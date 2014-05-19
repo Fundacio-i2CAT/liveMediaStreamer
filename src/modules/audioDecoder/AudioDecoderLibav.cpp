@@ -198,7 +198,10 @@ bool AudioDecoderLibav::doProcessFrame(Frame *org, Frame *dst)
         }
 
         if (gotFrame){
-            resample(inFrame, aDecodedFrame);
+            if (!resample(inFrame, aDecodedFrame)) {
+                //TODO: error
+                return false;
+            }
         }
         
         if(pkt.data) {
@@ -225,7 +228,7 @@ AudioDecoderLibav::~AudioDecoderLibav()
     av_free_packet(&pkt);
 }
 
-int AudioDecoderLibav::resample(AVFrame* src, AudioFrame* dst)
+bool AudioDecoderLibav::resample(AVFrame* src, AudioFrame* dst)
 {
     int samples;
 
@@ -238,6 +241,9 @@ int AudioDecoderLibav::resample(AVFrame* src, AudioFrame* dst)
                     src->nb_samples
                   );
 
+        if (samples < 0) {
+            return false;
+        }
 
         dst->setLength(samples*bytesPerSample);
         dst->setSamples(samples);
@@ -254,6 +260,9 @@ int AudioDecoderLibav::resample(AVFrame* src, AudioFrame* dst)
                     src->nb_samples
                   );
 
+        if (samples < 0) {
+            return false;
+        }
         
         dst->setLength(outChannels*samples*bytesPerSample);
         dst->setSamples(samples);

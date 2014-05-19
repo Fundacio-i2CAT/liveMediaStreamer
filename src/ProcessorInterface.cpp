@@ -141,7 +141,7 @@ bool Writer::connectQueue(){
 
 //ReaderWriter implementation
 
-ReaderWriter::ReaderWriter() : Reader(NULL), Writer(NULL), enabled(false)
+ReaderWriter::ReaderWriter() : Reader(NULL), Writer(NULL)
 {
     Reader *reader = this;
     Writer *writer = this;

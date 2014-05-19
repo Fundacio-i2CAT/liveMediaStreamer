@@ -47,7 +47,7 @@ class AudioDecoderLibav : public ReaderWriter {
         
     private:
 
-        int resample(AVFrame* src, AudioFrame* dst);
+        bool resample(AVFrame* src, AudioFrame* dst);
 
         AVCodec             *codec;
         AVCodecContext      *codecCtx;

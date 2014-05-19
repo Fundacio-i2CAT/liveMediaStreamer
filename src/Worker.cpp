@@ -22,7 +22,7 @@
  */
 
 #define ACTIVE 400
-#define IDLE 20
+#define IDLE 100
 #define TIMEOUT 400
 
 #include <chrono>

@@ -29,6 +29,11 @@ void VideoFrame::setSize(unsigned int width, unsigned int height)
     this->height = height;
 }
 
+void VideoFrame::setPixelFormat(PixFormat pixelFormat)
+{
+    this->pixelFormat = pixelFormat;
+}
+
 //////////////////////////////////////////////////
 //INTERLEAVED VIDEO FRAME METHODS IMPLEMENTATION//
 //////////////////////////////////////////////////

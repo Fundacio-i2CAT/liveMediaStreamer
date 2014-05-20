@@ -39,8 +39,8 @@
 class MultiReader;
 class MultiWriter;
 
-class Reader;
-class Writer;
+class SingleReader;
+class SingleWriter;
 
 class ProcessorInterface {
     
@@ -82,18 +82,21 @@ protected:
     virtual bool demandFrames() = 0;
 };
 
-class Reader : public MultiReader {
+class SingleReader : public MultiReader {
 
 public:
     bool exceptMultiI(){ return false;};
     FrameQueue *frameQueue();
     
 protected:
-    friend class Writer;
+    friend class SingleWriter;
     
     void setQueue(FrameQueue *queue);
-    Reader(Writer *otherSide_ = NULL);
+    SingleReader(SingleWriter *otherSide_ = NULL);
     virtual bool demandFrame() = 0;
+    
+private:
+    bool demandFrames() {};
 };
 
 class MultiWriter : public ProcessorInterface {
@@ -112,36 +115,23 @@ protected:
     bool connectQueueById(int id);
 };
 
-class Writer : public MultiWriter {
+class SingleWriter : public MultiWriter {
     
 public:
     bool exceptMultiO(){ return false;};
     FrameQueue *frameQueue();
     
 protected:
-    Writer(Reader *otherSide_ = NULL);
+    SingleWriter(SingleReader *otherSide_ = NULL);
     
     bool isQueueConnected();
     virtual void supplyFrame(bool newFrame) = 0;
     bool connectQueue();
-};
-
-class ReaderWriter : public Reader, public Writer {  
-
-public:
-    bool processFrame();
     
-protected:
-    ReaderWriter();
-    
-    virtual bool doProcessFrame(Frame *org, Frame *dst) = 0;
-    virtual bool demandFrame();
-    virtual void supplyFrame(bool newFrame);
-    
-
 private:
-    //TODO these might have to be protected virtual
-    Frame *org, *dst;
+    void supplyFrames(bool newFrame){};
 };
+
+
 
 #endif

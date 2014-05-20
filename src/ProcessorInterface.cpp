@@ -105,14 +105,14 @@ void MultiReader::setQueueById(int id, FrameQueue *queue)
 }
 
 
-//Reader implementation
+//SingleReader implementation
 
-Reader::Reader(Writer *otherSide_) : MultiReader(otherSide_)
+SingleReader::SingleReader(SingleWriter *otherSide_) : MultiReader(otherSide_)
 {
 }
 
 
-void Reader::setQueue(FrameQueue *queue)
+void SingleReader::setQueue(FrameQueue *queue)
 {
     int id;
     if (connectedTo.size() == 1){
@@ -123,7 +123,7 @@ void Reader::setQueue(FrameQueue *queue)
     }
 }
 
-FrameQueue* Reader::frameQueue(){
+FrameQueue* SingleReader::frameQueue(){
     if (connectedTo.size() == 1){
         return connectedTo.begin()->second.second;
     } else {
@@ -172,13 +172,13 @@ bool MultiWriter::connectQueueById(int id){
     }
 }
 
-//Writer implementation
+//SingleWriter implementation
 
-Writer::Writer(Reader *otherSide_) : MultiWriter(otherSide_)
+SingleWriter::SingleWriter(SingleReader *otherSide_) : MultiWriter(otherSide_)
 {
 }
 
-bool Writer::isQueueConnected(){
+bool SingleWriter::isQueueConnected(){
     int id;
     if (connectedTo.size() == 1){
         id = connectedTo.begin()->first;
@@ -189,7 +189,7 @@ bool Writer::isQueueConnected(){
     }
 }
 
-bool Writer::connectQueue(){
+bool SingleWriter::connectQueue(){
     int id;
     if (connectedTo.size() == 1){
         id = connectedTo.begin()->first;
@@ -200,7 +200,7 @@ bool Writer::connectQueue(){
     }
 }
 
-FrameQueue* Writer::frameQueue(){
+FrameQueue* SingleWriter::frameQueue(){
     if (connectedTo.size() == 1){
         return connectedTo.begin()->second.second;
     } else {
@@ -208,52 +208,4 @@ FrameQueue* Writer::frameQueue(){
         return NULL;
     }
 }
-
-//ReaderWriter implementation
-
-ReaderWriter::ReaderWriter() : Reader(NULL), Writer(NULL)
-{
-    Reader *reader = this;
-    Writer *writer = this;
-    reader->setOtherSide(writer);
-    writer->setOtherSide(reader);
-}
-
-bool ReaderWriter::demandFrame()
-{
-    Reader *reader = this;
-    Writer *writer = this;
-    if ((org = reader->frameQueue()->getFront()) == NULL){
-        //TODO: log error message
-        return false;
-    }
-    if (!isQueueConnected() && !connectQueue()){
-        //TODO: log error message
-        return false;
-    }
-    dst = writer->frameQueue()->forceGetRear();
-    return true;
-}
-
-void ReaderWriter::supplyFrame(bool newFrame)
-{
-    Reader *reader = this;
-    Writer *writer = this;
-    reader->frameQueue()->removeFrame();
-    if (newFrame){
-        writer->frameQueue()->addFrame();
-    }
-}
-
-bool ReaderWriter::processFrame()
-{
-    bool newFrame;
-    if (!demandFrame()){
-        return false;
-    }
-    newFrame = doProcessFrame(org, dst);
-    supplyFrame(newFrame);
-    return true;
-}
-
 

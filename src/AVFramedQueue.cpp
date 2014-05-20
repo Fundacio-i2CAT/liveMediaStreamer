@@ -76,19 +76,9 @@ Frame* AVFramedQueue::forceGetRear()
 
 Frame* AVFramedQueue::forceGetFront()
 {
-    Frame *frame;
-    if ((frame = getFront()) == NULL) {
-        std::cerr << "Frame reused" << std::endl;
-        frame = getOldie();
-    }
-    return frame;
-}
-
-//TODO shouldn't it be safer?
-Frame* AVFramedQueue::getOldie()
-{
     return frames[(front + (max - 1)) % max]; 
 }
+
 
 bool AVFramedQueue::frameToRead()
 {

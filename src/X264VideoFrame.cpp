@@ -22,7 +22,8 @@
 
 #include "X264VideoFrame.hh"
 
-void X264VideoFrame::setNals(x264_nal_t **nals, int size){
+void X264VideoFrame::setNals(x264_nal_t **nals, int size, int frameSize){
 	ppNals = nals;
 	sizeNals = size;
+	frameLength = frameSize;
 }

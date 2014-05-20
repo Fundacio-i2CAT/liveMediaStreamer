@@ -30,8 +30,10 @@ class VideoFrame : public Frame {
     
     public:
         void setSize(unsigned int width, unsigned int height);
+		void setPixelFormat(PixType pixelFormat);
         unsigned int getWidth() {return width;};
         unsigned int getHeight() {return height;};
+		PixType getPixelFormat() {return pixelFormat;};
               
     protected:
         unsigned int width, height;

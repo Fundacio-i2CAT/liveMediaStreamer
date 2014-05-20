@@ -33,6 +33,7 @@
     public:
         static AudioCircularBuffer* createNew(unsigned int ch, unsigned int sRate, unsigned int maxSamples, SampleFmt sFmt);
         ~AudioCircularBuffer();
+        void setOutputFrameSamples(int samples); 
 
         Frame *getRear();
         Frame *getFront();
@@ -64,6 +65,7 @@
         unsigned channelMaxLength;
         unsigned char *data[MAX_CHANNELS];
         SampleFmt sampleFormat;
+        bool outputFrameAlreadyRead;
 
         PlanarAudioFrame* inputFrame;
         PlanarAudioFrame* outputFrame;

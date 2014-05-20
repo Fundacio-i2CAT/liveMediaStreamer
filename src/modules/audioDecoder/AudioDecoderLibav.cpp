@@ -38,43 +38,22 @@ AudioDecoderLibav::AudioDecoderLibav()
     pkt.size = 0;
 
     inChannels = 0;
-    outChannels = 0;
     inSampleRate = 0;
-    outSampleRate = 0;
     inFrame = av_frame_alloc();
+
+    configure(S16P, DEFAULT_CHANNELS, DEFAULT_SAMPLE_RATE);
 }
 
-bool AudioDecoderLibav::configure(ACodecType cType, SampleFmt inSFmt, int inCh, 
-                                    int inSRate, SampleFmt outSFmt, int outCh, int outSRate)
+bool AudioDecoderLibav::config()
 {
-    AVCodecID codec_id;
-    AVSampleFormat inLibavSampleFmt;
-    AVSampleFormat outLibavSampleFmt;
-    
-    fCodec = cType;
-    inSampleFmt = inSFmt;
-    outSampleFmt = outSFmt;
-    inChannels = inCh;
-    outChannels = outCh;
-    inSampleRate = inSRate;
-    outSampleRate = outSRate;
-    
-    switch(fCodec){
-        case PCMU:
-            codec_id = AV_CODEC_ID_PCM_MULAW;
-            break;
-        case OPUS:
-            codec_id = CODEC_ID_OPUS ;
-            break;
-        default:
-            //TODO: error
-            return false;
-        break;
+    av_frame_unref(inFrame);
+
+    if (codecCtx != NULL) {
+        avcodec_close(codecCtx);
+        av_free(codecCtx);
     }
-    
-    av_frame_unref(inFrame);   
-    
-    codec = avcodec_find_decoder(codec_id);
+
+    codec = avcodec_find_decoder(codecID);
     if (codec == NULL)
     {
         //TODO: error
@@ -83,63 +62,8 @@ bool AudioDecoderLibav::configure(ACodecType cType, SampleFmt inSFmt, int inCh,
     
     codecCtx = avcodec_alloc_context3(codec);
     if (codecCtx == NULL) {
+        //TODO: error
         return false;
-    }
-
-    switch(inSFmt){
-        case U8:
-            inLibavSampleFmt = AV_SAMPLE_FMT_U8;
-            break;
-        case S16:
-            inLibavSampleFmt = AV_SAMPLE_FMT_S16;
-            break;
-        case FLT:
-            inLibavSampleFmt = AV_SAMPLE_FMT_FLT;
-            break;
-        case U8P:
-            inLibavSampleFmt = AV_SAMPLE_FMT_U8P;
-            break;
-        case S16P:
-            inLibavSampleFmt = AV_SAMPLE_FMT_S16P;
-            break;
-        case FLTP:
-            inLibavSampleFmt = AV_SAMPLE_FMT_FLTP;
-            break;
-        default:
-            //TODO: error
-            return false;
-        break;
-    }
-
-    switch(outSFmt){
-        case U8:
-            outLibavSampleFmt = AV_SAMPLE_FMT_U8;
-            bytesPerSample = av_get_bytes_per_sample(AV_SAMPLE_FMT_U8);
-            break;
-        case S16:
-            outLibavSampleFmt = AV_SAMPLE_FMT_S16;
-            bytesPerSample = av_get_bytes_per_sample(AV_SAMPLE_FMT_S16);
-            break;
-        case FLT:
-            outLibavSampleFmt = AV_SAMPLE_FMT_FLT;
-            bytesPerSample = av_get_bytes_per_sample(AV_SAMPLE_FMT_FLT);
-            break;
-        case U8P:
-            outLibavSampleFmt = AV_SAMPLE_FMT_U8P;
-            bytesPerSample = av_get_bytes_per_sample(AV_SAMPLE_FMT_U8P);
-            break;
-        case S16P:
-            outLibavSampleFmt = AV_SAMPLE_FMT_S16P;
-            bytesPerSample = av_get_bytes_per_sample(AV_SAMPLE_FMT_S16P);
-            break;
-        case FLTP:
-            outLibavSampleFmt = AV_SAMPLE_FMT_FLTP;
-            bytesPerSample = av_get_bytes_per_sample(AV_SAMPLE_FMT_FLTP);
-            break;
-        default:
-            //TODO: error
-            return false;
-        break;
     }
 
     codecCtx->channels = inChannels;
@@ -172,11 +96,15 @@ bool AudioDecoderLibav::configure(ACodecType cType, SampleFmt inSFmt, int inCh,
         return false;
     }
 
-    if (swr_init(resampleCtx) < 0) {
-        std::cout << "Init context failure! " << std::endl;
-        return false;
-    } 
+    if (swr_is_initialized(resampleCtx) == 0) {
+        if (swr_init(resampleCtx) < 0) {
+            std::cout << "Init context failure! " << std::endl;
+            return false;
+        } 
+    }
     
+    needsConfig = false;
+
     return true;
 }
 
@@ -184,7 +112,22 @@ bool AudioDecoderLibav::doProcessFrame(Frame *org, Frame *dst)
 {     
     int len, gotFrame;
 
+    AudioFrame* aCodedFrame;
     AudioFrame* aDecodedFrame = dynamic_cast<AudioFrame*>(dst);
+
+    if (needsConfig) {
+        aCodedFrame = dynamic_cast<AudioFrame*>(org);
+        setInputParams(aCodedFrame->getCodec(), 
+                       aCodedFrame->getSampleFmt(), 
+                       aCodedFrame->getChannels(), 
+                       aCodedFrame->getSampleRate() 
+                       );
+
+        if (!config()) {
+            std::cerr << "Decoder configuration failed!" << std::endl;
+            return false;
+        }
+    }
 
     pkt.size = org->getLength();
     pkt.data = org->getDataBuf();
@@ -198,7 +141,10 @@ bool AudioDecoderLibav::doProcessFrame(Frame *org, Frame *dst)
         }
 
         if (gotFrame){
-            resample(inFrame, aDecodedFrame);
+            if (!resample(inFrame, aDecodedFrame)) {
+                std::cerr << "Resampling failed!" << std::endl;
+                return false;
+            }
         }
         
         if(pkt.data) {
@@ -212,7 +158,7 @@ bool AudioDecoderLibav::doProcessFrame(Frame *org, Frame *dst)
 
 FrameQueue* AudioDecoderLibav::allocQueue()
 {
-    return AudioFrameQueue::createNew(PCM,  0, outSampleRate, outChannels, outSampleFmt);
+    return AudioFrameQueue::createNew(PCM, 0, outSampleRate, outChannels, outSampleFmt);
 }
 
 AudioDecoderLibav::~AudioDecoderLibav()
@@ -225,7 +171,7 @@ AudioDecoderLibav::~AudioDecoderLibav()
     av_free_packet(&pkt);
 }
 
-int AudioDecoderLibav::resample(AVFrame* src, AudioFrame* dst)
+bool AudioDecoderLibav::resample(AVFrame* src, AudioFrame* dst)
 {
     int samples;
 
@@ -238,6 +184,9 @@ int AudioDecoderLibav::resample(AVFrame* src, AudioFrame* dst)
                     src->nb_samples
                   );
 
+        if (samples < 0) {
+            return false;
+        }
 
         dst->setLength(samples*bytesPerSample);
         dst->setSamples(samples);
@@ -254,9 +203,98 @@ int AudioDecoderLibav::resample(AVFrame* src, AudioFrame* dst)
                     src->nb_samples
                   );
 
+        if (samples < 0) {
+            return false;
+        }
         
         dst->setLength(outChannels*samples*bytesPerSample);
         dst->setSamples(samples);
     }
+
+    return true;
+}
+
+void AudioDecoderLibav::setInputParams(ACodecType codec, SampleFmt sampleFormat, int channels, int sampleRate)
+{
+    fCodec = codec;
+    inSampleFmt = sampleFormat;
+    inChannels = channels;
+    inSampleRate = sampleRate;
+
+     switch(fCodec) {
+        case PCMU:
+            codecID = AV_CODEC_ID_PCM_MULAW;
+            break;
+        case OPUS:
+            codecID = AV_CODEC_ID_OPUS;
+            break;
+        default:
+            codecID = AV_CODEC_ID_NONE;
+            break;
+    }
+    
+    switch(inSampleFmt) {
+        case U8:
+            inLibavSampleFmt = AV_SAMPLE_FMT_U8;
+            break;
+        case S16:
+            inLibavSampleFmt = AV_SAMPLE_FMT_S16;
+            break;
+        case FLT:
+            inLibavSampleFmt = AV_SAMPLE_FMT_FLT;
+            break;
+        case U8P:
+            inLibavSampleFmt = AV_SAMPLE_FMT_U8P;
+            break;
+        case S16P:
+            inLibavSampleFmt = AV_SAMPLE_FMT_S16P;
+            break;
+        case FLTP:
+            inLibavSampleFmt = AV_SAMPLE_FMT_FLTP;
+            break;
+        default:
+            inLibavSampleFmt = AV_SAMPLE_FMT_NONE;
+            break;
+    }
+}
+
+void AudioDecoderLibav::configure(SampleFmt sampleFormat, int channels, int sampleRate)
+{
+    outSampleFmt = sampleFormat;
+    outChannels = channels;
+    outSampleRate = sampleRate;
+
+    switch(outSampleFmt){
+        case U8:
+            outLibavSampleFmt = AV_SAMPLE_FMT_U8;
+            bytesPerSample = av_get_bytes_per_sample(AV_SAMPLE_FMT_U8);
+            break;
+        case S16:
+            outLibavSampleFmt = AV_SAMPLE_FMT_S16;
+            bytesPerSample = av_get_bytes_per_sample(AV_SAMPLE_FMT_S16);
+            break;
+        case FLT:
+            outLibavSampleFmt = AV_SAMPLE_FMT_FLT;
+            bytesPerSample = av_get_bytes_per_sample(AV_SAMPLE_FMT_FLT);
+            break;
+        case U8P:
+            outLibavSampleFmt = AV_SAMPLE_FMT_U8P;
+            bytesPerSample = av_get_bytes_per_sample(AV_SAMPLE_FMT_U8P);
+            break;
+        case S16P:
+            outLibavSampleFmt = AV_SAMPLE_FMT_S16P;
+            bytesPerSample = av_get_bytes_per_sample(AV_SAMPLE_FMT_S16P);
+            break;
+        case FLTP:
+            outLibavSampleFmt = AV_SAMPLE_FMT_FLTP;
+            bytesPerSample = av_get_bytes_per_sample(AV_SAMPLE_FMT_FLTP);
+            break;
+        default:
+            outLibavSampleFmt = AV_SAMPLE_FMT_NONE;
+            bytesPerSample = 0;
+        break;
+    }
+
+    needsConfig = true;
 }
 

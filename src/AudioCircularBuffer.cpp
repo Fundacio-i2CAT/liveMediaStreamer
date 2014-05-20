@@ -49,10 +49,11 @@ Frame* AudioCircularBuffer::getRear()
 Frame* AudioCircularBuffer::getFront()
 {
     if (!popFront(outputFrame->getPlanarDataBuf(), outputFrame->getSamples())) {
-        std::cerr << "There is not enough data to fill a frame. Impossible to get frame!\n";
+       // std::cerr << "There is not enough data to fill a frame. Impossible to get frame!\n";
         return NULL;
     }
 
+    outputFrameAlreadyRead = false;
     return outputFrame;
 }
 
@@ -63,6 +64,7 @@ void AudioCircularBuffer::addFrame()
 
 void AudioCircularBuffer::removeFrame()
 {
+    outputFrameAlreadyRead = true;
     return;
 }
 
@@ -80,7 +82,7 @@ Frame* AudioCircularBuffer::forceGetRear()
 Frame* AudioCircularBuffer::forceGetFront()
 {
     if (!popFront(outputFrame->getPlanarDataBuf(), outputFrame->getSamples())) {
-        std::cerr << "There is not enough data to fill a frame. Impossible to get frame!\n";
+        std::cerr << "There is not enough data to fill a frame. Reusing previous frame!\n";
     }
 
     return outputFrame;
@@ -95,6 +97,7 @@ AudioCircularBuffer::AudioCircularBuffer(unsigned int ch, unsigned int sRate, un
     sampleRate = sRate;
     this->chMaxSamples = maxSamples;
     sampleFormat = sFmt;
+    outputFrameAlreadyRead = false;
 
     config();
 }
@@ -131,9 +134,6 @@ bool AudioCircularBuffer::config()
 
     return true;
 }
-
-
-
 
 AudioCircularBuffer::~AudioCircularBuffer()
 {
@@ -178,7 +178,7 @@ bool AudioCircularBuffer::popFront(unsigned char **buffer, int samplesRequested)
 {
     int bytesRequested = samplesRequested * bytesPerSample;
 
-    if (bytesRequested > byteCounter) {
+    if ((bytesRequested > byteCounter) || bytesRequested == 0) {
         return false;
     }
 
@@ -226,4 +226,8 @@ bool AudioCircularBuffer::forcePushBack(unsigned char **buffer, int samplesReque
             pushBack(inputFrame->getPlanarDataBuf(), getFreeSamples());
         }
     }
+}
+
+void AudioCircularBuffer::setOutputFrameSamples(int samples) {
+    outputFrame->setSamples(samples);
 } 

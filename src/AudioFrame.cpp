@@ -21,6 +21,7 @@
  */
 
 #include "AudioFrame.hh"
+#include <iostream>
 
 AudioFrame::AudioFrame(unsigned int ch, unsigned int sRate, unsigned int maxSamples, ACodecType codec, SampleFmt sFmt)
 {

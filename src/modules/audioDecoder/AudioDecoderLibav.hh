@@ -35,36 +35,44 @@ extern "C" {
 #include "../../AudioFrame.hh"
 #include "../../ProcessorInterface.hh"
 
+#define DEFAULT_CHANNELS 2
+#define DEFAULT_SAMPLE_RATE 48000
+
 class AudioDecoderLibav : public ReaderWriter {
 
-    public:
-        AudioDecoderLibav();
-        ~AudioDecoderLibav();
-        bool doProcessFrame(Frame *org, Frame *dst);
-        FrameQueue* allocQueue();
-        bool configure(ACodecType cType, SampleFmt inSFmt, int inCh, 
-                        int inSRate, SampleFmt outSFmt, int outCh, int outSRate);
-        
-    private:
+public:
+    AudioDecoderLibav();
+    ~AudioDecoderLibav();
+    bool doProcessFrame(Frame *org, Frame *dst);
+    FrameQueue* allocQueue();
+    void configure(SampleFmt sampleFormat, int channels, int sampleRate);
+    
+private:
 
-        int resample(AVFrame* src, AudioFrame* dst);
+    bool resample(AVFrame* src, AudioFrame* dst);
+    void setInputParams(ACodecType codec, SampleFmt sampleFormat, int channels, int sampleRate);
+    bool config();
 
-        AVCodec             *codec;
-        AVCodecContext      *codecCtx;
-        AVFrame             *inFrame;
-        AVPacket            pkt;
-        int                 gotFrame;
-        SwrContext          *resampleCtx;
-        
-        ACodecType          fCodec;
-        SampleFmt           inSampleFmt;
-        SampleFmt           outSampleFmt;
-        int                 inChannels;
-        int                 outChannels;
-        int                 inSampleRate;
-        int                 outSampleRate;
-        unsigned int bytesPerSample;
-        unsigned char* auxBuff[1];
+    AVCodec             *codec;
+    AVCodecContext      *codecCtx;
+    AVFrame             *inFrame;
+    AVPacket            pkt;
+    int                 gotFrame;
+    SwrContext          *resampleCtx;
+    AVCodecID           codecID;
+    AVSampleFormat      inLibavSampleFmt;
+    AVSampleFormat      outLibavSampleFmt;
+    
+    ACodecType          fCodec;
+    SampleFmt           inSampleFmt;
+    SampleFmt           outSampleFmt;
+    int                 inChannels;
+    int                 outChannels;
+    int                 inSampleRate;
+    int                 outSampleRate;
+    unsigned int        bytesPerSample;
+    unsigned char       *auxBuff[1];
+    bool                needsConfig;
 
 };
 

@@ -32,13 +32,17 @@ extern "C" {
 class X264VideoFrame : public VideoFrame {
 
 	public:
-		void setNals(x264_nal_t **nals, int size);
+		X264VideoFrame();
+		~X264VideoFrame();
+		void setNals(x264_nal_t **nals, int size, int frameSize);
 		x264_nal_t** getNals() {return ppNals;};
-		int getSize() {return sizeNals;};
+		int getSize get() {return sizeNals;};
+		int getFrameLength() {return frameLength;};
 		
 	protected:
 		x264_nal_t **ppNals;
 		int sizeNals;
-};
+		int frameLength;
+}
 
 #endif

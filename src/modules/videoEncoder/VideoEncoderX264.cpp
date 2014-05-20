@@ -136,10 +136,9 @@ void VideoEncoderX264::encodeFrame(bool forceIntra, Frame *decodedFrame, Frame *
 	frameLength = x264_encoder_encode(encoder, ppNal, piNal, &picIn, &picOut);
 	if (frameLength < 1) {
 		printf ("Error: x264_encoder_encode\n");
-		return false;
 	}
 
-	x264Frame->setNals(ppNal, (*piNal), encodeSize);
+	x264Frame->setNals(ppNal, (*piNal), frameLength);
 
 	pts++;
 

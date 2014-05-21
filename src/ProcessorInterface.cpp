@@ -25,18 +25,33 @@
 
 //ProcessorInterface implementation
 
-void ProcessorInterface::connect(ProcessorInterface *A, ProcessorInterface *B)
+int ProcessorInterface::currentId = 0;
+
+void ProcessorInterface::connect(MultiReader *R, MultiWriter *W)
 {
-    if (A == NULL || B == NULL){
+    if (R == NULL || W == NULL){
         //TODO: error message
         return;
     }
-    if (A->isConnected() || B->isConnected()){
+    if (W->isConnectedById(R->getId())){
         //TODO: error message
         return;
     }
-    A->connectedTo = B;
-    B->connectedTo = A;
+    if (!R->exceptMultiI() && R->connectedTo.size() >= 1){
+        //TODO: error message
+        return;
+    }
+    if (!W->exceptMultiO() && W->connectedTo.size() >= 1){
+        //TODO: error message
+        return;
+    }
+    FrameQueue *queue = W->allocQueue();
+    std::pair<ProcessorInterface *, FrameQueue *> wConnection(R, queue);
+    std::pair<ProcessorInterface *, FrameQueue *> rConnection(W, queue);
+    W->connectedTo[R->getId()] = wConnection;
+    R->connectedTo[W->getId()] = rConnection;
+    W->newWriterConnection();
+    R->newReaderConnection();
 }
 
 void ProcessorInterface::disconnect(ProcessorInterface *A, ProcessorInterface *B)
@@ -45,39 +60,34 @@ void ProcessorInterface::disconnect(ProcessorInterface *A, ProcessorInterface *B
         //TODO: error message
         return;
     }
-    if (!A->isConnected(B) || !B->isConnected(A)){
+    if (!A->isConnectedById(B->getId())){
         //TODO: error message
         return;
     }
-    A->connectedTo = B->connectedTo = NULL;
-    //TODO: delete interfaces?
+    A->connectedTo.erase (A->connectedTo.find(A->getId()));
+    B->connectedTo.erase (B->connectedTo.find(B->getId()));
     //TODO: delete queue
 }
 
 ProcessorInterface::ProcessorInterface(ProcessorInterface *otherSide_): otherSide(otherSide_)
 {
-    connectedTo = NULL;
-    queue = NULL;
+    id = ProcessorInterface::currentId++;
 }
 
 bool ProcessorInterface::isConnected()
 {
-    return connectedTo != NULL;
+    return !connectedTo.empty();
 }
 
-bool ProcessorInterface::isConnected(ProcessorInterface *processor)
+bool ProcessorInterface::isConnectedById(int id_)
 {
-    return (connectedTo != NULL && connectedTo == processor);
-}
-
-ProcessorInterface* ProcessorInterface::getConnectedTo() const
-{
-    return connectedTo;
-}
-
-ProcessorInterface* ProcessorInterface::getOtherSide() const
-{
-    return otherSide;
+    ProcessorInterface *B;
+    if (connectedTo.find(id_) != connectedTo.end()){
+        if ((B = connectedTo.find(id_)->second.first) != NULL){
+            return B->connectedTo.find(id) != B->connectedTo.end();
+        }
+    }
+    return false;
 }
 
 void ProcessorInterface::setOtherSide(ProcessorInterface *otherSide_)
@@ -85,105 +95,122 @@ void ProcessorInterface::setOtherSide(ProcessorInterface *otherSide_)
     otherSide = otherSide_;
 }
 
-FrameQueue* ProcessorInterface::frameQueue() const
-{
-    return queue;
-}
+//MultiReader implementation
 
-//Reader implementation
-
-Reader::Reader(Writer *otherSide_) : ProcessorInterface(otherSide_)
+MultiReader::MultiReader(MultiWriter *otherSide_) : ProcessorInterface(otherSide_)
 {
 }
 
 
-void Reader::setQueue(FrameQueue *queue)
+void MultiReader::setQueueById(int id, FrameQueue *queue)
 {
-    this->queue = queue;
+    if (isConnectedById(id) && connectedTo[id].second == NULL){
+        connectedTo[id].second = queue;
+    }
 }
 
-//Writer implementation
 
-Writer::Writer(Reader *otherSide_) : ProcessorInterface(otherSide_)
+//SingleReader implementation
+
+SingleReader::SingleReader(SingleWriter *otherSide_) : MultiReader(otherSide_)
 {
 }
 
-bool Writer::isQueueConnected(){
-    if (queue == NULL){
+
+void SingleReader::setQueue(FrameQueue *queue)
+{
+    int id;
+    if (connectedTo.size() == 1){
+        id = connectedTo.begin()->first;
+        setQueueById(id, queue);
+    } else {
+        //TODO: error message
+    }
+}
+
+FrameQueue* SingleReader::frameQueue(){
+    if (connectedTo.size() == 1){
+        return connectedTo.begin()->second.second;
+    } else {
+        //TODO: error message
+        return NULL;
+    }
+}
+
+//MultiWriter implementation
+
+MultiWriter::MultiWriter(MultiReader *otherSide_) : ProcessorInterface(otherSide_)
+{
+}
+
+bool MultiWriter::isQueueConnectedById(int id){
+    ProcessorInterface *R;
+    if (!isConnectedById(id)){
         return false;
     }
-    if (connectedTo->frameQueue() == NULL){
+    if (connectedTo[id].second == NULL){
         return false;
     }
-    if (queue != connectedTo->frameQueue()){
+    R = connectedTo[id].first;
+    if (connectedTo[id].second != R->getConnectedTo()[getId()].second){
         return false;
     }
     return true;
 }
 
-bool Writer::connectQueue(){
-    if (queue != NULL || connectedTo->frameQueue() != NULL) {
+bool MultiWriter::connectQueueById(int id){
+    if (!isConnectedById(id)){
         //TODO: error message
         return false;
     }
-    queue = allocQueue();
+    FrameQueue *queue = allocQueue();
     if (queue == NULL){
         //TODO: error message
         return false;
     }
-    if (Reader *connectedTo_ = dynamic_cast<Reader *> (connectedTo)) {
-        connectedTo_->setQueue(queue);
+    if (MultiReader *R = dynamic_cast<MultiReader *> (connectedTo[id].first)) {
+        connectedTo[id].second = queue;
+        R->setQueueById(getId(), queue);
         return true;
     } else {
         return false;
     }
 }
 
-//ReaderWriter implementation
+//SingleWriter implementation
 
-ReaderWriter::ReaderWriter() : Reader(NULL), Writer(NULL)
+SingleWriter::SingleWriter(SingleReader *otherSide_) : MultiWriter(otherSide_)
 {
-    Reader *reader = this;
-    Writer *writer = this;
-    reader->setOtherSide(writer);
-    writer->setOtherSide(reader);
 }
 
-bool ReaderWriter::demandFrame()
-{
-    Reader *reader = this;
-    Writer *writer = this;
-    if ((org = reader->frameQueue()->getFront()) == NULL){
-        //TODO: log error message
+bool SingleWriter::isQueueConnected(){
+    int id;
+    if (connectedTo.size() == 1){
+        id = connectedTo.begin()->first;
+        return isQueueConnectedById(id);
+    } else {
+        //TODO: error message
         return false;
     }
-    if (!isQueueConnected() && !connectQueue()){
-        //TODO: log error message
+}
+
+bool SingleWriter::connectQueue(){
+    int id;
+    if (connectedTo.size() == 1){
+        id = connectedTo.begin()->first;
+        return connectQueueById(id);
+    } else {
+        //TODO: error message
         return false;
     }
-    dst = writer->frameQueue()->forceGetRear();
-    return true;
 }
 
-void ReaderWriter::supplyFrame(bool newFrame)
-{
-    Reader *reader = this;
-    Writer *writer = this;
-    reader->frameQueue()->removeFrame();
-    if (newFrame){
-        writer->frameQueue()->addFrame();
+FrameQueue* SingleWriter::frameQueue(){
+    if (connectedTo.size() == 1){
+        return connectedTo.begin()->second.second;
+    } else {
+        //TODO: error message
+        return NULL;
     }
 }
-
-bool ReaderWriter::processFrame()
-{
-    bool newFrame;
-    if (!demandFrame()){
-        return false;
-    }
-    newFrame = doProcessFrame(org, dst);
-    supplyFrame(newFrame);
-    return true;
-}
-
 

@@ -25,6 +25,8 @@
 #define _PROCESSOR_INTERFACE_HH
 
 #include <atomic>
+#include <utility> 
+#include <map>
 
 #ifndef _FRAME_HH
 #include "Frame.hh"
@@ -34,8 +36,11 @@
 #include "FrameQueue.hh"
 #endif
 
-class Reader;
-class Writer;
+class MultiReader;
+class MultiWriter;
+
+class SingleReader;
+class SingleWriter;
 
 class ProcessorInterface {
     
@@ -44,59 +49,94 @@ protected:
     virtual ~ProcessorInterface() {};
    
 public:
-    static void connect(ProcessorInterface *, ProcessorInterface *);
+    static void connect(MultiReader *R, MultiWriter *W);
     static void disconnect(ProcessorInterface *, ProcessorInterface *);
     bool isConnected();
-    bool isConnected(ProcessorInterface *);
-    ProcessorInterface *getConnectedTo() const;
-    ProcessorInterface *getOtherSide() const;
+    bool isConnectedById(int id);
+    int getId() {return id;};
+    std::map<int, std::pair<ProcessorInterface*, FrameQueue*>> getConnectedTo() {return connectedTo;};
+    
+    ProcessorInterface *getOtherSide() {return otherSide;};
+    
     void setOtherSide(ProcessorInterface *otherSide_);
-    FrameQueue *frameQueue() const;
+    
+    static int currentId;
     
 protected:
-    ProcessorInterface *connectedTo;
     ProcessorInterface *otherSide;
-    FrameQueue *queue;
+    std::map<int, std::pair<ProcessorInterface*, FrameQueue*>> connectedTo;
+    
+private:
+    int id;
 };
 
-class Reader : public ProcessorInterface {
+class MultiReader : public ProcessorInterface {
+    
+public:
+    virtual bool exceptMultiI(){ return true;};
+    virtual void newReaderConnection() = 0;
     
 protected:
-    friend class Writer;
+    friend class MultiWriter;
+    
+    MultiReader(MultiWriter *otherSide_ = NULL);
+    void setQueueById(int id, FrameQueue *queue);
+    virtual bool demandFrames() = 0;
+};
+
+class SingleReader : public MultiReader {
+
+public:
+    bool exceptMultiI(){ return false;};
+    FrameQueue *frameQueue();
+    
+protected:
+    friend class SingleWriter;
     
     void setQueue(FrameQueue *queue);
-    Reader(Writer *otherSide_ = NULL);
+    SingleReader(SingleWriter *otherSide_ = NULL);
     virtual bool demandFrame() = 0;
-       
+    
+private:
+    bool demandFrames() {};
+    void newReaderConnection() {};
 };
 
-class Writer : public ProcessorInterface {
+class MultiWriter : public ProcessorInterface {
+    
+public:
+    virtual bool exceptMultiO(){ return true;};
+    virtual void newWriterConnection() = 0;
     
 protected:
-    Writer(Reader *otherSide_ = NULL);
+    friend class ProcessorInterface;
+    
+    MultiWriter(MultiReader *otherSide_ = NULL);
+    
+    bool isQueueConnectedById(int id);
+    virtual void supplyFrames(bool newFrame) = 0;
+    virtual FrameQueue* allocQueue() = 0;
+    bool connectQueueById(int id);
+};
+
+class SingleWriter : public MultiWriter {
+    
+public:
+    bool exceptMultiO(){ return false;};
+    FrameQueue *frameQueue();
+    
+protected:
+    SingleWriter(SingleReader *otherSide_ = NULL);
     
     bool isQueueConnected();
     virtual void supplyFrame(bool newFrame) = 0;
-    virtual FrameQueue* allocQueue() = 0;
-    bool connectQueue();    
-};
-
-class ReaderWriter : public Reader, public Writer {  
-
-public:
-    bool processFrame();
+    bool connectQueue();
     
-protected:
-    ReaderWriter();
-    
-    virtual bool doProcessFrame(Frame *org, Frame *dst) = 0;
-    virtual bool demandFrame();
-    virtual void supplyFrame(bool newFrame);
-    
-
 private:
-    //TODO these might have to be protected virtual
-    Frame *org, *dst;
+    void supplyFrames(bool newFrame){};
+    void newWriterConnection() {};
 };
+
+
 
 #endif

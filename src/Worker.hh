@@ -24,16 +24,15 @@
 #ifndef _WORKER_HH
 #define _WORKER_HH
 
+#include <atomic>
 #include <thread>
 
-#ifndef _PROCESSOR_INTERFACE_HH
-#include "ProcessorInterface.hh"
-#endif
+class Runnable;
 
 class Worker {
     
 public:
-    Worker(ReaderWriter *processor_);
+    Worker(Runnable *processor_, unsigned int maxFps = 0);
     
     bool start();
     bool isRunning();
@@ -41,14 +40,23 @@ public:
     void enable();
     void disable();
     bool isEnabled();
+    void setFps(int maxFps);
     
 private:
     void process();
     
-    ReaderWriter *processor;
+    Runnable *processor;
     std::thread thread;
     std::atomic<bool> run;
     std::atomic<bool> enabled;
+    //TODO: owuld be good to make it atomic, but not sure if it is lock-free
+    unsigned int frameTime; //microseconds
+};
+
+class Runnable {
+    
+public:
+    virtual bool processFrame() = 0;
 };
 
 #endif

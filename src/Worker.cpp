@@ -23,28 +23,57 @@
 
 #define ACTIVE 400
 #define IDLE 100
-#define TIMEOUT 400
+#define ACTIVE_TIMEOUT 500
 
 #include <chrono>
 #include "Worker.hh"
 
 
 
-Worker::Worker(ReaderWriter *processor_): processor(processor_), run(false), enabled(false)
+Worker::Worker(Runnable *processor_, unsigned int maxFps): processor(processor_), run(false), enabled(false)
 { 
+    if (maxFps != 0){
+        frameTime = 1/maxFps*1000000;
+    } else {
+        frameTime = 0;
+    }
 }
 
 void Worker::process()
 {
     int idleCount = 0;
+    int timeout;
+    int timeToSleep = 0;
+    std::chrono::microseconds enlapsedTime;
+    std::chrono::system_clock::time_point previousTime;
+
     std::chrono::microseconds active(ACTIVE);
     std::chrono::milliseconds idle(IDLE);
     
     while(run){
-        while(enabled && processor->processFrame()){
+        while (enabled && frameTime > 0){
+            previousTime = std::chrono::system_clock::now();
+            if (processor->processFrame()){
+                idleCount = 0;
+                enlapsedTime = std::chrono::duration_cast<std::chrono::microseconds>(
+                    std::chrono::system_clock::now() - previousTime);
+                if ((timeToSleep = frameTime - enlapsedTime.count()) <= 0){
+                    std::this_thread::sleep_for(
+                        std::chrono::microseconds(timeToSleep));
+                }
+            } else {
+                if (idleCount <= ACTIVE_TIMEOUT){
+                    idleCount++;
+                    std::this_thread::sleep_for(active);
+                } else {
+                    std::this_thread::sleep_for(idle);
+                }
+            }
+        }      
+        while (enabled && processor->processFrame()){
             idleCount = 0;
         }
-        if (idleCount == TIMEOUT){
+        if (idleCount <= ACTIVE_TIMEOUT){
             idleCount++;
             std::this_thread::sleep_for(active);
         } else {
@@ -87,4 +116,13 @@ void Worker::disable()
 bool Worker::isEnabled()
 {
     return enabled;
+}
+
+void Worker::setFps(int maxFps)
+{
+    if (maxFps != 0){
+        frameTime = 1/maxFps*1000000;
+    } else {
+        frameTime = 0;
+    }
 }

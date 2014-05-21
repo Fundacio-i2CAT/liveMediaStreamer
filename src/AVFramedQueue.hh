@@ -40,7 +40,6 @@ public:
     bool frameToRead();
 
 protected:
-    Frame *getOldie();
 
     Frame* frames[MAX_FRAMES];
     std::atomic<int> elements;

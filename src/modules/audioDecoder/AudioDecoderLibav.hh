@@ -33,12 +33,12 @@ extern "C" {
 }
 
 #include "../../AudioFrame.hh"
-#include "../../ProcessorInterface.hh"
+#include "../../FrameQueue.hh"
 
 #define DEFAULT_CHANNELS 2
 #define DEFAULT_SAMPLE_RATE 48000
 
-class AudioDecoderLibav : public ReaderWriter {
+class AudioDecoderLibav {
 
 public:
     AudioDecoderLibav();

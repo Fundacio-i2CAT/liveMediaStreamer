@@ -33,9 +33,9 @@ extern "C" {
 }
 
 #include "../../AudioFrame.hh"
-#include "../../ProcessorInterface.hh"
+#include "../../FrameQueue.hh"
 
-class AudioEncoderLibav : public ReaderWriter {
+class AudioEncoderLibav {
 
 public:
     AudioEncoderLibav();

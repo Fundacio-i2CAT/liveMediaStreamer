@@ -36,13 +36,13 @@ class X264VideoFrame : public VideoFrame {
 		~X264VideoFrame();
 		void setNals(x264_nal_t **nals, int size, int frameSize);
 		x264_nal_t** getNals() {return ppNals;};
-		int getSize get() {return sizeNals;};
+		int getSize() {return sizeNals;};
 		int getFrameLength() {return frameLength;};
 		
 	protected:
 		x264_nal_t **ppNals;
 		int sizeNals;
 		int frameLength;
-}
+};
 
 #endif

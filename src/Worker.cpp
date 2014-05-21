@@ -43,6 +43,7 @@ void Worker::process()
 {
     int idleCount = 0;
     int timeout;
+    int timeToSleep = 0;
     std::chrono::microseconds enlapsedTime;
     std::chrono::system_clock::time_point previousTime;
 
@@ -56,8 +57,10 @@ void Worker::process()
                 idleCount = 0;
                 enlapsedTime = std::chrono::duration_cast<std::chrono::microseconds>(
                     std::chrono::system_clock::now() - previousTime);
-                std::this_thread::sleep_for(
-                    std::chrono::microseconds(frameTime - enlapsedTime.count()));
+                if ((timeToSleep = frameTime - enlapsedTime.count()) <= 0){
+                    std::this_thread::sleep_for(
+                        std::chrono::microseconds(timeToSleep));
+                }
             } else {
                 if (idleCount <= ACTIVE_TIMEOUT){
                     idleCount++;
@@ -115,7 +118,8 @@ bool Worker::isEnabled()
     return enabled;
 }
 
-void Worker::setFps(int maxFps){
+void Worker::setFps(int maxFps)
+{
     if (maxFps != 0){
         frameTime = 1/maxFps*1000000;
     } else {

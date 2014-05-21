@@ -25,6 +25,8 @@
 
 //ProcessorInterface implementation
 
+int ProcessorInterface::currentId = 0;
+
 void ProcessorInterface::connect(MultiReader *R, MultiWriter *W)
 {
     if (R == NULL || W == NULL){
@@ -48,6 +50,8 @@ void ProcessorInterface::connect(MultiReader *R, MultiWriter *W)
     std::pair<ProcessorInterface *, FrameQueue *> rConnection(W, queue);
     W->connectedTo[R->getId()] = wConnection;
     R->connectedTo[W->getId()] = rConnection;
+    W->newWriterConnection();
+    R->newReaderConnection();
 }
 
 void ProcessorInterface::disconnect(ProcessorInterface *A, ProcessorInterface *B)
@@ -65,8 +69,9 @@ void ProcessorInterface::disconnect(ProcessorInterface *A, ProcessorInterface *B
     //TODO: delete queue
 }
 
-ProcessorInterface::ProcessorInterface(ProcessorInterface *otherSide_): otherSide(otherSide_), id(currentId++)
+ProcessorInterface::ProcessorInterface(ProcessorInterface *otherSide_): otherSide(otherSide_)
 {
+    id = ProcessorInterface::currentId++;
 }
 
 bool ProcessorInterface::isConnected()

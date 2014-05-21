@@ -60,12 +60,13 @@ public:
     
     void setOtherSide(ProcessorInterface *otherSide_);
     
+    static int currentId;
+    
 protected:
     ProcessorInterface *otherSide;
     std::map<int, std::pair<ProcessorInterface*, FrameQueue*>> connectedTo;
     
 private:
-    static int currentId;
     int id;
 };
 
@@ -73,6 +74,7 @@ class MultiReader : public ProcessorInterface {
     
 public:
     virtual bool exceptMultiI(){ return true;};
+    virtual void newReaderConnection() = 0;
     
 protected:
     friend class MultiWriter;
@@ -97,12 +99,14 @@ protected:
     
 private:
     bool demandFrames() {};
+    void newReaderConnection() {};
 };
 
 class MultiWriter : public ProcessorInterface {
     
 public:
     virtual bool exceptMultiO(){ return true;};
+    virtual void newWriterConnection() = 0;
     
 protected:
     friend class ProcessorInterface;
@@ -130,6 +134,7 @@ protected:
     
 private:
     void supplyFrames(bool newFrame){};
+    void newWriterConnection() {};
 };
 
 

@@ -23,6 +23,7 @@
  */
 
 #include <map>
+#include <vector>
 
 #ifndef _FRAME_QUEUE_HH
 #include "FrameQueue.hh"
@@ -36,158 +37,94 @@
 #include "Worker.hh"
 #endif
 
-class MultiIOFilter : Runnable {
+class BaseFilter : Runnable {
     
 public:
-    virtual void addReader();
-    virtual bool removeReader(int id);
-    virtual void addWriter();
-    virtual bool removeWriter(int id);
-    bool connect(int wId, Filter *R, rId);
-    bool disconnect(int wId, Filter *R, rId);
-    Reader* getReader(id) {return readers[id];};
+    bool connect(int wId, BaseFilter *R, int rId);
+    bool disconnect(int wId, BaseFilter *R, int rId);
+    std::vector<int> getAvailableReaders();
+    std::vector<int> getAvailableWriters();
     
 protected:
-    MultiIOFilter(int readersNum = 0, int writersNum = 0);
+    BaseFilter(int readersNum, int writersNum, bool force_ = false);
+    //TODO: desctructor
+    Reader* getReader(int id);
     
     virtual FrameQueue *allocQueue() = 0;
-    virtual bool doProcessFrame(std::map<int, Frame *> orgFrames, std::map<int, Frame *> dstFrames) = 0;
-    
-private:
-    bool processFrame();
+    virtual bool processFrame() = 0;
+
     bool demandOriginFrames();
     bool demandDestinationFrames();
     void addFrames();
     void removeFrames();
+    
+protected:
+    std::map<int, Reader*> readers;
+    std::map<int, Writer*> writers;
+    std::map<int, Frame*> oFrames;
+    std::map<int, Frame*> dFrames;
       
 private:
     int rwNextId;
+    bool force;
     
     std::map<int, bool> rUpdates;
-    
-    std::map<int, Reader*> readers;
-    std::map<int, Reader*> writers;
-    std::map<int, Frames*> oFrames;
-    std::map<int, Frames*> dFrames;
 };
 
-MultiIOFilter::MultiIOFilter(int readersNum, int writersNum)
-{
-    rwNextId = 0;
-    for(int i = 0; i < readersNum; i++, ++rwNextId){
-        readers[rwNextId] = new Reader();
-        rUpdates[rwNextId] = false;
-        oFrames[rwNextId] = NULL;
-    }
-    for(int i = 0; i < writersNum; i++, ++rwNextId){
-        writers[rwNextId] = new Writer();
-        dFrames[rwNextId] = NULL;
-    }
-}
+class OneToOneFilter : public BaseFilter {
+    
+protected:
+    OneToOneFilter(bool force_ = false);
+    //TODO: desctructor
+    virtual bool doProcessFrame(Frame *org, Frame *dst) = 0;
+    
+private:
+    bool processFrame();
+    using BaseFilter::demandOriginFrames;
+    using BaseFilter::demandDestinationFrames;
+    using BaseFilter::addFrames;
+    using BaseFilter::removeFrames;
+    using BaseFilter::readers;
+    using BaseFilter::writers;
+    using BaseFilter::oFrames;
+    using BaseFilter::dFrames;
+};
 
-void MultiIOFilter::addReader(){
-    ++rwNextId;
-    readers[rwNextId] = new Reader();
-    rUpdates[rwNextId] = false;
-    oFrames[rwNextId] = NULL;
-}
+class OneToManyFilter : public BaseFilter {
+    
+protected:
+    OneToManyFilter(int writersNum, bool force_ = false);
+    //TODO: desctructor
+    virtual bool doProcessFrame(Frame *org, std::map<int, Frame *> dstFrames) = 0;
+    
+private:
+    bool processFrame();
+    using BaseFilter::demandOriginFrames;
+    using BaseFilter::demandDestinationFrames;
+    using BaseFilter::addFrames;
+    using BaseFilter::removeFrames;
+    using BaseFilter::readers;
+    using BaseFilter::writers;
+    using BaseFilter::oFrames;
+    using BaseFilter::dFrames;
+};
 
-bool MultiIOFilter::removeReader(int id){
-    if (readers.find(id) != readers.end() && !readers[id].isConnected()){
-        readers.erease(id);
-        rUpdates.erease(id);
-        oFrames.erease(id);
-        return true;
-    } 
-    return false;
-}
-
-void MultiIOFilter::addWriter(){
-    ++rwNextId;
-    writers[rwNextId] = new Writer();
-    dFrames[rwNextId] = NULL;
-}
-
-bool MultiIOFilter::removeWriter(int id){
-    if (writers.find(id) != writers.end() && !writers[id].isConnected()){
-        writers.erease(id);
-        dFrames.erease(id);
-        return true;
-    } 
-    return false;
-}
-
-bool MultiIOFilter::processFrame()
-{
-    bool newData
-    if (!demandOriginFrames() || !demandDestinationFrames()){
-        return false;
-    }
-    if (doProcessFrame(orgFrames, dstFrames)){
-        addFrames();
-    }
-    removeFrames();
-    return true;
-}
-
-bool MultiIOFilter::demandOriginFrames()
-{
-    for (auto it : readers){
-        oFrames[it.first] = it.second->getFrame(true);
-        if (oFrames[it.first] == NULL){
-            rUpdates[it.first] = false; 
-        } else {
-            rUpdates[it.first] = true;
-        }
-    }
-}
-
-bool MultiIOFilter::demandDestinationFrames()
-{
-    for (auto it : writers){
-        dFrames[it.first] = it.second->getFrame(true);
-    }
-}
-
-void MultiIOFilter::addFrames()
-{
-    for (auto it : writers){
-        it.second->addFrame();
-    }
-}
-
-void MultiIOFilter::removeFrames()
-{
-    for (auto it : readers){
-        if (rUpdates[it.first]){
-            it.second->removeFrame();
-        }
-    }
-}
-
-bool MultiIOFilter::connect(int wId, Filter *R, int rId)
-{
-    if (writers[wId].isConnected()){
-        return false;
-    }
-    Reader *r = R->getReader(rId);
-    if (r->isConnected()){
-        return false;
-    }
-    FrameQueue *queue = allocQueue();
-    writers[id]->setQueue(queue);
-    return writers[id]->connect(r);
-}
-
-bool MultiIOFilter::disconnect(int wId, Filter *R, int rId)
-{
-    if (! writers[wId].isConnected()){
-        return false;
-    }
-    Reader *r = R->getReader(rId);
-    if (! r->isConnected()){
-        return false;
-    }
-    return writers[id]->disconnect(r);
-}
+class ManyToOneFilter : public BaseFilter {
+    
+protected:
+    ManyToOneFilter(int readersNum, bool force_ = false);
+    //TODO: desctructor
+    virtual bool doProcessFrame(std::map<int, Frame *> dstFrames, Frame *dst) = 0;
+    
+private:
+    bool processFrame();
+    using BaseFilter::demandOriginFrames;
+    using BaseFilter::demandDestinationFrames;
+    using BaseFilter::addFrames;
+    using BaseFilter::removeFrames;
+    using BaseFilter::readers;
+    using BaseFilter::writers;
+    using BaseFilter::oFrames;
+    using BaseFilter::dFrames;
+};
 

@@ -21,7 +21,7 @@
 #endif
 
 #ifndef _INTERLEAVED_VIDEO_FRAME_HH
-#include "../src/InterleavedVideoFrame.hh"
+#include "../src/VideoFrame.hh"
 #endif
 
 #include <fstream>
@@ -60,7 +60,7 @@ int main(int argc, char** argv)
     SourceManager *mngr = SourceManager::getInstance();
     FrameQueue* queue;
     Frame* codedFrame;
-    Frame* rawFrame = new InterleavedVideoFrame(DEFAULT_WIDTH, DEFAULT_HEIGHT, RGB24);
+    Frame* rawFrame = InterleavedVideoFrame::createNew(DEFAULT_WIDTH, DEFAULT_HEIGHT, RGB24);
     VideoDecoderLibav* decoder = new VideoDecoderLibav();
     std::ofstream rawFrames;
     

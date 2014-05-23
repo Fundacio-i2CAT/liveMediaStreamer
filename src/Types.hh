@@ -23,7 +23,6 @@
 #ifndef _TYPES_HH
 #define _TYPES_HH
 
-#define MAX_CHANNELS 4
 #define DEFAULT_HEIGHT 1080
 #define DEFAULT_WIDTH 1920
 #define DEFAULT_BYTES_PER_PIXEL 3

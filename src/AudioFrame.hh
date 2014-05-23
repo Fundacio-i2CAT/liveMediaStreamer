@@ -24,6 +24,13 @@
 #define _AUDIOFRAME_HH
 
 #include "Frame.hh"
+#include <vector>
+
+#define DEFAULT_CHANNELS 2
+#define MAX_CHANNELS 2
+#define DEFAULT_SAMPLE_RATE 48000
+#define AUDIO_FRAME_TIME 100 //ms
+
 
 class AudioFrame : public Frame {
     
@@ -44,6 +51,9 @@ class AudioFrame : public Frame {
         unsigned int getSamples() {return samples;};
         unsigned int getMaxSamples() {return maxSamples;};
         unsigned int getBytesPerSample() {return bytesPerSample;};
+        virtual int getChannelFloatSamples(std::vector<float> &samplesVec, int channel) = 0;
+        virtual void fillBufferWithFloatSamples(std::vector<float> samples, int channel) = 0;
+        static int getMaxSamples(int sampleRate);
               
     protected:
         unsigned int channels, sampleRate, samples, maxSamples, bytesPerSample; 
@@ -58,7 +68,9 @@ class InterleavedAudioFrame : public AudioFrame {
         unsigned int getLength() {return bufferLen;};
         unsigned int getMaxLength() {return bufferMaxLen;};
         bool isPlanar() {return false;};
-        void setLength(unsigned int length) {bufferLen = length;}; 
+        void setLength(unsigned int length) {bufferLen = length;};
+        int getChannelFloatSamples(std::vector<float> &samplesVec, int channel) {}; 
+        void fillBufferWithFloatSamples(std::vector<float> samples, int channel) {}; 
 
     private:
         InterleavedAudioFrame(unsigned int ch, unsigned int sRate, unsigned int maxSamples, ACodecType codec, SampleFmt sFmt);
@@ -74,7 +86,9 @@ class PlanarAudioFrame : public AudioFrame {
         unsigned int getLength() {return bufferLen;};
         unsigned int getMaxLength() {return bufferMaxLen;};
         bool isPlanar() {return true;};
-        void setLength(unsigned int length) {bufferLen = length;}; 
+        void setLength(unsigned int length) {bufferLen = length;};
+        int getChannelFloatSamples(std::vector<float> &samplesVec, int channel); 
+        void fillBufferWithFloatSamples(std::vector<float> samples, int channel); 
 
     private:
         PlanarAudioFrame(unsigned int ch, unsigned int sRate, unsigned int maxSamples, ACodecType codec, SampleFmt sFmt);

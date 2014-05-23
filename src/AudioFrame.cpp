@@ -22,6 +22,12 @@
 
 #include "AudioFrame.hh"
 #include <iostream>
+#include <assert.h>
+
+int AudioFrame::getMaxSamples(int sampleRate)
+{
+    return (AUDIO_FRAME_TIME*sampleRate)/1000;
+}
 
 AudioFrame::AudioFrame(unsigned int ch, unsigned int sRate, unsigned int maxSamples, ACodecType codec, SampleFmt sFmt)
 {
@@ -86,7 +92,7 @@ InterleavedAudioFrame::InterleavedAudioFrame(unsigned int ch, unsigned int sRate
         break;
     }
 
-    bufferMaxLen = bytesPerSample * maxSamples * channels;
+    bufferMaxLen = bytesPerSample * maxSamples * MAX_CHANNELS;
     
     frameBuff = new unsigned char [bufferMaxLen]();
 }
@@ -127,9 +133,48 @@ PlanarAudioFrame::PlanarAudioFrame(unsigned int ch, unsigned int sRate, unsigned
 
     bufferMaxLen = bytesPerSample * maxSamples;
 
-    for (int i=0; i<channels; i++) {
+    for (int i=0; i<MAX_CHANNELS; i++) {
         frameBuff[i] = new unsigned char [bufferMaxLen]();
     }
 }
 
-      
+int PlanarAudioFrame::getChannelFloatSamples(std::vector<float> &samplesVec, int channel) 
+{
+    assert (sampleFmt == S16P);
+
+    if (samplesVec.size() != samples) {
+        samplesVec.resize(samples);
+    }
+
+    short value = 0;
+    float fValue = 0;
+    int samplesIndex = 0;
+
+    unsigned char* b = frameBuff[channel];
+
+    for (int i=0; i<samples*bytesPerSample; i+=bytesPerSample) {
+        value = (short)(b[i] | b[i+1] << 8);
+        fValue = value / 32768.0f;
+        samplesVec[samplesIndex] = fValue;
+        samplesIndex++;
+    }
+
+    return samples;
+}
+
+void PlanarAudioFrame::fillBufferWithFloatSamples(std::vector<float> samplesVec, int channel)
+{
+    assert (sampleFmt == S16P);
+
+    short value = 0;
+    int samplesIndex = 0;
+
+    unsigned char* b = frameBuff[channel];
+
+    for (int i=0; i<samples*bytesPerSample; i+=bytesPerSample) {
+        value = samplesVec[samplesIndex] * 32768.0;
+        b[i] = value & 0xFF; 
+        b[i+1] = (value >> 8) & 0xFF;
+        samplesIndex++;
+    }
+} 

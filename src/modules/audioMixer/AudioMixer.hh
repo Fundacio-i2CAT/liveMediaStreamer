@@ -24,12 +24,31 @@
 #define _AUDIO_MIXER_HH
 
 #include "../../Frame.hh"
+#include "../../Filter.hh"
 
-class AudioMixer {
+class AudioMixer : public ManyToOneFilter {
     
     public:
-        bool mix(Frame* input1, Frame* input2, Frame* output);
-        bool mixChannel(unsigned char* b1, unsigned char* b2, unsigned char* bo, unsigned int samples);
+        AudioMixer(int inputChannels);
+        AudioMixer(int inputChannels, int frameChannels, int sampleRate);
+        FrameQueue *allocQueue();
+        bool doProcessFrame(std::map<int, Frame*> orgFrames, Frame *dst);
+
+    private:
+        void mixNonEmptyFrames(std::map<int, Frame*> orgFrames, std::vector<int> filledFramesIds, Frame *dst, int totalFrames); 
+        void applyMixAlgorithm(std::vector<float> &fSamples, int frameNumber);
+        void applyGainToChannel(std::vector<float> &fSamples, float gain);
+        void sumValues(std::vector<float> fSamples, std::vector<float> &mixedSamples); 
+        
+        int frameChannels;
+        int sampleRate;
+        SampleFmt sampleFormat;
+        std::map<int,float> gains;
+        float masterGain;
+
+        //Vectors as attributes in order to improve memory management
+        std::vector<float> samples;
+        std::vector<float> mixedSamples;
 };
 
 

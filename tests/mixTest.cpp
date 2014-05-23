@@ -77,10 +77,9 @@ void saveBuffer(struct buffer *b)
 
 void readingRoutine(struct buffer* b, AudioCircularBuffer* cb1,  AudioCircularBuffer* cb2, AudioEncoderLibav* enc)
 {
-    Frame *fr1;
-    Frame *fr2;
-
-    AudioMixer *mixer = new AudioMixer();
+    std::map<int,Frame*> mapFrame;
+    
+    AudioMixer *mixer = new AudioMixer(4);
 
     InterleavedAudioFrame* codedFrame = InterleavedAudioFrame::createNew (
                                                     OUT_CHANNELS, 
@@ -102,15 +101,16 @@ void readingRoutine(struct buffer* b, AudioCircularBuffer* cb1,  AudioCircularBu
     cb2->setOutputFrameSamples(DEFAULT_FRAME_SAMPLES);
 
     while(!should_stop) {
-        fr1 = cb1->getFront();
-        fr2 = cb2->getFront();
+        mapFrame[0] = cb1->getFront();
+        mapFrame[1] = cb2->getFront();
 
-        if(!fr1 || !fr2) {
+        if(!mapFrame[0] || !mapFrame[1]) {
             usleep(500);
             continue;
         }
 
-        mixer->mix(fr1, fr2, mixedFrame);
+        //mixer->mix(mapFrame[1], mapFrame[2], mixedFrame);
+        mixer->doProcessFrame(mapFrame, mixedFrame);
 
         cb1->removeFrame();
         cb2->removeFrame();

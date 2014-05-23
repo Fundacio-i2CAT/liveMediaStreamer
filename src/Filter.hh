@@ -114,7 +114,7 @@ class ManyToOneFilter : public BaseFilter {
 protected:
     ManyToOneFilter(int readersNum, bool force_ = false);
     //TODO: desctructor
-    virtual bool doProcessFrame(std::map<int, Frame *> dstFrames, Frame *dst) = 0;
+    virtual bool doProcessFrame(std::map<int, Frame *> orgFrames, Frame *dst) = 0;
     
 private:
     bool processFrame();

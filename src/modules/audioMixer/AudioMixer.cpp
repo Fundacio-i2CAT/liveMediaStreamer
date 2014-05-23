@@ -23,62 +23,109 @@
 #define BPS 2
  
 #include "AudioMixer.hh"
+#include "../../AVFramedQueue.hh"
 #include "../../AudioFrame.hh"
 #include <iostream>
+#include <utility> 
 
-bool AudioMixer::mix(Frame* input1, Frame* input2, Frame* output)
-{
-    AudioFrame* aInput1 = dynamic_cast<AudioFrame*>(input1);
-    AudioFrame* aOutput = dynamic_cast<AudioFrame*>(output);
+AudioMixer::AudioMixer(int inputChannels) : ManyToOneFilter(inputChannels) {
+    frameChannels = DEFAULT_CHANNELS;
+    sampleRate = DEFAULT_SAMPLE_RATE;
+    SampleFmt sampleFormat = S16P;
 
-    int samples = aInput1->getSamples();
+    samples.resize(AudioFrame::getMaxSamples(sampleRate));
+    mixedSamples.resize(AudioFrame::getMaxSamples(sampleRate));
 
-    for (int c=0; c<aInput1->getChannels(); c++) {
-        mixChannel(aInput1->getPlanarDataBuf()[c], input2->getPlanarDataBuf()[c], aOutput->getPlanarDataBuf()[c], aInput1->getSamples());
+    for (auto id : getAvailableReaders()) {
+        gains.insert(std::pair<int,float>(id, 0.6));
     }
 
-    aOutput->setSamples(aInput1->getSamples());
-    aOutput->setLength(aInput1->getLength());
+    masterGain = 1.0;
 }
 
-bool AudioMixer::mixChannel(unsigned char* b1, unsigned char* b2, unsigned char* bo, unsigned int samples)
-{
-    short b1Value = 0;
-    float fB1Value = 0;
-    short b2Value = 0;
-    float fB2Value = 0;
-    short boValue = 0;
-    float fBoValue = 0;
-    
-    for (unsigned int i=0; i<samples*BPS; i+=BPS) {
-        b1Value = (short)(b1[i] | b1[i+1] << 8);
-        b2Value = (short)(b2[i] | b2[i+1] << 8);
+AudioMixer::AudioMixer(int inputChannels, int frameChannels, int sampleRate) : ManyToOneFilter(inputChannels) {
+    this->frameChannels = frameChannels;
+    this->sampleRate = sampleRate;
+    SampleFmt sampleFormat = S16P;
 
-        fB1Value = b1Value / (32768.0f);
-        fB2Value = b2Value / (32768.0f);
+    samples.resize(AudioFrame::getMaxSamples(sampleRate));
+    mixedSamples.resize(AudioFrame::getMaxSamples(sampleRate));
 
-    //    boValue = b1Value + b2Value - (b1Value * b2Value)/65536;
-        fBoValue = fB1Value*0.5 + fB2Value*0.5;
-
-        boValue = fBoValue * 32768.0;
-
-        //printf("%d\t %f\t %f\t %d\n\n", b1Value, fB1Value, fBoValue, boValue);
-
-      //  printf("fBoValue: %f\n", fBoValue);
-      //  printf("fboValue*0.50: %f\n\n", fBoValue*0.5);
-
-        bo[i] = boValue & 0xFF; 
-        bo[i+1] = (boValue >> 8) & 0xFF;
-    //    bo[i] = b1[i];
-    //    bo[i+1] = b1[i+1];
-
-       // printf("\nbo: %d, %x %x", boValue, bo[i], bo[i+1]);
-       //printf(" b1: %d", b1Value);
-       // printf("\nb2: %d", b2Value);
-       // printf("\nInp: %x %x %x\n\n", b1[i], b1[i+1], b1[i+2]);
+    for (auto id : getAvailableReaders()) {
+        gains.insert(std::pair<int,float>(id, 1.0));
     }
-    //printf("\n\n");
+
+    masterGain = 1.0;
 }
 
+FrameQueue *AudioMixer::allocQueue() {
+    return AudioFrameQueue::createNew(PCM, 0, sampleRate, frameChannels, sampleFormat);
+}
 
+bool AudioMixer::doProcessFrame(std::map<int, Frame*> orgFrames, Frame *dst) {
+    std::vector<int> filledFramesIds;
 
+    for (auto frame : orgFrames) {
+        if (frame.second) {
+            filledFramesIds.push_back(frame.first);
+        }
+    }
+
+    if (filledFramesIds.empty()) {
+        return false;
+    }
+
+    mixNonEmptyFrames(orgFrames, filledFramesIds, dst, (int)orgFrames.size());
+
+    return true;
+}
+
+void AudioMixer::mixNonEmptyFrames(std::map<int, Frame*> orgFrames, std::vector<int> filledFramesIds, Frame *dst, int totalFrames) 
+{
+    int nOfSamples = 0;
+
+    for (int ch = 0; ch < frameChannels; ch++) {
+        for (auto id : filledFramesIds) {
+            nOfSamples = dynamic_cast<AudioFrame*>(orgFrames[id])->getChannelFloatSamples(samples, ch);
+
+            if (mixedSamples.size() != nOfSamples) {
+                mixedSamples.resize(nOfSamples);
+            }
+
+            applyGainToChannel(samples, gains[id]);
+            sumValues(samples, mixedSamples);
+        }
+
+        applyMixAlgorithm(mixedSamples, totalFrames);
+        applyGainToChannel(mixedSamples, masterGain);
+        AudioFrame *aDst = dynamic_cast<AudioFrame*>(dst);
+        aDst->setSamples(nOfSamples);
+        aDst->setLength(nOfSamples*BPS);
+        aDst->fillBufferWithFloatSamples(mixedSamples, ch);
+
+        std::fill(mixedSamples.begin(), mixedSamples.end(), 0);
+    }
+}
+
+void AudioMixer::applyMixAlgorithm(std::vector<float> &fSamples, int frameNumber)
+{
+    for (auto sample : fSamples) {
+        sample *= (1.0/frameNumber);
+    }
+}
+
+void AudioMixer::applyGainToChannel(std::vector<float> &fSamples, float gain) 
+{
+    for (float& sample : fSamples) {
+        sample *= gain;
+    }
+}
+
+void AudioMixer::sumValues(std::vector<float> fSamples, std::vector<float> &mixedSamples) 
+{
+    int i=0;
+    for (float& mixedSample : mixedSamples) {
+        mixedSample += fSamples[i];
+        i++;
+    }
+}

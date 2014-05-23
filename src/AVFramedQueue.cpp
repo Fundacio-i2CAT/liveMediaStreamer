@@ -170,7 +170,7 @@ bool AudioFrameQueue::config()
             max = FRAMES_OPUS;
             sampleFormat = S16;
             for (int i=0; i<max; i++) {
-                frames[i] = InterleavedAudioFrame::createNew(channels, sampleRate, getMaxSamples(sampleRate), codec, sampleFormat);
+                frames[i] = InterleavedAudioFrame::createNew(channels, sampleRate, AudioFrame::getMaxSamples(sampleRate), codec, sampleFormat);
             }
             break;
         case PCMU:
@@ -178,11 +178,11 @@ bool AudioFrameQueue::config()
             max = FRAMES_AUDIO_RAW;
             if (sampleFormat == U8 || sampleFormat == S16 || sampleFormat == FLT) {
                 for (int i=0; i<max; i++) {
-                    frames[i] = InterleavedAudioFrame::createNew(channels, sampleRate, getMaxSamples(sampleRate), codec, sampleFormat);
+                    frames[i] = InterleavedAudioFrame::createNew(channels, sampleRate, AudioFrame::getMaxSamples(sampleRate), codec, sampleFormat);
                 }
             } else if (sampleFormat == U8P || sampleFormat == S16P || sampleFormat == FLTP) {
                 for (int i=0; i<max; i++) {
-                    frames[i] = PlanarAudioFrame::createNew(channels, sampleRate, getMaxSamples(sampleRate), codec, sampleFormat);
+                    frames[i] = PlanarAudioFrame::createNew(channels, sampleRate, AudioFrame::getMaxSamples(sampleRate), codec, sampleFormat);
                 }
             } else {
                 //TODO: error
@@ -193,7 +193,7 @@ bool AudioFrameQueue::config()
             sampleFormat = U8;
             max = FRAMES_AUDIO_RAW;
             for (int i=0; i<max; i++) {
-                frames[i] = InterleavedAudioFrame::createNew(channels, sampleRate, getMaxSamples(sampleRate), codec, sampleFormat);
+                frames[i] = InterleavedAudioFrame::createNew(channels, sampleRate, AudioFrame::getMaxSamples(sampleRate), codec, sampleFormat);
             }
             break;
         default:
@@ -201,9 +201,4 @@ bool AudioFrameQueue::config()
             break;
     }
 
-}
-
-unsigned getMaxSamples(unsigned sampleRate)
-{
-    return (AUDIO_FRAME_TIME*sampleRate)/1000;
 }

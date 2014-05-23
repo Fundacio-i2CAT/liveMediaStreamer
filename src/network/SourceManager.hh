@@ -31,20 +31,53 @@
 #include <BasicUsageEnvironment.hh>
 #endif
 
-#ifndef _FRAME_QUEUE_HH
-#include "../FrameQueue.hh"
+#ifndef _FILTER_HH
+#include "../Filter.hh"
+#endif
+
+#ifndef _HANDLERS_HH
+#include "Handlers.hh"
 #endif
 
 #include <thread>
 #include <map>
+#include <list>
 
 #define ID_LENGTH 4
+#define MAX_WRITERS 32
 
 class Session;
 
-class SourceManager {
+typedef struct connection {
+    unsigned char rtpPayloadFormat;
+    char const* codecName;
+    unsigned channels;
+    unsigned sampleRate;
+    unsigned short port;
+    char const* session;
+} connection_t;
+
+class StreamClientState {
+public:
+    StreamClientState(std::string id_);
+    virtual ~StreamClientState();
+    
+    std::string getId(){return id;};
+    
+public:
+    MediaSubsessionIterator* iter;
+    MediaSession* session;
+    MediaSubsession* subsession;
+    TaskToken streamTimerTask;
+    double duration;
+    
 private:
-    SourceManager();
+    std::string id;
+};
+
+class SourceManager : public HeadFilter {
+private:
+    SourceManager(int writersNum = MAX_WRITERS);
     
 public:
     static SourceManager* getInstance();
@@ -55,28 +88,29 @@ public:
     
     void closeManager();
 
-    bool addSession(std::string id, Session* session);
-    Session* getSession(std::string id);
-    std::map<unsigned short, FrameQueue*> getInputs() {return inputs; };
-    
-    bool addFrameQueue(unsigned short port, FrameQueue* queue);
-    //TODO: determine who has to call it, should it be public?
-    void removeFrameQueue(unsigned short port);
-    
-    bool initiateAll();
-        
+    bool addSession(Session* session);
     bool removeSession(std::string id);
     
-    UsageEnvironment* envir() { return env; };
+    Session* getSession(std::string id);
+    
+    bool initiateAll();
+    
+    UsageEnvironment* envir() {return env;};
     
 private:
+    friend bool handlers::addSubsessionSink(UsageEnvironment& env, MediaSubsession *subsession);
+    
+    void addConnection(int wId, MediaSubsession* subsession);
+    
     static void* startServer(void *args);
+    FrameQueue *allocQueue(int wId);
       
     std::thread mngrTh;
     
     static SourceManager* mngrInstance;
-    std::map<std::string, Session*> sessionList;
-    std::map<unsigned short, FrameQueue*> inputs;
+    std::list<Session*> sessionList;
+    std::map<int, connection_t> audioOutputs;
+    std::map<int, connection_t> videoOutputs;
     UsageEnvironment* env;
     uint8_t watch;
     
@@ -84,20 +118,20 @@ private:
 
 class Session {
 public:
-    static Session* createNewByURL(UsageEnvironment& env, std::string progName, std::string rtspURL);
-    static Session* createNew(UsageEnvironment& env, std::string sdp);
+    static Session* createNewByURL(UsageEnvironment& env, std::string progName, std::string rtspURL, std::string id);
+    static Session* createNew(UsageEnvironment& env, std::string sdp, std::string id);
     
     virtual ~Session();
+    
+    std::string getId() {return scs->getId();};
     
     bool initiateSession();
     
 protected:
-    Session();
+    Session(std::string id);
     
-public:
     RTSPClient* client;
-    MediaSession* session;
-    MediaSubsessionIterator* iter;
+    StreamClientState *scs;
 };
 
 #endif

@@ -25,23 +25,32 @@
 #include <iostream>
 #include <sys/time.h>
 
-QueueSink::QueueSink(UsageEnvironment& env, FrameQueue* queue)
+QueueSink::QueueSink(UsageEnvironment& env)
   : MediaSink(env) 
 {
-    this->queue = queue;   
+    frame = NULL;
+    dummyBuffer = new unsigned char[DUMMY_RECEIVE_BUFFER_SIZE];
 }
 
-QueueSink* QueueSink::createNew(UsageEnvironment& env, FrameQueue* queue) 
+QueueSink* QueueSink::createNew(UsageEnvironment& env) 
 {
-    return new QueueSink(env, queue);
+    return new QueueSink(env);
 }
 
 Boolean QueueSink::continuePlaying() 
 {
-    if (fSource == NULL) return False;
+    if (fSource == NULL) {
+        return False;
+    }
+    
+    if (!isConnected()){
+        fSource->getNextFrame(dummyBuffer, DUMMY_RECEIVE_BUFFER_SIZE,
+                              afterGettingFrame, this,
+                              onSourceClosure, this);
+        return True;
+    }
 
-    //Check if there is any free slot in the queue
-    updateFrame();
+    frame = getFrame(true);
 
     fSource->getNextFrame(frame->getDataBuf(), frame->getMaxLength(),
               afterGettingFrame, this,
@@ -61,18 +70,12 @@ void QueueSink::afterGettingFrame(void* clientData, unsigned frameSize,
 
 void QueueSink::afterGettingFrame(unsigned frameSize, struct timeval presentationTime) 
 {
-    frame->setLength(frameSize);
-    frame->setUpdatedTime();
-    frame->setPresentationTime(presentationTime);
-    queue->addFrame();
-
-    // Then try getting the next frame:
-    continuePlaying();
-}
-
-void QueueSink::updateFrame(){
-    while ((frame = queue->getRear()) == NULL) {
-        std::cerr << "Queue overflow!" << std::endl;
-        queue->flush();
+    if (frame != NULL){
+        frame->setLength(frameSize);
+        frame->setUpdatedTime();
+        frame->setPresentationTime(presentationTime);
+        addFrame();
     }
+
+    continuePlaying();
 }

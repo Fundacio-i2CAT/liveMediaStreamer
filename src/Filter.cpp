@@ -40,6 +40,11 @@ BaseFilter::BaseFilter(int readersNum, int writersNum, bool force_) : force(forc
     }
 }
 
+BaseFilter::BaseFilter(bool force_) : force(force_)
+{
+    rwNextId = 0;
+}
+
 Reader* BaseFilter::getReader(int id){
     if (readers.find(id) != readers.end()){
         return readers.find(id)->second;
@@ -114,7 +119,7 @@ bool BaseFilter::connect(int wId, BaseFilter *R, int rId)
     }
     dFrames[wId] = NULL;
     R->oFrames[rId] = NULL;
-    FrameQueue *queue = allocQueue();
+    FrameQueue *queue = allocQueue(wId);
     writers[wId]->setQueue(queue);
     return writers[wId]->connect(r);
 }
@@ -192,6 +197,15 @@ bool OneToManyFilter::processFrame()
         }
         removeFrames();
     return true;
+}
+
+HeadFilter::HeadFilter(int writersNum) : 
+BaseFilter()
+{
+    rwNextId = 0;
+    for(int i = 0; i < writersNum; i++, ++rwNextId){
+        writers[rwNextId] = NULL;
+    }
 }
 
 ManyToOneFilter::ManyToOneFilter(int readersNum, bool force_) : 

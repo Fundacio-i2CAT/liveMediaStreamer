@@ -28,21 +28,23 @@
 #include <liveMedia/liveMedia.hh>
 #endif
 
-#ifndef _FRAME_QUEUE_HH
-#include "../FrameQueue.hh"
-#endif
-
 #ifndef _FRAME_HH
 #include "../Frame.hh"
 #endif
 
-class QueueSink: public MediaSink {
+#ifndef _IO_INTERFACE_HH
+#include "../IOInterface.hh"
+#endif
+
+#define DUMMY_RECEIVE_BUFFER_SIZE 100000
+
+class QueueSink: public MediaSink, public Writer {
 
 public:
-    static QueueSink* createNew(UsageEnvironment& env, FrameQueue* queue);
+    static QueueSink* createNew(UsageEnvironment& env);
 
 protected:
-    QueueSink(UsageEnvironment& env, FrameQueue* queue);
+    QueueSink(UsageEnvironment& env);
 
 
 protected: 
@@ -55,10 +57,8 @@ protected:
                 unsigned durationInMicroseconds);
     virtual void afterGettingFrame(unsigned frameSize, struct timeval presentationTime);
 
-    void updateFrame();
-    
-    FrameQueue* queue;
     Frame *frame;
+    unsigned char *dummyBuffer;
 };
 
 #endif

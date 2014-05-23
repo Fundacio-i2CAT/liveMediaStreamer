@@ -22,6 +22,9 @@
  *            
  */
 
+#ifndef _FILTER_HH
+#define _FILTER_HH
+
 #include <map>
 #include <vector>
 
@@ -47,10 +50,11 @@ public:
     
 protected:
     BaseFilter(int readersNum, int writersNum, bool force_ = false);
+    BaseFilter(bool force_ = false);
     //TODO: desctructor
     Reader* getReader(int id);
     
-    virtual FrameQueue *allocQueue() = 0;
+    virtual FrameQueue *allocQueue(int wId) = 0;
     virtual bool processFrame() = 0;
 
     bool demandOriginFrames();
@@ -109,6 +113,25 @@ private:
     using BaseFilter::dFrames;
 };
 
+class HeadFilter : public BaseFilter {
+    
+protected:
+    HeadFilter(int writersNum);
+    //TODO: desctructor
+    
+private:
+    //TODO: error message
+    bool processFrame() {};
+    int rwNextId;
+    using BaseFilter::demandOriginFrames;
+    using BaseFilter::demandDestinationFrames;
+    using BaseFilter::addFrames;
+    using BaseFilter::removeFrames;
+    using BaseFilter::readers;
+    using BaseFilter::oFrames;
+    using BaseFilter::dFrames;
+};
+
 class ManyToOneFilter : public BaseFilter {
     
 protected:
@@ -128,3 +151,4 @@ private:
     using BaseFilter::dFrames;
 };
 
+#endif

@@ -3,16 +3,16 @@
 
 static unsigned char const start_code[4] = {0x00, 0x00, 0x00, 0x01};
 
-H264QueueSink::H264QueueSink(UsageEnvironment& env, FrameQueue* queue, char const* sPropParameterSetsStr)
-: QueueSink(env, queue),  fHaveWrittenFirstFrame(False)
+H264QueueSink::H264QueueSink(UsageEnvironment& env, char const* sPropParameterSetsStr)
+: QueueSink(env),  fHaveWrittenFirstFrame(False)
 {
     fSPropParameterSetsStr = sPropParameterSetsStr;
 }
 
-H264QueueSink* H264QueueSink::createNew(UsageEnvironment& env, FrameQueue* queue, 
+H264QueueSink* H264QueueSink::createNew(UsageEnvironment& env, 
                                         char const* sPropParameterSetsStr) 
 {
-    return new H264QueueSink(env, queue, sPropParameterSetsStr);
+    return new H264QueueSink(env, sPropParameterSetsStr);
 }
 
 Boolean H264QueueSink::continuePlaying() 
@@ -21,7 +21,14 @@ Boolean H264QueueSink::continuePlaying()
         return False;
     }
     
-    updateFrame();
+    if (!isConnected()){
+        fSource->getNextFrame(dummyBuffer, DUMMY_RECEIVE_BUFFER_SIZE,
+                              QueueSink::afterGettingFrame, this,
+                              QueueSink::onSourceClosure, this);
+        return True;
+    }
+    
+    frame = getFrame(true);
     
     if (!fHaveWrittenFirstFrame) {
         unsigned numSPropRecords;
@@ -33,8 +40,8 @@ Boolean H264QueueSink::continuePlaying()
                     sPropRecords[i].sPropLength);
             frame->setLength(sPropRecords[i].sPropLength + sizeof(start_code));
             frame->setUpdatedTime();
-            queue->addFrame();
-            updateFrame();
+            addFrame();
+            frame = getFrame(true);
         }
         delete[] sPropRecords;
         fHaveWrittenFirstFrame = True;
@@ -52,11 +59,12 @@ Boolean H264QueueSink::continuePlaying()
 
 void H264QueueSink::afterGettingFrame(unsigned frameSize, struct timeval presentationTime) 
 {
-    frame->setLength(frameSize + sizeof(start_code));
-    frame->setUpdatedTime();
-    frame->setPresentationTime(presentationTime);
-    queue->addFrame();
-    
+    if (frame != NULL){
+        frame->setLength(frameSize + sizeof(start_code));
+        frame->setUpdatedTime();
+        frame->setPresentationTime(presentationTime);
+        addFrame();
+    }
     // Then try getting the next frame:
     continuePlaying();
 }

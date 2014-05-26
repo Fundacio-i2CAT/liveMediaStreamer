@@ -23,7 +23,7 @@
 #define BPS 2
  
 #include "AudioMixer.hh"
-#include "../../AVFramedQueue.hh"
+#include "../../AudioCircularBuffer.hh"
 #include "../../AudioFrame.hh"
 #include <iostream>
 #include <utility> 
@@ -31,7 +31,7 @@
 AudioMixer::AudioMixer(int inputChannels) : ManyToOneFilter(inputChannels) {
     frameChannels = DEFAULT_CHANNELS;
     sampleRate = DEFAULT_SAMPLE_RATE;
-    SampleFmt sampleFormat = S16P;
+    sampleFormat = S16P;
 
     samples.resize(AudioFrame::getMaxSamples(sampleRate));
     mixedSamples.resize(AudioFrame::getMaxSamples(sampleRate));
@@ -46,7 +46,7 @@ AudioMixer::AudioMixer(int inputChannels) : ManyToOneFilter(inputChannels) {
 AudioMixer::AudioMixer(int inputChannels, int frameChannels, int sampleRate) : ManyToOneFilter(inputChannels) {
     this->frameChannels = frameChannels;
     this->sampleRate = sampleRate;
-    SampleFmt sampleFormat = S16P;
+    sampleFormat = S16P;
 
     samples.resize(AudioFrame::getMaxSamples(sampleRate));
     mixedSamples.resize(AudioFrame::getMaxSamples(sampleRate));
@@ -59,7 +59,7 @@ AudioMixer::AudioMixer(int inputChannels, int frameChannels, int sampleRate) : M
 }
 
 FrameQueue *AudioMixer::allocQueue() {
-    return AudioFrameQueue::createNew(PCM, 0, sampleRate, frameChannels, sampleFormat);
+    return AudioCircularBuffer::createNew(frameChannels, sampleRate, AudioFrame::getMaxSamples(sampleRate), sampleFormat);
 }
 
 bool AudioMixer::doProcessFrame(std::map<int, Frame*> orgFrames, Frame *dst) {

@@ -26,7 +26,12 @@
 
 int AudioFrame::getMaxSamples(int sampleRate)
 {
-    return (AUDIO_FRAME_TIME*sampleRate)/1000;
+    return (MAX_FRAME_TIME*sampleRate)/1000;
+}
+
+int AudioFrame::getDefaultSamples(int sampleRate)
+{
+    return (DEFAULT_FRAME_TIME*sampleRate)/1000;
 }
 
 AudioFrame::AudioFrame(unsigned int ch, unsigned int sRate, unsigned int maxSamples, ACodecType codec, SampleFmt sFmt)
@@ -93,7 +98,7 @@ InterleavedAudioFrame::InterleavedAudioFrame(unsigned int ch, unsigned int sRate
     }
 
     bufferMaxLen = bytesPerSample * maxSamples * MAX_CHANNELS;
-    
+
     frameBuff = new unsigned char [bufferMaxLen]();
 }
 

@@ -25,7 +25,7 @@
 #include <iostream>
 #include <stdio.h>
 
-AudioEncoderLibav::AudioEncoderLibav()
+AudioEncoderLibav::AudioEncoderLibav()  : OneToOneFilter()
 {
     avcodec_register_all();
 
@@ -40,6 +40,8 @@ AudioEncoderLibav::AudioEncoderLibav()
     sampleRate = 0;
     internalLibavSampleFormat = AV_SAMPLE_FMT_S16;
     internalSampleFmt = S16;
+    internalChannels = DEFAULT_CHANNELS;
+    internalSampleRate = DEFAULT_SAMPLE_RATE;
 
     needsConfig = true;
 }
@@ -120,7 +122,7 @@ bool AudioEncoderLibav::config()
     if (codecCtx->frame_size != 0) {
         libavFrame->nb_samples = codecCtx->frame_size;
     } else {
-        libavFrame->nb_samples = DEFAULT_FRAME_SAMPLES;
+        libavFrame->nb_samples = AudioFrame::getDefaultSamples(sampleRate);
     }
 
     libavFrame->format = codecCtx->sample_fmt;
@@ -185,6 +187,7 @@ bool AudioEncoderLibav::doProcessFrame(Frame *org, Frame *dst)
 
     ret = avcodec_encode_audio2(codecCtx, &pkt, libavFrame, &gotFrame);
 
+
     if (ret < 0) {
         fprintf(stderr, "Error encoding audio frame\n");
         return false;
@@ -192,6 +195,10 @@ bool AudioEncoderLibav::doProcessFrame(Frame *org, Frame *dst)
 
     if (gotFrame) {
         dst->setLength(pkt.size);
+        // for (int i=0; i<pkt.size; i++) {
+        //     printf("%x", pkt.data[i]);  
+        // }
+        // printf("\n\n");
         return true;
     }
 

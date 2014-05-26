@@ -29,7 +29,8 @@
 #define DEFAULT_CHANNELS 2
 #define MAX_CHANNELS 2
 #define DEFAULT_SAMPLE_RATE 48000
-#define AUDIO_FRAME_TIME 100 //ms
+#define MAX_FRAME_TIME 100 //ms
+#define DEFAULT_FRAME_TIME 20 //ms
 
 
 class AudioFrame : public Frame {
@@ -54,6 +55,7 @@ class AudioFrame : public Frame {
         virtual int getChannelFloatSamples(std::vector<float> &samplesVec, int channel) = 0;
         virtual void fillBufferWithFloatSamples(std::vector<float> samples, int channel) = 0;
         static int getMaxSamples(int sampleRate);
+        static int getDefaultSamples(int sampleRate);
               
     protected:
         unsigned int channels, sampleRate, samples, maxSamples, bytesPerSample; 

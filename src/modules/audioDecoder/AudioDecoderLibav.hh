@@ -34,8 +34,10 @@ extern "C" {
 
 #include "../../AudioFrame.hh"
 #include "../../FrameQueue.hh"
+#include "../../Filter.hh"
 
-class AudioDecoderLibav {
+
+class AudioDecoderLibav : public OneToOneFilter {
 
 public:
     AudioDecoderLibav();

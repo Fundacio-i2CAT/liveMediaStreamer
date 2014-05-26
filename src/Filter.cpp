@@ -23,6 +23,7 @@
  */
 
 #include "Filter.hh"
+#include <iostream>
 
 BaseFilter::BaseFilter(int readersNum, int writersNum, bool force_) : force(force_)
 {
@@ -111,6 +112,20 @@ bool BaseFilter::connect(int wId, BaseFilter *R, int rId)
     return writers[wId]->connect(r);
 }
 
+bool BaseFilter::connect(int wId, Reader *r)
+{
+    if (writers[wId]->isConnected()){
+        return false;
+    }
+    if (r->isConnected()){
+        return false;
+    }
+    FrameQueue *queue = allocQueue();
+    writers[wId]->setQueue(queue);
+    return writers[wId]->connect(r);
+}
+
+
 bool BaseFilter::disconnect(int wId, BaseFilter *R, int rId)
 {
     if (! writers[wId]->isConnected()){
@@ -154,7 +169,7 @@ BaseFilter(1, 1, force_)
 bool OneToOneFilter::processFrame()
 {
     bool newData = false;
-    if (!demandOriginFrames() || !demandDestinationFrames()){
+    if (!demandOriginFrames() || !demandDestinationFrames()) {
         return false;
     }
     if (doProcessFrame(oFrames.begin()->second, 

@@ -123,7 +123,7 @@ bool AudioCircularBuffer::config()
         case S16:
         case FLT:
             bytesPerSample = 0;
-            std::cerr << "Only planar sample formats are supported (U8P, S16P, FLTP)\n";
+            std::cerr << "[Audio Circular Buffer] Only planar sample formats are supported (U8P, S16P, FLTP)\n";
             break;
     }
 
@@ -135,6 +135,9 @@ bool AudioCircularBuffer::config()
 
     inputFrame = PlanarAudioFrame::createNew(channels, sampleRate, chMaxSamples, PCM, sampleFormat);
     outputFrame = PlanarAudioFrame::createNew(channels, sampleRate, chMaxSamples, PCM, sampleFormat);
+
+    outputFrame->setSamples(AudioFrame::getDefaultSamples(sampleRate));
+    outputFrame->setLength(AudioFrame::getDefaultSamples(sampleRate)*bytesPerSample);
 
     return true;
 }

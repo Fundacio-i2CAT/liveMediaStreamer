@@ -63,11 +63,11 @@ public:
     bool isConnected() {return connected;};
     Frame* getFrame(bool force = false);
     void removeFrame();
+    void setConnection(FrameQueue *queue);
 
 private:
     friend class Writer;
 
-    void setConnection(FrameQueue *queue);
     void unsetConnection();
     
     FrameQueue *queue;

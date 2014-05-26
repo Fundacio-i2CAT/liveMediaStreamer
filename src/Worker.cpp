@@ -27,6 +27,7 @@
 
 #include <chrono>
 #include "Worker.hh"
+#include <iostream>
 
 
 
@@ -37,6 +38,8 @@ Worker::Worker(Runnable *processor_, unsigned int maxFps): processor(processor_)
     } else {
         frameTime = 0;
     }
+
+    enabled = true;
 }
 
 void Worker::process()
@@ -49,7 +52,7 @@ void Worker::process()
 
     std::chrono::microseconds active(ACTIVE);
     std::chrono::milliseconds idle(IDLE);
-    
+
     while(run){
         while (enabled && frameTime > 0){
             previousTime = std::chrono::system_clock::now();
@@ -84,6 +87,7 @@ void Worker::process()
 
 bool Worker::start()
 {
+    run = true;
     thread = std::thread(&Worker::process, this);
     return thread.joinable();
 }

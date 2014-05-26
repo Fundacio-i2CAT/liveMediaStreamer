@@ -187,6 +187,7 @@ bool AudioFrameQueue::config()
             } else {
                 //TODO: error
             }
+            break;
         case G711:
             channels = 1;
             sampleRate = 8000;

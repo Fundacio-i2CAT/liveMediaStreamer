@@ -22,6 +22,9 @@
  *            
  */
 
+#ifndef _FILTER_HH
+#define _FILTER_HH
+
 #include <map>
 #include <vector>
 
@@ -37,18 +40,19 @@
 #include "Worker.hh"
 #endif
 
-class BaseFilter : Runnable {
+class BaseFilter : public Runnable {
     
 public:
     bool connect(int wId, BaseFilter *R, int rId);
+    bool connect(int wId, Reader *r);
     bool disconnect(int wId, BaseFilter *R, int rId);
     std::vector<int> getAvailableReaders();
     std::vector<int> getAvailableWriters();
+    Reader* getReader(int id);
     
 protected:
     BaseFilter(int readersNum, int writersNum, bool force_ = false);
     //TODO: desctructor
-    Reader* getReader(int id);
     
     virtual FrameQueue *allocQueue() = 0;
     virtual bool processFrame() = 0;
@@ -77,7 +81,7 @@ protected:
     OneToOneFilter(bool force_ = false);
     //TODO: desctructor
     virtual bool doProcessFrame(Frame *org, Frame *dst) = 0;
-    
+
 private:
     bool processFrame();
     using BaseFilter::demandOriginFrames;
@@ -128,3 +132,4 @@ private:
     using BaseFilter::dFrames;
 };
 
+#endif

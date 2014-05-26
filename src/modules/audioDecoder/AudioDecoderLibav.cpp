@@ -21,11 +21,11 @@
  */
 
 #include "AudioDecoderLibav.hh"
-#include "../../AVFramedQueue.hh"
+#include "../../AudioCircularBuffer.hh"
 #include <iostream>
 #include <stdio.h>
 
-AudioDecoderLibav::AudioDecoderLibav()
+AudioDecoderLibav::AudioDecoderLibav() : OneToOneFilter()
 {
     avcodec_register_all();
 
@@ -158,7 +158,7 @@ bool AudioDecoderLibav::doProcessFrame(Frame *org, Frame *dst)
 
 FrameQueue* AudioDecoderLibav::allocQueue()
 {
-    return AudioFrameQueue::createNew(PCM, 0, outSampleRate, outChannels, outSampleFmt);
+    return AudioCircularBuffer::createNew(outChannels, outSampleRate, AudioFrame::getMaxSamples(outSampleRate), outSampleFmt);
 }
 
 AudioDecoderLibav::~AudioDecoderLibav()

@@ -75,58 +75,6 @@ void saveBuffer(struct buffer *b)
     fclose(audioChannel);
 }
 
-void readingRoutine(struct buffer* b, AudioCircularBuffer* cb1,  AudioCircularBuffer* cb2, AudioEncoderLibav* enc)
-{
-    std::map<int,Frame*> mapFrame;
-    
-    AudioMixer *mixer = new AudioMixer(4);
-
-    InterleavedAudioFrame* codedFrame = InterleavedAudioFrame::createNew (
-                                                    OUT_CHANNELS, 
-                                                    OUT_SAMPLE_RATE, 
-                                                    CHANNEL_MAX_SAMPLES, 
-                                                    enc->getCodec(), 
-                                                    S16
-                                                  );
-
-    PlanarAudioFrame* mixedFrame = PlanarAudioFrame::createNew (
-                                                    OUT_CHANNELS, 
-                                                    OUT_SAMPLE_RATE, 
-                                                    CHANNEL_MAX_SAMPLES, 
-                                                    PCM, 
-                                                    S16P
-                                                  );
-
-    cb1->setOutputFrameSamples(DEFAULT_FRAME_SAMPLES);
-    cb2->setOutputFrameSamples(DEFAULT_FRAME_SAMPLES);
-
-    while(!should_stop) {
-        mapFrame[0] = cb1->getFront();
-        mapFrame[1] = cb2->getFront();
-
-        if(!mapFrame[0] || !mapFrame[1]) {
-            usleep(500);
-            continue;
-        }
-
-        //mixer->mix(mapFrame[1], mapFrame[2], mixedFrame);
-        mixer->doProcessFrame(mapFrame, mixedFrame);
-
-        cb1->removeFrame();
-        cb2->removeFrame();
-
-        if(!enc->doProcessFrame(mixedFrame, codedFrame)) {
-           std::cerr << "Error encoding frame" << std::endl;
-        }
-
-        fillBuffer(b, codedFrame);
-        printf("Filled buffer! Frame size: %d\n", codedFrame->getLength());
-    }
-
-    saveBuffer(b);
-    printf("Buffer saved\n");
-}
-
 int main(int argc, char** argv) 
 {   
     std::string sessionId;
@@ -136,6 +84,10 @@ int main(int argc, char** argv)
     AudioDecoderLibav* audioDecoder1;
     AudioDecoderLibav* audioDecoder2;
     AudioEncoderLibav* audioEncoder;
+    Worker *audioDecoder1Worker;
+    Worker *audioDecoder2Worker;
+    Worker *audioEncoderWorker;
+    Worker *audioMixerWorker;
     std::map<unsigned short, FrameQueue*> inputs;
     FrameQueue* q1;
     FrameQueue* q2;
@@ -183,8 +135,24 @@ int main(int argc, char** argv)
     audioEncoder = new AudioEncoderLibav();
     audioEncoder->configure(PCMU);
 
-    audioCirBuffer1 = AudioCircularBuffer::createNew(OUT_CHANNELS, OUT_SAMPLE_RATE, CHANNEL_MAX_SAMPLES, outSFmt);
-    audioCirBuffer2 = AudioCircularBuffer::createNew(OUT_CHANNELS, OUT_SAMPLE_RATE, CHANNEL_MAX_SAMPLES, outSFmt);
+    AudioMixer *mixer = new AudioMixer(4);
+
+    audioDecoder1Worker = new Worker(audioDecoder1);
+    audioDecoder2Worker = new Worker(audioDecoder2);
+    audioEncoderWorker = new Worker(audioEncoder);
+    audioMixerWorker = new Worker(mixer);
+
+    if(!audioDecoder1->connect(audioDecoder1->getAvailableWriters().front(), mixer, mixer->getAvailableReaders().front())) {
+        std::cerr << "Error connecting audio decoder 1 with mixer" << std::endl;
+    }
+
+    if(!audioDecoder2->connect(audioDecoder2->getAvailableWriters().front(), mixer, mixer->getAvailableReaders().front())) {
+        std::cerr << "Error connecting audio decoder 2 with mixer" << std::endl;
+    }
+
+    if(!mixer->connect(mixer->getAvailableWriters().front(), audioEncoder, audioEncoder->getAvailableReaders().front())) {
+        std::cerr << "Error connecting mixer with encoder" << std::endl;
+    }
 
     inputs = mngr->getInputs();
     q1 = inputs[A_CLIENT_PORT1];
@@ -194,40 +162,33 @@ int main(int argc, char** argv)
     buffers->data = new unsigned char[CHANNEL_MAX_SAMPLES * bytesPerSample * OUT_SAMPLE_RATE * 360]();
     buffers->data_len = 0;
     
-    std::thread readingThread(readingRoutine, buffers, audioCirBuffer1, audioCirBuffer2, audioEncoder);
+    audioDecoder1->getReader(0)->setConnection(q1);
+    audioDecoder2->getReader(0)->setConnection(q2);
+    
+    Reader *reader = new Reader();
+    audioEncoder->connect(audioEncoder->getAvailableWriters().front(), reader);
+
+    audioDecoder1Worker->start(); 
+    audioDecoder2Worker->start(); 
+    audioEncoderWorker->start(); 
+    audioMixerWorker->start(); 
 
     while(mngr->isRunning()) {
-        if ((codedFrame = q1->getFront()) != NULL) {
+        codedFrame = reader->getFrame();
 
-            aFrame = audioCirBuffer1->getRear();
-
-            if(!audioDecoder1->doProcessFrame(codedFrame, aFrame)) {
-                std::cout << "Error decoding frames\n";
-            }
-
-            q1->removeFrame();
-            audioCirBuffer1->addFrame();
+        if (!codedFrame) {
+            usleep(1000);
+            continue;
         }
 
-        if ((codedFrame = q2->getFront()) != NULL) {
+        fillBuffer(buffers, codedFrame);
+        printf("Filled buffer! Frame size: %d\n", codedFrame->getLength());
 
-            aFrame = audioCirBuffer2->getRear();
-
-            if(!audioDecoder2->doProcessFrame(codedFrame, aFrame)) {
-                std::cout << "Error decoding frames\n";
-            }
-
-            q2->removeFrame();
-            audioCirBuffer2->addFrame();
-        }
-
-        if (codedFrame == NULL) {
-            usleep(500);
-        }
+        reader->removeFrame();
     }
 
-    should_stop = true;
-    readingThread.join();
-    
+    saveBuffer(buffers);
+    printf("Buffer saved\n");
+
     return 0;
 }

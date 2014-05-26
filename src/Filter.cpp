@@ -24,18 +24,20 @@
 
 #include "Filter.hh"
 #include <iostream>
+#include <thread>
+#include <chrono>
+
+#define RETRIES 4
+#define TIMEOUT 2500
 
 BaseFilter::BaseFilter(int readersNum, int writersNum, bool force_) : force(force_)
 {
     rwNextId = 0;
     for(int i = 0; i < readersNum; i++, ++rwNextId){
         readers[rwNextId] = new Reader();
-        rUpdates[rwNextId] = false;
-        oFrames[rwNextId] = NULL;
     }
     for(int i = 0; i < writersNum; i++, ++rwNextId){
         writers[rwNextId] = new Writer();
-        dFrames[rwNextId] = NULL;
     }
 }
 
@@ -49,18 +51,24 @@ Reader* BaseFilter::getReader(int id){
 bool BaseFilter::demandOriginFrames()
 {
     bool newFrame = false;
-    for (auto it : readers){
-        if (it.second->isConnected()){
-            oFrames[it.first] = it.second->getFrame(force);
-            if (oFrames[it.first] == NULL){
-                rUpdates[it.first] = false; 
-            } else {
-                rUpdates[it.first] = true;
-                newFrame = true;
+    bool missedOne = false;
+    for(int i = 0; i < RETRIES; i++){
+        for (auto it : readers){
+            if (it.second->isConnected()){
+                oFrames[it.first] = it.second->getFrame(force);
+                if (oFrames[it.first] == NULL){
+                    rUpdates[it.first] = false;
+                    missedOne = true;
+                } else {
+                    rUpdates[it.first] = true;
+                    newFrame = true;
+                }
             }
+        }
+        if (!force && missedOne && newFrame){
+            std::this_thread::sleep_for(std::chrono::microseconds(TIMEOUT));
         } else {
-            rUpdates[it.first] = false;
-            oFrames[it.first] = NULL;
+            break;
         }
     }
     return newFrame;
@@ -73,8 +81,6 @@ bool BaseFilter::demandDestinationFrames()
         if (it.second->isConnected()){
             dFrames[it.first] = it.second->getFrame(true);
             newFrame = true;
-        } else {
-            dFrames[it.first] = NULL;
         }
     }
     return newFrame;
@@ -107,6 +113,8 @@ bool BaseFilter::connect(int wId, BaseFilter *R, int rId)
     if (r->isConnected()){
         return false;
     }
+    dFrames[wId] = NULL;
+    R->oFrames[rId] = NULL;
     FrameQueue *queue = allocQueue();
     writers[wId]->setQueue(queue);
     return writers[wId]->connect(r);
@@ -135,6 +143,8 @@ bool BaseFilter::disconnect(int wId, BaseFilter *R, int rId)
     if (! r->isConnected()){
         return false;
     }
+    dFrames.erase(wId);
+    R->oFrames.erase(rId);
     writers[wId]->disconnect(r);
     return true;
 }

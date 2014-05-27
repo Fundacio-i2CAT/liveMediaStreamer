@@ -86,14 +86,13 @@ int main(int argc, char** argv)
     // sdp += handlers::makeSubsessionSDP(A_MEDIUM, PROTOCOL, PAYLOAD, A_CODEC, 
     //                                    BANDWITH, A_TIME_STMP_FREQ, A_CLIENT_PORT);
     
-    session = Session::createNew(*(mngr->envir()), sdp);
+    session = Session::createNew(*(mngr->envir()), sdp, sessionId);
     
-    mngr->addSession(sessionId, session);
+    mngr->addSession(session);
+    session->initiateSession();
     
     mngr->runManager();
-    
-    mngr->initiateAll();
-    
+       
     //Let some time to initiate reciver sessions
     sleep(2);
     

@@ -24,34 +24,13 @@
 #include "ExtendedRTSPClient.hh"
 
 
-ExtendedRTSPClient* ExtendedRTSPClient::createNew(UsageEnvironment& env, char const* rtspURL,
+ExtendedRTSPClient* ExtendedRTSPClient::createNew(UsageEnvironment& env, char const* rtspURL, StreamClientState *scs,
                     int verbosityLevel, char const* applicationName, portNumBits tunnelOverHTTPPortNum) {
-  return new ExtendedRTSPClient(env, rtspURL, verbosityLevel, applicationName, tunnelOverHTTPPortNum);
+  return new ExtendedRTSPClient(env, rtspURL, scs, verbosityLevel, applicationName, tunnelOverHTTPPortNum);
 }
 
-ExtendedRTSPClient::ExtendedRTSPClient(UsageEnvironment& env, char const* rtspURL,
+ExtendedRTSPClient::ExtendedRTSPClient(UsageEnvironment& env, char const* rtspURL, StreamClientState *scs,
                  int verbosityLevel, char const* applicationName, portNumBits tunnelOverHTTPPortNum)
-  : RTSPClient(env,rtspURL, verbosityLevel, applicationName, tunnelOverHTTPPortNum, -1) {
+  : RTSPClient(env,rtspURL, verbosityLevel, applicationName, tunnelOverHTTPPortNum, -1), scs(scs) {
 }
-
-ExtendedRTSPClient::~ExtendedRTSPClient() {
-}
-
-// Implementation of "StreamClientState":
-
-StreamClientState::StreamClientState()
-    : iter(NULL), session(NULL), subsession(NULL), streamTimerTask(NULL), duration(0.0) {
-}
-
-StreamClientState::~StreamClientState() {
-    delete iter;
-    if (session != NULL) {
-        
-        UsageEnvironment& env = session->envir(); 
-
-        env.taskScheduler().unscheduleDelayedTask(streamTimerTask);
-        Medium::close(session);
-    }
-}
-
 

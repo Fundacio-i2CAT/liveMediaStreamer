@@ -44,17 +44,22 @@ class BaseFilter : public Runnable {
     
 public:
     bool connect(int wId, BaseFilter *R, int rId);
+    //Only for testing! Should not exist
     bool connect(int wId, Reader *r);
+    ///////////////////////////////////////
     bool disconnect(int wId, BaseFilter *R, int rId);
     std::vector<int> getAvailableReaders();
     std::vector<int> getAvailableWriters();
+    //Only for testing! Should be protected.
     Reader* getReader(int id);
+    ////////////////////////////////////////
     
 protected:
     BaseFilter(int readersNum, int writersNum, bool force_ = false);
+    BaseFilter(bool force_ = false);
     //TODO: desctructor
     
-    virtual FrameQueue *allocQueue() = 0;
+    virtual FrameQueue *allocQueue(int wId) = 0;
     virtual bool processFrame() = 0;
 
     bool demandOriginFrames();
@@ -81,7 +86,7 @@ protected:
     OneToOneFilter(bool force_ = false);
     //TODO: desctructor
     virtual bool doProcessFrame(Frame *org, Frame *dst) = 0;
-
+    
 private:
     bool processFrame();
     using BaseFilter::demandOriginFrames;
@@ -109,6 +114,25 @@ private:
     using BaseFilter::removeFrames;
     using BaseFilter::readers;
     using BaseFilter::writers;
+    using BaseFilter::oFrames;
+    using BaseFilter::dFrames;
+};
+
+class HeadFilter : public BaseFilter {
+    
+protected:
+    HeadFilter(int writersNum);
+    //TODO: desctructor
+    
+private:
+    //TODO: error message
+    bool processFrame() {};
+    int rwNextId;
+    using BaseFilter::demandOriginFrames;
+    using BaseFilter::demandDestinationFrames;
+    using BaseFilter::addFrames;
+    using BaseFilter::removeFrames;
+    using BaseFilter::readers;
     using BaseFilter::oFrames;
     using BaseFilter::dFrames;
 };

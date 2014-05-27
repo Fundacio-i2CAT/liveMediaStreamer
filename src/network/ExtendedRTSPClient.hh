@@ -27,41 +27,33 @@
 #define _EXTENDED_RTSP_CLIENT_HH
 
 
-#ifndef _LIVEMEDIA_HH
-#include <liveMedia/liveMedia.hh>
-#endif
 
+#include <liveMedia/liveMedia.hh>
 #include <BasicUsageEnvironment.hh>
 
-class StreamClientState {
-public:
-    StreamClientState();
-    virtual ~StreamClientState();
-
-public:
-    MediaSubsessionIterator* iter;
-    MediaSession* session;
-    MediaSubsession* subsession;
-    TaskToken streamTimerTask;
-    double duration;
-};
+#ifndef _SOURCE_MANAGER_HH
+#include "SourceManager.hh"
+#endif
 
 class ExtendedRTSPClient: public RTSPClient {
 public:
     static ExtendedRTSPClient* createNew(UsageEnvironment& env, char const* rtspURL,
-                  int verbosityLevel = 0,
-                  char const* applicationName = NULL,
-                  portNumBits tunnelOverHTTPPortNum = 0);
+                                         StreamClientState *scs,
+                                         int verbosityLevel = 0,
+                                         char const* applicationName = NULL,
+                                         portNumBits tunnelOverHTTPPortNum = 0);
+    
+    StreamClientState *getScs(){return scs;};
     
 
 protected:
-    ExtendedRTSPClient(UsageEnvironment& env, char const* rtspURL,
+    ExtendedRTSPClient(UsageEnvironment& env, char const* rtspURL, StreamClientState *scs,
         int verbosityLevel, char const* applicationName, portNumBits tunnelOverHTTPPortNum);
 
-    virtual ~ExtendedRTSPClient();
+    virtual ~ExtendedRTSPClient() {};
 
-public:
-    StreamClientState scs;
+private:
+    StreamClientState *scs;
 };
 
 

@@ -136,13 +136,13 @@ int main(int argc, char** argv)
     sdp += handlers::makeSubsessionSDP(A_MEDIUM, PROTOCOL, PAYLOAD, A_CODEC, BANDWITH, 
                                         A_TIME_STMP_FREQ, A_CLIENT_PORT, A_CHANNELS);
     
-    session = Session::createNew(*(mngr->envir()), sdp);
+    session = Session::createNew(*(mngr->envir()), sdp, sessionId);
     
-    mngr->addSession(sessionId, session);
+    mngr->addSession(session);
+    session->initiateSession();
        
     mngr->runManager();
        
-    mngr->initiateAll();
 
     audioDecoder = new AudioDecoderLibav();
     audioDecoder->configure(inCType, inSFmt, inCh, inSRate, outSFmt, outCh, outSRate);

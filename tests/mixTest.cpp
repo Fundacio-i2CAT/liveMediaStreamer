@@ -121,14 +121,14 @@ int main(int argc, char** argv)
     sdp += handlers::makeSubsessionSDP(A_MEDIUM, PROTOCOL, PAYLOAD, A_CODEC, BANDWITH, 
                                         A_TIME_STMP_FREQ, A_CLIENT_PORT2, A_CHANNELS);
     
-    session = Session::createNew(*(mngr->envir()), sdp);
+    session = Session::createNew(*(mngr->envir()), sdp, sessionId);
     
-    mngr->addSession(sessionId, session);
+    mngr->addSession(session);
+
+    session->initiateSession();
        
     mngr->runManager();
        
-    mngr->initiateAll();
-
     audioDecoder1 = new AudioDecoderLibav();
     audioDecoder2 = new AudioDecoderLibav();
 
@@ -151,6 +151,14 @@ int main(int argc, char** argv)
     }
 
     if(!mixer->connect(mixer->getAvailableWriters().front(), audioEncoder, audioEncoder->getAvailableReaders().front())) {
+        std::cerr << "Error connecting mixer with encoder" << std::endl;
+    }
+
+    if(!mngr->connect(mngr->getAvailableWriters().front(), audioDecoder1, audioDecoder1->getAvailableReaders().front())) {
+        std::cerr << "Error connecting audio decoder 2 with mixer" << std::endl;
+    }
+
+    if(!mngr->connect(mngr->getAvailableWriters().front(), audioDecoder2, audioDecoder2->getAvailableReaders().front())) {
         std::cerr << "Error connecting mixer with encoder" << std::endl;
     }
 

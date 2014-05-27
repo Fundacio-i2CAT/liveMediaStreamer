@@ -54,16 +54,13 @@ namespace handlers
     void setupNextSubsession(RTSPClient* rtspClient);
     void streamTimerHandler(void* clientData);
     void shutdownStream(RTSPClient* rtspClient);
-    FrameQueue* createQueue(MediaSubsession *subsession);
-    FrameQueue* createVideoQueue(char const* codecName);
-    FrameQueue* createAudioQueue(unsigned char rtpPayloadFormat, char const* codecName, 
-                                 unsigned int channels = 0, unsigned int sampleRate = 0);
+    std::string modifySessionName(std::string sdp, std::string sessionName);
     
     void continueAfterDESCRIBE(RTSPClient* rtspClient, int resultCode, char* resultString) 
     {
         do {
             UsageEnvironment& env = rtspClient->envir(); 
-            StreamClientState& scs = ((ExtendedRTSPClient*)rtspClient)->scs;
+            StreamClientState& scs = *(((ExtendedRTSPClient*)rtspClient)->getScs());
 
             if (resultCode != 0) {
                 env << "Failed to get a SDP description: " << resultString << "\n";
@@ -74,7 +71,7 @@ namespace handlers
             char* const sdpDescription = resultString;
             env << "Got a SDP description:\n" << sdpDescription << "\n";
 
-            scs.session = MediaSession::createNew(env, sdpDescription);
+            scs.session = MediaSession::createNew(env, modifySessionName(std::string(sdpDescription), scs.getId()).c_str());
             delete[] sdpDescription; 
             if (scs.session == NULL) {
                 env << "Failed to create a MediaSession object from the SDP description: " << env.getResultMsg() << "\n";
@@ -116,7 +113,7 @@ namespace handlers
     {
         do {
             UsageEnvironment& env = rtspClient->envir(); 
-            StreamClientState& scs = ((ExtendedRTSPClient*)rtspClient)->scs; 
+            StreamClientState& scs = *(((ExtendedRTSPClient*)rtspClient)->getScs());
 
             if (resultCode != 0) {
                 env << "Failed to set up the subsession: " << resultString << "\n";
@@ -141,7 +138,7 @@ namespace handlers
 
         do {
             UsageEnvironment& env = rtspClient->envir(); 
-            StreamClientState& scs = ((ExtendedRTSPClient*)rtspClient)->scs; 
+            StreamClientState& scs = *(((ExtendedRTSPClient*)rtspClient)->getScs());
 
             if (resultCode != 0) {
                 env << "Failed to start playing session: " << resultString << "\n";
@@ -173,7 +170,7 @@ namespace handlers
     void setupNextSubsession(RTSPClient* rtspClient) 
     {
         UsageEnvironment& env = rtspClient->envir(); 
-        StreamClientState& scs = ((ExtendedRTSPClient*)rtspClient)->scs;
+        StreamClientState& scs = *(((ExtendedRTSPClient*)rtspClient)->getScs());
     
         scs.subsession = scs.iter->next();
         if (scs.subsession != NULL) {
@@ -201,7 +198,7 @@ namespace handlers
     void streamTimerHandler(void* clientData)
     {
         ExtendedRTSPClient* rtspClient = (ExtendedRTSPClient*)clientData;
-        StreamClientState& scs = rtspClient->scs; 
+        StreamClientState& scs = *(((ExtendedRTSPClient*)rtspClient)->getScs()); 
 
         scs.streamTimerTask = NULL;
 
@@ -211,7 +208,7 @@ namespace handlers
     void shutdownStream(RTSPClient* rtspClient)
     {
         UsageEnvironment& env = rtspClient->envir(); 
-        StreamClientState& scs = ((ExtendedRTSPClient*)rtspClient)->scs; 
+        StreamClientState& scs = *(((ExtendedRTSPClient*)rtspClient)->getScs()); 
         
         
         if (scs.session != NULL) { 
@@ -304,28 +301,29 @@ namespace handlers
     //TODO: static method of SourceManager?
     bool addSubsessionSink(UsageEnvironment& env, MediaSubsession *subsession)
     {
-        FrameQueue* queue;
-        SourceManager* mngr;
-
-        queue = createQueue(subsession);
-
-        if (queue == NULL){
+        int wId;
+        QueueSink *sink;
+        SourceManager* mngr = SourceManager::getInstance();
+        
+        if (mngr->getAvailableWriters().empty()){
             return false;
         }
+        
+        wId = mngr->getAvailableWriters().front();
         
         if (strcmp(subsession->codecName(), "H264") == 0) {
-            subsession->sink = H264QueueSink::createNew(env, queue, 
-                                                        subsession->fmtp_spropparametersets());
+            sink = H264QueueSink::createNew(env, subsession->fmtp_spropparametersets());
         } else {
-            subsession->sink = QueueSink::createNew(env, queue);
+            sink = QueueSink::createNew(env);
         }
         
-        if (subsession->sink == NULL){
+        if (sink == NULL){
             return false;
         }
-        
-        mngr = SourceManager::getInstance();
-        mngr->addFrameQueue(subsession->clientPortNum(), queue);
+
+        mngr->addConnection(wId, subsession);
+        subsession->sink = sink;
+        mngr->writers[wId] = sink;
         
         subsession->sink->startPlaying(*(subsession->readSource()),
                                        handlers::subsessionAfterPlaying, subsession);
@@ -336,60 +334,22 @@ namespace handlers
         
         return true;
     }
-
-    FrameQueue* createQueue(MediaSubsession *subsession)
+    
+    std::string modifySessionName(std::string sdp, std::string sessionName)
     {
-        FrameQueue* queue;
-
-        if (strcmp(subsession->mediumName(), "audio") == 0) {
-            queue = createAudioQueue(subsession->rtpPayloadFormat(), subsession->codecName(), 
-                    subsession->numChannels(), subsession->rtpTimestampFrequency());
-        } else if (strcmp(subsession->mediumName(), "video") == 0) {
-            queue = createVideoQueue(subsession->codecName());
+        std::string newSdp;
+        std::string line;
+        std::string prefix = "s=";
+        std::istringstream iss(sdp);
+        for (line; std::getline(iss, line);)
+        {
+            if(0 == line.find(prefix)) {
+                line = prefix + sessionName + "\n";
+            }
+            newSdp += line;
         }
-
-        return queue;
+        return newSdp;
     }
-
-    FrameQueue* createVideoQueue(char const* codecName)
-    {
-        VCodecType codec;
-
-        if (strcmp(codecName, "H264") == 0) {
-            codec = H264;
-        } else {
-            //TODO: codec not supported
-        }
-        
-        return VideoFrameQueue::createNew(codec, 0);
-    }
-
-    FrameQueue* createAudioQueue(unsigned char rtpPayloadFormat, char const* codecName, unsigned channels, unsigned sampleRate)
-    {
-        ACodecType codec;
-
-        if (rtpPayloadFormat == 0) {
-            codec = G711;
-            return AudioFrameQueue::createNew(codec, 0);
-        }
-
-        if (strcmp(codecName, "OPUS") == 0) {
-            codec = OPUS;
-            return AudioFrameQueue::createNew(codec, 0, sampleRate);
-        }
-
-        if (strcmp(codecName, "PCMU") == 0) {
-            codec = PCMU;
-            return AudioFrameQueue::createNew(codec, 0, sampleRate, channels);
-        }
-
-        //TODO: error msg codec not supported
-        return NULL;
-    }
+   
 };
-
-
-
-
-
 

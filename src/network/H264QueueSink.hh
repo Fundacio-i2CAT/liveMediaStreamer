@@ -13,11 +13,11 @@
 class H264QueueSink: public QueueSink {
     
 public:
-    static H264QueueSink* createNew(UsageEnvironment& env, FrameQueue* queue, 
+    static H264QueueSink* createNew(UsageEnvironment& env, 
                                     char const* sPropParameterSetsStr);
     
 protected:
-    H264QueueSink(UsageEnvironment& env, FrameQueue* queue, 
+    H264QueueSink(UsageEnvironment& env, 
                   char const* sPropParameterSetsStr);
     virtual Boolean continuePlaying();
     

@@ -59,9 +59,9 @@ int main(int argc, char** argv)
     Session* session;
     SourceManager *mngr = SourceManager::getInstance();
     FrameQueue* queue;
-    Frame* codedFrame;
     Frame* rawFrame = InterleavedVideoFrame::createNew(DEFAULT_WIDTH, DEFAULT_HEIGHT, RGB24);
     VideoDecoderLibav* decoder = new VideoDecoderLibav();
+    Worker *vDecoderWorker;
     std::ofstream rawFrames;
     
     //condif decoder
@@ -73,8 +73,8 @@ int main(int argc, char** argv)
     
     for (int i = 1; i <= argc-1; ++i) {
         sessionId = handlers::randomIdGenerator(ID_LENGTH);
-        session = Session::createNewByURL(*(mngr->envir()), argv[0], argv[i]);
-        mngr->addSession(sessionId, session);
+        session = Session::createNewByURL(*(mngr->envir()), argv[0], argv[i], sessionId);
+        mngr->addSession(session);
     }
     
     sessionId = handlers::randomIdGenerator(ID_LENGTH);
@@ -95,21 +95,33 @@ int main(int argc, char** argv)
        
     //Let some time to initiate reciver sessions
     sleep(2);
+
+    int id1 = mngr->getWriterID(V_CLIENT_PORT);
+
+    if(!mngr->connect(id1, decoder, decoder->getAvailableReaders().front())) {
+        std::cerr << "Error connecting audio decoder 2 with mixer" << std::endl;
+    }
+
+    Reader *reader = new Reader();
+    decoder->connect(decoder->getAvailableWriters().front(), reader);
     
-    queue = mngr->getInputs().begin()->second;
-    
-    while(mngr->isRunning()){
-        if ((codedFrame = queue->getFront()) != NULL){
-            decoder->decodeFrame(codedFrame, rawFrame);
-            queue->removeFrame();
-            if (! rawFrames.is_open()){
-                rawFrames.open("frames.yuv", std::ios::out | std::ios::app | std::ios::binary);
-            } 
-            if (rawFrame->getLength() > 0) {
-                rawFrames.write(reinterpret_cast<const char*>(rawFrame->getDataBuf()), rawFrame->getLength());
-            }
+    while(mngr->isRunning()) {
+        rawFrame = reader->getFrame();
+
+        if (!rawFrame) {
+            usleep(500);
+            continue;
         }
-        usleep(1000);
+
+        if (! rawFrames.is_open()){
+            rawFrames.open("frames.yuv", std::ios::out | std::ios::app | std::ios::binary);
+        } 
+        if (rawFrame->getLength() > 0) {
+            rawFrames.write(reinterpret_cast<const char*>(rawFrame->getDataBuf()), rawFrame->getLength());
+            printf("Filled buffer! Frame size: %d\n", codedFrame->getLength());
+        }
+        
+        reader->removeFrame();
     }
     
     rawFrames.close();

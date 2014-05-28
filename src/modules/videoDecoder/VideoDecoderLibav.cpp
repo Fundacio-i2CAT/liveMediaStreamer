@@ -129,13 +129,13 @@ bool VideoDecoderLibav::toBuffer(VideoFrame *decodedFrame)
     return true;
 }
 
-bool VideoDecoderLibav::decodeFrame(Frame *codedFrame, Frame *decodedFrame)
+bool doProcessFrame(Frame *org, Frame *dst)
 {
     int len, gotFrame = 0;
-    VideoFrame* vDecodedFrame = dynamic_cast<VideoFrame*>(decodedFrame);
+    VideoFrame* vDecodedFrame = dynamic_cast<VideoFrame*>(dst);
 
-    pkt.size = codedFrame->getLength();
-    pkt.data = codedFrame->getDataBuf();
+    pkt.size = org->getLength();
+    pkt.data = org->getDataBuf();
    
     while (pkt.size > 0) {
         len = avcodec_decode_video2(codecCtx, frame, &gotFrame, &pkt);
@@ -161,5 +161,10 @@ bool VideoDecoderLibav::decodeFrame(Frame *codedFrame, Frame *decodedFrame)
     }
         
     return true;
+}
+
+FrameQueue* allocQueue(int wId)
+{
+    return VideoFrameQueue::createNew(VRAW, 0, DEFAULT_WIDTH, DEFAULT_HEIGHT, RGB24);
 }
 

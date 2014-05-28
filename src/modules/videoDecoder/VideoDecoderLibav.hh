@@ -18,11 +18,12 @@ extern "C" {
 
 
 
-class VideoDecoderLibav {
+class VideoDecoderLibav : public OneToOneFilter {
 
     public:
         VideoDecoderLibav();
-        bool decodeFrame(Frame *codedFrame, Frame *decodedFrame);
+        bool doProcessFrame(Frame *org, Frame *dst);
+        FrameQueue* allocQueue(int wId);
         bool configDecoder(VCodecType cType, PixType pTyp);
         
     private:
@@ -35,7 +36,7 @@ class VideoDecoderLibav {
         AVPacket            pkt;
         AVPixelFormat       pix_fmt;
         AVCodecID           codec_id;
-        VCodecType           fCodec;
+        VCodecType          fCodec;
         PixType             fPixType;
 };
 

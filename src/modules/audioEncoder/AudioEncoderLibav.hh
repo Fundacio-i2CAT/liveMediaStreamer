@@ -43,7 +43,7 @@ public:
     ~AudioEncoderLibav();
     
     bool doProcessFrame(Frame *org, Frame *dst);
-    FrameQueue* allocQueue();
+    FrameQueue* allocQueue(int wId);
 
     int getSamplesPerFrame(){ return samplesPerFrame;};
     int getChannels(){ return channels;};

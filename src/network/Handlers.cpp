@@ -305,11 +305,12 @@ namespace handlers
         QueueSink *sink;
         SourceManager* mngr = SourceManager::getInstance();
         
-        if (mngr->getAvailableWriters().empty()){
+        wId = mngr->getNullWriterID();
+
+        if (wId == -1) {
+            std::cerr << "Available writers empty!" << std::endl;
             return false;
         }
-        
-        wId = mngr->getAvailableWriters().front();
         
         if (strcmp(subsession->codecName(), "H264") == 0) {
             sink = H264QueueSink::createNew(env, subsession->fmtp_spropparametersets());
@@ -318,6 +319,7 @@ namespace handlers
         }
         
         if (sink == NULL){
+            std::cerr << "Sink NULL!" << std::endl;
             return false;
         }
 

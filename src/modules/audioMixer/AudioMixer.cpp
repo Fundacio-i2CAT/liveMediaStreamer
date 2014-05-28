@@ -58,7 +58,7 @@ AudioMixer::AudioMixer(int inputChannels, int frameChannels, int sampleRate) : M
     masterGain = 1.0;
 }
 
-FrameQueue *AudioMixer::allocQueue() {
+FrameQueue *AudioMixer::allocQueue(int wId) {
     return AudioCircularBuffer::createNew(frameChannels, sampleRate, AudioFrame::getMaxSamples(sampleRate), sampleFormat);
 }
 

@@ -43,7 +43,7 @@ public:
     AudioDecoderLibav();
     ~AudioDecoderLibav();
     bool doProcessFrame(Frame *org, Frame *dst);
-    FrameQueue* allocQueue();
+    FrameQueue* allocQueue(int wId);
     void configure(SampleFmt sampleFormat, int channels, int sampleRate);
     
 private:

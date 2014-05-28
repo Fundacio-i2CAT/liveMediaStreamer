@@ -49,7 +49,8 @@ SourceManager::SourceManager(int writersNum): watch(0), HeadFilter(writersNum)
     mngrInstance = this;
 }
 
-SourceManager* SourceManager::getInstance(){
+SourceManager* SourceManager::getInstance()
+{
     if (mngrInstance != NULL){
         return mngrInstance;
     }
@@ -163,6 +164,24 @@ void SourceManager::addConnection(int wId, MediaSubsession* subsession)
     //Todo: callback
 }
 
+int SourceManager::getWriterID(unsigned int port)
+{
+    for (auto idConnectionTuple : audioOutputs) {
+        if (idConnectionTuple.second.port == port) {
+            return  idConnectionTuple.first;
+        }
+    }
+
+    for (auto idConnectionTuple : videoOutputs) {
+        if (idConnectionTuple.second.port == port) {
+            return  idConnectionTuple.first;
+        }
+    }
+
+    return -1;
+}
+
+
 FrameQueue *SourceManager::allocQueue(int wId)
 {
     for (auto it : audioOutputs){
@@ -248,7 +267,6 @@ Session* Session::createNew(UsageEnvironment& env, std::string sdp, std::string 
 Session* Session::createNewByURL(UsageEnvironment& env, std::string progName, std::string rtspURL, std::string id)
 {
     Session* session = new Session(id);
-    
     
     RTSPClient* rtspClient = ExtendedRTSPClient::createNew(env, rtspURL.c_str(), session->scs, RTSP_CLIENT_VERBOSITY_LEVEL, progName.c_str());
     if (rtspClient == NULL) {

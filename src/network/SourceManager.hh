@@ -93,6 +93,7 @@ public:
     bool removeSession(std::string id);
     
     Session* getSession(std::string id);
+    int getWriterID(unsigned int port);
     
     UsageEnvironment* envir() {return env;};
     

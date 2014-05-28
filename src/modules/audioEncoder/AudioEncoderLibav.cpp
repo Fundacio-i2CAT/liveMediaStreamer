@@ -276,7 +276,7 @@ void AudioEncoderLibav::setInputParams(SampleFmt sampleFormat, int channels, int
     }
 }
 
-FrameQueue* AudioEncoderLibav::allocQueue()
+FrameQueue* AudioEncoderLibav::allocQueue(int wId)
 {
     return AudioFrameQueue::createNew(fCodec, 0, internalSampleRate, internalChannels, internalSampleFmt);
 }

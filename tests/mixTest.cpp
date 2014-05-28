@@ -103,13 +103,12 @@ int main(int argc, char** argv)
     SampleFmt outSFmt = S16P;
     unsigned int bytesPerSample = 2;
 
-    
     signal(SIGINT, signalHandler); 
     
     for (int i = 1; i <= argc-1; ++i) {
         sessionId = handlers::randomIdGenerator(ID_LENGTH);
-        session = Session::createNewByURL(*(mngr->envir()), argv[0], argv[i]);
-        mngr->addSession(sessionId, session);
+        session = Session::createNewByURL(*(mngr->envir()), argv[0], argv[i], sessionId);
+        mngr->addSession(session);
     }
     
     sessionId = handlers::randomIdGenerator(ID_LENGTH);
@@ -137,10 +136,21 @@ int main(int argc, char** argv)
 
     AudioMixer *mixer = new AudioMixer(4);
 
+    int id1 = mngr->getWriterID(A_CLIENT_PORT1);
+    int id2 = mngr->getWriterID(A_CLIENT_PORT2);
+
     audioDecoder1Worker = new Worker(audioDecoder1);
     audioDecoder2Worker = new Worker(audioDecoder2);
     audioEncoderWorker = new Worker(audioEncoder);
     audioMixerWorker = new Worker(mixer);
+
+    if(!mngr->connect(id1, audioDecoder1, audioDecoder1->getAvailableReaders().front())) {
+        std::cerr << "Error connecting audio decoder 2 with mixer" << std::endl;
+    }
+
+    if(!mngr->connect(id2, audioDecoder2, audioDecoder2->getAvailableReaders().front())) {
+        std::cerr << "Error connecting mixer with encoder" << std::endl;
+    }
 
     if(!audioDecoder1->connect(audioDecoder1->getAvailableWriters().front(), mixer, mixer->getAvailableReaders().front())) {
         std::cerr << "Error connecting audio decoder 1 with mixer" << std::endl;
@@ -154,24 +164,9 @@ int main(int argc, char** argv)
         std::cerr << "Error connecting mixer with encoder" << std::endl;
     }
 
-    if(!mngr->connect(mngr->getAvailableWriters().front(), audioDecoder1, audioDecoder1->getAvailableReaders().front())) {
-        std::cerr << "Error connecting audio decoder 2 with mixer" << std::endl;
-    }
-
-    if(!mngr->connect(mngr->getAvailableWriters().front(), audioDecoder2, audioDecoder2->getAvailableReaders().front())) {
-        std::cerr << "Error connecting mixer with encoder" << std::endl;
-    }
-
-    inputs = mngr->getInputs();
-    q1 = inputs[A_CLIENT_PORT1];
-    q2 = inputs[A_CLIENT_PORT2];
-
     buffers = new struct buffer;
     buffers->data = new unsigned char[CHANNEL_MAX_SAMPLES * bytesPerSample * OUT_SAMPLE_RATE * 360]();
     buffers->data_len = 0;
-    
-    audioDecoder1->getReader(0)->setConnection(q1);
-    audioDecoder2->getReader(0)->setConnection(q2);
     
     Reader *reader = new Reader();
     audioEncoder->connect(audioEncoder->getAvailableWriters().front(), reader);
@@ -185,7 +180,7 @@ int main(int argc, char** argv)
         codedFrame = reader->getFrame();
 
         if (!codedFrame) {
-            usleep(1000);
+            usleep(500);
             continue;
         }
 

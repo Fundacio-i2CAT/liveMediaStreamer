@@ -50,9 +50,6 @@ public:
     bool disconnect(int wId, BaseFilter *R, int rId);
     std::vector<int> getAvailableReaders();
     std::vector<int> getAvailableWriters();
-    //Only for testing! Should be protected.
-    Reader* getReader(int id);
-    ////////////////////////////////////////
     
 protected:
     BaseFilter(int readersNum, int writersNum, bool force_ = false);
@@ -62,6 +59,7 @@ protected:
     virtual FrameQueue *allocQueue(int wId) = 0;
     virtual bool processFrame() = 0;
 
+    Reader* getReader(int id);1
     bool demandOriginFrames();
     bool demandDestinationFrames();
     void addFrames();
@@ -123,6 +121,7 @@ class HeadFilter : public BaseFilter {
 protected:
     HeadFilter(int writersNum);
     //TODO: desctructor
+    int getNullWriterID();
     
 private:
     //TODO: error message
@@ -143,7 +142,7 @@ protected:
     ManyToOneFilter(int readersNum, bool force_ = false);
     //TODO: desctructor
     virtual bool doProcessFrame(std::map<int, Frame *> orgFrames, Frame *dst) = 0;
-    
+
 private:
     bool processFrame();
     using BaseFilter::demandOriginFrames;

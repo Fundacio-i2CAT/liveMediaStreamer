@@ -156,7 +156,7 @@ bool AudioDecoderLibav::doProcessFrame(Frame *org, Frame *dst)
     return true;
 }
 
-FrameQueue* AudioDecoderLibav::allocQueue()
+FrameQueue* AudioDecoderLibav::allocQueue(int wId)
 {
     return AudioCircularBuffer::createNew(outChannels, outSampleRate, AudioFrame::getMaxSamples(outSampleRate), outSampleFmt);
 }

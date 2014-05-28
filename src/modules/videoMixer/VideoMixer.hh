@@ -1,5 +1,5 @@
 /*
- *  AudioMixer - Audio mixer structure
+ *  VideoMixer - Video mixer structure
  *  Copyright (C) 2014  Fundació i2CAT, Internet i Innovació digital a Catalunya
  *
  *  This file is part of media-streamer.
@@ -20,35 +20,46 @@
  *  Authors:  Marc Palau <marc.palau@i2cat.net>
  */
  
-#ifndef _AUDIO_MIXER_HH
-#define _AUDIO_MIXER_HH
+#ifndef _VIDEO_MIXER_HH
+#define _VIDEO_MIXER_HH
 
 #include "../../Frame.hh"
 #include "../../Filter.hh"
 
-class AudioMixer : public ManyToOneFilter {
+class PositionSize {
+
+public:
+    PositionSize(int width, int height, int x, int y, int layer);
+    int getWidth() {return width;};
+    int getHeight() {return height;};
+    int getX() {return x;};
+    int getY() {return y;};
+    int getLayer() {return layer;};
+    void setWidth(int width) {this->width = width;};
+    void setHeight(int height) {this->height = height;};
+    void setX(int x) {this->x = x;};
+    void setY(int y) {this->y = y;};
+    void setLayer(int layer) {this->layer = layer;};
+
+private:
+    int width;
+    int height;
+    int x;
+    int y;
+};
+
+class VideoMixer : public ManyToOneFilter {
     
     public:
-        AudioMixer(int inputChannels);
-        AudioMixer(int inputChannels, int frameChannels, int sampleRate);
-        FrameQueue *allocQueue(int wId);
+        VideoMixer(int inputChannels);
+        VideoMixer(int inputChannels, int outputWidth, int outputHeight);
+        FrameQueue *allocQueue();
         bool doProcessFrame(std::map<int, Frame*> orgFrames, Frame *dst);
 
     private:
-        void mixNonEmptyFrames(std::map<int, Frame*> orgFrames, std::vector<int> filledFramesIds, Frame *dst, int totalFrames); 
-        void applyMixAlgorithm(std::vector<float> &fSamples, int frameNumber);
-        void applyGainToChannel(std::vector<float> &fSamples, float gain);
-        void sumValues(std::vector<float> fSamples, std::vector<float> &mixedSamples); 
-        
-        int frameChannels;
-        int sampleRate;
-        SampleFmt sampleFormat;
-        std::map<int,float> gains;
-        float masterGain;
-
-        //Vectors as attributes in order to improve memory management
-        std::vector<float> samples;
-        std::vector<float> mixedSamples;
+        std::map<int, positionSize> positionAndSizes;        
+        int outputWidth;
+        int outputHeight;
 };
 
 

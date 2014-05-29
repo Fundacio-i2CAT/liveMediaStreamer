@@ -116,7 +116,7 @@ bool VideoFrameQueue::config()
         case H264:
             max = DEFAULT_VIDEO_FRAMES;
             for (int i=0; i<max; i++) {
-                frames[i] = InterleavedVideoFrame::createNew(LENGTH_H264);
+                frames[i] = InterleavedVideoFrame::createNew(codec, LENGTH_H264);
             }
             break;
         case VP8:
@@ -132,7 +132,7 @@ bool VideoFrameQueue::config()
             }
             max = DEFAULT_VIDEO_FRAMES;
             for (int i=0; i<max; i++) {
-                frames[i] = InterleavedVideoFrame::createNew(width, height, pixelFormat);
+                frames[i] = InterleavedVideoFrame::createNew(codec, width, height, pixelFormat);
             }
             break;
         default:

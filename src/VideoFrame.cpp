@@ -38,30 +38,32 @@ void VideoFrame::setPixelFormat(PixType pixelFormat)
 //INTERLEAVED VIDEO FRAME METHODS IMPLEMENTATION//
 //////////////////////////////////////////////////
 
-InterleavedVideoFrame* InterleavedVideoFrame::createNew(unsigned int maxLength)
+InterleavedVideoFrame* InterleavedVideoFrame::createNew(VCodecType codec, unsigned int maxLength)
 {
-    return new InterleavedVideoFrame(maxLength);
+    return new InterleavedVideoFrame(codec, maxLength);
 }
 
-InterleavedVideoFrame* InterleavedVideoFrame::createNew(unsigned int width, unsigned height, PixType pixelFormat)
+InterleavedVideoFrame* InterleavedVideoFrame::createNew(VCodecType codec, unsigned int width, unsigned height, PixType pixelFormat)
 {
-    return new InterleavedVideoFrame(width, height, pixelFormat);
+    return new InterleavedVideoFrame(codec, width, height, pixelFormat);
 }
 
-InterleavedVideoFrame::InterleavedVideoFrame(unsigned int maxLength)
+InterleavedVideoFrame::InterleavedVideoFrame(VCodecType codec, unsigned int maxLength)
 {
     width = 0;
     height = 0;
     bufferLen = 0;
     bufferMaxLen = maxLength;
     frameBuff = new unsigned char [bufferMaxLen]();
+    this->codec = codec;
 }
 
-InterleavedVideoFrame::InterleavedVideoFrame(unsigned int width, unsigned height, PixType pixelFormat)
+InterleavedVideoFrame::InterleavedVideoFrame(VCodecType codec, unsigned int width, unsigned height, PixType pixelFormat)
 {
     this->width = width;
     this->height = height;
     this->pixelFormat = pixelFormat;
+    this->codec = codec;
 
     int bytesPerPixel;
 

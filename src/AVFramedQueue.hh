@@ -66,7 +66,7 @@ protected:
 class AudioFrameQueue : public AVFramedQueue {
 
 public:
-    static AudioFrameQueue* createNew(ACodecType codec,  unsigned delay, unsigned sampleRate = 48000, unsigned channels = 2, SampleFmt sFmt = S16);
+    static AudioFrameQueue* createNew(ACodecType codec, unsigned delay, unsigned sampleRate = 48000, unsigned channels = 2, SampleFmt sFmt = S16);
 
 protected:
     AudioFrameQueue(ACodecType codec, SampleFmt sFmt, unsigned sampleRate, unsigned channels, unsigned delay);

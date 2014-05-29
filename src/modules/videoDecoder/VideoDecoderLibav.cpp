@@ -34,23 +34,75 @@ VideoDecoderLibav::VideoDecoderLibav()
     pkt.data = NULL;
     pkt.size = 0;
 
+    frame = av_frame_alloc();
+    outFrame = av_frame_alloc();
+
+    outputWidth = 0;
+    outputHeight = 0;
+    outputPixelFormat = RGB24;
+
+    needsConfig = false;
+
     //TODO: how to use callback?
     //av_log_set_callback(error_callback);
 }
 
-bool VideoDecoderLibav::configDecoder(VCodecType cType, PixType pType)
+FrameQueue* VideoDecoderLibav::allocQueue(int wId)
+{
+    return VideoFrameQueue::createNew(RAW, 0, DEFAULT_WIDTH, DEFAULT_HEIGHT, RGB24);
+}
+
+bool VideoDecoderLibav::doProcessFrame(Frame *org, Frame *dst)
+{
+    int len, gotFrame = 0;
+    VideoFrame* vDecodedFrame = dynamic_cast<VideoFrame*>(dst);
+
+    checkInputParams(dynamic_cast<VideoFrame*>(org)->getCodec());
+
+    if(needsConfig) {
+        outputConfig();
+    }
+
+    pkt.size = org->getLength();
+    pkt.data = org->getDataBuf();
+   
+    while (pkt.size > 0) {
+        len = avcodec_decode_video2(codecCtx, frame, &gotFrame, &pkt);
+
+        if(len <= 0) {
+            //TODO: error
+            return false;
+        }
+
+        //TODO: something about B-frames?
+        
+        if (gotFrame){
+            if (toBuffer(vDecodedFrame) <= 0){
+                //TODO: error
+                return false;
+            }
+        }
+        
+        if (pkt.data){
+            pkt.size -= len;
+            pkt.data += len;
+        }
+    }
+        
+    return true;
+}
+
+bool VideoDecoderLibav::inputConfig()
 {   
-    av_init_packet(&pkt);
-    
-    switch(cType){
+    switch(fCodec){
         case H264:
-            codec_id = AV_CODEC_ID_H264;
+            libavCodecId = AV_CODEC_ID_H264;
             break;
         case VP8: //TODO
-            codec_id = AV_CODEC_ID_VP8;
+            libavCodecId = AV_CODEC_ID_VP8;
             break;
         case MJPEG: //TODO
-            codec_id = AV_CODEC_ID_MJPEG;
+            libavCodecId = AV_CODEC_ID_MJPEG;
             break;
         case RAW:
             //TODO: set raw video codec
@@ -59,27 +111,16 @@ bool VideoDecoderLibav::configDecoder(VCodecType cType, PixType pType)
             return false;
             break;
     }
-    
-    switch(pType){
-        case RGB24:
-            pix_fmt = AV_PIX_FMT_RGB24;
-            break;
-        case RGB32:
-            pix_fmt = AV_PIX_FMT_RGB32;
-            break;
-        case YUYV422:
-            pix_fmt = AV_PIX_FMT_YUYV422;
-            break;
-        default:
-            //TODO: error
-            return false;
-            break;
+
+    av_frame_unref(frame);
+    av_frame_unref(outFrame);
+
+    if (codecCtx != NULL) {
+        avcodec_close(codecCtx);
+        av_free(codecCtx);
     }
-     
-    frame = av_frame_alloc();
-    outFrame = av_frame_alloc();
-    
-    codec = avcodec_find_decoder(codec_id);
+
+    codec = avcodec_find_decoder(libavCodecId);
     if (codec == NULL)
     {
         //TODO: error
@@ -112,15 +153,45 @@ bool VideoDecoderLibav::configDecoder(VCodecType cType, PixType pType)
     return true;
 }
 
+bool VideoDecoderLibav::configure(int width, int height, PixType pixelFormat) {
+
+    outputWidth = width;
+    outputHeight = height;
+    outputPixelFormat = pixelFormat;
+
+    switch(outputPixelFormat){
+        case RGB24:
+            libavPixFmt = AV_PIX_FMT_RGB24;
+            break;
+        case RGB32:
+            libavPixFmt = AV_PIX_FMT_RGB32;
+            break;
+        case YUYV422:
+            libavPixFmt = AV_PIX_FMT_YUYV422;
+            break;
+        default:
+            //TODO: error
+            return false;
+            break;
+    }
+
+    needsConfig = true;
+}
+
 bool VideoDecoderLibav::toBuffer(VideoFrame *decodedFrame)
 {
     unsigned int length;
+
+    if (outputWidth == 0 || outputHeight == 0) {
+        outputWidth = codecCtx->width;
+        outputHeight = codecCtx->height;
+    }
     
     if (!imgConvertCtx) {
         imgConvertCtx = sws_getContext(codecCtx->width, codecCtx->height, 
-                                       (AVPixelFormat) frame->format, 
-                                       codecCtx->width, codecCtx->height,
-                                       pix_fmt, SWS_FAST_BILINEAR, 0, 0, 0);
+                                        (AVPixelFormat) frame->format, 
+                                        outputWidth, outputHeight,
+                                        libavPixFmt, SWS_FAST_BILINEAR, 0, 0, 0);
         
         if (!imgConvertCtx){
             //TODO: error
@@ -129,66 +200,50 @@ bool VideoDecoderLibav::toBuffer(VideoFrame *decodedFrame)
     }
     
     length = avpicture_fill((AVPicture *) outFrame, decodedFrame->getDataBuf(), 
-                   pix_fmt, codecCtx->width, codecCtx->height);
+                   libavPixFmt, outputWidth, outputHeight);
     
     if (length <= 0){
         return false;
     }
            
-    if (frame->format == pix_fmt){
-        length = avpicture_layout((AVPicture *)frame, pix_fmt,
-                                  codecCtx->width, codecCtx->height, 
-                                  decodedFrame->getDataBuf(), length);
-        if (length <= 0){
-            return false;
-        }
-    } else {
+    // if (frame->format == outputPixelFormat) {
+    //     length = avpicture_layout((AVPicture *)frame, pix_fmt,
+    //                               outputWidth, outputHeight, 
+    //                               decodedFrame->getDataBuf(), length);
+    //     if (length <= 0){
+    //         return false;
+    //     }
+
+    // } else {
         sws_scale(imgConvertCtx, frame->data, frame->linesize, 0, 
                   codecCtx->height, outFrame->data, outFrame->linesize);
-    }  
+    // }  
                           
     decodedFrame->setLength(length);
-    decodedFrame->setSize(codecCtx->width, codecCtx->height);
+    decodedFrame->setSize(outputWidth, outputHeight);
     
     return true;
 }
 
-bool VideoDecoderLibav::doProcessFrame(Frame *org, Frame *dst)
+
+
+void VideoDecoderLibav::checkInputParams(VCodecType codec)
 {
-    int len, gotFrame = 0;
-    VideoFrame* vDecodedFrame = dynamic_cast<VideoFrame*>(dst);
-
-    pkt.size = org->getLength();
-    pkt.data = org->getDataBuf();
-   
-    while (pkt.size > 0) {
-        len = avcodec_decode_video2(codecCtx, frame, &gotFrame, &pkt);
-
-        if(len <= 0) {
-            //TODO: error
-            return false;
-        }
-
-        //TODO: something about B-frames?
-        
-        if (gotFrame){
-            if (toBuffer(vDecodedFrame) <= 0){
-                //TODO: error
-                return false;
-            }
-        }
-        
-        if (pkt.data){
-            pkt.size -= len;
-            pkt.data += len;
-        }
+    if (fCodec == codec) {
+        return;
     }
-        
-    return true;
+
+    fCodec = codec;
+
+    inputConfig();
 }
 
-FrameQueue* VideoDecoderLibav::allocQueue(int wId)
+void VideoDecoderLibav::outputConfig()
 {
-    return VideoFrameQueue::createNew(RAW, 0, DEFAULT_WIDTH, DEFAULT_HEIGHT, RGB24);
+    if (imgConvertCtx) {
+        sws_freeContext(imgConvertCtx);  
+    }
+
+    needsConfig = false;
 }
 

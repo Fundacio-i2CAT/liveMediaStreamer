@@ -41,29 +41,33 @@ extern "C" {
 #include "../../FrameQueue.hh"
 #include "../../Filter.hh"
 
-
-
-
 class VideoDecoderLibav : public OneToOneFilter {
 
     public:
         VideoDecoderLibav();
         bool doProcessFrame(Frame *org, Frame *dst);
         FrameQueue* allocQueue(int wId);
-        bool configDecoder(VCodecType cType, PixType pTyp);
+        bool configure(int width, int height, PixType pixelFormat);
         
     private:
         bool toBuffer(VideoFrame *decodedFrame);
+        void checkInputParams(VCodecType codec);
+        bool inputConfig();
+        void outputConfig();
         
         AVCodec             *codec;
         AVCodecContext      *codecCtx;
         struct SwsContext   *imgConvertCtx;
         AVFrame             *frame, *outFrame;
         AVPacket            pkt;
-        AVPixelFormat       pix_fmt;
-        AVCodecID           codec_id;
+        AVPixelFormat       libavPixFmt;
+        AVCodecID           libavCodecId;
+
         VCodecType          fCodec;
-        PixType             fPixType;
+        int                 outputWidth;
+        int                 outputHeight;
+        PixType             outputPixelFormat;
+        bool                needsConfig;
 };
 
 #endif

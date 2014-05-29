@@ -59,11 +59,14 @@ bool BaseFilter::demandOriginFrames()
     bool missedOne = false;
     for(int i = 0; i < RETRIES; i++){
         for (auto it : readers){
-            if (it.second->isConnected()){
-                oFrames[it.first] = it.second->getFrame(force);
-                if (oFrames[it.first] == NULL){
-                    rUpdates[it.first] = false;
-                    missedOne = true;
+            if (it.second->isConnected()) {
+                oFrames[it.first] = it.second->getFrame();
+                if (oFrames[it.first] == NULL) {
+                    oFrames[it.first] = it.second->getFrame(force);
+                   // if (oFrames[it.first] == NULL) {
+                        rUpdates[it.first] = false;
+                        missedOne = true;
+                   // }
                 } else {
                     rUpdates[it.first] = true;
                     newFrame = true;

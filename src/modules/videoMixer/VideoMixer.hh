@@ -23,8 +23,11 @@
 #ifndef _VIDEO_MIXER_HH
 #define _VIDEO_MIXER_HH
 
-#include "../../Frame.hh"
+#include "../../VideoFrame.hh"
 #include "../../Filter.hh"
+#include <opencv/cv.hpp>
+
+#define MAX_LAYERS 8
 
 class PositionSize {
 
@@ -46,6 +49,7 @@ private:
     int height;
     int x;
     int y;
+    int layer;
 };
 
 class VideoMixer : public ManyToOneFilter {
@@ -53,13 +57,17 @@ class VideoMixer : public ManyToOneFilter {
     public:
         VideoMixer(int inputChannels);
         VideoMixer(int inputChannels, int outputWidth, int outputHeight);
-        FrameQueue *allocQueue();
+        FrameQueue *allocQueue(int wId);
         bool doProcessFrame(std::map<int, Frame*> orgFrames, Frame *dst);
+        bool setPositionSize(int id, float width, float height, float x, float y, int layer);
 
     private:
-        std::map<int, positionSize> positionAndSizes;        
+        void pasteToLayout(int frameID, VideoFrame* vFrame);
+
+        std::map<int, PositionSize*> positionAndSizes;        
         int outputWidth;
         int outputHeight;
+        cv::Mat layoutImg;
 };
 
 

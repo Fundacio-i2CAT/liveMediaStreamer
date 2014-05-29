@@ -20,6 +20,10 @@
  *  Authors:  Marc Palau <marc.palau@i2cat.net>
  */
 
+#include "VideoMixer.hh"
+#include "../../AVFramedQueue.hh"
+#include <iostream>
+
 PositionSize::PositionSize(int width, int height, int x, int y, int layer)
 {
     this->width = width;
@@ -28,44 +32,53 @@ PositionSize::PositionSize(int width, int height, int x, int y, int layer)
     this->y = y;
 }
 
-VideoMixer::VideoMixer(int inputChannels)
+VideoMixer::VideoMixer(int inputChannels) : ManyToOneFilter(inputChannels)
 {
     outputWidth = DEFAULT_WIDTH;
     outputHeight = DEFAULT_HEIGHT;
 
-    PositionSize posSize(outputWidth, outputHeight, 0, 0);
-
     for (auto id : getAvailableReaders()) {
-        positionAndSizes.insert(auto(id, posSize));
+        positionAndSizes.insert(std::pair<int, PositionSize*>(id, new PositionSize(outputWidth, outputHeight, 0, 0, 0)));
     }
+
+    layoutImg = cv::Mat(outputHeight, outputWidth, CV_8UC3);
 }
 
-VideoMixer::VideoMixer(int inputChannels, int outputWidth, int outputHeight)
+VideoMixer::VideoMixer(int inputChannels, int outputWidth, int outputHeight) :
+ManyToOneFilter(inputChannels)
 {
     this->outputWidth = outputWidth;
     this->outputHeight = outputHeight;
 
-    PositionSize posSize(outputWidth, outputHeight, 0, 0);
-
     for (auto id : getAvailableReaders()) {
-        positionAndSizes.insert(auto(id, posSize));
+        positionAndSizes.insert(std::pair<int, PositionSize*>(id, new PositionSize(outputWidth, outputHeight, 0, 0, 0)));
     }
+
+    layoutImg = cv::Mat(outputHeight, outputWidth, CV_8UC3);
 }
 
-FrameQueue *allocQueue();
+FrameQueue* VideoMixer::allocQueue(int wId)
+{
+    return VideoFrameQueue::createNew(RAW, 0, outputWidth, outputHeight, RGB24);
+}
 
-bool doProcessFrame(std::map<int, Frame*> orgFrames, Frame *dst)
+bool VideoMixer::doProcessFrame(std::map<int, Frame*> orgFrames, Frame *dst)
 {
     int frameNumber = orgFrames.size();
     VideoFrame *vFrame;
 
     layoutImg.data = dst->getDataBuf();
+    dst->setLength(layoutImg.step * outputHeight);
 
     for (int lay=0; lay < MAX_LAYERS; lay++) {
-        for (auto frame : orgFrames) {
-            vFrame = dynamic_cast<VideoFrame*>(frame.second);
-            if (vFrame->getLayer() == lay) {
-                pasteToLayout(frame.first, vFrame);
+        for (auto it : orgFrames) {
+            if (positionAndSizes[it.first]->getLayer() == lay) {
+                if (!it.second) {
+                    frameNumber--;
+                    continue;
+                }
+                vFrame = dynamic_cast<VideoFrame*>(it.second);
+                pasteToLayout(it.first, vFrame);
                 frameNumber--;
             }
 
@@ -82,17 +95,41 @@ bool doProcessFrame(std::map<int, Frame*> orgFrames, Frame *dst)
     return true;
 }
 
-void pasteToLayout(int frameID, VideoFrame* vFrame)
+bool VideoMixer::setPositionSize(int id, float width, float height, float x, float y, int layer)
 {
-    Mat img(vFrame->getHeight(), vFrame->getWidth(), CV_8UC3, vFrame->getDataBuf());
-    Size sz(positionAndSizes[frameID].width, positionAndSizes[frameID].height);
-    int x = positionAndSizes[frameID].x;
-    int y = positionAndSizes[frameID].y;
+    //NOTE: w, h, x and y are set as layout size percentages
+
+    auto it = positionAndSizes.find(id);
+
+    if (it == positionAndSizes.end()) {
+        return false;
+    }
+
+    if (x + width > 1 || y + height > 1) {
+        return false;
+    }
+
+    it->second->setWidth(width*outputWidth);
+    it->second->setHeight(height*outputHeight);
+    it->second->setX(x*outputWidth);
+    it->second->setY(y*outputHeight);
+    it->second->setLayer(layer);
+
+    return true;
+}
+
+void VideoMixer::pasteToLayout(int frameID, VideoFrame* vFrame)
+{
+    cv::Mat img(vFrame->getHeight(), vFrame->getWidth(), CV_8UC3, vFrame->getDataBuf());
+    cv::Size sz(positionAndSizes[frameID]->getWidth(), positionAndSizes[frameID]->getHeight());
+    int x = positionAndSizes[frameID]->getX();
+    int y = positionAndSizes[frameID]->getY();
 
     if (img.size() != sz) {
-        resize(img, layoutImg(Rect(x, y, sz.width, sz.height)), sz, 0, 0, INTER_LINEAR);
+        resize(img, layoutImg(cv::Rect(x, y, sz.width, sz.height)), sz, 0, 0, cv::INTER_LINEAR);
         return;
     }
 
-    img.copyTo(layoutImg(Rect(x, y, sz.width, sz.height)));
+    img.copyTo(layoutImg(cv::Rect(x, y, sz.width, sz.height)));
+    vFrame->setSize(outputWidth, outputHeight);
 }

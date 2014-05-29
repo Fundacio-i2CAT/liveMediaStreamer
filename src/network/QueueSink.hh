@@ -36,7 +36,7 @@
 #include "../IOInterface.hh"
 #endif
 
-#define DUMMY_RECEIVE_BUFFER_SIZE 100000
+#define DUMMY_RECEIVE_BUFFER_SIZE 200000
 
 class QueueSink: public MediaSink, public Writer {
 

@@ -1,4 +1,28 @@
+/*
+ *  VideoDecoderLibav.cpp - A libav-based video decoder
+ *  Copyright (C) 2014  Fundació i2CAT, Internet i Innovació digital a Catalunya
+ *
+ *  This file is part of media-streamer.
+ *
+ *  This program is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ *  Authors: David Cassany <david.cassany@i2cat.net>  
+ *           Marc Palau <marc.palau@i2cat.net>
+ */
+
 #include "VideoDecoderLibav.hh"
+#include "../../AVFramedQueue.hh"
 
 VideoDecoderLibav::VideoDecoderLibav()
 {
@@ -129,13 +153,13 @@ bool VideoDecoderLibav::toBuffer(VideoFrame *decodedFrame)
     return true;
 }
 
-bool VideoDecoderLibav::decodeFrame(Frame *codedFrame, Frame *decodedFrame)
+bool VideoDecoderLibav::doProcessFrame(Frame *org, Frame *dst)
 {
     int len, gotFrame = 0;
-    VideoFrame* vDecodedFrame = dynamic_cast<VideoFrame*>(decodedFrame);
+    VideoFrame* vDecodedFrame = dynamic_cast<VideoFrame*>(dst);
 
-    pkt.size = codedFrame->getLength();
-    pkt.data = codedFrame->getDataBuf();
+    pkt.size = org->getLength();
+    pkt.data = org->getDataBuf();
    
     while (pkt.size > 0) {
         len = avcodec_decode_video2(codecCtx, frame, &gotFrame, &pkt);
@@ -161,5 +185,10 @@ bool VideoDecoderLibav::decodeFrame(Frame *codedFrame, Frame *decodedFrame)
     }
         
     return true;
+}
+
+FrameQueue* VideoDecoderLibav::allocQueue(int wId)
+{
+    return VideoFrameQueue::createNew(RAW, 0, DEFAULT_WIDTH, DEFAULT_HEIGHT, RGB24);
 }
 

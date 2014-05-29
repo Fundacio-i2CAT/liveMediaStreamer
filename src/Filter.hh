@@ -59,7 +59,7 @@ protected:
     virtual FrameQueue *allocQueue(int wId) = 0;
     virtual bool processFrame() = 0;
 
-    Reader* getReader(int id);1
+    Reader* getReader(int id);
     bool demandOriginFrames();
     bool demandDestinationFrames();
     void addFrames();

@@ -49,8 +49,9 @@ public:
 private:
 
     bool resample(AVFrame* src, AudioFrame* dst);
-    void setInputParams(ACodecType codec, SampleFmt sampleFormat, int channels, int sampleRate);
-    bool config();
+    void checkInputParams(ACodecType codec, SampleFmt sampleFormat, int channels, int sampleRate);
+    bool inputConfig();
+    bool outputConfig();
 
     AVCodec             *codec;
     AVCodecContext      *codecCtx;

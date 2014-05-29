@@ -104,6 +104,10 @@ int main(int argc, char** argv)
 
     Reader *reader = new Reader();
     decoder->connect(decoder->getAvailableWriters().front(), reader);
+
+    vDecoderWorker = new Worker(decoder);
+
+    vDecoderWorker->start(); 
     
     while(mngr->isRunning()) {
         rawFrame = reader->getFrame();
@@ -118,7 +122,7 @@ int main(int argc, char** argv)
         } 
         if (rawFrame->getLength() > 0) {
             rawFrames.write(reinterpret_cast<const char*>(rawFrame->getDataBuf()), rawFrame->getLength());
-            printf("Filled buffer! Frame size: %d\n", codedFrame->getLength());
+            printf("Filled buffer! Frame size: %d\n", rawFrame->getLength());
         }
         
         reader->removeFrame();

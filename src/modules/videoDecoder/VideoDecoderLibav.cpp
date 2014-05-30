@@ -23,6 +23,7 @@
 
 #include "VideoDecoderLibav.hh"
 #include "../../AVFramedQueue.hh"
+#include <iostream>
 
 VideoDecoderLibav::VideoDecoderLibav()
 {
@@ -37,9 +38,14 @@ VideoDecoderLibav::VideoDecoderLibav()
     frame = av_frame_alloc();
     outFrame = av_frame_alloc();
 
+    imgConvertCtx = NULL;
+
     outputWidth = 0;
     outputHeight = 0;
     outputPixelFormat = RGB24;
+    libavPixFmt = AV_PIX_FMT_RGB24;
+
+    fCodec = VC_NONE;
 
     needsConfig = false;
 
@@ -70,16 +76,15 @@ bool VideoDecoderLibav::doProcessFrame(Frame *org, Frame *dst)
         len = avcodec_decode_video2(codecCtx, frame, &gotFrame, &pkt);
 
         if(len <= 0) {
-            //TODO: error
+            std::cerr << "Error decoding video frame" << std::endl;
             return false;
         }
 
         //TODO: something about B-frames?
         
-        if (gotFrame){
-            if (toBuffer(vDecodedFrame) <= 0){
-                //TODO: error
-                return false;
+        if (gotFrame) {
+            if (toBuffer(vDecodedFrame)) {
+                return true;
             }
         }
         
@@ -88,8 +93,8 @@ bool VideoDecoderLibav::doProcessFrame(Frame *org, Frame *dst)
             pkt.data += len;
         }
     }
-        
-    return true;
+   
+    return false;
 }
 
 bool VideoDecoderLibav::inputConfig()
@@ -182,6 +187,8 @@ bool VideoDecoderLibav::toBuffer(VideoFrame *decodedFrame)
 {
     unsigned int length;
 
+
+
     if (outputWidth == 0 || outputHeight == 0) {
         outputWidth = codecCtx->width;
         outputHeight = codecCtx->height;
@@ -205,7 +212,7 @@ bool VideoDecoderLibav::toBuffer(VideoFrame *decodedFrame)
     if (length <= 0){
         return false;
     }
-           
+
     // if (frame->format == outputPixelFormat) {
     //     length = avpicture_layout((AVPicture *)frame, pix_fmt,
     //                               outputWidth, outputHeight, 
@@ -235,7 +242,9 @@ void VideoDecoderLibav::checkInputParams(VCodecType codec)
 
     fCodec = codec;
 
-    inputConfig();
+    if(!inputConfig()) {
+        std::cerr << "Error configuring video decoder" << std::endl;
+    }
 }
 
 void VideoDecoderLibav::outputConfig()

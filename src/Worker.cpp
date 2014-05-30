@@ -34,7 +34,7 @@
 Worker::Worker(Runnable *processor_, unsigned int maxFps): processor(processor_), run(false), enabled(false)
 { 
     if (maxFps != 0){
-        frameTime = 1/maxFps*1000000;
+        frameTime = 1000000/maxFps;
     } else {
         frameTime = 0;
     }
@@ -125,7 +125,7 @@ bool Worker::isEnabled()
 void Worker::setFps(int maxFps)
 {
     if (maxFps != 0){
-        frameTime = 1/maxFps*1000000;
+        frameTime = 1000000/maxFps;
     } else {
         frameTime = 0;
     }

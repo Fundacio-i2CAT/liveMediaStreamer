@@ -40,6 +40,7 @@ extern "C" {
 
 #include "../../FrameQueue.hh"
 #include "../../Filter.hh"
+#include <fstream>
 
 class VideoDecoderLibav : public OneToOneFilter {
 
@@ -68,6 +69,9 @@ class VideoDecoderLibav : public OneToOneFilter {
         int                 outputHeight;
         PixType             outputPixelFormat;
         bool                needsConfig;
+
+        std::ofstream decodedFrames;
+
 };
 
 #endif

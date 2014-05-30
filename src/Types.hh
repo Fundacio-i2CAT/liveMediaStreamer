@@ -34,7 +34,7 @@
 #define AUDIO_FRAME_TIME 100 //ms
 #define DEFAULT_FRAME_SAMPLES 960
 
-enum VCodecType {H264, VP8, MJPEG, RAW};
+enum VCodecType {VC_NONE = -1, H264, VP8, MJPEG, RAW};
 
 enum PixType {P_NONE, RGB24, RGB32, YUYV422};
 

@@ -59,15 +59,12 @@ int main(int argc, char** argv)
     Session* session;
     SourceManager *mngr = SourceManager::getInstance();
     FrameQueue* queue;
-    Frame* rawFrame = InterleavedVideoFrame::createNew(DEFAULT_WIDTH, DEFAULT_HEIGHT, RGB24);
+    Frame* rawFrame = InterleavedVideoFrame::createNew(RAW, DEFAULT_WIDTH, DEFAULT_HEIGHT, RGB24);
     VideoDecoderLibav* decoder = new VideoDecoderLibav();
     Worker *vDecoderWorker;
     std::ofstream rawFrames;
     
     //condif decoder
-    if (! decoder->configDecoder(H264, RGB24)){
-        return 1;
-    }
     
     signal(SIGINT, signalHandler); 
     

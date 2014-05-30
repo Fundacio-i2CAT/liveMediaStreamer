@@ -26,6 +26,7 @@
 #include "../../VideoFrame.hh"
 #include "../../Filter.hh"
 #include <opencv/cv.hpp>
+ 
 
 #define MAX_LAYERS 8
 
@@ -50,6 +51,7 @@ private:
     int x;
     int y;
     int layer;
+
 };
 
 class VideoMixer : public ManyToOneFilter {

@@ -23,6 +23,7 @@
 #include "VideoMixer.hh"
 #include "../../AVFramedQueue.hh"
 #include <iostream>
+#include <chrono>
 
 PositionSize::PositionSize(int width, int height, int x, int y, int layer)
 {
@@ -32,7 +33,7 @@ PositionSize::PositionSize(int width, int height, int x, int y, int layer)
     this->y = y;
 }
 
-VideoMixer::VideoMixer(int inputChannels) : ManyToOneFilter(inputChannels)
+VideoMixer::VideoMixer(int inputChannels) : ManyToOneFilter(inputChannels, true)
 {
     outputWidth = DEFAULT_WIDTH;
     outputHeight = DEFAULT_HEIGHT;
@@ -45,7 +46,7 @@ VideoMixer::VideoMixer(int inputChannels) : ManyToOneFilter(inputChannels)
 }
 
 VideoMixer::VideoMixer(int inputChannels, int outputWidth, int outputHeight) :
-ManyToOneFilter(inputChannels)
+ManyToOneFilter(inputChannels, true)
 {
     this->outputWidth = outputWidth;
     this->outputHeight = outputHeight;
@@ -69,6 +70,7 @@ bool VideoMixer::doProcessFrame(std::map<int, Frame*> orgFrames, Frame *dst)
 
     layoutImg.data = dst->getDataBuf();
     dst->setLength(layoutImg.step * outputHeight);
+    dynamic_cast<VideoFrame*>(dst)->setSize(outputWidth, outputHeight);
 
     for (int lay=0; lay < MAX_LAYERS; lay++) {
         for (auto it : orgFrames) {
@@ -131,5 +133,4 @@ void VideoMixer::pasteToLayout(int frameID, VideoFrame* vFrame)
     }
 
     img.copyTo(layoutImg(cv::Rect(x, y, sz.width, sz.height)));
-    vFrame->setSize(outputWidth, outputHeight);
 }

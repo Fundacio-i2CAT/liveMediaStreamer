@@ -79,6 +79,7 @@ bool BaseFilter::demandOriginFrames()
             break;
         }
     }
+
     return newFrame;
 }
 
@@ -121,8 +122,8 @@ bool BaseFilter::connect(int wId, BaseFilter *R, int rId)
     if (r->isConnected()){
         return false;
     }
-    dFrames[wId] = NULL;
-    R->oFrames[rId] = NULL;
+   // dFrames[wId] = NULL;
+   // R->oFrames[rId] = NULL;
     FrameQueue *queue = allocQueue(wId);
     writers[wId]->setQueue(queue);
     return writers[wId]->connect(r);
@@ -190,8 +191,7 @@ bool OneToOneFilter::processFrame()
     if (!demandOriginFrames() || !demandDestinationFrames()) {
         return false;
     }
-    if (doProcessFrame(oFrames.begin()->second, 
-        dFrames.begin()->second)){
+    if (doProcessFrame(oFrames.begin()->second, dFrames.begin()->second)) {
         addFrames();
     }
     removeFrames();
@@ -245,13 +245,16 @@ BaseFilter(readersNum, 1, force_)
 bool ManyToOneFilter::processFrame()
 {
     bool newData;
-    if (!demandOriginFrames() || !demandDestinationFrames()){
+    
+    if (!demandOriginFrames() || !demandDestinationFrames()) {
         return false;
     }
-    if (doProcessFrame(oFrames, 
-        dFrames.begin()->second)){
+
+    if (doProcessFrame(oFrames, dFrames.begin()->second)) {
         addFrames();
-        }
-        removeFrames();
+    }
+
+    removeFrames();
+    
     return true;
 }

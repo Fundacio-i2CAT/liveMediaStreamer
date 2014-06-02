@@ -78,7 +78,7 @@ void VideoEncoderX264::encodeHeadersFrame(Frame *decodedFrame, Frame *encodedFra
 	x264Frame->setNals(ppNal, (*piNal), encodeSize);
 }
 
-void VideoEncoderX264::encodeFrame(bool forceIntra, Frame *decodedFrame, Frame *encodedFrame) {
+void VideoEncoderX264::encodeFrame(Frame *decodedFrame, Frame *encodedFrame) {
 	InterleavedVideoFrame* interleavedFrame = (InterleavedVideoFrame*) decodedFrame;
 	X264VideoFrame* x264Frame = (X264VideoFrame*) encodedFrame;
 	int inWidth, inHeight, outWidth, outHeight, inFps, frameLength, pixelSize; 
@@ -127,8 +127,10 @@ void VideoEncoderX264::encodeFrame(bool forceIntra, Frame *decodedFrame, Frame *
 
 	picIn.i_pts = pts;
 
-	if (forceIntra)
+	if (forceIntra) {
 		picIn.i_type = X264_TYPE_I;
+		forceIntra = false;
+	}
 	else
 		picIn.i_type = X264_TYPE_AUTO;
 	

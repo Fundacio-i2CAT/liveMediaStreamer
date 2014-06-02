@@ -3,7 +3,7 @@
 
 #include <stdint.h>
 #include "../../X264VideoFrame.hh"
-#include "../../ProcessorInterface.hh"
+#include "../../Filter.hh"
 
 extern "C" {
 #include <x264.h>
@@ -13,18 +13,20 @@ extern "C" {
 }
 
 
-class VideoEncoderX264: public ProcessorInterface {
+class VideoEncoderX264: public OneToOneFilter {
 	public:
 		VideoEncoderX264();
 		~VideoEncoderX264();
 		void encodeHeadersFrame(Frame *decodedFrame, Frame *encodedFrame);
-		void encodeFrame(bool forceIntra, Frame *decodedFrame, Frame *encodedFrame);
+		void encodeFrame(Frame *decodedFrame, Frame *encodedFrame);
 		bool config(x264_param_t params, int inFps);
+		void setIntra(){forceIntra = true;};
 
 	protected:
 
 		x264_picture_t picIn;
 		x264_picture_t picOut;
+		bool forceIntra;
 		int fps;
 		int pts;
 		x264_param_t xparams;

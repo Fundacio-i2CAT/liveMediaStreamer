@@ -1,8 +1,8 @@
 /*
- *  Types - AV types
- *  Copyright (C) 2013  Fundació i2CAT, Internet i Innovació digital a Catalunya
+ *  Event.hh - Event class
+ *  Copyright (C) 2014  Fundació i2CAT, Internet i Innovació digital a Catalunya
  *
- *  This file is part of media-streamer.
+ *  This file is part of liveMediaStreamer.
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -18,28 +18,27 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  *  Authors:  Marc Palau <marc.palau@i2cat.net>
+ *            
  */
 
-#ifndef _TYPES_HH
-#define _TYPES_HH
+#ifndef _EVENT_HH
+#define _EVENT_HH
 
-#define DEFAULT_HEIGHT 1080
-#define DEFAULT_WIDTH 1920
-#define DEFAULT_BYTES_PER_PIXEL 3
-#define DEFAULT_VIDEO_FRAMES 100
-#define LENGTH_H264 6000000 //6MB
-#define FRAMES_OPUS 1000
-#define LENGTH_OPUS 2000
-#define FRAMES_AUDIO_RAW 2000
-#define AUDIO_FRAME_TIME 100 //ms
-#define DEFAULT_FRAME_SAMPLES 960
+#include <string>
 
-enum VCodecType {VC_NONE = -1, H264, VP8, MJPEG, RAW};
+class Event {
+    
+public:
+    Event(Jzon::Object rootNode, std::chrono::miliseconds timestamp);
+    ~Event();    
+    bool canBeExecuted(std::chrono::miliseconds currentTime);
+    std::string getAction();
+    Jzon::Object* getParams();
 
-enum PixType {P_NONE, RGB24, RGB32, YUYV422};
+private:
+    Jzon::Object* inputRootNode,
+    std::chrono::miliseconds timestamp;
 
-enum ACodecType {G711, PCMU, OPUS, PCM};
-
-enum SampleFmt {S_NONE = -1, U8, S16, FLT, U8P, S16P, FLTP};
+};
 
 #endif

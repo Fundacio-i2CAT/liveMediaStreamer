@@ -180,6 +180,40 @@ std::vector<int> BaseFilter::getAvailableWriters()
     return writersId;
 }
 
+void BaseFilter::processEvent() 
+{
+    eventQueueMutex.lock();
+
+    while(newEvent()) {
+
+        doProcessEvent(eventQueue.top());
+        queueEvent.pop();
+    }
+
+    eventQueueMutex.unlock();
+}
+
+bool BaseFilter::newEvent() 
+{
+    if (eventQueue.empty()) {
+        return false;
+    }
+
+    if (!eventQueue.top().canBeExecuted()) {
+        return false;
+    }
+
+    return true;
+}
+
+void pushEvent(Event e)
+{
+    eventQueueMutex.lock();
+    eventQueueMutex.push(e);
+    eventQueueMutex.unlock();
+}
+
+
 OneToOneFilter::OneToOneFilter(bool force_) : 
 BaseFilter(1, 1, force_)
 {
@@ -188,12 +222,17 @@ BaseFilter(1, 1, force_)
 bool OneToOneFilter::processFrame()
 {
     bool newData = false;
+
+    processEvent();
+
     if (!demandOriginFrames() || !demandDestinationFrames()) {
         return false;
     }
+
     if (doProcessFrame(oFrames.begin()->second, dFrames.begin()->second)) {
         addFrames();
     }
+    
     removeFrames();
     return true;
 }
@@ -206,6 +245,9 @@ BaseFilter(1, writersNum, force_)
 bool OneToManyFilter::processFrame()
 {
     bool newData;
+
+    processEvent();
+
     if (!demandOriginFrames() || !demandDestinationFrames()){
         return false;
     }

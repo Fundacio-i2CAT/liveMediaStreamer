@@ -27,6 +27,8 @@
 
 #include <map>
 #include <vector>
+#include <queue>
+#include <mutex>
 
 #ifndef _FRAME_QUEUE_HH
 #include "FrameQueue.hh"
@@ -40,6 +42,8 @@
 #include "Worker.hh"
 #endif
 
+#include "Event.hh"
+
 class BaseFilter : public Runnable {
     
 public:
@@ -50,6 +54,7 @@ public:
     bool disconnect(int wId, BaseFilter *R, int rId);
     std::vector<int> getAvailableReaders();
     std::vector<int> getAvailableWriters();
+    virtual void pushEvent(Event e);
     
 protected:
     BaseFilter(int readersNum, int writersNum, bool force_ = false);
@@ -58,6 +63,7 @@ protected:
     
     virtual FrameQueue *allocQueue(int wId) = 0;
     virtual bool processFrame() = 0;
+    virtual void doProcessEvent(Event event) = 0;
 
     Reader* getReader(int id);
     bool demandOriginFrames();
@@ -74,8 +80,12 @@ protected:
 private:
     int rwNextId;
     bool force;
+    priority_queue<Event> eventQueue;
+    std::mutex eventQueueMutex;
     
     std::map<int, bool> rUpdates;
+    void processEvent(); 
+    bool newEvent(); 
 };
 
 class OneToOneFilter : public BaseFilter {
@@ -117,7 +127,10 @@ private:
 };
 
 class HeadFilter : public BaseFilter {
-    
+public:
+    //TODO:implement this function
+    void pushEvent(Event e){};
+
 protected:
     HeadFilter(int writersNum);
     //TODO: desctructor

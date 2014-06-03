@@ -34,6 +34,30 @@ int AudioFrame::getDefaultSamples(int sampleRate)
     return (DEFAULT_FRAME_TIME*sampleRate)/1000;
 }
 
+SampleFmt AudioFrame::getSampleFormatFromString(std::string stringSampleFmt)
+{
+    SampleFmt sampleFormat;
+    
+    if (action.compare("u8") == 0) {
+        sampleFormat = U8;
+    } else if (action.compare("u8p") == 0) {
+        sampleFormat = U8P;
+    }  else if (action.compare("s16") == 0) {
+        sampleFormat = S16;
+    }  else if (action.compare("s16p") == 0) {
+        sampleFormat = S16P;
+    }  else if (action.compare("flt") == 0) {
+        sampleFormat = FLT;
+    }  else if (action.compare("fltp") == 0) {
+        sampleFormat = FLTP;
+    }  else {
+        sampleFormat = S_NONE;
+    }
+
+    return sampleFormat;
+}
+
+
 AudioFrame::AudioFrame(unsigned int ch, unsigned int sRate, unsigned int maxSamples, ACodecType codec, SampleFmt sFmt)
 {
     channels = ch;

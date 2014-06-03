@@ -52,6 +52,7 @@ private:
     void checkInputParams(ACodecType codec, SampleFmt sampleFormat, int channels, int sampleRate);
     bool inputConfig();
     bool outputConfig();
+    void doProcessEvent(Event event);
 
     AVCodec             *codec;
     AVCodecContext      *codecCtx;
@@ -73,6 +74,8 @@ private:
     unsigned int        bytesPerSample;
     unsigned char       *auxBuff[1];
     bool                needsConfig;
+
+    std::map<std::string, std::function<void(int)> f_display = print_num;void(Mixer::*)(Jzon::Object*, Jzon::Object*)> commands;
 
 };
 

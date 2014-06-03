@@ -56,6 +56,7 @@ class AudioFrame : public Frame {
         virtual void fillBufferWithFloatSamples(std::vector<float> samples, int channel) = 0;
         static int getMaxSamples(int sampleRate);
         static int getDefaultSamples(int sampleRate);
+        static SampleFmt getSampleFormatFromString(std::string stringSampleFmt);
               
     protected:
         unsigned int channels, sampleRate, samples, maxSamples, bytesPerSample; 

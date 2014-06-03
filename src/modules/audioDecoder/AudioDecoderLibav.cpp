@@ -331,4 +331,46 @@ void AudioDecoderLibav::checkInputParams(ACodecType codec, SampleFmt sampleForma
     inputConfig();
 }
 
+void doProcessEvent(Event event) 
+{
+    std::string action = e.getAction();
+    Jzon::Object* params = e.getParams();
+
+    if (action.empty()) {
+        return;
+    }
+
+    if (actionMap.count(action) <= 0 {
+        //TODO: error!
+    }
+
+    actionMap[action](params);
+}
+
+void configEvent(Jzon::Object* params) 
+{
+    SampleFmt newSampleFmt = outSampleFmt;
+    int newChannels = outChannels;
+    int newSampleRate = outSampleRate;
+
+    if (!params) {
+        return;
+    }
+
+    if (params->Has("sampleRate")) {
+        newSampleRate = params->Get("sampleRate").ToInt();
+    }
+
+    if (params->Has("channels")) {
+        newChannels = params->Get("channels").ToInt();
+    }
+
+    if (params->Has("sampleFormat")) {
+        newSampleFmt = AudioFrame::getSampleFormatFromString(params->Get("sampleFormat").ToString());
+    }
+
+    configure(newSampleFmt, newChannels, newSampleRate);
+}
+
+
 

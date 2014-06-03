@@ -1,4 +1,3 @@
-
 #ifndef _QUEUE_SOURCE_HH
 #define _QUEUE_SOURCE_HH
 
@@ -14,13 +13,12 @@
 #include "../Frame.hh"
 #endif
 
-class QueueSource: public FramedSource {
+class QueueSource: public FramedSource, public Reader {
 
 public:
     static QueueSource* createNew(UsageEnvironment& env, FrameQueue *q);
     virtual void doGetNextFrame();
     virtual void doStopGettingFrames();
-
 
 protected:
     QueueSource(UsageEnvironment& env, FrameQueue *q);
@@ -28,9 +26,7 @@ protected:
     static void staticDoGetNextFrame(FramedSource* source);
 
 protected:
-    FrameQueue* queue;
     Frame* frame;
-    bool has_frame;
 };
 
 #endif

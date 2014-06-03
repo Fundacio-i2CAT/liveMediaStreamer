@@ -64,6 +64,7 @@ public:
     Frame* getFrame(bool force = false);
     void removeFrame();
     void setConnection(FrameQueue *queue);
+    const FrameQueue* getQueue() const {return queue;};
 
 private:
     friend class Writer;

@@ -33,14 +33,21 @@
 #include "../FrameQueue.hh"
 #endif
 
+typedef struct connection {
+    struct in_addr addr;
+    unsigned short port;
+} connection_t;
+
 class QueueServerMediaSubsession: public OnDemandServerMediaSubsession {
 protected: // we're a virtual base class
-    QueueServerMediaSubsession(UsageEnvironment& env, FrameQueue *queue,
+    QueueServerMediaSubsession(UsageEnvironment& env, QueueSource *source,
                 Boolean reuseFirstSource);
     virtual ~QueueServerMediaSubsession();
 
 protected:
-    FrameQueue* fQueue;
+    QueueSource* fSource;
+    //TODO: this vector should be protected with mutex
+    std::vector<connection_t> outputs;
 };
 
 #endif

@@ -25,10 +25,10 @@
 #include "QueueServerMediaSubsession.hh"
 
 QueueServerMediaSubsession
-::QueueServerMediaSubsession(UsageEnvironment& env, FrameQueue *queue,
+::QueueServerMediaSubsession(UsageEnvironment& env, QueueSource *source,
                 Boolean reuseFirstSource)
     : OnDemandServerMediaSubsession(env, reuseFirstSource),
-        fQueue(queue) {
+        fSource(source) {
 }
 
 QueueServerMediaSubsession::~QueueServerMediaSubsession() {

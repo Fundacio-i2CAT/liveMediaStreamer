@@ -136,6 +136,28 @@ private:
     using BaseFilter::dFrames;
 };
 
+class TailFilter : public BaseFilter {
+    
+protected:
+    TailFilter(int readersNum);
+    //TODO: desctructor
+    int getNullReadersID();
+    
+private:
+    //TODO: error message
+    int rwNextId;
+    
+    bool processFrame() {};
+    FrameQueue *allocQueue(int wId) {return NULL;};
+    using BaseFilter::demandOriginFrames;
+    using BaseFilter::demandDestinationFrames;
+    using BaseFilter::addFrames;
+    using BaseFilter::removeFrames;
+    using BaseFilter::readers;
+    using BaseFilter::oFrames;
+    using BaseFilter::dFrames;
+};
+
 class ManyToOneFilter : public BaseFilter {
     
 protected:

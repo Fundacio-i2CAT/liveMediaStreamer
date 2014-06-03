@@ -236,6 +236,45 @@ int HeadFilter::getNullWriterID()
     return -1;
 }
 
+HeadFilter::HeadFilter(int writersNum) : 
+BaseFilter()
+{
+    rwNextId = 0;
+    for(int i = 0; i < writersNum; i++, ++rwNextId) {
+        writers[rwNextId] = NULL;
+    }
+}
+
+int HeadFilter::getNullWriterID()
+{
+    for (auto it : writers){
+        if (it.second == NULL) {
+            return it.first;
+        }
+    }
+
+    return -1;
+}
+
+TailFilter::TailFilter(int readersNum) : 
+BaseFilter()
+{
+    rwNextId = 0;
+    for(int i = 0; i < readersNum; i++, ++rwNextId) {
+        readers[rwNextId] = NULL;
+    }
+}
+
+int TailFilter::getNullReaderID()
+{
+    for (auto it : readers){
+        if (it.second == NULL) {
+            return it.first;
+        }
+    }
+    
+    return -1;
+}
 
 ManyToOneFilter::ManyToOneFilter(int readersNum, bool force_) : 
 BaseFilter(readersNum, 1, force_)

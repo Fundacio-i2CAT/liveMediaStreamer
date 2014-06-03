@@ -30,7 +30,7 @@
 
 SinkManager *SinkManager::mngrInstance = NULL;
 
-SinkManager::SinkManager(): watch(0)
+SinkManager::SinkManager(): watch(0), TailFilter(readersNum)
 {    
     TaskScheduler* scheduler = BasicTaskScheduler::createNew();
     this->env = BasicUsageEnvironment::createNew(*scheduler);
@@ -105,6 +105,69 @@ bool SinkManager::addSession(std::string id, ServerMediaSession* session)
     }
     sessionList[id] = session;
     return true;
+}
+
+bool SinkManager::addSession(std::string id, std::vector<int> readers, std::string info, std::string desc)
+{
+    if (sessionList.count(id) > 0){
+        return false;
+    }
+    
+    ServerMediaSession* servSession
+        = ServerMediaSession::createNew(*(envir()), id, info, desc);
+        
+    if (servSession == NULL){
+        return false;
+    }
+    
+    ServerMediaSubsession *subsession;
+    
+    for (auto & reader : readers){
+        if ((subsession = createSubsessionByReader(getReader(reader))) != NULL){
+            servSession->addSubsession(subsession);
+        } else {
+            //TODO: delete ServerMediaSession and previous subsessions
+            return false;
+        }
+    }
+    
+    sessionList[id] = servSession;
+    
+    return true;
+}
+
+ServerMediaSubsession *SinkManager::createVideoMediaSubsession(VCodecType codec, QueueSource *source)
+{
+    switch(codec){
+        case H264:
+            return H264QueueServerMediaSubsession::createNew(*(envir()), source, True);
+            break;
+        default:
+            break;
+    }
+    return NULL;
+}
+
+ServerMediaSubsession *SinkManager::createSubsessionByReader(Reader *reader)
+{
+    const VideoFrameQueue *vQueue;
+    const AudioFrameQueue *aQueue;
+    const AudioCircularBuffer *circularBuffer;
+    QueueSource *source;
+    
+    if ((source = dynamic_cast<QueueSource*>(reader)) == NULL){
+        return NULL;
+    }
+    if ((vQueue = dynamic_cast<const VideoFrameQueue*>(reader->getQueue())) != NULL){
+        return createVideoMediaSubsession(vQueue->getCodec(), source);
+    }
+    if ((aQueue = dynamic_cast<const AudioFrameQueue*>(reader->getQueue())) != NULL){
+        //TODO:
+    }
+    if ((circularBuffer = dynamic_cast<const AudioCircularBuffer*>(reader->getQueue())) != NULL){
+        //TODO
+    }
+    return NULL;
 }
 
 bool SinkManager::removeSession(std::string id)

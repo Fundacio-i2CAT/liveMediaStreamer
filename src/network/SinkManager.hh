@@ -34,13 +34,14 @@
 #include <thread>
 #include <map>
 #include <string>
+#include <vector>
 
 #define RTSP_PORT 8554
+#define MAX_READERS 32
 
-
-class SinkManager {
+class SinkManager : public TailFilter {
 private:
-    SinkManager();
+    SinkManager(int readersNum = MAX_READERS);
     
 public:
     static SinkManager* getInstance();
@@ -51,27 +52,27 @@ public:
     
     void closeManager();
 
-    bool addSession(std::string id, ServerMediaSession* session);
+    bool addSession(std::string id, std::vector<int> readers, 
+                    std::string info = NULL, std::string desc = NULL);
     
     ServerMediaSession* getSession(std::string id); 
     bool publishSession(std::string id);
     bool removeSession(std::string id);
     
-    UsageEnvironment* envir() { return env; }
+    UsageEnvironment* envir() {return env;}
     
-private:
-
+private: 
+    ServerMediaSubsession *createSubsessionByReader(Reader *reader);
+    ServerMediaSubsession *createVideoMediaSubsession(VCodecType codec, QueueSource *source);
+    
     std::thread mngrTh;
-    
+   
     static SinkManager* mngrInstance;
     std::map<std::string, ServerMediaSession*> sessionList;
     UsageEnvironment* env;
     uint8_t watch;
     
     RTSPServer* rtspServer;
-    
 };
-
-
 
 #endif

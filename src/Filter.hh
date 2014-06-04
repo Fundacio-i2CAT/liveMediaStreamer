@@ -49,9 +49,12 @@ public:
     bool connectManyToOne(BaseFilter *R, int wId);
     bool connectOneToMany(BaseFilter *R, int rId);
     //Only for testing! Should not exist
-    bool connect(int wId, Reader *r);
+    bool connect(Reader *r);
     ///////////////////////////////////////
     bool disconnect(int wId, BaseFilter *R, int rId);
+    FilterType getType() {return fType;};
+    int generateReaderID();
+    int generateWriterID();
     
 protected:
     BaseFilter(int readersNum, int writersNum, bool force_ = false);
@@ -73,6 +76,7 @@ protected:
     std::map<int, Writer*> writers;
     std::map<int, Frame*> oFrames;
     std::map<int, Frame*> dFrames;
+    FilterType fType;
       
 private:
     bool force;

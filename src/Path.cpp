@@ -20,7 +20,11 @@
  *  Authors:  Marc Palau <marc.palau@i2cat.net>
  */
 
+#include <iostream>
 #include "Path.hh"
+#include "modules/videoDecoder/VideoDecoderLibav.hh"
+#include "modules/audioDecoder/AudioDecoderLibav.hh"
+#include "modules/audioEncoder/AudioEncoderLibav.hh"
 
 Path::Path(BaseFilter *origin, int orgWriterID) 
 {
@@ -53,8 +57,10 @@ bool Path::connect(BaseFilter *destination, int dstReaderID)
 
     if(!filters.back()->connectOneToMany(destination, dstReaderID)) {
         std::cerr << "Error!" << std::endl;
+        return false;
     }
 
+    return true;
 }
 
 VideoDecoderPath::VideoDecoderPath(BaseFilter *origin, int orgWriterID) : 

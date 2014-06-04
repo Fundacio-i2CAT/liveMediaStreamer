@@ -23,10 +23,13 @@
 #ifndef _PATH_HH
 #define _PATH_HH
 
+#include "Filter.hh"
+
 class Path {
 public:
-    Path(BaseFilter *origin, int orgWriterID); 
+    Path(BaseFilter* origin, int orgWriterID); 
     bool connect(BaseFilter *destination, int dstReaderID);
+    int getDstReaderID() {return dstReaderID;};
 
 protected:
     void addFilter(BaseFilter *filter);

@@ -63,8 +63,12 @@ class VideoMixer : public ManyToOneFilter {
         bool doProcessFrame(std::map<int, Frame*> orgFrames, Frame *dst);
         bool setPositionSize(int id, float width, float height, float x, float y, int layer);
 
+    protected:
+        Reader *setReader(int readerID, FrameQueue* queue);
+
     private:
         void pasteToLayout(int frameID, VideoFrame* vFrame);
+        Reader* setReader(int readerID, FrameQueue* queue)
 
         std::map<int, PositionSize*> positionAndSizes;        
         int outputWidth;

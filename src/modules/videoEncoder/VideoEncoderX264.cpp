@@ -1,6 +1,6 @@
 #include "VideoEncoderX264.hh"
 
-VideoEncoderX264::VideoEncoderX264(){
+VideoEncoderX264::VideoEncoderX264(): OneToOneFilter(){
 	fps = 24;
 	pts = 0;
 	swsCtx = NULL;
@@ -19,9 +19,80 @@ VideoEncoderX264::~VideoEncoderX264(){
 	//delete encoder;
 }
 
+bool doProcessFrame(Frame *org, Frame *dst) {
+	InterleavedVideoFrame* interleavedFrame = dynamic_cast<InterleavedVideoFrame*> org;
+	X264VideoFrame* x264Frame = dynamic_cast<X264VideoFrame*> dst;
+	int inWidth, inHeight, outWidth, outHeight, inFps, frameLength, pixelSize; 
+	x264_nal_t **ppNal;
+	int *piNal;
+	AVPixelFormat inPixel, outPixel;
+	PixType inPixelType, outPixelType;
+	inWidth = interleavedFrame->getWidth();
+	inHeight = interleavedFrame->getHeight();
+	outWidth = x264Frame->getWidth();
+	outHeight = x264Frame->getHeight();
+	inPixelType = interleavedFrame->getPixelFormat();
+	outPixelType = x264Frame->getPixelFormat();
+
+	switch (inPixelType) {
+		P_NONE:
+			inPixel = AV_PIX_FMT_NONE;
+			break;
+		RGB24:
+			inPixel = PIX_FMT_RGB24;
+			break;
+		RGB32:
+			inPixel = PIX_FMT_RGBA;
+			break;
+		YUYV422:
+			inPixel = PIX_FMT_YUV420P;
+			break;
+	}
+
+	switch (outPixelType) {
+		P_NONE:
+			outPixel = AV_PIX_FMT_NONE;
+			break;
+		RGB24:
+			outPixel = PIX_FMT_RGB24;
+			break;
+		RGB32:
+			outPixel = PIX_FMT_RGBA;
+			break;
+		YUYV422:
+			outPixel = PIX_FMT_YUV420P;
+			break;
+	}
+
+	pixelSize = inWidth*3;
+
+	picIn.i_pts = pts;
+
+	if (forceIntra) {
+		picIn.i_type = X264_TYPE_I;
+		forceIntra = false;
+	}
+	else
+		picIn.i_type = X264_TYPE_AUTO;
+	
+	sws_scale(swsCtx, pixels, &pixelSize, 0, inHeight, picIn.img.plane, picIn.img.i_stride);
+
+	frameLength = x264_encoder_encode(encoder, ppNal, piNal, &picIn, &picOut);
+	if (frameLength < 1) {
+		std::cerr << "Error encoding video frame" << std::endl;
+		return false;
+	}
+
+	x264Frame->setNals(ppNal, (*piNal), frameLength);
+
+	pts++;
+	return true;
+}
+
+
 void VideoEncoderX264::encodeHeadersFrame(Frame *decodedFrame, Frame *encodedFrame) {
-	InterleavedVideoFrame* interleavedFrame = (InterleavedVideoFrame*) decodedFrame;
-	X264VideoFrame* x264Frame = (X264VideoFrame*) encodedFrame;
+	InterleavedVideoFrame* interleavedFrame = dynamic_cast<InterleavedVideoFrame*> decodedFrame;
+	X264VideoFrame* x264Frame = dynamic_cast<X264VideoFrame*> encodedFrame;
 	int inWidth, inHeight, outWidth, outHeight, inFps, encodeSize;
 	x264_nal_t **ppNal;
 	int *piNal;
@@ -79,8 +150,8 @@ void VideoEncoderX264::encodeHeadersFrame(Frame *decodedFrame, Frame *encodedFra
 }
 
 void VideoEncoderX264::encodeFrame(Frame *decodedFrame, Frame *encodedFrame) {
-	InterleavedVideoFrame* interleavedFrame = (InterleavedVideoFrame*) decodedFrame;
-	X264VideoFrame* x264Frame = (X264VideoFrame*) encodedFrame;
+	InterleavedVideoFrame* interleavedFrame = dynamic_cast<InterleavedVideoFrame*> decodedFrame;
+	X264VideoFrame* x264Frame = dynamic_cast<X264VideoFrame*> encodedFrame;
 	int inWidth, inHeight, outWidth, outHeight, inFps, frameLength, pixelSize; 
 	x264_nal_t **ppNal;
 	int *piNal;

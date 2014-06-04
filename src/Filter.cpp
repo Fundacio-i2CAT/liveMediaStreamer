@@ -119,12 +119,20 @@ bool BaseFilter::connect(int wId, BaseFilter *R, int rId)
         return false;
     }
     Reader *r = R->getReader(rId);
-    if (r->isConnected()){
+
+    if (r && r->isConnected()){
         return false;
+    }
+
+    FrameQueue *queue = allocQueue(wId);
+    
+    if (!r) {
+        if(!R->setReader(rId, queue)) {
+            return false;
+        }
     }
    // dFrames[wId] = NULL;
    // R->oFrames[rId] = NULL;
-    FrameQueue *queue = allocQueue(wId);
     writers[wId]->setQueue(queue);
     return writers[wId]->connect(r);
 }

@@ -305,13 +305,7 @@ namespace handlers
         QueueSink *sink;
         SourceManager* mngr = SourceManager::getInstance();
         
-        wId = mngr->getNullWriterID();
-
-        if (wId == -1) {
-            std::cerr << "Available writers empty!" << std::endl;
-            return false;
-        }
-        
+        //Posar 
         if (strcmp(subsession->codecName(), "H264") == 0) {
             sink = H264QueueSink::createNew(env, subsession->fmtp_spropparametersets());
         } else {
@@ -323,9 +317,12 @@ namespace handlers
             return false;
         }
 
-        mngr->addConnection(wId, subsession);
         subsession->sink = sink;
+        wId = subsession->clientPortNum();
         mngr->writers[wId] = sink;
+
+        //TODO: this should be our callback!
+        mngr->callback(subsession->mediumName(), subsession->clientPortNum());
         
         subsession->sink->startPlaying(*(subsession->readSource()),
                                        handlers::subsessionAfterPlaying, subsession);

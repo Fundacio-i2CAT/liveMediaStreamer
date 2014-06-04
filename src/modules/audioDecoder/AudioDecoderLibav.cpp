@@ -36,6 +36,7 @@ AudioDecoderLibav::AudioDecoderLibav() : OneToOneFilter()
     av_init_packet(&pkt);
     pkt.data = NULL;
     pkt.size = 0;
+    fType = AUDIO_DECODER;
 
     inChannels = 0;
     inSampleRate = 0;

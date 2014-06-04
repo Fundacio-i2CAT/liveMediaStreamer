@@ -40,16 +40,21 @@
 #include "Worker.hh"
 #endif
 
+#define DEFAULT_ID 1
+
 class BaseFilter : public Runnable {
     
 public:
-    bool connect(int wId, BaseFilter *R, int rId);
+    bool connectOneToOne(BaseFilter *R);
+    bool connectManyToOne(BaseFilter *R, int wId);
+    bool connectOneToMany(BaseFilter *R, int rId);
     //Only for testing! Should not exist
-    bool connect(int wId, Reader *r);
+    bool connect(Reader *r);
     ///////////////////////////////////////
     bool disconnect(int wId, BaseFilter *R, int rId);
-    std::vector<int> getAvailableReaders();
-    std::vector<int> getAvailableWriters();
+    FilterType getType() {return fType;};
+    int generateReaderID();
+    int generateWriterID();
     
 protected:
     BaseFilter(int readersNum, int writersNum, bool force_ = false);
@@ -58,8 +63,7 @@ protected:
     
     virtual FrameQueue *allocQueue(int wId) = 0;
     virtual bool processFrame() = 0;
-    virtual bool setReader(int readerID, FrameQueue* queue) {return false;};
-
+    virtual Reader *setReader(int readerID, FrameQueue* queue);
 
     Reader* getReader(int id);
     bool demandOriginFrames();
@@ -72,10 +76,12 @@ protected:
     std::map<int, Writer*> writers;
     std::map<int, Frame*> oFrames;
     std::map<int, Frame*> dFrames;
+    FilterType fType;
       
 private:
-    int rwNextId;
     bool force;
+    int readersCount;
+    int writersCount;
     
     std::map<int, bool> rUpdates;
 };

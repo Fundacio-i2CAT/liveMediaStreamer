@@ -59,6 +59,7 @@ private:
 class Reader {
 public:
     Reader();
+    ~Reader();
     void setQueue(FrameQueue *queue);
     bool isConnected() {return connected;};
     Frame* getFrame(bool force = false);
@@ -68,7 +69,7 @@ public:
 private:
     friend class Writer;
 
-    void unsetConnection();
+    void disconnect();
     
     FrameQueue *queue;
     bool connected;

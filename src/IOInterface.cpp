@@ -34,6 +34,11 @@ Reader::Reader()
     connected = false;
 }
 
+Reader::~Reader()
+{
+    delete queue;
+}
+
 void Reader::setQueue(FrameQueue *queue)
 {
     this->queue = queue;
@@ -68,9 +73,8 @@ void Reader::setConnection(FrameQueue *queue)
     connected = true;
 }
 
-void Reader::unsetConnection()
+void Reader::disconnect()
 {
-    this->queue = NULL;
     connected = false;
 }
 
@@ -99,7 +103,7 @@ bool Writer::connect(Reader *reader)
 
 void Writer::disconnect(Reader *reader)
 {
-    reader->unsetConnection();
+    reader->disconnect();
 
     queue = NULL;
     connected = false;

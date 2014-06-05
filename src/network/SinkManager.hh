@@ -31,17 +31,20 @@
 #include <liveMedia/liveMedia.hh>
 #endif
 
+#ifndef _QUEUE_SOURCE_HH
+#include "QueueSource.hh"
+#endif
+
 #include <thread>
 #include <map>
 #include <string>
 #include <vector>
 
 #define RTSP_PORT 8554
-#define MAX_READERS 32
 
 class SinkManager : public TailFilter {
 private:
-    SinkManager(int readersNum = MAX_READERS);
+    SinkManager(int readersNum);
     
 public:
     static SinkManager* getInstance();
@@ -60,6 +63,9 @@ public:
     bool removeSession(std::string id);
     
     UsageEnvironment* envir() {return env;}
+    
+protected:
+    Reader *setReader(int readerID, FrameQueue* queue);
     
 private: 
     ServerMediaSubsession *createSubsessionByReader(Reader *reader);

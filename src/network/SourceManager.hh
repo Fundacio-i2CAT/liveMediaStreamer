@@ -46,7 +46,6 @@
 #include <string>
 
 #define ID_LENGTH 4
-#define MAX_WRITERS 32
 
 class Session;
 
@@ -80,7 +79,7 @@ private:
 
 class SourceManager : public HeadFilter {
 private:
-    SourceManager(int writersNum = MAX_WRITERS);
+    SourceManager(int writersNum);
     
 public:
     static SourceManager* getInstance();

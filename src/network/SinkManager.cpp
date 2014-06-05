@@ -97,16 +97,6 @@ bool SinkManager::isRunning()
     return mngrTh.joinable();
 }
 
-bool SinkManager::addSession(std::string id, ServerMediaSession* session)
-{   
-    if (sessionList.find(id) != sessionList.end()){
-        envir()->setResultMsg("Failed adding session! Duplicated id!\n");
-        return false;
-    }
-    sessionList[id] = session;
-    return true;
-}
-
 bool SinkManager::addSession(std::string id, std::vector<int> readers, std::string info, std::string desc)
 {
     if (sessionList.count(id) > 0){
@@ -114,7 +104,7 @@ bool SinkManager::addSession(std::string id, std::vector<int> readers, std::stri
     }
     
     ServerMediaSession* servSession
-        = ServerMediaSession::createNew(*(envir()), id, info, desc);
+        = ServerMediaSession::createNew(*(envir()), id.c_str(), info.c_str(), desc.c_str());
         
     if (servSession == NULL){
         return false;
@@ -214,5 +204,37 @@ ServerMediaSession* SinkManager::getSession(std::string id)
         return sessionList[id];
     }
     
+    return NULL;
+}
+
+Reader *SinkManager::setReader(int readerID, FrameQueue* queue)
+{
+    const VideoFrameQueue *vQueue;
+    const AudioFrameQueue *aQueue;
+    const AudioCircularBuffer *circularBuffer;
+    
+    if (readers.size() >= getMaxReaders() || readers.count(readerID) > 0 ) {
+        return NULL;
+    }
+    
+    if ((vQueue = dynamic_cast<const VideoFrameQueue*>(queue)) != NULL){
+        switch (vQueue->getCodec()){
+            case H264:
+                readers[readerID] = H264QueueSource::createNew(*(envir()), vQueue);
+                return readers[readerID];
+                break;
+            default:
+                break;
+        }
+    }
+    
+    if ((aQueue = dynamic_cast<const AudioFrameQueue*>(queue)) != NULL){
+        //TODO:
+    }
+    
+    if ((circularBuffer = dynamic_cast<const AudioCircularBuffer*>(queue)) != NULL){
+        //TODO
+    }
+
     return NULL;
 }

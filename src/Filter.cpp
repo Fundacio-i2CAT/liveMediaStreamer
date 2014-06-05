@@ -30,13 +30,13 @@
 #define RETRIES 6
 #define TIMEOUT 2500 //us
 
-BaseFilter::BaseFilter(bool force_) : force(force_)
+BaseFilter::BaseFilter(int maxReaders_, int maxWriters_, bool force_) : 
+    force(force_), maxReaders(maxReaders_), maxWriters(maxWriters_)
 {
-    readersCount = 0;
-    writersCount = 0;
 }
 
-Reader* BaseFilter::getReader(int id) {
+Reader* BaseFilter::getReader(int id) 
+{
     if (readers.count(id) <= 0) {
         return NULL;
     }
@@ -46,7 +46,7 @@ Reader* BaseFilter::getReader(int id) {
 
 Reader* BaseFilter::setReader(int readerID, FrameQueue* queue)
 {
-    if (readers.count(readerID) > 0 ) {
+    if (readers.size() >= getMaxReaders() || readers.count(readerID) > 0 ) {
         return NULL;
     }
 
@@ -92,10 +92,8 @@ bool BaseFilter::demandOriginFrames()
             oFrames[it.first] = it.second->getFrame();
             if (oFrames[it.first] == NULL) {
                 oFrames[it.first] = it.second->getFrame(force);
-               // if (oFrames[it.first] == NULL) {
-                    rUpdates[it.first] = false;
-                    missedOne = true;
-               // }
+                rUpdates[it.first] = false;
+                missedOne = true;
             } else {
                 rUpdates[it.first] = true;
                 newFrame = true;
@@ -145,6 +143,13 @@ void BaseFilter::removeFrames()
 bool BaseFilter::connectOneToOne(BaseFilter *R)
 {
     Reader* r;
+    FrameQueue *queue;
+    
+    if (writers.size() < getMaxWriters() && 
+        writers.count(DEFAULT_ID) <= 0){
+        writers[DEFAULT_ID] = new Writer();
+    }
+    
     if (writers[DEFAULT_ID]->isConnected()) {
         return false;
     }
@@ -153,13 +158,12 @@ bool BaseFilter::connectOneToOne(BaseFilter *R)
         return false;
     }
 
-    FrameQueue *queue = allocQueue(DEFAULT_ID);
+    queue = allocQueue(DEFAULT_ID);
     
-    if (!(r = R->setReader(DEFAULT_ID, queue))) {
+    if (!(r = R->setReader(DEFAULT_ID, queue))){
         return false;
     }
-   // dFrames[wId] = NULL;
-   // R->oFrames[rId] = NULL;
+
     writers[DEFAULT_ID]->setQueue(queue);
     return writers[DEFAULT_ID]->connect(r);
 }
@@ -167,22 +171,27 @@ bool BaseFilter::connectOneToOne(BaseFilter *R)
 bool BaseFilter::connectManyToOne(BaseFilter *R, int wId)
 {
     Reader* r;
-    if (writers[wId]->isConnected()) {
+    FrameQueue *queue;
+    
+    if (writers.size() < getMaxWriters() && 
+        writers.count(wId) <= 0){
+        writers[wId] = new Writer();
+    }
+    
+    if (writers.count(wId) > 0 || writers[wId]->isConnected()) {
         return false;
     }
 
     if (R->getReader(DEFAULT_ID) && R->getReader(DEFAULT_ID)->isConnected()){
-        //TODO: delete QUEUE
         return false;
     }
 
-    FrameQueue *queue = allocQueue(wId);
+    queue = allocQueue(wId);
     
     if (!(r = R->setReader(DEFAULT_ID, queue))) {
         return false;
     }
-   // dFrames[wId] = NULL;
-   // R->oFrames[rId] = NULL;
+
     writers[wId]->setQueue(queue);
     return writers[wId]->connect(r);
 }
@@ -190,22 +199,27 @@ bool BaseFilter::connectManyToOne(BaseFilter *R, int wId)
 bool BaseFilter::connectOneToMany(BaseFilter *R, int rId)
 {
     Reader* r;
+    FrameQueue *queue;
+    
+    if (writers.size() < getMaxWriters() && 
+        writers.count(DEFAULT_ID) <= 0){
+        writers[DEFAULT_ID] = new Writer();
+    }
+    
     if (writers[DEFAULT_ID]->isConnected()) {
         return false;
     }
 
     if (R->getReader(rId) && R->getReader(rId)->isConnected()){
-        //TODO: delete QUEUE
         return false;
     }
 
-    FrameQueue *queue = allocQueue(DEFAULT_ID);
+    queue = allocQueue(DEFAULT_ID);
     
     if (!(r = R->setReader(rId, queue))) {
         return false;
     }
-   // dFrames[wId] = NULL;
-   // R->oFrames[rId] = NULL;
+
     writers[DEFAULT_ID]->setQueue(queue);
     return writers[DEFAULT_ID]->connect(r);
 }
@@ -281,63 +295,16 @@ bool OneToManyFilter::processFrame()
 }
 
 HeadFilter::HeadFilter(int writersNum) : 
-BaseFilter()
+BaseFilter(0, writersNum, false)
 {
-    rwNextId = 0;
-    for(int i = 0; i < writersNum; i++, ++rwNextId) {
-        writers[rwNextId] = NULL;
-    }
+    
 }
 
-int HeadFilter::getNullWriterID()
-{
-    for (auto it : writers){
-        if (it.second == NULL) {
-            return it.first;
-        }
-    }
-
-    return -1;
-}
-
-HeadFilter::HeadFilter(int writersNum) : 
-BaseFilter()
-{
-    rwNextId = 0;
-    for(int i = 0; i < writersNum; i++, ++rwNextId) {
-        writers[rwNextId] = NULL;
-    }
-}
-
-int HeadFilter::getNullWriterID()
-{
-    for (auto it : writers){
-        if (it.second == NULL) {
-            return it.first;
-        }
-    }
-
-    return -1;
-}
 
 TailFilter::TailFilter(int readersNum) : 
-BaseFilter()
+BaseFilter(readersNum, 0, false)
 {
-    rwNextId = 0;
-    for(int i = 0; i < readersNum; i++, ++rwNextId) {
-        readers[rwNextId] = NULL;
-    }
-}
 
-int TailFilter::getNullReaderID()
-{
-    for (auto it : readers){
-        if (it.second == NULL) {
-            return it.first;
-        }
-    }
-    
-    return -1;
 }
 
 ManyToOneFilter::ManyToOneFilter(int readersNum, bool force_) : 

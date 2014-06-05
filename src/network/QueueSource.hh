@@ -9,6 +9,10 @@
 #include "../FrameQueue.hh"
 #endif
 
+#ifndef _IO_INTERFACE_HH
+#include "../IOInterface.hh"
+#endif
+
 #ifndef _FRAME_HH
 #include "../Frame.hh"
 #endif

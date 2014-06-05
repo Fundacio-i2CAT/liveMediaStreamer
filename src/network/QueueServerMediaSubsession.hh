@@ -33,6 +33,8 @@
 #include "../FrameQueue.hh"
 #endif
 
+#include <vector>
+
 typedef struct connection {
     struct in_addr addr;
     unsigned short port;

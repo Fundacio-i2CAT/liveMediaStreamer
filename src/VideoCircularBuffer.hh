@@ -23,6 +23,8 @@
 #ifndef _VIDEO_CIRCULAR_BUFFER_HH
 #define _VIDEO_CIRCULAR_BUFFER_HH
 
+#define MAX_NALS 100
+
 #include <atomic>
 #include "Types.hh"
 #include "FrameQueue.hh"
@@ -62,10 +64,11 @@ extern "C" {
         
         std::atomic<int> byteCounter;
 		unsigned int maxNals;
-        bool outputFrameAlreadyRead;
+		unsigned char *data[MAX_NALS];
+        bool moreNals;
 
         X264VideoFrame* inputFrame;
-        X264VideoFrame* outputFrame;
+        InterleavedVideoFrame* outputFrame;
 };
 
 #endif

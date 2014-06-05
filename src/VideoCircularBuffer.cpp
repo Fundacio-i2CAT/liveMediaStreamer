@@ -37,21 +37,23 @@ Frame* VideoCircularBuffer::getRear()
 
 Frame* VideoCircularBuffer::getFront()
 {
-    if (outputFrameAlreadyRead == false) {
-        return outputFrame;
+    if (moreNals == false) {
+        return NULL;
     }
 
     if (!popFront(outputFrame->getBufferNals(), outputFrame->getFrameLength())) {
+		moreNals = false;
         //std::cerr << "There is not enough data to fill a frame. Impossible to get frame!\n";
         return NULL;
     }
 
-    outputFrameAlreadyRead = false;
+	moreNals = true;    
     return outputFrame;
 }
 
 void VideoCircularBuffer::addFrame()
 {
+	outputFrameAlreadyRead = true;
     forcePushBack(inputFrame->getBufferNals(), getFrameLength());
 }
 
@@ -84,18 +86,15 @@ VideoCircularBuffer::VideoCircularBuffer(unsigned int numNals)
 {
     byteCounter = 0;
     maxNals = numNals;
-    outputFrameAlreadyRead = true;
+    moreNals = false;
 
     config();
 }
 
 bool VideoCircularBuffer::config()
 {
-    inputFrame = PlanarAudioFrame::createNew(channels, sampleRate, chMaxSamples, PCM, sampleFormat);
-    outputFrame = PlanarAudioFrame::createNew(channels, sampleRate, chMaxSamples, PCM, sampleFormat);
-
-    outputFrame->setSamples(AudioFrame::getDefaultSamples(sampleRate));
-    outputFrame->setLength(AudioFrame::getDefaultSamples(sampleRate)*bytesPerSample);
+    inputFrame = X264VideoFrame::createNew(H264, DEFAULT_WIDTH, DEFAULT_HEIGHT, YUYV422);
+    outputFrame = InterleavedVideoFrame::createNew(H264, DEFAULT_WIDTH, DEFAULT_HEIGHT, YUYV422);
 
     return true;
 }

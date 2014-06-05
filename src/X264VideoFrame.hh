@@ -32,7 +32,7 @@ extern "C" {
 class X264VideoFrame : public VideoFrame {
 
 	public:
-		X264VideoFrame();
+		createNew(VCodecType codec, unsigned int width, unsigned height, PixType pixelFormat);
 		~X264VideoFrame();
 		void setNals(x264_nal_t **nals, int size, int frameSize);
 		x264_nal_t** getNals() {return ppNals;};
@@ -44,6 +44,8 @@ class X264VideoFrame : public VideoFrame {
 		x264_nal_t **ppNals;
 		int sizeNals;
 		int frameLength;
+	private:
+		X264VideoFrame(VCodecType codec, unsigned int width, unsigned height, PixType pixelFormat);
 };
 
 #endif

@@ -22,6 +22,19 @@
 
 #include "X264VideoFrame.hh"
 
+X264VideoFrame* X264VideoFrame::createNew(VCodecType codec, unsigned int width, unsigned height, PixType pixelFormat)
+{
+    return new X264VideoFrame(codec, width, height, pixelFormat);
+}
+
+X264VideoFrame::X264VideoFrame(VCodecType codec, unsigned int width, unsigned height, PixType pixelFormat)
+{
+    this->width = width;
+    this->height = height;
+    this->pixelFormat = pixelFormat;
+    this->codec = codec;
+}
+
 void X264VideoFrame::setNals(x264_nal_t **nals, int size, int frameSize){
 	ppNals = nals;
 	sizeNals = size;

@@ -33,6 +33,8 @@
 #include "../FrameQueue.hh"
 #endif
 
+#include "QueueSource.hh"
+
 #include <vector>
 
 typedef struct connection {

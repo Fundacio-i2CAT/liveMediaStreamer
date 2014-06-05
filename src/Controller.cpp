@@ -23,6 +23,10 @@
 #include "Controller.hh"
 #include "Callbacks.hh"
 
+Controller* Controller::ctrlInstance = NULL;
+PipelineManager* PipelineManager::pipeMngrInstance = NULL;
+WorkerManager* WorkerManager::workMngrInstance = NULL;
+
 Controller::Controller()
 {    
     ctrlInstance = this;
@@ -66,7 +70,7 @@ PipelineManager::PipelineManager()
 {
     pipeMngrInstance = this;
     receiver = SourceManager::getInstance();
-    transmitter = SinkManager::getInstance();
+  //  transmitter = SinkManager::getInstance();
     receiver->setCallback(callbacks::connectToMixerCallback);
 }
 
@@ -91,8 +95,8 @@ void PipelineManager::destroyInstance()
 BaseFilter* PipelineManager::searchFilterByType(FilterType type)
 {
     for (auto it : filters) {
-        if (it.second->getType() == type) {
-            return it.second;
+        if (it.second.first->getType() == type) {
+            return it.second.first;
         }
     }
 
@@ -116,7 +120,19 @@ bool PipelineManager::addFilter(std::string id, BaseFilter* filter)
         return false;
     }
 
-    filters[id] = filter;
+    filters[id] = std::pair<BaseFilter*, Worker*>(filter, NULL);
+
+    return true;
+}
+
+bool PipelineManager::addWorker(std::string id, Worker* worker)
+{
+    if (filters.count(id) <= 0) {
+        return false;
+    }
+
+    worker->setProcessor(filters[id].first);
+    filters[id].second = worker;
 
     return true;
 }

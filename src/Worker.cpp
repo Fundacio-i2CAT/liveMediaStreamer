@@ -42,6 +42,23 @@ Worker::Worker(Runnable *processor_, unsigned int maxFps): processor(processor_)
     enabled = true;
 }
 
+Worker::Worker(): run(false), enabled(false)
+{ 
+    processor = NULL;
+}
+
+void Worker::setProcessor(Runnable *processor, unsigned int maxFps) 
+{
+    if (maxFps != 0){
+        frameTime = 1000000/maxFps;
+    } else {
+        frameTime = 0;
+    }
+
+    this->processor = processor;
+    enabled = true;
+}
+
 void Worker::process()
 {
     int idleCount = 0;

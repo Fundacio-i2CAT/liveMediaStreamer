@@ -60,6 +60,8 @@ FrameQueue *AudioMixer::allocQueue(int wId) {
 bool AudioMixer::doProcessFrame(std::map<int, Frame*> orgFrames, Frame *dst) {
     std::vector<int> filledFramesIds;
 
+    std::cerr << "Audio Mixer doProcessFrame!" << std::endl;
+
     for (auto frame : orgFrames) {
         if (frame.second) {
             filledFramesIds.push_back(frame.first);
@@ -127,7 +129,7 @@ void AudioMixer::sumValues(std::vector<float> fSamples, std::vector<float> &mixe
 
 Reader* AudioMixer::setReader(int readerID, FrameQueue* queue)
 {
-    if (reader.count(id) < 0) {
+    if (readers.count(readerID) < 0) {
         return NULL;
     }
 

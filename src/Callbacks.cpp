@@ -25,6 +25,7 @@
 #include "Filter.hh"
 #include "Types.hh"
 #include "Path.hh"
+#include <iostream>
 
 namespace callbacks
 {
@@ -33,6 +34,7 @@ namespace callbacks
         Controller* ctrl = Controller::getInstance();
         Path* path = NULL;
         BaseFilter *mixer = NULL;
+
 
         if (strcmp(medium, "audio") == 0) {
             path = new AudioDecoderPath(ctrl->pipelineManager()->getReceiver(), (int)port);
@@ -44,7 +46,7 @@ namespace callbacks
         }
 
         if (!path || !mixer) {
-            //TODO: ERROR
+            std::cerr << "[Callback] No path nor mixer!" << std::endl;
             return;
         }
 

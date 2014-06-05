@@ -65,7 +65,7 @@ public:
     virtual ~StreamClientState();
     
     std::string getId(){return id;};
-    
+
 public:
     MediaSubsessionIterator* iter;
     MediaSession* session;
@@ -79,7 +79,7 @@ private:
 
 class SourceManager : public HeadFilter {
 private:
-    SourceManager(int writersNum);
+    SourceManager(int writersNum = MAX_WRITERS);
     
 public:
     static SourceManager* getInstance();
@@ -125,6 +125,7 @@ public:
     virtual ~Session();
     
     std::string getId() {return scs->getId();};
+    MediaSubsession* getSubsessionByPort(int port);
     
     bool initiateSession();
     

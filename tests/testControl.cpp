@@ -4,44 +4,6 @@
 
 #include <string>
 
-#include "../src/network/Handlers.hh"
-#include "../src/network/SourceManager.hh"
-#include "../src/modules/videoDecoder/VideoDecoderLibav.hh"
-#include "../src/modules/videoMixer/VideoMixer.hh"
-#include "../src/FrameQueue.hh"
-#include "../src/VideoFrame.hh"
-
-#include <fstream>
-#include <iostream>
-#include <csignal>
-
-#define V_MEDIUM "video"
-#define PROTOCOL "RTP"
-#define PAYLOAD 96
-#define V_CODEC "H264"
-#define BANDWITH 5000
-#define V_CLIENT_PORT1 6004
-#define V_CLIENT_PORT2 7004
-#define V_TIME_STMP_FREQ 90000
-
-void signalHandler(int signum)
-{
-    std::cout << "Interrupt signal (" << signum << ") received.\n";
-    
-    SourceManager *mngr = SourceManager::getInstance();
-    mngr->closeManager();
-    
-    std::cout << "Manager closed\n";
-}
-
-int main(int argc, char** argv) 
-{   
-   #ifndef _LIVEMEDIA_HH
-#include <liveMedia/liveMedia.hh>
-#endif
-
-#include <string>
-
 #ifndef _HANDLERS_HH
 #include "../src/network/Handlers.hh"
 #endif
@@ -54,7 +16,7 @@ int main(int argc, char** argv)
 #include "../src/modules/audioDecoder/AudioDecoderLibav.hh"
 #include "../src/modules/audioEncoder/AudioEncoderLibav.hh"
 #include "../src/modules/audioMixer/AudioMixer.hh"
-#include "../src/AudioCircularBuffer.hh"
+#include "../src/Controller.hh"
 
 #include <iostream>
 #include <csignal>
@@ -120,11 +82,15 @@ int main(int argc, char** argv)
     Session* session;
 
     Controller *ctrl = Controller::getInstance();
+    SourceManager *mngr = ctrl->pipelineManager()->getReceiver();
     AudioMixer *mixer = new AudioMixer(4);
-    audioEncoder = new AudioEncoderLibav();
+    AudioEncoderLibav* audioEncoder = new AudioEncoderLibav();
     audioEncoder->configure(PCMU);
 
     Worker* audioEncoderWorker = new Worker(audioEncoder);
+    Worker* audioDecoder1Worker = new Worker();
+    Worker* audioDecoder2Worker = new Worker();
+    Worker* audioMixerWorker = new Worker();
 
     Frame *codedFrame;
     struct buffer *buffers;
@@ -166,11 +132,18 @@ int main(int argc, char** argv)
     buffers = new struct buffer;
     buffers->data = new unsigned char[CHANNEL_MAX_SAMPLES * bytesPerSample * OUT_SAMPLE_RATE * 360]();
     buffers->data_len = 0;
-    
+
+    if(!ctrl->pipelineManager()->addWorker("audioMixer", audioMixerWorker)) {
+        std::cerr << "Error adding mixer worker" << std::endl;
+    }
+
     Reader *reader = new Reader();
     audioEncoder->connect(reader);
 
-    audioEncoderWorker->start(); 
+    audioDecoder1Worker->start();
+    audioDecoder2Worker->start();
+    audioMixerWorker->start();
+    audioEncoderWorker->start();
 
     while(mngr->isRunning()) {
         codedFrame = reader->getFrame();
@@ -190,5 +163,4 @@ int main(int argc, char** argv)
     printf("Buffer saved\n");
 
     return 0;
-}
 }

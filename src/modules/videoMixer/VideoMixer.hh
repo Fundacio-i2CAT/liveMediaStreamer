@@ -68,7 +68,6 @@ class VideoMixer : public ManyToOneFilter {
 
     private:
         void pasteToLayout(int frameID, VideoFrame* vFrame);
-        Reader* setReader(int readerID, FrameQueue* queue)
 
         std::map<int, PositionSize*> positionAndSizes;        
         int outputWidth;

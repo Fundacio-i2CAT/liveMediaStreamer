@@ -22,6 +22,7 @@
 
 #include <iostream>
 #include "Path.hh"
+#include "Worker.hh"
 #include "modules/videoDecoder/VideoDecoderLibav.hh"
 #include "modules/audioDecoder/AudioDecoderLibav.hh"
 #include "modules/audioEncoder/AudioEncoderLibav.hh"
@@ -32,21 +33,19 @@ Path::Path(BaseFilter *origin, int orgWriterID)
     this->orgWriterID = orgWriterID;
     destination = NULL;
     dstReaderID = -1;
-
-    if(!origin->connectManyToOne(filters.front(), orgWriterID)) {
-        std::cerr << "Error!" << std::endl;
-    }
-
-    for (unsigned i = 0; i < filters.size() - 1; i++) {
-        if(!filters[i]->connectOneToOne(filters[i+1])) {
-            std::cerr << "Error!" << std::endl;
-        }
-    }
 }
 
 void Path::addFilter(BaseFilter *filter)
 {
-    filters.push_back(filter);
+    filters.push_back(std::pair<BaseFilter*, Worker*>(filter, NULL));
+}
+
+void Path::addWorker(Worker* worker)
+{
+    for (auto &it : filters) {
+        worker->setProcessor(it.first);
+        it.second = worker;
+    }
 }
 
 
@@ -55,8 +54,18 @@ bool Path::connect(BaseFilter *destination, int dstReaderID)
     this->destination = destination;
     this->dstReaderID = dstReaderID;
 
-    if(!filters.back()->connectOneToMany(destination, dstReaderID)) {
-        std::cerr << "Error!" << std::endl;
+    if(!origin->connectManyToOne(filters.front().first, orgWriterID)) {
+        std::cerr << "Error connecting path head to first filter!" << std::endl;
+    }
+
+    for (unsigned i = 0; i < filters.size() - 1; i++) {
+        if(!filters[i].first->connectOneToOne(filters[i+1].first)) {
+            std::cerr << "Error connecting path filters!" << std::endl;
+        }
+    }
+
+    if(!filters.back().first->connectOneToMany(destination, dstReaderID)) {
+        std::cerr << "Error connecting path last filter to path tail!" << std::endl;
         return false;
     }
 

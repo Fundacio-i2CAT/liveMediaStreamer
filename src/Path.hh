@@ -30,6 +30,7 @@ public:
     Path(BaseFilter* origin, int orgWriterID); 
     bool connect(BaseFilter *destination, int dstReaderID);
     int getDstReaderID() {return dstReaderID;};
+    void addWorker(Worker* worker);
 
 protected:
     void addFilter(BaseFilter *filter);
@@ -37,7 +38,7 @@ protected:
 private:
     BaseFilter *origin;
     BaseFilter *destination;
-    std::vector<BaseFilter*> filters;
+    std::vector<std::pair<BaseFilter*, Worker*> > filters;
     int orgWriterID;
     int dstReaderID;
 };

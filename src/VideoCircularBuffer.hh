@@ -37,7 +37,7 @@ extern "C" {
  class VideoCircularBuffer : public FrameQueue {
 
     public:
-        static VideoCircularBuffer* createNew(unsigned int numNals);
+        static VideoCircularBuffer* createNew();
         ~VideoCircularBuffer();
 
         Frame *getRear();
@@ -48,23 +48,23 @@ extern "C" {
         Frame *forceGetRear();
         Frame *forceGetFront();
         int delay; //(ms)
-        bool frameToRead() {};
-        int getFreeSamples();
+        bool frameToRead() {return moreNals};
 
     protected:
         bool config();
 
 
     private:
-        VideoCircularBuffer(unsigned int numNals);
+        VideoCircularBuffer();
 
-        bool pushBack(unsigned char **buffer);
-        bool popFront(unsigned char **buffer);
-        bool forcePushBack(unsigned char **buffer);
+        bool pushBack(x264_nal_t **buffer, unsigned int sizeBuffer);
+        bool popFront(unsigned char **buffer, unsigned int *length);
+        bool forcePushBack(x264_nal_t **buffer, unsigned int sizeBuffer);
         
-        std::atomic<int> byteCounter;
-		unsigned int maxNals;
-		unsigned char *data[MAX_NALS];
+        unsigned int first;
+		unsigned int last;
+		unsigned char *data[MAX_NALS+1];
+		unsigned int length[MAX_NALS+1];
         bool moreNals;
 
         X264VideoFrame* inputFrame;

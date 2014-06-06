@@ -24,7 +24,7 @@
 #include <cstring>
 #include <iostream>
 
-VideoCircularBuffer* VideoCircularBuffer::createNew(unsigned int numNals)
+VideoCircularBuffer* VideoCircularBuffer::createNew()
 {
     return new VideoCircularBuffer(numNals);
 }
@@ -41,7 +41,7 @@ Frame* VideoCircularBuffer::getFront()
         return NULL;
     }
 
-    if (!popFront(outputFrame->getBufferNals(), outputFrame->getFrameLength())) {
+    if (!popFront(outputFrame->getDataBuf(), outputFrame->getLength())) {
 		moreNals = false;
         //std::cerr << "There is not enough data to fill a frame. Impossible to get frame!\n";
         return NULL;
@@ -53,13 +53,13 @@ Frame* VideoCircularBuffer::getFront()
 
 void VideoCircularBuffer::addFrame()
 {
-	outputFrameAlreadyRead = true;
-    forcePushBack(inputFrame->getBufferNals(), getFrameLength());
+    forcePushBack(inputFrame->getgetNals(), inputFrame->getSizeNals());
+	moreNals = true;
 }
 
 void VideoCircularBuffer::removeFrame()
 {
-    outputFrameAlreadyRead = true;
+    //TODO
 }
 
 void VideoCircularBuffer::flush() 
@@ -75,17 +75,17 @@ Frame* VideoCircularBuffer::forceGetRear()
 
 Frame* VideoCircularBuffer::forceGetFront()
 {
-    if (!popFront(outputFrame->getBufferNals(), outputFrame->getFrameLength())) {
+    if (!popFront(outputFrame->getDataBuf(), outputFrame->getLength())) {
         std::cerr << "There is not enough data to fill a frame. Reusing previous frame!\n";
+		return NULL;
     }
 
     return outputFrame;
 }
 
-VideoCircularBuffer::VideoCircularBuffer(unsigned int numNals)
+VideoCircularBuffer::VideoCircularBuffer()
 {
-    byteCounter = 0;
-    maxNals = numNals;
+	first = last = 0;    
     moreNals = false;
 
     config();
@@ -99,100 +99,53 @@ bool VideoCircularBuffer::config()
     return true;
 }
 
-AudioCircularBuffer::~AudioCircularBuffer()
+VideoCircularBuffer::~VideoCircularBuffer()
 {
-    for (int i=0; i<channels; i++) {
-        delete[] data[i];
-    }
+	int i = 0, count = (last - first);
+	if (count < 0)
+		count = last + ((MAX_NALS + 1) - first);
+	for (i=0; i < count; i++)
+		delete[] data[((first + i) % (MAX_NALS + 1))];
 }
 
-bool AudioCircularBuffer::pushBack(unsigned char **buffer, int samplesRequested) 
+bool VideoCircularBuffer::pushBack(x264_nal_t **buffer, unsigned int sizeBuffer) 
 {
-    int bytesRequested = samplesRequested * bytesPerSample;
+    int positionsRequested = (last + sizeBuffer) % (MAX_NALS + 1);
+	int i = 0, index = 0;
 
-    if (bytesRequested > (channelMaxLength - byteCounter)) {
+    if (positionsRequested > first) {
         return false;
     }
 
-    if ((rear + bytesRequested) < channelMaxLength) {
-        for (int i=0; i<channels; i++) {
-            memcpy(data[i] + rear, buffer[i], bytesRequested);
-        }
-
-        byteCounter += bytesRequested;
-        rear = (rear + bytesRequested) % channelMaxLength;
-
-        return true;
-    }
-
-    int firstCopiedBytes = channelMaxLength - rear;
-
-    for (int i=0; i<channels;  i++) {
-        memcpy(data[i] + rear, buffer[i], firstCopiedBytes);
-        memcpy(data[i], buffer[i] + firstCopiedBytes, bytesRequested - firstCopiedBytes);
-    }
-
-    byteCounter += bytesRequested;
-    rear = (rear + bytesRequested) % channelMaxLength;
-
+    for (i=0; i<sizeBuffer; i++) {
+		index =  ((last+i) % (MAX_NALS + 1));
+		int sizeNal = (*buffer)[i].i_payload;
+		data[index] = new unsigned char (sizeNal);
+		memcpy(data[index], (*buffer)[i].p_payload, sizeNal);
+		length[index] = sizeNal;
+	}
+	
+	last = index;
+	
     return true;
 }   
 
-bool AudioCircularBuffer::popFront(unsigned char **buffer, int samplesRequested)
+bool VideoCircularBuffer::popFront(unsigned char **buffer, unsigned int *length)
 {
-    int bytesRequested = samplesRequested * bytesPerSample;
+    if (first == last)
+		return false;
 
-    if ((bytesRequested > byteCounter) || bytesRequested == 0) {
-        return false;
-    }
-
-    if (front + bytesRequested < channelMaxLength) {
-        for (int i=0; i<channels; i++) {
-            memcpy(buffer[i], data[i] + front, bytesRequested);
-        }
-
-        byteCounter -= bytesRequested;
-        front = (front + bytesRequested) % channelMaxLength;
-
-        return true;
-    }
-
-    int firstCopiedBytes = channelMaxLength - front;
-
-    for (int i=0; i<channels;  i++) {
-        memcpy(buffer[i], data[i] + front, firstCopiedBytes);
-        memcpy(buffer[i] + firstCopiedBytes, data[i], bytesRequested - firstCopiedBytes);
-    }
-
-    byteCounter -= bytesRequested;
-    front = (front + bytesRequested) % channelMaxLength;
+	(*length) = length[first];
+	(*buffer) = new unsigned char (length[frist]);
+	memcpy ((*buffer), data[first], length[first]);
+	first = (first + 1) % (MAX_NALS + 1); 
 
     return true;
 }
 
-int AudioCircularBuffer::getFreeSamples()
+
+bool AudioCircularBuffer::forcePushBack(x264_nal_t **buffer, unsigned int sizeBuffer)
 {
-    int freeBytes = channelMaxLength - byteCounter;
-
-    if (freeBytes == 0) {
-        return freeBytes;
-    }
-
-    return (freeBytes/bytesPerSample);
+    return pushBack(buffer, sizeBuffer);
 }
 
-bool AudioCircularBuffer::forcePushBack(unsigned char **buffer, int samplesRequested)
-{
-    if(!pushBack(inputFrame->getPlanarDataBuf(), inputFrame->getSamples())) {
-        std::cerr << "There is not enough free space in the buffer. Discarding " 
-        << inputFrame->getSamples() - getFreeSamples() << "samples.\n";
-        if (getFreeSamples() != 0) {
-            pushBack(inputFrame->getPlanarDataBuf(), getFreeSamples());
-        }
-    }
-}
-
-void AudioCircularBuffer::setOutputFrameSamples(int samples) {
-    outputFrame->setSamples(samples);
-    outputFrame->setLength(samples*bytesPerSample);
-} 

@@ -35,16 +35,19 @@
 #include "QueueSource.hh"
 #endif
 
+#ifndef _FILTER_HH
+#include "../Filter.hh"
+#endif
+
 #include <thread>
 #include <map>
 #include <string>
-#include <vector>
 
 #define RTSP_PORT 8554
 
 class SinkManager : public TailFilter {
 private:
-    SinkManager(int readersNum);
+    SinkManager(int readersNum = MAX_READERS);
     
 public:
     static SinkManager* getInstance();

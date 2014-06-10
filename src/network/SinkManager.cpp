@@ -28,9 +28,25 @@
 #include "Handlers.hh"
 #endif
 
+#ifndef _AV_FRAMED_QUEUE_HH
+#include "../AVFramedQueue.hh"
+#endif
+
+#ifndef _AUDIO_CIRCULAR_BUFFER_HH
+#include "../AudioCircularBuffer.hh"
+#endif
+
+#ifndef _H264_SERVER_MEDIA_SUBSESSION_HH
+#include "H264QueueServerMediaSubsession.hh"
+#endif
+
+#ifndef _H264_QUEUE_SOURCE_HH
+#include "H264QueueSource.hh"
+#endif
+
 SinkManager *SinkManager::mngrInstance = NULL;
 
-SinkManager::SinkManager(): watch(0), TailFilter(readersNum)
+SinkManager::SinkManager(int readersNum): watch(0), TailFilter(readersNum)
 {    
     TaskScheduler* scheduler = BasicTaskScheduler::createNew();
     this->env = BasicUsageEnvironment::createNew(*scheduler);
@@ -140,21 +156,21 @@ ServerMediaSubsession *SinkManager::createVideoMediaSubsession(VCodecType codec,
 
 ServerMediaSubsession *SinkManager::createSubsessionByReader(Reader *reader)
 {
-    const VideoFrameQueue *vQueue;
-    const AudioFrameQueue *aQueue;
-    const AudioCircularBuffer *circularBuffer;
+    VideoFrameQueue *vQueue;
+    AudioFrameQueue *aQueue;
+    AudioCircularBuffer *circularBuffer;
     QueueSource *source;
     
     if ((source = dynamic_cast<QueueSource*>(reader)) == NULL){
         return NULL;
     }
-    if ((vQueue = dynamic_cast<const VideoFrameQueue*>(reader->getQueue())) != NULL){
+    if ((vQueue = dynamic_cast<VideoFrameQueue*>(reader->getQueue())) != NULL){
         return createVideoMediaSubsession(vQueue->getCodec(), source);
     }
-    if ((aQueue = dynamic_cast<const AudioFrameQueue*>(reader->getQueue())) != NULL){
+    if ((aQueue = dynamic_cast<AudioFrameQueue*>(reader->getQueue())) != NULL){
         //TODO:
     }
-    if ((circularBuffer = dynamic_cast<const AudioCircularBuffer*>(reader->getQueue())) != NULL){
+    if ((circularBuffer = dynamic_cast<AudioCircularBuffer*>(reader->getQueue())) != NULL){
         //TODO
     }
     return NULL;
@@ -209,15 +225,15 @@ ServerMediaSession* SinkManager::getSession(std::string id)
 
 Reader *SinkManager::setReader(int readerID, FrameQueue* queue)
 {
-    const VideoFrameQueue *vQueue;
-    const AudioFrameQueue *aQueue;
-    const AudioCircularBuffer *circularBuffer;
+    VideoFrameQueue *vQueue;
+    AudioFrameQueue *aQueue;
+    AudioCircularBuffer *circularBuffer;
     
     if (readers.size() >= getMaxReaders() || readers.count(readerID) > 0 ) {
         return NULL;
     }
     
-    if ((vQueue = dynamic_cast<const VideoFrameQueue*>(queue)) != NULL){
+    if ((vQueue = dynamic_cast<VideoFrameQueue*>(queue)) != NULL){
         switch (vQueue->getCodec()){
             case H264:
                 readers[readerID] = H264QueueSource::createNew(*(envir()), vQueue);
@@ -228,11 +244,11 @@ Reader *SinkManager::setReader(int readerID, FrameQueue* queue)
         }
     }
     
-    if ((aQueue = dynamic_cast<const AudioFrameQueue*>(queue)) != NULL){
+    if ((aQueue = dynamic_cast<AudioFrameQueue*>(queue)) != NULL){
         //TODO:
     }
     
-    if ((circularBuffer = dynamic_cast<const AudioCircularBuffer*>(queue)) != NULL){
+    if ((circularBuffer = dynamic_cast<AudioCircularBuffer*>(queue)) != NULL){
         //TODO
     }
 

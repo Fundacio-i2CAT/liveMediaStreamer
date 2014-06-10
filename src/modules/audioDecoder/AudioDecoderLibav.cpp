@@ -75,10 +75,6 @@ bool AudioDecoderLibav::doProcessFrame(Frame *org, Frame *dst)
                      aCodedFrame->getSampleRate() 
                      );
 
-    if (needsConfig) {
-        outputConfig();
-    }
-
     pkt.size = org->getLength();
     pkt.data = org->getDataBuf();
             
@@ -142,7 +138,6 @@ void AudioDecoderLibav::configure(SampleFmt sampleFormat, int channels, int samp
         break;
     }
 
-    needsConfig = true;
 }
 
 bool AudioDecoderLibav::inputConfig()
@@ -234,7 +229,6 @@ bool AudioDecoderLibav::outputConfig()
         } 
     }
 
-    needsConfig = false;
 }
 
 
@@ -332,23 +326,7 @@ void AudioDecoderLibav::checkInputParams(ACodecType codec, SampleFmt sampleForma
     inputConfig();
 }
 
-void doProcessEvent(Event event) 
-{
-    std::string action = e.getAction();
-    Jzon::Object* params = e.getParams();
-
-    if (action.empty()) {
-        return;
-    }
-
-    if (eventMap.count(action) <= 0 {
-        //TODO: error!
-    }
-
-    actionMap[action](params);
-}
-
-void configEvent(Jzon::Object* params) 
+void AudioDecoderLibav::configEvent(Jzon::Node* params) 
 {
     SampleFmt newSampleFmt = outSampleFmt;
     int newChannels = outChannels;
@@ -373,7 +351,7 @@ void configEvent(Jzon::Object* params)
     configure(newSampleFmt, newChannels, newSampleRate);
 }
 
-void initializeEventMap()
+void AudioDecoderLibav::initializeEventMap()
 {
     eventMap["configure"] = std::bind(&AudioDecoderLibav::configEvent, this, std::placeholders::_1);
 }

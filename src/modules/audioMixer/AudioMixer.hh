@@ -42,6 +42,8 @@ class AudioMixer : public ManyToOneFilter {
         void applyMixAlgorithm(std::vector<float> &fSamples, int frameNumber);
         void applyGainToChannel(std::vector<float> &fSamples, float gain);
         void sumValues(std::vector<float> fSamples, std::vector<float> &mixedSamples); 
+        void initializeEventMap();
+        void changeVolumeEvent(Jzon::Node* params); 
         
         int frameChannels;
         int sampleRate;

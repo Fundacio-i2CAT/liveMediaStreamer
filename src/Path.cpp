@@ -74,8 +74,8 @@ bool Path::connect(BaseFilter *destination, int dstReaderID)
 VideoDecoderPath::VideoDecoderPath(BaseFilter *origin, int orgWriterID) : 
 Path(origin, orgWriterID)
 {
-    VideoDecoderLibav *decoder = new VideoDecoderLibav();
-    addFilter(decoder);
+ //   VideoDecoderLibav *decoder = new VideoDecoderLibav();
+ //   addFilter(decoder);
 }
 
 AudioDecoderPath::AudioDecoderPath(BaseFilter *origin, int orgWriterID) :

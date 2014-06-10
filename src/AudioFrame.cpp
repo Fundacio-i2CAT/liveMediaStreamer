@@ -38,17 +38,17 @@ SampleFmt AudioFrame::getSampleFormatFromString(std::string stringSampleFmt)
 {
     SampleFmt sampleFormat;
     
-    if (action.compare("u8") == 0) {
+    if (stringSampleFmt.compare("u8") == 0) {
         sampleFormat = U8;
-    } else if (action.compare("u8p") == 0) {
+    } else if (stringSampleFmt.compare("u8p") == 0) {
         sampleFormat = U8P;
-    }  else if (action.compare("s16") == 0) {
+    }  else if (stringSampleFmt.compare("s16") == 0) {
         sampleFormat = S16;
-    }  else if (action.compare("s16p") == 0) {
+    }  else if (stringSampleFmt.compare("s16p") == 0) {
         sampleFormat = S16P;
-    }  else if (action.compare("flt") == 0) {
+    }  else if (stringSampleFmt.compare("flt") == 0) {
         sampleFormat = FLT;
-    }  else if (action.compare("fltp") == 0) {
+    }  else if (stringSampleFmt.compare("fltp") == 0) {
         sampleFormat = FLTP;
     }  else {
         sampleFormat = S_NONE;

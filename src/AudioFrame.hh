@@ -25,6 +25,7 @@
 
 #include "Frame.hh"
 #include <vector>
+#include <string>
 
 #define DEFAULT_CHANNELS 2
 #define MAX_CHANNELS 2

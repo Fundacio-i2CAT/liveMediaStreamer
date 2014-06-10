@@ -138,3 +138,29 @@ Reader* AudioMixer::setReader(int readerID, FrameQueue* queue)
 
     return r;
 }
+
+void AudioMixer::changeVolumeEvent(Jzon::Node* params) 
+{
+    if (!params) {
+        return;
+    }
+
+    if (!params->Has("id") || !params->Has("volume")) {
+        return;
+    }
+
+    int id = params->Get("id").ToInt();
+    float volume = params->Get("volume").ToFloat();
+
+    if (gains.count(id) <= 0) {
+        return;
+    }
+
+    gains[id] = volume;
+
+}
+
+void AudioMixer::initializeEventMap()
+{
+    eventMap["changeVolume"] = std::bind(&AudioMixer::changeVolumeEvent, this, std::placeholders::_1);
+}

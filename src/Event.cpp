@@ -21,14 +21,14 @@
  *            
  */
 
-#include "Event.h"
+#include "Event.hh"
 
 bool Event::operator<(const Event& e) const
 {
     return timestamp > e.timestamp;
 }
 
-Event::Event(Jzon::Object rootNode, std::chrono::miliseconds timestamp) 
+Event::Event(Jzon::Object rootNode, std::chrono::system_clock::time_point timestamp) 
 {
     inputRootNode = new Jzon::Object(rootNode);
     this->timestamp = timestamp;
@@ -39,14 +39,14 @@ Event::~Event()
     delete inputRootNode;
 }
 
-Event::canBeExecuted(std::chrono::miliseconds currentTime)
+bool Event::canBeExecuted(std::chrono::system_clock::time_point currentTime)
 {
     return currentTime > timestamp;
 }
 
 std::string Event::getAction()
 {
-    std:string action;
+    std::string action;
 
     if (inputRootNode->Has("action")) {
         action = inputRootNode->Get("action").ToString();
@@ -55,13 +55,13 @@ std::string Event::getAction()
     return action;
 }
 
-Jzon::Object* getParams()
+Jzon::Node* Event::getParams()
 {
     if (inputRootNode->Has("params")) {
-        return inputRootNode->Get("params");
+        return &inputRootNode->Get("params");
     }
 
-    return NULL
+    return NULL;
 }
 
 

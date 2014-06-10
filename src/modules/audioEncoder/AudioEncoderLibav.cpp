@@ -94,10 +94,6 @@ bool AudioEncoderLibav::doProcessFrame(Frame *org, Frame *dst)
 
     if (gotFrame) {
         dst->setLength(pkt.size);
-        // for (int i=0; i<pkt.size; i++) {
-        //     printf("%x", pkt.data[i]);  
-        // }
-        // printf("\n\n");
         return true;
     }
 
@@ -322,4 +318,6 @@ void AudioEncoderLibav::checkInputParams(SampleFmt sampleFormat, int channels, i
     }
 
 }
+
+
 

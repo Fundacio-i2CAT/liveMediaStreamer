@@ -267,8 +267,23 @@ void BaseFilter::processEvent()
 
     while(newEvent()) {
 
-        doProcessEvent(eventQueue.top());
-        queueEvent.pop();
+        Event e = eventQueue.top();
+        std::string action = e.getAction();
+        Jzon::Node* params = e.getParams();
+
+        if (action.empty()) {
+            //TODO: error!
+            return;
+        }
+
+        if (eventMap.count(action) <= 0) {
+            //TODO: error!
+            return;
+        }
+
+        eventMap[action](params);
+
+        eventQueue.pop();
     }
 
     eventQueueMutex.unlock();
@@ -280,17 +295,18 @@ bool BaseFilter::newEvent()
         return false;
     }
 
-    if (!eventQueue.top().canBeExecuted()) {
+    Event tmp = eventQueue.top();
+    if (!tmp.canBeExecuted(std::chrono::system_clock::now())) {
         return false;
     }
 
     return true;
 }
 
-void pushEvent(Event e)
+void BaseFilter::pushEvent(Event e)
 {
     eventQueueMutex.lock();
-    eventQueueMutex.push(e);
+    eventQueue.push(e);
     eventQueueMutex.unlock();
 }
 

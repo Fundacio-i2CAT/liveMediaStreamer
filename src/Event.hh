@@ -25,19 +25,22 @@
 #define _EVENT_HH
 
 #include <string>
+#include <chrono>
+#include "Jzon.h"
 
 class Event {
     
 public:
-    Event(Jzon::Object rootNode, std::chrono::miliseconds timestamp);
+    Event(Jzon::Object rootNode, std::chrono::system_clock::time_point timestamp);
     ~Event();    
-    bool canBeExecuted(std::chrono::miliseconds currentTime);
+    bool canBeExecuted(std::chrono::system_clock::time_point currentTime);
     std::string getAction();
-    Jzon::Object* getParams();
+    Jzon::Node* getParams();
+    bool operator<(const Event& e) const;
 
 private:
-    Jzon::Object* inputRootNode,
-    std::chrono::miliseconds timestamp;
+    Jzon::Object* inputRootNode;
+    std::chrono::system_clock::time_point  timestamp;
 
 };
 

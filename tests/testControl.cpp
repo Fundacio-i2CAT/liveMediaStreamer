@@ -20,6 +20,7 @@
 
 #include <iostream>
 #include <csignal>
+#include <sstream>
 
 
 #define PROTOCOL "RTP"
@@ -75,6 +76,27 @@ void saveBuffer(struct buffer *b)
     fclose(audioChannel);
 }
 
+void readingRoutine(struct buffer* b, Reader *reader)
+{
+    Frame *codedFrame;
+    Controller *ctrl = Controller::getInstance();
+    SourceManager *mngr = ctrl->pipelineManager()->getReceiver();
+
+    while(mngr->isRunning()) {
+        codedFrame = reader->getFrame();
+
+        if (!codedFrame) {
+            usleep(500);
+            continue;
+        }
+
+        fillBuffer(b, codedFrame);
+        printf("Filled buffer! Frame size: %d\n", codedFrame->getLength());
+
+        reader->removeFrame();
+    }
+}
+
 int main(int argc, char** argv) 
 {   
     std::string sessionId;
@@ -92,7 +114,6 @@ int main(int argc, char** argv)
     Worker* audioDecoder2Worker = new Worker();
     Worker* audioMixerWorker = new Worker();
 
-    Frame *codedFrame;
     struct buffer *buffers;
     unsigned int bytesPerSample = 2;
 
@@ -148,20 +169,32 @@ int main(int argc, char** argv)
     audioMixerWorker->start();
     audioEncoderWorker->start();
 
-    while(mngr->isRunning()) {
-        codedFrame = reader->getFrame();
+    std::thread readingThread(readingRoutine, buffers, reader);
 
-        if (!codedFrame) {
-            usleep(500);
-            continue;
+    std::string command;
+    std::string aux;
+    int id;
+    float volume;
+
+    while(true) {
+        std::cout << std::endl << "Please enter a command (changeVolume): ";
+        std::cin >> command;
+
+        if (command.compare("exit") == 0) {
+            break;
         }
 
-        fillBuffer(buffers, codedFrame);
-        printf("Filled buffer! Frame size: %d\n", codedFrame->getLength());
+        std::cout << std::endl << "Please enter a stream ID: ";
+        std::cin >> id;
+        std::cout << std::endl << "Please enter a volume (0.0 to 1.0): ";
+        std::cin >> volume;
 
-        reader->removeFrame();
+        std::cout << std::endl << command << "  " << id << "  " << volume << " " << std::endl;
+
+        Event e(Jzon::Object rootNode, std::chrono::system_clock::time_point timestamp) 
     }
-
+    
+    readingThread.join();
     saveBuffer(buffers);
     printf("Buffer saved\n");
 

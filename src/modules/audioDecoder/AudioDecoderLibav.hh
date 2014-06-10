@@ -52,8 +52,9 @@ private:
     void checkInputParams(ACodecType codec, SampleFmt sampleFormat, int channels, int sampleRate);
     bool inputConfig();
     bool outputConfig();
-    void doProcessEvent(Event event);
     void initializeEventMap();
+    void configEvent(Jzon::Node* params); 
+
 
     AVCodec             *codec;
     AVCodecContext      *codecCtx;
@@ -74,9 +75,7 @@ private:
     int                 outSampleRate;
     unsigned int        bytesPerSample;
     unsigned char       *auxBuff[1];
-    bool                needsConfig;
 
-    std::map<std::string, std::function<void(Jzon::Object* params)> > eventMap;
 };
 
 #endif

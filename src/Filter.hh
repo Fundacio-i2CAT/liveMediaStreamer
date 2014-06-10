@@ -62,6 +62,7 @@ public:
     int generateWriterID();
     const int getMaxWriters() const {return maxWriters;};
     const int getMaxReaders() const {return maxReaders;};
+    void pushEvent(Event e);
     
 protected:
     BaseFilter(int maxReaders_, int maxWriters_, bool force_ = false);
@@ -70,13 +71,17 @@ protected:
     virtual FrameQueue *allocQueue(int wId) = 0;
     virtual bool processFrame() = 0;
     virtual Reader *setReader(int readerID, FrameQueue* queue);
-    virtual void doProcessEvent(Event event) = 0;
+    virtual void initializeEventMap() {};
 
     Reader* getReader(int id);
     bool demandOriginFrames();
     bool demandDestinationFrames();
     void addFrames();
     void removeFrames();
+    void processEvent(); 
+    bool newEvent();
+
+    std::map<std::string, std::function<void(Jzon::Node* params)> > eventMap; 
     
 protected:
     std::map<int, Reader*> readers;
@@ -89,12 +94,10 @@ private:
     bool force;
     int maxWriters;
     int maxReaders;
-    priority_queue<Event> eventQueue;
+    std::priority_queue<Event> eventQueue;
     std::mutex eventQueueMutex;
     
     std::map<int, bool> rUpdates;
-    void processEvent(); 
-    bool newEvent(); 
 };
 
 class OneToOneFilter : public BaseFilter {

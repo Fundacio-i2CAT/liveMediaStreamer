@@ -320,7 +320,7 @@ BaseFilter(readersNum, 1, force_)
 bool ManyToOneFilter::processFrame()
 {
     bool newData;
-    
+
     if (!demandOriginFrames() || !demandDestinationFrames()) {
         return false;
     }

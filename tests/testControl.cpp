@@ -137,6 +137,9 @@ int main(int argc, char** argv)
         std::cerr << "Error adding mixer worker" << std::endl;
     }
 
+    ctrl->pipelineManager()->getPath(A_CLIENT_PORT1)->addWorker(audioDecoder1Worker);
+    ctrl->pipelineManager()->getPath(A_CLIENT_PORT2)->addWorker(audioDecoder2Worker);
+
     Reader *reader = new Reader();
     audioEncoder->connect(reader);
 

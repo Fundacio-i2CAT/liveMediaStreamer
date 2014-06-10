@@ -70,10 +70,11 @@ void Worker::process()
     std::chrono::microseconds active(ACTIVE);
     std::chrono::milliseconds idle(IDLE);
 
+
     while(run){
-        while (enabled && frameTime > 0){
+        while (enabled && frameTime > 0) {
             previousTime = std::chrono::system_clock::now();
-            if (processor->processFrame()){
+            if (processor->processFrame()) {
                 idleCount = 0;
                 enlapsedTime = std::chrono::duration_cast<std::chrono::microseconds>(
                     std::chrono::system_clock::now() - previousTime);

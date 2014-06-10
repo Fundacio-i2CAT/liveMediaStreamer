@@ -48,7 +48,6 @@ void Path::addWorker(Worker* worker)
     }
 }
 
-
 bool Path::connect(BaseFilter *destination, int dstReaderID)
 {
     this->destination = destination;

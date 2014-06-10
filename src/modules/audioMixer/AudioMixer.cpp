@@ -60,8 +60,6 @@ FrameQueue *AudioMixer::allocQueue(int wId) {
 bool AudioMixer::doProcessFrame(std::map<int, Frame*> orgFrames, Frame *dst) {
     std::vector<int> filledFramesIds;
 
-    std::cerr << "Audio Mixer doProcessFrame!" << std::endl;
-
     for (auto frame : orgFrames) {
         if (frame.second) {
             filledFramesIds.push_back(frame.first);

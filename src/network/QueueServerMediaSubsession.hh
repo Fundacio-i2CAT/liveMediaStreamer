@@ -29,8 +29,8 @@
 #include <liveMedia/liveMedia.hh>
 #endif
 
-#ifndef _FRAME_QUEUE_HH
-#include "../FrameQueue.hh"
+#ifndef _QUEUE_SOURCE_HH
+#include "QueueSource.hh"
 #endif
 
 class QueueServerMediaSubsession: public OnDemandServerMediaSubsession {

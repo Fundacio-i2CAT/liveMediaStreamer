@@ -7,11 +7,12 @@ QueueSource* QueueSource::createNew(UsageEnvironment& env, FrameQueue *q) {
 
 
 QueueSource::QueueSource(UsageEnvironment& env, FrameQueue *q)
-  : FramedSource(env), queue(q) {
+  : FramedSource(env) {
+    setQueue(q);
 }
 
 void QueueSource::doGetNextFrame() {
-    if ((frame = queue->getFront()) == NULL) {
+    if ((frame = getFrame()) == NULL) {
         nextTask() = envir().taskScheduler().scheduleDelayedTask(1000,
             (TaskFunc*)QueueSource::staticDoGetNextFrame, this);
         return;
@@ -27,7 +28,7 @@ void QueueSource::doGetNextFrame() {
     }
     
     memcpy(fTo, frame->getDataBuf(), fFrameSize);
-    queue->removeFrame();
+    removeFrame();
     
     afterGetting(this);
 }

@@ -1,5 +1,5 @@
 /*
- *  QueueServerMediaSubsession.cpp - A generic subsession class for our frame queue
+ *  Callbacks.hh - Collection of callback functions
  *  Copyright (C) 2014  Fundació i2CAT, Internet i Innovació digital a Catalunya
  *
  *  This file is part of liveMediaStreamer.
@@ -17,21 +17,16 @@
  *  You should have received a copy of the GNU General Public License
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- *  Authors:  David Cassany <david.cassany@i2cat.net>,
- *            
+ *  Authors:  Marc Palau <marc.palau@i2cat.net>,
  */
 
 
-#include "QueueServerMediaSubsession.hh"
+#ifndef _CALLBACKS_HH
+#define _CALLBACKS_HH
 
-QueueServerMediaSubsession
-::QueueServerMediaSubsession(UsageEnvironment& env, QueueSource *source,
-                Boolean reuseFirstSource)
-    : OnDemandServerMediaSubsession(env, reuseFirstSource),
-        fSource(source) {
-}
+namespace callbacks
+{
+    void connectToMixerCallback(char const* medium, unsigned short port);
+};
 
-QueueServerMediaSubsession::~QueueServerMediaSubsession() {
-    //TODO:
-    //delete[] fQueue;
-}
+#endif

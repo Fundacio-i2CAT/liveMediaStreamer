@@ -34,6 +34,9 @@ class AudioMixer : public ManyToOneFilter {
         FrameQueue *allocQueue(int wId);
         bool doProcessFrame(std::map<int, Frame*> orgFrames, Frame *dst);
 
+    protected:
+        Reader *setReader(int readerID, FrameQueue* queue);
+
     private:
         void mixNonEmptyFrames(std::map<int, Frame*> orgFrames, std::vector<int> filledFramesIds, Frame *dst, int totalFrames); 
         void applyMixAlgorithm(std::vector<float> &fSamples, int frameNumber);

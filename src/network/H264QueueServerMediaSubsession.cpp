@@ -29,14 +29,14 @@
 
 H264QueueServerMediaSubsession*
 H264QueueServerMediaSubsession::createNew(UsageEnvironment& env,
-                          FrameQueue *queue,
+                          QueueSource *source,
                           Boolean reuseFirstSource) {
-  return new H264QueueServerMediaSubsession(env, queue, reuseFirstSource);
+  return new H264QueueServerMediaSubsession(env, source, reuseFirstSource);
 }
 
 H264QueueServerMediaSubsession::H264QueueServerMediaSubsession(UsageEnvironment& env,
-                                       FrameQueue *queue, Boolean reuseFirstSource)
-  : QueueServerMediaSubsession(env, queue, reuseFirstSource),
+                                    QueueSource *source, Boolean reuseFirstSource)
+  : QueueServerMediaSubsession(env, source, reuseFirstSource),
     fAuxSDPLine(NULL), fDoneFlag(0), fDummyRTPSink(NULL) {
 }
 
@@ -105,13 +105,13 @@ char const* H264QueueServerMediaSubsession::getAuxSDPLine(RTPSink* rtpSink, Fram
 FramedSource* H264QueueServerMediaSubsession::createNewStreamSource(unsigned /*clientSessionId*/, unsigned& estBitrate) {
     //TODO: WTF
     estBitrate = 500; // kbps, estimate
-
-    // Create the video source:
-    H264QueueSource* queueSource = H264QueueSource::createNew(envir(), fQueue);
-    if (queueSource == NULL) return NULL;
-
-    // Create a framer for the Video Elementary Stream:
-    return H264VideoStreamDiscreteFramer::createNew(envir(), queueSource);
+    
+    if (fSource != NULL && dynamic_cast<H264QueueSource*>(fSource)){
+        // Create a framer for the Video Elementary Stream:
+        return H264VideoStreamDiscreteFramer::createNew(envir(), fSource);
+    }
+    
+    return NULL;
 }
 
 RTPSink* H264QueueServerMediaSubsession

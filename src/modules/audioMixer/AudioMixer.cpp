@@ -21,6 +21,7 @@
  */
 
 #define BPS 2
+#define DEFAULT_CHANNEL_GAIN 0.6
  
 #include "AudioMixer.hh"
 #include "../../AudioCircularBuffer.hh"
@@ -33,12 +34,10 @@ AudioMixer::AudioMixer(int inputChannels) : ManyToOneFilter(inputChannels) {
     sampleRate = DEFAULT_SAMPLE_RATE;
     sampleFormat = S16P;
 
+    fType = AUDIO_MIXER;
+
     samples.resize(AudioFrame::getMaxSamples(sampleRate));
     mixedSamples.resize(AudioFrame::getMaxSamples(sampleRate));
-
-    for (auto id : getAvailableReaders()) {
-        gains.insert(std::pair<int,float>(id, 0.6));
-    }
 
     masterGain = 1.0;
 }
@@ -50,10 +49,6 @@ AudioMixer::AudioMixer(int inputChannels, int frameChannels, int sampleRate) : M
 
     samples.resize(AudioFrame::getMaxSamples(sampleRate));
     mixedSamples.resize(AudioFrame::getMaxSamples(sampleRate));
-
-    for (auto id : getAvailableReaders()) {
-        gains.insert(std::pair<int,float>(id, 1.0));
-    }
 
     masterGain = 1.0;
 }
@@ -128,4 +123,18 @@ void AudioMixer::sumValues(std::vector<float> fSamples, std::vector<float> &mixe
         mixedSample += fSamples[i];
         i++;
     }
+}
+
+Reader* AudioMixer::setReader(int readerID, FrameQueue* queue)
+{
+    if (readers.count(readerID) < 0) {
+        return NULL;
+    }
+
+    Reader* r = new Reader();
+    readers[readerID] = r;
+
+    gains[readerID] = DEFAULT_CHANNEL_GAIN;
+
+    return r;
 }

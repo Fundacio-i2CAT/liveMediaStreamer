@@ -34,6 +34,7 @@ VideoDecoderLibav::VideoDecoderLibav()
     av_init_packet(&pkt);
     pkt.data = NULL;
     pkt.size = 0;
+    fType = VIDEO_DECODER;
 
     frame = av_frame_alloc();
     outFrame = av_frame_alloc();

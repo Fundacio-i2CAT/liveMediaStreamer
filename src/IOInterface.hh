@@ -50,8 +50,10 @@ public:
     Frame* getFrame(bool force = false);
     void addFrame();
 
-private:
+protected:
     FrameQueue *queue;
+
+private:
     bool connected;
 };
 
@@ -59,18 +61,22 @@ private:
 class Reader {
 public:
     Reader();
+    ~Reader();
     void setQueue(FrameQueue *queue);
     bool isConnected() {return connected;};
     Frame* getFrame(bool force = false);
     void removeFrame();
     void setConnection(FrameQueue *queue);
+    const FrameQueue* getQueue() const {return queue;};
+
+protected:
+    FrameQueue *queue;
 
 private:
     friend class Writer;
 
-    void unsetConnection();
+    void disconnect();
     
-    FrameQueue *queue;
     bool connected;
 };
 

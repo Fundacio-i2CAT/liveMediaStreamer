@@ -42,21 +42,22 @@
 #include <thread>
 #include <map>
 #include <list>
+#include <functional>
+#include <string>
 
 #define ID_LENGTH 4
-#define MAX_WRITERS 32
 
 class Session;
 
-typedef struct connection {
-    unsigned char rtpPayloadFormat;
-    char const* codecName;
-    unsigned channels;
-    unsigned sampleRate;
-    unsigned short port;
-    char const* session;
-    char const* medium;
-} connection_t;
+// typedef struct connection {
+//     unsigned char rtpPayloadFormat;
+//     char const* codecName;
+//     unsigned channels;
+//     unsigned sampleRate;
+//     unsigned short port;
+//     char const* session;
+//     char const* medium;
+// } connection_t;
 
 class StreamClientState {
 public:
@@ -64,7 +65,7 @@ public:
     virtual ~StreamClientState();
     
     std::string getId(){return id;};
-    
+
 public:
     MediaSubsessionIterator* iter;
     MediaSession* session;
@@ -94,6 +95,7 @@ public:
     
     Session* getSession(std::string id);
     int getWriterID(unsigned int port);
+    void setCallback(std::function<void(char const*, unsigned short)> callbackFunction);
     
     UsageEnvironment* envir() {return env;};
     
@@ -108,12 +110,10 @@ private:
     std::thread mngrTh;
     
     static SourceManager* mngrInstance;
-    std::list<Session*> sessionList;
-    std::map<int, connection_t> audioOutputs;
-    std::map<int, connection_t> videoOutputs;
+    std::map<std::string, Session*> sessionMap;
     UsageEnvironment* env;
     uint8_t watch;
-    void (*callback)(connection_t);
+    std::function<void(char const*, unsigned short)> callback;
     
 };
 
@@ -125,6 +125,7 @@ public:
     virtual ~Session();
     
     std::string getId() {return scs->getId();};
+    MediaSubsession* getSubsessionByPort(int port);
     
     bool initiateSession();
     

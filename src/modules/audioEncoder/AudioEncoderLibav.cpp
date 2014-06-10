@@ -35,6 +35,7 @@ AudioEncoderLibav::AudioEncoderLibav()  : OneToOneFilter()
     av_init_packet(&pkt);
     pkt.data = NULL;
     pkt.size = 0;
+    fType = AUDIO_ENCODER;
 
     channels = 0;
     sampleRate = 0;

@@ -1,5 +1,5 @@
 /*
- *  VideoCircularBuffer - Video circular buffer
+ *  X264VideoCircularBuffer - Video circular buffer
  *  Copyright (C) 2013  Fundació i2CAT, Internet i Innovació digital a Catalunya
  *
  *  This file is part of media-streamer.
@@ -34,11 +34,11 @@ extern "C" {
 	#include <x264.h>
 }
 
- class VideoCircularBuffer : public FrameQueue {
+ class X264VideoCircularBuffer : public FrameQueue {
 
     public:
-        static VideoCircularBuffer* createNew();
-        ~VideoCircularBuffer();
+        static X264VideoCircularBuffer* createNew();
+        ~X264VideoCircularBuffer();
 
         Frame *getRear();
         Frame *getFront();
@@ -55,16 +55,15 @@ extern "C" {
 
 
     private:
-        VideoCircularBuffer();
+        X264VideoCircularBuffer();
 
-        bool pushBack(x264_nal_t **buffer, unsigned int sizeBuffer);
-        bool popFront(unsigned char **buffer, unsigned int *length);
-        bool forcePushBack(x264_nal_t **buffer, unsigned int sizeBuffer);
+        bool pushBack();
+        bool popFront();
+        bool forcePushBack();
         
         unsigned int first;
 		unsigned int last;
-		unsigned char *data[MAX_NALS+1];
-		unsigned int length[MAX_NALS+1];
+		InterleavedVideoFrame *data[MAX_NALS+1];
         bool moreNals;
 
         X264VideoFrame* inputFrame;

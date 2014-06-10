@@ -1,5 +1,5 @@
 /*
- *  VideoCircularBuffer - Video circular buffer
+ *  X264VideoCircularBuffer - Video circular buffer
  *  Copyright (C) 2013  Fundació i2CAT, Internet i Innovació digital a Catalunya
  *
  *  This file is part of media-streamer.
@@ -20,28 +20,28 @@
  *  Authors:  Martin German <martin.german@i2cat.net>
  */
 
-#include "VideoCircularBuffer.hh"
+#include "X264VideoCircularBuffer.hh"
 #include <cstring>
 #include <iostream>
 
-VideoCircularBuffer* VideoCircularBuffer::createNew()
+X264VideoCircularBuffer* X264VideoCircularBuffer::createNew()
 {
-    return new VideoCircularBuffer(numNals);
+    return new X264VideoCircularBuffer();
 }
 
 
-Frame* VideoCircularBuffer::getRear()
+Frame* X264VideoCircularBuffer::getRear()
 {
     return inputFrame;
 }
 
-Frame* VideoCircularBuffer::getFront()
+Frame* X264VideoCircularBuffer::getFront()
 {
     if (moreNals == false) {
         return NULL;
     }
-
-    if (!popFront(outputFrame->getDataBuf(), outputFrame->getLength())) {
+	
+    if (!popFront() {
 		moreNals = false;
         //std::cerr << "There is not enough data to fill a frame. Impossible to get frame!\n";
         return NULL;
@@ -51,31 +51,31 @@ Frame* VideoCircularBuffer::getFront()
     return outputFrame;
 }
 
-void VideoCircularBuffer::addFrame()
+void X264VideoCircularBuffer::addFrame()
 {
-    forcePushBack(inputFrame->getgetNals(), inputFrame->getSizeNals());
+    forcePushBack();
 	moreNals = true;
 }
 
-void VideoCircularBuffer::removeFrame()
+void X264VideoCircularBuffer::removeFrame()
 {
     //TODO
 }
 
-void VideoCircularBuffer::flush() 
+void X264VideoCircularBuffer::flush() 
 {
     return;
 }
 
 
-Frame* VideoCircularBuffer::forceGetRear()
+Frame* X264VideoCircularBuffer::forceGetRear()
 {
     return getRear();
 }
 
-Frame* VideoCircularBuffer::forceGetFront()
+Frame* X264VideoCircularBuffer::forceGetFront()
 {
-    if (!popFront(outputFrame->getDataBuf(), outputFrame->getLength())) {
+    if (!popFront()) {
         std::cerr << "There is not enough data to fill a frame. Reusing previous frame!\n";
 		return NULL;
     }
@@ -83,7 +83,7 @@ Frame* VideoCircularBuffer::forceGetFront()
     return outputFrame;
 }
 
-VideoCircularBuffer::VideoCircularBuffer()
+X264VideoCircularBuffer::X264VideoCircularBuffer()
 {
 	first = last = 0;    
     moreNals = false;
@@ -91,7 +91,7 @@ VideoCircularBuffer::VideoCircularBuffer()
     config();
 }
 
-bool VideoCircularBuffer::config()
+bool X264VideoCircularBuffer::config()
 {
     inputFrame = X264VideoFrame::createNew(H264, DEFAULT_WIDTH, DEFAULT_HEIGHT, YUYV422);
     outputFrame = InterleavedVideoFrame::createNew(H264, DEFAULT_WIDTH, DEFAULT_HEIGHT, YUYV422);
@@ -99,7 +99,7 @@ bool VideoCircularBuffer::config()
     return true;
 }
 
-VideoCircularBuffer::~VideoCircularBuffer()
+X264VideoCircularBuffer::~X264VideoCircularBuffer()
 {
 	int i = 0, count = (last - first);
 	if (count < 0)
@@ -108,21 +108,28 @@ VideoCircularBuffer::~VideoCircularBuffer()
 		delete[] data[((first + i) % (MAX_NALS + 1))];
 }
 
-bool VideoCircularBuffer::pushBack(x264_nal_t **buffer, unsigned int sizeBuffer) 
+bool X264VideoCircularBuffer::pushBack() 
 {
+	int sizeBuffer = inputFrame->getSizeNals();
+	x264_nal_t** buffer = inputFrame->getNals();
     int positionsRequested = (last + sizeBuffer) % (MAX_NALS + 1);
 	int i = 0, index = 0;
 
     if (positionsRequested > first) {
         return false;
     }
+	
+	VCodecType codec = inputFrame->getCodec();
+	unsigned int width = inputFrame->getWidth();
+    unsigned int height = inputFrame->getHeight();
+	PixType pixelFormat = inputFrame->getPixelFormat();
 
     for (i=0; i<sizeBuffer; i++) {
 		index =  ((last+i) % (MAX_NALS + 1));
 		int sizeNal = (*buffer)[i].i_payload;
-		data[index] = new unsigned char (sizeNal);
-		memcpy(data[index], (*buffer)[i].p_payload, sizeNal);
-		length[index] = sizeNal;
+		data[index] = InterleavedVideoFrame::createNew (codec, width, height, pixelFormat);
+		memcpy(data[index]->getDataBuf(), (*buffer)[i].p_payload, sizeNal);
+		data[index]->setLength(sizeNal);		
 	}
 	
 	last = index;
@@ -130,22 +137,20 @@ bool VideoCircularBuffer::pushBack(x264_nal_t **buffer, unsigned int sizeBuffer)
     return true;
 }   
 
-bool VideoCircularBuffer::popFront(unsigned char **buffer, unsigned int *length)
+bool X264VideoCircularBuffer::popFront()
 {
     if (first == last)
 		return false;
 
-	(*length) = length[first];
-	(*buffer) = new unsigned char (length[frist]);
-	memcpy ((*buffer), data[first], length[first]);
+	outputFrame = data[first];
 	first = (first + 1) % (MAX_NALS + 1); 
 
     return true;
 }
 
 
-bool AudioCircularBuffer::forcePushBack(x264_nal_t **buffer, unsigned int sizeBuffer)
+bool X264VideoCircularBuffer::forcePushBack()
 {
-    return pushBack(buffer, sizeBuffer);
+    return pushBack();
 }
 

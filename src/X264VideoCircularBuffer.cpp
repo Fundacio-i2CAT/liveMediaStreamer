@@ -41,7 +41,7 @@ Frame* X264VideoCircularBuffer::getFront()
         return NULL;
     }
 	
-    if (!popFront() {
+    if (!popFront()) {
 		moreNals = false;
         //std::cerr << "There is not enough data to fill a frame. Impossible to get frame!\n";
         return NULL;

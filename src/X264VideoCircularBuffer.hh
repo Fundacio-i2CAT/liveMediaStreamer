@@ -48,7 +48,7 @@ extern "C" {
         Frame *forceGetRear();
         Frame *forceGetFront();
         int delay; //(ms)
-        bool frameToRead() {return moreNals};
+        bool frameToRead() {return moreNals;};
 
     protected:
         bool config();

@@ -90,9 +90,8 @@ bool AudioDecoderLibav::doProcessFrame(Frame *org, Frame *dst)
         }
 
         if (gotFrame){
-            if (!resample(inFrame, aDecodedFrame)) {
-                std::cerr << "Resampling failed!" << std::endl;
-                return false;
+            if (resample(inFrame, aDecodedFrame)) {
+                return true;
             }
         }
         
@@ -102,7 +101,7 @@ bool AudioDecoderLibav::doProcessFrame(Frame *org, Frame *dst)
         }
     }
         
-    return true;
+    return false;
 }
 
 void AudioDecoderLibav::configure(SampleFmt sampleFormat, int channels, int sampleRate)

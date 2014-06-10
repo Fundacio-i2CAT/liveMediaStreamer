@@ -173,12 +173,11 @@ bool BaseFilter::connectManyToOne(BaseFilter *R, int wId)
     Reader* r;
     FrameQueue *queue;
     
-    if (writers.size() < getMaxWriters() && 
-        writers.count(wId) <= 0){
+    if (writers.size() < getMaxWriters() && writers.count(wId) <= 0) {
         writers[wId] = new Writer();
     }
     
-    if (writers.count(wId) > 0 || writers[wId]->isConnected()) {
+    if (writers.count(wId) > 0 && writers[wId]->isConnected()) {
         return false;
     }
 
@@ -227,12 +226,18 @@ bool BaseFilter::connectOneToMany(BaseFilter *R, int rId)
 
 bool BaseFilter::connect(Reader *r)
 {
-    if (writers[DEFAULT_ID]->isConnected()){
+    if (writers.size() < getMaxWriters() && writers.count(DEFAULT_ID) <= 0) {
+        writers[DEFAULT_ID] = new Writer();
+    }
+    
+    if (writers[DEFAULT_ID]->isConnected()) {
         return false;
     }
+
     if (r->isConnected()){
         return false;
     }
+    
     FrameQueue *queue = allocQueue(DEFAULT_ID);
     writers[DEFAULT_ID]->setQueue(queue);
     return writers[DEFAULT_ID]->connect(r);
@@ -315,7 +320,7 @@ BaseFilter(readersNum, 1, force_)
 bool ManyToOneFilter::processFrame()
 {
     bool newData;
-    
+
     if (!demandOriginFrames() || !demandDestinationFrames()) {
         return false;
     }

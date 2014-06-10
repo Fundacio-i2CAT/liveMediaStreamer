@@ -38,11 +38,9 @@ protected: // we're a virtual base class
     QueueServerMediaSubsession(UsageEnvironment& env, QueueSource *source,
                 Boolean reuseFirstSource);
     virtual ~QueueServerMediaSubsession();
-    
 
 protected:
     QueueSource* fSource;
-    
 };
 
 #endif

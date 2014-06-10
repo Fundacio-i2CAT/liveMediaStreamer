@@ -33,6 +33,9 @@ class Worker {
     
 public:
     Worker(Runnable *processor_, unsigned int maxFps = 0);
+    Worker();
+    void setProcessor(Runnable *processor, unsigned int maxFps = 0);
+
     
     bool start();
     bool isRunning();

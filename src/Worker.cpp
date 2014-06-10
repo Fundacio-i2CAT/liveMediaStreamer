@@ -42,6 +42,23 @@ Worker::Worker(Runnable *processor_, unsigned int maxFps): processor(processor_)
     enabled = true;
 }
 
+Worker::Worker(): run(false), enabled(false)
+{ 
+    processor = NULL;
+}
+
+void Worker::setProcessor(Runnable *processor, unsigned int maxFps) 
+{
+    if (maxFps != 0){
+        frameTime = 1000000/maxFps;
+    } else {
+        frameTime = 0;
+    }
+
+    this->processor = processor;
+    enabled = true;
+}
+
 void Worker::process()
 {
     int idleCount = 0;
@@ -53,10 +70,11 @@ void Worker::process()
     std::chrono::microseconds active(ACTIVE);
     std::chrono::milliseconds idle(IDLE);
 
+
     while(run){
-        while (enabled && frameTime > 0){
+        while (enabled && frameTime > 0) {
             previousTime = std::chrono::system_clock::now();
-            if (processor->processFrame()){
+            if (processor->processFrame()) {
                 idleCount = 0;
                 enlapsedTime = std::chrono::duration_cast<std::chrono::microseconds>(
                     std::chrono::system_clock::now() - previousTime);

@@ -50,8 +50,10 @@ public:
     Frame* getFrame(bool force = false);
     void addFrame();
 
-private:
+protected:
     FrameQueue *queue;
+
+private:
     bool connected;
 };
 
@@ -67,12 +69,14 @@ public:
     void setConnection(FrameQueue *queue);
     const FrameQueue* getQueue() const {return queue;};
 
+protected:
+    FrameQueue *queue;
+
 private:
     friend class Writer;
 
     void disconnect();
     
-    FrameQueue *queue;
     bool connected;
 };
 

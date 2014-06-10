@@ -127,7 +127,7 @@ void AudioMixer::sumValues(std::vector<float> fSamples, std::vector<float> &mixe
 
 Reader* AudioMixer::setReader(int readerID, FrameQueue* queue)
 {
-    if (reader.count(id) < 0) {
+    if (readers.count(readerID) < 0) {
         return NULL;
     }
 

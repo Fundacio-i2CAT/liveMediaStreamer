@@ -174,21 +174,24 @@ Session* SourceManager::getSession(std::string id)
 
 FrameQueue *SourceManager::allocQueue(int wId)
 {
-    //recórrer la llsita de session fins a trobar la subsessió que volem (amb la wId)
-    for (auto it : audioOutputs){
-        if (it.first == wId){
-            connection_t connection = audioOutputs[wId];
-            return createAudioQueue(connection.rtpPayloadFormat,
-                connection.codecName, connection.channels,
-                connection.sampleRate);
+    MediaSubsession *mSubsession;
+
+    for (auto it : sessionMap) {
+        if ((mSubsession = it.second->getSubsessionByPort(wId)) == NULL) {
+            continue;
+        }
+
+        if (strcmp(mSubsession->mediumName(), "audio") == 0) {
+            return createAudioQueue(mSubsession->rtpPayloadFormat(),
+                mSubsession->codecName(), mSubsession->numChannels(),
+                mSubsession->rtpTimestampFrequency());
+        }
+
+        if (strcmp(mSubsession->mediumName(), "video") == 0) {
+            return createVideoQueue(mSubsession->codecName());
         }
     }
-    for (auto it : videoOutputs){
-        if (it.first == wId){
-            connection_t connection = videoOutputs[wId];
-            return createVideoQueue(connection.codecName);
-        }
-    }
+
     return NULL;
 }
 
@@ -308,11 +311,26 @@ Session::~Session() {
         subsession = this->scs->iter->next();
     }
     Medium::close(this->scs->session);
-    delete[] this->scs->iter;
+    delete this->scs->iter;
     
     if (client != NULL) {
         Medium::close(client);
     }
+}
+
+MediaSubsession* Session::getSubsessionByPort(int port)
+{
+    MediaSubsession* subsession;
+
+    MediaSubsessionIterator iter(*(this->scs->session));
+
+    while ((subsession = iter.next()) != NULL) {
+        if (subsession->clientPortNum() == port) {
+            return subsession;
+        }
+    }
+
+    return NULL;
 }
 
 // Implementation of "StreamClientState":

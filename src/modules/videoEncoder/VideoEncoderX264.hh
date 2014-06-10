@@ -2,9 +2,11 @@
 #define _VIDEO_ENCODER_X264_HH
 
 #include <stdint.h>
+#include "../../VideoFrame.hh"
 #include "../../X264VideoFrame.hh"
 #include "../../Filter.hh"
 #include "../../FrameQueue.hh"
+#include "../../X264VideoCircularBuffer.hh"
 
 extern "C" {
 #include <x264.h>
@@ -25,8 +27,7 @@ class VideoEncoderX264: public OneToOneFilter {
 		void setIntra(){forceIntra = true;};
 		FrameQueue* allocQueue(int wId);
 
-	protected:
-
+	private:
 		x264_picture_t picIn;
 		x264_picture_t picOut;
 		bool forceIntra;
@@ -35,15 +36,13 @@ class VideoEncoderX264: public OneToOneFilter {
 		x264_param_t xparams;
 		x264_t* encoder;
 		struct SwsContext* swsCtx;
-		
-	private:
 		//Extra functions
 		bool open(int outWidth, int outHeight, AVPixelFormat outPixel);
 		bool setParameters(x264_param_t params, int inW, int inH, int outW, int outH, int inFps, AVPixelFormat inPixelFormat, AVPixelFormat outPixelFormat);
 		bool encodeHeaders(x264_nal_t **ppNal, int *piNal);
-		int encode(bool forceIntra, uint8_t** pixels, x264_nal_t **ppNal, int *piNal);
+		int encode(bool forceIntra, uint8_t** pixels, x264_nal_t **ppNal, int *piNal, int inWidth, int inHeight);
 		bool close();
 		void print();//Debugging purpose
 };
 
-//#endif
+#endif

@@ -19,50 +19,50 @@ VideoEncoderX264::~VideoEncoderX264(){
 	//delete encoder;
 }
 
-bool doProcessFrame(Frame *org, Frame *dst) {
-	InterleavedVideoFrame* interleavedFrame = dynamic_cast<InterleavedVideoFrame*> org;
-	X264VideoFrame* x264Frame = dynamic_cast<X264VideoFrame*> dst;
+bool VideoEncoderX264::doProcessFrame(Frame *org, Frame *dst) {
+	VideoFrame* videoFrame = dynamic_cast<VideoFrame*> (org);
+	X264VideoFrame* x264Frame = dynamic_cast<X264VideoFrame*> (dst);
 	int inWidth, inHeight, outWidth, outHeight, inFps, frameLength, pixelSize; 
 	x264_nal_t **ppNal;
 	int *piNal;
 	AVPixelFormat inPixel, outPixel;
 	PixType inPixelType, outPixelType;
-	inWidth = interleavedFrame->getWidth();
-	inHeight = interleavedFrame->getHeight();
+	inWidth = videoFrame->getWidth();
+	inHeight = videoFrame->getHeight();
 	outWidth = x264Frame->getWidth();
 	outHeight = x264Frame->getHeight();
-	inPixelType = interleavedFrame->getPixelFormat();
+	inPixelType = videoFrame->getPixelFormat();
 	outPixelType = x264Frame->getPixelFormat();
 
 	switch (inPixelType) {
-		P_NONE:
+		case P_NONE:
 			inPixel = AV_PIX_FMT_NONE;
 			break;
-		RGB24:
+		case RGB24:
 			inPixel = PIX_FMT_RGB24;
 			break;
-		RGB32:
+		case RGB32:
 			inPixel = PIX_FMT_RGBA;
 			break;
-		YUYV422:
+		case YUYV422:
 			inPixel = PIX_FMT_YUV420P;
 			break;
-	}
+	};
 
 	switch (outPixelType) {
-		P_NONE:
+		case P_NONE:
 			outPixel = AV_PIX_FMT_NONE;
 			break;
-		RGB24:
+		case RGB24:
 			outPixel = PIX_FMT_RGB24;
 			break;
-		RGB32:
+		case RGB32:
 			outPixel = PIX_FMT_RGBA;
 			break;
-		YUYV422:
+		case YUYV422:
 			outPixel = PIX_FMT_YUV420P;
 			break;
-	}
+	};
 
 	pixelSize = inWidth*3;
 
@@ -75,11 +75,11 @@ bool doProcessFrame(Frame *org, Frame *dst) {
 	else
 		picIn.i_type = X264_TYPE_AUTO;
 	
-	sws_scale(swsCtx, pixels, &pixelSize, 0, inHeight, picIn.img.plane, picIn.img.i_stride);
+	sws_scale(swsCtx, org->getPlanarDataBuf(), &pixelSize, 0, inHeight, picIn.img.plane, picIn.img.i_stride);
 
 	frameLength = x264_encoder_encode(encoder, ppNal, piNal, &picIn, &picOut);
 	if (frameLength < 1) {
-		std::cerr << "Error encoding video frame" << std::endl;
+		printf("Error encoding video frame\n");
 		return false;
 	}
 
@@ -91,46 +91,46 @@ bool doProcessFrame(Frame *org, Frame *dst) {
 
 
 void VideoEncoderX264::encodeHeadersFrame(Frame *decodedFrame, Frame *encodedFrame) {
-	InterleavedVideoFrame* interleavedFrame = dynamic_cast<InterleavedVideoFrame*> decodedFrame;
-	X264VideoFrame* x264Frame = dynamic_cast<X264VideoFrame*> encodedFrame;
+	VideoFrame* videoFrame = dynamic_cast<VideoFrame*> (decodedFrame);
+	X264VideoFrame* x264Frame = dynamic_cast<X264VideoFrame*> (encodedFrame);
 	int inWidth, inHeight, outWidth, outHeight, inFps, encodeSize;
 	x264_nal_t **ppNal;
 	int *piNal;
 	AVPixelFormat inPixel, outPixel;
 	PixType inPixelType, outPixelType;
-	inWidth = interleavedFrame->getWidth();
-	inHeight = interleavedFrame->getHeight();
+	inWidth = videoFrame->getWidth();
+	inHeight = videoFrame->getHeight();
 	outWidth = x264Frame->getWidth();
 	outHeight = x264Frame->getHeight();
-	inPixelType = interleavedFrame->getPixelFormat();
+	inPixelType = videoFrame->getPixelFormat();
 	outPixelType = x264Frame->getPixelFormat();
 
 	switch (inPixelType) {
-		P_NONE:
+		case P_NONE:
 			inPixel = AV_PIX_FMT_NONE;
 			break;
-		RGB24:
+		case RGB24:
 			inPixel = PIX_FMT_RGB24;
 			break;
-		RGB32:
+		case RGB32:
 			inPixel = PIX_FMT_RGBA;
 			break;
-		YUYV422:
+		case YUYV422:
 			inPixel = PIX_FMT_YUV420P;
 			break;
 	}
 
 	switch (outPixelType) {
-		P_NONE:
+		case P_NONE:
 			outPixel = AV_PIX_FMT_NONE;
 			break;
-		RGB24:
+		case RGB24:
 			outPixel = PIX_FMT_RGB24;
 			break;
-		RGB32:
+		case RGB32:
 			outPixel = PIX_FMT_RGBA;
 			break;
-		YUYV422:
+		case YUYV422:
 			outPixel = PIX_FMT_YUV420P;
 			break;
 	}
@@ -143,53 +143,53 @@ void VideoEncoderX264::encodeHeadersFrame(Frame *decodedFrame, Frame *encodedFra
 	x264_picture_alloc(&picIn, X264_CSP_I420, outWidth, outHeight);
 	
 	encodeSize = x264_encoder_headers(encoder, ppNal, piNal);
-	if (encodeh < 0) {
+	if (encodeSize < 0) {
 		printf("Error: encoder headers\n");
 	}
 	x264Frame->setNals(ppNal, (*piNal), encodeSize);
 }
 
 void VideoEncoderX264::encodeFrame(Frame *decodedFrame, Frame *encodedFrame) {
-	InterleavedVideoFrame* interleavedFrame = dynamic_cast<InterleavedVideoFrame*> decodedFrame;
-	X264VideoFrame* x264Frame = dynamic_cast<X264VideoFrame*> encodedFrame;
+	VideoFrame* videoFrame = dynamic_cast<VideoFrame*> (decodedFrame);
+	X264VideoFrame* x264Frame = dynamic_cast<X264VideoFrame*> (encodedFrame);
 	int inWidth, inHeight, outWidth, outHeight, inFps, frameLength, pixelSize; 
 	x264_nal_t **ppNal;
 	int *piNal;
 	AVPixelFormat inPixel, outPixel;
 	PixType inPixelType, outPixelType;
-	inWidth = interleavedFrame->getWidth();
-	inHeight = interleavedFrame->getHeight();
+	inWidth = videoFrame->getWidth();
+	inHeight = videoFrame->getHeight();
 	outWidth = x264Frame->getWidth();
 	outHeight = x264Frame->getHeight();
-	inPixelType = interleavedFrame->getPixelFormat();
+	inPixelType = videoFrame->getPixelFormat();
 	outPixelType = x264Frame->getPixelFormat();
 
 	switch (inPixelType) {
-		P_NONE:
+		case P_NONE:
 			inPixel = AV_PIX_FMT_NONE;
 			break;
-		RGB24:
+		case RGB24:
 			inPixel = PIX_FMT_RGB24;
 			break;
-		RGB32:
+		case RGB32:
 			inPixel = PIX_FMT_RGBA;
 			break;
-		YUYV422:
+		case YUYV422:
 			inPixel = PIX_FMT_YUV420P;
 			break;
 	}
 
 	switch (outPixelType) {
-		P_NONE:
+		case P_NONE:
 			outPixel = AV_PIX_FMT_NONE;
 			break;
-		RGB24:
+		case RGB24:
 			outPixel = PIX_FMT_RGB24;
 			break;
-		RGB32:
+		case RGB32:
 			outPixel = PIX_FMT_RGBA;
 			break;
-		YUYV422:
+		case YUYV422:
 			outPixel = PIX_FMT_YUV420P;
 			break;
 	}
@@ -205,7 +205,7 @@ void VideoEncoderX264::encodeFrame(Frame *decodedFrame, Frame *encodedFrame) {
 	else
 		picIn.i_type = X264_TYPE_AUTO;
 	
-	sws_scale(swsCtx, pixels, &pixelSize, 0, inHeight, picIn.img.plane, picIn.img.i_stride);
+	sws_scale(swsCtx, videoFrame->getPlanarDataBuf(), &pixelSize, 0, inHeight, picIn.img.plane, picIn.img.i_stride);
 
 	frameLength = x264_encoder_encode(encoder, ppNal, piNal, &picIn, &picOut);
 	if (frameLength < 1) {
@@ -279,7 +279,7 @@ bool VideoEncoderX264::encodeHeaders(x264_nal_t **ppNal, int *piNal) {
 	return true;
 }
 
-int VideoEncoderX264::encode(bool forceIntra, uint8_t** pixels, x264_nal_t **ppNal, int *piNal, int inWidth) {
+int VideoEncoderX264::encode(bool forceIntra, uint8_t** pixels, x264_nal_t **ppNal, int *piNal, int inWidth, int inHeight) {
 	int frameLength, pixelSize = inWidth*3;
 
 	picIn.i_pts = pts;

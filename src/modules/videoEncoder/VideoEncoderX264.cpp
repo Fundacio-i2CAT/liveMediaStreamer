@@ -218,6 +218,10 @@ void VideoEncoderX264::encodeFrame(Frame *decodedFrame, Frame *encodedFrame) {
 
 }
 
+FrameQueue* VideoEncoderX264::allocQueue(int wId) {
+	return X264VideoCircularBuffer::createNew();
+}
+
 bool VideoEncoderX264::config(x264_param_t params, int inFps) {
 	xparams = params;
 	fps = inFps;

@@ -4,6 +4,7 @@
 #include <stdint.h>
 #include "../../X264VideoFrame.hh"
 #include "../../Filter.hh"
+#include "../../FrameQueue.hh"
 
 extern "C" {
 #include <x264.h>
@@ -22,6 +23,7 @@ class VideoEncoderX264: public OneToOneFilter {
 		void encodeFrame(Frame *decodedFrame, Frame *encodedFrame);
 		bool config(x264_param_t params, int inFps);
 		void setIntra(){forceIntra = true;};
+		FrameQueue* allocQueue(int wId);
 
 	protected:
 

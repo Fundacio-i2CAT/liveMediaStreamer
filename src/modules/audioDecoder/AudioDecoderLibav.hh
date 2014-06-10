@@ -53,6 +53,7 @@ private:
     bool inputConfig();
     bool outputConfig();
     void doProcessEvent(Event event);
+    void initializeEventMap();
 
     AVCodec             *codec;
     AVCodecContext      *codecCtx;
@@ -75,8 +76,7 @@ private:
     unsigned char       *auxBuff[1];
     bool                needsConfig;
 
-    std::map<std::string, std::function<void(int)> f_display = print_num;void(Mixer::*)(Jzon::Object*, Jzon::Object*)> commands;
-
+    std::map<std::string, std::function<void(Jzon::Object* params)> > eventMap;
 };
 
 #endif

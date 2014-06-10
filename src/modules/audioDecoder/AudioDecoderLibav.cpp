@@ -24,6 +24,7 @@
 #include "../../AudioCircularBuffer.hh"
 #include <iostream>
 #include <stdio.h>
+#include <functional>
 
 AudioDecoderLibav::AudioDecoderLibav() : OneToOneFilter()
 {
@@ -340,7 +341,7 @@ void doProcessEvent(Event event)
         return;
     }
 
-    if (actionMap.count(action) <= 0 {
+    if (eventMap.count(action) <= 0 {
         //TODO: error!
     }
 
@@ -371,6 +372,12 @@ void configEvent(Jzon::Object* params)
 
     configure(newSampleFmt, newChannels, newSampleRate);
 }
+
+void initializeEventMap()
+{
+    eventMap["configure"] = std::bind(&AudioDecoderLibav::configEvent, this, std::placeholders::_1);
+}
+
 
 
 

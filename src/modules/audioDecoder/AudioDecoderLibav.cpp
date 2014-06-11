@@ -43,6 +43,8 @@ AudioDecoderLibav::AudioDecoderLibav() : OneToOneFilter()
     inSampleRate = 0;
     inFrame = av_frame_alloc();
 
+    initializeEventMap();
+
     configure(S16P, DEFAULT_CHANNELS, DEFAULT_SAMPLE_RATE);
 }
 

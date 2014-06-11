@@ -98,6 +98,8 @@ public:
     void setCallback(std::function<void(char const*, unsigned short)> callbackFunction);
     
     UsageEnvironment* envir() {return env;};
+    void initializeEventMap() {};
+
     
 private:
     friend bool handlers::addSubsessionSink(UsageEnvironment& env, MediaSubsession *subsession);

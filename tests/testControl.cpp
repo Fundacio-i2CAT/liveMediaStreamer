@@ -91,7 +91,7 @@ void readingRoutine(struct buffer* b, Reader *reader)
         }
 
         fillBuffer(b, codedFrame);
-        printf("Filled buffer! Frame size: %d\n", codedFrame->getLength());
+        //printf("Filled buffer! Frame size: %d\n", codedFrame->getLength());
 
         reader->removeFrame();
     }
@@ -191,7 +191,15 @@ int main(int argc, char** argv)
 
         std::cout << std::endl << command << "  " << id << "  " << volume << " " << std::endl;
 
-        Event e(Jzon::Object rootNode, std::chrono::system_clock::time_point timestamp) 
+        Jzon::Object rootNode;
+        Jzon::Object params;
+        params.Add("id", (int)ctrl->pipelineManager()->getPath(id)->getDstReaderID());
+        params.Add("volume", (float)volume);
+        rootNode.Add("params", params);
+        rootNode.Add("action", command);
+
+        Event e(rootNode, std::chrono::system_clock::now());
+        ctrl->pipelineManager()->getPath(id)->getDestinationFilter()->pushEvent(e);
     }
     
     readingThread.join();

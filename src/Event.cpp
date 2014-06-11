@@ -22,6 +22,7 @@
  */
 
 #include "Event.hh"
+#include <iostream>
 
 bool Event::operator<(const Event& e) const
 {
@@ -36,7 +37,9 @@ Event::Event(Jzon::Object rootNode, std::chrono::system_clock::time_point timest
 
 Event::~Event()
 {
-    delete inputRootNode;
+    //if (inputRootNode) {
+    //    delete inputRootNode;
+    //}
 }
 
 bool Event::canBeExecuted(std::chrono::system_clock::time_point currentTime)

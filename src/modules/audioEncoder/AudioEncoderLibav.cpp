@@ -44,6 +44,8 @@ AudioEncoderLibav::AudioEncoderLibav()  : OneToOneFilter()
     internalChannels = DEFAULT_CHANNELS;
     internalSampleRate = DEFAULT_SAMPLE_RATE;
 
+    initializeEventMap();
+
     needsConfig = true;
 }
 

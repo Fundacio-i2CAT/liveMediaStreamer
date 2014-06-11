@@ -42,6 +42,8 @@
 #include "Worker.hh"
 #endif
 
+#include <iostream>
+
 #include "Event.hh"
 #define DEFAULT_ID 1
 #define MAX_WRITERS 16
@@ -71,7 +73,7 @@ protected:
     virtual FrameQueue *allocQueue(int wId) = 0;
     virtual bool processFrame() = 0;
     virtual Reader *setReader(int readerID, FrameQueue* queue);
-    virtual void initializeEventMap() {};
+    virtual void initializeEventMap() = 0;
 
     Reader* getReader(int id);
     bool demandOriginFrames();

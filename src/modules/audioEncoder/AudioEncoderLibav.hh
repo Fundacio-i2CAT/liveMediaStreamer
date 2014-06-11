@@ -51,6 +51,7 @@ public:
     SampleFmt getSampleFmt() {return sampleFmt;};
     ACodecType getCodec() {return fCodec;};
     void configure(ACodecType codec);
+    void initializeEventMap() {};
 
 private:
     int resample(AudioFrame* src, AVFrame* dst);

@@ -45,6 +45,7 @@ public:
     bool doProcessFrame(Frame *org, Frame *dst);
     FrameQueue* allocQueue(int wId);
     void configure(SampleFmt sampleFormat, int channels, int sampleRate);
+    void initializeEventMap();
     
 private:
 
@@ -52,7 +53,6 @@ private:
     void checkInputParams(ACodecType codec, SampleFmt sampleFormat, int channels, int sampleRate);
     bool inputConfig();
     bool outputConfig();
-    void initializeEventMap();
     void configEvent(Jzon::Node* params); 
 
 

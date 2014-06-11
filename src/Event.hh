@@ -40,7 +40,7 @@ public:
 
 private:
     Jzon::Object* inputRootNode;
-    std::chrono::system_clock::time_point  timestamp;
+    std::chrono::system_clock::time_point timestamp;
 
 };
 

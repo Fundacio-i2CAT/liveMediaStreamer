@@ -39,6 +39,8 @@ AudioMixer::AudioMixer(int inputChannels) : ManyToOneFilter(inputChannels) {
     samples.resize(AudioFrame::getMaxSamples(sampleRate));
     mixedSamples.resize(AudioFrame::getMaxSamples(sampleRate));
 
+    initializeEventMap();
+
     masterGain = 1.0;
 }
 
@@ -49,6 +51,8 @@ AudioMixer::AudioMixer(int inputChannels, int frameChannels, int sampleRate) : M
 
     samples.resize(AudioFrame::getMaxSamples(sampleRate));
     mixedSamples.resize(AudioFrame::getMaxSamples(sampleRate));
+
+    initializeEventMap();
 
     masterGain = 1.0;
 }
@@ -127,7 +131,8 @@ void AudioMixer::sumValues(std::vector<float> fSamples, std::vector<float> &mixe
 
 Reader* AudioMixer::setReader(int readerID, FrameQueue* queue)
 {
-    if (readers.count(readerID) < 0) {
+    
+    if (readers.count(readerID) > 0) {
         return NULL;
     }
 

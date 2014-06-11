@@ -33,6 +33,7 @@
 BaseFilter::BaseFilter(int maxReaders_, int maxWriters_, bool force_) : 
     force(force_), maxReaders(maxReaders_), maxWriters(maxWriters_)
 {
+
 }
 
 Reader* BaseFilter::getReader(int id) 
@@ -272,15 +273,13 @@ void BaseFilter::processEvent()
         Jzon::Node* params = e.getParams();
 
         if (action.empty()) {
-            //TODO: error!
             return;
         }
 
         if (eventMap.count(action) <= 0) {
-            //TODO: error!
             return;
         }
-
+        
         eventMap[action](params);
 
         eventQueue.pop();
@@ -379,6 +378,8 @@ BaseFilter(readersNum, 1, force_)
 bool ManyToOneFilter::processFrame()
 {
     bool newData;
+
+    processEvent();
 
     if (!demandOriginFrames() || !demandDestinationFrames()) {
         return false;

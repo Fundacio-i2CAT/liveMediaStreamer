@@ -114,7 +114,7 @@ void VideoEncoderX264::encodeHeadersFrame(Frame *decodedFrame, Frame *encodedFra
 FrameQueue* VideoEncoderX264::allocQueue(int wId) {
 	return X264VideoCircularBuffer::createNew();
 }
-  
+
 bool VideoEncoderX264::config(Frame *org, Frame *dst) {
 	InterleavedVideoFrame* videoFrame = dynamic_cast<InterleavedVideoFrame*> (org);
 	X264VideoFrame* x264Frame = dynamic_cast<X264VideoFrame*> (dst);

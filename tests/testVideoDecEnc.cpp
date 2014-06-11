@@ -63,13 +63,13 @@ int main(int argc, char** argv)
     Session* session;
     SourceManager *mngr = SourceManager::getInstance();
     FrameQueue* queue;
-    Frame* rawFrame = InterleavedVideoFrame::createNew(RAW, DEFAULT_WIDTH, DEFAULT_HEIGHT, RGB24);
-	Frame* h264Frame = X264VideoFrame::createNew(H264, DEFAULT_WIDTH, DEFAULT_HEIGHT, YUYV422);
+   	//Frame* rawFrame = InterleavedVideoFrame::createNew(RAW, DEFAULT_WIDTH, DEFAULT_HEIGHT, RGB24);
+	Frame* h264Frame = InterleavedVideoFrame::createNew(H264, DEFAULT_WIDTH, DEFAULT_HEIGHT, YUYV422);
     VideoDecoderLibav* decoder = new VideoDecoderLibav();
 	VideoEncoderX264* encoder = new VideoEncoderX264();
     Worker *vDecoderWorker;
 	Worker *vEncoderWorker;
-    std::ofstream rawFrames;
+    std::ofstream h264Frames;
     
     //condif decoder
     
@@ -121,25 +121,29 @@ int main(int argc, char** argv)
 	vEncoderWorker->start();
     
     while(mngr->isRunning()) {
-        rawFrame = reader->getFrame();
+        //rawFrame = reader->getFrame();
+		h264Frame = reader->getFrame();
 
-        if (!rawFrame) {
+        if (!h264Frame) {
             usleep(500);
             continue;
         }
 
-        if (! rawFrames.is_open()){
-            rawFrames.open("frames.h264", std::ios::out | std::ios::app | std::ios::binary);
-        } 
-        if (rawFrame->getLength() > 0) {
-            rawFrames.write(reinterpret_cast<const char*>(rawFrame->getDataBuf()), rawFrame->getLength());
-            printf("Filled buffer! Frame size: %d\n", rawFrame->getLength());
+        if (! h264Frames.is_open()){
+            h264Frames.open("frames.h264", std::ios::out | std::ios::app | std::ios::binary);
         }
+		
+		if (h264Frame->getLength() > 0) {
+            h264Frames.write(reinterpret_cast<const char*>(h264Frame->getDataBuf()), h264Frame->getLength());
+            printf("Filled buffer! Frame size: %d\n", h264Frame->getLength());
+        } else {
+			printf ("Sin datos!!!\n");
+		}
         
         reader->removeFrame();
     }
     
-    rawFrames.close();
+    h264Frames.close();
     
     return 0;
 }

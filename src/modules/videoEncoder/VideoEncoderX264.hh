@@ -23,16 +23,23 @@ class VideoEncoderX264: public OneToOneFilter {
 		bool doProcessFrame(Frame *org, Frame *dst);
 		void encodeHeadersFrame(Frame *decodedFrame, Frame *encodedFrame);
 		void encodeFrame(Frame *decodedFrame, Frame *encodedFrame);
-		bool config(x264_param_t params, int inFps);
+		bool config(Frame *org, Frame *dst);
 		void setIntra(){forceIntra = true;};
 		FrameQueue* allocQueue(int wId);
 
 	private:
 		x264_picture_t picIn;
 		x264_picture_t picOut;
+		AVPixelFormat inPixel;
+		AVPixelFormat outPixel;
 		bool forceIntra;
+		bool firstTime;
 		int fps;
 		int pts;
+		int inWidth;
+		int inHeight;
+		int outWidth;
+		int outHeight;
 		x264_param_t xparams;
 		x264_t* encoder;
 		struct SwsContext* swsCtx;

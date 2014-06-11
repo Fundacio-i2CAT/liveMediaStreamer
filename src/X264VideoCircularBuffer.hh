@@ -27,28 +27,22 @@
 
 #include <atomic>
 #include "Types.hh"
-#include "FrameQueue.hh"
+#include "AVFramedQueue.hh"
 #include "X264VideoFrame.hh"
 
 extern "C" {
 	#include <x264.h>
 }
 
- class X264VideoCircularBuffer : public FrameQueue {
+ class X264VideoCircularBuffer : public VideoFrameQueue {
 
     public:
         static X264VideoCircularBuffer* createNew();
         ~X264VideoCircularBuffer();
 
         Frame *getRear();
-        Frame *getFront();
         void addFrame();
-        void removeFrame();
-        void flush();
         Frame *forceGetRear();
-        Frame *forceGetFront();
-        int delay; //(ms)
-        bool frameToRead() {return moreNals;};
 
     protected:
         bool config();
@@ -56,18 +50,15 @@ extern "C" {
 
     private:
         X264VideoCircularBuffer();
+        bool frameToRead() {return moreNals;};
 
         bool pushBack();
         bool popFront();
         bool forcePushBack();
         
-        unsigned int first;
-		unsigned int last;
-		InterleavedVideoFrame *data[MAX_NALS+1];
-        bool moreNals;
+		bool moreNals;
 
         X264VideoFrame* inputFrame;
-        InterleavedVideoFrame* outputFrame;
 };
 
 #endif

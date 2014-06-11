@@ -35,119 +35,50 @@ Frame* X264VideoCircularBuffer::getRear()
     return inputFrame;
 }
 
-Frame* X264VideoCircularBuffer::getFront()
-{
-    if (moreNals == false) {
-        return NULL;
-    }
-	
-    if (!popFront()) {
-		moreNals = false;
-        //std::cerr << "There is not enough data to fill a frame. Impossible to get frame!\n";
-        return NULL;
-    }
-
-	moreNals = true;    
-    return outputFrame;
-}
-
 void X264VideoCircularBuffer::addFrame()
 {
     forcePushBack();
-	moreNals = true;
 }
-
-void X264VideoCircularBuffer::removeFrame()
-{
-    //TODO
-}
-
-void X264VideoCircularBuffer::flush() 
-{
-    return;
-}
-
 
 Frame* X264VideoCircularBuffer::forceGetRear()
 {
-    return getRear();
+    return inputFrame;
 }
 
-Frame* X264VideoCircularBuffer::forceGetFront()
+
+X264VideoCircularBuffer::X264VideoCircularBuffer(): VideoFrameQueue(H264, 0, DEFAULT_WIDTH, DEFAULT_HEIGHT, YUYV422)
 {
-    if (!popFront()) {
-        std::cerr << "There is not enough data to fill a frame. Reusing previous frame!\n";
-		return NULL;
-    }
-
-    return outputFrame;
-}
-
-X264VideoCircularBuffer::X264VideoCircularBuffer()
-{
-	first = last = 0;    
-    moreNals = false;
-
     config();
 }
 
 bool X264VideoCircularBuffer::config()
 {
-    inputFrame = X264VideoFrame::createNew(H264, DEFAULT_WIDTH, DEFAULT_HEIGHT, YUYV422);
-    outputFrame = InterleavedVideoFrame::createNew(H264, DEFAULT_WIDTH, DEFAULT_HEIGHT, YUYV422);
-
+    inputFrame = X264VideoFrame::createNew(codec, width, height, pixelFormat);
     return true;
-}
-
-X264VideoCircularBuffer::~X264VideoCircularBuffer()
-{
-	int i = 0, count = (last - first);
-	if (count < 0)
-		count = last + ((MAX_NALS + 1) - first);
-	for (i=0; i < count; i++)
-		delete[] data[((first + i) % (MAX_NALS + 1))];
 }
 
 bool X264VideoCircularBuffer::pushBack() 
 {
 	int sizeBuffer = inputFrame->getSizeNals();
 	x264_nal_t** buffer = inputFrame->getNals();
-    int positionsRequested = (last + sizeBuffer) % (MAX_NALS + 1);
-	int i = 0, index = 0;
 
-    if (positionsRequested > first) {
-        return false;
-    }
-	
+	int i = 0;
+
+
 	VCodecType codec = inputFrame->getCodec();
 	unsigned int width = inputFrame->getWidth();
     unsigned int height = inputFrame->getHeight();
 	PixType pixelFormat = inputFrame->getPixelFormat();
 
     for (i=0; i<sizeBuffer; i++) {
-		index =  ((last+i) % (MAX_NALS + 1));
 		int sizeNal = (*buffer)[i].i_payload;
-		data[index] = InterleavedVideoFrame::createNew (codec, width, height, pixelFormat);
-		memcpy(data[index]->getDataBuf(), (*buffer)[i].p_payload, sizeNal);
-		data[index]->setLength(sizeNal);		
+		Frame* interleavedVideoFrame= VideoFrameQueue::getRear();
+		memcpy(interleavedVideoFrame->getDataBuf(), (*buffer)[i].p_payload, sizeNal);
+		VideoFrameQueue::addFrame();		
 	}
-	
-	last = index;
 	
     return true;
 }   
-
-bool X264VideoCircularBuffer::popFront()
-{
-    if (first == last)
-		return false;
-
-	outputFrame = data[first];
-	first = (first + 1) % (MAX_NALS + 1); 
-
-    return true;
-}
-
 
 bool X264VideoCircularBuffer::forcePushBack()
 {

@@ -28,12 +28,12 @@
 class AVFramedQueue : public FrameQueue {
 
 public:
-    Frame *getRear();
+    virtual Frame *getRear();
     Frame *getFront();
-    void addFrame();
+    virtual void addFrame();
     void removeFrame();
     void flush();
-    Frame *forceGetRear();
+    virtual Frame *forceGetRear();
     Frame *forceGetFront();
     int delay; //(ms)
     const int getElements() {return elements;};

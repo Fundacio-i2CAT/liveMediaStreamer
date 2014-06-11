@@ -165,7 +165,54 @@ void AudioMixer::changeVolumeEvent(Jzon::Node* params)
 
 }
 
+void AudioMixer::muteEvent(Jzon::Node* params) 
+{
+    if (!params) {
+        return;
+    }
+
+    if (!params->Has("id")) {
+        return;
+    }
+
+    int id = params->Get("id").ToInt();
+
+    if (gains.count(id) <= 0) {
+        return;
+    }
+
+    gains[id] = 0;
+}
+
+void AudioMixer::soloEvent(Jzon::Node* params) 
+{
+    if (!params) {
+        return;
+    }
+
+    if (!params->Has("id")) {
+        return;
+    }
+
+    int id = params->Get("id").ToInt();
+
+    if (gains.count(id) <= 0) {
+        return;
+    }
+
+    for (auto &it : gains) {
+        if (it.first == id) {
+            it.second = DEFAULT_CHANNEL_GAIN;
+        } else {
+            it.second = 0;
+        }
+    }
+
+}
+
 void AudioMixer::initializeEventMap()
 {
     eventMap["changeVolume"] = std::bind(&AudioMixer::changeVolumeEvent, this, std::placeholders::_1);
+    eventMap["mute"] = std::bind(&AudioMixer::muteEvent, this, std::placeholders::_1);
+    eventMap["solo"] = std::bind(&AudioMixer::soloEvent, this, std::placeholders::_1);
 }

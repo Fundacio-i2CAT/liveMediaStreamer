@@ -27,7 +27,7 @@
 #include <thread>
 #include <chrono>
 
-#define RETRIES 6
+#define RETRIES 8
 #define TIMEOUT 2500 //us
 
 BaseFilter::BaseFilter(int maxReaders_, int maxWriters_, bool force_) : 

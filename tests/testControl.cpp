@@ -64,7 +64,7 @@ void saveBuffer(struct buffer *b)
     FILE *audioChannel = NULL;
     char filename[32];
 
-    sprintf(filename, "coded.opus");
+    sprintf(filename, "coded.mp3");
 
     audioChannel = fopen(filename, "wb");
 

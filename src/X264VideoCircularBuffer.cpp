@@ -65,7 +65,6 @@ bool X264VideoCircularBuffer::pushBack()
 	int i = 0;
     for (i=0; i<sizeBuffer; i++) {
 		int sizeNal = (*buffer)[i].i_payload;
-		printf("SizeNal %d\n", sizeNal);
 		Frame* interleavedVideoFrame= VideoFrameQueue::getRear();
 		memcpy(interleavedVideoFrame->getDataBuf(), (*buffer)[i].p_payload, sizeNal);
 		interleavedVideoFrame->setLength(sizeNal);

@@ -58,33 +58,13 @@ SampleFmt AudioFrame::getSampleFormatFromString(std::string stringSampleFmt)
 }
 
 
-AudioFrame::AudioFrame(unsigned int ch, unsigned int sRate, unsigned int maxSamples, ACodecType codec, SampleFmt sFmt)
+AudioFrame::AudioFrame(unsigned int ch, unsigned int sRate, unsigned int maxSamples, ACodecType codec)
 {
     channels = ch;
     sampleRate = sRate;
     fCodec = codec;
-    sampleFmt = sFmt;
     samples = 0;
     this->maxSamples = maxSamples; 
-
-    switch(sampleFmt){
-        case U8P:
-        case U8:
-            bytesPerSample = 1;
-            break;
-        case S16P:
-        case S16:
-            bytesPerSample = 2;
-            break;
-        case FLTP:
-        case FLT:
-            bytesPerSample = 4;
-            break;
-        default:
-            //TODO: error
-            bytesPerSample = 0;
-        break;
-    }
 }
 
 //////////////////////////////////////////////////
@@ -97,15 +77,11 @@ InterleavedAudioFrame* InterleavedAudioFrame::createNew(unsigned int ch, unsigne
 }
 
 InterleavedAudioFrame::InterleavedAudioFrame(unsigned int ch, unsigned int sRate, unsigned int maxSamples, ACodecType codec, SampleFmt sFmt)
+: AudioFrame(ch, sRate, maxSamples, codec)
 {
-    channels = ch;
-    sampleRate = sRate;
-    fCodec = codec;
     sampleFmt = sFmt;
-    samples = 0;
-    this->maxSamples = maxSamples; 
 
-    switch(sampleFmt){
+    switch(sampleFmt) {
         case U8:
             bytesPerSample = 1;
             break;
@@ -136,13 +112,9 @@ PlanarAudioFrame* PlanarAudioFrame::createNew(unsigned int ch, unsigned int sRat
 }
 
 PlanarAudioFrame::PlanarAudioFrame(unsigned int ch, unsigned int sRate, unsigned int maxSamples, ACodecType codec, SampleFmt sFmt)
+: AudioFrame(ch, sRate, maxSamples, codec)
 {
-    channels = ch;
-    sampleRate = sRate;
-    fCodec = codec;
     sampleFmt = sFmt;
-    samples = 0;
-    this->maxSamples = maxSamples; 
 
     switch(sampleFmt){
         case U8P:

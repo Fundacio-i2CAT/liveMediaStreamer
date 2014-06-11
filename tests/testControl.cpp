@@ -35,7 +35,6 @@
 #define A_CHANNELS 2
 
 #define CHANNEL_MAX_SAMPLES 3000
-#define OUT_CHANNELS 2
 #define OUT_SAMPLE_RATE 48000
 
 bool should_stop = false;

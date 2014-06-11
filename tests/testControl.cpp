@@ -106,7 +106,7 @@ int main(int argc, char** argv)
     SourceManager *mngr = ctrl->pipelineManager()->getReceiver();
     AudioMixer *mixer = new AudioMixer(4);
     AudioEncoderLibav* audioEncoder = new AudioEncoderLibav();
-    audioEncoder->configure(PCMU);
+    audioEncoder->configure(MP3);
 
     Worker* audioEncoderWorker = new Worker(audioEncoder);
     Worker* audioDecoder1Worker = new Worker();

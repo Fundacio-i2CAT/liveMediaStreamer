@@ -38,7 +38,7 @@ enum VCodecType {VC_NONE = -1, H264, VP8, MJPEG, RAW};
 
 enum PixType {P_NONE = -1, RGB24, RGB32, YUYV422};
 
-enum ACodecType {AC_NONE = -1, G711, PCMU, OPUS, PCM, AAC};
+enum ACodecType {AC_NONE = -1, G711, PCMU, OPUS, PCM, AAC, MP3};
 
 enum SampleFmt {S_NONE = -1, U8, S16, FLT, U8P, S16P, FLTP};
 

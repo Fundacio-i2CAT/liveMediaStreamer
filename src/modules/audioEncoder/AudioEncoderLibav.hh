@@ -52,6 +52,7 @@ public:
     ACodecType getCodec() {return fCodec;};
     void configure(ACodecType codec);
     void initializeEventMap() {};
+    Reader *setReader(int readerID, FrameQueue* queue);
 
 private:
     int resample(AudioFrame* src, AVFrame* dst);

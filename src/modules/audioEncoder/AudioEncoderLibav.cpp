@@ -22,8 +22,13 @@
 
 #include "AudioEncoderLibav.hh"
 #include "../../AVFramedQueue.hh"
+#include "../../AudioCircularBuffer.hh"
 #include <iostream>
 #include <stdio.h>
+#include <fstream>
+
+std::ofstream rawFrames;
+
 
 AudioEncoderLibav::AudioEncoderLibav()  : OneToOneFilter()
 {
@@ -37,16 +42,14 @@ AudioEncoderLibav::AudioEncoderLibav()  : OneToOneFilter()
     pkt.size = 0;
     fType = AUDIO_ENCODER;
 
-    channels = 0;
-    sampleRate = 0;
-    internalLibavSampleFormat = AV_SAMPLE_FMT_S16;
-    internalSampleFmt = S16;
+    channels = DEFAULT_CHANNELS;
+    sampleRate = DEFAULT_SAMPLE_RATE;
+    sampleFmt = S16P;
+    libavSampleFmt = AV_SAMPLE_FMT_S16P;
     internalChannels = DEFAULT_CHANNELS;
     internalSampleRate = DEFAULT_SAMPLE_RATE;
 
     initializeEventMap();
-
-    needsConfig = true;
 }
 
 AudioEncoderLibav::~AudioEncoderLibav()
@@ -72,13 +75,6 @@ bool AudioEncoderLibav::doProcessFrame(Frame *org, Frame *dst)
 
     checkInputParams(aRawFrame->getSampleFmt(), aRawFrame->getChannels(), aRawFrame->getSampleRate());
     
-    if (needsConfig) {
-        if (!config()) {
-            std::cerr << "Encoder configuration failed!" << std::endl;
-            return false;
-        }
-    }
-
     //set up buffer and buffer length pointers
     pkt.data = dst->getDataBuf();
     pkt.size = dst->getMaxLength();
@@ -103,6 +99,20 @@ bool AudioEncoderLibav::doProcessFrame(Frame *org, Frame *dst)
     return false;
 }
 
+Reader* AudioEncoderLibav::setReader(int readerID, FrameQueue* queue)
+{
+    if (readers.size() >= getMaxReaders() || readers.count(readerID) > 0 ) {
+        return NULL;
+    }
+
+    Reader* r = new Reader();
+    readers[readerID] = r;
+
+    dynamic_cast<AudioCircularBuffer*>(queue)->setOutputFrameSamples(samplesPerFrame);
+
+    return r;
+}
+
 void AudioEncoderLibav::configure(ACodecType codec)
 {
     fCodec = codec;
@@ -110,16 +120,30 @@ void AudioEncoderLibav::configure(ACodecType codec)
     switch(fCodec) {
         case PCMU:
             codecID = AV_CODEC_ID_PCM_MULAW;
+            internalLibavSampleFormat = AV_SAMPLE_FMT_S16;
+            internalSampleFmt = S16;
             break;
         case OPUS:
             codecID = AV_CODEC_ID_OPUS;
+            internalLibavSampleFormat = AV_SAMPLE_FMT_S16;
+            internalSampleFmt = S16;
+            break; 
+        case AAC:
+            codecID = AV_CODEC_ID_AAC;
+            internalLibavSampleFormat = AV_SAMPLE_FMT_S16;
+            internalSampleFmt = S16;
+            break;
+        case MP3:
+            codecID = AV_CODEC_ID_MP3;
+            internalLibavSampleFormat = AV_SAMPLE_FMT_S16P;
+            internalSampleFmt = S16P;
             break;
         default:
             codecID = AV_CODEC_ID_NONE;
             break;
     }
 
-    needsConfig = true;
+    config();
 }
 
 bool AudioEncoderLibav::config() 
@@ -215,8 +239,6 @@ bool AudioEncoderLibav::config()
         return false;
     }
 
-    needsConfig = false;
-
     return true;
 }
 
@@ -262,6 +284,13 @@ int AudioEncoderLibav::resample(AudioFrame* src, AVFrame* dst)
                     (const uint8_t**)src->getPlanarDataBuf(), 
                     src->getSamples() 
                   );
+
+        // if (!rawFrames.is_open()){
+        //     rawFrames.open("raw.pcm", std::ios::out | std::ios::app | std::ios::binary);
+        // } 
+        // if (samples > 0) {
+        //     rawFrames.write(reinterpret_cast<const char*>(dst->data[0]), dst->linesize[0]);
+        // }
 
     } else {
         auxBuff[0] = src->getDataBuf();
@@ -314,7 +343,7 @@ void AudioEncoderLibav::checkInputParams(SampleFmt sampleFormat, int channels, i
     if (channels != internalChannels || sampleRate != internalSampleRate) {
         internalChannels = channels;
         internalSampleRate = sampleRate;
-        needsConfig = true;
+        config();
     } else {
         inputConfig();
     }

@@ -30,7 +30,7 @@ VideoEncoderX264::VideoEncoderX264(): OneToOneFilter(){
 	swsCtx = NULL;
 	encoder = NULL;
 	x264_param_default_preset(&xparams, "ultrafast", "zerolatency");
-	xparams.i_threads = 1;
+	xparams.i_threads = 4;
 	xparams.i_width = DEFAULT_WIDTH;
 	xparams.i_height = DEFAULT_HEIGHT;
 	xparams.i_fps_num = fps;

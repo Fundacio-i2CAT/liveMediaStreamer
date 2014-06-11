@@ -27,7 +27,8 @@
 #include "../../AudioCircularBuffer.hh"
 #include "../../AudioFrame.hh"
 #include <iostream>
-#include <utility> 
+#include <utility>
+#include <cmath>
 
 AudioMixer::AudioMixer(int inputChannels) : ManyToOneFilter(inputChannels) {
     frameChannels = DEFAULT_CHANNELS;
@@ -41,7 +42,9 @@ AudioMixer::AudioMixer(int inputChannels) : ManyToOneFilter(inputChannels) {
 
     initializeEventMap();
 
-    masterGain = 1.0;
+    masterGain = DEFAULT_MASTER_GAIN;
+    th = COMPRESSION_THRESHOLD;
+    mAlg = LDRC;
 }
 
 AudioMixer::AudioMixer(int inputChannels, int frameChannels, int sampleRate) : ManyToOneFilter(inputChannels) {
@@ -54,7 +57,9 @@ AudioMixer::AudioMixer(int inputChannels, int frameChannels, int sampleRate) : M
 
     initializeEventMap();
 
-    masterGain = 1.0;
+    masterGain = DEFAULT_MASTER_GAIN;
+    th = COMPRESSION_THRESHOLD;
+    mAlg = LDRC;
 }
 
 FrameQueue *AudioMixer::allocQueue(int wId) {
@@ -108,8 +113,16 @@ void AudioMixer::mixNonEmptyFrames(std::map<int, Frame*> orgFrames, std::vector<
 
 void AudioMixer::applyMixAlgorithm(std::vector<float> &fSamples, int frameNumber)
 {
-    for (auto sample : fSamples) {
-        sample *= (1.0/frameNumber);
+    switch (mAlg) {
+        case LA:
+            LAMixAlgorithm(fSamples, frameNumber);
+            break;
+        case LDRC:
+            LDRCMixAlgorithm(fSamples, frameNumber);
+            break;
+        default:
+            LAMixAlgorithm(fSamples, frameNumber);
+        break;
     }
 }
 
@@ -143,6 +156,22 @@ Reader* AudioMixer::setReader(int readerID, FrameQueue* queue)
 
     return r;
 }
+
+void AudioMixer::LAMixAlgorithm(std::vector<float> &fSamples, int frameNumber)
+{
+    for (auto sample : fSamples) {
+        sample *= (1.0/frameNumber);
+    }
+} 
+
+void AudioMixer::LDRCMixAlgorithm(std::vector<float> &fSamples, int frameNumber)
+{
+    for (auto s : fSamples) {
+        if (abs(s) > th) {
+            s = (s/abs(s))*(th + ( ((1 - th)/((float)frameNumber - th))*(abs(s) - th) ));
+        }
+    }
+} 
 
 void AudioMixer::changeVolumeEvent(Jzon::Node* params) 
 {

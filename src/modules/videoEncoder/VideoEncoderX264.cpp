@@ -1,3 +1,25 @@
+/*
+ *  VideoEncoderX264 - Video Encoder X264
+ *  Copyright (C) 2013  Fundació i2CAT, Internet i Innovació digital a Catalunya
+ *
+ *  This file is part of media-streamer.
+ *
+ *  This program is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ *  Authors:  Martin German <martin.german@i2cat.net>
+ */
+
 #include "VideoEncoderX264.hh"
 
 VideoEncoderX264::VideoEncoderX264(): OneToOneFilter(){
@@ -9,8 +31,8 @@ VideoEncoderX264::VideoEncoderX264(): OneToOneFilter(){
 	encoder = NULL;
 	x264_param_default_preset(&xparams, "ultrafast", "zerolatency");
 	xparams.i_threads = 1;
-	xparams.i_width = 1920;
-	xparams.i_height = 1080;
+	xparams.i_width = DEFAULT_WIDTH;
+	xparams.i_height = DEFAULT_HEIGHT;
 	xparams.i_fps_num = fps;
 	xparams.i_fps_den = 1;
 	xparams.b_intra_refresh = 0;
@@ -24,18 +46,14 @@ VideoEncoderX264::~VideoEncoderX264(){
 bool VideoEncoderX264::doProcessFrame(Frame *org, Frame *dst) {
 	InterleavedVideoFrame* videoFrame = dynamic_cast<InterleavedVideoFrame*> (org);
 	X264VideoFrame* x264Frame = dynamic_cast<X264VideoFrame*> (dst);
-	int inFps, frameLength, pixelSize, length; 
+	int inFps, frameLength, length; 
 	x264_nal_t *ppNal;
 	int piNal;
 	AVFrame *outFrame;
 
-
-	pixelSize = inWidth*3;
-
 	picIn.i_pts = pts;
 	
 	if (firstTime) {
-		printf("first time\n");
 		config(org, dst);
 		encodeHeadersFrame(org, dst);
 		firstTime = false;
@@ -48,19 +66,18 @@ bool VideoEncoderX264::doProcessFrame(Frame *org, Frame *dst) {
 	}
 	else
 		picIn.i_type = X264_TYPE_AUTO;
-	//printf("Before avpicture_fill %d %d %d\n", inPixel, inWidth, inHeight);
+
 	outFrame = av_frame_alloc();
 	length = avpicture_fill((AVPicture *) outFrame, videoFrame->getDataBuf(), inPixel, inWidth, inHeight);
-   // printf("after avpicture_fill\n");
+
     if (length <= 0){
         return false;
     }
 
-	//printf("Before sws_scale\n");
 	sws_scale(swsCtx, (uint8_t const * const *) outFrame->data, outFrame->linesize, 0, inHeight, picIn.img.plane, picIn.img.i_stride);
-	//printf("before encode\n");
+
 	frameLength = x264_encoder_encode(encoder, &ppNal, &piNal, &picIn, &picOut);
-	printf("after encode %d\n", frameLength);
+
 	if (frameLength < 1) {
 		printf("Error encoding video frame\n");
 		return false;
@@ -80,55 +97,18 @@ void VideoEncoderX264::encodeHeadersFrame(Frame *decodedFrame, Frame *encodedFra
 	x264_nal_t *ppNal;
 	int piNal;
 	
-	//printf ("getContext\n");
 	swsCtx = sws_getContext(inWidth, inHeight, inPixel, outWidth, outHeight, outPixel, SWS_FAST_BILINEAR, NULL, NULL, NULL);
 	xparams.i_width = outWidth;
 	xparams.i_height = outHeight;
 	x264_param_apply_profile(&xparams, "baseline");
-	//printf ("apply profile\n");
 	encoder = x264_encoder_open(&xparams);
-	//printf ("encoder open\n");
 	x264_picture_alloc(&picIn, X264_CSP_I420, outWidth, outHeight);
-	//printf ("picture alloc\n");
 	
 	encodeSize = x264_encoder_headers(encoder, &ppNal, &piNal);
-	//printf ("encoder headers\n");
 	if (encodeSize < 0) {
 		printf("Error: encoder headers\n");
 	}
 	x264Frame->setNals(&ppNal, piNal, encodeSize);
-	//printf("termino\n");
-}
-
-void VideoEncoderX264::encodeFrame(Frame *decodedFrame, Frame *encodedFrame) {
-	InterleavedVideoFrame* videoFrame = dynamic_cast<InterleavedVideoFrame*> (decodedFrame);
-	X264VideoFrame* x264Frame = dynamic_cast<X264VideoFrame*> (encodedFrame);
-	int inFps, frameLength, pixelSize; 
-	x264_nal_t *ppNal;
-	int piNal;
-	
-	pixelSize = inWidth*3;
-
-	picIn.i_pts = pts;
-
-	if (forceIntra) {
-		picIn.i_type = X264_TYPE_I;
-		forceIntra = false;
-	}
-	else
-		picIn.i_type = X264_TYPE_AUTO;
-	
-	//sws_scale(swsCtx, videoFrame->getPlanarDataBuf(), &pixelSize, 0, inHeight, picIn.img.plane, picIn.img.i_stride);
-
-	frameLength = x264_encoder_encode(encoder, &ppNal, &piNal, &picIn, &picOut);
-	if (frameLength < 1) {
-		printf ("Error: x264_encoder_encode\n");
-	}
-
-	x264Frame->setNals(&ppNal, piNal, frameLength);
-
-	pts++;
-
 }
 
 FrameQueue* VideoEncoderX264::allocQueue(int wId) {
@@ -185,86 +165,3 @@ bool VideoEncoderX264::config(Frame *org, Frame *dst) {
 	return true;
 }
 
-bool VideoEncoderX264::setParameters(x264_param_t params, int inWidth, int inHeight, int outWidth, int outHeight, int inFps, AVPixelFormat inPixel, AVPixelFormat outPixel) {
-	bool ret = true;
-	fps = inFps;
-	xparams = params;
-	x264_param_apply_profile(&xparams, "baseline");
-	swsCtx = sws_getContext(inWidth, inHeight, inPixel, outWidth, outHeight, outPixel, SWS_FAST_BILINEAR, NULL, NULL, NULL);
-	return ret;
-}
-
-bool VideoEncoderX264::open(int outWidth, int outHeight, AVPixelFormat outPixel) {
-	if (encoder) {
-		printf("Encoder already opened\n");
-		return false;
-	}
-
-	if((outPixel) != AV_PIX_FMT_YUV420P) {
-		printf ("Output format must be AV_PIX_FMT_YUV420P\n");
-		return false;
-	}
-
-	if (!swsCtx) {
-		printf("Error: Cannot create the context\n");
-		return false;
-	}
-
-	encoder = x264_encoder_open(&xparams);
-	x264_picture_alloc(&picIn, X264_CSP_I420, outWidth, outHeight);
-	
-	if (!encoder) {
-		printf("Error: open encoder\n");
-		return false;
-	}
-
-	pts = 0;
-
-	return true;
-}
-
-bool VideoEncoderX264::encodeHeaders(x264_nal_t **ppNal, int *piNal) {
-	int encodeh;
-	
-	encodeh = x264_encoder_headers(encoder, ppNal, piNal);
-	if (encodeh < 0) {
-		printf("Error: encoder headers\n");
-		return false;
-	}
-	
-	return true;
-}
-
-int VideoEncoderX264::encode(bool forceIntra, uint8_t** pixels, x264_nal_t **ppNal, int *piNal, int inWidth, int inHeight) {
-	int frameLength, pixelSize = inWidth*3;
-
-	picIn.i_pts = pts;
-
-	if (forceIntra) {//Doesn't work
-		x264_encoder_intra_refresh(encoder);
-	}
-	
-	sws_scale(swsCtx, pixels, &pixelSize, 0, inHeight, picIn.img.plane, picIn.img.i_stride);
-
-	frameLength = x264_encoder_encode(encoder, ppNal, piNal, &picIn, &picOut);
-	if (frameLength < 1) {
-		printf ("Error: x264_encoder_encode\n");
-		return false;
-	}
-
-	pts++;
-	return frameLength;
-}
-
-bool VideoEncoderX264::close() {
-	if(encoder)
-		x264_picture_clean(&picIn);
-	x264_encoder_close(encoder);
-    encoder = NULL;
-	return true;
-}
-
-void VideoEncoderX264::print() {
-	printf("fps %d\n", fps);
-	printf("pts %d\n", pts);
-}

@@ -103,12 +103,12 @@ int main(int argc, char** argv)
     int id1 = mngr->getWriterID(V_CLIENT_PORT);
 
     if(!mngr->connect(id1, decoder, decoder->getAvailableReaders().front())) {
-        std::cerr << "Error connecting audio decoder 2 with mixer" << std::endl;
+        std::cerr << "Error connecting video decoder" << std::endl;
     }
 	
 	int id2 = decoder->getAvailableWriters().front();
 	if(!decoder->connect(id2, encoder, encoder->getAvailableReaders().front())) {
-        std::cerr << "Error connecting audio decoder 2 with mixer" << std::endl;
+        std::cerr << "Error connecting video encoder" << std::endl;
     }
 
     Reader *reader = new Reader();
@@ -121,7 +121,6 @@ int main(int argc, char** argv)
 	vEncoderWorker->start();
     
     while(mngr->isRunning()) {
-        //rawFrame = reader->getFrame();
 		h264Frame = reader->getFrame();
 
         if (!h264Frame) {
@@ -136,9 +135,7 @@ int main(int argc, char** argv)
 		if (h264Frame->getLength() > 0) {
             h264Frames.write(reinterpret_cast<const char*>(h264Frame->getDataBuf()), h264Frame->getLength());
             printf("Filled buffer! Frame size: %d\n", h264Frame->getLength());
-        } else {
-			printf ("Sin datos!!!\n");
-		}
+        }
         
         reader->removeFrame();
     }

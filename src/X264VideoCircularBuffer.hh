@@ -47,16 +47,10 @@ extern "C" {
     protected:
         bool config();
 
-
     private:
         X264VideoCircularBuffer();
-        bool frameToRead() {return moreNals;};
-
         bool pushBack();
-        bool popFront();
         bool forcePushBack();
-        
-		bool moreNals;
 
         X264VideoFrame* inputFrame;
 };

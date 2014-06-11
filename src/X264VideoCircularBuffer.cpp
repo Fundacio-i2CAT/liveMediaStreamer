@@ -63,17 +63,12 @@ bool X264VideoCircularBuffer::pushBack()
 	x264_nal_t** buffer = inputFrame->getNals();
 
 	int i = 0;
-
-
-	VCodecType codec = inputFrame->getCodec();
-	unsigned int width = inputFrame->getWidth();
-    unsigned int height = inputFrame->getHeight();
-	PixType pixelFormat = inputFrame->getPixelFormat();
-
     for (i=0; i<sizeBuffer; i++) {
 		int sizeNal = (*buffer)[i].i_payload;
+		printf("SizeNal %d\n", sizeNal);
 		Frame* interleavedVideoFrame= VideoFrameQueue::getRear();
 		memcpy(interleavedVideoFrame->getDataBuf(), (*buffer)[i].p_payload, sizeNal);
+		interleavedVideoFrame->setLength(sizeNal);
 		VideoFrameQueue::addFrame();		
 	}
 	

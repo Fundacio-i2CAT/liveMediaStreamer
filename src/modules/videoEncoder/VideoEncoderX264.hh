@@ -1,3 +1,25 @@
+/*
+ *  VideoEncoderX264 - Video Encoder X264
+ *  Copyright (C) 2013  Fundació i2CAT, Internet i Innovació digital a Catalunya
+ *
+ *  This file is part of media-streamer.
+ *
+ *  This program is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ *  Authors:  Martin German <martin.german@i2cat.net>
+ */
+
 #ifndef _VIDEO_ENCODER_X264_HH
 #define _VIDEO_ENCODER_X264_HH
 
@@ -20,9 +42,7 @@ class VideoEncoderX264: public OneToOneFilter {
 	public:
 		VideoEncoderX264();
 		~VideoEncoderX264();
-		bool doProcessFrame(Frame *org, Frame *dst);
-		void encodeHeadersFrame(Frame *decodedFrame, Frame *encodedFrame);
-		void encodeFrame(Frame *decodedFrame, Frame *encodedFrame);
+		bool doProcessFrame(Frame *org, Frame *dst);		
 		bool config(Frame *org, Frame *dst);
 		void setIntra(){forceIntra = true;};
 		FrameQueue* allocQueue(int wId);
@@ -43,13 +63,8 @@ class VideoEncoderX264: public OneToOneFilter {
 		x264_param_t xparams;
 		x264_t* encoder;
 		struct SwsContext* swsCtx;
-		//Extra functions
-		bool open(int outWidth, int outHeight, AVPixelFormat outPixel);
-		bool setParameters(x264_param_t params, int inW, int inH, int outW, int outH, int inFps, AVPixelFormat inPixelFormat, AVPixelFormat outPixelFormat);
-		bool encodeHeaders(x264_nal_t **ppNal, int *piNal);
-		int encode(bool forceIntra, uint8_t** pixels, x264_nal_t **ppNal, int *piNal, int inWidth, int inHeight);
-		bool close();
-		void print();//Debugging purpose
+
+		void encodeHeadersFrame(Frame *decodedFrame, Frame *encodedFrame);
 };
 
 #endif

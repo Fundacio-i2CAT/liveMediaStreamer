@@ -58,6 +58,8 @@ class AudioFrame : public Frame {
         static int getMaxSamples(int sampleRate);
         static int getDefaultSamples(int sampleRate);
         static SampleFmt getSampleFormatFromString(std::string stringSampleFmt);
+        static ACodecType getCodecFromString(std::string stringCodec);
+
               
     protected:
         unsigned int channels, sampleRate, samples, maxSamples, bytesPerSample; 

@@ -32,6 +32,9 @@ Controller::Controller()
     ctrlInstance = this;
     pipeMngrInstance = PipelineManager::getInstance();
     workMngrInstance = WorkerManager::getInstance();
+    Jzon::Object* inputRootNode = new Jzon::Object();
+    Jzon::Object* outputRootNode = new Jzon::Object();
+    Jzon::Parser* parser = new Jzon::Parser(inputRootNode);
 }
 
 Controller* Controller::getInstance()
@@ -61,6 +64,68 @@ WorkerManager* Controller::workerManager()
 {
     return workMngrInstance;
 }
+
+bool Controller::createSocket(int port)
+{
+
+    struct sockaddr_in serv_addr;
+    int yes=1;
+
+    sock = socket(AF_INET, SOCK_STREAM, 0);
+    
+    if (sock < 0) {
+        error("ERROR opening socket");
+        return false;
+    }
+     
+    if (setsockopt(*sock, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(int)) == -1 ) {
+        perror("setsockopt");
+        return false;
+    }
+    
+    bzero((char *) &serv_addr, sizeof(serv_addr));
+    serv_addr.sin_family = AF_INET;
+    serv_addr.sin_addr.s_addr = INADDR_ANY;
+    serv_addr.sin_port = htons(port);
+    
+    if (bind(*sock, (struct sockaddr *) &serv_addr, sizeof(serv_addr)) < 0) {
+        error("ERROR on binding");
+        return false;
+    } 
+
+    return true;
+}
+
+int Controller::listenSocket()
+{
+    socklen_t clilen;
+    struct sockaddr cli_addr;
+    listen(sock,5);
+    clilen = sizeof(cli_addr);
+
+    return accept(sock, (struct sockaddr *) &cli_addr, &clilen);
+}
+
+bool Controller::readAndParse(int newSock)
+{
+    bzero(inBuffer, MSG_BUFFER_MAX_LENGTH);
+    inputRootNode.Clear();
+    outputRootNode.Clear();
+
+    if (read(newSock, inBuffer, MSG_BUFFER_MAX_LENGTH - 1) < 0) {
+        error("ERROR reading from socket");
+    }
+
+    parser.SetJson(inBuffer);
+
+    if (!parser.Parse()) {
+        //TODO: error
+        return false;
+    }    
+}
+
+
+
 
 ///////////////////////////////////
 //PIPELINE MANAGER IMPLEMENTATION//

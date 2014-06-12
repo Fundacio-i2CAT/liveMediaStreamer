@@ -27,6 +27,8 @@
 #include "network/SinkManager.hh"
 #include "Path.hh"
 
+#define MSG_BUFFER_MAX_LENGTH 4096
+
 class PipelineManager {
 public:
     static PipelineManager* getInstance();
@@ -68,9 +70,18 @@ public:
     static void destroyInstance();
     PipelineManager* pipelineManager();
     WorkerManager* workerManager();
+
+    bool createSocket(int port);
+    int listenSocket();
+    bool readAndParse(int newSock);
     
 private:
     Controller();
+    int sock;
+    char inBuffer[MSG_BUFFER_MAX_LENGTH];
+    Jzon::Object* inputRootNode;
+    Jzon::Object* outputRootNode;
+    Jzon::Parser* parser;
   
     static Controller* ctrlInstance;
     PipelineManager* pipeMngrInstance;

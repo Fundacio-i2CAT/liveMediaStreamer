@@ -17,6 +17,7 @@ class VideoEncoderX264: public OneToOneFilter {
 	public:
 		VideoEncoderX264();
 		~VideoEncoderX264();
+		bool doProcessFrame(Frame *org, Frame *dst);
 		void encodeHeadersFrame(Frame *decodedFrame, Frame *encodedFrame);
 		void encodeFrame(Frame *decodedFrame, Frame *encodedFrame);
 		bool config(x264_param_t params, int inFps);

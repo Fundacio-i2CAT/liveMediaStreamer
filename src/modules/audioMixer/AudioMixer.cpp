@@ -21,7 +21,6 @@
  */
 
 #define BPS 2
-#define DEFAULT_CHANNEL_GAIN 0.6
  
 #include "AudioMixer.hh"
 #include "../../AudioCircularBuffer.hh"

@@ -60,7 +60,7 @@ SourceManager* SourceManager::getInstance()
 
 void SourceManager::closeManager()
 {
-    sessionList.clear();
+    sessionMap.clear();
     if (this->isRunning()){
         watch = 1;
         if (mngrTh.joinable()){
@@ -74,10 +74,18 @@ void SourceManager::destroyInstance()
     SourceManager * mngrInstance = SourceManager::getInstance();
     if (mngrInstance != NULL){
         mngrInstance->closeManager();
-        delete[] mngrInstance;
+        delete mngrInstance;
         mngrInstance = NULL;
     }
 }
+
+void SourceManager::setCallback(std::function<void(char const*, unsigned short)> callbackFunction)
+{
+    if (!callback) {
+        callback = callbackFunction;
+    }
+}
+
 
 void* SourceManager::startServer(void *args)
 {
@@ -109,95 +117,81 @@ bool SourceManager::isRunning()
 
 bool SourceManager::addSession(Session* session)
 {   
-    if (session == NULL){
+    if (session == NULL) {
         return false;
     }
-    if (getSession(session->getId()) != NULL){
+
+    if (sessionMap.count(session->getId()) > 0) {
         return false;
     }
-    sessionList.push_back(session);
+
+    sessionMap[session->getId()] = session;
     
     return true;
 }
 
 bool SourceManager::removeSession(std::string id)
 {
-    std::list<Session*>::iterator it;
-    for (it=sessionList.begin(); it!=sessionList.end(); ++it){
-        if ((*it)->getId() == id){
-            sessionList.erase(it);
-            return true;
-        }
+    if (sessionMap.count(id) <= 0) {
+        return false;
     }
-    return false;
+
+    sessionMap.erase(id);
+
+    return true;
 }
 
 Session* SourceManager::getSession(std::string id)
 {
-    std::list<Session*>::iterator it;
-    for (it=sessionList.begin(); it!=sessionList.end(); ++it){
-        if ((*it)->getId() == id){
-            return *it;
-        }
+    if (sessionMap.count(id) <= 0) {
+        return NULL;
     }
-    return NULL;
+
+    return sessionMap[id];
 }
 
-void SourceManager::addConnection(int wId, MediaSubsession* subsession)
-{
-    connection_t connection;
+// void SourceManager::addConnection(int wId, MediaSubsession* subsession)
+// {
+//     connection_t connection;
 
-    connection.rtpPayloadFormat = subsession->rtpPayloadFormat();
-    connection.codecName = subsession->codecName();
-    connection.channels = subsession->numChannels();
-    connection.sampleRate = subsession->rtpTimestampFrequency();
-    connection.port = subsession->clientPortNum();
-    connection.session = subsession->parentSession().sessionName();
-    connection.medium = subsession->mediumName();
+//     connection.rtpPayloadFormat = subsession->rtpPayloadFormat();
+//     connection.codecName = subsession->codecName();
+//     connection.channels = subsession->numChannels();
+//     connection.sampleRate = subsession->rtpTimestampFrequency();
+//     connection.port = subsession->clientPortNum();
+//     connection.session = subsession->parentSession().sessionName();
+//     connection.medium = subsession->mediumName();
     
-    if (strcmp(subsession->mediumName(), "audio") == 0) {
-        audioOutputs[wId] = connection;
-    } else if (strcmp(subsession->mediumName(), "video") == 0) {
-        videoOutputs[wId] = connection;
-    }
+//     if (strcmp(subsession->mediumName(), "audio") == 0) {
+//         audioOutputs[wId] = connection;
+//     } else if (strcmp(subsession->mediumName(), "video") == 0) {
+//         videoOutputs[wId] = connection;
+//     }
 
-    //Todo: callback
-}
-
-int SourceManager::getWriterID(unsigned int port)
-{
-    for (auto idConnectionTuple : audioOutputs) {
-        if (idConnectionTuple.second.port == port) {
-            return  idConnectionTuple.first;
-        }
-    }
-
-    for (auto idConnectionTuple : videoOutputs) {
-        if (idConnectionTuple.second.port == port) {
-            return  idConnectionTuple.first;
-        }
-    }
-
-    return -1;
-}
+//     //Todo: callback
+// }
 
 
 FrameQueue *SourceManager::allocQueue(int wId)
 {
-    for (auto it : audioOutputs){
-        if (it.first == wId){
-            connection_t connection = audioOutputs[wId];
-            return createAudioQueue(connection.rtpPayloadFormat,
-                connection.codecName, connection.channels,
-                connection.sampleRate);
+    MediaSubsession *mSubsession;
+
+    for (auto it : sessionMap) {
+        if ((mSubsession = it.second->getSubsessionByPort(wId)) == NULL) {
+            continue;
+        }
+
+        if (strcmp(mSubsession->mediumName(), "audio") == 0) {
+            return createAudioQueue(mSubsession->rtpPayloadFormat(),
+                mSubsession->codecName(), mSubsession->numChannels(),
+                mSubsession->rtpTimestampFrequency());
+        }
+
+        if (strcmp(mSubsession->mediumName(), "video") == 0) {
+            return createVideoQueue(mSubsession->codecName());
         }
     }
-    for (auto it : videoOutputs){
-        if (it.first == wId){
-            connection_t connection = videoOutputs[wId];
-            return createVideoQueue(connection.codecName);
-        }
-    }
+
     return NULL;
 }
 
@@ -317,11 +311,26 @@ Session::~Session() {
         subsession = this->scs->iter->next();
     }
     Medium::close(this->scs->session);
-    delete[] this->scs->iter;
+    delete this->scs->iter;
     
     if (client != NULL) {
         Medium::close(client);
     }
+}
+
+MediaSubsession* Session::getSubsessionByPort(int port)
+{
+    MediaSubsession* subsession;
+
+    MediaSubsessionIterator iter(*(this->scs->session));
+
+    while ((subsession = iter.next()) != NULL) {
+        if (subsession->clientPortNum() == port) {
+            return subsession;
+        }
+    }
+
+    return NULL;
 }
 
 // Implementation of "StreamClientState":

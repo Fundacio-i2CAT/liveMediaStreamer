@@ -22,8 +22,10 @@
 
 #include "AudioDecoderLibav.hh"
 #include "../../AudioCircularBuffer.hh"
+#include "../../Utils.hh"
 #include <iostream>
 #include <stdio.h>
+#include <functional>
 
 AudioDecoderLibav::AudioDecoderLibav() : OneToOneFilter()
 {
@@ -36,10 +38,13 @@ AudioDecoderLibav::AudioDecoderLibav() : OneToOneFilter()
     av_init_packet(&pkt);
     pkt.data = NULL;
     pkt.size = 0;
+    fType = AUDIO_DECODER;
 
     inChannels = 0;
     inSampleRate = 0;
     inFrame = av_frame_alloc();
+
+    initializeEventMap();
 
     configure(S16P, DEFAULT_CHANNELS, DEFAULT_SAMPLE_RATE);
 }
@@ -73,10 +78,6 @@ bool AudioDecoderLibav::doProcessFrame(Frame *org, Frame *dst)
                      aCodedFrame->getSampleRate() 
                      );
 
-    if (needsConfig) {
-        outputConfig();
-    }
-
     pkt.size = org->getLength();
     pkt.data = org->getDataBuf();
             
@@ -89,9 +90,8 @@ bool AudioDecoderLibav::doProcessFrame(Frame *org, Frame *dst)
         }
 
         if (gotFrame){
-            if (!resample(inFrame, aDecodedFrame)) {
-                std::cerr << "Resampling failed!" << std::endl;
-                return false;
+            if (resample(inFrame, aDecodedFrame)) {
+                return true;
             }
         }
         
@@ -101,7 +101,7 @@ bool AudioDecoderLibav::doProcessFrame(Frame *org, Frame *dst)
         }
     }
         
-    return true;
+    return false;
 }
 
 void AudioDecoderLibav::configure(SampleFmt sampleFormat, int channels, int sampleRate)
@@ -141,7 +141,6 @@ void AudioDecoderLibav::configure(SampleFmt sampleFormat, int channels, int samp
         break;
     }
 
-    needsConfig = true;
 }
 
 bool AudioDecoderLibav::inputConfig()
@@ -233,7 +232,6 @@ bool AudioDecoderLibav::outputConfig()
         } 
     }
 
-    needsConfig = false;
 }
 
 
@@ -330,5 +328,37 @@ void AudioDecoderLibav::checkInputParams(ACodecType codec, SampleFmt sampleForma
 
     inputConfig();
 }
+
+void AudioDecoderLibav::configEvent(Jzon::Node* params) 
+{
+    SampleFmt newSampleFmt = outSampleFmt;
+    int newChannels = outChannels;
+    int newSampleRate = outSampleRate;
+
+    if (!params) {
+        return;
+    }
+
+    if (params->Has("sampleRate")) {
+        newSampleRate = params->Get("sampleRate").ToInt();
+    }
+
+    if (params->Has("channels")) {
+        newChannels = params->Get("channels").ToInt();
+    }
+
+    if (params->Has("sampleFormat")) {
+        newSampleFmt = utils::getSampleFormatFromString(params->Get("sampleFormat").ToString());
+    }
+
+    configure(newSampleFmt, newChannels, newSampleRate);
+}
+
+void AudioDecoderLibav::initializeEventMap()
+{
+    eventMap["configure"] = std::bind(&AudioDecoderLibav::configEvent, this, std::placeholders::_1);
+}
+
+
 
 

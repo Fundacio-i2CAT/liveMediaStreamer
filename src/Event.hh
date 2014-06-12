@@ -1,5 +1,5 @@
 /*
- *  QueueServerMediaSubsession.cpp - A generic subsession class for our frame queue
+ *  Event.hh - Event class
  *  Copyright (C) 2014  Fundació i2CAT, Internet i Innovació digital a Catalunya
  *
  *  This file is part of liveMediaStreamer.
@@ -17,21 +17,31 @@
  *  You should have received a copy of the GNU General Public License
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- *  Authors:  David Cassany <david.cassany@i2cat.net>,
+ *  Authors:  Marc Palau <marc.palau@i2cat.net>
  *            
  */
 
+#ifndef _EVENT_HH
+#define _EVENT_HH
 
-#include "QueueServerMediaSubsession.hh"
+#include <string>
+#include <chrono>
+#include "Jzon.h"
 
-QueueServerMediaSubsession
-::QueueServerMediaSubsession(UsageEnvironment& env, QueueSource *source,
-                Boolean reuseFirstSource)
-    : OnDemandServerMediaSubsession(env, reuseFirstSource),
-        fSource(source) {
-}
+class Event {
+    
+public:
+    Event(Jzon::Object rootNode, std::chrono::system_clock::time_point timestamp);
+    ~Event();    
+    bool canBeExecuted(std::chrono::system_clock::time_point currentTime);
+    std::string getAction();
+    Jzon::Node* getParams();
+    bool operator<(const Event& e) const;
 
-QueueServerMediaSubsession::~QueueServerMediaSubsession() {
-    //TODO:
-    //delete[] fQueue;
-}
+private:
+    Jzon::Object* inputRootNode;
+    std::chrono::system_clock::time_point timestamp;
+
+};
+
+#endif

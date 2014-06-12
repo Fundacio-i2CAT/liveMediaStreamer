@@ -37,10 +37,7 @@ VideoMixer::VideoMixer(int inputChannels) : ManyToOneFilter(inputChannels, true)
 {
     outputWidth = DEFAULT_WIDTH;
     outputHeight = DEFAULT_HEIGHT;
-
-    for (auto id : getAvailableReaders()) {
-        positionAndSizes.insert(std::pair<int, PositionSize*>(id, new PositionSize(outputWidth, outputHeight, 0, 0, 0)));
-    }
+    fType = VIDEO_MIXER;
 
     layoutImg = cv::Mat(outputHeight, outputWidth, CV_8UC3);
 }
@@ -50,10 +47,7 @@ ManyToOneFilter(inputChannels, true)
 {
     this->outputWidth = outputWidth;
     this->outputHeight = outputHeight;
-
-    for (auto id : getAvailableReaders()) {
-        positionAndSizes.insert(std::pair<int, PositionSize*>(id, new PositionSize(outputWidth, outputHeight, 0, 0, 0)));
-    }
+    fType = VIDEO_MIXER;
 
     layoutImg = cv::Mat(outputHeight, outputWidth, CV_8UC3);
 }
@@ -133,4 +127,20 @@ void VideoMixer::pasteToLayout(int frameID, VideoFrame* vFrame)
     }
 
     img.copyTo(layoutImg(cv::Rect(x, y, sz.width, sz.height)));
+}
+
+Reader* VideoMixer::setReader(int readerID, FrameQueue* queue)
+{
+    if (reader.count(id) < 0) {
+        return NULL;
+    }
+
+    Reader* r = new Reader();
+    readers[readerID] = r;
+
+    PositionSize* posSize = new PositionSize(outputWidth, outputHeight, 0, 0, 0);
+
+    positionAndSizes[readerID] = posSize;
+
+    return r;
 }

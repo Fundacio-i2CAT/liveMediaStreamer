@@ -27,6 +27,8 @@
 
 #include <map>
 #include <vector>
+#include <queue>
+#include <mutex>
 
 #ifndef _FRAME_QUEUE_HH
 #include "FrameQueue.hh"
@@ -40,42 +42,62 @@
 #include "Worker.hh"
 #endif
 
+#include <iostream>
+
+#include "Event.hh"
+#define DEFAULT_ID 1
+#define MAX_WRITERS 16
+#define MAX_READERS 16
+
 class BaseFilter : public Runnable {
     
 public:
-    bool connect(int wId, BaseFilter *R, int rId);
+    bool connectOneToOne(BaseFilter *R);
+    bool connectManyToOne(BaseFilter *R, int wId);
+    bool connectOneToMany(BaseFilter *R, int rId);
     //Only for testing! Should not exist
-    bool connect(int wId, Reader *r);
+    bool connect(Reader *r);
     ///////////////////////////////////////
     bool disconnect(int wId, BaseFilter *R, int rId);
-    std::vector<int> getAvailableReaders();
-    std::vector<int> getAvailableWriters();
+    FilterType getType() {return fType;};
+    int generateReaderID();
+    int generateWriterID();
+    const int getMaxWriters() const {return maxWriters;};
+    const int getMaxReaders() const {return maxReaders;};
+    void pushEvent(Event e);
     
 protected:
-    BaseFilter(int readersNum, int writersNum, bool force_ = false);
-    BaseFilter(bool force_ = false);
+    BaseFilter(int maxReaders_, int maxWriters_, bool force_ = false);
     //TODO: desctructor
     
     virtual FrameQueue *allocQueue(int wId) = 0;
     virtual bool processFrame() = 0;
-    virtual bool setReader(int readerID, FrameQueue* queue) {return false;};
-
+    virtual Reader *setReader(int readerID, FrameQueue* queue);
+    virtual void initializeEventMap() = 0;
 
     Reader* getReader(int id);
     bool demandOriginFrames();
     bool demandDestinationFrames();
     void addFrames();
     void removeFrames();
+    void processEvent(); 
+    bool newEvent();
+
+    std::map<std::string, std::function<void(Jzon::Node* params)> > eventMap; 
     
 protected:
     std::map<int, Reader*> readers;
     std::map<int, Writer*> writers;
     std::map<int, Frame*> oFrames;
     std::map<int, Frame*> dFrames;
+    FilterType fType;
       
 private:
-    int rwNextId;
     bool force;
+    int maxWriters;
+    int maxReaders;
+    std::priority_queue<Event> eventQueue;
+    std::mutex eventQueueMutex;
     
     std::map<int, bool> rUpdates;
 };
@@ -93,7 +115,7 @@ private:
     using BaseFilter::demandDestinationFrames;
     using BaseFilter::addFrames;
     using BaseFilter::removeFrames;
-    using BaseFilter::readers;
+    //using BaseFilter::readers;
     using BaseFilter::writers;
     using BaseFilter::oFrames;
     using BaseFilter::dFrames;
@@ -102,7 +124,7 @@ private:
 class OneToManyFilter : public BaseFilter {
     
 protected:
-    OneToManyFilter(int writersNum, bool force_ = false);
+    OneToManyFilter(int writersNum = MAX_WRITERS, bool force_ = false);
     //TODO: desctructor
     virtual bool doProcessFrame(Frame *org, std::map<int, Frame *> dstFrames) = 0;
     
@@ -119,16 +141,18 @@ private:
 };
 
 class HeadFilter : public BaseFilter {
-    
+public:
+    //TODO:implement this function
+    void pushEvent(Event e){};
+
 protected:
-    HeadFilter(int writersNum);
+    HeadFilter(int writersNum = MAX_WRITERS);
     //TODO: desctructor
     int getNullWriterID();
     
 private:
     //TODO: error message
     bool processFrame() {};
-    int rwNextId;
     using BaseFilter::demandOriginFrames;
     using BaseFilter::demandDestinationFrames;
     using BaseFilter::addFrames;
@@ -138,10 +162,27 @@ private:
     using BaseFilter::dFrames;
 };
 
+class TailFilter : public BaseFilter {
+    
+protected:
+    TailFilter(int readersNum = MAX_READERS);
+    //TODO: desctructor
+    
+private:
+    bool processFrame() {};
+    FrameQueue *allocQueue(int wId) {return NULL;};
+    using BaseFilter::demandOriginFrames;
+    using BaseFilter::demandDestinationFrames;
+    using BaseFilter::addFrames;
+    using BaseFilter::removeFrames;
+    using BaseFilter::oFrames;
+    using BaseFilter::dFrames;
+};
+
 class ManyToOneFilter : public BaseFilter {
     
 protected:
-    ManyToOneFilter(int readersNum, bool force_ = false);
+    ManyToOneFilter(int readersNum = MAX_READERS, bool force_ = false);
     //TODO: desctructor
     virtual bool doProcessFrame(std::map<int, Frame *> orgFrames, Frame *dst) = 0;
 
@@ -151,7 +192,6 @@ private:
     using BaseFilter::demandDestinationFrames;
     using BaseFilter::addFrames;
     using BaseFilter::removeFrames;
-    using BaseFilter::readers;
     using BaseFilter::writers;
     using BaseFilter::oFrames;
     using BaseFilter::dFrames;

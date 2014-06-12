@@ -72,6 +72,8 @@ public:
     UsageEnvironment* envir() {return env;}
       
 private: 
+    void initializeEventMap() {/*TODO*/};
+    
     ServerMediaSubsession *createSubsessionByReader(Reader *reader);
     ServerMediaSubsession *createVideoMediaSubsession(VCodecType codec, Reader *reader);
     

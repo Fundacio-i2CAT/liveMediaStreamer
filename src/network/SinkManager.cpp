@@ -215,34 +215,4 @@ ServerMediaSession* SinkManager::getSession(std::string id)
     return NULL;
 }
 
-// Reader *SinkManager::setReader(int readerID, FrameQueue* queue)
-// {
-//     VideoFrameQueue *vQueue;
-//     AudioFrameQueue *aQueue;
-//     AudioCircularBuffer *circularBuffer;
-//     
-//     if (readers.size() >= getMaxReaders() || readers.count(readerID) > 0 ) {
-//         return NULL;
-//     }
-//     
-//     if ((vQueue = dynamic_cast<VideoFrameQueue*>(queue)) != NULL){
-//         switch (vQueue->getCodec()){
-//             case H264:
-//                 readers[readerID] = H264QueueSource::createNew(*(envir()), vQueue);
-//                 return readers[readerID];
-//                 break;
-//             default:
-//                 break;
-//         }
-//     }
-//     
-//     if ((aQueue = dynamic_cast<AudioFrameQueue*>(queue)) != NULL){
-//         //TODO:
-//     }
-//     
-//     if ((circularBuffer = dynamic_cast<AudioCircularBuffer*>(queue)) != NULL){
-//         //TODO
-//     }
-// 
-//     return NULL;
-// }
+

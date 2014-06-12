@@ -39,6 +39,7 @@ public:
     bool addWorker(std::string id, Worker* worker);
 
     Path* getPath(int id);
+    std::map<int, Path*> getPaths() {return paths;};
 
 private:
     PipelineManager();

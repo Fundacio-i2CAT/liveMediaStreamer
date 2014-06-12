@@ -64,6 +64,7 @@ int main(int argc, char** argv)
         sessionId = handlers::randomIdGenerator(ID_LENGTH);
         session = Session::createNewByURL(*(receiver->envir()), argv[0], argv[i], sessionId);
         receiver->addSession(session);
+        session->initiateSession();
     }
     
     sessionId = handlers::randomIdGenerator(ID_LENGTH);
@@ -82,13 +83,18 @@ int main(int argc, char** argv)
     receiver->runManager();
     transmitter->runManager();
     
-    readers.push_back(ctrl->pipelineManager()->getPath(V_CLIENT_PORT)->getDstReaderID());
+    sleep(2);
     
-    if (! transmitter->addSession(sessionId, readers)){
-        return 1;
+    for (auto it : ctrl->pipelineManager()->getPaths()){
+        readers.push_back(it.second->getDstReaderID());
+    
+        sessionId = handlers::randomIdGenerator(ID_LENGTH);
+        if (! transmitter->addSession(sessionId, readers)){
+            return 1;
+        }
+        readers.pop_back();
+        transmitter->publishSession(sessionId);
     }
-    
-    transmitter->publishSession(sessionId);
 
     while(receiver->isRunning() && transmitter->isRunning()) {
         sleep(1);

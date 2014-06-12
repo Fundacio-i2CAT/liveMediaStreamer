@@ -23,6 +23,7 @@
 #include "AudioEncoderLibav.hh"
 #include "../../AVFramedQueue.hh"
 #include "../../AudioCircularBuffer.hh"
+#include "../../Utils.hh"
 #include <iostream>
 #include <stdio.h>
 
@@ -370,7 +371,7 @@ void AudioEncoderLibav::configEvent(Jzon::Node* params)
     }
 
     if (params->Has("codec")) {
-        newCodec = AudioFrame::getCodecFromString(params->Get("codec").ToString());
+        newCodec = utils::getCodecFromString(params->Get("codec").ToString());
     }
 
     if (params->Has("sampleRate")) {

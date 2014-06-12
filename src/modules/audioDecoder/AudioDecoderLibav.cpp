@@ -22,6 +22,7 @@
 
 #include "AudioDecoderLibav.hh"
 #include "../../AudioCircularBuffer.hh"
+#include "../../Utils.hh"
 #include <iostream>
 #include <stdio.h>
 #include <functional>
@@ -347,7 +348,7 @@ void AudioDecoderLibav::configEvent(Jzon::Node* params)
     }
 
     if (params->Has("sampleFormat")) {
-        newSampleFmt = AudioFrame::getSampleFormatFromString(params->Get("sampleFormat").ToString());
+        newSampleFmt = utils::getSampleFormatFromString(params->Get("sampleFormat").ToString());
     }
 
     configure(newSampleFmt, newChannels, newSampleRate);

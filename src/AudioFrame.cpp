@@ -34,52 +34,6 @@ int AudioFrame::getDefaultSamples(int sampleRate)
     return (DEFAULT_FRAME_TIME*sampleRate)/1000;
 }
 
-SampleFmt AudioFrame::getSampleFormatFromString(std::string stringSampleFmt)
-{
-    SampleFmt sampleFormat;
-    
-    if (stringSampleFmt.compare("u8") == 0) {
-        sampleFormat = U8;
-    } else if (stringSampleFmt.compare("u8p") == 0) {
-        sampleFormat = U8P;
-    }  else if (stringSampleFmt.compare("s16") == 0) {
-        sampleFormat = S16;
-    }  else if (stringSampleFmt.compare("s16p") == 0) {
-        sampleFormat = S16P;
-    }  else if (stringSampleFmt.compare("flt") == 0) {
-        sampleFormat = FLT;
-    }  else if (stringSampleFmt.compare("fltp") == 0) {
-        sampleFormat = FLTP;
-    }  else {
-        sampleFormat = S_NONE;
-    }
-
-    return sampleFormat;
-}
-
-ACodecType AudioFrame::getCodecFromString(std::string stringCodec)
-{
-    ACodecType codec;
-    
-    if (stringCodec.compare("g711") == 0) {
-        codec = G711;
-    } else if (stringCodec.compare("pcmu") == 0) {
-        codec = PCMU;
-    }  else if (stringCodec.compare("opus") == 0) {
-        codec = OPUS;
-    }  else if (stringCodec.compare("pcm") == 0) {
-        codec = PCM;
-    }  else if (stringCodec.compare("aac") == 0) {
-        codec = AAC;
-    }  else if (stringCodec.compare("mp3") == 0) {
-        codec = MP3;
-    }  else {
-        codec = AC_NONE;
-    }
-
-    return codec;
-}
-
 
 AudioFrame::AudioFrame(unsigned int ch, unsigned int sRate, unsigned int maxSamples, ACodecType codec)
 {

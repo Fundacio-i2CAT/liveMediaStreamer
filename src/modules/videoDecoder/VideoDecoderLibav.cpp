@@ -257,3 +257,65 @@ void VideoDecoderLibav::outputConfig()
     needsConfig = false;
 }
 
+void VideoDecoderLibav::resizeEvent(Jzon::Node* params)
+{
+	if (!params) {
+		return;
+	}
+
+	if (!params->Has("width") || !params->Has("height")) {
+		return;
+	}
+
+	int width = params->Get("width").ToInt();
+	int height = params->Get("height").ToInt();
+
+	if (width)
+		outputWidth = width;
+
+	if (height)
+		outputHeight = height;
+	
+	needsConfig = true;
+}
+void VideoDecoderLibav::changePixelFormatEvent(Jzon::Node* params)
+{
+	if (!params) {
+		return;
+	}
+
+	if (!params->Has("pixelFormat")) {
+		return;
+	}
+	
+	int pixel = params->Get("pixelFormat").ToInt();
+	if ((pixel < -1) || (pixel > 2)) {
+		return;
+	}
+
+	PixType pixelType = static_cast<PixType> (pixel);
+	
+	switch(pixelType){
+        case RGB24:
+            libavPixFmt = AV_PIX_FMT_RGB24;
+            break;
+        case RGB32:
+            libavPixFmt = AV_PIX_FMT_RGB32;
+            break;
+        case YUYV422:
+            libavPixFmt = AV_PIX_FMT_YUYV422;
+            break;
+        default:
+            return;
+            break;
+    }
+	
+	needsConfig = true;
+}
+
+void VideoDecoderLibav::initializeEventMap()
+{
+	eventMap["resize"] = std::bind(&VideoDecoderLibav::resizeEvent, this, std::placeholders::_1);
+	eventMap["changePixelFormat"] = std::bind(&VideoDecoderLibav::changePixelFormatEvent, this, std::placeholders::_1);
+}
+

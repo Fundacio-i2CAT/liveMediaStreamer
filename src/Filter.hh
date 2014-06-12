@@ -27,6 +27,8 @@
 
 #include <map>
 #include <vector>
+#include <queue>
+#include <mutex>
 
 #ifndef _FRAME_QUEUE_HH
 #include "FrameQueue.hh"
@@ -40,6 +42,9 @@
 #include "Worker.hh"
 #endif
 
+#include <iostream>
+
+#include "Event.hh"
 #define DEFAULT_ID 1
 #define MAX_WRITERS 16
 #define MAX_READERS 16
@@ -59,6 +64,7 @@ public:
     int generateWriterID();
     const int getMaxWriters() const {return maxWriters;};
     const int getMaxReaders() const {return maxReaders;};
+    void pushEvent(Event e);
     
 protected:
     BaseFilter(int maxReaders_, int maxWriters_, bool force_ = false);
@@ -67,12 +73,17 @@ protected:
     virtual FrameQueue *allocQueue(int wId) = 0;
     virtual bool processFrame() = 0;
     virtual Reader *setReader(int readerID, FrameQueue* queue);
+    virtual void initializeEventMap() = 0;
 
     Reader* getReader(int id);
     bool demandOriginFrames();
     bool demandDestinationFrames();
     void addFrames();
     void removeFrames();
+    void processEvent(); 
+    bool newEvent();
+
+    std::map<std::string, std::function<void(Jzon::Node* params)> > eventMap; 
     
 protected:
     std::map<int, Reader*> readers;
@@ -85,6 +96,8 @@ private:
     bool force;
     int maxWriters;
     int maxReaders;
+    std::priority_queue<Event> eventQueue;
+    std::mutex eventQueueMutex;
     
     std::map<int, bool> rUpdates;
 };
@@ -128,7 +141,10 @@ private:
 };
 
 class HeadFilter : public BaseFilter {
-    
+public:
+    //TODO:implement this function
+    void pushEvent(Event e){};
+
 protected:
     HeadFilter(int writersNum = MAX_WRITERS);
     //TODO: desctructor

@@ -22,8 +22,14 @@
 
 #include "AudioEncoderLibav.hh"
 #include "../../AVFramedQueue.hh"
+#include "../../AudioCircularBuffer.hh"
+#include "../../Utils.hh"
 #include <iostream>
 #include <stdio.h>
+
+bool checkSampleFormat(AVCodec *codec, enum AVSampleFormat sampleFmt);
+bool checkSampleRateSupport(AVCodec *codec, int sampleRate);
+bool checkChannelLayoutSupport(AVCodec *codec, uint64_t channelLayout);
 
 AudioEncoderLibav::AudioEncoderLibav()  : OneToOneFilter()
 {
@@ -37,14 +43,12 @@ AudioEncoderLibav::AudioEncoderLibav()  : OneToOneFilter()
     pkt.size = 0;
     fType = AUDIO_ENCODER;
 
-    channels = 0;
-    sampleRate = 0;
-    internalLibavSampleFormat = AV_SAMPLE_FMT_S16;
-    internalSampleFmt = S16;
-    internalChannels = DEFAULT_CHANNELS;
-    internalSampleRate = DEFAULT_SAMPLE_RATE;
+    channels = DEFAULT_CHANNELS;
+    sampleRate = DEFAULT_SAMPLE_RATE;
+    sampleFmt = S16P;
+    libavSampleFmt = AV_SAMPLE_FMT_S16P;
 
-    needsConfig = true;
+    initializeEventMap();
 }
 
 AudioEncoderLibav::~AudioEncoderLibav()
@@ -70,13 +74,6 @@ bool AudioEncoderLibav::doProcessFrame(Frame *org, Frame *dst)
 
     checkInputParams(aRawFrame->getSampleFmt(), aRawFrame->getChannels(), aRawFrame->getSampleRate());
     
-    if (needsConfig) {
-        if (!config()) {
-            std::cerr << "Encoder configuration failed!" << std::endl;
-            return false;
-        }
-    }
-
     //set up buffer and buffer length pointers
     pkt.data = dst->getDataBuf();
     pkt.size = dst->getMaxLength();
@@ -94,10 +91,6 @@ bool AudioEncoderLibav::doProcessFrame(Frame *org, Frame *dst)
 
     if (gotFrame) {
         dst->setLength(pkt.size);
-        // for (int i=0; i<pkt.size; i++) {
-        //     printf("%x", pkt.data[i]);  
-        // }
-        // printf("\n\n");
         return true;
     }
 
@@ -105,23 +98,53 @@ bool AudioEncoderLibav::doProcessFrame(Frame *org, Frame *dst)
     return false;
 }
 
-void AudioEncoderLibav::configure(ACodecType codec)
+Reader* AudioEncoderLibav::setReader(int readerID, FrameQueue* queue)
+{
+    if (readers.size() >= getMaxReaders() || readers.count(readerID) > 0 ) {
+        return NULL;
+    }
+
+    Reader* r = new Reader();
+    readers[readerID] = r;
+
+    dynamic_cast<AudioCircularBuffer*>(queue)->setOutputFrameSamples(samplesPerFrame);
+
+    return r;
+}
+
+void AudioEncoderLibav::configure(ACodecType codec, int internalChannels, int internalSampleRate)
 {
     fCodec = codec;
+    this->internalChannels = internalChannels;
+    this->internalSampleRate = internalSampleRate;
 
     switch(fCodec) {
         case PCMU:
             codecID = AV_CODEC_ID_PCM_MULAW;
+            internalLibavSampleFormat = AV_SAMPLE_FMT_S16;
+            internalSampleFmt = S16;
             break;
         case OPUS:
             codecID = AV_CODEC_ID_OPUS;
+            internalLibavSampleFormat = AV_SAMPLE_FMT_S16;
+            internalSampleFmt = S16;
+            break; 
+        case AAC:
+            codecID = AV_CODEC_ID_AAC;
+            internalLibavSampleFormat = AV_SAMPLE_FMT_S16;
+            internalSampleFmt = S16;
+            break;
+        case MP3:
+            codecID = AV_CODEC_ID_MP3;
+            internalLibavSampleFormat = AV_SAMPLE_FMT_S16P;
+            internalSampleFmt = S16P;
             break;
         default:
             codecID = AV_CODEC_ID_NONE;
             break;
     }
 
-    needsConfig = true;
+    config();
 }
 
 bool AudioEncoderLibav::config() 
@@ -139,7 +162,24 @@ bool AudioEncoderLibav::config()
     
     codecCtx = avcodec_alloc_context3(codec);
     if (codecCtx == NULL) {
-         fprintf(stderr, "Error allocating codec context\n");
+        fprintf(stderr, "Error allocating codec context\n");
+        return false;
+    }
+
+    if (!checkSampleFormat(codec, internalLibavSampleFormat)) {
+        fprintf(stderr, "Encoder does not support sample format %s\n", 
+                        av_get_sample_fmt_name(internalLibavSampleFormat));
+        return false;
+    }
+
+    if (!checkSampleRateSupport(codec, internalSampleRate)) {
+        fprintf(stderr, "Encoder does not support sample rate %d\n", internalSampleRate);
+        return false;
+    }
+
+    if (!checkChannelLayoutSupport(codec, av_get_default_channel_layout(internalChannels))) {
+        fprintf(stderr, "Encoder does not support channel layout %ld\n", 
+                            av_get_default_channel_layout(internalChannels));
         return false;
     }
 
@@ -216,8 +256,6 @@ bool AudioEncoderLibav::config()
         fprintf(stderr, "Could not setup audio frame\n");
         return false;
     }
-
-    needsConfig = false;
 
     return true;
 }
@@ -316,10 +354,93 @@ void AudioEncoderLibav::checkInputParams(SampleFmt sampleFormat, int channels, i
     if (channels != internalChannels || sampleRate != internalSampleRate) {
         internalChannels = channels;
         internalSampleRate = sampleRate;
-        needsConfig = true;
+        config();
     } else {
         inputConfig();
     }
-
 }
+
+void AudioEncoderLibav::configEvent(Jzon::Node* params) 
+{
+    ACodecType newCodec;
+    int newChannels = internalChannels;
+    int newSampleRate = internalSampleRate;
+
+    if (!params) {
+        return;
+    }
+
+    if (params->Has("codec")) {
+        newCodec = utils::getCodecFromString(params->Get("codec").ToString());
+    }
+
+    if (params->Has("sampleRate")) {
+        newSampleRate = params->Get("sampleRate").ToInt();
+    }
+
+    if (params->Has("channels")) {
+        newChannels = params->Get("channels").ToInt();
+    }
+
+    configure(newCodec, newChannels, newSampleRate);
+}
+
+void AudioEncoderLibav::initializeEventMap()
+{
+    eventMap["configure"] = std::bind(&AudioEncoderLibav::configEvent, this, std::placeholders::_1);
+}
+
+bool checkSampleFormat(AVCodec *codec, enum AVSampleFormat sampleFmt)
+{
+    const enum AVSampleFormat *p = codec->sample_fmts;
+    
+    while (*p != AV_SAMPLE_FMT_NONE) {
+        if (*p == sampleFmt) {
+            return true;
+        }
+        p++;
+    }
+
+    return false;
+}
+
+bool checkSampleRateSupport(AVCodec *codec, int sampleRate)
+{
+    const int *p;
+
+    if (!codec->supported_samplerates) {
+        return false;
+    }
+    
+    p = codec->supported_samplerates;
+    while (*p) {
+        if (*p == sampleRate) {
+            return true;
+        }
+        p++;
+    }
+
+    return false;
+}
+
+bool checkChannelLayoutSupport(AVCodec *codec, uint64_t channelLayout)
+{
+    const uint64_t *p;
+
+    if (!codec->channel_layouts)
+        return false;
+
+    p = codec->channel_layouts;
+    while (*p) {
+        if (*p == channelLayout) {
+            return true;
+        }
+        p++;
+    }
+
+    return false;
+}
+
+
+
 

@@ -39,6 +39,10 @@
 #include "../Filter.hh"
 #endif
 
+#ifndef _IO_INTERFACE_HH
+#include "../IOInterface.hh"
+#endif
+
 #include <thread>
 #include <map>
 #include <string>
@@ -59,20 +63,17 @@ public:
     void closeManager();
 
     bool addSession(std::string id, std::vector<int> readers, 
-                    std::string info = NULL, std::string desc = NULL);
+                    std::string info = "", std::string desc = "");
     
     ServerMediaSession* getSession(std::string id); 
     bool publishSession(std::string id);
     bool removeSession(std::string id);
     
     UsageEnvironment* envir() {return env;}
-    
-protected:
-    Reader *setReader(int readerID, FrameQueue* queue);
-    
+      
 private: 
     ServerMediaSubsession *createSubsessionByReader(Reader *reader);
-    ServerMediaSubsession *createVideoMediaSubsession(VCodecType codec, QueueSource *source);
+    ServerMediaSubsession *createVideoMediaSubsession(VCodecType codec, Reader *reader);
     
     std::thread mngrTh;
    

@@ -29,18 +29,19 @@
 #include <liveMedia/liveMedia.hh>
 #endif
 
-#ifndef _QUEUE_SOURCE_HH
-#include "QueueSource.hh"
+#ifndef _IO_INTERFACE_HH
+#include "../IOInterface.hh"
 #endif
 
 class QueueServerMediaSubsession: public OnDemandServerMediaSubsession {
-protected: // we're a virtual base class
-    QueueServerMediaSubsession(UsageEnvironment& env, QueueSource *source,
-                Boolean reuseFirstSource);
+protected: 
+    QueueServerMediaSubsession(UsageEnvironment& env, Reader *reader,
+                               Boolean reuseFirstSource);
+    
     virtual ~QueueServerMediaSubsession();
 
 protected:
-    QueueSource* fSource;
+    Reader* fReader;
 };
 
 #endif

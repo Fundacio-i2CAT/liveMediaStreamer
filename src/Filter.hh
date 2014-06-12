@@ -50,6 +50,7 @@ public:
     bool connectOneToOne(BaseFilter *R);
     bool connectManyToOne(BaseFilter *R, int wId);
     bool connectOneToMany(BaseFilter *R, int rId);
+    bool connectManyToMany(BaseFilter *R, int rId, int wId);
     //Only for testing! Should not exist
     bool connect(Reader *r);
     ///////////////////////////////////////

@@ -13,12 +13,12 @@
 class H264QueueSource: public QueueSource {
 
 public:
-    static H264QueueSource* createNew(UsageEnvironment& env, FrameQueue *q);
+    static H264QueueSource* createNew(UsageEnvironment& env, Reader *reader);
     virtual void doGetNextFrame();
 
 
 protected:
-    H264QueueSource(UsageEnvironment& env, FrameQueue *q);
+    H264QueueSource(UsageEnvironment& env, Reader *reader);
 };
 
 #endif

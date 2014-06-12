@@ -195,6 +195,33 @@ bool BaseFilter::connectManyToOne(BaseFilter *R, int wId)
     return writers[wId]->connect(r);
 }
 
+bool BaseFilter::connectManyToMany(BaseFilter *R, int rId, int wId)
+{
+    Reader* r;
+    FrameQueue *queue;
+    
+    if (writers.size() < getMaxWriters() && writers.count(wId) <= 0) {
+        writers[wId] = new Writer();
+    }
+    
+    if (writers.count(wId) > 0 && writers[wId]->isConnected()) {
+        return false;
+    }
+    
+    if (R->getReader(rId) && R->getReader(rId)->isConnected()){
+        return false;
+    }
+    
+    queue = allocQueue(wId);
+    
+    if (!(r = R->setReader(rId, queue))) {
+        return false;
+    }
+    
+    writers[wId]->setQueue(queue);
+    return writers[wId]->connect(r);
+}
+
 bool BaseFilter::connectOneToMany(BaseFilter *R, int rId)
 {
     Reader* r;

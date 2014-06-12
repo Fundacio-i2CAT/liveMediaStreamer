@@ -49,16 +49,6 @@
 
 class Session;
 
-// typedef struct connection {
-//     unsigned char rtpPayloadFormat;
-//     char const* codecName;
-//     unsigned channels;
-//     unsigned sampleRate;
-//     unsigned short port;
-//     char const* session;
-//     char const* medium;
-// } connection_t;
-
 class StreamClientState {
 public:
     StreamClientState(std::string id_);

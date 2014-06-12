@@ -29,7 +29,7 @@ class Path {
 public:
     Path(BaseFilter* origin, int orgWriterID); 
     bool connect(BaseFilter *destination, int dstReaderID);
-    int getDstReaderID() {return dstReaderID;};
+    const int getDstReaderID() const {return dstReaderID;};
     void addWorker(Worker* worker);
 
 protected:
@@ -57,6 +57,5 @@ class AudioEncoderPath : public Path {
 public:
     AudioEncoderPath(BaseFilter *origin, int orgWriterID);
 };
-
 
 #endif

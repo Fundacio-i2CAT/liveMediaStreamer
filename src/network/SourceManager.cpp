@@ -150,28 +150,6 @@ Session* SourceManager::getSession(std::string id)
     return sessionMap[id];
 }
 
-// void SourceManager::addConnection(int wId, MediaSubsession* subsession)
-// {
-//     connection_t connection;
-
-//     connection.rtpPayloadFormat = subsession->rtpPayloadFormat();
-//     connection.codecName = subsession->codecName();
-//     connection.channels = subsession->numChannels();
-//     connection.sampleRate = subsession->rtpTimestampFrequency();
-//     connection.port = subsession->clientPortNum();
-//     connection.session = subsession->parentSession().sessionName();
-//     connection.medium = subsession->mediumName();
-    
-//     if (strcmp(subsession->mediumName(), "audio") == 0) {
-//         audioOutputs[wId] = connection;
-//     } else if (strcmp(subsession->mediumName(), "video") == 0) {
-//         videoOutputs[wId] = connection;
-//     }
-
-//     //Todo: callback
-// }
-
-
 FrameQueue *SourceManager::allocQueue(int wId)
 {
     MediaSubsession *mSubsession;

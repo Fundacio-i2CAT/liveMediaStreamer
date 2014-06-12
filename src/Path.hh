@@ -31,6 +31,7 @@ public:
     bool connect(BaseFilter *destination, int dstReaderID);
     const int getDstReaderID() const {return dstReaderID;};
     void addWorker(Worker* worker);
+    BaseFilter* getDestinationFilter() {return destination;};
 
 protected:
     void addFilter(BaseFilter *filter);

@@ -25,6 +25,7 @@
 
 #include "Frame.hh"
 #include <vector>
+#include <string>
 
 #define DEFAULT_CHANNELS 2
 #define MAX_CHANNELS 2
@@ -36,7 +37,7 @@
 class AudioFrame : public Frame {
     
     public:
-        AudioFrame(unsigned int ch, unsigned int sRate, unsigned int maxSamples, ACodecType codec, SampleFmt sFmt);
+        AudioFrame(unsigned int ch, unsigned int sRate, unsigned int maxSamples, ACodecType codec);
         AudioFrame() {};
 
         void setChannelNumber(unsigned int ch) {channels = ch;};
@@ -56,6 +57,9 @@ class AudioFrame : public Frame {
         virtual void fillBufferWithFloatSamples(std::vector<float> samples, int channel) = 0;
         static int getMaxSamples(int sampleRate);
         static int getDefaultSamples(int sampleRate);
+        static SampleFmt getSampleFormatFromString(std::string stringSampleFmt);
+        static ACodecType getCodecFromString(std::string stringCodec);
+
               
     protected:
         unsigned int channels, sampleRate, samples, maxSamples, bytesPerSample; 

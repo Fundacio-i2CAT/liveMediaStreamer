@@ -27,12 +27,13 @@
 #include <thread>
 #include <chrono>
 
-#define RETRIES 6
+#define RETRIES 8
 #define TIMEOUT 2500 //us
 
 BaseFilter::BaseFilter(int maxReaders_, int maxWriters_, bool force_) : 
     force(force_), maxReaders(maxReaders_), maxWriters(maxWriters_)
 {
+
 }
 
 Reader* BaseFilter::getReader(int id) 
@@ -288,6 +289,54 @@ bool BaseFilter::disconnect(int wId, BaseFilter *R, int rId)
     return true;
 }
 
+void BaseFilter::processEvent() 
+{
+    eventQueueMutex.lock();
+
+    while(newEvent()) {
+
+        Event e = eventQueue.top();
+        std::string action = e.getAction();
+        Jzon::Node* params = e.getParams();
+
+        if (action.empty()) {
+            return;
+        }
+
+        if (eventMap.count(action) <= 0) {
+            return;
+        }
+        
+        eventMap[action](params);
+
+        eventQueue.pop();
+    }
+
+    eventQueueMutex.unlock();
+}
+
+bool BaseFilter::newEvent() 
+{
+    if (eventQueue.empty()) {
+        return false;
+    }
+
+    Event tmp = eventQueue.top();
+    if (!tmp.canBeExecuted(std::chrono::system_clock::now())) {
+        return false;
+    }
+
+    return true;
+}
+
+void BaseFilter::pushEvent(Event e)
+{
+    eventQueueMutex.lock();
+    eventQueue.push(e);
+    eventQueueMutex.unlock();
+}
+
+
 OneToOneFilter::OneToOneFilter(bool force_) : 
 BaseFilter(1, 1, force_)
 {
@@ -298,12 +347,17 @@ bool OneToOneFilter::processFrame()
     bool newData = false;
     //TODO: events
     //TODO: config
+
+    processEvent();
+
     if (!demandOriginFrames() || !demandDestinationFrames()) {
         return false;
     }
+
     if (doProcessFrame(oFrames.begin()->second, dFrames.begin()->second)) {
         addFrames();
     }
+    
     removeFrames();
     return true;
 }
@@ -316,6 +370,9 @@ BaseFilter(1, writersNum, force_)
 bool OneToManyFilter::processFrame()
 {
     bool newData;
+
+    processEvent();
+
     if (!demandOriginFrames() || !demandDestinationFrames()){
         return false;
     }
@@ -339,6 +396,7 @@ BaseFilter(readersNum, 0, false)
 
 }
 
+
 ManyToOneFilter::ManyToOneFilter(int readersNum, bool force_) : 
 BaseFilter(readersNum, 1, force_)
 {
@@ -347,6 +405,8 @@ BaseFilter(readersNum, 1, force_)
 bool ManyToOneFilter::processFrame()
 {
     bool newData;
+
+    processEvent();
 
     if (!demandOriginFrames() || !demandDestinationFrames()) {
         return false;

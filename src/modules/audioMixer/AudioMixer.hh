@@ -26,6 +26,17 @@
 #include "../../Frame.hh"
 #include "../../Filter.hh"
 
+#define COMPRESSION_THRESHOLD 0.6
+#define DEFAULT_MASTER_GAIN 0.8
+#define DEFAULT_CHANNEL_GAIN 1.0
+
+
+enum mixingAlgorithm
+{
+    LA,      //Linear Attenuation
+    LDRC     //Linear Dynamic Range Compression
+}; 
+
 class AudioMixer : public ManyToOneFilter {
     
     public:
@@ -36,18 +47,28 @@ class AudioMixer : public ManyToOneFilter {
 
     protected:
         Reader *setReader(int readerID, FrameQueue* queue);
+        void initializeEventMap();
 
     private:
         void mixNonEmptyFrames(std::map<int, Frame*> orgFrames, std::vector<int> filledFramesIds, Frame *dst, int totalFrames); 
         void applyMixAlgorithm(std::vector<float> &fSamples, int frameNumber);
         void applyGainToChannel(std::vector<float> &fSamples, float gain);
         void sumValues(std::vector<float> fSamples, std::vector<float> &mixedSamples); 
+        void changeVolumeEvent(Jzon::Node* params); 
+        void muteEvent(Jzon::Node* params); 
+        void soloEvent(Jzon::Node* params);
+        void LAMixAlgorithm(std::vector<float> &fSamples, int frameNumber); 
+        void LDRCMixAlgorithm(std::vector<float> &fSamples, int frameNumber); 
         
         int frameChannels;
         int sampleRate;
         SampleFmt sampleFormat;
         std::map<int,float> gains;
         float masterGain;
+        float th;  //Dynamic Range Compression algorithms threshold
+        mixingAlgorithm mAlg;
+
+
 
         //Vectors as attributes in order to improve memory management
         std::vector<float> samples;

@@ -21,13 +21,13 @@
  */
 
 #define BPS 2
-#define DEFAULT_CHANNEL_GAIN 0.6
  
 #include "AudioMixer.hh"
 #include "../../AudioCircularBuffer.hh"
 #include "../../AudioFrame.hh"
 #include <iostream>
-#include <utility> 
+#include <utility>
+#include <cmath>
 
 AudioMixer::AudioMixer(int inputChannels) : ManyToOneFilter(inputChannels) {
     frameChannels = DEFAULT_CHANNELS;
@@ -39,7 +39,11 @@ AudioMixer::AudioMixer(int inputChannels) : ManyToOneFilter(inputChannels) {
     samples.resize(AudioFrame::getMaxSamples(sampleRate));
     mixedSamples.resize(AudioFrame::getMaxSamples(sampleRate));
 
-    masterGain = 1.0;
+    initializeEventMap();
+
+    masterGain = DEFAULT_MASTER_GAIN;
+    th = COMPRESSION_THRESHOLD;
+    mAlg = LDRC;
 }
 
 AudioMixer::AudioMixer(int inputChannels, int frameChannels, int sampleRate) : ManyToOneFilter(inputChannels) {
@@ -50,7 +54,11 @@ AudioMixer::AudioMixer(int inputChannels, int frameChannels, int sampleRate) : M
     samples.resize(AudioFrame::getMaxSamples(sampleRate));
     mixedSamples.resize(AudioFrame::getMaxSamples(sampleRate));
 
-    masterGain = 1.0;
+    initializeEventMap();
+
+    masterGain = DEFAULT_MASTER_GAIN;
+    th = COMPRESSION_THRESHOLD;
+    mAlg = LDRC;
 }
 
 FrameQueue *AudioMixer::allocQueue(int wId) {
@@ -104,8 +112,16 @@ void AudioMixer::mixNonEmptyFrames(std::map<int, Frame*> orgFrames, std::vector<
 
 void AudioMixer::applyMixAlgorithm(std::vector<float> &fSamples, int frameNumber)
 {
-    for (auto sample : fSamples) {
-        sample *= (1.0/frameNumber);
+    switch (mAlg) {
+        case LA:
+            LAMixAlgorithm(fSamples, frameNumber);
+            break;
+        case LDRC:
+            LDRCMixAlgorithm(fSamples, frameNumber);
+            break;
+        default:
+            LAMixAlgorithm(fSamples, frameNumber);
+        break;
     }
 }
 
@@ -127,7 +143,8 @@ void AudioMixer::sumValues(std::vector<float> fSamples, std::vector<float> &mixe
 
 Reader* AudioMixer::setReader(int readerID, FrameQueue* queue)
 {
-    if (readers.count(readerID) < 0) {
+    
+    if (readers.count(readerID) > 0) {
         return NULL;
     }
 
@@ -137,4 +154,93 @@ Reader* AudioMixer::setReader(int readerID, FrameQueue* queue)
     gains[readerID] = DEFAULT_CHANNEL_GAIN;
 
     return r;
+}
+
+void AudioMixer::LAMixAlgorithm(std::vector<float> &fSamples, int frameNumber)
+{
+    for (auto sample : fSamples) {
+        sample *= (1.0/frameNumber);
+    }
+} 
+
+void AudioMixer::LDRCMixAlgorithm(std::vector<float> &fSamples, int frameNumber)
+{
+    for (auto s : fSamples) {
+        if (abs(s) > th) {
+            s = (s/abs(s))*(th + ( ((1 - th)/((float)frameNumber - th))*(abs(s) - th) ));
+        }
+    }
+} 
+
+void AudioMixer::changeVolumeEvent(Jzon::Node* params) 
+{
+    if (!params) {
+        return;
+    }
+
+    if (!params->Has("id") || !params->Has("volume")) {
+        return;
+    }
+
+    int id = params->Get("id").ToInt();
+    float volume = params->Get("volume").ToFloat();
+
+    if (gains.count(id) <= 0) {
+        return;
+    }
+
+    gains[id] = volume;
+
+}
+
+void AudioMixer::muteEvent(Jzon::Node* params) 
+{
+    if (!params) {
+        return;
+    }
+
+    if (!params->Has("id")) {
+        return;
+    }
+
+    int id = params->Get("id").ToInt();
+
+    if (gains.count(id) <= 0) {
+        return;
+    }
+
+    gains[id] = 0;
+}
+
+void AudioMixer::soloEvent(Jzon::Node* params) 
+{
+    if (!params) {
+        return;
+    }
+
+    if (!params->Has("id")) {
+        return;
+    }
+
+    int id = params->Get("id").ToInt();
+
+    if (gains.count(id) <= 0) {
+        return;
+    }
+
+    for (auto &it : gains) {
+        if (it.first == id) {
+            it.second = DEFAULT_CHANNEL_GAIN;
+        } else {
+            it.second = 0;
+        }
+    }
+
+}
+
+void AudioMixer::initializeEventMap()
+{
+    eventMap["changeVolume"] = std::bind(&AudioMixer::changeVolumeEvent, this, std::placeholders::_1);
+    eventMap["mute"] = std::bind(&AudioMixer::muteEvent, this, std::placeholders::_1);
+    eventMap["solo"] = std::bind(&AudioMixer::soloEvent, this, std::placeholders::_1);
 }

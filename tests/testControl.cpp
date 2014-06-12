@@ -21,6 +21,7 @@
 
 #include <iostream>
 #include <csignal>
+#include <sstream>
 
 
 #define PROTOCOL "RTP"
@@ -35,7 +36,6 @@
 #define A_CHANNELS 2
 
 #define CHANNEL_MAX_SAMPLES 3000
-#define OUT_CHANNELS 2
 #define OUT_SAMPLE_RATE 48000
 
 bool should_stop = false;
@@ -65,7 +65,7 @@ void saveBuffer(struct buffer *b)
     FILE *audioChannel = NULL;
     char filename[32];
 
-    sprintf(filename, "coded.opus");
+    sprintf(filename, "coded.mp3");
 
     audioChannel = fopen(filename, "wb");
 
@@ -74,6 +74,27 @@ void saveBuffer(struct buffer *b)
     }
 
     fclose(audioChannel);
+}
+
+void readingRoutine(struct buffer* b, Reader *reader)
+{
+    Frame *codedFrame;
+    Controller *ctrl = Controller::getInstance();
+    SourceManager *mngr = ctrl->pipelineManager()->getReceiver();
+
+    while(mngr->isRunning()) {
+        codedFrame = reader->getFrame();
+
+        if (!codedFrame) {
+            usleep(500);
+            continue;
+        }
+
+        fillBuffer(b, codedFrame);
+        //printf("Filled buffer! Frame size: %d\n", codedFrame->getLength());
+
+        reader->removeFrame();
+    }
 }
 
 int main(int argc, char** argv) 
@@ -87,14 +108,13 @@ int main(int argc, char** argv)
     mngr->setCallback(callbacks::connectToMixerCallback);
     AudioMixer *mixer = new AudioMixer(4);
     AudioEncoderLibav* audioEncoder = new AudioEncoderLibav();
-    audioEncoder->configure(PCMU);
+    audioEncoder->configure(MP3);
 
     Worker* audioEncoderWorker = new Worker(audioEncoder);
     Worker* audioDecoder1Worker = new Worker();
     Worker* audioDecoder2Worker = new Worker();
     Worker* audioMixerWorker = new Worker();
 
-    Frame *codedFrame;
     struct buffer *buffers;
     unsigned int bytesPerSample = 2;
 
@@ -150,20 +170,40 @@ int main(int argc, char** argv)
     audioMixerWorker->start();
     audioEncoderWorker->start();
 
-    while(mngr->isRunning()) {
-        codedFrame = reader->getFrame();
+    std::thread readingThread(readingRoutine, buffers, reader);
 
-        if (!codedFrame) {
-            usleep(500);
-            continue;
+    std::string command;
+    std::string aux;
+    int id;
+    float volume;
+
+    while(true) {
+        std::cout << std::endl << "Please enter a command (changeVolume): ";
+        std::cin >> command;
+
+        if (command.compare("exit") == 0) {
+            break;
         }
 
-        fillBuffer(buffers, codedFrame);
-        printf("Filled buffer! Frame size: %d\n", codedFrame->getLength());
+        std::cout << std::endl << "Please enter a stream ID: ";
+        std::cin >> id;
+        std::cout << std::endl << "Please enter a volume (0.0 to 1.0): ";
+        std::cin >> volume;
 
-        reader->removeFrame();
+        std::cout << std::endl << command << "  " << id << "  " << volume << " " << std::endl;
+
+        Jzon::Object rootNode;
+        Jzon::Object params;
+        params.Add("id", (int)ctrl->pipelineManager()->getPath(id)->getDstReaderID());
+        params.Add("volume", (float)volume);
+        rootNode.Add("params", params);
+        rootNode.Add("action", command);
+
+        Event e(rootNode, std::chrono::system_clock::now());
+        ctrl->pipelineManager()->getPath(id)->getDestinationFilter()->pushEvent(e);
     }
-
+    
+    readingThread.join();
     saveBuffer(buffers);
     printf("Buffer saved\n");
 

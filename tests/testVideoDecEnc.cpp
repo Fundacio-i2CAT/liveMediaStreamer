@@ -56,6 +56,8 @@ void signalHandler(int signum)
     std::cout << "Manager closed\n";
 }
 
+void connect(char const* medium, unsigned short port){}
+
 int main(int argc, char** argv) 
 {   
     std::string sessionId;
@@ -70,6 +72,8 @@ int main(int argc, char** argv)
     Worker *vDecoderWorker;
 	Worker *vEncoderWorker;
     std::ofstream h264Frames;
+
+	 mngr->setCallback((void(*)(char const*, unsigned short))&connect);
     
     //condif decoder
     

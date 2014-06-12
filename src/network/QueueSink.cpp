@@ -25,16 +25,16 @@
 #include <iostream>
 #include <sys/time.h>
 
-QueueSink::QueueSink(UsageEnvironment& env)
-  : MediaSink(env) 
+QueueSink::QueueSink(UsageEnvironment& env, Writer *writer)
+  : MediaSink(env), fWriter(writer)
 {
     frame = NULL;
     dummyBuffer = new unsigned char[DUMMY_RECEIVE_BUFFER_SIZE];
 }
 
-QueueSink* QueueSink::createNew(UsageEnvironment& env) 
+QueueSink* QueueSink::createNew(UsageEnvironment& env, Writer *writer) 
 {
-    return new QueueSink(env);
+    return new QueueSink(env, writer);
 }
 
 Boolean QueueSink::continuePlaying() 
@@ -43,14 +43,14 @@ Boolean QueueSink::continuePlaying()
         return False;
     }
     
-    if (!isConnected()){
+    if (!fWriter->isConnected()){
         fSource->getNextFrame(dummyBuffer, DUMMY_RECEIVE_BUFFER_SIZE,
                               afterGettingFrame, this,
                               onSourceClosure, this);
         return True;
     }
 
-    frame = getFrame(true);
+    frame = fWriter->getFrame(true);
 
     fSource->getNextFrame(frame->getDataBuf(), frame->getMaxLength(),
               afterGettingFrame, this,
@@ -74,7 +74,7 @@ void QueueSink::afterGettingFrame(unsigned frameSize, struct timeval presentatio
         frame->setLength(frameSize);
         frame->setUpdatedTime();
         frame->setPresentationTime(presentationTime);
-        addFrame();
+        fWriter->addFrame();
     }
 
     continuePlaying();

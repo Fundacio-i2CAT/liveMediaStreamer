@@ -57,9 +57,9 @@ class AudioMixer : public ManyToOneFilter {
         void LAMixAlgorithm(std::vector<float> &fSamples, int frameNumber); 
         void LDRCMixAlgorithm(std::vector<float> &fSamples, int frameNumber); 
         
-        void changeVolumeEvent(Jzon::Node* params); 
-        void muteEvent(Jzon::Node* params); 
-        void soloEvent(Jzon::Node* params);
+        void changeChannelVolumeEvent(Jzon::Node* params); 
+        void muteChannelEvent(Jzon::Node* params); 
+        void soloChannelEvent(Jzon::Node* params);
         void changeMasterVolumeEvent(Jzon::Node* params);
         void muteMasterEvent(Jzon::Node* params);
 

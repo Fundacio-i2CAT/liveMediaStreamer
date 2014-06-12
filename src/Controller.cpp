@@ -21,7 +21,7 @@
  */
 
 #include "Controller.hh"
-#include "Callbacks.hh"
+//#include "Callbacks.hh"
 
 Controller* Controller::ctrlInstance = NULL;
 PipelineManager* PipelineManager::pipeMngrInstance = NULL;
@@ -70,8 +70,8 @@ PipelineManager::PipelineManager()
 {
     pipeMngrInstance = this;
     receiver = SourceManager::getInstance();
-  //  transmitter = SinkManager::getInstance();
-    receiver->setCallback(callbacks::connectToMixerCallback);
+    transmitter = SinkManager::getInstance();
+    //receiver->setCallback(callbacks::connectToMixerCallback);
 }
 
 PipelineManager* PipelineManager::getInstance()

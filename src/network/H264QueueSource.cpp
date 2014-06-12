@@ -4,12 +4,12 @@
 #define START_CODE 0x00000001
 #define LENGTH_START_CODE 4
 
-H264QueueSource* H264QueueSource::createNew(UsageEnvironment& env, FrameQueue *q) {
-  return new H264QueueSource(env, q);
+H264QueueSource* H264QueueSource::createNew(UsageEnvironment& env, Reader *reader) {
+  return new H264QueueSource(env, reader);
 }
 
-H264QueueSource::H264QueueSource(UsageEnvironment& env, FrameQueue *q)
-: QueueSource(env, q) {
+H264QueueSource::H264QueueSource(UsageEnvironment& env, Reader *reader)
+: QueueSource(env, reader) {
 }
 
 bool testStartCode(unsigned char const* ptr) {
@@ -21,7 +21,7 @@ void H264QueueSource::doGetNextFrame() {
     unsigned char* buff;
     int size;
     
-    if ((frame = queue->getFront()) == NULL) {
+    if ((frame = fReader->getFrame()) == NULL) {
         nextTask() = envir().taskScheduler().scheduleDelayedTask(1000,
             (TaskFunc*)QueueSource::staticDoGetNextFrame, this);
         return;
@@ -46,7 +46,7 @@ void H264QueueSource::doGetNextFrame() {
     }
     
     memcpy(fTo, buff, fFrameSize);
-    queue->removeFrame();
+    fReader->removeFrame();
     
     afterGetting(this);
 }

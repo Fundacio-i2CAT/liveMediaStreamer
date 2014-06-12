@@ -27,6 +27,7 @@
 namespace callbacks
 {
     void connectToMixerCallback(char const* medium, unsigned short port);
+    void connectToTransmitter(char const* medium, unsigned short port);
 };
 
 #endif

@@ -32,7 +32,7 @@ public:
     static PipelineManager* getInstance();
     static void destroyInstance();
     SourceManager* getReceiver(){return receiver;};
-   // SinkManager* getTransmitter(){return transmitter;};
+    SinkManager* getTransmitter(){return transmitter;};
     BaseFilter* searchFilterByType(FilterType type);
     bool addPath(int id, Path* path);
     bool addFilter(std::string id, BaseFilter* filter);
@@ -45,7 +45,7 @@ private:
     static PipelineManager* pipeMngrInstance;
 
     SourceManager* receiver;
-  //  SinkManager* transmitter;
+    SinkManager* transmitter;
     std::map<int, Path*> paths;
     std::map<std::string, std::pair<BaseFilter*, Worker*> > filters;
 

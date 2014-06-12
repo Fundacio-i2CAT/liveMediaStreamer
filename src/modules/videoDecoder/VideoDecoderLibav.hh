@@ -49,12 +49,15 @@ class VideoDecoderLibav : public OneToOneFilter {
         bool doProcessFrame(Frame *org, Frame *dst);
         FrameQueue* allocQueue(int wId);
         bool configure(int width, int height, PixType pixelFormat);
+		void initializeEventMap();
         
     private:
         bool toBuffer(VideoFrame *decodedFrame);
         void checkInputParams(VCodecType codec);
         bool inputConfig();
         void outputConfig();
+		void resizeEvent(Jzon::Node* params);
+		void changePixelFormatEvent(Jzon::Node* params);
         
         AVCodec             *codec;
         AVCodecContext      *codecCtx;

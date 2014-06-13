@@ -59,7 +59,7 @@ private:
 class Runnable {
     
 public:
-    virtual bool processFrame(bool removeFrame) = 0;
+    virtual bool processFrame(bool removeFrame = false) = 0;
 	virtual void removeFrames() = 0;
 };
 

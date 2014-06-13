@@ -74,7 +74,7 @@ void Worker::process()
     while(run){
         while (enabled && frameTime > 0) {
             previousTime = std::chrono::system_clock::now();
-            if (processor->processFrame(true)) {
+            if (processor->processFrame(true)) { 
                 idleCount = 0;
                 enlapsedTime = std::chrono::duration_cast<std::chrono::microseconds>(
                     std::chrono::system_clock::now() - previousTime);

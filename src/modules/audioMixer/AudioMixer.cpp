@@ -235,7 +235,6 @@ void AudioMixer::soloChannelEvent(Jzon::Node* params)
             it.second = 0;
         }
     }
-
 }
 
 void AudioMixer::changeMasterVolumeEvent(Jzon::Node* params) 

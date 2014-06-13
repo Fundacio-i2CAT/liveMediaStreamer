@@ -109,20 +109,42 @@ int Controller::listenSocket()
 bool Controller::readAndParse(int newSock)
 {
     bzero(inBuffer, MSG_BUFFER_MAX_LENGTH);
-    inputRootNode.Clear();
-    outputRootNode.Clear();
+    inputRootNode->Clear();
+    outputRootNode->Clear();
 
     if (read(newSock, inBuffer, MSG_BUFFER_MAX_LENGTH - 1) < 0) {
         error("ERROR reading from socket");
+        return false;
     }
 
-    parser.SetJson(inBuffer);
+    parser->SetJson(inBuffer);
 
-    if (!parser.Parse()) {
+    if (!parser->Parse()) {
         //TODO: error
         return false;
-    }    
+    }
+
+    return true;
 }
+
+bool processEvent()
+{
+    std::string action;
+
+    if (!rootNode->Has("action") || !rootNode->Has("params")) {
+        //TODO: error
+        return false;
+    }
+    
+    action = rootNode->Get("action").ToString();
+
+    if (eventMap.count(action) <= 0 ) {
+        return false;
+    }
+
+    eventMap[action](rootNode->Get("params"));
+}
+
 
 
 

@@ -71,7 +71,7 @@ protected:
     //TODO: desctructor
     
     virtual FrameQueue *allocQueue(int wId) = 0;
-    virtual bool processFrame(bool removeFrame) = 0;
+    virtual bool processFrame(bool removeFrame = false) = 0;
     virtual Reader *setReader(int readerID, FrameQueue* queue);
     virtual void initializeEventMap() = 0;
 
@@ -110,7 +110,7 @@ protected:
     virtual bool doProcessFrame(Frame *org, Frame *dst) = 0;
     
 private:
-    bool processFrame(bool removeFrame);
+    bool processFrame(bool removeFrame = false);
     using BaseFilter::demandOriginFrames;
     using BaseFilter::demandDestinationFrames;
     using BaseFilter::addFrames;
@@ -129,7 +129,7 @@ protected:
     virtual bool doProcessFrame(Frame *org, std::map<int, Frame *> dstFrames) = 0;
     
 private:
-    bool processFrame(bool removeFrame);
+    bool processFrame(bool removeFrame = false);
     using BaseFilter::demandOriginFrames;
     using BaseFilter::demandDestinationFrames;
     using BaseFilter::addFrames;
@@ -152,7 +152,7 @@ protected:
     
 private:
     //TODO: error message
-    bool processFrame(bool removeFrame) {};
+    bool processFrame(bool removeFrame = false) {};
     using BaseFilter::demandOriginFrames;
     using BaseFilter::demandDestinationFrames;
     using BaseFilter::addFrames;
@@ -169,7 +169,7 @@ protected:
     //TODO: desctructor
     
 private:
-    bool processFrame(bool removeFrame) {};
+    bool processFrame(bool removeFrame = false) {};
     FrameQueue *allocQueue(int wId) {return NULL;};
     using BaseFilter::demandOriginFrames;
     using BaseFilter::demandDestinationFrames;
@@ -187,7 +187,7 @@ protected:
     virtual bool doProcessFrame(std::map<int, Frame *> orgFrames, Frame *dst) = 0;
 
 private:
-    bool processFrame(bool removeFrame);
+    bool processFrame(bool removeFrame = false);
     using BaseFilter::demandOriginFrames;
     using BaseFilter::demandDestinationFrames;
     using BaseFilter::addFrames;

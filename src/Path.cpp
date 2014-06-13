@@ -52,6 +52,15 @@ bool Path::connect(BaseFilter *destination, int dstReaderID)
 {
     this->destination = destination;
     this->dstReaderID = dstReaderID;
+    
+    if (filters.empty()){
+        if (origin->connectManyToMany(destination, dstReaderID, orgWriterID)){
+            return true;
+        } else {
+            std::cerr << "Error connecting head to tail!" << std::endl;
+            return false;
+        }
+    }
 
     if(!origin->connectManyToOne(filters.front().first, orgWriterID)) {
         std::cerr << "Error connecting path head to first filter!" << std::endl;

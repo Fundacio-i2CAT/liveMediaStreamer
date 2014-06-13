@@ -35,7 +35,7 @@
 class H264QueueServerMediaSubsession: public QueueServerMediaSubsession {
 public:
   static H264QueueServerMediaSubsession*
-  createNew(UsageEnvironment& env, QueueSource *source, Boolean reuseFirstSource);
+  createNew(UsageEnvironment& env, Reader *reader, Boolean reuseFirstSource);
 
   // Used to implement "getAuxSDPLine()":
   void checkForAuxSDPLine1();
@@ -43,18 +43,18 @@ public:
 
 protected:
   H264QueueServerMediaSubsession(UsageEnvironment& env,
-                                 QueueSource *source, Boolean reuseFirstSource);
+                                 Reader *reader, Boolean reuseFirstSource);
       // called only by createNew();
   virtual ~H264QueueServerMediaSubsession();
 
   void setDoneFlag() { fDoneFlag = ~0; }
 
 protected: // redefined virtual functions
-  virtual char const* getAuxSDPLine(RTPSink* rtpSink,
+  char const* getAuxSDPLine(RTPSink* rtpSink,
                     FramedSource* inputSource);
-  virtual FramedSource* createNewStreamSource(unsigned clientSessionId,
+  FramedSource* createNewStreamSource(unsigned clientSessionId,
                           unsigned& estBitrate);
-  virtual RTPSink* createNewRTPSink(Groupsock* rtpGroupsock,
+  RTPSink* createNewRTPSink(Groupsock* rtpGroupsock,
                                     unsigned char rtpPayloadTypeIfDynamic,
                     FramedSource* inputSource);
 

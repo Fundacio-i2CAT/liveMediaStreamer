@@ -53,7 +53,7 @@ public:
     static VideoFrameQueue* createNew(VCodecType codec, unsigned delay, unsigned width = 0, 
                                             unsigned height = 0, PixType pixelFormat = P_NONE);
     
-    VCodecType getCodec() {return codec;};
+    const VCodecType getCodec() const {return codec;};
 
 protected:
     VideoFrameQueue(VCodecType codec, unsigned delay, unsigned width, unsigned height, PixType pixelFormat);

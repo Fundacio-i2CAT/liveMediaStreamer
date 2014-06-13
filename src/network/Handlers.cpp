@@ -304,22 +304,25 @@ namespace handlers
         int wId;
         QueueSink *sink;
         SourceManager* mngr = SourceManager::getInstance();
+        Writer *writer;
         
-        //Posar 
+        writer = new Writer();
+        
         if (strcmp(subsession->codecName(), "H264") == 0) {
-            sink = H264QueueSink::createNew(env, subsession->fmtp_spropparametersets());
+            sink = H264QueueSink::createNew(env, writer, subsession->fmtp_spropparametersets());
         } else {
-            sink = QueueSink::createNew(env);
+            sink = QueueSink::createNew(env, writer);
         }
         
         if (sink == NULL){
             std::cerr << "Sink NULL!" << std::endl;
+            delete writer;
             return false;
         }
-
-        subsession->sink = sink;
+        
         wId = subsession->clientPortNum();
-        mngr->writers[wId] = sink;
+        subsession->sink = sink;
+        mngr->writers[wId] = writer;
 
         //TODO: this should be our callback!
         mngr->callback(subsession->mediumName(), subsession->clientPortNum());

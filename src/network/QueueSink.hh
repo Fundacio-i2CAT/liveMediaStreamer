@@ -38,13 +38,13 @@
 
 #define DUMMY_RECEIVE_BUFFER_SIZE 200000
 
-class QueueSink: public MediaSink, public Writer {
+class QueueSink: public MediaSink {
 
 public:
-    static QueueSink* createNew(UsageEnvironment& env);
+    static QueueSink* createNew(UsageEnvironment& env, Writer *writer);
 
 protected:
-    QueueSink(UsageEnvironment& env);
+    QueueSink(UsageEnvironment& env, Writer *writer);
 
 
 protected: 
@@ -58,6 +58,7 @@ protected:
     virtual void afterGettingFrame(unsigned frameSize, struct timeval presentationTime);
 
     Frame *frame;
+    Writer *fWriter;
     unsigned char *dummyBuffer;
 };
 

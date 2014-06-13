@@ -26,17 +26,18 @@
 #endif
 
 #include "H264QueueServerMediaSubsession.hh"
+#include <string>
 
 H264QueueServerMediaSubsession*
 H264QueueServerMediaSubsession::createNew(UsageEnvironment& env,
-                          QueueSource *source,
+                          Reader *reader,
                           Boolean reuseFirstSource) {
-  return new H264QueueServerMediaSubsession(env, source, reuseFirstSource);
+  return new H264QueueServerMediaSubsession(env, reader, reuseFirstSource);
 }
 
 H264QueueServerMediaSubsession::H264QueueServerMediaSubsession(UsageEnvironment& env,
-                                    QueueSource *source, Boolean reuseFirstSource)
-  : QueueServerMediaSubsession(env, source, reuseFirstSource),
+                                    Reader *reader, Boolean reuseFirstSource)
+  : QueueServerMediaSubsession(env, reader, reuseFirstSource),
     fAuxSDPLine(NULL), fDoneFlag(0), fDummyRTPSink(NULL) {
 }
 
@@ -82,36 +83,28 @@ void H264QueueServerMediaSubsession::checkForAuxSDPLine1() {
 }
 
 char const* H264QueueServerMediaSubsession::getAuxSDPLine(RTPSink* rtpSink, FramedSource* inputSource) {
-  if (fAuxSDPLine != NULL) return fAuxSDPLine; // it's already been set up (for a previous client)
+    if (fAuxSDPLine != NULL) return fAuxSDPLine; // it's already been set up (for a previous client)
 
-  if (fDummyRTPSink == NULL) { // we're not already setting it up for another, concurrent stream
-    // Note: For H264 video files, the 'config' information ("profile-level-id" and "sprop-parameter-sets") isn't known
-    // until we start reading the file.  This means that "rtpSink"s "auxSDPLine()" will be NULL initially,
-    // and we need to start reading data from our file until this changes.
-    fDummyRTPSink = rtpSink;
+    if (fDummyRTPSink == NULL) {
+        fDummyRTPSink = rtpSink;
+        fDummyRTPSink->startPlaying(*inputSource, afterPlayingDummy, this);
+        checkForAuxSDPLine(this);
+    }
 
-    // Start reading the file:
-    fDummyRTPSink->startPlaying(*inputSource, afterPlayingDummy, this);
-
-    // Check whether the sink's 'auxSDPLine()' is ready:
-    checkForAuxSDPLine(this);
-  }
-
-  envir().taskScheduler().doEventLoop(&fDoneFlag);
-
-  return fAuxSDPLine;
+    envir().taskScheduler().doEventLoop(&fDoneFlag);
+    return fAuxSDPLine;
 }
 
 FramedSource* H264QueueServerMediaSubsession::createNewStreamSource(unsigned /*clientSessionId*/, unsigned& estBitrate) {
     //TODO: WTF
-    estBitrate = 500; // kbps, estimate
-    
-    if (fSource != NULL && dynamic_cast<H264QueueSource*>(fSource)){
-        // Create a framer for the Video Elementary Stream:
-        return H264VideoStreamDiscreteFramer::createNew(envir(), fSource);
+    estBitrate = 1000; // kbps, estimate
+
+    H264QueueSource* source = H264QueueSource::createNew(envir(), fReader);
+    if (!source) {
+        return NULL; 
     }
     
-    return NULL;
+    return H264VideoStreamDiscreteFramer::createNew(envir(), source);
 }
 
 RTPSink* H264QueueServerMediaSubsession

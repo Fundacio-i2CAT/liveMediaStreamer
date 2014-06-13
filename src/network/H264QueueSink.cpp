@@ -3,16 +3,16 @@
 
 static unsigned char const start_code[4] = {0x00, 0x00, 0x00, 0x01};
 
-H264QueueSink::H264QueueSink(UsageEnvironment& env, char const* sPropParameterSetsStr)
-: QueueSink(env),  fHaveWrittenFirstFrame(False)
+H264QueueSink::H264QueueSink(UsageEnvironment& env, Writer *writer, char const* sPropParameterSetsStr)
+: QueueSink(env, writer),  fHaveWrittenFirstFrame(False)
 {
     fSPropParameterSetsStr = sPropParameterSetsStr;
 }
 
-H264QueueSink* H264QueueSink::createNew(UsageEnvironment& env, 
+H264QueueSink* H264QueueSink::createNew(UsageEnvironment& env, Writer *writer,
                                         char const* sPropParameterSetsStr) 
 {
-    return new H264QueueSink(env, sPropParameterSetsStr);
+    return new H264QueueSink(env, writer, sPropParameterSetsStr);
 }
 
 Boolean H264QueueSink::continuePlaying() 
@@ -21,14 +21,14 @@ Boolean H264QueueSink::continuePlaying()
         return False;
     }
     
-    if (!isConnected()){
+    if (!fWriter->isConnected()){
         fSource->getNextFrame(dummyBuffer, DUMMY_RECEIVE_BUFFER_SIZE,
                               QueueSink::afterGettingFrame, this,
                               QueueSink::onSourceClosure, this);
         return True;
     }
     
-    frame = getFrame(true);
+    frame = fWriter->getFrame(true);
     
     if (!fHaveWrittenFirstFrame) {
         unsigned numSPropRecords;
@@ -40,8 +40,8 @@ Boolean H264QueueSink::continuePlaying()
                     sPropRecords[i].sPropLength);
             frame->setLength(sPropRecords[i].sPropLength + sizeof(start_code));
             frame->setUpdatedTime();
-            addFrame();
-            frame = getFrame(true);
+            fWriter->addFrame();
+            frame = fWriter->getFrame(true);
         }
         delete[] sPropRecords;
         fHaveWrittenFirstFrame = True;
@@ -63,7 +63,7 @@ void H264QueueSink::afterGettingFrame(unsigned frameSize, struct timeval present
         frame->setLength(frameSize + sizeof(start_code));
         frame->setUpdatedTime();
         frame->setPresentationTime(presentationTime);
-        addFrame();
+        fWriter->addFrame();
     }
     // Then try getting the next frame:
     continuePlaying();

@@ -29,29 +29,19 @@
 #include <liveMedia/liveMedia.hh>
 #endif
 
-#ifndef _FRAME_QUEUE_HH
-#include "../FrameQueue.hh"
+#ifndef _IO_INTERFACE_HH
+#include "../IOInterface.hh"
 #endif
 
-#include "QueueSource.hh"
-
-#include <vector>
-
-typedef struct connection {
-    struct in_addr addr;
-    unsigned short port;
-} connection_t;
-
 class QueueServerMediaSubsession: public OnDemandServerMediaSubsession {
-protected: // we're a virtual base class
-    QueueServerMediaSubsession(UsageEnvironment& env, QueueSource *source,
-                Boolean reuseFirstSource);
+protected: 
+    QueueServerMediaSubsession(UsageEnvironment& env, Reader *reader,
+                               Boolean reuseFirstSource);
+    
     virtual ~QueueServerMediaSubsession();
 
 protected:
-    QueueSource* fSource;
-    //TODO: this vector should be protected with mutex
-    std::vector<connection_t> outputs;
+    Reader* fReader;
 };
 
 #endif

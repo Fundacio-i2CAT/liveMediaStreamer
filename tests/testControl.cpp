@@ -17,6 +17,7 @@
 #include "../src/modules/audioEncoder/AudioEncoderLibav.hh"
 #include "../src/modules/audioMixer/AudioMixer.hh"
 #include "../src/Controller.hh"
+#include "../src/Callbacks.hh"
 
 #include <iostream>
 #include <csignal>
@@ -104,6 +105,7 @@ int main(int argc, char** argv)
 
     Controller *ctrl = Controller::getInstance();
     SourceManager *mngr = ctrl->pipelineManager()->getReceiver();
+    mngr->setCallback(callbacks::connectToMixerCallback);
     AudioMixer *mixer = new AudioMixer(4);
     AudioEncoderLibav* audioEncoder = new AudioEncoderLibav();
     audioEncoder->configure(MP3);

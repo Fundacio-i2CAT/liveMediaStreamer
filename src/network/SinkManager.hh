@@ -23,26 +23,12 @@
 #ifndef _SINK_MANAGER_HH
 #define _SINK_MANAGER_HH
 
-#ifndef _BASIC_USAGE_ENVIRONMENT_HH
-#include <BasicUsageEnvironment.hh>
-#endif
-
-#ifndef _LIVEMEDIA_HH
-#include <liveMedia/liveMedia.hh>
-#endif
-
-#ifndef _QUEUE_SOURCE_HH
 #include "QueueSource.hh"
-#endif
-
-#ifndef _FILTER_HH
 #include "../Filter.hh"
-#endif
-
-#ifndef _IO_INTERFACE_HH
 #include "../IOInterface.hh"
-#endif
 
+#include <BasicUsageEnvironment.hh>
+#include <liveMedia/liveMedia.hh>
 #include <thread>
 #include <map>
 #include <string>

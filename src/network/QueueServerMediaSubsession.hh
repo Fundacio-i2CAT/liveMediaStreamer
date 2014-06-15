@@ -25,13 +25,9 @@
 #ifndef _QUEUE_SERVER_MEDIA_SUBSESSION_HH
 #define _QUEUE_SERVER_MEDIA_SUBSESSION_HH
 
-#ifndef _LIVEMEDIA_HH
 #include <liveMedia/liveMedia.hh>
-#endif
-
-#ifndef _IO_INTERFACE_HH
 #include "../IOInterface.hh"
-#endif
+
 
 class QueueServerMediaSubsession: public OnDemandServerMediaSubsession {
 protected: 

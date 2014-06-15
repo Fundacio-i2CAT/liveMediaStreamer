@@ -24,10 +24,7 @@
 #ifndef _HANDLERS_HH
 #define _HANDLERS_HH
 
-#ifndef _LIVEMEDIA_HH
 #include <liveMedia/liveMedia.hh>
-#endif
-
 #include <string>
 
 #define CODED_VIDEO_FRAMES 512 

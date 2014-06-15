@@ -23,22 +23,12 @@
 
 
 #include "SinkManager.hh"
-
-#ifndef _HANDLERS_HH
 #include "Handlers.hh"
-#endif
-
-#ifndef _AV_FRAMED_QUEUE_HH
 #include "../AVFramedQueue.hh"
-#endif
-
-#ifndef _AUDIO_CIRCULAR_BUFFER_HH
 #include "../AudioCircularBuffer.hh"
-#endif
-
-#ifndef _H264_SERVER_MEDIA_SUBSESSION_HH
 #include "H264QueueServerMediaSubsession.hh"
-#endif
+#include "VP8QueueServerMediaSubsession.hh"
+
 
 SinkManager *SinkManager::mngrInstance = NULL;
 
@@ -143,6 +133,9 @@ ServerMediaSubsession *SinkManager::createVideoMediaSubsession(VCodecType codec,
     switch(codec){
         case H264:
             return H264QueueServerMediaSubsession::createNew(*(envir()), reader, True);
+            break;
+        case VP8:
+            return VP8QueueServerMediaSubsession::createNew(*(envir()), reader, True);
             break;
         default:
             break;

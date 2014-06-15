@@ -56,6 +56,8 @@ void signalHandler(int signum)
     std::cout << "Manager closed\n";
 }
 
+void connect(char const* medium, unsigned short port){}
+
 int main(int argc, char** argv) 
 {   
     std::string sessionId;
@@ -70,6 +72,8 @@ int main(int argc, char** argv)
     Worker *vDecoderWorker;
 	Worker *vEncoderWorker;
     std::ofstream h264Frames;
+
+	 mngr->setCallback((void(*)(char const*, unsigned short))&connect);
     
     //condif decoder
     
@@ -100,19 +104,22 @@ int main(int argc, char** argv)
     //Let some time to initiate reciver sessions
     sleep(2);
 
-    int id1 = mngr->getWriterID(V_CLIENT_PORT);
+    int id1 = V_CLIENT_PORT; //mngr->getWriterID(V_CLIENT_PORT);
 
-    if(!mngr->connect(id1, decoder, decoder->getAvailableReaders().front())) {
+    //if(!mngr->connect(id1, decoder, decoder->getAvailableReaders().front())) {
+	if(!mngr->connectManyToOne(decoder, id1)) {
         std::cerr << "Error connecting video decoder" << std::endl;
     }
 	
-	int id2 = decoder->getAvailableWriters().front();
-	if(!decoder->connect(id2, encoder, encoder->getAvailableReaders().front())) {
+	//int id2 = decoder->getAvailableWriters().front();
+	//if(!decoder->connect(id2, encoder, encoder->getAvailableReaders().front())) {
+	if(!decoder->connectOneToOne(encoder)) {
         std::cerr << "Error connecting video encoder" << std::endl;
     }
 
     Reader *reader = new Reader();
-    encoder->connect(encoder->getAvailableWriters().front(), reader);
+    //encoder->connect(encoder->getAvailableWriters().front(), reader);
+	encoder->connect(reader);
 
     vDecoderWorker = new Worker(decoder);
 	vEncoderWorker = new Worker(encoder);
@@ -134,7 +141,7 @@ int main(int argc, char** argv)
 		
 		if (h264Frame->getLength() > 0) {
             h264Frames.write(reinterpret_cast<const char*>(h264Frame->getDataBuf()), h264Frame->getLength());
-            printf("Filled buffer! Frame size: %d\n", h264Frame->getLength());
+            //printf("Filled buffer! Frame size: %d\n", h264Frame->getLength());
         }
         
         reader->removeFrame();

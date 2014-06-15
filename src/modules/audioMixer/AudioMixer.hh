@@ -54,12 +54,15 @@ class AudioMixer : public ManyToOneFilter {
         void applyMixAlgorithm(std::vector<float> &fSamples, int frameNumber);
         void applyGainToChannel(std::vector<float> &fSamples, float gain);
         void sumValues(std::vector<float> fSamples, std::vector<float> &mixedSamples); 
-        void changeVolumeEvent(Jzon::Node* params); 
-        void muteEvent(Jzon::Node* params); 
-        void soloEvent(Jzon::Node* params);
         void LAMixAlgorithm(std::vector<float> &fSamples, int frameNumber); 
         void LDRCMixAlgorithm(std::vector<float> &fSamples, int frameNumber); 
         
+        void changeChannelVolumeEvent(Jzon::Node* params); 
+        void muteChannelEvent(Jzon::Node* params); 
+        void soloChannelEvent(Jzon::Node* params);
+        void changeMasterVolumeEvent(Jzon::Node* params);
+        void muteMasterEvent(Jzon::Node* params);
+
         int frameChannels;
         int sampleRate;
         SampleFmt sampleFormat;
@@ -67,8 +70,6 @@ class AudioMixer : public ManyToOneFilter {
         float masterGain;
         float th;  //Dynamic Range Compression algorithms threshold
         mixingAlgorithm mAlg;
-
-
 
         //Vectors as attributes in order to improve memory management
         std::vector<float> samples;

@@ -157,6 +157,23 @@ void Worker::setFps(int maxFps)
 Master::Master(Runnable *processor_, unsigned int maxFps):Worker(processor_,maxFps) {
 }
 
+bool Master::addSlave(Slave *slave_) {
+	if (slaves.size() == MAX_SLAVE)
+		return false;
+	slaves.push_back(slave_);
+	return true;		
+}
+
+void Master::removeSlave(int id) {
+	for (std::list<Slave*>::iterator it = slaves.begin(); it != slaves.end(); it++) {
+		Slave* slave = *it;
+		if (slave->getId() == id) {
+			slaves.remove(slave);
+			break;
+		}
+	}
+}
+
 void Master::process() {
     int idleCount = 0;
     int timeout;
@@ -169,12 +186,88 @@ void Master::process() {
 	bool run = getRun();
 	bool enabled = getEnabled();
 	Runnable* processor = getProcessor();
-	unsigned int frameTime = getFrameTime();
-
+	//printf("aca nunca entra\n");
     while(run){
+		unsigned int frameTime = getFrameTime();
+		//printf ("frame time %d\n", frameTime);
+        while (enabled && allFinished()) {
+			//printf("enabled Master\n");
+            //previousTime = std::chrono::system_clock::now();
+            //if (processor->processFrame(true)) {
+			setAllFinishedFalse();
+			processor->removeFrames();
+            idleCount = 0;
+               /* enlapsedTime = std::chrono::duration_cast<std::chrono::microseconds>(
+                    std::chrono::system_clock::now() - previousTime);
+                if ((timeToSleep = frameTime - enlapsedTime.count()) <= 0){
+                    std::this_thread::sleep_for(
+                        std::chrono::microseconds(timeToSleep));
+                }*/
+        }      
+       /* while (enabled && allFinished()){
+			setAllFinishedFalse();
+			processor->removeFrames();
+            idleCount = 0;
+        }*/
+       /* if (idleCount <= ACTIVE_TIMEOUT){
+            idleCount++;
+            std::this_thread::sleep_for(active);
+        } else {
+            std::this_thread::sleep_for(idle);
+        }*/
+    }
+}
+
+bool Master::allFinished() {
+	bool end = true;
+	for (std::list<Slave*>::iterator it = slaves.begin(); it != slaves.end(); it++) {
+		Slave* slave = *it;
+		if (slave->finished() == false) {
+			end = false;
+			break;
+		}
+	}
+	return end;
+}
+
+void Master::setAllFinishedFalse() {
+	for (std::list<Slave*>::iterator it = slaves.begin(); it != slaves.end(); it++) {
+		Slave* slave = *it;
+		slave->setFinish();
+	}
+}
+
+///////////////////////////////////////////////////
+//                SLAVE CLASS                    //
+///////////////////////////////////////////////////
+
+Slave::Slave(int id_, Runnable *processor_, unsigned int maxFps):Worker(processor_,maxFps) {
+	id = id_;
+	finish = false;
+}
+
+void Slave::process() {
+    int idleCount = 0;
+    int timeout;
+    int timeToSleep = 0;
+    std::chrono::microseconds enlapsedTime;
+    std::chrono::system_clock::time_point previousTime;
+
+    std::chrono::microseconds active(ACTIVE);
+    std::chrono::milliseconds idle(IDLE);
+	bool run = getRun();
+	bool enabled = getEnabled();
+	Runnable* processor = getProcessor();
+	unsigned int frameTime = getFrameTime();
+	printf("aca nunca entra!! %d %d\n", run, enabled);
+    while(run){
+		//printf ("frame time %d\n", frameTime);
         while (enabled && frameTime > 0) {
             previousTime = std::chrono::system_clock::now();
-            if (processor->processFrame(true)) { 
+			printf("Antes de procesar el frame\n");
+            if (processor->processFrame(false)) {
+				printf("Proceso frame\n");
+				finish = true;
                 idleCount = 0;
                 enlapsedTime = std::chrono::duration_cast<std::chrono::microseconds>(
                     std::chrono::system_clock::now() - previousTime);
@@ -191,9 +284,11 @@ void Master::process() {
                 }
             }
         }      
-        while (enabled && processor->processFrame(true)){
+      /*  while (enabled && processor->processFrame(false)){
+			
+			finish = true;
             idleCount = 0;
-        }
+        }*/
         if (idleCount <= ACTIVE_TIMEOUT){
             idleCount++;
             std::this_thread::sleep_for(active);

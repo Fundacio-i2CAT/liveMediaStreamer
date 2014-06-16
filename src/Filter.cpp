@@ -349,7 +349,7 @@ bool OneToOneFilter::processFrame(bool removeFrame)
     //TODO: config
 
     processEvent();
-
+	//printf("proceso el frame, filter %d\n", removeFrame);
     if (!demandOriginFrames() || !demandDestinationFrames()) {
         return false;
     }
@@ -359,7 +359,9 @@ bool OneToOneFilter::processFrame(bool removeFrame)
     }
 
     if (removeFrame) {
+		//printf("borro\n");
     	removeFrames();
+		//printf("borro despues\n");
 	}
 
     return true;

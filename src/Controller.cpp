@@ -127,27 +127,60 @@ bool Controller::readAndParse(int newSock)
     return true;
 }
 
-bool processEvent()
+bool Controller::processEvent()
 {
-    std::string action;
+    
+    if (inputRootNode->Has("filterID")) {
+        processFilterEvent();
+    } else {
+        processInternalEvent();
+    }
+    
+    return true;
+}
 
-    if (!rootNode->Has("action") || !rootNode->Has("params")) {
+bool Controller::processFilterEvent() 
+{
+    int filterID = -1;
+    BaseFilter *filter = NULL;
+
+    if (!inputRootNode->Has("action") || !inputRootNode->Has("params")) {
         //TODO: error
         return false;
     }
-    
-    action = rootNode->Get("action").ToString();
 
-    if (eventMap.count(action) <= 0 ) {
+    filterID = inputRootNode->Get("filterID").ToInt();
+    filter = pipeMngrInstance->getFilter(filterID);
+
+    if (!filter) {
+        //TODO: error
         return false;
     }
 
-    eventMap[action](rootNode->Get("params"));
+    Event e(rootNode, std::chrono::system_clock::now());
+    filter->pushEvent(e);
+
+    return true;
 }
 
+bool Controller::processInternalEvent() 
+{
+    if (!inputRootNode->Has("action") || !inputRootNode->Has("params")) {
+        //TODO: error
+        return false;
+    }
 
+    std::string action = inputRootNode->Get("action");
+    Jzon::Node* params = inputRootNode->Get("params");
 
+    if (eventMap.count(action) <= 0) {
+        return false;
+    }
+        
+    eventMap[action](params);
 
+    return true;
+}
 
 ///////////////////////////////////
 //PIPELINE MANAGER IMPLEMENTATION//

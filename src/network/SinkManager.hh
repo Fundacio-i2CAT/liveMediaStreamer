@@ -56,9 +56,11 @@ public:
     bool removeSession(std::string id);
     
     UsageEnvironment* envir() {return env;}
+
+protected:
+    void initializeEventMap() {/*TODO*/};
       
 private: 
-    void initializeEventMap() {/*TODO*/};
     
     ServerMediaSubsession *createSubsessionByReader(Reader *reader);
     ServerMediaSubsession *createVideoMediaSubsession(VCodecType codec, Reader *reader);

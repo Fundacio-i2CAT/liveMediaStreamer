@@ -65,7 +65,7 @@ public:
     int generateWriterID();
     const int getMaxWriters() const {return maxWriters;};
     const int getMaxReaders() const {return maxReaders;};
-    void pushEvent(Event e);
+    virtual void pushEvent(Event e);
     
 protected:
     BaseFilter(int maxReaders_, int maxWriters_, bool force_ = false);
@@ -144,7 +144,7 @@ private:
 class HeadFilter : public BaseFilter {
 public:
     //TODO:implement this function
-    void pushEvent(Event e){};
+    void pushEvent(Event e);
 
 protected:
     HeadFilter(int writersNum = MAX_WRITERS);
@@ -164,7 +164,9 @@ private:
 };
 
 class TailFilter : public BaseFilter {
-    
+public:
+    void pushEvent(Event e);
+
 protected:
     TailFilter(int readersNum = MAX_READERS);
     //TODO: desctructor

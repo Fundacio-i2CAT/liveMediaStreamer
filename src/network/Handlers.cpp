@@ -255,7 +255,7 @@ namespace handlers
 
         sdp << "a=rtpmap:" << RTPPayloadFormat << " ";
         sdp << codecName << "/" << RTPTimestampFrequency;
-        if (channels != 0) {
+        if (channels > 0) {
             sdp << "/" << channels;
         } 
         sdp << "\n";

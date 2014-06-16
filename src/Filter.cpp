@@ -346,7 +346,7 @@ bool OneToOneFilter::processFrame(bool removeFrame)
 {
     bool newData = false;
 
- //   processEvent();
+    processEvent();
 
     if (!demandOriginFrames() || !demandDestinationFrames()) {
         return false;
@@ -372,7 +372,7 @@ bool OneToManyFilter::processFrame(bool removeFrame)
 {
     bool newData;
 
-  //  processEvent();
+    processEvent();
 
     if (!demandOriginFrames() || !demandDestinationFrames()){
         return false;
@@ -394,11 +394,44 @@ BaseFilter(0, writersNum, false)
     
 }
 
+void HeadFilter::pushEvent(Event e)
+{
+    std::string action = e.getAction();
+    Jzon::Node* params = e.getParams();
+
+    if (action.empty()) {
+        break;
+    }
+
+    if (eventMap.count(action) <= 0) {
+        break;
+    }
+    
+    eventMap[action](params);
+}
+
+
 
 TailFilter::TailFilter(int readersNum) : 
 BaseFilter(readersNum, 0, false)
 {
 
+}
+
+void TailFilter::pushEvent(Event e)
+{
+    std::string action = e.getAction();
+    Jzon::Node* params = e.getParams();
+
+    if (action.empty()) {
+        break;
+    }
+
+    if (eventMap.count(action) <= 0) {
+        break;
+    }
+    
+    eventMap[action](params);
 }
 
 

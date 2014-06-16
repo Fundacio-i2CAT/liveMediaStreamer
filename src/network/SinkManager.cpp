@@ -46,6 +46,8 @@ SinkManager::SinkManager(int readersNum): watch(0), TailFilter(readersNum)
     OutPacketBuffer::increaseMaxSizeTo(MAX_VIDEO_FRAME_SIZE);
     
     mngrInstance = this;
+    initializeEventMap();
+
 }
 
 SinkManager* 

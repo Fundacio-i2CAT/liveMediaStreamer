@@ -35,6 +35,8 @@
 #include <BasicUsageEnvironment.hh>
 
 #define ID_LENGTH 4
+#define PROTOCOL "RTP"
+ 
 
 class Session;
 
@@ -77,8 +79,9 @@ public:
     void setCallback(std::function<void(char const*, unsigned short)> callbackFunction);
     
     UsageEnvironment* envir() {return env;};
-    void initializeEventMap() {};
-
+    
+protected:
+    void initializeEventMap();
     
 private:
     friend bool handlers::addSubsessionSink(UsageEnvironment& env, MediaSubsession *subsession);

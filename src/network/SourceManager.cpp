@@ -42,6 +42,7 @@ SourceManager::SourceManager(int writersNum): watch(0), HeadFilter(writersNum)
     this->env = BasicUsageEnvironment::createNew(*scheduler);
     
     mngrInstance = this;
+    initializeEventMap();
 }
 
 SourceManager* SourceManager::getInstance()
@@ -167,6 +168,55 @@ FrameQueue *SourceManager::allocQueue(int wId)
 
     return NULL;
 }
+
+void SourceManager::initializeEventMap()
+{
+    eventMap["addSession"] = std::bind(&SourceManager::addSessionEvent, this, std::placeholders::_1);
+}
+
+void SourceManager::ddSessionEvent(Jzon::Node* params)
+{
+    std::string sessionId = handlers::randomIdGenerator(ID_LENGTH);
+    std::string sdp, medium, codec;
+    int payload, bandwith, timeStampFrequency, channels, port;
+    Session* session;
+
+    if (!params) {
+        return;
+    }
+
+    if (params->Has("uri") && params->Has("progName")) {
+        
+        std::string progName = params->Get("progName").ToString();
+        std::string rtspURL = params->Get("uri").ToString();
+        session = Session::createNewByURL(env, progName, rtspURL, sessionId);
+    
+    } else if (params->Has("subsessions") && params->Get("subsessions").IsArray()) {
+        
+        Jzon::Array subsessions = params->Get("subsessions").AsArray();
+        sdp = handlers::makeSessionSDP("testSession", "this is a test");
+        
+        for (Jzon::Array::iterator it = subsessions.begin(); it != subsessions.end(); ++it) {
+            medium = (*it).Get("medium").ToString();
+            codec = (*it).Get("codec").ToString();
+            payload = (*it).Get("payload").ToInt();
+            bandwith = (*it).Get("bandwith").ToInt();
+            timeStampFrequency = (*it).Get("timeStampFrequency").ToInt();
+            channels = (*it).Get("channels").ToInt();
+
+            sdp += handlers::makeSubsessionSDP(medium, PROTOCOL, payload, codec, bandwith, 
+                                                timeStampFrequency, port, channels);
+        }
+
+        session = Session::createNew(env, sdp, sessionId);
+    
+    }
+
+    mngr->addSession(session);
+    session->initiateSession();
+} 
+
+
 
 FrameQueue* createVideoQueue(char const* codecName)
 {

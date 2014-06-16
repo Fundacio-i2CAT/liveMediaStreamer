@@ -81,7 +81,6 @@ public:
     bool createSocket(int port);
     int listenSocket();
     bool readAndParse(int newSock);
-    bool processEvent();
     
 private:
     Controller();
@@ -90,8 +89,6 @@ private:
     Jzon::Object* inputRootNode;
     Jzon::Object* outputRootNode;
     Jzon::Parser* parser;
-    std::map<std::string, std::function<void(Jzon::Node params)> > eventMap;
-
 
     static Controller* ctrlInstance;
     PipelineManager* pipeMngrInstance;

@@ -22,13 +22,8 @@
  */
 
 #include "SourceManager.hh"
-//TODO: safe incldues!!
 #include "ExtendedRTSPClient.hh"
-
-
-#ifndef _AV_FRAMED_QUEUE_HH
 #include "../AVFramedQueue.hh"
-#endif
 
 #define RTSP_CLIENT_VERBOSITY_LEVEL 1
 #define FILE_SINK_RECEIVE_BUFFER_SIZE 200000

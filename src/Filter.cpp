@@ -342,7 +342,7 @@ BaseFilter(1, 1, force_)
 {
 }
 
-bool OneToOneFilter::processFrame()
+bool OneToOneFilter::processFrame(bool removeFrame)
 {
     bool newData = false;
 
@@ -355,8 +355,11 @@ bool OneToOneFilter::processFrame()
     if (doProcessFrame(oFrames.begin()->second, dFrames.begin()->second)) {
         addFrames();
     }
-    
-    removeFrames();
+
+    if (removeFrame) {
+    	removeFrames();
+	}
+
     return true;
 }
 
@@ -365,7 +368,7 @@ BaseFilter(1, writersNum, force_)
 {
 }
 
-bool OneToManyFilter::processFrame()
+bool OneToManyFilter::processFrame(bool removeFrame)
 {
     bool newData;
 
@@ -377,7 +380,11 @@ bool OneToManyFilter::processFrame()
     if (doProcessFrame(oFrames.begin()->second, dFrames)) {
         addFrames();
     }
-    removeFrames();
+	
+	if (removeFrame) {
+    	removeFrames();
+	}
+
     return true;
 }
 
@@ -400,7 +407,7 @@ BaseFilter(readersNum, 1, force_)
 {
 }
 
-bool ManyToOneFilter::processFrame()
+bool ManyToOneFilter::processFrame(bool removeFrame)
 {
     bool newData;
 
@@ -414,7 +421,9 @@ bool ManyToOneFilter::processFrame()
         addFrames();
     }
 
-    removeFrames();
+	if (removeFrame) {
+    	removeFrames();
+	}
     
     return true;
 }

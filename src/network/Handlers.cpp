@@ -22,30 +22,15 @@
  */
 
 #include "Handlers.hh"
-#include <sstream>
-#include <algorithm>
-
-#ifndef _QUEUE_SINK_HH
 #include "QueueSink.hh"
-#endif
-
-#ifndef _H264_QUEUE_SINK_HH
 #include "H264QueueSink.hh"
-#endif
-
-#ifndef _SOURCE_MANAGER_HH
 #include "SourceManager.hh"
-#endif
-
-#ifndef _EXTENDED_RTSP_CLIENT_HH
 #include "ExtendedRTSPClient.hh"
-#endif
-
-#ifndef _AV_FRAMED_QUEUE_HH
 #include "../AVFramedQueue.hh"
-#endif
 
 #include <iostream>
+#include <sstream>
+#include <algorithm>
 
 namespace handlers 
 {
@@ -324,7 +309,6 @@ namespace handlers
         subsession->sink = sink;
         mngr->writers[wId] = writer;
 
-        //TODO: this should be our callback!
         mngr->callback(subsession->mediumName(), subsession->clientPortNum());
         
         subsession->sink->startPlaying(*(subsession->readSource()),

@@ -1,17 +1,5 @@
-#ifndef _LIVEMEDIA_HH
-#include <liveMedia/liveMedia.hh>
-#endif
-
-#include <string>
-
-#ifndef _HANDLERS_HH
 #include "../src/network/Handlers.hh"
-#endif
-
-#ifndef _SOURCE_MANAGER_HH
 #include "../src/network/SourceManager.hh"
-#endif
-
 #include "../src/AudioFrame.hh"
 #include "../src/Controller.hh"
 #include "../src/Callbacks.hh"
@@ -19,11 +7,13 @@
 #include <iostream>
 #include <csignal>
 #include <vector>
+#include <liveMedia/liveMedia.hh>
+#include <string>
 
 #define V_MEDIUM "video"
 #define PROTOCOL "RTP"
 #define PAYLOAD 96
-#define V_CODEC "H264"
+#define V_CODEC "VP8"
 #define BANDWITH 5000
 #define V_CLIENT_PORT 6004
 #define V_TIME_STMP_FREQ 90000

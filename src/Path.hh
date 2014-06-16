@@ -27,37 +27,39 @@
 
 class Path {
 public:
-    Path(BaseFilter* origin, int orgWriterID); 
-    bool connect(BaseFilter *destination, int dstReaderID);
-    int getDstReaderID() {return dstReaderID;};
+    Path(int originFilterID, int orgWriterID); 
+    void setDestinationFilter(int destinationFilterID, int dstReaderID);
+    const int getDstReaderID() const {return dstReaderID;};
+    const int getOrgWriterID() const {return orgWriterID;};
+    const int getOriginFilterID() const {return originFilterID;};
+    const int getDestinationFilterID() const {return destinationFilterID;};
     void addWorker(Worker* worker);
-    BaseFilter* getDestinationFilter() {return destination;};
+    std::vector<int> getFilters(){return filterIDs;};
 
 protected:
-    void addFilter(BaseFilter *filter);
+    void addFilterID(int filterID);
 
 private:
-    BaseFilter *origin;
-    BaseFilter *destination;
-    std::vector<std::pair<BaseFilter*, Worker*> > filters;
+    int originFilterID;
+    int destinationFilterID;
     int orgWriterID;
     int dstReaderID;
+    std::vector<int> filterIDs;
 };
 
 class VideoDecoderPath : public Path {
 public:
-    VideoDecoderPath(BaseFilter *origin, int orgWriterID);
+    VideoDecoderPath(int originFilterID, int orgWriterID);
 };
 
 class AudioDecoderPath : public Path {
 public:
-    AudioDecoderPath(BaseFilter *origin, int orgWriterID);
+    AudioDecoderPath(int originFilterID, int orgWriterID);
 };
 
 class AudioEncoderPath : public Path {
 public:
-    AudioEncoderPath(BaseFilter *origin, int orgWriterID);
+    AudioEncoderPath(int originFilterID, int orgWriterID);
 };
-
 
 #endif

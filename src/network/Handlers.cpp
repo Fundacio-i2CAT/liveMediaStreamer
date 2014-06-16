@@ -22,30 +22,15 @@
  */
 
 #include "Handlers.hh"
-#include <sstream>
-#include <algorithm>
-
-#ifndef _QUEUE_SINK_HH
 #include "QueueSink.hh"
-#endif
-
-#ifndef _H264_QUEUE_SINK_HH
 #include "H264QueueSink.hh"
-#endif
-
-#ifndef _SOURCE_MANAGER_HH
 #include "SourceManager.hh"
-#endif
-
-#ifndef _EXTENDED_RTSP_CLIENT_HH
 #include "ExtendedRTSPClient.hh"
-#endif
-
-#ifndef _AV_FRAMED_QUEUE_HH
 #include "../AVFramedQueue.hh"
-#endif
 
 #include <iostream>
+#include <sstream>
+#include <algorithm>
 
 namespace handlers 
 {
@@ -304,24 +289,26 @@ namespace handlers
         int wId;
         QueueSink *sink;
         SourceManager* mngr = SourceManager::getInstance();
+        Writer *writer;
         
-        //Posar 
+        writer = new Writer();
+        
         if (strcmp(subsession->codecName(), "H264") == 0) {
-            sink = H264QueueSink::createNew(env, subsession->fmtp_spropparametersets());
+            sink = H264QueueSink::createNew(env, writer, subsession->fmtp_spropparametersets());
         } else {
-            sink = QueueSink::createNew(env);
+            sink = QueueSink::createNew(env, writer);
         }
         
         if (sink == NULL){
             std::cerr << "Sink NULL!" << std::endl;
+            delete writer;
             return false;
         }
-
-        subsession->sink = sink;
+        
         wId = subsession->clientPortNum();
-        mngr->writers[wId] = sink;
+        subsession->sink = sink;
+        mngr->writers[wId] = writer;
 
-        //TODO: this should be our callback!
         mngr->callback(subsession->mediumName(), subsession->clientPortNum());
         
         subsession->sink->startPlaying(*(subsession->readSource()),

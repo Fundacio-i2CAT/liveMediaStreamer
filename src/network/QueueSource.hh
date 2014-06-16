@@ -17,20 +17,21 @@
 #include "../Frame.hh"
 #endif
 
-class QueueSource: public FramedSource, public Reader {
+class QueueSource: public FramedSource {
 
 public:
-    static QueueSource* createNew(UsageEnvironment& env, FrameQueue *q);
+    static QueueSource* createNew(UsageEnvironment& env, Reader *reader);
     virtual void doGetNextFrame();
     virtual void doStopGettingFrames();
 
 protected:
-    QueueSource(UsageEnvironment& env, FrameQueue *q);
+    QueueSource(UsageEnvironment& env, Reader *reader);
         // called only by createNew()
     static void staticDoGetNextFrame(FramedSource* source);
 
 protected:
     Frame* frame;
+    Reader *fReader;
 };
 
 #endif

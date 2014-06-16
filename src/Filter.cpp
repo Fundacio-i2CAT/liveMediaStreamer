@@ -196,6 +196,33 @@ bool BaseFilter::connectManyToOne(BaseFilter *R, int wId)
     return writers[wId]->connect(r);
 }
 
+bool BaseFilter::connectManyToMany(BaseFilter *R, int rId, int wId)
+{
+    Reader* r;
+    FrameQueue *queue;
+    
+    if (writers.size() < getMaxWriters() && writers.count(wId) <= 0) {
+        writers[wId] = new Writer();
+    }
+    
+    if (writers.count(wId) > 0 && writers[wId]->isConnected()) {
+        return false;
+    }
+    
+    if (R->getReader(rId) && R->getReader(rId)->isConnected()){
+        return false;
+    }
+    
+    queue = allocQueue(wId);
+    
+    if (!(r = R->setReader(rId, queue))) {
+        return false;
+    }
+    
+    writers[wId]->setQueue(queue);
+    return writers[wId]->connect(r);
+}
+
 bool BaseFilter::connectOneToMany(BaseFilter *R, int rId)
 {
     Reader* r;
@@ -273,11 +300,11 @@ void BaseFilter::processEvent()
         Jzon::Node* params = e.getParams();
 
         if (action.empty()) {
-            return;
+            break;
         }
 
         if (eventMap.count(action) <= 0) {
-            return;
+            break;
         }
         
         eventMap[action](params);
@@ -315,13 +342,11 @@ BaseFilter(1, 1, force_)
 {
 }
 
-bool OneToOneFilter::processFrame()
+bool OneToOneFilter::processFrame(bool removeFrame)
 {
     bool newData = false;
-    //TODO: events
-    //TODO: config
 
-    processEvent();
+ //   processEvent();
 
     if (!demandOriginFrames() || !demandDestinationFrames()) {
         return false;
@@ -330,8 +355,11 @@ bool OneToOneFilter::processFrame()
     if (doProcessFrame(oFrames.begin()->second, dFrames.begin()->second)) {
         addFrames();
     }
-    
-    removeFrames();
+
+    if (removeFrame) {
+    	removeFrames();
+	}
+
     return true;
 }
 
@@ -340,11 +368,11 @@ BaseFilter(1, writersNum, force_)
 {
 }
 
-bool OneToManyFilter::processFrame()
+bool OneToManyFilter::processFrame(bool removeFrame)
 {
     bool newData;
 
-    processEvent();
+  //  processEvent();
 
     if (!demandOriginFrames() || !demandDestinationFrames()){
         return false;
@@ -352,7 +380,11 @@ bool OneToManyFilter::processFrame()
     if (doProcessFrame(oFrames.begin()->second, dFrames)) {
         addFrames();
     }
-    removeFrames();
+	
+	if (removeFrame) {
+    	removeFrames();
+	}
+
     return true;
 }
 
@@ -375,7 +407,7 @@ BaseFilter(readersNum, 1, force_)
 {
 }
 
-bool ManyToOneFilter::processFrame()
+bool ManyToOneFilter::processFrame(bool removeFrame)
 {
     bool newData;
 
@@ -389,7 +421,9 @@ bool ManyToOneFilter::processFrame()
         addFrames();
     }
 
-    removeFrames();
+	if (removeFrame) {
+    	removeFrames();
+	}
     
     return true;
 }

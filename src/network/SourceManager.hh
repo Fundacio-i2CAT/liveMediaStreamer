@@ -23,41 +23,20 @@
 #ifndef _SOURCE_MANAGER_HH
 #define _SOURCE_MANAGER_HH
 
-#ifndef _LIVEMEDIA_HH
-#include <liveMedia/liveMedia.hh>
-#endif
-
-#ifndef _BASIC_USAGE_ENVIRONMENT_HH
-#include <BasicUsageEnvironment.hh>
-#endif
-
-#ifndef _FILTER_HH
 #include "../Filter.hh"
-#endif
-
-#ifndef _HANDLERS_HH
 #include "Handlers.hh"
-#endif
 
 #include <thread>
 #include <map>
 #include <list>
 #include <functional>
 #include <string>
+#include <liveMedia/liveMedia.hh>
+#include <BasicUsageEnvironment.hh>
 
 #define ID_LENGTH 4
 
 class Session;
-
-// typedef struct connection {
-//     unsigned char rtpPayloadFormat;
-//     char const* codecName;
-//     unsigned channels;
-//     unsigned sampleRate;
-//     unsigned short port;
-//     char const* session;
-//     char const* medium;
-// } connection_t;
 
 class StreamClientState {
 public:

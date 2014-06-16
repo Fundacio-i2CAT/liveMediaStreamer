@@ -21,7 +21,7 @@
  */
 
 #include "Controller.hh"
-#include "Callbacks.hh"
+//#include "Callbacks.hh"
 
 Controller* Controller::ctrlInstance = NULL;
 PipelineManager* PipelineManager::pipeMngrInstance = NULL;
@@ -156,9 +156,11 @@ bool processEvent()
 PipelineManager::PipelineManager()
 {
     pipeMngrInstance = this;
-    receiver = SourceManager::getInstance();
-  //  transmitter = SinkManager::getInstance();
-    receiver->setCallback(callbacks::connectToMixerCallback);
+    receiverID = rand();
+    transmitterID = rand();
+    addFilter(receiverID, SourceManager::getInstance());
+    addFilter(transmitterID, SinkManager::getInstance());
+    //receiver->setCallback(callbacks::connectToMixerCallback);
 }
 
 PipelineManager* PipelineManager::getInstance()
@@ -179,15 +181,15 @@ void PipelineManager::destroyInstance()
     }
 }
 
-BaseFilter* PipelineManager::searchFilterByType(FilterType type)
+int PipelineManager::searchFilterIDByType(FilterType type)
 {
     for (auto it : filters) {
         if (it.second.first->getType() == type) {
-            return it.second.first;
+            return it.first;
         }
     }
 
-    return NULL;
+    return -1;
 }
 
 bool PipelineManager::addPath(int id, Path* path)
@@ -201,7 +203,7 @@ bool PipelineManager::addPath(int id, Path* path)
     return true;
 }
 
-bool PipelineManager::addFilter(std::string id, BaseFilter* filter)
+bool PipelineManager::addFilter(int id, BaseFilter* filter)
 {
     if (filters.count(id) > 0) {
         return false;
@@ -212,7 +214,7 @@ bool PipelineManager::addFilter(std::string id, BaseFilter* filter)
     return true;
 }
 
-bool PipelineManager::addWorker(std::string id, Worker* worker)
+bool PipelineManager::addWorker(int id, Worker* worker)
 {
     if (filters.count(id) <= 0) {
         return false;
@@ -233,6 +235,86 @@ Path* PipelineManager::getPath(int id)
     return paths[id];
 }
 
+BaseFilter* PipelineManager::getFilter(int id)
+{
+    if (filters.count(id) <= 0) {
+        return NULL;
+    }
+
+    return filters[id].first;
+}
+
+
+bool PipelineManager::connectPath(Path* path)
+{
+    int orgFilterId = path->getOriginFilterID();
+    int dstFilterId = path->getDestinationFilterID();
+    
+    if (filters.count(orgFilterId) <= 0) {
+        return false;
+    }
+
+    if (filters.count(dstFilterId) <= 0) {
+        return false;
+    }
+
+    std::vector<int> pathFilters = path->getFilters();
+
+    if (pathFilters.empty()) {
+        if (filters[orgFilterId].first->connectManyToMany(filters[dstFilterId].first, path->getDstReaderID(), path->getOrgWriterID())) {
+            return true;
+        } else {
+            std::cerr << "Error connecting head to tail!" << std::endl;
+            return false;
+        }
+    }
+
+    if (!filters[orgFilterId].first->connectManyToOne(filters[pathFilters.front()].first, path->getOrgWriterID())) {
+        std::cerr << "Error connecting path head to first filter!" << std::endl;
+        return false;
+    }
+
+    for (unsigned i = 0; i < pathFilters.size() - 1; i++) {
+        if (!filters[pathFilters[i]].first->connectOneToOne(filters[pathFilters[i+1]].first)) {
+            std::cerr << "Error connecting path filters!" << std::endl;
+            return false;
+        }
+    }
+
+    if (!filters[pathFilters.back()].first->connectOneToMany(filters[dstFilterId].first, path->getDstReaderID())) {
+        std::cerr << "Error connecting path last filter to path tail!" << std::endl;
+        return false;
+    }
+
+    return true;
+
+}
+
+bool PipelineManager::addWorkerToPath(Path *path, Worker* worker)
+{
+    std::vector<int> pathFilters = path->getFilters();
+
+    if (pathFilters.empty()) {
+        //TODO: error msg
+        return false;
+    }
+
+    for (auto it : pathFilters) {
+        worker->setProcessor(filters[it].first);
+        filters[it].second = worker;
+    }
+}
+
+SourceManager* PipelineManager::getReceiver()
+{
+    return dynamic_cast<SourceManager*>(filters[receiverID].first);
+}
+
+
+SinkManager* PipelineManager::getTransmitter() 
+{
+    return dynamic_cast<SinkManager*>(filters[transmitterID].first);
+}
 
 
 /////////////////////////////////

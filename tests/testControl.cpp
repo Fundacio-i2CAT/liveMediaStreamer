@@ -17,6 +17,7 @@
 #include "../src/modules/audioEncoder/AudioEncoderLibav.hh"
 #include "../src/modules/audioMixer/AudioMixer.hh"
 #include "../src/Controller.hh"
+#include "../src/Callbacks.hh"
 
 #include <iostream>
 #include <csignal>
@@ -102,8 +103,9 @@ int main(int argc, char** argv)
     std::string sdp;
     Session* session;
 
-    Controller *ctrl = Controller::getInstance();
-    SourceManager *mngr = ctrl->pipelineManager()->getReceiver();
+    PipelineManager *pipeMngr = Controller::getInstance()->pipelineManager();
+    SourceManager *mngr = pipeMngr->getReceiver();
+    mngr->setCallback(callbacks::connectToMixerCallback);
     AudioMixer *mixer = new AudioMixer(4);
     AudioEncoderLibav* audioEncoder = new AudioEncoderLibav();
     audioEncoder->configure(MP3);
@@ -115,8 +117,9 @@ int main(int argc, char** argv)
 
     struct buffer *buffers;
     unsigned int bytesPerSample = 2;
+    int audioMixerID = rand();
 
-    if(!ctrl->pipelineManager()->addFilter("audioMixer", mixer)) {
+    if(!pipeMngr->addFilter(audioMixerID, mixer)) {
         std::cerr << "Error adding mixer to the pipeline" << std::endl;
     }
     
@@ -153,12 +156,12 @@ int main(int argc, char** argv)
     buffers->data = new unsigned char[CHANNEL_MAX_SAMPLES * bytesPerSample * OUT_SAMPLE_RATE * 360]();
     buffers->data_len = 0;
 
-    if(!ctrl->pipelineManager()->addWorker("audioMixer", audioMixerWorker)) {
+    if(!pipeMngr->addWorker(audioMixerID, audioMixerWorker)) {
         std::cerr << "Error adding mixer worker" << std::endl;
     }
 
-    ctrl->pipelineManager()->getPath(A_CLIENT_PORT1)->addWorker(audioDecoder1Worker);
-    ctrl->pipelineManager()->getPath(A_CLIENT_PORT2)->addWorker(audioDecoder2Worker);
+    pipeMngr->addWorkerToPath(pipeMngr->getPath(A_CLIENT_PORT1), audioDecoder1Worker);
+    pipeMngr->addWorkerToPath(pipeMngr->getPath(A_CLIENT_PORT2), audioDecoder2Worker);
 
     Reader *reader = new Reader();
     audioEncoder->connect(reader);
@@ -192,13 +195,13 @@ int main(int argc, char** argv)
 
         Jzon::Object rootNode;
         Jzon::Object params;
-        params.Add("id", (int)ctrl->pipelineManager()->getPath(id)->getDstReaderID());
+        params.Add("id", (int)pipeMngr->getPath(id)->getDstReaderID());
         params.Add("volume", (float)volume);
         rootNode.Add("params", params);
         rootNode.Add("action", command);
 
         Event e(rootNode, std::chrono::system_clock::now());
-        ctrl->pipelineManager()->getPath(id)->getDestinationFilter()->pushEvent(e);
+        pipeMngr->getFilter(pipeMngr->getPath(id)->getDestinationFilterID())->pushEvent(e);
     }
     
     readingThread.join();

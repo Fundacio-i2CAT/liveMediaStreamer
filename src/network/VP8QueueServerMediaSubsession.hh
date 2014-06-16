@@ -1,5 +1,5 @@
 /*
- *  H264QueueServerMediaSubsession.hh - It consumes NAL units from the frame queue on demand
+ *  VP8QueueServerMediaSubsession.hh - It consumes VP8 frames from the frame queue on demand
  *  Copyright (C) 2014  Fundació i2CAT, Internet i Innovació digital a Catalunya
  *
  *  This file is part of liveMediaStreamer.
@@ -21,42 +21,29 @@
  *            
  */
 
-#ifndef _H264_SERVER_MEDIA_SUBSESSION_HH
-#define _H264_SERVER_MEDIA_SUBSESSION_HH
+#ifndef _VP8_SERVER_MEDIA_SUBSESSION_HH
+#define _VP8_SERVER_MEDIA_SUBSESSION_HH
 
 #include <liveMedia/liveMedia.hh>
 #include "QueueServerMediaSubsession.hh"
 
-class H264QueueServerMediaSubsession: public QueueServerMediaSubsession {
+class VP8QueueServerMediaSubsession: public QueueServerMediaSubsession {
 public:
-  static H264QueueServerMediaSubsession*
+  static VP8QueueServerMediaSubsession*
   createNew(UsageEnvironment& env, Reader *reader, Boolean reuseFirstSource);
 
-  // Used to implement "getAuxSDPLine()":
-  void checkForAuxSDPLine1();
-  void afterPlayingDummy1();
-
 protected:
-  H264QueueServerMediaSubsession(UsageEnvironment& env,
+  VP8QueueServerMediaSubsession(UsageEnvironment& env,
                                  Reader *reader, Boolean reuseFirstSource);
       // called only by createNew();
-  virtual ~H264QueueServerMediaSubsession();
-
-  void setDoneFlag() { fDoneFlag = ~0; }
+  virtual ~VP8QueueServerMediaSubsession(){};
 
 protected: // redefined virtual functions
-  char const* getAuxSDPLine(RTPSink* rtpSink,
-                    FramedSource* inputSource);
   FramedSource* createNewStreamSource(unsigned clientSessionId,
                           unsigned& estBitrate);
   RTPSink* createNewRTPSink(Groupsock* rtpGroupsock,
                                     unsigned char rtpPayloadTypeIfDynamic,
                     FramedSource* inputSource);
-
-private:
-  char* fAuxSDPLine;
-  char fDoneFlag; // used when setting up "fAuxSDPLine"
-  RTPSink* fDummyRTPSink; // ditto
 };
 
 #endif

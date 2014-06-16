@@ -120,7 +120,10 @@ bool VideoFrameQueue::config()
             }
             break;
         case VP8:
-            //TODO: implement this initialization
+            max = DEFAULT_VIDEO_FRAMES;
+            for (int i=0; i<max; i++) {
+                frames[i] = InterleavedVideoFrame::createNew(codec, LENGTH_VP8);
+            }
             break;
         case MJPEG:
             //TODO: implement this initialization

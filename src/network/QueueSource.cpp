@@ -1,18 +1,17 @@
 #include "QueueSource.hh"
 #include <iostream>
 
-QueueSource* QueueSource::createNew(UsageEnvironment& env, FrameQueue *q) {
-  return new QueueSource(env, q);
+QueueSource* QueueSource::createNew(UsageEnvironment& env, Reader *reader) {
+  return new QueueSource(env, reader);
 }
 
 
-QueueSource::QueueSource(UsageEnvironment& env, FrameQueue *q)
-  : FramedSource(env) {
-    setQueue(q);
+QueueSource::QueueSource(UsageEnvironment& env, Reader *reader)
+  : FramedSource(env), fReader(reader) {
 }
 
 void QueueSource::doGetNextFrame() {
-    if ((frame = getFrame()) == NULL) {
+    if ((frame = fReader->getFrame()) == NULL) {
         nextTask() = envir().taskScheduler().scheduleDelayedTask(1000,
             (TaskFunc*)QueueSource::staticDoGetNextFrame, this);
         return;
@@ -28,7 +27,7 @@ void QueueSource::doGetNextFrame() {
     }
     
     memcpy(fTo, frame->getDataBuf(), fFrameSize);
-    removeFrame();
+    fReader->removeFrame();
     
     afterGetting(this);
 }

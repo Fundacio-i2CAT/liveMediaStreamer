@@ -24,11 +24,13 @@
 
 VideoEncoderX264::VideoEncoderX264(): OneToOneFilter(){
 	fps = 24;
+	gop = 24;
 	pts = 0;
 	forceIntra = false;
 	firstTime = true;
 	swsCtx = NULL;
 	encoder = NULL;
+	bitrate = 2000;
 	x264_param_default_preset(&xparams, "ultrafast", "zerolatency");
 	xparams.i_threads = 4;
 	xparams.i_width = DEFAULT_WIDTH;
@@ -36,6 +38,8 @@ VideoEncoderX264::VideoEncoderX264(): OneToOneFilter(){
 	xparams.i_fps_num = fps;
 	xparams.i_fps_den = 1;
 	xparams.b_intra_refresh = 0;
+	xparams.i_keyint_max = gop;
+	xparams.rc.i_bitrate = bitrate;
 	x264_param_apply_profile(&xparams, "baseline");
 }
 
@@ -102,7 +106,7 @@ void VideoEncoderX264::encodeHeadersFrame(Frame *decodedFrame, Frame *encodedFra
 	xparams.i_height = outHeight;
 	x264_param_apply_profile(&xparams, "baseline");
 	encoder = x264_encoder_open(&xparams);
-	x264_picture_alloc(&picIn, X264_CSP_I420, outWidth, outHeight);
+	x264_picture_alloc(&picIn, colorspace, outWidth, outHeight);
 	
 	encodeSize = x264_encoder_headers(encoder, &ppNal, &piNal);
 	if (encodeSize < 0) {
@@ -144,15 +148,19 @@ bool VideoEncoderX264::config(Frame *org, Frame *dst) {
 	switch (outPixelType) {
 		case P_NONE:
 			outPixel = AV_PIX_FMT_NONE;
+			colorspace = X264_CSP_NONE;
 			break;
 		case RGB24:
 			outPixel = PIX_FMT_RGB24;
+			colorspace = X264_CSP_RGB;
 			break;
 		case RGB32:
 			outPixel = PIX_FMT_RGBA;
+			colorspace = X264_CSP_BGRA;
 			break;
 		case YUYV422:
 			outPixel = PIX_FMT_YUV420P;
+			colorspace = X264_CSP_I420;
 			break;
 	}
 
@@ -161,7 +169,94 @@ bool VideoEncoderX264::config(Frame *org, Frame *dst) {
 	xparams.i_fps_num = fps;
 	xparams.i_fps_den = 1;
 	xparams.b_intra_refresh = 0;
+	xparams.i_keyint_max = gop;
 	x264_param_apply_profile(&xparams, "baseline");
 	return true;
 }
 
+void VideoEncoderX264::resizeEvent(Jzon::Node* params)
+{
+	if (!params) {
+		return;
+	}
+
+	if (!params->Has("width") || !params->Has("height")) {
+		return;
+	}
+
+	int width = params->Get("width").ToInt();
+	int height = params->Get("height").ToInt();
+
+	if (width)
+		outWidth = width;
+
+	if (height)
+		outHeight = height;	
+
+	sws_freeContext(swsCtx);
+	swsCtx = sws_getContext(inWidth, inHeight, inPixel, outWidth, outHeight, outPixel, SWS_FAST_BILINEAR, NULL, NULL, NULL);
+	xparams.i_width = outWidth;
+	xparams.i_height = outHeight;
+	x264_param_apply_profile(&xparams, "baseline");
+	encoder = x264_encoder_open(&xparams);
+	x264_picture_alloc(&picIn, colorspace, outWidth, outHeight);
+}
+
+void VideoEncoderX264::changeBitrateEvent(Jzon::Node* params)
+{
+	if (!params) {
+		return;
+	}
+
+	if (!params->Has("bitrate")) {
+		return;
+	}
+
+	bitrate = params->Get("bitrate").ToInt();
+	xparams.rc.i_bitrate = bitrate;
+	x264_param_apply_profile(&xparams, "baseline");
+}
+
+void VideoEncoderX264::changeFramerateEvent(Jzon::Node* params)
+{
+	if (!params) {
+		return;
+	}
+
+	if (!params->Has("framerate")) {
+		return;
+	}
+
+	fps = params->Get("framerate").ToInt();
+	xparams.i_fps_num = fps;
+	x264_param_apply_profile(&xparams, "baseline");
+}
+
+void VideoEncoderX264::changeGOPEvent(Jzon::Node* params)
+{	
+	if (!params) {
+		return;
+	}
+
+	if (!params->Has("gop")) {
+		return;
+	}
+
+	gop = params->Get("gop").ToInt();
+	xparams.i_keyint_max = gop;
+	x264_param_apply_profile(&xparams, "baseline");
+}
+
+void VideoEncoderX264::forceIntraEvent(Jzon::Node* params)
+{
+	forceIntra = true;
+}
+
+void VideoEncoderX264::initializeEventMap()
+{
+	eventMap["resize"] = std::bind(&VideoEncoderX264::resizeEvent, this, std::placeholders::_1);
+	eventMap["changeBitrate"] = std::bind(&VideoEncoderX264::changeBitrateEvent, this, std::placeholders::_1);
+	eventMap["chengeFramerate"] = std::bind(&VideoEncoderX264::changeFramerateEvent, this, std::placeholders::_1);
+	eventMap["changeGOP"] = std::bind(&VideoEncoderX264::changeGOPEvent, this, std::placeholders::_1);
+	eventMap["forceIntra"] = std::bind(&VideoEncoderX264::forceIntraEvent, this, std::placeholders::_1);
+}

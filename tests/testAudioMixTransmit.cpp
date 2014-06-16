@@ -49,52 +49,15 @@ void signalHandler( int signum )
 {
     std::cout << "Interrupt signal (" << signum << ") received.\n";
     
-    SourceManager *mngr = SourceManager::getInstance();
-    mngr->closeManager();
-    
-    std::cout << "Manager closed\n";
-}
-
-void fillBuffer(struct buffer *b, Frame *pFrame) {
-    memcpy(b->data + b->data_len, pFrame->getDataBuf(), pFrame->getLength());
-    b->data_len += pFrame->getLength(); 
-}
-
-void saveBuffer(struct buffer *b) 
-{
-    FILE *audioChannel = NULL;
-    char filename[32];
-
-    sprintf(filename, "coded.mp3");
-
-    audioChannel = fopen(filename, "wb");
-
-    if (b->data != NULL) {
-        fwrite(b->data, b->data_len, 1, audioChannel);
-    }
-
-    fclose(audioChannel);
-}
-
-void readingRoutine(struct buffer* b, Reader *reader)
-{
-    Frame *codedFrame;
     Controller *ctrl = Controller::getInstance();
-    SourceManager *mngr = ctrl->pipelineManager()->getReceiver();
-
-    while(mngr->isRunning()) {
-        codedFrame = reader->getFrame();
-
-        if (!codedFrame) {
-            usleep(500);
-            continue;
-        }
-
-        fillBuffer(b, codedFrame);
-        //printf("Filled buffer! Frame size: %d\n", codedFrame->getLength());
-
-        reader->removeFrame();
-    }
+    SourceManager *receiver = ctrl->pipelineManager()->getReceiver();
+    SinkManager *transmitter = ctrl->pipelineManager()->getTransmitter();
+    
+    should_stop = true;
+    receiver->closeManager();
+    transmitter->closeManager();
+    
+    std::cout << "Managers closed\n";
 }
 
 int main(int argc, char** argv) 
@@ -104,19 +67,17 @@ int main(int argc, char** argv)
     Session* session;
 
     PipelineManager *pipeMngr = Controller::getInstance()->pipelineManager();
-    SourceManager *mngr = pipeMngr->getReceiver();
-    mngr->setCallback(callbacks::connectToMixerCallback);
-    AudioMixer *mixer = new AudioMixer(4);
-    AudioEncoderLibav* audioEncoder = new AudioEncoderLibav();
-    audioEncoder->configure(PCMU);
+    SourceManager *receiver = pipeMngr->getReceiver();
+    SinkManager *transmitter = pipeMngr->getTransmitter();
 
-    Worker* audioEncoderWorker = new Worker(audioEncoder);
+    receiver->setCallback(callbacks::connectToMixerCallback);
+    AudioMixer *mixer = new AudioMixer(4);
+
+    Worker* audioEncoderWorker = new Worker();
     Worker* audioDecoder1Worker = new Worker();
     Worker* audioDecoder2Worker = new Worker();
     Worker* audioMixerWorker = new Worker();
 
-    struct buffer *buffers;
-    unsigned int bytesPerSample = 2;
     int audioMixerID = rand();
 
     if(!pipeMngr->addFilter(audioMixerID, mixer)) {
@@ -127,8 +88,8 @@ int main(int argc, char** argv)
     
     for (int i = 1; i <= argc-1; ++i) {
         sessionId = handlers::randomIdGenerator(ID_LENGTH);
-        session = Session::createNewByURL(*(mngr->envir()), argv[0], argv[i], sessionId);
-        mngr->addSession(session);
+        session = Session::createNewByURL(*(receiver->envir()), argv[0], argv[i], sessionId);
+        receiver->addSession(session);
     }
     
     sessionId = handlers::randomIdGenerator(ID_LENGTH);
@@ -140,21 +101,43 @@ int main(int argc, char** argv)
     sdp += handlers::makeSubsessionSDP(A_MEDIUM, PROTOCOL, PAYLOAD, A_CODEC, BANDWITH, 
                                         A_TIME_STMP_FREQ, A_CLIENT_PORT2, A_CHANNELS);
     
-    session = Session::createNew(*(mngr->envir()), sdp, sessionId);
+    session = Session::createNew(*(receiver->envir()), sdp, sessionId);
     
-    mngr->addSession(session);
+    receiver->addSession(session);
 
     session->initiateSession();
        
-    mngr->runManager();
+    receiver->runManager();
+    transmitter->runManager();
 
-    if(!mixer->connectOneToOne(audioEncoder)) {
-        std::cerr << "Error connecting mixer with encoder" << std::endl;
+    Path *path = new AudioEncoderPath(audioMixerID, DEFAULT_ID);
+    dynamic_cast<AudioEncoderLibav*>(pipeMngr->getFilter(path->getFilters().front()))->configure(OPUS);
+
+    path->setDestinationFilter(pipeMngr->getTransmitterID(), transmitter->generateReaderID());
+
+    if (!pipeMngr->connectPath(path)) {
+        //TODO: ERROR
+        exit(1);
     }
 
-    buffers = new struct buffer;
-    buffers->data = new unsigned char[CHANNEL_MAX_SAMPLES * bytesPerSample * OUT_SAMPLE_RATE * 360]();
-    buffers->data_len = 0;
+    int encoderPathID = rand();
+
+    if (!pipeMngr->addPath(encoderPathID, path)) {
+        //TODO: ERROR
+        exit(1);
+    }
+
+    sleep(2);
+    
+    std::vector<int> readers;
+    readers.push_back(path->getDstReaderID());
+
+    sessionId = handlers::randomIdGenerator(ID_LENGTH);
+    if (!transmitter->addSession(sessionId, readers)) {
+        return 1;
+    }
+
+    transmitter->publishSession(sessionId);
 
     if(!pipeMngr->addWorker(audioMixerID, audioMixerWorker)) {
         std::cerr << "Error adding mixer worker" << std::endl;
@@ -162,23 +145,19 @@ int main(int argc, char** argv)
 
     pipeMngr->addWorkerToPath(pipeMngr->getPath(A_CLIENT_PORT1), audioDecoder1Worker);
     pipeMngr->addWorkerToPath(pipeMngr->getPath(A_CLIENT_PORT2), audioDecoder2Worker);
-
-    Reader *reader = new Reader();
-    audioEncoder->connect(reader);
+    pipeMngr->addWorkerToPath(pipeMngr->getPath(encoderPathID), audioEncoderWorker);
 
     audioDecoder1Worker->start();
     audioDecoder2Worker->start();
     audioMixerWorker->start();
     audioEncoderWorker->start();
 
-    std::thread readingThread(readingRoutine, buffers, reader);
-
     std::string command;
     std::string aux;
     int id;
     float volume;
 
-    while(true) {
+    while(!should_stop) {
         std::cout << std::endl << "Please enter a command (changeVolume): ";
         std::cin >> command;
 
@@ -204,9 +183,5 @@ int main(int argc, char** argv)
         pipeMngr->getFilter(pipeMngr->getPath(id)->getDestinationFilterID())->pushEvent(e);
     }
     
-    readingThread.join();
-    saveBuffer(buffers);
-    printf("Buffer saved\n");
-
     return 0;
 }

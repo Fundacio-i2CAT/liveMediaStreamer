@@ -66,7 +66,7 @@ FrameQueue *AudioMixer::allocQueue(int wId) {
 }
 
 bool AudioMixer::doProcessFrame(std::map<int, Frame*> orgFrames, Frame *dst) {
-    std::vector<int> filledFramesIds;  
+    std::vector<int> filledFramesIds; 
 
     for (auto frame : orgFrames) {
         if (frame.second) {

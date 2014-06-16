@@ -70,6 +70,7 @@ bool AudioEncoderLibav::doProcessFrame(Frame *org, Frame *dst)
 {     
     int ret, gotFrame;
 
+
     AudioFrame* aRawFrame = dynamic_cast<AudioFrame*>(org);
 
     checkInputParams(aRawFrame->getSampleFmt(), aRawFrame->getChannels(), aRawFrame->getSampleRate());
@@ -166,21 +167,23 @@ bool AudioEncoderLibav::config()
         return false;
     }
 
-    if (!checkSampleFormat(codec, internalLibavSampleFormat)) {
-        fprintf(stderr, "Encoder does not support sample format %s\n", 
-                        av_get_sample_fmt_name(internalLibavSampleFormat));
-        return false;
-    }
+    if (fCodec != PCMU && fCodec != PCM) {
+        if (!checkSampleFormat(codec, internalLibavSampleFormat)) {
+            fprintf(stderr, "Encoder does not support sample format %s\n", 
+                            av_get_sample_fmt_name(internalLibavSampleFormat));
+            return false;
+        }
 
-    if (!checkSampleRateSupport(codec, internalSampleRate)) {
-        fprintf(stderr, "Encoder does not support sample rate %d\n", internalSampleRate);
-        return false;
-    }
+        if (!checkSampleRateSupport(codec, internalSampleRate)) {
+            fprintf(stderr, "Encoder does not support sample rate %d\n", internalSampleRate);
+            return false;
+        }
 
-    if (!checkChannelLayoutSupport(codec, av_get_default_channel_layout(internalChannels))) {
-        fprintf(stderr, "Encoder does not support channel layout %ld\n", 
-                            av_get_default_channel_layout(internalChannels));
-        return false;
+        if (!checkChannelLayoutSupport(codec, av_get_default_channel_layout(internalChannels))) {
+            fprintf(stderr, "Encoder does not support channel layout %ld\n", 
+                                av_get_default_channel_layout(internalChannels));
+            return false;
+        }
     }
 
     codecCtx->channels = internalChannels;

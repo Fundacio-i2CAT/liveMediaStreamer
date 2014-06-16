@@ -69,8 +69,8 @@ int main(int argc, char** argv)
 	Frame* h264Frame = InterleavedVideoFrame::createNew(H264, DEFAULT_WIDTH, DEFAULT_HEIGHT, YUYV422);
     VideoDecoderLibav* decoder = new VideoDecoderLibav();
 	VideoEncoderX264* encoder = new VideoEncoderX264();
-    Worker *vDecoderWorker;
-	Worker *vEncoderWorker;
+    Master *vDecoderWorker;
+	Master *vEncoderWorker;
     std::ofstream h264Frames;
 
 	 mngr->setCallback((void(*)(char const*, unsigned short))&connect);
@@ -121,8 +121,8 @@ int main(int argc, char** argv)
     //encoder->connect(encoder->getAvailableWriters().front(), reader);
 	encoder->connect(reader);
 
-    vDecoderWorker = new Worker(decoder);
-	vEncoderWorker = new Worker(encoder);
+    vDecoderWorker = new Master(decoder);
+	vEncoderWorker = new Master(encoder);
 
     vDecoderWorker->start(); 
 	vEncoderWorker->start();

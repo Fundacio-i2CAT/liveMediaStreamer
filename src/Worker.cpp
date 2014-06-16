@@ -148,3 +148,58 @@ void Worker::setFps(int maxFps)
         frameTime = 0;
     }
 }
+
+
+///////////////////////////////////////////////////
+//                MASTER CLASS                   //
+///////////////////////////////////////////////////
+
+Master::Master(Runnable *processor_, unsigned int maxFps):Worker(processor_,maxFps) {
+}
+
+void Master::process() {
+    int idleCount = 0;
+    int timeout;
+    int timeToSleep = 0;
+    std::chrono::microseconds enlapsedTime;
+    std::chrono::system_clock::time_point previousTime;
+
+    std::chrono::microseconds active(ACTIVE);
+    std::chrono::milliseconds idle(IDLE);
+	bool run = getRun();
+	bool enabled = getEnabled();
+	Runnable* processor = getProcessor();
+	unsigned int frameTime = getFrameTime();
+
+    while(run){
+        while (enabled && frameTime > 0) {
+            previousTime = std::chrono::system_clock::now();
+            if (processor->processFrame(true)) { 
+                idleCount = 0;
+                enlapsedTime = std::chrono::duration_cast<std::chrono::microseconds>(
+                    std::chrono::system_clock::now() - previousTime);
+                if ((timeToSleep = frameTime - enlapsedTime.count()) <= 0){
+                    std::this_thread::sleep_for(
+                        std::chrono::microseconds(timeToSleep));
+                }
+            } else {
+                if (idleCount <= ACTIVE_TIMEOUT){
+                    idleCount++;
+                    std::this_thread::sleep_for(active);
+                } else {
+                    std::this_thread::sleep_for(idle);
+                }
+            }
+        }      
+        while (enabled && processor->processFrame(true)){
+            idleCount = 0;
+        }
+        if (idleCount <= ACTIVE_TIMEOUT){
+            idleCount++;
+            std::this_thread::sleep_for(active);
+        } else {
+            std::this_thread::sleep_for(idle);
+        }
+    }
+}
+

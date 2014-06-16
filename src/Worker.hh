@@ -44,16 +44,27 @@ public:
     void disable();
     bool isEnabled();
     void setFps(int maxFps);
+	bool getRun(){return run;};
+	bool getEnabled(){return enabled;};
+	Runnable* getProcessor(){return processor;};
+	unsigned int getFrameTime(){return frameTime;};
     
-private:
+protected:
     void process();
-    
+private:   
     Runnable *processor;
     std::thread thread;
     std::atomic<bool> run;
     std::atomic<bool> enabled;
     //TODO: owuld be good to make it atomic, but not sure if it is lock-free
     unsigned int frameTime; //microseconds
+};
+
+class Master : public Worker {
+public:
+	Master(Runnable *processor_, unsigned int maxFps = 0);
+protected:
+	void process();	
 };
 
 class Runnable {

@@ -199,7 +199,7 @@ FrameQueue* createAudioQueue(unsigned char rtpPayloadFormat, char const* codecNa
         return AudioFrameQueue::createNew(codec, 0, sampleRate);
     }
     
-    if (strcmp(codecName, "MP3") == 0) {
+    if (strcmp(codecName, "MPA") == 0) {
         codec = MP3;
         return AudioFrameQueue::createNew(codec, 0, sampleRate);
     }

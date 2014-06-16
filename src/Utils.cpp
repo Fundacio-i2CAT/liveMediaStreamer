@@ -18,6 +18,7 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  *  Authors:  Marc Palau <marc.palau@i2cat.net>
+ *            David Cassany <david.cassany@i2cat.net>
  */
 
 #include "Utils.hh"
@@ -68,5 +69,35 @@ namespace utils
         }
 
         return codec;
+    }
+    
+    std::string getStringFromACodec(ACodecType codec)
+    {
+        std::string sCodec;
+        
+        switch(codec){
+            case G711:
+                sCodec = "PCMU";
+                break;
+            case PCMU:
+                sCodec = "PCMU";
+                break;
+            case OPUS:
+                sCodec = "OPUS";
+                break;
+            case AAC:
+                sCodec = "AAC";
+                break;
+            case PCM: 
+                sCodec = "PCM";
+                break;
+            case MP3:
+                sCodec = "MP3";
+                break;
+            default:
+                sCodec = "";
+                break;
+        }
+        return sCodec;
     }
 }

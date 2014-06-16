@@ -62,6 +62,7 @@ private:
     
     ServerMediaSubsession *createSubsessionByReader(Reader *reader);
     ServerMediaSubsession *createVideoMediaSubsession(VCodecType codec, Reader *reader);
+    ServerMediaSubsession *createAudioMediaSubsession(ACodecType codec, Reader *reader);
     
     std::thread mngrTh;
    

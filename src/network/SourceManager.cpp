@@ -199,8 +199,18 @@ FrameQueue* createAudioQueue(unsigned char rtpPayloadFormat, char const* codecNa
         return AudioFrameQueue::createNew(codec, 0, sampleRate);
     }
     
+    if (strcmp(codecName, "MP3") == 0) {
+        codec = MP3;
+        return AudioFrameQueue::createNew(codec, 0, sampleRate);
+    }
+    
     if (strcmp(codecName, "PCMU") == 0) {
         codec = PCMU;
+         return AudioFrameQueue::createNew(codec, 0, sampleRate, channels);
+    }
+    
+    if (strcmp(codecName, "PCM") == 0) {
+        codec = PCM;
         return AudioFrameQueue::createNew(codec, 0, sampleRate, channels);
     }
     

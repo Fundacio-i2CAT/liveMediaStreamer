@@ -69,6 +69,11 @@ class AudioFrameQueue : public AVFramedQueue {
 
 public:
     static AudioFrameQueue* createNew(ACodecType codec, unsigned delay, unsigned sampleRate = 48000, unsigned channels = 2, SampleFmt sFmt = S16);
+    
+    unsigned getSampleRate() const {return sampleRate;};
+    unsigned getChannels() const {return channels;};
+    const ACodecType getCodec() const {return codec;};
+    const SampleFmt getSampleFmt() const {return sampleFormat;};
 
 protected:
     AudioFrameQueue(ACodecType codec, SampleFmt sFmt, unsigned sampleRate, unsigned channels, unsigned delay);

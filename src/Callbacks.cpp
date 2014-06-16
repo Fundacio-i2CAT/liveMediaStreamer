@@ -31,31 +31,33 @@ namespace callbacks
 {
     void connectToMixerCallback(char const* medium, unsigned short port)
     {
-        Controller* ctrl = Controller::getInstance();
+        PipelineManager* pipeMngr = Controller::getInstance()->pipelineManager();
         Path* path = NULL;
-        BaseFilter *mixer = NULL;
+        int mixerID = -1;
 
 
         if (strcmp(medium, "audio") == 0) {
-            path = new AudioDecoderPath(ctrl->pipelineManager()->getReceiver(), (int)port);
-            mixer = ctrl->pipelineManager()->searchFilterByType(AUDIO_MIXER);
+            path = new AudioDecoderPath(pipeMngr->getReceiverID(), (int)port);
+            mixerID = pipeMngr->searchFilterIDByType(AUDIO_MIXER);
 
         } else if (strcmp(medium, "video") == 0) {
-            path = new VideoDecoderPath(ctrl->pipelineManager()->getReceiver(), (int)port);
-            mixer = ctrl->pipelineManager()->searchFilterByType(VIDEO_MIXER);
+            path = new VideoDecoderPath(pipeMngr->getReceiverID(), (int)port);
+            mixerID = pipeMngr->searchFilterIDByType(VIDEO_MIXER);
         }
 
-        if (!path || !mixer) {
-            std::cerr << "[Callback] No path nor mixer!" << std::endl;
+        if (!path || mixerID == -1) {
+            std::cerr << "[Callback] No path or no mixer!" << std::endl;
             return;
         }
 
-        if (!path->connect(mixer, mixer->generateReaderID())) {
+        path->setDestinationFilter(mixerID, pipeMngr->getFilter(mixerID)->generateReaderID());
+
+        if (!pipeMngr->connectPath(path)) {
             //TODO: ERROR
             return;
         }
 
-        if (!ctrl->pipelineManager()->addPath(port, path)) {
+        if (!pipeMngr->addPath(port, path)) {
             //TODO: ERROR
             return;
         }
@@ -65,24 +67,25 @@ namespace callbacks
     
     void connectToTransmitter(char const* medium, unsigned short port)
     {
-        Controller* ctrl = Controller::getInstance();
+        PipelineManager* pipeMngr = Controller::getInstance()->pipelineManager();
         Path* path = NULL;
-        BaseFilter *mixer = NULL;
-        SinkManager* transmitter = ctrl->pipelineManager()->getTransmitter();        
+        int transmitterID = pipeMngr->getTransmitterID();
+
+        path = new Path(pipeMngr->getReceiverID(), (int)port);
         
-        path = new Path(ctrl->pipelineManager()->getReceiver(), (int)port);
-        
-        if (!path || !transmitter) {
-            std::cerr << "[Callback] No path nor transmitter!" << std::endl;
+        if (!path || transmitterID == -1) {
+            std::cerr << "[Callback] No path or no transmitter!" << std::endl;
             return;
         }
-        
-        if (!path->connect(transmitter, transmitter->generateReaderID())) {
+
+        path->setDestinationFilter(transmitterID, pipeMngr->getFilter(transmitterID)->generateReaderID());
+
+        if (!pipeMngr->connectPath(path)) {
             //TODO: ERROR
             return;
         }
-        
-        if (!ctrl->pipelineManager()->addPath(port, path)) {
+
+        if (!pipeMngr->addPath(port, path)) {
             //TODO: ERROR
             return;
         }

@@ -31,24 +31,30 @@ class PipelineManager {
 public:
     static PipelineManager* getInstance();
     static void destroyInstance();
-    SourceManager* getReceiver(){return receiver;};
-    SinkManager* getTransmitter(){return transmitter;};
-    BaseFilter* searchFilterByType(FilterType type);
+    int getReceiverID() {return receiverID;};
+    int getTransmitterID() {return transmitterID;};
+    int searchFilterIDByType(FilterType type);
     bool addPath(int id, Path* path);
-    bool addFilter(std::string id, BaseFilter* filter);
-    bool addWorker(std::string id, Worker* worker);
+    bool addWorker(int id, Worker* worker);
+    bool addFilter(int id, BaseFilter* filter);
+    BaseFilter* getFilter(int id);
+    SourceManager* getReceiver();
+    SinkManager* getTransmitter();
 
     Path* getPath(int id);
     std::map<int, Path*> getPaths() {return paths;};
+    bool connectPath(Path* path);   
+    bool addWorkerToPath(Path *path, Worker* worker);
+
 
 private:
     PipelineManager();
     static PipelineManager* pipeMngrInstance;
 
-    SourceManager* receiver;
-    SinkManager* transmitter;
     std::map<int, Path*> paths;
-    std::map<std::string, std::pair<BaseFilter*, Worker*> > filters;
+    std::map<int, std::pair<BaseFilter*, Worker*> > filters;
+    int receiverID;
+    int transmitterID;
 
 };
 

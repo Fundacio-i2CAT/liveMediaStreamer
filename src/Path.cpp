@@ -22,81 +22,51 @@
 
 #include <iostream>
 #include "Path.hh"
-#include "Worker.hh"
+#include "Controller.hh"
 #include "modules/videoDecoder/VideoDecoderLibav.hh"
 #include "modules/audioDecoder/AudioDecoderLibav.hh"
 #include "modules/audioEncoder/AudioEncoderLibav.hh"
 
-Path::Path(BaseFilter *origin, int orgWriterID) 
+Path::Path(int originFilterID, int orgWriterID) 
 {
-    this->origin = origin;
+    this->originFilterID = originFilterID;
     this->orgWriterID = orgWriterID;
-    destination = NULL;
+    destinationFilterID = -1;
     dstReaderID = -1;
 }
 
-void Path::addFilter(BaseFilter *filter)
+void Path::addFilterID(int filterID)
 {
-    filters.push_back(std::pair<BaseFilter*, Worker*>(filter, NULL));
+    filterIDs.push_back(filterID);
 }
 
-void Path::addWorker(Worker* worker)
+void Path::setDestinationFilter(int destinationFilterID, int dstReaderID)
 {
-    for (auto &it : filters) {
-        worker->setProcessor(it.first);
-        it.second = worker;
-    }
-}
-
-bool Path::connect(BaseFilter *destination, int dstReaderID)
-{
-    this->destination = destination;
+    this->destinationFilterID = destinationFilterID;
     this->dstReaderID = dstReaderID;
-    
-    if (filters.empty()){
-        if (origin->connectManyToMany(destination, dstReaderID, orgWriterID)){
-            return true;
-        } else {
-            std::cerr << "Error connecting head to tail!" << std::endl;
-            return false;
-        }
-    }
-
-    if(!origin->connectManyToOne(filters.front().first, orgWriterID)) {
-        std::cerr << "Error connecting path head to first filter!" << std::endl;
-    }
-
-    for (unsigned i = 0; i < filters.size() - 1; i++) {
-        if(!filters[i].first->connectOneToOne(filters[i+1].first)) {
-            std::cerr << "Error connecting path filters!" << std::endl;
-        }
-    }
-
-    if(!filters.back().first->connectOneToMany(destination, dstReaderID)) {
-        std::cerr << "Error connecting path last filter to path tail!" << std::endl;
-        return false;
-    }
-
-    return true;
 }
 
-VideoDecoderPath::VideoDecoderPath(BaseFilter *origin, int orgWriterID) : 
-Path(origin, orgWriterID)
+VideoDecoderPath::VideoDecoderPath(int originFilterID, int orgWriterID) : 
+Path(originFilterID, orgWriterID)
 {
  //   VideoDecoderLibav *decoder = new VideoDecoderLibav();
  //   addFilter(decoder);
 }
 
-AudioDecoderPath::AudioDecoderPath(BaseFilter *origin, int orgWriterID) :
-Path(origin, orgWriterID)
+AudioDecoderPath::AudioDecoderPath(int originFilterID, int orgWriterID) :
+Path(originFilterID, orgWriterID)
 {
     AudioDecoderLibav *decoder = new AudioDecoderLibav();
-    addFilter(decoder);
+    int id = rand();
+    Controller::getInstance()->pipelineManager()->addFilter(id, decoder);
+    addFilterID(id);
 }
 
-AudioEncoderPath::AudioEncoderPath(BaseFilter *origin, int orgWriterID) :
-Path(origin, orgWriterID)
+AudioEncoderPath::AudioEncoderPath(int originFilterID, int orgWriterID) :
+Path(originFilterID, orgWriterID)
 {
     AudioEncoderLibav *encoder = new AudioEncoderLibav();
-    addFilter(encoder);
+    int id = rand();
+    Controller::getInstance()->pipelineManager()->addFilter(id, encoder);
+    addFilterID(id);
 }

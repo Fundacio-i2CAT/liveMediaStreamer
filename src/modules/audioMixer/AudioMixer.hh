@@ -27,7 +27,7 @@
 #include "../../Filter.hh"
 
 #define COMPRESSION_THRESHOLD 0.6
-#define DEFAULT_MASTER_GAIN 0.8
+#define DEFAULT_MASTER_GAIN 0.6
 #define DEFAULT_CHANNEL_GAIN 1.0
 
 

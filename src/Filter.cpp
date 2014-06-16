@@ -300,11 +300,11 @@ void BaseFilter::processEvent()
         Jzon::Node* params = e.getParams();
 
         if (action.empty()) {
-            return;
+            break;
         }
 
         if (eventMap.count(action) <= 0) {
-            return;
+            break;
         }
         
         eventMap[action](params);
@@ -345,10 +345,8 @@ BaseFilter(1, 1, force_)
 bool OneToOneFilter::processFrame()
 {
     bool newData = false;
-    //TODO: events
-    //TODO: config
 
-    processEvent();
+ //   processEvent();
 
     if (!demandOriginFrames() || !demandDestinationFrames()) {
         return false;
@@ -371,7 +369,7 @@ bool OneToManyFilter::processFrame()
 {
     bool newData;
 
-    processEvent();
+  //  processEvent();
 
     if (!demandOriginFrames() || !demandDestinationFrames()){
         return false;

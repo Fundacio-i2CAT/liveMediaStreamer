@@ -27,6 +27,7 @@
 #include <atomic>
 #include <thread>
 #include <list>
+#include "Frame.hh"
 
 #define MAX_SLAVE 16
 
@@ -47,14 +48,9 @@ public:
     void disable();
     bool isEnabled();
     void setFps(int maxFps);
-	bool getRun(){return run;};
-	bool getEnabled(){return enabled;};
-	Runnable* getProcessor(){return processor;};
-	unsigned int getFrameTime(){return frameTime;};
     
 protected:
     virtual void process();
-private:   
     Runnable *processor;
     std::thread thread;
     std::atomic<bool> run;
@@ -67,13 +63,15 @@ class Slave : public Worker {
 public:
 	Slave(int id_, Runnable *processor_, unsigned int maxFps = 0);
 	int getId(){return id;};
-	bool finished(){return finish;};
-	void setFinish(){finish = false;};
+	bool getFinished(){return finished;};
+	void setFalse();
+	void setFrame(Frame* org);
 protected:
 	void process();
 private:
 	int id;
-	std::atomic<bool> finish;
+	std::atomic<bool> finished;
+	Frame* origin;
 	
 };
 
@@ -87,14 +85,16 @@ protected:
 private:
 	std::list<Slave*> slaves;
 	bool allFinished();
-	void setAllFinishedFalse();
+	void processAll();
 };
 
 class Runnable {
     
 public:
-    virtual bool processFrame(bool removeFrame = false) = 0;
+    virtual bool processFrame(Frame *org = NULL, bool removeFrame = false) = 0;
 	virtual void removeFrames() = 0;
+	virtual bool hasFrames() = 0;
+	virtual Frame* getFrame() = 0;
 };
 
 #endif

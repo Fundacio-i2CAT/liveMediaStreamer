@@ -74,7 +74,7 @@ void Worker::process()
     while(run){
         while (enabled && frameTime > 0) {
             previousTime = std::chrono::system_clock::now();
-            if (processor->processFrame(true)) { 
+            if (processor->processFrame(NULL, true)) { 
                 idleCount = 0;
                 enlapsedTime = std::chrono::duration_cast<std::chrono::microseconds>(
                     std::chrono::system_clock::now() - previousTime);
@@ -91,7 +91,7 @@ void Worker::process()
                 }
             }
         }      
-        while (enabled && processor->processFrame(true)){
+        while (enabled && processor->processFrame(NULL, true)){
             idleCount = 0;
         }
         if (idleCount <= ACTIVE_TIMEOUT){
@@ -183,91 +183,17 @@ void Master::process() {
 
     std::chrono::microseconds active(ACTIVE);
     std::chrono::milliseconds idle(IDLE);
-	bool run = getRun();
-	bool enabled = getEnabled();
-	Runnable* processor = getProcessor();
-	//printf("aca nunca entra\n");
+	std::atomic<bool> sync;
+	sync = true;
+
     while(run){
-		unsigned int frameTime = getFrameTime();
-		//printf ("frame time %d\n", frameTime);
-        while (enabled && allFinished()) {
-			//printf("enabled Master\n");
-            //previousTime = std::chrono::system_clock::now();
-            //if (processor->processFrame(true)) {
-			setAllFinishedFalse();
-			processor->removeFrames();
-            idleCount = 0;
-               /* enlapsedTime = std::chrono::duration_cast<std::chrono::microseconds>(
-                    std::chrono::system_clock::now() - previousTime);
-                if ((timeToSleep = frameTime - enlapsedTime.count()) <= 0){
-                    std::this_thread::sleep_for(
-                        std::chrono::microseconds(timeToSleep));
-                }*/
-        }      
-       /* while (enabled && allFinished()){
-			setAllFinishedFalse();
-			processor->removeFrames();
-            idleCount = 0;
-        }*/
-       /* if (idleCount <= ACTIVE_TIMEOUT){
-            idleCount++;
-            std::this_thread::sleep_for(active);
-        } else {
-            std::this_thread::sleep_for(idle);
-        }*/
-    }
-}
-
-bool Master::allFinished() {
-	bool end = true;
-	for (std::list<Slave*>::iterator it = slaves.begin(); it != slaves.end(); it++) {
-		Slave* slave = *it;
-		if (slave->finished() == false) {
-			end = false;
-			break;
-		}
-	}
-	return end;
-}
-
-void Master::setAllFinishedFalse() {
-	for (std::list<Slave*>::iterator it = slaves.begin(); it != slaves.end(); it++) {
-		Slave* slave = *it;
-		slave->setFinish();
-	}
-}
-
-///////////////////////////////////////////////////
-//                SLAVE CLASS                    //
-///////////////////////////////////////////////////
-
-Slave::Slave(int id_, Runnable *processor_, unsigned int maxFps):Worker(processor_,maxFps) {
-	id = id_;
-	finish = false;
-}
-
-void Slave::process() {
-    int idleCount = 0;
-    int timeout;
-    int timeToSleep = 0;
-    std::chrono::microseconds enlapsedTime;
-    std::chrono::system_clock::time_point previousTime;
-
-    std::chrono::microseconds active(ACTIVE);
-    std::chrono::milliseconds idle(IDLE);
-	bool run = getRun();
-	bool enabled = getEnabled();
-	Runnable* processor = getProcessor();
-	unsigned int frameTime = getFrameTime();
-	printf("aca nunca entra!! %d %d\n", run, enabled);
-    while(run){
-		//printf ("frame time %d\n", frameTime);
-        while (enabled && frameTime > 0) {
+        while (enabled && (frameTime > 0) && processor->hasFrames()) {
+			if (sync) {
+				processAll();
+				sync = false;
+			}
             previousTime = std::chrono::system_clock::now();
-			printf("Antes de procesar el frame\n");
-            if (processor->processFrame(false)) {
-				printf("Proceso frame\n");
-				finish = true;
+            if (allFinished()) {
                 idleCount = 0;
                 enlapsedTime = std::chrono::duration_cast<std::chrono::microseconds>(
                     std::chrono::system_clock::now() - previousTime);
@@ -275,6 +201,8 @@ void Slave::process() {
                     std::this_thread::sleep_for(
                         std::chrono::microseconds(timeToSleep));
                 }
+				processor->removeFrames();
+				sync = true;
             } else {
                 if (idleCount <= ACTIVE_TIMEOUT){
                     idleCount++;
@@ -284,11 +212,18 @@ void Slave::process() {
                 }
             }
         }      
-      /*  while (enabled && processor->processFrame(false)){
+        while (enabled && processor->hasFrames()){
+			if (sync) {
+				processAll();
+				sync = false;
+			}
+			while (!allFinished()) {
+			}
+			idleCount = 0;
+			processor->removeFrames();
+			sync = true;
 			
-			finish = true;
-            idleCount = 0;
-        }*/
+        }
         if (idleCount <= ACTIVE_TIMEOUT){
             idleCount++;
             std::this_thread::sleep_for(active);
@@ -296,5 +231,58 @@ void Slave::process() {
             std::this_thread::sleep_for(idle);
         }
     }
+
+
+}
+
+bool Master::allFinished() {
+	bool end = true;
+	for (std::list<Slave*>::iterator it = slaves.begin(); it != slaves.end(); it++) {
+		Slave* slave = *it;
+		if (slave->getFinished() == false) {
+			end = false;
+			break;
+		}
+	}
+	return end;
+}
+
+void Master::processAll() {
+	Frame *frame = processor->getFrame();
+	for (std::list<Slave*>::iterator it = slaves.begin(); it != slaves.end(); it++) {
+		Slave* slave = *it;
+		slave->setFrame(frame);
+	}
+	for (std::list<Slave*>::iterator it = slaves.begin(); it != slaves.end(); it++) {
+		Slave* slave = *it;
+		slave->setFalse();	
+	}
+}
+
+///////////////////////////////////////////////////
+//                SLAVE CLASS                    //
+///////////////////////////////////////////////////
+
+Slave::Slave(int id_, Runnable *processor_, unsigned int maxFps):Worker(processor_,maxFps) {
+	id = id_;
+	finished = true;
+}
+
+void Slave::process() {
+    while(run){
+        while (enabled && !finished) {
+            if (processor->processFrame(origin, false)) {
+				finished = true;
+            }
+        }
+    }
+}
+
+void Slave::setFalse() {
+	finished = false;
+}
+
+void Slave::setFrame(Frame* org) {
+	origin = org;
 }
 

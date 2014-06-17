@@ -336,30 +336,48 @@ void BaseFilter::pushEvent(Event e)
     eventQueueMutex.unlock();
 }
 
+bool BaseFilter::hasFrames() 
+{
+	if (!demandOriginFrames() || !demandDestinationFrames()) {
+		return false;
+	}
+	return true;
+}
+
+Frame* BaseFilter::getFrame() {
+	return oFrames.begin()->second;
+}
 
 OneToOneFilter::OneToOneFilter(bool force_) : 
 BaseFilter(1, 1, force_)
 {
 }
 
-bool OneToOneFilter::processFrame(bool removeFrame)
+bool OneToOneFilter::processFrame(Frame *org, bool removeFrame)
 {
     bool newData = false;
+	Frame* origin;
 
     processEvent();
-	//printf("proceso el frame, filter %d\n", removeFrame);
-    if (!demandOriginFrames() || !demandDestinationFrames()) {
-        return false;
-    }
 
-    if (doProcessFrame(oFrames.begin()->second, dFrames.begin()->second)) {
+	if (org == NULL) {
+		if (!demandOriginFrames() || !demandDestinationFrames()) {
+        	return false;
+    	}
+		origin = oFrames.begin()->second;
+	} else {
+		if (!demandDestinationFrames()) {
+        	return false;
+    	}
+		origin = org;
+	}
+
+    if (doProcessFrame(origin, dFrames.begin()->second)) {
         addFrames();
     }
 
     if (removeFrame) {
-		//printf("borro\n");
     	removeFrames();
-		//printf("borro despues\n");
 	}
 
     return true;
@@ -370,7 +388,7 @@ BaseFilter(1, writersNum, force_)
 {
 }
 
-bool OneToManyFilter::processFrame(bool removeFrame)
+bool OneToManyFilter::processFrame(Frame *org, bool removeFrame)
 {
     bool newData;
 
@@ -409,7 +427,7 @@ BaseFilter(readersNum, 1, force_)
 {
 }
 
-bool ManyToOneFilter::processFrame(bool removeFrame)
+bool ManyToOneFilter::processFrame(Frame *org, bool removeFrame)
 {
     bool newData;
 

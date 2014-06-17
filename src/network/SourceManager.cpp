@@ -256,12 +256,21 @@ FrameQueue* createAudioQueue(unsigned char rtpPayloadFormat, char const* codecNa
         return AudioFrameQueue::createNew(codec, 0, sampleRate);
     }
     
+    if (strcmp(codecName, "MPA") == 0) {
+        codec = MP3;
+        return AudioFrameQueue::createNew(codec, 0, sampleRate);
+    }
+    
     if (strcmp(codecName, "PCMU") == 0) {
         codec = PCMU;
+         return AudioFrameQueue::createNew(codec, 0, sampleRate, channels);
+    }
+    
+    if (strcmp(codecName, "PCM") == 0) {
+        codec = PCM;
         return AudioFrameQueue::createNew(codec, 0, sampleRate, channels);
     }
     
-    //TODO: error msg codec not supported
     return NULL;
 }
 

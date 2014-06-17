@@ -157,13 +157,13 @@ bool AudioDecoderLibav::inputConfig()
     codec = avcodec_find_decoder(codecID);
     if (codec == NULL)
     {
-        //TODO: error
+        std::cerr << "[DECODER] Error finding codec! " << std::endl;
         return false;
     }
     
     codecCtx = avcodec_alloc_context3(codec);
     if (codecCtx == NULL) {
-        //TODO: error
+        std::cerr << "[DECODER] Error allocating context! " << std::endl;
         return false;
     }
 
@@ -175,7 +175,7 @@ bool AudioDecoderLibav::inputConfig()
     AVDictionary* dictionary = NULL;
     if (avcodec_open2(codecCtx, codec, &dictionary) < 0)
     {
-        //TODO: error
+        std::cerr << "[DECODER] Error open context! " << std::endl;
         return false;
     }
 
@@ -193,7 +193,7 @@ bool AudioDecoderLibav::inputConfig()
                   );  
 
     if (resampleCtx == NULL) {
-        //TODO: error
+        std::cerr << "[DECODER] Error allocating resample context! " << std::endl;
         return false;
     }
 
@@ -299,6 +299,9 @@ void AudioDecoderLibav::checkInputParams(ACodecType codec, SampleFmt sampleForma
             break;
         case OPUS:
             codecID = AV_CODEC_ID_OPUS;
+            break;
+        case MP3:
+            codecID = AV_CODEC_ID_MP3;
             break;
         default:
             codecID = AV_CODEC_ID_NONE;

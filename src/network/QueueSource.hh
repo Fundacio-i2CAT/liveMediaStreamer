@@ -23,6 +23,7 @@ public:
     static QueueSource* createNew(UsageEnvironment& env, Reader *reader);
     virtual void doGetNextFrame();
     virtual void doStopGettingFrames();
+    Reader* getReader() {return fReader;};
 
 protected:
     QueueSource(UsageEnvironment& env, Reader *reader);

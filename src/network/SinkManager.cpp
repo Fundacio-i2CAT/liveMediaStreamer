@@ -28,6 +28,7 @@
 #include "../AudioCircularBuffer.hh"
 #include "H264QueueServerMediaSubsession.hh"
 #include "VP8QueueServerMediaSubsession.hh"
+#include "AudioQueueServerMediaSubsession.hh"
 
 
 SinkManager *SinkManager::mngrInstance = NULL;
@@ -145,6 +146,19 @@ ServerMediaSubsession *SinkManager::createVideoMediaSubsession(VCodecType codec,
     return NULL;
 }
 
+ServerMediaSubsession *SinkManager::createAudioMediaSubsession(ACodecType codec, Reader *reader)
+{
+    switch(codec){
+        case AAC:
+            //TODO
+            break;
+        default:
+            return AudioQueueServerMediaSubsession::createNew(*(envir()), reader, True);
+            break;
+    }
+    return NULL;
+}
+
 ServerMediaSubsession *SinkManager::createSubsessionByReader(Reader *reader)
 {
     VideoFrameQueue *vQueue;
@@ -155,7 +169,7 @@ ServerMediaSubsession *SinkManager::createSubsessionByReader(Reader *reader)
         return createVideoMediaSubsession(vQueue->getCodec(), reader);
     }
     if ((aQueue = dynamic_cast<AudioFrameQueue*>(reader->getQueue())) != NULL){
-        //TODO:
+        return createAudioMediaSubsession(aQueue->getCodec(), reader);
     }
     if ((circularBuffer = dynamic_cast<AudioCircularBuffer*>(reader->getQueue())) != NULL){
         //TODO

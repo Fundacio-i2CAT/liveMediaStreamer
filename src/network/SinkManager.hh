@@ -56,13 +56,13 @@ public:
     bool removeSession(std::string id);
     
     UsageEnvironment* envir() {return env;}
-
-protected:
-    void initializeEventMap() {/*TODO*/};
       
 private: 
+    void initializeEventMap() {/*TODO*/};
+    
     ServerMediaSubsession *createSubsessionByReader(Reader *reader);
     ServerMediaSubsession *createVideoMediaSubsession(VCodecType codec, Reader *reader);
+    ServerMediaSubsession *createAudioMediaSubsession(ACodecType codec, Reader *reader);
     void doGetState(Jzon::Object &filterNode) {/*TODO*/};
     
     std::thread mngrTh;

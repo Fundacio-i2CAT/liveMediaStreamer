@@ -23,6 +23,7 @@
  */
 
 #include "Filter.hh"
+#include "Utils.hh"
 #include <iostream>
 #include <thread>
 #include <chrono>
@@ -251,27 +252,6 @@ bool BaseFilter::connectOneToMany(BaseFilter *R, int rId)
     return writers[DEFAULT_ID]->connect(r);
 }
 
-
-bool BaseFilter::connect(Reader *r)
-{
-    if (writers.size() < getMaxWriters() && writers.count(DEFAULT_ID) <= 0) {
-        writers[DEFAULT_ID] = new Writer();
-    }
-    
-    if (writers[DEFAULT_ID]->isConnected()) {
-        return false;
-    }
-
-    if (r->isConnected()){
-        return false;
-    }
-    
-    FrameQueue *queue = allocQueue(DEFAULT_ID);
-    writers[DEFAULT_ID]->setQueue(queue);
-    return writers[DEFAULT_ID]->connect(r);
-}
-
-
 bool BaseFilter::disconnect(int wId, BaseFilter *R, int rId)
 {
     if (!writers[wId]->isConnected()){
@@ -298,6 +278,7 @@ void BaseFilter::processEvent()
         Event e = eventQueue.top();
         std::string action = e.getAction();
         Jzon::Node* params = e.getParams();
+        Jzon::Object outputNode;
 
         if (action.empty()) {
             break;
@@ -307,7 +288,8 @@ void BaseFilter::processEvent()
             break;
         }
         
-        eventMap[action](params);
+        eventMap[action](params, outputNode);
+        e.sendAndClose(outputNode);
 
         eventQueue.pop();
     }
@@ -335,6 +317,15 @@ void BaseFilter::pushEvent(Event e)
     eventQueue.push(e);
     eventQueueMutex.unlock();
 }
+
+void BaseFilter::getState(Jzon::Object &filterNode)
+{
+    eventQueueMutex.lock();
+    filterNode.Add("type", utils::getFilterTypeAsString(fType));
+    doGetState(filterNode);
+    eventQueueMutex.unlock();
+}
+
 
 
 OneToOneFilter::OneToOneFilter(bool force_) : 
@@ -396,11 +387,48 @@ BaseFilter(0, writersNum, false)
     
 }
 
+void HeadFilter::pushEvent(Event e)
+{
+    std::string action = e.getAction();
+    Jzon::Node* params = e.getParams();
+    Jzon::Object outputNode;
+
+    if (action.empty()) {
+        return;
+    }
+
+    if (eventMap.count(action) <= 0) {
+        return;
+    }
+    
+    eventMap[action](params, outputNode);
+    e.sendAndClose(outputNode);
+}
+
+
 
 TailFilter::TailFilter(int readersNum) : 
 BaseFilter(readersNum, 0, false)
 {
 
+}
+
+void TailFilter::pushEvent(Event e)
+{
+    std::string action = e.getAction();
+    Jzon::Node* params = e.getParams();
+    Jzon::Object outputNode;
+
+    if (action.empty()) {
+        return;
+    }
+
+    if (eventMap.count(action) <= 0) {
+        return;
+    }
+    
+    eventMap[action](params, outputNode);
+    e.sendAndClose(outputNode);
 }
 
 

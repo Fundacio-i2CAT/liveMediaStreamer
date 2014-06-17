@@ -33,9 +33,11 @@
 #include <string>
 #include <iostream>
 #include "../src/Controller.hh"
+#include "../src/Callbacks.hh"
 
 int main(int argc, char *argv[]) {
     Controller* ctrl = Controller::getInstance();
+    ctrl->pipelineManager()->getReceiver()->setCallback(callbacks::connectToMixerCallback);
 
     int sockfd, newsockfd, port, n;
     char buffer[2048];

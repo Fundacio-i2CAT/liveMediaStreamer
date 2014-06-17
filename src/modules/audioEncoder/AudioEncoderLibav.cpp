@@ -112,7 +112,7 @@ Reader* AudioEncoderLibav::setReader(int readerID, FrameQueue* queue)
     return r;
 }
 
-void AudioEncoderLibav::configure(ACodecType codec, int internalChannels, int internalSampleRate)
+bool AudioEncoderLibav::configure(ACodecType codec, int internalChannels, int internalSampleRate)
 {
     fCodec = codec;
     this->internalChannels = internalChannels;
@@ -144,7 +144,7 @@ void AudioEncoderLibav::configure(ACodecType codec, int internalChannels, int in
             break;
     }
 
-    config();
+    return config();
 }
 
 bool AudioEncoderLibav::config() 
@@ -360,13 +360,14 @@ void AudioEncoderLibav::checkInputParams(SampleFmt sampleFormat, int channels, i
     }
 }
 
-void AudioEncoderLibav::configEvent(Jzon::Node* params) 
+void AudioEncoderLibav::configEvent(Jzon::Node* params, Jzon::Object &outputNode) 
 {
     ACodecType newCodec;
     int newChannels = internalChannels;
     int newSampleRate = internalSampleRate;
 
     if (!params) {
+        outputNode.Add("error", "Error configuring audio encoder");
         return;
     }
 
@@ -382,12 +383,24 @@ void AudioEncoderLibav::configEvent(Jzon::Node* params)
         newChannels = params->Get("channels").ToInt();
     }
 
-    configure(newCodec, newChannels, newSampleRate);
+    if(!configure(newCodec, newChannels, newSampleRate)) {
+        outputNode.Add("error", "Error configuring audio encoder");
+    } else {
+        outputNode.Add("error", Jzon::null);
+    }
 }
 
 void AudioEncoderLibav::initializeEventMap()
 {
-    eventMap["configure"] = std::bind(&AudioEncoderLibav::configEvent, this, std::placeholders::_1);
+    eventMap["configure"] = std::bind(&AudioEncoderLibav::configEvent, this, std::placeholders::_1, std::placeholders::_2);
+}
+
+void AudioEncoderLibav::doGetState(Jzon::Object &filterNode)
+{
+    filterNode.Add("codec", utils::getAudioCodecAsString(fCodec));
+    filterNode.Add("sampleRate", sampleRate);
+    filterNode.Add("channels", channels);
+    filterNode.Add("sampleFormat", utils::getSampleFormatAsString(sampleFmt));
 }
 
 bool checkSampleFormat(AVCodec *codec, enum AVSampleFormat sampleFmt)

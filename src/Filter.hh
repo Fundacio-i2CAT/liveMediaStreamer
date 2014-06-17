@@ -56,9 +56,6 @@ public:
     bool connectManyToOne(BaseFilter *R, int wId);
     bool connectOneToMany(BaseFilter *R, int rId);
     bool connectManyToMany(BaseFilter *R, int rId, int wId);
-    //Only for testing! Should not exist
-    bool connect(Reader *r);
-    ///////////////////////////////////////
     bool disconnect(int wId, BaseFilter *R, int rId);
     FilterType getType() {return fType;};
     int generateReaderID();
@@ -66,6 +63,7 @@ public:
     const int getMaxWriters() const {return maxWriters;};
     const int getMaxReaders() const {return maxReaders;};
     virtual void pushEvent(Event e);
+    void getState(Jzon::Object &filterNode);
     
 protected:
     BaseFilter(int maxReaders_, int maxWriters_, bool force_ = false);
@@ -75,6 +73,7 @@ protected:
     virtual bool processFrame(bool removeFrame = false) = 0;
     virtual Reader *setReader(int readerID, FrameQueue* queue);
     virtual void initializeEventMap() = 0;
+    virtual void doGetState(Jzon::Object &filterNode) = 0;
 
     Reader* getReader(int id);
     bool demandOriginFrames();
@@ -84,7 +83,7 @@ protected:
     void processEvent(); 
     bool newEvent();
 
-    std::map<std::string, std::function<void(Jzon::Node* params)> > eventMap; 
+    std::map<std::string, std::function<void(Jzon::Node* params, Jzon::Object &outputNode)> > eventMap; 
     
 protected:
     std::map<int, Reader*> readers;

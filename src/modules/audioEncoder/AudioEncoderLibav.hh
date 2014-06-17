@@ -50,7 +50,7 @@ public:
     int getSampleRate() {return sampleRate;};
     SampleFmt getSampleFmt() {return sampleFmt;};
     ACodecType getCodec() {return fCodec;};
-    void configure(ACodecType codec, int internalChannels = DEFAULT_CHANNELS, int internalSampleRate = DEFAULT_SAMPLE_RATE);
+    bool configure(ACodecType codec, int internalChannels = DEFAULT_CHANNELS, int internalSampleRate = DEFAULT_SAMPLE_RATE);
 
     void initializeEventMap();
     Reader *setReader(int readerID, FrameQueue* queue);
@@ -60,7 +60,8 @@ private:
     void checkInputParams(SampleFmt sampleFormat, int channels, int sampleRate);
     bool config();
     bool inputConfig();
-    void configEvent(Jzon::Node* params); 
+    void configEvent(Jzon::Node* params, Jzon::Object &outputNode);
+    void doGetState(Jzon::Object &filterNode);
    
     AVCodec             *codec;
     AVCodecContext      *codecCtx;

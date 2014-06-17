@@ -85,7 +85,9 @@ protected:
     
 private:
     friend bool handlers::addSubsessionSink(UsageEnvironment& env, MediaSubsession *subsession);
-    
+    void doGetState(Jzon::Object &filterNode) {/*TODO*/};
+    void addSessionEvent(Jzon::Node* params, Jzon::Object &outputNode);
+
     void addConnection(int wId, MediaSubsession* subsession);
     
     static void* startServer(void *args);

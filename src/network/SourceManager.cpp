@@ -171,10 +171,11 @@ FrameQueue *SourceManager::allocQueue(int wId)
 
 void SourceManager::initializeEventMap()
 {
-    eventMap["addSession"] = std::bind(&SourceManager::addSessionEvent, this, std::placeholders::_1);
+    eventMap["addSession"] = std::bind(&SourceManager::addSessionEvent, this, 
+                                        std::placeholders::_1,  std::placeholders::_2);
 }
 
-void SourceManager::ddSessionEvent(Jzon::Node* params)
+void SourceManager::addSessionEvent(Jzon::Node* params, Jzon::Object &outputNode)
 {
     std::string sessionId = handlers::randomIdGenerator(ID_LENGTH);
     std::string sdp, medium, codec;
@@ -182,6 +183,7 @@ void SourceManager::ddSessionEvent(Jzon::Node* params)
     Session* session;
 
     if (!params) {
+        outputNode.Add("error", "Error adding session. Wrong parameters!");
         return;
     }
 
@@ -189,7 +191,7 @@ void SourceManager::ddSessionEvent(Jzon::Node* params)
         
         std::string progName = params->Get("progName").ToString();
         std::string rtspURL = params->Get("uri").ToString();
-        session = Session::createNewByURL(env, progName, rtspURL, sessionId);
+        session = Session::createNewByURL(*env, progName, rtspURL, sessionId);
     
     } else if (params->Has("subsessions") && params->Get("subsessions").IsArray()) {
         
@@ -208,12 +210,17 @@ void SourceManager::ddSessionEvent(Jzon::Node* params)
                                                 timeStampFrequency, port, channels);
         }
 
-        session = Session::createNew(env, sdp, sessionId);
+        session = Session::createNew(*env, sdp, sessionId);
     
+    } else {
+        outputNode.Add("error", "Error adding session. Wrong parameters!");
+        return;
     }
 
-    mngr->addSession(session);
+    addSession(session);
     session->initiateSession();
+
+    outputNode.Add("error", Jzon::null);
 } 
 
 

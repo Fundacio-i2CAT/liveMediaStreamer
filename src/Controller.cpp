@@ -21,7 +21,7 @@
  */
 
 #include "Controller.hh"
-//#include "Callbacks.hh"
+#include <iostream>
 
 Controller* Controller::ctrlInstance = NULL;
 PipelineManager* PipelineManager::pipeMngrInstance = NULL;
@@ -33,8 +33,9 @@ Controller::Controller()
     pipeMngrInstance = PipelineManager::getInstance();
     workMngrInstance = WorkerManager::getInstance();
     Jzon::Object* inputRootNode = new Jzon::Object();
-    Jzon::Object* outputRootNode = new Jzon::Object();
-    Jzon::Parser* parser = new Jzon::Parser(inputRootNode);
+    Jzon::Parser* parser = new Jzon::Parser(*inputRootNode);
+    initializeEventMap();
+    runFlag = false;
 }
 
 Controller* Controller::getInstance()
@@ -71,15 +72,15 @@ bool Controller::createSocket(int port)
     struct sockaddr_in serv_addr;
     int yes=1;
 
-    sock = socket(AF_INET, SOCK_STREAM, 0);
+    listeningSocket = socket(AF_INET, SOCK_STREAM, 0);
     
-    if (sock < 0) {
-        error("ERROR opening socket");
+    if (listeningSocket < 0) {
+        std::cerr << "ERROR opening socket" << std::endl;
         return false;
     }
      
-    if (setsockopt(*sock, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(int)) == -1 ) {
-        perror("setsockopt");
+    if (setsockopt(listeningSocket, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(int)) == -1 ) {
+        std::cerr << "ERROR setting socket options" << std::endl;
         return false;
     }
     
@@ -88,32 +89,38 @@ bool Controller::createSocket(int port)
     serv_addr.sin_addr.s_addr = INADDR_ANY;
     serv_addr.sin_port = htons(port);
     
-    if (bind(*sock, (struct sockaddr *) &serv_addr, sizeof(serv_addr)) < 0) {
-        error("ERROR on binding");
+    if (bind(listeningSocket, (struct sockaddr *) &serv_addr, sizeof(serv_addr)) < 0) {
+        std::cerr << "ERROR on binding" << std::endl;
         return false;
     } 
 
     return true;
 }
 
-int Controller::listenSocket()
+bool Controller::listenSocket()
 {
     socklen_t clilen;
     struct sockaddr cli_addr;
-    listen(sock,5);
+    listen(listeningSocket,5);
     clilen = sizeof(cli_addr);
 
-    return accept(sock, (struct sockaddr *) &cli_addr, &clilen);
+    connectionSocket = accept(listeningSocket, (struct sockaddr *) &cli_addr, &clilen);
+
+    if (connectionSocket < 0) {
+        return false;
+    }
+
+    return true;
 }
 
-bool Controller::readAndParse(int newSock)
+bool Controller::readAndParse()
 {
     bzero(inBuffer, MSG_BUFFER_MAX_LENGTH);
     inputRootNode->Clear();
     outputRootNode->Clear();
 
-    if (read(newSock, inBuffer, MSG_BUFFER_MAX_LENGTH - 1) < 0) {
-        error("ERROR reading from socket");
+    if (read(connectionSocket, inBuffer, MSG_BUFFER_MAX_LENGTH - 1) < 0) {
+        std::cerr << "ERROR reading from socket" << std::endl;
         return false;
     }
 
@@ -129,14 +136,11 @@ bool Controller::readAndParse(int newSock)
 
 bool Controller::processEvent()
 {
-    
     if (inputRootNode->Has("filterID")) {
-        processFilterEvent();
-    } else {
-        processInternalEvent();
+        return processFilterEvent();
     }
     
-    return true;
+    return processInternalEvent();
 }
 
 bool Controller::processFilterEvent() 
@@ -157,7 +161,7 @@ bool Controller::processFilterEvent()
         return false;
     }
 
-    Event e(rootNode, std::chrono::system_clock::now());
+    Event e(*inputRootNode, std::chrono::system_clock::now(), connectionSocket);
     filter->pushEvent(e);
 
     return true;
@@ -165,22 +169,32 @@ bool Controller::processFilterEvent()
 
 bool Controller::processInternalEvent() 
 {
+    Jzon::Object outputNode;
+
     if (!inputRootNode->Has("action") || !inputRootNode->Has("params")) {
         //TODO: error
         return false;
     }
 
-    std::string action = inputRootNode->Get("action");
-    Jzon::Node* params = inputRootNode->Get("params");
+    std::string action = inputRootNode->Get("action").ToString();
+    Jzon::Object params = inputRootNode->Get("params");
 
     if (eventMap.count(action) <= 0) {
         return false;
     }
         
-    eventMap[action](params);
+    eventMap[action](&params, outputNode);
 
     return true;
 }
+
+void Controller::initializeEventMap()
+{
+    eventMap["getState"] = std::bind(&PipelineManager::getStateEvent, pipeMngrInstance, 
+                                            std::placeholders::_1, std::placeholders::_2);
+
+}
+
 
 ///////////////////////////////////
 //PIPELINE MANAGER IMPLEMENTATION//
@@ -193,7 +207,6 @@ PipelineManager::PipelineManager()
     transmitterID = rand();
     addFilter(receiverID, SourceManager::getInstance());
     addFilter(transmitterID, SinkManager::getInstance());
-    //receiver->setCallback(callbacks::connectToMixerCallback);
 }
 
 PipelineManager* PipelineManager::getInstance()
@@ -349,6 +362,19 @@ SinkManager* PipelineManager::getTransmitter()
     return dynamic_cast<SinkManager*>(filters[transmitterID].first);
 }
 
+void PipelineManager::getStateEvent(Jzon::Node* params, Jzon::Object &outputNode)
+{
+    Jzon::Array filterList;
+
+    for (auto it : filters) {
+        Jzon::Object filter;
+        filter.Add("id", it.first);
+        it.second.first->getState(filter);
+        filterList.Add(filter);
+    }
+
+    outputNode.Add("filters", filterList);
+}
 
 /////////////////////////////////
 //WORKER MANAGER IMPLEMENTATION//

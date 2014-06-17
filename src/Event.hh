@@ -31,16 +31,18 @@
 class Event {
     
 public:
-    Event(Jzon::Object rootNode, std::chrono::system_clock::time_point timestamp);
+    Event(Jzon::Object rootNode, std::chrono::system_clock::time_point timestamp, int socket);
     ~Event();    
     bool canBeExecuted(std::chrono::system_clock::time_point currentTime);
     std::string getAction();
     Jzon::Node* getParams();
+    void sendAndClose(Jzon::Object outputNode);
     bool operator<(const Event& e) const;
 
 private:
     Jzon::Object* inputRootNode;
     std::chrono::system_clock::time_point timestamp;
+    int socket;
 
 };
 

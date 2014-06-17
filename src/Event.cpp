@@ -23,16 +23,21 @@
 
 #include "Event.hh"
 #include <iostream>
+#include <unistd.h>
+// #include <sys/types.h> 
+//#include <sys/socket.h>
+//#include <netinet/in.h>
 
 bool Event::operator<(const Event& e) const
 {
     return timestamp > e.timestamp;
 }
 
-Event::Event(Jzon::Object rootNode, std::chrono::system_clock::time_point timestamp) 
+Event::Event(Jzon::Object rootNode, std::chrono::system_clock::time_point timestamp, int socket) 
 {
     inputRootNode = new Jzon::Object(rootNode);
     this->timestamp = timestamp;
+    this->socket = socket;
 }
 
 Event::~Event()
@@ -66,6 +71,20 @@ Jzon::Node* Event::getParams()
 
     return NULL;
 }
+
+void Event::sendAndClose(Jzon::Object outputNode)
+{
+    Jzon::Writer writer(outputNode, Jzon::NoFormat);
+    writer.Write();
+    std::string result = writer.GetResult();
+    const char* res = result.c_str();
+    (void)write(socket, res, result.size());
+
+    if (socket >= 0){
+        close(socket);
+    }
+} 
+
 
 
 

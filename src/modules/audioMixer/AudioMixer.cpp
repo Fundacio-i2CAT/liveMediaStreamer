@@ -25,6 +25,7 @@
 #include "AudioMixer.hh"
 #include "../../AudioCircularBuffer.hh"
 #include "../../AudioFrame.hh"
+#include "../../Utils.hh"
 #include <iostream>
 #include <utility>
 #include <cmath>
@@ -78,12 +79,12 @@ bool AudioMixer::doProcessFrame(std::map<int, Frame*> orgFrames, Frame *dst) {
         return false;
     }
 
-    mixNonEmptyFrames(orgFrames, filledFramesIds, dst, (int)orgFrames.size());
+    mixNonEmptyFrames(orgFrames, filledFramesIds, dst);
 
     return true;
 }
 
-void AudioMixer::mixNonEmptyFrames(std::map<int, Frame*> orgFrames, std::vector<int> filledFramesIds, Frame *dst, int totalFrames) 
+void AudioMixer::mixNonEmptyFrames(std::map<int, Frame*> orgFrames, std::vector<int> filledFramesIds, Frame *dst) 
 {
     int nOfSamples = 0;
 
@@ -99,7 +100,7 @@ void AudioMixer::mixNonEmptyFrames(std::map<int, Frame*> orgFrames, std::vector<
             sumValues(samples, mixedSamples);
         }
 
-        applyMixAlgorithm(mixedSamples, totalFrames);
+        applyMixAlgorithm(mixedSamples, (int)orgFrames.size(), (int)filledFramesIds.size());
         applyGainToChannel(mixedSamples, masterGain);
         AudioFrame *aDst = dynamic_cast<AudioFrame*>(dst);
         aDst->setSamples(nOfSamples);
@@ -110,17 +111,17 @@ void AudioMixer::mixNonEmptyFrames(std::map<int, Frame*> orgFrames, std::vector<
     }
 }
 
-void AudioMixer::applyMixAlgorithm(std::vector<float> &fSamples, int frameNumber)
+void AudioMixer::applyMixAlgorithm(std::vector<float> &fSamples, int totalFrameNumber, int realFrameNumber)
 {
     switch (mAlg) {
         case LA:
-            LAMixAlgorithm(fSamples, frameNumber);
+            LAMixAlgorithm(fSamples, totalFrameNumber);
             break;
         case LDRC:
-            LDRCMixAlgorithm(fSamples, frameNumber);
+            LDRCMixAlgorithm(fSamples, realFrameNumber);
             break;
         default:
-            LAMixAlgorithm(fSamples, frameNumber);
+            LAMixAlgorithm(fSamples, totalFrameNumber);
         break;
     }
 }
@@ -172,13 +173,15 @@ void AudioMixer::LDRCMixAlgorithm(std::vector<float> &fSamples, int frameNumber)
     }
 } 
 
-void AudioMixer::changeChannelVolumeEvent(Jzon::Node* params) 
+void AudioMixer::changeChannelVolumeEvent(Jzon::Node* params, Jzon::Object &outputNode) 
 {
     if (!params) {
+        outputNode.Add("error", "Error changing audio channel volume");
         return;
     }
 
     if (!params->Has("id") || !params->Has("volume")) {
+        outputNode.Add("error", "Error changing audio channel volume");
         return;
     }
 
@@ -186,44 +189,55 @@ void AudioMixer::changeChannelVolumeEvent(Jzon::Node* params)
     float volume = params->Get("volume").ToFloat();
 
     if (gains.count(id) <= 0) {
+        outputNode.Add("error", "Error changing audio channel volume");
         return;
     }
 
     gains[id] = volume;
+
+    outputNode.Add("error", Jzon::null);
 }
 
-void AudioMixer::muteChannelEvent(Jzon::Node* params) 
+void AudioMixer::muteChannelEvent(Jzon::Node* params, Jzon::Object &outputNode) 
 {
     if (!params) {
+        outputNode.Add("error", "Error muting audio channel");
         return;
     }
 
     if (!params->Has("id")) {
+        outputNode.Add("error", "Error muting audio channel");
         return;
     }
 
     int id = params->Get("id").ToInt();
 
     if (gains.count(id) <= 0) {
+        outputNode.Add("error", "Error muting audio channel");
         return;
     }
 
     gains[id] = 0;
+
+    outputNode.Add("error", Jzon::null);
 }
 
-void AudioMixer::soloChannelEvent(Jzon::Node* params) 
+void AudioMixer::soloChannelEvent(Jzon::Node* params, Jzon::Object &outputNode) 
 {
     if (!params) {
+        outputNode.Add("error", "Error applying solo to audio channel");
         return;
     }
 
     if (!params->Has("id")) {
+        outputNode.Add("error", "Error applying solo to audio channel");
         return;
     }
 
     int id = params->Get("id").ToInt();
 
     if (gains.count(id) <= 0) {
+        outputNode.Add("error", "Error applying solo to audio channel");
         return;
     }
 
@@ -235,33 +249,67 @@ void AudioMixer::soloChannelEvent(Jzon::Node* params)
         }
     }
 
+    outputNode.Add("error", Jzon::null);
 }
 
-void AudioMixer::changeMasterVolumeEvent(Jzon::Node* params) 
+void AudioMixer::changeMasterVolumeEvent(Jzon::Node* params, Jzon::Object &outputNode) 
 {
     if (!params) {
+        outputNode.Add("error", "Error changing master volume");
         return;
     }
 
     if (!params->Has("volume")) {
+        outputNode.Add("error", "Error changing master volume");
         return;
     }
 
     float volume = params->Get("volume").ToFloat();
 
     masterGain = volume;
+
+    outputNode.Add("error", Jzon::null);
 }
 
-void AudioMixer::muteMasterEvent(Jzon::Node* params) 
+void AudioMixer::muteMasterEvent(Jzon::Node* params, Jzon::Object &outputNode) 
 {
     masterGain = 0;
+
+    outputNode.Add("error", Jzon::null);
 }
 
 void AudioMixer::initializeEventMap()
 {
-    eventMap["changeChannelVolume"] = std::bind(&AudioMixer::changeChannelVolumeEvent, this, std::placeholders::_1);
-    eventMap["muteChannel"] = std::bind(&AudioMixer::muteChannelEvent, this, std::placeholders::_1);
-    eventMap["soloChannel"] = std::bind(&AudioMixer::soloChannelEvent, this, std::placeholders::_1);
-    eventMap["changeMasterVolume"] = std::bind(&AudioMixer::changeMasterVolumeEvent, this, std::placeholders::_1);
-    eventMap["muteMaster"] = std::bind(&AudioMixer::muteMasterEvent, this, std::placeholders::_1);
+    eventMap["changeChannelVolume"] = std::bind(&AudioMixer::changeChannelVolumeEvent, 
+                                                 this, std::placeholders::_1, std::placeholders::_2);
+
+    eventMap["muteChannel"] = std::bind(&AudioMixer::muteChannelEvent, this, 
+                                         std::placeholders::_1, std::placeholders::_2);
+
+    eventMap["soloChannel"] = std::bind(&AudioMixer::soloChannelEvent, this, 
+                                         std::placeholders::_1, std::placeholders::_2);
+
+    eventMap["changeMasterVolume"] = std::bind(&AudioMixer::changeMasterVolumeEvent, this, 
+                                                std::placeholders::_1, std::placeholders::_2);
+
+    eventMap["muteMaster"] = std::bind(&AudioMixer::muteMasterEvent, this, 
+                                        std::placeholders::_1, std::placeholders::_2);
+}
+
+void AudioMixer::doGetState(Jzon::Object &filterNode)
+{
+    Jzon::Array jsonGains;
+
+    filterNode.Add("sampleRate", sampleRate);
+    filterNode.Add("channels", frameChannels);
+    filterNode.Add("sampleFormat", utils::getSampleFormatAsString(sampleFormat));
+
+    for (auto it : gains) {
+        Jzon::Object gain;
+        gain.Add("id", it.first);
+        gain.Add("gain", it.second);
+        jsonGains.Add(gain);
+    }
+
+    filterNode.Add("gains", jsonGains);
 }

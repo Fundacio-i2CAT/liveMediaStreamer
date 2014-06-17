@@ -23,6 +23,7 @@
  */
 
 #include "Filter.hh"
+#include "Utils.hh"
 #include <iostream>
 #include <thread>
 #include <chrono>
@@ -298,6 +299,7 @@ void BaseFilter::processEvent()
         Event e = eventQueue.top();
         std::string action = e.getAction();
         Jzon::Node* params = e.getParams();
+        Jzon::Object outputNode;
 
         if (action.empty()) {
             break;
@@ -307,7 +309,8 @@ void BaseFilter::processEvent()
             break;
         }
         
-        eventMap[action](params);
+        eventMap[action](params, outputNode);
+        e.sendAndClose(outputNode);
 
         eventQueue.pop();
     }
@@ -335,6 +338,15 @@ void BaseFilter::pushEvent(Event e)
     eventQueue.push(e);
     eventQueueMutex.unlock();
 }
+
+void BaseFilter::getState(Jzon::Object &filterNode)
+{
+    eventQueueMutex.lock();
+    filterNode.Add("type", utils::getFilterTypeAsString(fType));
+    doGetState(filterNode);
+    eventQueueMutex.unlock();
+}
+
 
 bool BaseFilter::hasFrames() 
 {
@@ -414,11 +426,48 @@ BaseFilter(0, writersNum, false)
     
 }
 
+void HeadFilter::pushEvent(Event e)
+{
+    std::string action = e.getAction();
+    Jzon::Node* params = e.getParams();
+    Jzon::Object outputNode;
+
+    if (action.empty()) {
+        return;
+    }
+
+    if (eventMap.count(action) <= 0) {
+        return;
+    }
+    
+    eventMap[action](params, outputNode);
+    e.sendAndClose(outputNode);
+}
+
+
 
 TailFilter::TailFilter(int readersNum) : 
 BaseFilter(readersNum, 0, false)
 {
 
+}
+
+void TailFilter::pushEvent(Event e)
+{
+    std::string action = e.getAction();
+    Jzon::Node* params = e.getParams();
+    Jzon::Object outputNode;
+
+    if (action.empty()) {
+        return;
+    }
+
+    if (eventMap.count(action) <= 0) {
+        return;
+    }
+    
+    eventMap[action](params, outputNode);
+    e.sendAndClose(outputNode);
 }
 
 

@@ -65,7 +65,9 @@ public:
     int generateWriterID();
     const int getMaxWriters() const {return maxWriters;};
     const int getMaxReaders() const {return maxReaders;};
-    void pushEvent(Event e);
+    virtual void pushEvent(Event e);
+    void getState(Jzon::Object &filterNode);
+
     
 protected:
     BaseFilter(int maxReaders_, int maxWriters_, bool force_ = false);
@@ -77,6 +79,7 @@ protected:
     virtual bool processFrame(Frame *org = NULL, bool removeFrame = false) = 0;
     virtual Reader *setReader(int readerID, FrameQueue* queue);
     virtual void initializeEventMap() = 0;
+    virtual void doGetState(Jzon::Object &filterNode) = 0;
 
     Reader* getReader(int id);
     bool demandOriginFrames();
@@ -85,7 +88,7 @@ protected:
     void processEvent(); 
     bool newEvent();
 
-    std::map<std::string, std::function<void(Jzon::Node* params)> > eventMap; 
+    std::map<std::string, std::function<void(Jzon::Node* params, Jzon::Object &outputNode)> > eventMap; 
     
 protected:
     std::map<int, Reader*> readers;
@@ -145,7 +148,7 @@ private:
 class HeadFilter : public BaseFilter {
 public:
     //TODO:implement this function
-    void pushEvent(Event e){};
+    void pushEvent(Event e);
 
 protected:
     HeadFilter(int writersNum = MAX_WRITERS);
@@ -165,7 +168,9 @@ private:
 };
 
 class TailFilter : public BaseFilter {
-    
+public:
+    void pushEvent(Event e);
+
 protected:
     TailFilter(int readersNum = MAX_READERS);
     //TODO: desctructor

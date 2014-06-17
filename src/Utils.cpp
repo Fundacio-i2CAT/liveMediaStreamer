@@ -70,34 +70,89 @@ namespace utils
 
         return codec;
     }
-    
-    std::string getStringFromACodec(ACodecType codec)
+
+    std::string getAudioCodecAsString(ACodecType codec)
     {
-        std::string sCodec;
-        
-        switch(codec){
+       std::string stringCodec;
+
+        switch(codec) {
             case G711:
-                sCodec = "PCMU";
+                stringCodec = "g711";
                 break;
             case PCMU:
-                sCodec = "PCMU";
+                stringCodec = "pcmu";
                 break;
             case OPUS:
-                sCodec = "OPUS";
+                stringCodec = "opus";
+                break;
+            case PCM:
+                stringCodec = "pcm";
                 break;
             case AAC:
-                sCodec = "AAC";
-                break;
-            case PCM: 
-                sCodec = "PCM";
+                stringCodec = "aac";
                 break;
             case MP3:
-                sCodec = "MP3";
-                break;
-            default:
-                sCodec = "";
+                stringCodec = "mp3";
                 break;
         }
-        return sCodec;
+
+        return stringCodec;
+    }
+
+    std::string getFilterTypeAsString(FilterType type) 
+    {
+        std::string stringType;
+
+        switch(type) {
+            case VIDEO_DECODER:
+                stringType = "videoDecoder";
+                break;
+            case VIDEO_ENCODER:
+                stringType = "videoEncoder";
+                break;
+            case VIDEO_MIXER:
+                stringType = "videoMixer";
+                break;
+            case AUDIO_DECODER:
+                stringType = "audioDecoder";
+                break;
+            case AUDIO_ENCODER:
+                stringType = "audioEncoder";
+                break;
+            case AUDIO_MIXER:
+                stringType = "audioMixer";
+                break;
+        }
+
+        return stringType;
+    }
+
+    std::string getSampleFormatAsString(SampleFmt sFormat) 
+    {
+        std::string stringFormat;
+
+        switch(sFormat) {
+            case U8:
+                stringFormat = "u8";
+                break;
+            case S16:
+                stringFormat = "s16";
+                break;
+            case FLT:
+                stringFormat = "flt";
+                break;
+            case U8P:
+                stringFormat = "u8p";
+                break;
+            case S16P:
+                stringFormat = "16p";
+                break;
+            case FLTP:
+                stringFormat = "fltp";
+                break;
+        }
+
+        return stringFormat;
+
     }
 }

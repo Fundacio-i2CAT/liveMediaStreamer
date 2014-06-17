@@ -66,6 +66,7 @@ public:
     const int getMaxWriters() const {return maxWriters;};
     const int getMaxReaders() const {return maxReaders;};
     void pushEvent(Event e);
+	void removeFrames();
     
 protected:
     BaseFilter(int maxReaders_, int maxWriters_, bool force_ = false);
@@ -80,7 +81,6 @@ protected:
     bool demandOriginFrames();
     bool demandDestinationFrames();
     void addFrames();
-    void removeFrames();
     void processEvent(); 
     bool newEvent();
 

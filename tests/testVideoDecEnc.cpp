@@ -69,8 +69,11 @@ int main(int argc, char** argv)
 	Frame* h264Frame = InterleavedVideoFrame::createNew(H264, DEFAULT_WIDTH, DEFAULT_HEIGHT, YUYV422);
     VideoDecoderLibav* decoder = new VideoDecoderLibav();
 	VideoEncoderX264* encoder = new VideoEncoderX264();
+	VideoEncoderX264* encoder720 = new VideoEncoderX264();
     Worker *vDecoderWorker;
 	Worker *vEncoderWorker;
+	Master *vEnconderMaster;
+	Slave *vEncoderSlave1, *vEncoderSlave;
     std::ofstream h264Frames;
 
 	 mngr->setCallback((void(*)(char const*, unsigned short))&connect);
@@ -113,28 +116,37 @@ int main(int argc, char** argv)
 	
 	//int id2 = decoder->getAvailableWriters().front();
 	//if(!decoder->connect(id2, encoder, encoder->getAvailableReaders().front())) {
-	if(!decoder->connectOneToOne(encoder)) {
+	if(!decoder->connectOneToOne(encoder720)) {
         std::cerr << "Error connecting video encoder" << std::endl;
     }
 
-    Reader *reader = new Reader();
-    //encoder->connect(encoder->getAvailableWriters().front(), reader);
-	encoder->connect(reader);
+    //Reader *reader = new Reader();
+	//encoder->connect(reader);
+    Reader *reader720 = new Reader();
+	encoder720->connect(reader720);
 
     vDecoderWorker = new Worker(decoder);
-	vEncoderWorker = new Worker(encoder);
+	vEnconderMaster = new Master(encoder720);
+	//vEncoderWorker = new Worker(encoder);
+	
+	vEncoderSlave = new Slave(1, encoder720, 24);
+	vEnconderMaster->addSlave(vEncoderSlave);
+	
 
-    vDecoderWorker->start(); 
-	vEncoderWorker->start();
+    vDecoderWorker->start();
+	//vEncoderWorker->start();
+	vEnconderMaster->start();
+	vEncoderSlave->start();
     
     while(mngr->isRunning()) {
-		h264Frame = reader->getFrame();
-
+		//printf("antes getFrame\n");
+		h264Frame = reader720->getFrame();
+		
         if (!h264Frame) {
             usleep(500);
             continue;
         }
-
+		//printf("despues getFrame\n");
         if (! h264Frames.is_open()){
             h264Frames.open("frames.h264", std::ios::out | std::ios::app | std::ios::binary);
         }
@@ -144,7 +156,7 @@ int main(int argc, char** argv)
             //printf("Filled buffer! Frame size: %d\n", h264Frame->getLength());
         }
         
-        reader->removeFrame();
+        reader720->removeFrame();
     }
     
     h264Frames.close();

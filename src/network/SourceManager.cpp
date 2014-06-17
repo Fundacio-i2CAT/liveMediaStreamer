@@ -214,7 +214,6 @@ FrameQueue* createAudioQueue(unsigned char rtpPayloadFormat, char const* codecNa
         return AudioFrameQueue::createNew(codec, 0, sampleRate, channels);
     }
     
-    //TODO: error msg codec not supported
     return NULL;
 }
 

@@ -346,7 +346,7 @@ bool OneToOneFilter::processFrame(bool removeFrame)
 {
     bool newData = false;
 
- //   processEvent();
+    processEvent();
 
     if (!demandOriginFrames() || !demandDestinationFrames()) {
         return false;
@@ -372,7 +372,7 @@ bool OneToManyFilter::processFrame(bool removeFrame)
 {
     bool newData;
 
-  //  processEvent();
+    processEvent();
 
     if (!demandOriginFrames() || !demandDestinationFrames()){
         return false;

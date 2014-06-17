@@ -25,18 +25,18 @@
 
 
 #define PROTOCOL "RTP"
-#define PAYLOAD 97
+#define PAYLOAD1 97
+#define PAYLOAD2 97
 #define BANDWITH 5000
 
-#define A_CODEC "opus"
+#define A_CODEC1 "opus"
+#define A_CODEC2 "pcmu"
 #define A_CLIENT_PORT1 6006
 #define A_CLIENT_PORT2 6008
 #define A_MEDIUM "audio"
-#define A_TIME_STMP_FREQ 48000
+#define A_TIME_STMP_FREQ1 48000
+#define A_TIME_STMP_FREQ2 8000
 #define A_CHANNELS 2
-
-#define CHANNEL_MAX_SAMPLES 3000
-#define OUT_SAMPLE_RATE 48000
 
 bool should_stop = false;
 
@@ -58,6 +58,7 @@ void signalHandler( int signum )
     transmitter->closeManager();
     
     std::cout << "Managers closed\n";
+    exit(1);
 }
 
 int main(int argc, char** argv) 
@@ -96,10 +97,10 @@ int main(int argc, char** argv)
     
     sdp = handlers::makeSessionSDP("testSession", "this is a test");
     
-    sdp += handlers::makeSubsessionSDP(A_MEDIUM, PROTOCOL, PAYLOAD, A_CODEC, BANDWITH, 
-                                        A_TIME_STMP_FREQ, A_CLIENT_PORT1, A_CHANNELS);
-    sdp += handlers::makeSubsessionSDP(A_MEDIUM, PROTOCOL, PAYLOAD, A_CODEC, BANDWITH, 
-                                        A_TIME_STMP_FREQ, A_CLIENT_PORT2, A_CHANNELS);
+    sdp += handlers::makeSubsessionSDP(A_MEDIUM, PROTOCOL, PAYLOAD1, A_CODEC1, BANDWITH, 
+                                        A_TIME_STMP_FREQ1, A_CLIENT_PORT1, A_CHANNELS);
+    sdp += handlers::makeSubsessionSDP(A_MEDIUM, PROTOCOL, PAYLOAD2, A_CODEC2, BANDWITH, 
+                                        A_TIME_STMP_FREQ2, A_CLIENT_PORT2, A_CHANNELS);
     
     session = Session::createNew(*(receiver->envir()), sdp, sessionId);
     

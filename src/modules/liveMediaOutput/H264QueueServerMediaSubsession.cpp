@@ -21,10 +21,7 @@
  *            
  */
 
-#ifndef _QUEUE_SOURCE_HH
 #include "H264QueueSource.hh"
-#endif
-
 #include "H264QueueServerMediaSubsession.hh"
 #include <string>
 

@@ -1,8 +1,9 @@
-#include "../src/network/Handlers.hh"
-#include "../src/network/SourceManager.hh"
+#include "../src/modules/liveMediaInput/SourceManager.hh"
+#include "../src/modules/liveMediaOutput/SinkManager.hh"
 #include "../src/AudioFrame.hh"
 #include "../src/Controller.hh"
 #include "../src/Callbacks.hh"
+#include "../src/Utils.hh"
 
 #include <iostream>
 #include <csignal>
@@ -51,17 +52,17 @@ int main(int argc, char** argv)
     signal(SIGINT, signalHandler); 
     
     for (int i = 1; i <= argc-1; ++i) {
-        sessionId = handlers::randomIdGenerator(ID_LENGTH);
+        sessionId = utils::randomIdGenerator(ID_LENGTH);
         session = Session::createNewByURL(*(receiver->envir()), argv[0], argv[i], sessionId);
         receiver->addSession(session);
         session->initiateSession();
     }
     
-    sessionId = handlers::randomIdGenerator(ID_LENGTH);
+    sessionId = utils::randomIdGenerator(ID_LENGTH);
     
-    sdp = handlers::makeSessionSDP(sessionId, "this is a test");
+    sdp = SourceManager::makeSessionSDP(sessionId, "this is a test");
     
-    sdp += handlers::makeSubsessionSDP(V_MEDIUM, PROTOCOL, PAYLOAD, V_CODEC, 
+    sdp += SourceManager::makeSubsessionSDP(V_MEDIUM, PROTOCOL, PAYLOAD, V_CODEC, 
                                        BANDWITH, V_TIME_STMP_FREQ, V_CLIENT_PORT);
     
     session = Session::createNew(*(receiver->envir()), sdp, sessionId);
@@ -78,7 +79,7 @@ int main(int argc, char** argv)
     for (auto it : ctrl->pipelineManager()->getPaths()){
         readers.push_back(it.second->getDstReaderID());
     
-        sessionId = handlers::randomIdGenerator(ID_LENGTH);
+        sessionId = utils::randomIdGenerator(ID_LENGTH);
         if (! transmitter->addSession(sessionId, readers)){
             return 1;
         }

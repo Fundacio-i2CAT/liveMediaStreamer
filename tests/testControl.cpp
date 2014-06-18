@@ -4,13 +4,8 @@
 
 #include <string>
 
-#ifndef _HANDLERS_HH
-#include "../src/network/Handlers.hh"
-#endif
-
-#ifndef _SOURCE_MANAGER_HH
-#include "../src/network/SourceManager.hh"
-#endif
+#include "../src/modules/liveMediaInput/SourceManager.hh"
+#include "../src/Utils.hh"
 
 #include "../src/AudioFrame.hh"
 #include "../src/modules/audioDecoder/AudioDecoderLibav.hh"
@@ -126,18 +121,18 @@ int main(int argc, char** argv)
     signal(SIGINT, signalHandler); 
     
     for (int i = 1; i <= argc-1; ++i) {
-        sessionId = handlers::randomIdGenerator(ID_LENGTH);
+        sessionId = utils::randomIdGenerator(ID_LENGTH);
         session = Session::createNewByURL(*(mngr->envir()), argv[0], argv[i], sessionId);
         mngr->addSession(session);
     }
     
-    sessionId = handlers::randomIdGenerator(ID_LENGTH);
+    sessionId = utils::randomIdGenerator(ID_LENGTH);
     
-    sdp = handlers::makeSessionSDP("testSession", "this is a test");
+    sdp = SourceManager::makeSessionSDP("testSession", "this is a test");
     
-    sdp += handlers::makeSubsessionSDP(A_MEDIUM, PROTOCOL, PAYLOAD, A_CODEC, BANDWITH, 
+    sdp += SourceManager::makeSubsessionSDP(A_MEDIUM, PROTOCOL, PAYLOAD, A_CODEC, BANDWITH, 
                                         A_TIME_STMP_FREQ, A_CLIENT_PORT1, A_CHANNELS);
-    sdp += handlers::makeSubsessionSDP(A_MEDIUM, PROTOCOL, PAYLOAD, A_CODEC, BANDWITH, 
+    sdp += SourceManager::makeSubsessionSDP(A_MEDIUM, PROTOCOL, PAYLOAD, A_CODEC, BANDWITH, 
                                         A_TIME_STMP_FREQ, A_CLIENT_PORT2, A_CHANNELS);
     
     session = Session::createNew(*(mngr->envir()), sdp, sessionId);

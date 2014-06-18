@@ -2,15 +2,8 @@
 #include <liveMedia/liveMedia.hh>
 #endif
 
-#include <string>
-
-#ifndef _HANDLERS_HH
-#include "../src/network/Handlers.hh"
-#endif
-
-#ifndef _SOURCE_MANAGER_HH
-#include "../src/network/SourceManager.hh"
-#endif
+#include "../src/modules/liveMediaInput/SourceManager.hh"
+#include "../src/Utils.hh"
 
 #ifndef _VIDEO_DECODER_LIBAV_HH
 #include "../src/modules/videoDecoder/VideoDecoderLibav.hh"
@@ -28,6 +21,7 @@
 #include "../src/modules/videoEncoder/VideoEncoderX264.hh"
 #endif
 
+#include <string>
 #include <fstream>
 #include <iostream>
 #include <csignal>
@@ -90,16 +84,16 @@ int main(int argc, char** argv)
     signal(SIGINT, signalHandler); 
     
     for (int i = 1; i <= argc-1; ++i) {
-        sessionId = handlers::randomIdGenerator(ID_LENGTH);
+        sessionId = utils::randomIdGenerator(ID_LENGTH);
         session = Session::createNewByURL(*(mngr->envir()), argv[0], argv[i], sessionId);
         mngr->addSession(session);
     }
     
-    sessionId = handlers::randomIdGenerator(ID_LENGTH);
+    sessionId = utils::randomIdGenerator(ID_LENGTH);
     
-    sdp = handlers::makeSessionSDP(sessionId, "this is a test");
+    sdp = SourceManager::makeSessionSDP(sessionId, "this is a test");
     
-    sdp += handlers::makeSubsessionSDP(V_MEDIUM, PROTOCOL, PAYLOAD, V_CODEC, 
+    sdp += SourceManager::makeSubsessionSDP(V_MEDIUM, PROTOCOL, PAYLOAD, V_CODEC, 
                                        BANDWITH, V_TIME_STMP_FREQ, V_CLIENT_PORT);
     // sdp += handlers::makeSubsessionSDP(A_MEDIUM, PROTOCOL, PAYLOAD, A_CODEC, 
     //                                    BANDWITH, A_TIME_STMP_FREQ, A_CLIENT_PORT);

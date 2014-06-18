@@ -1,13 +1,9 @@
 #ifndef _H264_QUEUE_SINK_HH
 #define _H264_QUEUE_SINK_HH
 
-#ifndef _LIVEMEDIA_HH
 #include <liveMedia/liveMedia.hh>
-#endif
 
-#ifndef _QUEUE_SINK_HH
 #include "QueueSink.hh"
-#endif
 
 
 class H264QueueSink: public QueueSink {

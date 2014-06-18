@@ -332,6 +332,13 @@ bool PipelineManager::connectPath(Path* path)
         return false;
     }
 
+    //TODO: manage worker assignment better
+    for (auto it : pathFilters) {
+        Worker* worker = new Worker(filters[it].first);
+        filters[it].second = worker;
+        worker->start();
+    }
+
     return true;
 
 }

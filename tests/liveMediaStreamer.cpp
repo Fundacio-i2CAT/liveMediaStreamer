@@ -34,10 +34,45 @@
 #include <iostream>
 #include "../src/Controller.hh"
 #include "../src/Callbacks.hh"
+#include "../src/modules/audioMixer/AudioMixer.hh"
+#include "../src/modules/audioEncoder/AudioEncoderLibav.hh"
+
+void createMixerEncoderTxPath()
+{
+    PipelineManager *pipeMngr = Controller::getInstance()->pipelineManager();
+    
+    AudioMixer *mixer = new AudioMixer(4);
+    int audioMixerID = rand();
+
+    if(!pipeMngr->addFilter(audioMixerID, mixer)) {
+        std::cerr << "Error adding mixer to the pipeline" << std::endl;
+    }
+
+    Path *path = new AudioEncoderPath(audioMixerID, DEFAULT_ID);
+    dynamic_cast<AudioEncoderLibav*>(pipeMngr->getFilter(path->getFilters().front()))->configure(OPUS);
+
+    path->setDestinationFilter(pipeMngr->getTransmitterID(), pipeMngr->getTransmitter()->generateReaderID());
+
+    if (!pipeMngr->connectPath(path)) {
+        exit(1);
+    }
+
+    int encoderPathID = rand();
+
+    if (!pipeMngr->addPath(encoderPathID, path)) {
+        exit(1);
+    }
+
+    Worker* audioMixerWorker = new Worker();
+    if(!pipeMngr->addWorker(audioMixerID, audioMixerWorker)) {
+        std::cerr << "Error adding mixer worker" << std::endl;
+        exit(1);
+    }
+
+    audioMixerWorker->start();
+}
 
 int main(int argc, char *argv[]) {
-    Controller* ctrl = Controller::getInstance();
-    ctrl->pipelineManager()->getReceiver()->setCallback(callbacks::connectToMixerCallback);
 
     int sockfd, newsockfd, port, n;
     char buffer[2048];
@@ -47,6 +82,11 @@ int main(int argc, char *argv[]) {
         fprintf(stderr,"ERROR, no port provided\n");
         exit(1);
     }
+
+    Controller* ctrl = Controller::getInstance();
+    ctrl->pipelineManager()->getReceiver()->setCallback(callbacks::connectToMixerCallback);
+
+    createMixerEncoderTxPath();
 
     port = atoi(argv[1]);
     if (!ctrl->createSocket(port)) {

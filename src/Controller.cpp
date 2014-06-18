@@ -207,7 +207,7 @@ PipelineManager::PipelineManager()
     transmitterID = rand();
     addFilter(receiverID, SourceManager::getInstance());
     addFilter(transmitterID, SinkManager::getInstance());
-    //addWorker(receiverID, new LiveMediaWorker(SourceManager::getInstance()));
+    addWorker(receiverID, new LiveMediaWorker(SourceManager::getInstance()));
     addWorker(transmitterID, new LiveMediaWorker(SinkManager::getInstance()));
 }
 

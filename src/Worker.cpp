@@ -168,6 +168,9 @@ void LiveMediaWorker::process()
 void LiveMediaWorker::stop()
 {   
     processor->stop();
+    if (isRunning()){
+        thread.join();
+    }
 }
 
 

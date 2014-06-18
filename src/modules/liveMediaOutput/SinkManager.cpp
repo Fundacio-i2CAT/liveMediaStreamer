@@ -72,13 +72,13 @@ bool SinkManager::processFrame(Frame *org, bool removeFrame)
 {
     SinkManager* instance = SinkManager::getInstance();
     
-    if (instance == NULL || instance->envir() == NULL){
+    if (envir() == NULL){
         return false;
     }
-    instance->envir()->taskScheduler().doEventLoop((char*) &watch); 
+    envir()->taskScheduler().doEventLoop((char*) &watch); 
     
-    delete &instance->envir()->taskScheduler();
-    instance->envir()->reclaim();
+    delete &envir()->taskScheduler();
+    envir()->reclaim();
     
     return true;
 }

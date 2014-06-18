@@ -158,8 +158,6 @@ protected:
     int getNullWriterID();
     
 private:
-    //TODO: error message
-    bool processFrame(Frame *org = NULL, bool removeFrame = false) {};
     using BaseFilter::demandOriginFrames;
     using BaseFilter::demandDestinationFrames;
     using BaseFilter::addFrames;
@@ -167,7 +165,6 @@ private:
     using BaseFilter::readers;
     using BaseFilter::oFrames;
     using BaseFilter::dFrames;
-    void stop() {};
 };
 
 class TailFilter : public BaseFilter {

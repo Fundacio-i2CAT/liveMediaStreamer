@@ -33,9 +33,7 @@ void signalHandler( int signum )
     std::cout << "Interrupt signal (" << signum << ") received.\n";
     
     PipelineManager *pipe = Controller::getInstance()->pipelineManager();
-    SourceManager *receiver = pipe->getReceiver();
-    SinkManager *transmitter = pipe->getTransmitter();
-    receiver->closeManager();
+    pipe->getWorker(pipe->getReceiverID())->stop();
     pipe->getWorker(pipe->getTransmitterID())->stop();
     
     std::cout << "Managers closed\n";
@@ -55,6 +53,9 @@ int main(int argc, char** argv)
     //This will connect every input directly to the transmitter
     receiver->setCallback(callbacks::connectToTransmitter);
 
+    pipe->getWorker(pipe->getTransmitterID())->start();
+    pipe->getWorker(pipe->getReceiverID())->start();
+    
     Frame *codedFrame;
     
     signal(SIGINT, signalHandler); 
@@ -83,10 +84,6 @@ int main(int argc, char** argv)
     receiver->addSession(session);
 
     session->initiateSession();
-       
-    receiver->runManager();
-    
-    pipe->getWorker(pipe->getTransmitterID())->start();
     
     sleep(2);
     
@@ -100,7 +97,7 @@ int main(int argc, char** argv)
     }
     transmitter->publishSession(sessionId);
 
-    while(receiver->isRunning() && 
+    while(pipe->getWorker(pipe->getReceiverID())->isRunning() && 
         pipe->getWorker(pipe->getTransmitterID())->isRunning()) {
         sleep(1);
     }

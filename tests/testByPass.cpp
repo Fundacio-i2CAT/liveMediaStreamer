@@ -24,11 +24,9 @@ void signalHandler( int signum )
 {
     std::cout << "Interrupt signal (" << signum << ") received.\n";
     
-    Controller *ctrl = Controller::getInstance();
-    SourceManager *receiver = ctrl->pipelineManager()->getReceiver();
-    SinkManager *transmitter = ctrl->pipelineManager()->getTransmitter();
-    receiver->closeManager();
-    transmitter->closeManager();
+    PipelineManager *pipe = Controller::getInstance()->pipelineManager();
+    pipe->getWorker(pipe->getReceiverID())->stop();
+    pipe->getWorker(pipe->getTransmitterID())->stop();
     
     std::cout << "Managers closed\n";
 }
@@ -40,12 +38,15 @@ int main(int argc, char** argv)
     std::vector<int> readers;
     Session* session;
 
-    Controller *ctrl = Controller::getInstance();
-    SourceManager *receiver = ctrl->pipelineManager()->getReceiver();
-    SinkManager *transmitter = ctrl->pipelineManager()->getTransmitter();
+    PipelineManager *pipe = Controller::getInstance()->pipelineManager();
+    SourceManager *receiver = pipe->getReceiver();
+    SinkManager *transmitter = pipe->getTransmitter();
     
     //This will connect every input directly to the transmitter
     receiver->setCallback(callbacks::connectToTransmitter);
+    
+    pipe->getWorker(pipe->getTransmitterID())->start();
+    pipe->getWorker(pipe->getReceiverID())->start();
 
     Frame *codedFrame;
     
@@ -70,13 +71,10 @@ int main(int argc, char** argv)
     receiver->addSession(session);
 
     session->initiateSession();
-       
-    receiver->runManager();
-    transmitter->runManager();
     
     sleep(2);
     
-    for (auto it : ctrl->pipelineManager()->getPaths()){
+    for (auto it : pipe->getPaths()){
         readers.push_back(it.second->getDstReaderID());
     
         sessionId = utils::randomIdGenerator(ID_LENGTH);
@@ -87,7 +85,8 @@ int main(int argc, char** argv)
         transmitter->publishSession(sessionId);
     }
 
-    while(receiver->isRunning() && transmitter->isRunning()) {
+    while(pipe->getWorker(pipe->getReceiverID())->isRunning() && 
+        pipe->getWorker(pipe->getTransmitterID())->isRunning()) {
         sleep(1);
     }
 

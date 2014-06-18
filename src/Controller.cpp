@@ -35,7 +35,7 @@ Controller::Controller()
     Jzon::Object* inputRootNode = new Jzon::Object();
     Jzon::Parser* parser = new Jzon::Parser(*inputRootNode);
     initializeEventMap();
-    runFlag = false;
+    runFlag = true;
 }
 
 Controller* Controller::getInstance()

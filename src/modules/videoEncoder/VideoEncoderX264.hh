@@ -47,6 +47,7 @@ class VideoEncoderX264: public OneToOneFilter {
 		void setIntra(){forceIntra = true;};
 		FrameQueue* allocQueue(int wId);
 		void initializeEventMap();
+		void doGetState(Jzon::Object &filterNode);
 
 	private:
 		x264_picture_t picIn;

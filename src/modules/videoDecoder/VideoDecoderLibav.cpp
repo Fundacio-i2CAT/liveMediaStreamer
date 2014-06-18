@@ -319,3 +319,11 @@ void VideoDecoderLibav::initializeEventMap()
 	eventMap["changePixelFormat"] = std::bind(&VideoDecoderLibav::changePixelFormatEvent, this, std::placeholders::_1);
 }
 
+void VideoDecoderLibav::doGetState(Jzon::Object &filterNode)
+{
+   /* filterNode.Add("codec", utils::getAudioCodecAsString(fCodec));
+    filterNode.Add("sampleRate", sampleRate);
+    filterNode.Add("channels", channels);
+    filterNode.Add("sampleFormat", utils::getSampleFormatAsString(sampleFmt));*/
+}
+

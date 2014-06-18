@@ -232,7 +232,7 @@ void SinkManager::initializeEventMap()
 void SinkManager::addSessionEvent(Jzon::Node* params, Jzon::Object &outputNode)
 {
     std::vector<int> readers;
-    std::string sessionId = handlers::randomIdGenerator(ID_LENGTH);
+    std::string sessionId = utils::randomIdGenerator(TX_ID_LENGTH);
 
     if (!params) {
         outputNode.Add("error", "Error adding session. Wrong parameters!");

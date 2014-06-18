@@ -76,7 +76,7 @@ protected:
     virtual bool hasFrames();
 	virtual Frame* getFrame();
     virtual FrameQueue *allocQueue(int wId) = 0;
-    virtual bool processFrame(Frame *org = NULL, bool removeFrame = false) = 0;
+    virtual bool processFrame(Frame *org = NULL, bool removeFrame = true) = 0;
     virtual Reader *setReader(int readerID, FrameQueue* queue);
     virtual void initializeEventMap() = 0;
     virtual void doGetState(Jzon::Object &filterNode) = 0;
@@ -117,7 +117,7 @@ protected:
     virtual bool doProcessFrame(Frame *org, Frame *dst) = 0;
     
 private:
-    bool processFrame(Frame *org = NULL, bool removeFrame = false);
+    bool processFrame(Frame *org = NULL, bool removeFrame = true);
     using BaseFilter::demandOriginFrames;
     using BaseFilter::demandDestinationFrames;
     using BaseFilter::addFrames;
@@ -136,7 +136,7 @@ protected:
     virtual bool doProcessFrame(Frame *org, std::map<int, Frame *> dstFrames) = 0;
     
 private:
-    bool processFrame(Frame *org = NULL, bool removeFrame = false);
+    bool processFrame(Frame *org = NULL, bool removeFrame = true);
     using BaseFilter::demandOriginFrames;
     using BaseFilter::demandDestinationFrames;
     using BaseFilter::addFrames;
@@ -159,7 +159,7 @@ protected:
     
 private:
     //TODO: error message
-    bool processFrame(Frame *org = NULL, bool removeFrame = false) {};
+    bool processFrame(Frame *org = NULL, bool removeFrame = true) {};
     using BaseFilter::demandOriginFrames;
     using BaseFilter::demandDestinationFrames;
     using BaseFilter::addFrames;
@@ -178,7 +178,7 @@ protected:
     //TODO: desctructor
     
 private:
-    bool processFrame(Frame *org = NULL, bool removeFrame = false) {};
+    bool processFrame(Frame *org = NULL, bool removeFrame = true) {};
     FrameQueue *allocQueue(int wId) {return NULL;};
     using BaseFilter::demandOriginFrames;
     using BaseFilter::demandDestinationFrames;
@@ -196,7 +196,7 @@ protected:
     virtual bool doProcessFrame(std::map<int, Frame *> orgFrames, Frame *dst) = 0;
 
 private:
-    bool processFrame(Frame *org = NULL, bool removeFrame = false);
+    bool processFrame(Frame *org = NULL, bool removeFrame = true);
     using BaseFilter::demandOriginFrames;
     using BaseFilter::demandDestinationFrames;
     using BaseFilter::addFrames;

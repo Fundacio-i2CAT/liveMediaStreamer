@@ -68,14 +68,15 @@ int main(int argc, char** argv)
 	VideoEncoderX264* encoder720 = new VideoEncoderX264();
 	VideoEncoderX264* encoder480 = new VideoEncoderX264();
 	VideoEncoderX264* encoder1080 = new VideoEncoderX264();
-	encoder720->configure(1280, 720, YUYV422);
-	//encoder480->configure(720, 480, YUYV422);
-	encoder1080->configure(1920, 1080, YUYV422);
     Worker *vDecoderWorker;
 	Worker *vEncoderWorker;
 	Master *vEnconderMaster;
 	Slave *vEncoderSlave1, *vEncoderSlave2, *vEncoderSlave3;
     std::ofstream h264Frames720, h264Frames480, h264Frames1080;
+
+	encoder720->configure(1280, 720, YUYV422);
+	encoder480->configure(720, 480, YUYV422);
+	//encoder1080->configure(1920, 1080, YUYV422);
 
 	 mngr->setCallback((void(*)(char const*, unsigned short))&connect);
     
@@ -122,14 +123,14 @@ int main(int argc, char** argv)
         std::cerr << "Error connecting video encoder" << std::endl;
     }
 
-    Reader *reader = new Reader();
-	encoder->connect(reader);
+    Reader *reader1080 = new Reader();
+	encoder->connect(reader1080);
     Reader *reader720 = new Reader();
 	encoder720->connect(reader720);
-	//Reader *reader480 = new Reader();
-	//encoder480->connect(reader480);
-	Reader *reader1080 = new Reader();
-	encoder1080->connect(reader1080);
+	Reader *reader480 = new Reader();
+	encoder480->connect(reader480);
+	//Reader *reader1080 = new Reader();
+	//encoder1080->connect(reader1080);
 
     vDecoderWorker = new Worker(decoder);
 	vEnconderMaster = new Master(encoder);
@@ -137,26 +138,26 @@ int main(int argc, char** argv)
 	
 	vEncoderSlave1 = new Slave(1, encoder720);
 	vEnconderMaster->addSlave(vEncoderSlave1);
-	//vEncoderSlave2 = new Slave(2, encoder480);
-	//vEnconderMaster->addSlave(vEncoderSlave2);
-	vEncoderSlave3 = new Slave(3, encoder1080);
-	vEnconderMaster->addSlave(vEncoderSlave3);
+	vEncoderSlave2 = new Slave(2, encoder480);
+	vEnconderMaster->addSlave(vEncoderSlave2);
+	//vEncoderSlave3 = new Slave(3, encoder1080);
+	//vEnconderMaster->addSlave(vEncoderSlave3);
 	
 
     vDecoderWorker->start();
 	//vEncoderWorker->start();
 	vEnconderMaster->start();
 	vEncoderSlave1->start();
-	//vEncoderSlave2->start();
-	vEncoderSlave3->start();
+	vEncoderSlave2->start();
+	//vEncoderSlave3->start();
     
     while(mngr->isRunning()) {
 		//printf("antes getFrame\n");
 		h264Frame720 = reader720->getFrame();
-		//h264Frame480 = reader480->getFrame();
+		h264Frame480 = reader480->getFrame();
 		h264Frame1080 = reader1080->getFrame();
 		
-        if (!h264Frame720 || !h264Frame1080) {
+        if (!h264Frame720 || !h264Frame1080 || !h264Frame480) {
             usleep(500);
             continue;
         }
@@ -165,10 +166,10 @@ int main(int argc, char** argv)
             h264Frames720.open("frames720.h264", std::ios::out | std::ios::app | std::ios::binary);
         }
 
-       /* if (! h264Frames480.is_open()){
+        if (! h264Frames480.is_open()){
             h264Frames480.open("frames480.h264", std::ios::out | std::ios::app | std::ios::binary);
         }
-*/
+
         if (! h264Frames1080.is_open()){
             h264Frames1080.open("frames1080.h264", std::ios::out | std::ios::app | std::ios::binary);
         }
@@ -178,10 +179,10 @@ int main(int argc, char** argv)
             //printf("Filled buffer! Frame size: %d\n", h264Frame->getLength());
         }
 
-/*		if (h264Frame480->getLength() > 0) {
+		if (h264Frame480->getLength() > 0) {
             h264Frames480.write(reinterpret_cast<const char*>(h264Frame480->getDataBuf()), h264Frame480->getLength());
             //printf("Filled buffer! Frame size: %d\n", h264Frame->getLength());
-        }*/
+        }
         
 		if (h264Frame1080->getLength() > 0) {
             h264Frames1080.write(reinterpret_cast<const char*>(h264Frame1080->getDataBuf()), h264Frame1080->getLength());
@@ -189,12 +190,12 @@ int main(int argc, char** argv)
         }
 
         reader720->removeFrame();        
-       // reader480->removeFrame();
+        reader480->removeFrame();
 		reader1080->removeFrame();
     }
     
     h264Frames720.close();
-	//h264Frames480.close();
+	h264Frames480.close();
 	h264Frames1080.close();
     
     return 0;

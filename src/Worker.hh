@@ -91,7 +91,7 @@ private:
 class Runnable {
     
 public:
-    virtual bool processFrame(Frame *org = NULL, bool removeFrame = false) = 0;
+    virtual bool processFrame(Frame *org = NULL, bool removeFrame = true) = 0;
 	virtual void removeFrames() = 0;
 	virtual bool hasFrames() = 0;
 	virtual Frame* getFrame() = 0;

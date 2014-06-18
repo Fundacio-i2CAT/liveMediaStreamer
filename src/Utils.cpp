@@ -23,6 +23,8 @@
 
 #include "Utils.hh"
 
+#include <algorithm>
+
 namespace utils 
 {
     SampleFmt getSampleFormatFromString(std::string stringSampleFmt)
@@ -154,5 +156,22 @@ namespace utils
 
         return stringFormat;
 
+    }
+    
+    char randAlphaNum()
+    {
+        static const char alphanum[] =
+        "0123456789"
+        "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+        "abcdefghijklmnopqrstuvwxyz";
+        
+        return alphanum[rand() % (sizeof(alphanum) - 1)];
+    }
+    
+    std::string randomIdGenerator(unsigned int length) 
+    {
+        std::string id(length,0);
+        std::generate_n(id.begin(), length, randAlphaNum);
+        return id;
     }
 }

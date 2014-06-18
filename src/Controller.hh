@@ -23,8 +23,8 @@
 #ifndef _CONTROLLER_HH
 #define _CONTROLLER_HH
 
-#include "network/SourceManager.hh"
-#include "network/SinkManager.hh"
+#include "modules/liveMediaInput/SourceManager.hh"
+#include "modules/liveMediaOutput/SinkManager.hh"
 #include "Path.hh"
 
 #define MSG_BUFFER_MAX_LENGTH 4096

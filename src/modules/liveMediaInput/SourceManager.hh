@@ -23,7 +23,7 @@
 #ifndef _SOURCE_MANAGER_HH
 #define _SOURCE_MANAGER_HH
 
-#include "../Filter.hh"
+#include "../../Filter.hh"
 #include "Handlers.hh"
 
 #include <thread>
@@ -64,6 +64,14 @@ private:
 public:
     static SourceManager* getInstance();
     static void destroyInstance();
+    
+    static std::string makeSessionSDP(std::string sessionName, std::string sessionDescription);
+    static std::string makeSubsessionSDP(std::string mediumName, std::string protocolName, 
+                                  unsigned int RTPPayloadFormat, 
+                                  std::string codecName, unsigned int bandwidth, 
+                                  unsigned int RTPTimestampFrequency, 
+                                  unsigned int clientPortNum = 0,
+                                  unsigned int channels = 0);
       
     bool runManager();
     bool isRunning();

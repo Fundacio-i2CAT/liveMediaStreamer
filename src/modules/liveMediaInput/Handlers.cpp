@@ -26,7 +26,7 @@
 #include "H264QueueSink.hh"
 #include "SourceManager.hh"
 #include "ExtendedRTSPClient.hh"
-#include "../AVFramedQueue.hh"
+#include "../../AVFramedQueue.hh"
 
 #include <iostream>
 #include <sstream>
@@ -264,23 +264,6 @@ namespace handlers
         }
         
         return sdp.str();
-    }
-    
-    char randAlphaNum()
-    {
-        static const char alphanum[] =
-        "0123456789"
-        "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-        "abcdefghijklmnopqrstuvwxyz";
-        
-        return alphanum[rand() % (sizeof(alphanum) - 1)];
-    }
-    
-    std::string randomIdGenerator(unsigned int length) 
-    {
-        std::string id(length,0);
-        std::generate_n(id.begin(), length, randAlphaNum);
-        return id;
     }
     
     //TODO: static method of SourceManager?

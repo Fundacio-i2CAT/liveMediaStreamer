@@ -27,29 +27,11 @@
 #include <liveMedia/liveMedia.hh>
 #include <string>
 
-#define CODED_VIDEO_FRAMES 512 
-#define CODED_AUDIO_FRAMES 1024
-#define MAX_AUDIO_FRAME_SIZE 2048
-#define MAX_VIDEO_FRAME_SIZE 200000
-#define ID_LENGTH 4
-
-
 namespace handlers
 {
     void continueAfterDESCRIBE(RTSPClient* rtspClient, int resultCode, char* resultString);
     void subsessionAfterPlaying(void* clientData);
     void subsessionByeHandler(void* clientData);
-    
-    std::string makeSessionSDP(std::string sessionName, std::string sessionDescription);
-    std::string makeSubsessionSDP(std::string mediumName, std::string protocolName, 
-                                  unsigned int RTPPayloadFormat, 
-                                  std::string codecName, unsigned int bandwidth, 
-                                  unsigned int RTPTimestampFrequency, 
-                                  unsigned int clientPortNum = 0,
-                                  unsigned int channels = 0);
-    
-    std::string randomIdGenerator(unsigned int length);
-    
     bool addSubsessionSink(UsageEnvironment& env, MediaSubsession *subsession);
 };
 

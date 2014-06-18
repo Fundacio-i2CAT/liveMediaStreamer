@@ -26,8 +26,6 @@
 #ifndef _EXTENDED_RTSP_CLIENT_HH
 #define _EXTENDED_RTSP_CLIENT_HH
 
-
-
 #include <liveMedia/liveMedia.hh>
 #include <BasicUsageEnvironment.hh>
 

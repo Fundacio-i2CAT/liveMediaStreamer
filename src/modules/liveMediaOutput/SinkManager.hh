@@ -24,8 +24,8 @@
 #define _SINK_MANAGER_HH
 
 #include "QueueSource.hh"
-#include "../Filter.hh"
-#include "../IOInterface.hh"
+#include "../../Filter.hh"
+#include "../../IOInterface.hh"
 
 #include <BasicUsageEnvironment.hh>
 #include <liveMedia/liveMedia.hh>
@@ -34,6 +34,7 @@
 #include <string>
 
 #define RTSP_PORT 8554
+#define MAX_VIDEO_FRAME_SIZE 200000
 
 class SinkManager : public TailFilter {
 private:

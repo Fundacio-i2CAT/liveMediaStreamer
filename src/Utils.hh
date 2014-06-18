@@ -33,6 +33,7 @@ namespace utils
     std::string getAudioCodecAsString(ACodecType codec);
     std::string getFilterTypeAsString(FilterType type);
     std::string getSampleFormatAsString(SampleFmt sFormat);
+	std::string randomIdGenerator(unsigned int length);
 }
 
 #endif

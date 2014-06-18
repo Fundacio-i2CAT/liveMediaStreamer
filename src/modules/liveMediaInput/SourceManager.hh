@@ -34,8 +34,8 @@
 #include <liveMedia/liveMedia.hh>
 #include <BasicUsageEnvironment.hh>
 
-#define ID_LENGTH 4
 #define PROTOCOL "RTP"
+#define RX_ID_LENGTH 4
  
 
 class Session;

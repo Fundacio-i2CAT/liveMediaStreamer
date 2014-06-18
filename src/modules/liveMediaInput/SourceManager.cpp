@@ -180,7 +180,7 @@ void SourceManager::initializeEventMap()
 
 void SourceManager::addSessionEvent(Jzon::Node* params, Jzon::Object &outputNode)
 {
-    std::string sessionId = utils::randomIdGenerator(ID_LENGTH);
+    std::string sessionId = utils::randomIdGenerator(RX_ID_LENGTH);
     std::string sdp, medium, codec;
     int payload, bandwith, timeStampFrequency, channels, port;
     Session* session;

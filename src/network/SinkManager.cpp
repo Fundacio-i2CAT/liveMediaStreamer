@@ -224,4 +224,42 @@ ServerMediaSession* SinkManager::getSession(std::string id)
     return NULL;
 }
 
+void SinkManager::initializeEventMap() 
+{
+     eventMap["addSession"] = std::bind(&SinkManager::addSessionEvent, this, 
+                                        std::placeholders::_1,  std::placeholders::_2);
+}
+
+void SinkManager::addSessionEvent(Jzon::Node* params, Jzon::Object &outputNode)
+{
+    std::vector<int> readers;
+    std::string sessionId = handlers::randomIdGenerator(ID_LENGTH);
+
+    if (!params) {
+        outputNode.Add("error", "Error adding session. Wrong parameters!");
+        return;
+    }
+
+    if (params->Has("readers") && params->Get("readers").IsArray()) {
+        
+        Jzon::Array jsonReaders = params->Get("readers").AsArray();
+        
+        for (Jzon::Array::iterator it = jsonReaders.begin(); it != jsonReaders.end(); ++it) {
+            readers.push_back((*it).ToInt());
+        }
+    }
+    
+    if (readers.empty()) {
+        outputNode.Add("error", "Error adding session. Wrong parameters!");
+    }
+
+    if(!addSession(sessionId, readers)) {
+        outputNode.Add("error", "Error adding session. Wrong parameters!");
+    }
+
+    publishSession(sessionId);
+
+    outputNode.Add("error", Jzon::null);
+} 
+
 

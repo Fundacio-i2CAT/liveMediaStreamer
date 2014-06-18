@@ -31,6 +31,7 @@
 #define CODED_AUDIO_FRAMES 1024
 #define MAX_AUDIO_FRAME_SIZE 2048
 #define MAX_VIDEO_FRAME_SIZE 200000
+#define ID_LENGTH 4
 
 
 namespace handlers

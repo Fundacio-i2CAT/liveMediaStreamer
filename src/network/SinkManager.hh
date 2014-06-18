@@ -58,7 +58,8 @@ public:
     UsageEnvironment* envir() {return env;}
       
 private: 
-    void initializeEventMap() {/*TODO*/};
+    void initializeEventMap();
+    void addSessionEvent(Jzon::Node* params, Jzon::Object &outputNode);
     
     ServerMediaSubsession *createSubsessionByReader(Reader *reader);
     ServerMediaSubsession *createVideoMediaSubsession(VCodecType codec, Reader *reader);

@@ -74,7 +74,7 @@ void Worker::process()
     while(run){
         while (enabled && frameTime > 0) {
             previousTime = std::chrono::system_clock::now();
-            if (processor->processFrame(NULL, true)) { 
+            if (processor->processFrame()) { 
                 idleCount = 0;
                 enlapsedTime = std::chrono::duration_cast<std::chrono::microseconds>(
                     std::chrono::system_clock::now() - previousTime);
@@ -91,7 +91,7 @@ void Worker::process()
                 }
             }
         }      
-        while (enabled && processor->processFrame(NULL, true)){
+        while (enabled && processor->processFrame()){
             idleCount = 0;
         }
         if (idleCount <= ACTIVE_TIMEOUT){
@@ -192,7 +192,7 @@ void Master::process() {
 				processAll();
 				sync = false;
 			}
-			processor->processFrame(NULL, false);
+			processor->processFrame(false);
             previousTime = std::chrono::system_clock::now();
             if (allFinished()) {
                 idleCount = 0;
@@ -218,7 +218,7 @@ void Master::process() {
 				processAll();
 				sync = false;
 			}
-			processor->processFrame(NULL, false);
+			processor->processFrame(false);
 			while (!allFinished()) {
 			}
 			idleCount = 0;
@@ -250,11 +250,6 @@ bool Master::allFinished() {
 }
 
 void Master::processAll() {
-	Frame *frame = processor->getFrame();
-	for (std::list<Slave*>::iterator it = slaves.begin(); it != slaves.end(); it++) {
-		Slave* slave = *it;
-		slave->setFrame(frame);
-	}
 	for (std::list<Slave*>::iterator it = slaves.begin(); it != slaves.end(); it++) {
 		Slave* slave = *it;
 		slave->setFalse();	
@@ -273,7 +268,7 @@ Slave::Slave(int id_, Runnable *processor_, unsigned int maxFps):Worker(processo
 void Slave::process() {
     while(run){
         while (enabled && !finished) {
-            if (processor->processFrame(origin, false)) {
+            if (processor->processFrame(false)) {
 				finished = true;
             }
         }
@@ -282,9 +277,5 @@ void Slave::process() {
 
 void Slave::setFalse() {
 	finished = false;
-}
-
-void Slave::setFrame(Frame* org) {
-	origin = org;
 }
 

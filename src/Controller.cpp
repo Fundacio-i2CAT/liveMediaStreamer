@@ -372,6 +372,7 @@ SinkManager* PipelineManager::getTransmitter()
 void PipelineManager::getStateEvent(Jzon::Node* params, Jzon::Object &outputNode)
 {
     Jzon::Array filterList;
+    Jzon::Array pathList;
 
     for (auto it : filters) {
         Jzon::Object filter;
@@ -381,6 +382,27 @@ void PipelineManager::getStateEvent(Jzon::Node* params, Jzon::Object &outputNode
     }
 
     outputNode.Add("filters", filterList);
+
+    for (auto it : paths) {
+        Jzon::Object path;
+        Jzon::Array pathFilters;
+        std::vector<int> pFilters = it.second->getFilters();
+
+        path.Add("id", it.first);
+        path.Add("originFilter", it.second->getOriginFilterID());
+        path.Add("destinationFilter", it.second->getDestinationFilterID());
+        path.Add("originWriter", it.second->getOrgWriterID());
+        path.Add("destinationReader", it.second->getDstReaderID());
+
+        for (auto it : pFilters) {
+            pathFilters.Add(it);
+        }
+
+        path.Add("filters", pathFilters);
+        pathList.Add(path);
+    }
+
+    outputNode.Add("paths", pathList);
 }
 
 /////////////////////////////////

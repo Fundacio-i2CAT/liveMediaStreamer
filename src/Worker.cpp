@@ -192,6 +192,7 @@ void Master::process() {
 				processAll();
 				sync = false;
 			}
+			processor->processFrame(NULL, false);
             previousTime = std::chrono::system_clock::now();
             if (allFinished()) {
                 idleCount = 0;
@@ -217,6 +218,7 @@ void Master::process() {
 				processAll();
 				sync = false;
 			}
+			processor->processFrame(NULL, false);
 			while (!allFinished()) {
 			}
 			idleCount = 0;

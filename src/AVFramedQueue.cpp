@@ -133,7 +133,7 @@ bool VideoFrameQueue::config()
                 //TODO: error message
                 break;
             }
-            max = DEFAULT_VIDEO_FRAMES;
+            max = DEFAULT_RAW_FRAMES;
             for (int i=0; i<max; i++) {
                 frames[i] = InterleavedVideoFrame::createNew(codec, width, height, pixelFormat);
             }

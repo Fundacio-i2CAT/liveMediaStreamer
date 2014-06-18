@@ -35,7 +35,6 @@
 #include <BasicUsageEnvironment.hh>
 
 #define PROTOCOL "RTP"
-#define RX_ID_LENGTH 4
  
 
 class Session;

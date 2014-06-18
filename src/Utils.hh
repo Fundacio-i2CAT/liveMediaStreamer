@@ -26,6 +26,8 @@
 #include "Types.hh"
 #include <string>
 
+#define ID_LENGTH 4
+
 namespace utils 
 {
     SampleFmt getSampleFormatFromString(std::string stringSampleFmt);

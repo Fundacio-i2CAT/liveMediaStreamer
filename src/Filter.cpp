@@ -60,6 +60,10 @@ Reader* BaseFilter::setReader(int readerID, FrameQueue* queue)
 
 int BaseFilter::generateReaderID()
 {
+    if (maxReaders == 1) {
+        return DEFAULT_ID;
+    }
+
     int id = rand();
 
     while (readers.count(id) > 0) {
@@ -71,6 +75,10 @@ int BaseFilter::generateReaderID()
 
 int BaseFilter::generateWriterID()
 {
+    if (maxWriters == 1) {
+        return DEFAULT_ID;
+    }
+
     int id = rand();
 
     while (writers.count(id) > 0) {

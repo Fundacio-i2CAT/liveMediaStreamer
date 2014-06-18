@@ -48,7 +48,7 @@ void createMixerEncoderTxPath()
         std::cerr << "Error adding mixer to the pipeline" << std::endl;
     }
 
-    Path *path = new AudioEncoderPath(audioMixerID, DEFAULT_ID);
+    Path *path = new AudioEncoderPath(audioMixerID, pipeMngr->getFilter(audioMixerID)->generateWriterID());
     dynamic_cast<AudioEncoderLibav*>(pipeMngr->getFilter(path->getFilters().front()))->configure(OPUS);
 
     path->setDestinationFilter(pipeMngr->getTransmitterID(), pipeMngr->getTransmitter()->generateReaderID());

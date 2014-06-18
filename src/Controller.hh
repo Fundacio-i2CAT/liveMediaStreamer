@@ -40,6 +40,7 @@ public:
     bool addWorker(int id, Worker* worker);
     bool addFilter(int id, BaseFilter* filter);
     BaseFilter* getFilter(int id);
+    Worker* getWorker(int id);
     SourceManager* getReceiver();
     SinkManager* getTransmitter();
 

@@ -207,6 +207,8 @@ PipelineManager::PipelineManager()
     transmitterID = rand();
     addFilter(receiverID, SourceManager::getInstance());
     addFilter(transmitterID, SinkManager::getInstance());
+    //addWorker(receiverID, new LiveMediaWorker(SourceManager::getInstance()));
+    addWorker(transmitterID, new LiveMediaWorker(SinkManager::getInstance()));
 }
 
 PipelineManager* PipelineManager::getInstance()
@@ -290,6 +292,14 @@ BaseFilter* PipelineManager::getFilter(int id)
     return filters[id].first;
 }
 
+Worker* PipelineManager::getWorker(int id)
+{
+    if (filters.count(id) <= 0) {
+        return NULL;
+    }
+    
+    return filters[id].second;
+}
 
 bool PipelineManager::connectPath(Path* path)
 {

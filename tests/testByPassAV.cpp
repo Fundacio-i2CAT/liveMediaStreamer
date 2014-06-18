@@ -32,11 +32,11 @@ void signalHandler( int signum )
 {
     std::cout << "Interrupt signal (" << signum << ") received.\n";
     
-    Controller *ctrl = Controller::getInstance();
-    SourceManager *receiver = ctrl->pipelineManager()->getReceiver();
-    SinkManager *transmitter = ctrl->pipelineManager()->getTransmitter();
+    PipelineManager *pipe = Controller::getInstance()->pipelineManager();
+    SourceManager *receiver = pipe->getReceiver();
+    SinkManager *transmitter = pipe->getTransmitter();
     receiver->closeManager();
-    transmitter->closeManager();
+    pipe->getWorker(pipe->getTransmitterID())->stop();
     
     std::cout << "Managers closed\n";
 }
@@ -48,9 +48,9 @@ int main(int argc, char** argv)
     std::vector<int> readers;
     Session* session;
 
-    Controller *ctrl = Controller::getInstance();
-    SourceManager *receiver = ctrl->pipelineManager()->getReceiver();
-    SinkManager *transmitter = ctrl->pipelineManager()->getTransmitter();
+    PipelineManager *pipe = Controller::getInstance()->pipelineManager();
+    SourceManager *receiver = pipe->getReceiver();
+    SinkManager *transmitter = pipe->getTransmitter();
     
     //This will connect every input directly to the transmitter
     receiver->setCallback(callbacks::connectToTransmitter);
@@ -85,11 +85,12 @@ int main(int argc, char** argv)
     session->initiateSession();
        
     receiver->runManager();
-    transmitter->runManager();
+    
+    pipe->getWorker(pipe->getTransmitterID())->start();
     
     sleep(2);
     
-    for (auto it : ctrl->pipelineManager()->getPaths()){
+    for (auto it : pipe->getPaths()){
         readers.push_back(it.second->getDstReaderID());    
     }
     
@@ -99,7 +100,8 @@ int main(int argc, char** argv)
     }
     transmitter->publishSession(sessionId);
 
-    while(receiver->isRunning() && transmitter->isRunning()) {
+    while(receiver->isRunning() && 
+        pipe->getWorker(pipe->getTransmitterID())->isRunning()) {
         sleep(1);
     }
 

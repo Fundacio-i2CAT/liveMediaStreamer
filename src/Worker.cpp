@@ -151,6 +151,27 @@ void Worker::setFps(int maxFps)
 
 
 ///////////////////////////////////////////////////
+//                LIVEMEDIAWORKER CLASS                //
+///////////////////////////////////////////////////
+
+LiveMediaWorker::LiveMediaWorker(Runnable *processor_) : Worker(processor_,0){
+    enabled = false;
+}
+
+void LiveMediaWorker::process()
+{
+    enabled = true;
+    processor->processFrame();
+    enabled = false;
+}
+
+void LiveMediaWorker::stop()
+{   
+    processor->stop();
+}
+
+
+///////////////////////////////////////////////////
 //                MASTER CLASS                   //
 ///////////////////////////////////////////////////
 

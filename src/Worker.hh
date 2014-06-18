@@ -32,6 +32,7 @@
 #define MAX_SLAVE 16
 
 class Runnable;
+class LiveMediaRunnable;
 
 class Worker {
     
@@ -43,9 +44,9 @@ public:
     
     bool start();
     bool isRunning();
-    void stop();
-    void enable();
-    void disable();
+    virtual void stop();
+    virtual void enable();
+    virtual void disable();
     bool isEnabled();
     void setFps(int maxFps);
     
@@ -57,6 +58,16 @@ protected:
     std::atomic<bool> enabled;
     //TODO: owuld be good to make it atomic, but not sure if it is lock-free
     unsigned int frameTime; //microseconds
+};
+
+class LiveMediaWorker : public Worker {
+public:
+    LiveMediaWorker(Runnable *processor_);
+    void enable() {};
+    void disable() {};
+    void stop();
+private:
+    void process();
 };
 
 class Slave : public Worker {
@@ -95,6 +106,7 @@ public:
 	virtual void removeFrames() = 0;
 	virtual bool hasFrames() = 0;
 	virtual Frame* getFrame() = 0;
+    virtual void stop() = 0;
 };
 
 #endif

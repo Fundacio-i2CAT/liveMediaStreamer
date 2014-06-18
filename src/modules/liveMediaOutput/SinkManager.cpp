@@ -55,16 +55,12 @@ SinkManager::getInstance(){
     if (mngrInstance != NULL){
         return mngrInstance;
     }
-    srand(time(NULL));
     return new SinkManager();
 }
 
-void SinkManager::closeManager()
+void SinkManager::stop()
 {
     watch = 1;
-    if (mngrTh.joinable()){
-        mngrTh.join();
-    }
 }
 
 void SinkManager::destroyInstance()
@@ -72,33 +68,19 @@ void SinkManager::destroyInstance()
     //TODO:
 }
 
-void *startServer(void *args)
+bool SinkManager::processFrame(Frame *org, bool removeFrame)
 {
-    char* watch = (char*) args;
     SinkManager* instance = SinkManager::getInstance();
     
     if (instance == NULL || instance->envir() == NULL){
-        return NULL;
+        return false;
     }
-    instance->envir()->taskScheduler().doEventLoop(watch); 
+    instance->envir()->taskScheduler().doEventLoop((char*) &watch); 
     
     delete &instance->envir()->taskScheduler();
     instance->envir()->reclaim();
     
-    return NULL;
-}
-
-bool SinkManager::runManager()
-{
-    watch = 0;
-    mngrTh = std::thread(std::bind(startServer, &watch));
-    return mngrTh.joinable();
-}
-
-
-bool SinkManager::isRunning()
-{
-    return mngrTh.joinable();
+    return true;
 }
 
 bool SinkManager::addSession(std::string id, std::vector<int> readers, std::string info, std::string desc)

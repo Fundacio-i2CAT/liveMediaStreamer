@@ -45,6 +45,7 @@ SourceManager::SourceManager(int writersNum): watch(0), HeadFilter(writersNum)
     this->env = BasicUsageEnvironment::createNew(*scheduler);
     
     mngrInstance = this;
+    fType = RECEIVER;
     initializeEventMap();
 }
 

@@ -27,13 +27,15 @@ Controller* Controller::ctrlInstance = NULL;
 PipelineManager* PipelineManager::pipeMngrInstance = NULL;
 WorkerManager* WorkerManager::workMngrInstance = NULL;
 
+void sendAndClose(Jzon::Object outputNode, int socket);
+
 Controller::Controller()
 {    
     ctrlInstance = this;
     pipeMngrInstance = PipelineManager::getInstance();
     workMngrInstance = WorkerManager::getInstance();
-    Jzon::Object* inputRootNode = new Jzon::Object();
-    Jzon::Parser* parser = new Jzon::Parser(*inputRootNode);
+    inputRootNode = new Jzon::Object();
+    parser = new Jzon::Parser(*inputRootNode);
     initializeEventMap();
     runFlag = true;
 }
@@ -117,7 +119,6 @@ bool Controller::readAndParse()
 {
     bzero(inBuffer, MSG_BUFFER_MAX_LENGTH);
     inputRootNode->Clear();
-    outputRootNode->Clear();
 
     if (read(connectionSocket, inBuffer, MSG_BUFFER_MAX_LENGTH - 1) < 0) {
         std::cerr << "ERROR reading from socket" << std::endl;
@@ -184,6 +185,7 @@ bool Controller::processInternalEvent()
     }
         
     eventMap[action](&params, outputNode);
+    sendAndClose(outputNode, connectionSocket);
 
     return true;
 }
@@ -429,5 +431,22 @@ void WorkerManager::destroyInstance()
     if (workMngrInstance != NULL) {
         delete workMngrInstance;
         workMngrInstance = NULL;
+    }
+}
+
+/////////////////////////////////
+/////////////////////////////////
+/////////////////////////////////
+
+void sendAndClose(Jzon::Object outputNode, int socket)
+{
+    Jzon::Writer writer(outputNode, Jzon::NoFormat);
+    writer.Write();
+    std::string result = writer.GetResult();
+    const char* res = result.c_str();
+    (void)write(socket, res, result.size());
+
+    if (socket >= 0){
+        close(socket);
     }
 }

@@ -94,7 +94,6 @@ private:
     int listeningSocket, connectionSocket;
     char inBuffer[MSG_BUFFER_MAX_LENGTH];
     Jzon::Object* inputRootNode;
-    Jzon::Object* outputRootNode;
     Jzon::Parser* parser;
     std::map<std::string, std::function<void(Jzon::Node* params, Jzon::Object &outputNode)> > eventMap;
     bool runFlag; 

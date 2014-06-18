@@ -31,6 +31,7 @@ namespace utils
     SampleFmt getSampleFormatFromString(std::string stringSampleFmt);
     ACodecType getCodecFromString(std::string stringCodec);
     std::string getStringFromACodec(ACodecType codec);
+    std::string randomIdGenerator(unsigned int length);
 }
 
 #endif

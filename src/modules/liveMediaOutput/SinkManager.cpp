@@ -23,9 +23,8 @@
 
 
 #include "SinkManager.hh"
-#include "Handlers.hh"
-#include "../AVFramedQueue.hh"
-#include "../AudioCircularBuffer.hh"
+#include "../../AVFramedQueue.hh"
+#include "../../AudioCircularBuffer.hh"
 #include "H264QueueServerMediaSubsession.hh"
 #include "VP8QueueServerMediaSubsession.hh"
 #include "AudioQueueServerMediaSubsession.hh"

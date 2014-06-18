@@ -26,7 +26,7 @@
 #define _QUEUE_SERVER_MEDIA_SUBSESSION_HH
 
 #include <liveMedia/liveMedia.hh>
-#include "../IOInterface.hh"
+#include "../../IOInterface.hh"
 
 
 class QueueServerMediaSubsession: public OnDemandServerMediaSubsession {

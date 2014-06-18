@@ -47,3 +47,4 @@ protected: // redefined virtual functions
 };
 
 #endif
+

@@ -23,7 +23,9 @@
 
 #include "SourceManager.hh"
 #include "ExtendedRTSPClient.hh"
-#include "../AVFramedQueue.hh"
+#include "../../AVFramedQueue.hh"
+
+#include <sstream>
 
 #define RTSP_CLIENT_VERBOSITY_LEVEL 1
 #define FILE_SINK_RECEIVE_BUFFER_SIZE 200000
@@ -168,6 +170,48 @@ FrameQueue *SourceManager::allocQueue(int wId)
     return NULL;
 }
 
+std::string SourceManager::makeSessionSDP(std::string sessionName, std::string sessionDescription)
+{
+    std::stringstream sdp;
+    sdp << "v=0\n";
+    sdp << "o=- 0 0 IN IP4 127.0.0.1\n";
+    sdp << "s=" << sessionName << "\n";
+    sdp << "i=" << sessionDescription << "\n";
+    sdp << "t= 0 0\n";
+    
+    return sdp.str();
+}
+
+std::string SourceManager::makeSubsessionSDP(std::string mediumName, std::string protocolName, 
+                              unsigned int RTPPayloadFormat, 
+                              std::string codecName, unsigned int bandwidth, 
+                              unsigned int RTPTimestampFrequency, 
+                              unsigned int clientPortNum,
+                              unsigned int channels) 
+{
+    std::stringstream sdp;
+    sdp << "m=" << mediumName << " " << clientPortNum;
+    sdp << " RTP/AVP " << RTPPayloadFormat << "\n";
+    sdp << "c=IN IP4 127.0.0.1\n";
+    sdp << "b=AS:" << bandwidth << "\n";
+    
+    if (RTPPayloadFormat < 96) {
+        return sdp.str();
+    }
+    
+    sdp << "a=rtpmap:" << RTPPayloadFormat << " ";
+    sdp << codecName << "/" << RTPTimestampFrequency;
+    if (channels != 0) {
+        sdp << "/" << channels;
+    } 
+    sdp << "\n";
+    if (codecName.compare("H264") == 0){
+        sdp << "a=fmtp:" << RTPPayloadFormat << " packetization-mode=1\n";
+    }
+    
+    return sdp.str();
+}
+
 FrameQueue* createVideoQueue(char const* codecName)
 {
     VCodecType codec;
@@ -189,6 +233,7 @@ FrameQueue* createAudioQueue(unsigned char rtpPayloadFormat, char const* codecNa
 {
     ACodecType codec;
     
+    //is this one neeeded? in should be implicit in PCMU case
     if (rtpPayloadFormat == 0) {
         codec = G711;
         return AudioFrameQueue::createNew(codec, 0);

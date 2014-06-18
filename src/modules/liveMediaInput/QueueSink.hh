@@ -24,17 +24,10 @@
 #ifndef _QUEUE_SINK_HH
 #define _QUEUE_SINK_HH
 
-#ifndef _LIVEMEDIA_HH
 #include <liveMedia/liveMedia.hh>
-#endif
 
-#ifndef _FRAME_HH
-#include "../Frame.hh"
-#endif
-
-#ifndef _IO_INTERFACE_HH
-#include "../IOInterface.hh"
-#endif
+#include "../../Frame.hh"
+#include "../../IOInterface.hh"
 
 #define DUMMY_RECEIVE_BUFFER_SIZE 200000
 

@@ -27,6 +27,8 @@
 #include "modules/liveMediaOutput/SinkManager.hh"
 #include "Path.hh"
 
+#define MSG_BUFFER_MAX_LENGTH 4096
+
 class PipelineManager {
 public:
     static PipelineManager* getInstance();
@@ -45,7 +47,7 @@ public:
     std::map<int, Path*> getPaths() {return paths;};
     bool connectPath(Path* path);   
     bool addWorkerToPath(Path *path, Worker* worker);
-
+    void getStateEvent(Jzon::Node* params, Jzon::Object &outputNode);
 
 private:
     PipelineManager();
@@ -55,7 +57,6 @@ private:
     std::map<int, std::pair<BaseFilter*, Worker*> > filters;
     int receiverID;
     int transmitterID;
-
 };
 
 class WorkerManager {
@@ -75,10 +76,29 @@ public:
     static void destroyInstance();
     PipelineManager* pipelineManager();
     WorkerManager* workerManager();
+
+    bool createSocket(int port);
+    bool listenSocket();
+    bool readAndParse();
+    bool processEvent();
+    bool run() {return runFlag;};
+
+protected:
+    void initializeEventMap();
     
 private:
     Controller();
-  
+    bool processFilterEvent(); 
+    bool processInternalEvent(); 
+
+    int listeningSocket, connectionSocket;
+    char inBuffer[MSG_BUFFER_MAX_LENGTH];
+    Jzon::Object* inputRootNode;
+    Jzon::Object* outputRootNode;
+    Jzon::Parser* parser;
+    std::map<std::string, std::function<void(Jzon::Node* params, Jzon::Object &outputNode)> > eventMap;
+    bool runFlag; 
+
     static Controller* ctrlInstance;
     PipelineManager* pipeMngrInstance;
     WorkerManager* workMngrInstance;

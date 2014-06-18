@@ -58,6 +58,7 @@ class VideoDecoderLibav : public OneToOneFilter {
         void outputConfig();
 		void resizeEvent(Jzon::Node* params);
 		void changePixelFormatEvent(Jzon::Node* params);
+		void doGetState(Jzon::Object &filterNode);
         
         AVCodec             *codec;
         AVCodecContext      *codecCtx;

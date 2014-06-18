@@ -48,20 +48,21 @@ class AudioMixer : public ManyToOneFilter {
     protected:
         Reader *setReader(int readerID, FrameQueue* queue);
         void initializeEventMap();
+        void doGetState(Jzon::Object &filterNode);
 
     private:
-        void mixNonEmptyFrames(std::map<int, Frame*> orgFrames, std::vector<int> filledFramesIds, Frame *dst, int totalFrames); 
-        void applyMixAlgorithm(std::vector<float> &fSamples, int frameNumber);
+        void mixNonEmptyFrames(std::map<int, Frame*> orgFrames, std::vector<int> filledFramesIds, Frame *dst); 
+        void applyMixAlgorithm(std::vector<float> &fSamples, int frameNumber, int realFrameNumber);
         void applyGainToChannel(std::vector<float> &fSamples, float gain);
         void sumValues(std::vector<float> fSamples, std::vector<float> &mixedSamples); 
         void LAMixAlgorithm(std::vector<float> &fSamples, int frameNumber); 
         void LDRCMixAlgorithm(std::vector<float> &fSamples, int frameNumber); 
         
-        void changeChannelVolumeEvent(Jzon::Node* params); 
-        void muteChannelEvent(Jzon::Node* params); 
-        void soloChannelEvent(Jzon::Node* params);
-        void changeMasterVolumeEvent(Jzon::Node* params);
-        void muteMasterEvent(Jzon::Node* params);
+        void changeChannelVolumeEvent(Jzon::Node* params, Jzon::Object &outputNode); 
+        void muteChannelEvent(Jzon::Node* params, Jzon::Object &outputNode); 
+        void soloChannelEvent(Jzon::Node* params, Jzon::Object &outputNode);
+        void changeMasterVolumeEvent(Jzon::Node* params, Jzon::Object &outputNode);
+        void muteMasterEvent(Jzon::Node* params, Jzon::Object &outputNode);
 
         int frameChannels;
         int sampleRate;

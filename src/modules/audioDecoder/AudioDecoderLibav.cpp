@@ -104,7 +104,7 @@ bool AudioDecoderLibav::doProcessFrame(Frame *org, Frame *dst)
     return false;
 }
 
-void AudioDecoderLibav::configure(SampleFmt sampleFormat, int channels, int sampleRate)
+bool AudioDecoderLibav::configure(SampleFmt sampleFormat, int channels, int sampleRate)
 {
     outSampleFmt = sampleFormat;
     outChannels = channels;
@@ -141,6 +141,8 @@ void AudioDecoderLibav::configure(SampleFmt sampleFormat, int channels, int samp
         break;
     }
 
+    return outputConfig();
+
 }
 
 bool AudioDecoderLibav::inputConfig()
@@ -155,13 +157,13 @@ bool AudioDecoderLibav::inputConfig()
     codec = avcodec_find_decoder(codecID);
     if (codec == NULL)
     {
-        //TODO: error
+        std::cerr << "[DECODER] Error finding codec! " << std::endl;
         return false;
     }
     
     codecCtx = avcodec_alloc_context3(codec);
     if (codecCtx == NULL) {
-        //TODO: error
+        std::cerr << "[DECODER] Error allocating context! " << std::endl;
         return false;
     }
 
@@ -173,7 +175,7 @@ bool AudioDecoderLibav::inputConfig()
     AVDictionary* dictionary = NULL;
     if (avcodec_open2(codecCtx, codec, &dictionary) < 0)
     {
-        //TODO: error
+        std::cerr << "[DECODER] Error open context! " << std::endl;
         return false;
     }
 
@@ -191,7 +193,7 @@ bool AudioDecoderLibav::inputConfig()
                   );  
 
     if (resampleCtx == NULL) {
-        //TODO: error
+        std::cerr << "[DECODER] Error allocating resample context! " << std::endl;
         return false;
     }
 
@@ -232,6 +234,7 @@ bool AudioDecoderLibav::outputConfig()
         } 
     }
 
+    return true;
 }
 
 
@@ -297,6 +300,9 @@ void AudioDecoderLibav::checkInputParams(ACodecType codec, SampleFmt sampleForma
         case OPUS:
             codecID = AV_CODEC_ID_OPUS;
             break;
+        case MP3:
+            codecID = AV_CODEC_ID_MP3;
+            break;
         default:
             codecID = AV_CODEC_ID_NONE;
             break;
@@ -329,13 +335,14 @@ void AudioDecoderLibav::checkInputParams(ACodecType codec, SampleFmt sampleForma
     inputConfig();
 }
 
-void AudioDecoderLibav::configEvent(Jzon::Node* params) 
+void AudioDecoderLibav::configEvent(Jzon::Node* params, Jzon::Object &outputNode) 
 {
     SampleFmt newSampleFmt = outSampleFmt;
     int newChannels = outChannels;
     int newSampleRate = outSampleRate;
 
     if (!params) {
+        outputNode.Add("error", "Error configuring audio decoder");
         return;
     }
 
@@ -351,13 +358,26 @@ void AudioDecoderLibav::configEvent(Jzon::Node* params)
         newSampleFmt = utils::getSampleFormatFromString(params->Get("sampleFormat").ToString());
     }
 
-    configure(newSampleFmt, newChannels, newSampleRate);
+    if (!configure(newSampleFmt, newChannels, newSampleRate)) {
+        outputNode.Add("error", "Error configuring audio decoder");
+    } else {
+        outputNode.Add("error", Jzon::null);
+    }
 }
 
 void AudioDecoderLibav::initializeEventMap()
 {
-    eventMap["configure"] = std::bind(&AudioDecoderLibav::configEvent, this, std::placeholders::_1);
+    eventMap["configure"] = std::bind(&AudioDecoderLibav::configEvent, this, std::placeholders::_1, std::placeholders::_2);
 }
+
+void AudioDecoderLibav::doGetState(Jzon::Object &filterNode)
+{
+    filterNode.Add("codec", utils::getAudioCodecAsString(fCodec));
+    filterNode.Add("sampleRate", outSampleRate);
+    filterNode.Add("channels", outChannels);
+    filterNode.Add("sampleFormat", utils::getSampleFormatAsString(outSampleFmt));
+}
+
 
 
 

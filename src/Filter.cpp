@@ -23,6 +23,7 @@
  */
 
 #include "Filter.hh"
+#include "Utils.hh"
 #include <iostream>
 #include <thread>
 #include <chrono>
@@ -298,6 +299,7 @@ void BaseFilter::processEvent()
         Event e = eventQueue.top();
         std::string action = e.getAction();
         Jzon::Node* params = e.getParams();
+        Jzon::Object outputNode;
 
         if (action.empty()) {
             break;
@@ -307,7 +309,8 @@ void BaseFilter::processEvent()
             break;
         }
         
-        eventMap[action](params);
+        eventMap[action](params, outputNode);
+        e.sendAndClose(outputNode);
 
         eventQueue.pop();
     }
@@ -336,23 +339,52 @@ void BaseFilter::pushEvent(Event e)
     eventQueueMutex.unlock();
 }
 
+void BaseFilter::getState(Jzon::Object &filterNode)
+{
+    eventQueueMutex.lock();
+    filterNode.Add("type", utils::getFilterTypeAsString(fType));
+    doGetState(filterNode);
+    eventQueueMutex.unlock();
+}
+
+
+bool BaseFilter::hasFrames() 
+{
+	if (!demandOriginFrames() || !demandDestinationFrames()) {
+		return false;
+	}
+	return true;
+}
+
+Frame* BaseFilter::getFrame() {
+	return oFrames.begin()->second;
+}
 
 OneToOneFilter::OneToOneFilter(bool force_) : 
 BaseFilter(1, 1, force_)
 {
 }
 
-bool OneToOneFilter::processFrame(bool removeFrame)
+bool OneToOneFilter::processFrame(Frame *org, bool removeFrame)
 {
     bool newData = false;
+	Frame* origin;
 
- //   processEvent();
+    processEvent();
 
-    if (!demandOriginFrames() || !demandDestinationFrames()) {
-        return false;
-    }
+	if (org == NULL) {
+		if (!demandOriginFrames() || !demandDestinationFrames()) {
+        	return false;
+    	}
+		origin = oFrames.begin()->second;
+	} else {
+		if (!demandDestinationFrames()) {
+        	return false;
+    	}
+		origin = org;
+	}
 
-    if (doProcessFrame(oFrames.begin()->second, dFrames.begin()->second)) {
+    if (doProcessFrame(origin, dFrames.begin()->second)) {
         addFrames();
     }
 
@@ -368,11 +400,11 @@ BaseFilter(1, writersNum, force_)
 {
 }
 
-bool OneToManyFilter::processFrame(bool removeFrame)
+bool OneToManyFilter::processFrame(Frame *org, bool removeFrame)
 {
     bool newData;
 
-  //  processEvent();
+    processEvent();
 
     if (!demandOriginFrames() || !demandDestinationFrames()){
         return false;
@@ -394,11 +426,48 @@ BaseFilter(0, writersNum, false)
     
 }
 
+void HeadFilter::pushEvent(Event e)
+{
+    std::string action = e.getAction();
+    Jzon::Node* params = e.getParams();
+    Jzon::Object outputNode;
+
+    if (action.empty()) {
+        return;
+    }
+
+    if (eventMap.count(action) <= 0) {
+        return;
+    }
+    
+    eventMap[action](params, outputNode);
+    e.sendAndClose(outputNode);
+}
+
+
 
 TailFilter::TailFilter(int readersNum) : 
 BaseFilter(readersNum, 0, false)
 {
 
+}
+
+void TailFilter::pushEvent(Event e)
+{
+    std::string action = e.getAction();
+    Jzon::Node* params = e.getParams();
+    Jzon::Object outputNode;
+
+    if (action.empty()) {
+        return;
+    }
+
+    if (eventMap.count(action) <= 0) {
+        return;
+    }
+    
+    eventMap[action](params, outputNode);
+    e.sendAndClose(outputNode);
 }
 
 
@@ -407,7 +476,7 @@ BaseFilter(readersNum, 1, force_)
 {
 }
 
-bool ManyToOneFilter::processFrame(bool removeFrame)
+bool ManyToOneFilter::processFrame(Frame *org, bool removeFrame)
 {
     bool newData;
 

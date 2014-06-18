@@ -260,3 +260,12 @@ void VideoEncoderX264::initializeEventMap()
 	eventMap["changeGOP"] = std::bind(&VideoEncoderX264::changeGOPEvent, this, std::placeholders::_1);
 	eventMap["forceIntra"] = std::bind(&VideoEncoderX264::forceIntraEvent, this, std::placeholders::_1);
 }
+
+void VideoEncoderX264::doGetState(Jzon::Object &filterNode)
+{
+   /* filterNode.Add("codec", utils::getAudioCodecAsString(fCodec));
+    filterNode.Add("sampleRate", sampleRate);
+    filterNode.Add("channels", channels);
+    filterNode.Add("sampleFormat", utils::getSampleFormatAsString(sampleFmt));*/
+}
+

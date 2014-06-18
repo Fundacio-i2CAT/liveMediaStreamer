@@ -95,6 +95,6 @@ RTPSink* AudioQueueServerMediaSubsession
     return SimpleRTPSink
     ::createNew(envir(), rtpGroupsock, payloadType,
                 aQueue->getSampleRate(), "audio", 
-                utils::getStringFromACodec(aQueue->getCodec()).c_str(),
+                utils::getAudioCodecAsString(aQueue->getCodec()).c_str(),
                 aQueue->getChannels(), False);
 }

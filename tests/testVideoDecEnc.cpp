@@ -60,12 +60,17 @@ int main(int argc, char** argv)
     SourceManager *mngr = SourceManager::getInstance();
     FrameQueue* queue;
    	//Frame* rawFrame = InterleavedVideoFrame::createNew(RAW, DEFAULT_WIDTH, DEFAULT_HEIGHT, RGB24);
-	Frame* h264Frame = InterleavedVideoFrame::createNew(H264, DEFAULT_WIDTH, DEFAULT_HEIGHT, YUYV422);
+	Frame* h264Frame720 = InterleavedVideoFrame::createNew(H264, 1280, 720, YUYV422);
+	Frame* h264Frame480 = InterleavedVideoFrame::createNew(H264, 720, 480, YUYV422);
     VideoDecoderLibav* decoder = new VideoDecoderLibav();
 	VideoEncoderX264* encoder = new VideoEncoderX264();
+	VideoEncoderX264* encoder720 = new VideoEncoderX264();
+	VideoEncoderX264* encoder480 = new VideoEncoderX264();
     Worker *vDecoderWorker;
 	Worker *vEncoderWorker;
-    std::ofstream h264Frames;
+	Master *vEnconderMaster;
+	Slave *vEncoderSlave1, *vEncoderSlave2;
+    std::ofstream h264Frames720, h264Frames480;
 
 	 mngr->setCallback((void(*)(char const*, unsigned short))&connect);
     
@@ -107,41 +112,68 @@ int main(int argc, char** argv)
 	
 	//int id2 = decoder->getAvailableWriters().front();
 	//if(!decoder->connect(id2, encoder, encoder->getAvailableReaders().front())) {
+//	if(!decoder->connectOneToOne(encoder720)) {
 	if(!decoder->connectOneToOne(encoder)) {
         std::cerr << "Error connecting video encoder" << std::endl;
     }
 
     Reader *reader = new Reader();
-    //encoder->connect(encoder->getAvailableWriters().front(), reader);
 	encoder->connect(reader);
+    Reader *reader720 = new Reader();
+	encoder720->connect(reader720);
+    Reader *reader480 = new Reader();
+	encoder480->connect(reader480);
 
     vDecoderWorker = new Worker(decoder);
-	vEncoderWorker = new Worker(encoder);
+	vEnconderMaster = new Master(encoder);
+	//vEncoderWorker = new Worker(encoder);
+	
+	vEncoderSlave1 = new Slave(1, encoder720);
+	vEnconderMaster->addSlave(vEncoderSlave1);
+	vEncoderSlave2 = new Slave(2, encoder480);
+	vEnconderMaster->addSlave(vEncoderSlave2);
+	
 
-    vDecoderWorker->start(); 
-	vEncoderWorker->start();
+    vDecoderWorker->start();
+	//vEncoderWorker->start();
+	vEnconderMaster->start();
+	vEncoderSlave1->start();
+	vEncoderSlave2->start();
     
     while(mngr->isRunning()) {
-		h264Frame = reader->getFrame();
-
-        if (!h264Frame) {
+		//printf("antes getFrame\n");
+		h264Frame720 = reader720->getFrame();
+		h264Frame480 = reader480->getFrame();
+		
+        if (!h264Frame720 || !h264Frame480) {
             usleep(500);
             continue;
         }
+		//printf("despues getFrame\n");
+        if (! h264Frames720.is_open()){
+            h264Frames720.open("frames720.h264", std::ios::out | std::ios::app | std::ios::binary);
+        }
 
-        if (! h264Frames.is_open()){
-            h264Frames.open("frames.h264", std::ios::out | std::ios::app | std::ios::binary);
+        if (! h264Frames480.is_open()){
+            h264Frames480.open("frames480.h264", std::ios::out | std::ios::app | std::ios::binary);
         }
 		
-		if (h264Frame->getLength() > 0) {
-            h264Frames.write(reinterpret_cast<const char*>(h264Frame->getDataBuf()), h264Frame->getLength());
+		if (h264Frame720->getLength() > 0) {
+            h264Frames720.write(reinterpret_cast<const char*>(h264Frame720->getDataBuf()), h264Frame720->getLength());
+            //printf("Filled buffer! Frame size: %d\n", h264Frame->getLength());
+        }
+
+		if (h264Frame480->getLength() > 0) {
+            h264Frames480.write(reinterpret_cast<const char*>(h264Frame480->getDataBuf()), h264Frame480->getLength());
             //printf("Filled buffer! Frame size: %d\n", h264Frame->getLength());
         }
         
-        reader->removeFrame();
+        reader720->removeFrame();        
+        reader480->removeFrame();
     }
     
-    h264Frames.close();
+    h264Frames720.close();
+	h264Frames480.close();
     
     return 0;
 }

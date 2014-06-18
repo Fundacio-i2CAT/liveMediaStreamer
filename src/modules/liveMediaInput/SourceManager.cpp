@@ -24,6 +24,7 @@
 #include "SourceManager.hh"
 #include "ExtendedRTSPClient.hh"
 #include "../../AVFramedQueue.hh"
+#include "../../Utils.hh"
 
 #include <sstream>
 
@@ -44,6 +45,7 @@ SourceManager::SourceManager(int writersNum): watch(0), HeadFilter(writersNum)
     this->env = BasicUsageEnvironment::createNew(*scheduler);
     
     mngrInstance = this;
+    initializeEventMap();
 }
 
 SourceManager* SourceManager::getInstance()
@@ -169,6 +171,60 @@ FrameQueue *SourceManager::allocQueue(int wId)
 
     return NULL;
 }
+
+void SourceManager::initializeEventMap()
+{
+    eventMap["addSession"] = std::bind(&SourceManager::addSessionEvent, this, 
+                                        std::placeholders::_1,  std::placeholders::_2);
+}
+
+void SourceManager::addSessionEvent(Jzon::Node* params, Jzon::Object &outputNode)
+{
+    std::string sessionId = utils::randomIdGenerator(ID_LENGTH);
+    std::string sdp, medium, codec;
+    int payload, bandwith, timeStampFrequency, channels, port;
+    Session* session;
+
+    if (!params) {
+        outputNode.Add("error", "Error adding session. Wrong parameters!");
+        return;
+    }
+
+    if (params->Has("uri") && params->Has("progName")) {
+        
+        std::string progName = params->Get("progName").ToString();
+        std::string rtspURL = params->Get("uri").ToString();
+        session = Session::createNewByURL(*env, progName, rtspURL, sessionId);
+    
+    } else if (params->Has("subsessions") && params->Get("subsessions").IsArray()) {
+        
+        Jzon::Array subsessions = params->Get("subsessions").AsArray();
+        sdp = makeSessionSDP("testSession", "this is a test");
+        
+        for (Jzon::Array::iterator it = subsessions.begin(); it != subsessions.end(); ++it) {
+            medium = (*it).Get("medium").ToString();
+            codec = (*it).Get("codec").ToString();
+            payload = (*it).Get("payload").ToInt();
+            bandwith = (*it).Get("bandwith").ToInt();
+            timeStampFrequency = (*it).Get("timeStampFrequency").ToInt();
+            channels = (*it).Get("channels").ToInt();
+
+            sdp += makeSubsessionSDP(medium, PROTOCOL, payload, codec, bandwith, 
+                                                timeStampFrequency, port, channels);
+        }
+
+        session = Session::createNew(*env, sdp, sessionId);
+    
+    } else {
+        outputNode.Add("error", "Error adding session. Wrong parameters!");
+        return;
+    }
+
+    addSession(session);
+    session->initiateSession();
+
+    outputNode.Add("error", Jzon::null);
+} 
 
 std::string SourceManager::makeSessionSDP(std::string sessionName, std::string sessionDescription)
 {

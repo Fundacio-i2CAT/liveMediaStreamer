@@ -150,114 +150,58 @@ void BaseFilter::removeFrames()
     }
 }
 
+bool BaseFilter::connect(BaseFilter *R, int writerID, int readerID) 
+{
+    Reader* r;
+    FrameQueue *queue;
+    
+    if (writers.size() < getMaxWriters() && writers.count(writerID) <= 0) {
+        writers[writerID] = new Writer();
+    }
+    
+    if (writers.count(writerID) > 0 && writers[writerID]->isConnected()) {
+        return false;
+    }
+
+    if (R->getReader(readerID) && R->getReader(readerID)->isConnected()){
+        return false;
+    }
+
+    queue = allocQueue(writerID);
+    
+    if (!(r = R->setReader(readerID, queue))) {
+        return false;
+    }
+
+    writers[writerID]->setQueue(queue);
+    return writers[writerID]->connect(r);
+}
+
 bool BaseFilter::connectOneToOne(BaseFilter *R)
 {
-    Reader* r;
-    FrameQueue *queue;
-    
-    if (writers.size() < getMaxWriters() && 
-        writers.count(DEFAULT_ID) <= 0){
-        writers[DEFAULT_ID] = new Writer();
-    }
-    
-    if (writers[DEFAULT_ID]->isConnected()) {
-        return false;
-    }
+    int writerID = R->generateWriterID();
+    int readerID = R->generateReaderID();
 
-    if (R->getReader(DEFAULT_ID) && R->getReader(DEFAULT_ID)->isConnected()) {
-        return false;
-    }
-
-    queue = allocQueue(DEFAULT_ID);
-    
-    if (!(r = R->setReader(DEFAULT_ID, queue))){
-        return false;
-    }
-
-    writers[DEFAULT_ID]->setQueue(queue);
-    return writers[DEFAULT_ID]->connect(r);
+    return connect(R, writerID, readerID);
 }
 
-bool BaseFilter::connectManyToOne(BaseFilter *R, int wId)
+bool BaseFilter::connectManyToOne(BaseFilter *R, int writerID)
 {
-    Reader* r;
-    FrameQueue *queue;
-    
-    if (writers.size() < getMaxWriters() && writers.count(wId) <= 0) {
-        writers[wId] = new Writer();
-    }
-    
-    if (writers.count(wId) > 0 && writers[wId]->isConnected()) {
-        return false;
-    }
+    int readerID = R->generateReaderID();
 
-    if (R->getReader(DEFAULT_ID) && R->getReader(DEFAULT_ID)->isConnected()){
-        return false;
-    }
-
-    queue = allocQueue(wId);
-    
-    if (!(r = R->setReader(DEFAULT_ID, queue))) {
-        return false;
-    }
-
-    writers[wId]->setQueue(queue);
-    return writers[wId]->connect(r);
+    return connect(R, writerID, readerID);
 }
 
-bool BaseFilter::connectManyToMany(BaseFilter *R, int rId, int wId)
+bool BaseFilter::connectManyToMany(BaseFilter *R, int readerID, int writerID)
 {
-    Reader* r;
-    FrameQueue *queue;
-    
-    if (writers.size() < getMaxWriters() && writers.count(wId) <= 0) {
-        writers[wId] = new Writer();
-    }
-    
-    if (writers.count(wId) > 0 && writers[wId]->isConnected()) {
-        return false;
-    }
-    
-    if (R->getReader(rId) && R->getReader(rId)->isConnected()){
-        return false;
-    }
-    
-    queue = allocQueue(wId);
-    
-    if (!(r = R->setReader(rId, queue))) {
-        return false;
-    }
-    
-    writers[wId]->setQueue(queue);
-    return writers[wId]->connect(r);
+    return connect(R, writerID, readerID);
 }
 
-bool BaseFilter::connectOneToMany(BaseFilter *R, int rId)
+bool BaseFilter::connectOneToMany(BaseFilter *R, int readerID)
 {
-    Reader* r;
-    FrameQueue *queue;
-    
-    if (writers.size() < getMaxWriters() && 
-        writers.count(DEFAULT_ID) <= 0){
-        writers[DEFAULT_ID] = new Writer();
-    }
-    
-    if (writers[DEFAULT_ID]->isConnected()) {
-        return false;
-    }
+    int writerID = R->generateWriterID();
 
-    if (R->getReader(rId) && R->getReader(rId)->isConnected()){
-        return false;
-    }
-
-    queue = allocQueue(DEFAULT_ID);
-    
-    if (!(r = R->setReader(rId, queue))) {
-        return false;
-    }
-
-    writers[DEFAULT_ID]->setQueue(queue);
-    return writers[DEFAULT_ID]->connect(r);
+    return connect(R, writerID, readerID);
 }
 
 

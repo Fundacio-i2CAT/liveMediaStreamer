@@ -53,9 +53,9 @@ class BaseFilter : public Runnable {
     
 public:
     bool connectOneToOne(BaseFilter *R);
-    bool connectManyToOne(BaseFilter *R, int wId);
-    bool connectOneToMany(BaseFilter *R, int rId);
-    bool connectManyToMany(BaseFilter *R, int rId, int wId);
+    bool connectManyToOne(BaseFilter *R, int writerID);
+    bool connectOneToMany(BaseFilter *R, int readerID);
+    bool connectManyToMany(BaseFilter *R, int readerID, int writerID);
     //Only for testing! Should not exist
     bool connect(Reader *r);
     ///////////////////////////////////////
@@ -98,6 +98,8 @@ protected:
     FilterType fType;
       
 private:
+    bool connect(BaseFilter *R, int writerID, int readerID);
+
     bool force;
     int maxWriters;
     int maxReaders;

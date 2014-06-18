@@ -35,7 +35,6 @@
 
 #define RTSP_PORT 8554
 #define MAX_VIDEO_FRAME_SIZE 200000
-#define TX_ID_LENGTH 4
 
 class SinkManager : public TailFilter {
 private:

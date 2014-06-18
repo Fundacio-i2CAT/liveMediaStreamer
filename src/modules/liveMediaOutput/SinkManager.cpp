@@ -46,6 +46,7 @@ SinkManager::SinkManager(int readersNum): watch(0), TailFilter(readersNum)
     OutPacketBuffer::increaseMaxSizeTo(MAX_VIDEO_FRAME_SIZE);
     
     mngrInstance = this;
+    fType = TRANSMITTER;
     initializeEventMap();
 
 }
@@ -232,7 +233,7 @@ void SinkManager::initializeEventMap()
 void SinkManager::addSessionEvent(Jzon::Node* params, Jzon::Object &outputNode)
 {
     std::vector<int> readers;
-    std::string sessionId = utils::randomIdGenerator(TX_ID_LENGTH);
+    std::string sessionId = utils::randomIdGenerator(ID_LENGTH);
 
     if (!params) {
         outputNode.Add("error", "Error adding session. Wrong parameters!");

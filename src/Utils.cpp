@@ -124,6 +124,12 @@ namespace utils
             case AUDIO_MIXER:
                 stringType = "audioMixer";
                 break;
+            case RECEIVER:
+                stringType = "receiver";
+                break;
+            case TRANSMITTER:
+                stringType = "transmitter";
+                break;
         }
 
         return stringType;
@@ -147,7 +153,7 @@ namespace utils
                 stringFormat = "u8p";
                 break;
             case S16P:
-                stringFormat = "16p";
+                stringFormat = "s16p";
                 break;
             case FLTP:
                 stringFormat = "fltp";

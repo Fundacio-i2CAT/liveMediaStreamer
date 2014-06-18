@@ -45,6 +45,7 @@ SourceManager::SourceManager(int writersNum): watch(0), HeadFilter(writersNum)
     this->env = BasicUsageEnvironment::createNew(*scheduler);
     
     mngrInstance = this;
+    fType = RECEIVER;
     initializeEventMap();
 }
 
@@ -180,7 +181,7 @@ void SourceManager::initializeEventMap()
 
 void SourceManager::addSessionEvent(Jzon::Node* params, Jzon::Object &outputNode)
 {
-    std::string sessionId = utils::randomIdGenerator(RX_ID_LENGTH);
+    std::string sessionId = utils::randomIdGenerator(ID_LENGTH);
     std::string sdp, medium, codec;
     int payload, bandwith, timeStampFrequency, channels, port;
     Session* session;

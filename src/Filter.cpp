@@ -202,12 +202,12 @@ bool BaseFilter::connectManyToOne(BaseFilter *R, int writerID, bool slaveQueue)
     return connect(R, writerID, readerID, slaveQueue);
 }
 
-bool BaseFilter::connectManyToMany(BaseFilter *R, int readerID, int writerID, bool slaveQueue = false)
+bool BaseFilter::connectManyToMany(BaseFilter *R, int readerID, int writerID, bool slaveQueue)
 {
     return connect(R, writerID, readerID, slaveQueue);
 }
 
-bool BaseFilter::connectOneToMany(BaseFilter *R, int readerID, bool slaveQueue = false)
+bool BaseFilter::connectOneToMany(BaseFilter *R, int readerID, bool slaveQueue)
 {
     int writerID = R->generateWriterID();
 

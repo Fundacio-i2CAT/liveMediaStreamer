@@ -27,15 +27,17 @@ Controller* Controller::ctrlInstance = NULL;
 PipelineManager* PipelineManager::pipeMngrInstance = NULL;
 WorkerManager* WorkerManager::workMngrInstance = NULL;
 
+void sendAndClose(Jzon::Object outputNode, int socket);
+
 Controller::Controller()
 {    
     ctrlInstance = this;
     pipeMngrInstance = PipelineManager::getInstance();
     workMngrInstance = WorkerManager::getInstance();
-    Jzon::Object* inputRootNode = new Jzon::Object();
-    Jzon::Parser* parser = new Jzon::Parser(*inputRootNode);
+    inputRootNode = new Jzon::Object();
+    parser = new Jzon::Parser(*inputRootNode);
     initializeEventMap();
-    runFlag = false;
+    runFlag = true;
 }
 
 Controller* Controller::getInstance()
@@ -117,7 +119,6 @@ bool Controller::readAndParse()
 {
     bzero(inBuffer, MSG_BUFFER_MAX_LENGTH);
     inputRootNode->Clear();
-    outputRootNode->Clear();
 
     if (read(connectionSocket, inBuffer, MSG_BUFFER_MAX_LENGTH - 1) < 0) {
         std::cerr << "ERROR reading from socket" << std::endl;
@@ -184,6 +185,7 @@ bool Controller::processInternalEvent()
     }
         
     eventMap[action](&params, outputNode);
+    sendAndClose(outputNode, connectionSocket);
 
     return true;
 }
@@ -342,6 +344,13 @@ bool PipelineManager::connectPath(Path* path)
         return false;
     }
 
+    //TODO: manage worker assignment better
+    for (auto it : pathFilters) {
+        Worker* worker = new Worker(filters[it].first);
+        filters[it].second = worker;
+        worker->start();
+    }
+
     return true;
 
 }
@@ -375,6 +384,7 @@ SinkManager* PipelineManager::getTransmitter()
 void PipelineManager::getStateEvent(Jzon::Node* params, Jzon::Object &outputNode)
 {
     Jzon::Array filterList;
+    Jzon::Array pathList;
 
     for (auto it : filters) {
         Jzon::Object filter;
@@ -384,6 +394,27 @@ void PipelineManager::getStateEvent(Jzon::Node* params, Jzon::Object &outputNode
     }
 
     outputNode.Add("filters", filterList);
+
+    for (auto it : paths) {
+        Jzon::Object path;
+        Jzon::Array pathFilters;
+        std::vector<int> pFilters = it.second->getFilters();
+
+        path.Add("id", it.first);
+        path.Add("originFilter", it.second->getOriginFilterID());
+        path.Add("destinationFilter", it.second->getDestinationFilterID());
+        path.Add("originWriter", it.second->getOrgWriterID());
+        path.Add("destinationReader", it.second->getDstReaderID());
+
+        for (auto it : pFilters) {
+            pathFilters.Add(it);
+        }
+
+        path.Add("filters", pathFilters);
+        pathList.Add(path);
+    }
+
+    outputNode.Add("paths", pathList);
 }
 
 /////////////////////////////////
@@ -410,5 +441,22 @@ void WorkerManager::destroyInstance()
     if (workMngrInstance != NULL) {
         delete workMngrInstance;
         workMngrInstance = NULL;
+    }
+}
+
+/////////////////////////////////
+/////////////////////////////////
+/////////////////////////////////
+
+void sendAndClose(Jzon::Object outputNode, int socket)
+{
+    Jzon::Writer writer(outputNode, Jzon::NoFormat);
+    writer.Write();
+    std::string result = writer.GetResult();
+    const char* res = result.c_str();
+    (void)write(socket, res, result.size());
+
+    if (socket >= 0){
+        close(socket);
     }
 }

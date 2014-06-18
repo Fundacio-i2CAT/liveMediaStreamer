@@ -42,12 +42,12 @@ class VideoEncoderX264: public OneToOneFilter {
 	public:
 		VideoEncoderX264();
 		~VideoEncoderX264();
-		bool doProcessFrame(Frame *org, Frame *dst);		
-		bool config(Frame *org, Frame *dst);
+		bool doProcessFrame(Frame *org, Frame *dst);
+		bool configure(int width, int height, PixType pixelFormat);		
 		void setIntra(){forceIntra = true;};
 		FrameQueue* allocQueue(int wId);
 		void initializeEventMap();
-		void doGetState(Jzon::Object &filterNode);
+		
 
 	private:
 		x264_picture_t picIn;
@@ -56,6 +56,7 @@ class VideoEncoderX264: public OneToOneFilter {
 		AVPixelFormat outPixel;
 		bool forceIntra;
 		bool firstTime;
+		bool configureOut;
 		int fps;
 		int pts;
 		int inWidth;
@@ -68,13 +69,15 @@ class VideoEncoderX264: public OneToOneFilter {
 		x264_param_t xparams;
 		x264_t* encoder;
 		struct SwsContext* swsCtx;
-
+		
+		bool config(Frame *org, Frame *dst);
 		void encodeHeadersFrame(Frame *decodedFrame, Frame *encodedFrame);
 		void resizeEvent(Jzon::Node* params);
 		void changeBitrateEvent(Jzon::Node* params);
 		void changeFramerateEvent(Jzon::Node* params);
 		void changeGOPEvent(Jzon::Node* params);
 		void forceIntraEvent(Jzon::Node* params);
+		void doGetState(Jzon::Object &filterNode);
 };
 
 #endif

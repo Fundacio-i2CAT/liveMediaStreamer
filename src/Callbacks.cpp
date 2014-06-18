@@ -35,7 +35,6 @@ namespace callbacks
         Path* path = NULL;
         int mixerID = -1;
 
-
         if (strcmp(medium, "audio") == 0) {
             path = new AudioDecoderPath(pipeMngr->getReceiverID(), (int)port);
             mixerID = pipeMngr->searchFilterIDByType(AUDIO_MIXER);

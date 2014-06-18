@@ -32,7 +32,6 @@
 #define MAX_SLAVE 16
 
 class Runnable;
-class LiveMediaRunnable;
 
 class Worker {
     
@@ -76,14 +75,11 @@ public:
 	int getId(){return id;};
 	bool getFinished(){return finished;};
 	void setFalse();
-	void setFrame(Frame* org);
 protected:
 	void process();
 private:
 	int id;
-	std::atomic<bool> finished;
-	Frame* origin;
-	
+	std::atomic<bool> finished;	
 };
 
 class Master : public Worker {
@@ -102,10 +98,9 @@ private:
 class Runnable {
     
 public:
-    virtual bool processFrame(Frame *org = NULL, bool removeFrame = false) = 0;
+    virtual bool processFrame(bool removeFrame = true) = 0;
 	virtual void removeFrames() = 0;
 	virtual bool hasFrames() = 0;
-	virtual Frame* getFrame() = 0;
     virtual void stop() = 0;
 };
 

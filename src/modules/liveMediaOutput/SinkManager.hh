@@ -57,7 +57,8 @@ public:
     UsageEnvironment* envir() {return env;}
       
 private: 
-    void initializeEventMap() {/*TODO*/};
+    void initializeEventMap();
+    void addSessionEvent(Jzon::Node* params, Jzon::Object &outputNode);
     
     bool processFrame(Frame *org = NULL, bool removeFrame = false);
     

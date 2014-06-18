@@ -52,10 +52,10 @@
 class BaseFilter : public Runnable {
     
 public:
-    bool connectOneToOne(BaseFilter *R);
-    bool connectManyToOne(BaseFilter *R, int wId);
-    bool connectOneToMany(BaseFilter *R, int rId);
-    bool connectManyToMany(BaseFilter *R, int rId, int wId);
+    bool connectOneToOne(BaseFilter *R, bool slaveQueue = false);
+    bool connectManyToOne(BaseFilter *R, int writerID, bool slaveQueue = false);
+    bool connectOneToMany(BaseFilter *R, int readerID, bool slaveQueue = false);
+    bool connectManyToMany(BaseFilter *R, int readerID, int writerID, bool slaveQueue = false);
     //Only for testing! Should not exist
     bool connect(Reader *r);
     ///////////////////////////////////////
@@ -72,11 +72,10 @@ public:
 protected:
     BaseFilter(int maxReaders_, int maxWriters_, bool force_ = false);
     //TODO: desctructor
-	virtual void removeFrames();
-    virtual bool hasFrames();
-	virtual Frame* getFrame();
+	void removeFrames();
+    bool hasFrames();
     virtual FrameQueue *allocQueue(int wId) = 0;
-    virtual bool processFrame(Frame *org = NULL, bool removeFrame = false) = 0;
+    virtual bool processFrame(bool removeFrame = true) = 0;
     virtual Reader *setReader(int readerID, FrameQueue* queue);
     virtual void initializeEventMap() = 0;
     virtual void doGetState(Jzon::Object &filterNode) = 0;
@@ -98,6 +97,8 @@ protected:
     FilterType fType;
       
 private:
+    bool connect(BaseFilter *R, int writerID, int readerID, bool slaveQueue = false);
+
     bool force;
     int maxWriters;
     int maxReaders;
@@ -115,7 +116,7 @@ protected:
     virtual bool doProcessFrame(Frame *org, Frame *dst) = 0;
     
 private:
-    bool processFrame(Frame *org = NULL, bool removeFrame = false);
+    bool processFrame(bool removeFrame = true);
     using BaseFilter::demandOriginFrames;
     using BaseFilter::demandDestinationFrames;
     using BaseFilter::addFrames;
@@ -135,7 +136,7 @@ protected:
     virtual bool doProcessFrame(Frame *org, std::map<int, Frame *> dstFrames) = 0;
     
 private:
-    bool processFrame(Frame *org = NULL, bool removeFrame = false);
+    bool processFrame(bool removeFrame = true);
     using BaseFilter::demandOriginFrames;
     using BaseFilter::demandDestinationFrames;
     using BaseFilter::addFrames;
@@ -158,6 +159,7 @@ protected:
     int getNullWriterID();
     
 private:
+    bool processFrame(bool removeFrame = true) {};
     using BaseFilter::demandOriginFrames;
     using BaseFilter::demandDestinationFrames;
     using BaseFilter::addFrames;
@@ -176,6 +178,7 @@ protected:
     //TODO: desctructor
     
 private:
+    bool processFrame(bool removeFrame = true) {};
     FrameQueue *allocQueue(int wId) {return NULL;};
     using BaseFilter::demandOriginFrames;
     using BaseFilter::demandDestinationFrames;
@@ -193,7 +196,7 @@ protected:
     virtual bool doProcessFrame(std::map<int, Frame *> orgFrames, Frame *dst) = 0;
 
 private:
-    bool processFrame(Frame *org = NULL, bool removeFrame = false);
+    bool processFrame(bool removeFrame = true);
     using BaseFilter::demandOriginFrames;
     using BaseFilter::demandDestinationFrames;
     using BaseFilter::addFrames;

@@ -28,6 +28,7 @@ VideoEncoderX264::VideoEncoderX264(): OneToOneFilter(){
 	pts = 0;
 	forceIntra = false;
 	firstTime = true;
+	configureOut = false;
 	swsCtx = NULL;
 	encoder = NULL;
 	bitrate = 2000;
@@ -101,10 +102,6 @@ void VideoEncoderX264::encodeHeadersFrame(Frame *decodedFrame, Frame *encodedFra
 	x264_nal_t *ppNal;
 	int piNal;
 	
-	swsCtx = sws_getContext(inWidth, inHeight, inPixel, outWidth, outHeight, outPixel, SWS_FAST_BILINEAR, NULL, NULL, NULL);
-	xparams.i_width = outWidth;
-	xparams.i_height = outHeight;
-	x264_param_apply_profile(&xparams, "baseline");
 	encoder = x264_encoder_open(&xparams);
 	x264_picture_alloc(&picIn, colorspace, outWidth, outHeight);
 	
@@ -119,33 +116,14 @@ FrameQueue* VideoEncoderX264::allocQueue(int wId) {
 	return X264VideoCircularBuffer::createNew();
 }
 
-bool VideoEncoderX264::config(Frame *org, Frame *dst) {
-	InterleavedVideoFrame* videoFrame = dynamic_cast<InterleavedVideoFrame*> (org);
-	X264VideoFrame* x264Frame = dynamic_cast<X264VideoFrame*> (dst);
-	PixType inPixelType, outPixelType;
-	inWidth = videoFrame->getWidth();
-	inHeight = videoFrame->getHeight();
-	outWidth = x264Frame->getWidth();
-	outHeight = x264Frame->getHeight();
-	inPixelType = videoFrame->getPixelFormat();
-	outPixelType = x264Frame->getPixelFormat();
+bool VideoEncoderX264::configure(int width, int height, PixType pixelFormat) {
+	
+	if (!width || !height)
+		return false;
 
-	switch (inPixelType) {
-		case P_NONE:
-			inPixel = AV_PIX_FMT_NONE;
-			break;
-		case RGB24:
-			inPixel = PIX_FMT_RGB24;
-			break;
-		case RGB32:
-			inPixel = PIX_FMT_RGBA;
-			break;
-		case YUYV422:
-			inPixel = PIX_FMT_YUV420P;
-			break;
-	}
-
-	switch (outPixelType) {
+	outWidth = width;
+	outHeight = height;
+	switch (pixelFormat) {
 		case P_NONE:
 			outPixel = AV_PIX_FMT_NONE;
 			colorspace = X264_CSP_NONE;
@@ -163,7 +141,59 @@ bool VideoEncoderX264::config(Frame *org, Frame *dst) {
 			colorspace = X264_CSP_I420;
 			break;
 	}
+	configureOut = true;
+	return true;
+}
 
+bool VideoEncoderX264::config(Frame *org, Frame *dst) {
+	InterleavedVideoFrame* videoFrame = dynamic_cast<InterleavedVideoFrame*> (org);
+	X264VideoFrame* x264Frame = dynamic_cast<X264VideoFrame*> (dst);
+	PixType inPixelType, outPixelType;
+	inWidth = videoFrame->getWidth();
+	inHeight = videoFrame->getHeight();
+	inPixelType = videoFrame->getPixelFormat();
+	
+
+	switch (inPixelType) {
+		case P_NONE:
+			inPixel = AV_PIX_FMT_NONE;
+			break;
+		case RGB24:
+			inPixel = PIX_FMT_RGB24;
+			break;
+		case RGB32:
+			inPixel = PIX_FMT_RGBA;
+			break;
+		case YUYV422:
+			inPixel = PIX_FMT_YUV420P;
+			break;
+	}
+	
+	if (!configureOut) {
+		outWidth = x264Frame->getWidth();
+		outHeight = x264Frame->getHeight();
+		outPixelType = x264Frame->getPixelFormat();
+		switch (outPixelType) {
+			case P_NONE:
+				outPixel = AV_PIX_FMT_NONE;
+				colorspace = X264_CSP_NONE;
+				break;
+			case RGB24:
+				outPixel = PIX_FMT_RGB24;
+				colorspace = X264_CSP_RGB;
+				break;
+			case RGB32:
+				outPixel = PIX_FMT_RGBA;
+				colorspace = X264_CSP_BGRA;
+				break;
+			case YUYV422:
+				outPixel = PIX_FMT_YUV420P;
+				colorspace = X264_CSP_I420;
+				break;
+		}
+	}
+
+	swsCtx = sws_getContext(inWidth, inHeight, inPixel, outWidth, outHeight, outPixel, SWS_FAST_BILINEAR, NULL, NULL, NULL);
 	xparams.i_width = outWidth;
 	xparams.i_height = outHeight;
 	xparams.i_fps_num = fps;

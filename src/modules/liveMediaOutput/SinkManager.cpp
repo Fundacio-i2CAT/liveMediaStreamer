@@ -69,7 +69,7 @@ void SinkManager::destroyInstance()
     //TODO:
 }
 
-bool SinkManager::processFrame(Frame *org, bool removeFrame)
+bool SinkManager::processFrame(bool removeFrame)
 {
     SinkManager* instance = SinkManager::getInstance();
     

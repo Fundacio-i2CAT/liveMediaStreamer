@@ -60,7 +60,7 @@ private:
     void initializeEventMap();
     void addSessionEvent(Jzon::Node* params, Jzon::Object &outputNode);
     
-    bool processFrame(Frame *org = NULL, bool removeFrame = false);
+    bool processFrame(bool removeFrame = false);
     
     ServerMediaSubsession *createSubsessionByReader(Reader *reader);
     ServerMediaSubsession *createVideoMediaSubsession(VCodecType codec, Reader *reader);

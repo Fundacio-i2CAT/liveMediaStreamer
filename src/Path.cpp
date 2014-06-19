@@ -56,7 +56,7 @@ Path(originFilterID, orgWriterID)
     Controller::getInstance()->pipelineManager()->addFilter(id, decoder);
     addFilterID(id);
     
-    VideoEncoderX264 *encoder = new VideoEncoderX264();
+    VideoEncoderX264 *encoder = new VideoEncoderX264(true);
     id = rand();
     Controller::getInstance()->pipelineManager()->addFilter(id, encoder);
     addFilterID(id);

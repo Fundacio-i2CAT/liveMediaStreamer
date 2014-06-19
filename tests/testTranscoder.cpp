@@ -13,7 +13,7 @@
 #define V_MEDIUM "video"
 #define PROTOCOL "RTP"
 #define V_PAYLOAD 96
-#define V_CODEC "H264"
+#define V_CODEC "VP8"
 #define V_BANDWITH 1200
 #define V_CLIENT_PORT 6004
 #define V_TIME_STMP_FREQ 90000
@@ -34,6 +34,7 @@ int main(int argc, char** argv)
     std::string sdp;
     std::vector<int> readers;
     Session* session;
+    int id;
 
     utils::setLogLevel(INFO);
     
@@ -71,7 +72,7 @@ int main(int argc, char** argv)
     
     receiver->addSession(session);
 
-    //session->initiateSession();
+    session->initiateSession();
     
     sleep(2);
        
@@ -84,6 +85,9 @@ int main(int argc, char** argv)
         return 1;
     }
     transmitter->publishSession(sessionId);
+    
+    id = pipe->searchFilterIDByType(VIDEO_ENCODER);
+    pipe->getWorker(id)->setFps(25);
     
     while(pipe->getWorker(pipe->getReceiverID())->isRunning() || 
         pipe->getWorker(pipe->getTransmitterID())->isRunning()) {

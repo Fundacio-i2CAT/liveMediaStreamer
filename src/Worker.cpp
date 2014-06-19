@@ -27,9 +27,6 @@
 
 #include <chrono>
 #include "Worker.hh"
-#include <iostream>
-
-
 
 Worker::Worker(Runnable *processor_, unsigned int maxFps): processor(processor_), run(false), enabled(false)
 { 
@@ -140,7 +137,7 @@ bool Worker::isEnabled()
     return enabled;
 }
 
-void Worker::setFps(int maxFps)
+void Worker::setFps(unsigned int maxFps)
 {
     if (maxFps != 0){
         frameTime = 1000000/maxFps;

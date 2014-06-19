@@ -47,7 +47,7 @@ public:
     virtual void enable();
     virtual void disable();
     bool isEnabled();
-    void setFps(int maxFps);
+    void setFps(unsigned int maxFps);
     
 protected:
     virtual void process();

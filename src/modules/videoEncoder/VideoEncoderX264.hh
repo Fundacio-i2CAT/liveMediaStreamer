@@ -40,7 +40,7 @@ extern "C" {
 
 class VideoEncoderX264: public OneToOneFilter {
 	public:
-		VideoEncoderX264();
+		VideoEncoderX264(bool force_ = false);
 		~VideoEncoderX264();
 		bool doProcessFrame(Frame *org, Frame *dst);
 		bool configure(int width, int height, PixType pixelFormat);		

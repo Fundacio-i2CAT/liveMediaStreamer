@@ -79,7 +79,7 @@ void SourceManager::setCallback(std::function<void(char const*, unsigned short)>
 }
 
 
-bool SourceManager::processFrame(Frame *org, bool removeFrame)
+bool SourceManager::processFrame(bool removeFrame)
 {   
     if (envir() == NULL){
         return false;

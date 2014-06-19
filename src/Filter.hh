@@ -159,7 +159,6 @@ protected:
     int getNullWriterID();
     
 private:
-    bool processFrame(bool removeFrame = true) {};
     using BaseFilter::demandOriginFrames;
     using BaseFilter::demandDestinationFrames;
     using BaseFilter::addFrames;
@@ -178,7 +177,6 @@ protected:
     //TODO: desctructor
     
 private:
-    bool processFrame(bool removeFrame = true) {};
     FrameQueue *allocQueue(int wId) {return NULL;};
     using BaseFilter::demandOriginFrames;
     using BaseFilter::demandDestinationFrames;

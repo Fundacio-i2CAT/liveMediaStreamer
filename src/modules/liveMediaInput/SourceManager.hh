@@ -91,7 +91,7 @@ private:
     void doGetState(Jzon::Object &filterNode) {/*TODO*/};
     void addSessionEvent(Jzon::Node* params, Jzon::Object &outputNode);
 
-    bool processFrame(Frame *org = NULL, bool removeFrame = false);
+    bool processFrame(bool removeFrame = false);
     void addConnection(int wId, MediaSubsession* subsession);
     
     static void* startServer(void *args);

@@ -1,6 +1,6 @@
 /*
  *  VideoEncoderX264 - Video Encoder X264
- *  Copyright (C) 2013  Fundació i2CAT, Internet i Innovació digital a Catalunya
+ *  Copyright (C) 2014  Fundació i2CAT, Internet i Innovació digital a Catalunya
  *
  *  This file is part of media-streamer.
  *

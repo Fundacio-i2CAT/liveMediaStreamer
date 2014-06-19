@@ -15,8 +15,9 @@ public:
 protected:
     H264QueueSink(UsageEnvironment& env, Writer *writer,
                   char const* sPropParameterSetsStr);
-    virtual Boolean continuePlaying();
     
+    Boolean continuePlaying();
+    void afterGettingFrame(unsigned frameSize, struct timeval presentationTime);
     
 private:
    

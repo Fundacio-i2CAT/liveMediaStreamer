@@ -60,5 +60,16 @@ Boolean H264QueueSink::continuePlaying()
     return True;
 }
 
+void H264QueueSink::afterGettingFrame(unsigned frameSize, struct timeval presentationTime) 
+{
+    if (frame != NULL){
+        frame->setLength(frameSize + sizeof(start_code));
+        frame->setUpdatedTime();
+        frame->setPresentationTime(presentationTime);
+        fWriter->addFrame();
+    }
+    continuePlaying();
+}
+
 
 

@@ -18,12 +18,13 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  *  Authors:  Marc Palau <marc.palau@i2cat.net>
+ *            David Cassany <david.cassany@i2cat.net>
  */
 
 #include "AVFramedQueue.hh"
 #include "VideoFrame.hh"
 #include "AudioFrame.hh"
-#include <iostream>
+#include "Utils.hh"
 
 Frame* AVFramedQueue::getRear() 
 {
@@ -42,14 +43,12 @@ Frame* AVFramedQueue::getFront()
     return NULL;
 }
 
-//TODO: add exception if elements > max
 void AVFramedQueue::addFrame() 
 {
     rear =  (rear + 1) % max;
     ++elements;
 }
 
-//TODO: add exception if elements < 0
 void AVFramedQueue::removeFrame() 
 {
     front = (front + 1) % max;
@@ -68,7 +67,7 @@ Frame* AVFramedQueue::forceGetRear()
 {
     Frame *frame;
     while ((frame = getRear()) == NULL) {
-        std::cerr << "Frame discarted" << std::endl;
+        utils::debugMsg("Frame discarted");
         flush();
     }
     return frame;

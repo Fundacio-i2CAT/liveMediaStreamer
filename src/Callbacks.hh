@@ -18,6 +18,7 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  *  Authors:  Marc Palau <marc.palau@i2cat.net>,
+ *            David Cassany <david.cassany@i2cat.net>
  */
 
 
@@ -28,6 +29,7 @@ namespace callbacks
 {
     void connectToMixerCallback(char const* medium, unsigned short port);
     void connectToTransmitter(char const* medium, unsigned short port);
+    void connectTranscoderToTransmitter(char const* medium, unsigned short port);
 };
 
 #endif

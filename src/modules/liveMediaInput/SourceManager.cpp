@@ -326,7 +326,7 @@ Session* Session::createNewByURL(UsageEnvironment& env, std::string progName, st
     
     RTSPClient* rtspClient = ExtendedRTSPClient::createNew(env, rtspURL.c_str(), session->scs, RTSP_CLIENT_VERBOSITY_LEVEL, progName.c_str());
     if (rtspClient == NULL) {
-        env << "Failed to create a RTSP client for URL \"" << rtspURL.c_str() << "\": " << env.getResultMsg() << "\n";
+        utils::errorMsg("Failed to create a RTSP client for URL " + rtspURL);
         return NULL;
     }
     
@@ -345,12 +345,13 @@ bool Session::initiateSession()
         subsession = this->scs->iter->next();
         while (subsession != NULL) {
             if (!subsession->initiate()) {
-                env << "Failed to initiate the subsession: " << env.getResultMsg() << "\n";
+                utils::errorMsg("Failed to initiate the subsession");
             } else if (!handlers::addSubsessionSink(env, subsession)){
-                env << "Failed to initiate subsession sink\n";
+                utils::errorMsg("Failed to initiate subsession sink");
                 subsession->deInitiate();
             } else {
-                env << "Initiated the subsession (client ports " << subsession->clientPortNum() << "-" << subsession->clientPortNum()+1 << ")\n";
+                utils::infoMsg("Initiated subsession at port: " + 
+                std::to_string(subsession->clientPortNum()));
             }
             subsession = this->scs->iter->next();
         }

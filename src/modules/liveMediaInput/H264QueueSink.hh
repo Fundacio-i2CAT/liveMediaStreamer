@@ -17,7 +17,6 @@ protected:
                   char const* sPropParameterSetsStr);
     virtual Boolean continuePlaying();
     
-    virtual void afterGettingFrame(unsigned frameSize, struct timeval presentationTime);
     
 private:
    

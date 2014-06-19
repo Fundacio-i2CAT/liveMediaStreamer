@@ -22,13 +22,12 @@
 
 void signalHandler( int signum )
 {
-    std::cout << "Interrupt signal (" << signum << ") received.\n";
+    utils::infoMsg("Interruption signal received");
     
     PipelineManager *pipe = Controller::getInstance()->pipelineManager();
-    pipe->getWorker(pipe->getReceiverID())->stop();
-    pipe->getWorker(pipe->getTransmitterID())->stop();
+    pipe->stopWorkers();
     
-    std::cout << "Managers closed\n";
+    utils::infoMsg("Workers Stopped");
 }
 
 int main(int argc, char** argv) 
@@ -45,11 +44,8 @@ int main(int argc, char** argv)
     //This will connect every input directly to the transmitter
     receiver->setCallback(callbacks::connectToTransmitter);
     
-    pipe->getWorker(pipe->getTransmitterID())->start();
-    pipe->getWorker(pipe->getReceiverID())->start();
-
-    Frame *codedFrame;
-    
+    pipe->startWorkers();
+  
     signal(SIGINT, signalHandler); 
     
     for (int i = 1; i <= argc-1; ++i) {

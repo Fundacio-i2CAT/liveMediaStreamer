@@ -23,7 +23,7 @@
 
 #include "VideoDecoderLibav.hh"
 #include "../../AVFramedQueue.hh"
-#include <iostream>
+#include "../../Utils.hh"
 
 VideoDecoderLibav::VideoDecoderLibav()
 {
@@ -77,7 +77,7 @@ bool VideoDecoderLibav::doProcessFrame(Frame *org, Frame *dst)
         len = avcodec_decode_video2(codecCtx, frame, &gotFrame, &pkt);
 
         if(len <= 0) {
-            std::cerr << "Error decoding video frame" << std::endl;
+            utils::errorMsg("Decoding video frame");
             return false;
         }
 
@@ -244,7 +244,7 @@ void VideoDecoderLibav::checkInputParams(VCodecType codec)
     fCodec = codec;
 
     if(!inputConfig()) {
-        std::cerr << "Error configuring video decoder" << std::endl;
+        utils::errorMsg("Configuring decoder");
     }
 }
 

@@ -150,58 +150,75 @@ void BaseFilter::removeFrames()
     }
 }
 
-bool BaseFilter::connect(BaseFilter *R, int writerID, int readerID) 
+bool BaseFilter::connect(BaseFilter *R, int writerID, int readerID, bool slaveQueue) 
 {
     Reader* r;
     FrameQueue *queue;
     
+    utils::debugMsg("slaveQueue Value: " + std::to_string(slaveQueue));
+    
     if (writers.size() < getMaxWriters() && writers.count(writerID) <= 0) {
         writers[writerID] = new Writer();
+        utils::debugMsg("New writer created " + std::to_string(writerID));
     }
     
-    if (writers.count(writerID) > 0 && writers[writerID]->isConnected()) {
-        return false;
-    }
-
+	if (slaveQueue) {
+		if (writers.count(writerID) > 0 && !writers[writerID]->isConnected()) {
+            utils::errorMsg("Writer " + std::to_string(writerID) + " null or not connected");
+		    return false;
+		}
+	} else {
+		if (writers.count(writerID) > 0 && writers[writerID]->isConnected()) {
+            utils::errorMsg("Writer " + std::to_string(writerID) + " null or already connected");
+		    return false;
+		}
+	}
     if (R->getReader(readerID) && R->getReader(readerID)->isConnected()){
         return false;
     }
-
-    queue = allocQueue(writerID);
+	if (slaveQueue) {
+		queue = writers[writerID]->getQueue();
+	} else {
+    	queue = allocQueue(writerID);
+        utils::debugMsg("New queue allocated for writer " + std::to_string(writerID));
+	}
     
     if (!(r = R->setReader(readerID, queue))) {
+        utils::errorMsg("Could not set the queue to the reader");
         return false;
     }
-
-    writers[writerID]->setQueue(queue);
+	
+	if (!slaveQueue) {
+    	writers[writerID]->setQueue(queue);
+	}
     return writers[writerID]->connect(r);
 }
 
-bool BaseFilter::connectOneToOne(BaseFilter *R)
+bool BaseFilter::connectOneToOne(BaseFilter *R, bool slaveQueue)
 {
     int writerID = R->generateWriterID();
     int readerID = R->generateReaderID();
 
-    return connect(R, writerID, readerID);
+    return connect(R, writerID, readerID, slaveQueue);
 }
 
-bool BaseFilter::connectManyToOne(BaseFilter *R, int writerID)
+bool BaseFilter::connectManyToOne(BaseFilter *R, int writerID, bool slaveQueue)
 {
     int readerID = R->generateReaderID();
 
-    return connect(R, writerID, readerID);
+    return connect(R, writerID, readerID, slaveQueue);
 }
 
-bool BaseFilter::connectManyToMany(BaseFilter *R, int readerID, int writerID)
+bool BaseFilter::connectManyToMany(BaseFilter *R, int readerID, int writerID, bool slaveQueue)
 {
-    return connect(R, writerID, readerID);
+    return connect(R, writerID, readerID, slaveQueue);
 }
 
-bool BaseFilter::connectOneToMany(BaseFilter *R, int readerID)
+bool BaseFilter::connectOneToMany(BaseFilter *R, int readerID, bool slaveQueue)
 {
     int writerID = R->generateWriterID();
 
-    return connect(R, writerID, readerID);
+    return connect(R, writerID, readerID, slaveQueue);
 }
 
 
@@ -309,35 +326,23 @@ bool BaseFilter::hasFrames()
 	return true;
 }
 
-Frame* BaseFilter::getFrame() {
-	return oFrames.begin()->second;
-}
-
 OneToOneFilter::OneToOneFilter(bool force_) : 
 BaseFilter(1, 1, force_)
 {
 }
 
-bool OneToOneFilter::processFrame(Frame *org, bool removeFrame)
+bool OneToOneFilter::processFrame(bool removeFrame)
 {
     bool newData = false;
 	Frame* origin;
 
     processEvent();
 
-	if (org == NULL) {
-		if (!demandOriginFrames() || !demandDestinationFrames()) {
+	if (!demandOriginFrames() || !demandDestinationFrames()) {
         	return false;
-    	}
-		origin = oFrames.begin()->second;
-	} else {
-		if (!demandDestinationFrames()) {
-        	return false;
-    	}
-		origin = org;
 	}
 
-    if (doProcessFrame(origin, dFrames.begin()->second)) {
+    if (doProcessFrame(oFrames.begin()->second, dFrames.begin()->second)) {
         addFrames();
     }
 
@@ -353,7 +358,7 @@ BaseFilter(1, writersNum, force_)
 {
 }
 
-bool OneToManyFilter::processFrame(Frame *org, bool removeFrame)
+bool OneToManyFilter::processFrame(bool removeFrame)
 {
     bool newData;
 
@@ -429,7 +434,7 @@ BaseFilter(readersNum, 1, force_)
 {
 }
 
-bool ManyToOneFilter::processFrame(Frame *org, bool removeFrame)
+bool ManyToOneFilter::processFrame(bool removeFrame)
 {
     bool newData;
 

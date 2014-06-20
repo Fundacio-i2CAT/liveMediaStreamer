@@ -26,7 +26,6 @@
 #include "../../Filter.hh"
 #include "Handlers.hh"
 
-#include <thread>
 #include <map>
 #include <list>
 #include <functional>
@@ -72,11 +71,8 @@ public:
                                   unsigned int RTPTimestampFrequency, 
                                   unsigned int clientPortNum = 0,
                                   unsigned int channels = 0);
-      
-    bool runManager();
-    bool isRunning();
     
-    void closeManager();
+    void stop();
 
     bool addSession(Session* session);
     bool removeSession(std::string id);
@@ -95,12 +91,11 @@ private:
     void doGetState(Jzon::Object &filterNode) {/*TODO*/};
     void addSessionEvent(Jzon::Node* params, Jzon::Object &outputNode);
 
+    bool processFrame(bool removeFrame = false);
     void addConnection(int wId, MediaSubsession* subsession);
     
     static void* startServer(void *args);
     FrameQueue *allocQueue(int wId);
-      
-    std::thread mngrTh;
     
     static SourceManager* mngrInstance;
     std::map<std::string, Session*> sessionMap;

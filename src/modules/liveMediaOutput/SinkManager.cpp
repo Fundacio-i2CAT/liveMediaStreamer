@@ -40,7 +40,7 @@ SinkManager::SinkManager(int readersNum): watch(0), TailFilter(readersNum)
     //TODO: Add authentication security
     rtspServer = RTSPServer::createNew(*env, RTSP_PORT, NULL);
     if (rtspServer == NULL) {
-        *env << "Failed to create RTSP server: " << env->getResultMsg() << "\n";
+        utils::errorMsg("Failed to create RTSP server");
     }
     
     OutPacketBuffer::increaseMaxSizeTo(MAX_VIDEO_FRAME_SIZE);
@@ -56,16 +56,12 @@ SinkManager::getInstance(){
     if (mngrInstance != NULL){
         return mngrInstance;
     }
-    srand(time(NULL));
     return new SinkManager();
 }
 
-void SinkManager::closeManager()
+void SinkManager::stop()
 {
     watch = 1;
-    if (mngrTh.joinable()){
-        mngrTh.join();
-    }
 }
 
 void SinkManager::destroyInstance()
@@ -73,33 +69,19 @@ void SinkManager::destroyInstance()
     //TODO:
 }
 
-void *startServer(void *args)
+bool SinkManager::processFrame(bool removeFrame)
 {
-    char* watch = (char*) args;
     SinkManager* instance = SinkManager::getInstance();
     
-    if (instance == NULL || instance->envir() == NULL){
-        return NULL;
+    if (envir() == NULL){
+        return false;
     }
-    instance->envir()->taskScheduler().doEventLoop(watch); 
+    envir()->taskScheduler().doEventLoop((char*) &watch); 
     
-    delete &instance->envir()->taskScheduler();
-    instance->envir()->reclaim();
+    delete &envir()->taskScheduler();
+    envir()->reclaim();
     
-    return NULL;
-}
-
-bool SinkManager::runManager()
-{
-    watch = 0;
-    mngrTh = std::thread(std::bind(startServer, &watch));
-    return mngrTh.joinable();
-}
-
-
-bool SinkManager::isRunning()
-{
-    return mngrTh.joinable();
+    return true;
 }
 
 bool SinkManager::addSession(std::string id, std::vector<int> readers, std::string info, std::string desc)
@@ -180,7 +162,7 @@ ServerMediaSubsession *SinkManager::createSubsessionByReader(Reader *reader)
 bool SinkManager::removeSession(std::string id)
 {   
     if (sessionList.find(id) == sessionList.end()){
-        envir()->setResultMsg("Failed, no session found with this id!\n");
+        utils::errorMsg("Failed, no session found with this id (" + id + ")");
         return false;
     }
    
@@ -197,7 +179,7 @@ bool SinkManager::removeSession(std::string id)
 bool SinkManager::publishSession(std::string id)
 {  
     if (sessionList.find(id) == sessionList.end()){
-        envir()->setResultMsg("Failed, no session found with this id!\n");
+        utils::errorMsg("Failed, no session found with this id (" + id + ")");
         return false;
     }
     
@@ -209,7 +191,7 @@ bool SinkManager::publishSession(std::string id)
     char* url = rtspServer->rtspURL(sessionList[id]);
     UsageEnvironment& env = rtspServer->envir();
     
-    env << "\n\nPlay this stream using the URL \"" << url << "\"\n";
+    utils::infoMsg("Play " + id + " stream using the URL " + url);
     delete[] url;
     
     return true;

@@ -23,6 +23,7 @@
  */
 
 #include "IOInterface.hh"
+#include "Utils.hh"
 
 /////////////////////////
 //READER IMPLEMENTATION//
@@ -49,7 +50,7 @@ Frame* Reader::getFrame(bool force)
     Frame* frame;
 
     if (!connected) {
-        //TODO: error msg
+        utils::errorMsg("The reader is not connected");
         return NULL;
     }
 
@@ -119,7 +120,7 @@ Frame* Writer::getFrame(bool force)
     Frame* frame;
 
     if (!connected) {
-        //TODO: error msg
+        utils::errorMsg("The writer is not connected");
         return NULL;
     }
 

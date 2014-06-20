@@ -28,6 +28,9 @@
 
 #define ID_LENGTH 4
 
+static bool logConfigured = false;
+enum DefinedLogLevel {ERROR, WARNING, DEBUG, INFO};
+
 namespace utils 
 {
     SampleFmt getSampleFormatFromString(std::string stringSampleFmt);
@@ -38,6 +41,13 @@ namespace utils
 	std::string randomIdGenerator(unsigned int length);
     int getPayloadFromCodec(std::string codec); 
 
+    
+    void errorMsg(std::string msg);
+    void warningMsg(std::string msg);
+    void infoMsg(std::string msg);
+    void debugMsg(std::string msg);
+    
+    void setLogLevel(DefinedLogLevel level);
 }
 
 #endif

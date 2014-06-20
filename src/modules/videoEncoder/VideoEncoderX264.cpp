@@ -22,9 +22,9 @@
 
 #include "VideoEncoderX264.hh"
 
-VideoEncoderX264::VideoEncoderX264(): OneToOneFilter(){
-	fps = 24;
-	gop = 24;
+VideoEncoderX264::VideoEncoderX264(bool force_): OneToOneFilter(force_){
+	fps = 25;
+	gop = 25;
 	pts = 0;
 	forceIntra = false;
 	firstTime = true;
@@ -42,6 +42,7 @@ VideoEncoderX264::VideoEncoderX264(): OneToOneFilter(){
 	xparams.i_keyint_max = gop;
 	xparams.rc.i_bitrate = bitrate;
 	x264_param_apply_profile(&xparams, "baseline");
+    fType = VIDEO_ENCODER;
 }
 
 VideoEncoderX264::~VideoEncoderX264(){

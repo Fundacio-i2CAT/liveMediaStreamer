@@ -12,7 +12,7 @@ QueueSource::QueueSource(UsageEnvironment& env, Reader *reader)
 
 void QueueSource::doGetNextFrame() {
     if ((frame = fReader->getFrame()) == NULL) {
-        nextTask() = envir().taskScheduler().scheduleDelayedTask(1000,
+        nextTask() = envir().taskScheduler().scheduleDelayedTask(POLL_TIME,
             (TaskFunc*)QueueSource::staticDoGetNextFrame, this);
         return;
     }

@@ -122,6 +122,12 @@ int main(int argc, char** argv)
 	if(!decoder->connectOneToOne(encoder)) {
         std::cerr << "Error connecting video encoder" << std::endl;
     }
+	if(!decoder->connectOneToOne(encoder720, true)) {
+        std::cerr << "Error connecting video encoder" << std::endl;
+    }
+	if(!decoder->connectOneToOne(encoder480, true)) {
+        std::cerr << "Error connecting video encoder" << std::endl;
+    }
 
     Reader *reader1080 = new Reader();
 	encoder->connect(reader1080);

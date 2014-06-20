@@ -24,9 +24,21 @@
 #include "Utils.hh"
 
 #include <algorithm>
+#include <log4cplus/logger.h>
+#include <log4cplus/loggingmacros.h>
+#include <log4cplus/configurator.h>
+
+using namespace log4cplus;
 
 namespace utils 
 {
+    void configureLog(){
+        BasicConfigurator config;
+        config.configure();
+        
+        logConfigured = true;
+    }
+    
     SampleFmt getSampleFormatFromString(std::string stringSampleFmt)
     {
         SampleFmt sampleFormat;
@@ -197,5 +209,84 @@ namespace utils
 
         return payload;
     }
-
+    
+    void setLogLevel(DefinedLogLevel level)
+    {
+        if (!logConfigured){
+            configureLog();
+        }
+        
+        Logger logger = Logger::getInstance(LOG4CPLUS_TEXT("main"));
+        
+        switch(level) {
+            case ERROR:
+                logger.setLogLevel(ERROR_LOG_LEVEL);
+                break;
+            case WARNING:
+                logger.setLogLevel(WARN_LOG_LEVEL);
+                break;
+            case DEBUG:
+                logger.setLogLevel(DEBUG_LOG_LEVEL);
+                break;
+            case INFO:
+                logger.setLogLevel(INFO_LOG_LEVEL);
+                break;
+        }
+    }
+    
+    void warningMsg(std::string msg)
+    {
+        if (!logConfigured){
+            configureLog();
+        }
+        
+        if (msg.empty()){
+            return;
+        }
+        
+        Logger logger = Logger::getInstance(LOG4CPLUS_TEXT("main"));
+        LOG4CPLUS_WARN(logger, msg);
+    }
+    
+    void debugMsg(std::string msg)
+    {
+        if (!logConfigured){
+            configureLog();
+        }
+        
+        if (msg.empty()){
+            return;
+        }
+        
+        Logger logger = Logger::getInstance(LOG4CPLUS_TEXT("main"));
+        LOG4CPLUS_DEBUG(logger, msg);
+    }
+    
+    void errorMsg(std::string msg)
+    {
+        if (!logConfigured){
+            configureLog();
+        }
+        
+        if (msg.empty()){
+            return;
+        }
+        
+        Logger logger = Logger::getInstance(LOG4CPLUS_TEXT("main"));
+        LOG4CPLUS_ERROR(logger, msg);
+    }
+    
+    void infoMsg(std::string msg)
+    {
+        if (!logConfigured){
+            configureLog();
+        }
+        
+        if (msg.empty()){
+            return;
+        }
+        
+        Logger logger = Logger::getInstance(LOG4CPLUS_TEXT("main"));
+        LOG4CPLUS_INFO(logger, msg);
+    }
 }

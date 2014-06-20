@@ -1,5 +1,5 @@
 #include "H264QueueSink.hh"
-#include <iostream>
+#include "../../Utils.hh"
 
 static unsigned char const start_code[4] = {0x00, 0x00, 0x00, 0x01};
 
@@ -18,10 +18,12 @@ H264QueueSink* H264QueueSink::createNew(UsageEnvironment& env, Writer *writer,
 Boolean H264QueueSink::continuePlaying() 
 {
     if (fSource == NULL) {
+        utils::errorMsg("Cannot play, fSource is null");
         return False;
     }
     
     if (!fWriter->isConnected()){
+        utils::debugMsg("Using dummy buffer, no writer connected yet");
         fSource->getNextFrame(dummyBuffer, DUMMY_RECEIVE_BUFFER_SIZE,
                               QueueSink::afterGettingFrame, this,
                               QueueSink::onSourceClosure, this);
@@ -31,6 +33,7 @@ Boolean H264QueueSink::continuePlaying()
     frame = fWriter->getFrame(true);
     
     if (!fHaveWrittenFirstFrame) {
+        utils::debugMsg("This is first frame, inject SPS and PPS from SDP if any");
         unsigned numSPropRecords;
         SPropRecord* sPropRecords
             = parseSPropParameterSets(fSPropParameterSetsStr, numSPropRecords);
@@ -65,7 +68,8 @@ void H264QueueSink::afterGettingFrame(unsigned frameSize, struct timeval present
         frame->setPresentationTime(presentationTime);
         fWriter->addFrame();
     }
-    // Then try getting the next frame:
     continuePlaying();
 }
+
+
 

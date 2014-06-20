@@ -29,12 +29,11 @@
 
 #include <BasicUsageEnvironment.hh>
 #include <liveMedia/liveMedia.hh>
-#include <thread>
 #include <map>
 #include <string>
 
 #define RTSP_PORT 8554
-#define MAX_VIDEO_FRAME_SIZE 200000
+#define MAX_VIDEO_FRAME_SIZE 256*1024
 
 class SinkManager : public TailFilter {
 private:
@@ -43,11 +42,8 @@ private:
 public:
     static SinkManager* getInstance();
     static void destroyInstance();
-
-    bool runManager();
-    bool isRunning();
     
-    void closeManager();
+    
 
     bool addSession(std::string id, std::vector<int> readers, 
                     std::string info = "", std::string desc = "");
@@ -56,18 +52,20 @@ public:
     bool publishSession(std::string id);
     bool removeSession(std::string id);
     
+    void stop();
+    
     UsageEnvironment* envir() {return env;}
       
 private: 
     void initializeEventMap();
     void addSessionEvent(Jzon::Node* params, Jzon::Object &outputNode);
     
+    bool processFrame(bool removeFrame = false);
+    
     ServerMediaSubsession *createSubsessionByReader(Reader *reader);
     ServerMediaSubsession *createVideoMediaSubsession(VCodecType codec, Reader *reader);
     ServerMediaSubsession *createAudioMediaSubsession(ACodecType codec, Reader *reader);
     void doGetState(Jzon::Object &filterNode) {/*TODO*/};
-    
-    std::thread mngrTh;
    
     static SinkManager* mngrInstance;
     std::map<std::string, ServerMediaSession*> sessionList;

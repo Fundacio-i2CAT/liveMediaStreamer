@@ -54,26 +54,18 @@ SourceManager* SourceManager::getInstance()
     if (mngrInstance != NULL){
         return mngrInstance;
     }
-    
     return new SourceManager();
 }
 
-void SourceManager::closeManager()
+void SourceManager::stop()
 {
-    sessionMap.clear();
-    if (this->isRunning()){
-        watch = 1;
-        if (mngrTh.joinable()){
-            mngrTh.join();
-        }
-    }
+    watch = 1;
 }
 
 void SourceManager::destroyInstance()
 {
     SourceManager * mngrInstance = SourceManager::getInstance();
     if (mngrInstance != NULL){
-        mngrInstance->closeManager();
         delete mngrInstance;
         mngrInstance = NULL;
     }
@@ -87,32 +79,17 @@ void SourceManager::setCallback(std::function<void(char const*, unsigned short)>
 }
 
 
-void* SourceManager::startServer(void *args)
-{
-    char* watch = (char*) args;
-    SourceManager* instance = SourceManager::getInstance();
-    
-    if (instance == NULL || instance->envir() == NULL){
-        return NULL;
+bool SourceManager::processFrame(bool removeFrame)
+{   
+    if (envir() == NULL){
+        return false;
     }
-    instance->envir()->taskScheduler().doEventLoop(watch); 
+    envir()->taskScheduler().doEventLoop((char*) &watch); 
     
-    delete &instance->envir()->taskScheduler();
-    instance->envir()->reclaim();
+    delete &envir()->taskScheduler();
+    envir()->reclaim();
     
-    return NULL;
-}
-
-bool SourceManager::runManager()
-{
-    watch = 0;
-    mngrTh = std::thread(std::bind(SourceManager::startServer, &watch));
-    return mngrTh.joinable();
-}
-
-bool SourceManager::isRunning()
-{
-    return mngrTh.joinable();
+    return true;
 }
 
 bool SourceManager::addSession(Session* session)
@@ -362,7 +339,7 @@ Session* Session::createNewByURL(UsageEnvironment& env, std::string progName, st
     
     RTSPClient* rtspClient = ExtendedRTSPClient::createNew(env, rtspURL.c_str(), session->scs, RTSP_CLIENT_VERBOSITY_LEVEL, progName.c_str());
     if (rtspClient == NULL) {
-        env << "Failed to create a RTSP client for URL \"" << rtspURL.c_str() << "\": " << env.getResultMsg() << "\n";
+        utils::errorMsg("Failed to create a RTSP client for URL " + rtspURL);
         return NULL;
     }
     
@@ -381,12 +358,13 @@ bool Session::initiateSession()
         subsession = this->scs->iter->next();
         while (subsession != NULL) {
             if (!subsession->initiate()) {
-                env << "Failed to initiate the subsession: " << env.getResultMsg() << "\n";
+                utils::errorMsg("Failed to initiate the subsession");
             } else if (!handlers::addSubsessionSink(env, subsession)){
-                env << "Failed to initiate subsession sink\n";
+                utils::errorMsg("Failed to initiate subsession sink");
                 subsession->deInitiate();
             } else {
-                env << "Initiated the subsession (client ports " << subsession->clientPortNum() << "-" << subsession->clientPortNum()+1 << ")\n";
+                utils::infoMsg("Initiated subsession at port: " + 
+                std::to_string(subsession->clientPortNum()));
             }
             subsession = this->scs->iter->next();
         }

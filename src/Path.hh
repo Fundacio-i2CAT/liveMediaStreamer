@@ -18,6 +18,7 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  *  Authors:  Marc Palau <marc.palau@i2cat.net>
+ *            David Cassany <david.cassany@i2cat.net>
  */
 
 #ifndef _PATH_HH
@@ -45,6 +46,16 @@ private:
     int orgWriterID;
     int dstReaderID;
     std::vector<int> filterIDs;
+};
+
+class VideoTranscoderPath : public Path {
+public:
+    VideoTranscoderPath(int originFilterID, int orgWriterID);
+};
+
+class AudioTranscoderPath : public Path {
+public:
+    AudioTranscoderPath(int originFilterID, int orgWriterID);
 };
 
 class VideoDecoderPath : public Path {

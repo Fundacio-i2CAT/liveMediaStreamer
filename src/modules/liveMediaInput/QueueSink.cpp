@@ -22,7 +22,8 @@
  */
 
 #include "QueueSink.hh"
-#include <iostream>
+#include "../../Utils.hh"
+
 #include <sys/time.h>
 
 QueueSink::QueueSink(UsageEnvironment& env, Writer *writer)
@@ -40,10 +41,12 @@ QueueSink* QueueSink::createNew(UsageEnvironment& env, Writer *writer)
 Boolean QueueSink::continuePlaying() 
 {
     if (fSource == NULL) {
+        utils::errorMsg("Cannot play, fSource is null");
         return False;
     }
     
     if (!fWriter->isConnected()){
+        utils::debugMsg("Using dummy buffer, no writer connected yet");
         fSource->getNextFrame(dummyBuffer, DUMMY_RECEIVE_BUFFER_SIZE,
                               afterGettingFrame, this,
                               onSourceClosure, this);

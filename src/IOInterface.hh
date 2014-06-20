@@ -49,6 +49,7 @@ public:
     void setQueue(FrameQueue *queue);
     Frame* getFrame(bool force = false);
     void addFrame();
+	FrameQueue* getQueue() const {return queue;};
 
 protected:
     FrameQueue *queue;

@@ -43,11 +43,11 @@ public:
     
     bool start();
     bool isRunning();
-    void stop();
-    void enable();
-    void disable();
+    virtual void stop();
+    virtual void enable();
+    virtual void disable();
     bool isEnabled();
-    void setFps(int maxFps);
+    void setFps(unsigned int maxFps);
     
 protected:
     virtual void process();
@@ -59,20 +59,27 @@ protected:
     unsigned int frameTime; //microseconds
 };
 
+class LiveMediaWorker : public Worker {
+public:
+    LiveMediaWorker(Runnable *processor_);
+    void enable() {};
+    void disable() {};
+    void stop();
+private:
+    void process();
+};
+
 class Slave : public Worker {
 public:
 	Slave(int id_, Runnable *processor_, unsigned int maxFps = 0);
 	int getId(){return id;};
 	bool getFinished(){return finished;};
 	void setFalse();
-	void setFrame(Frame* org);
 protected:
 	void process();
 private:
 	int id;
-	std::atomic<bool> finished;
-	Frame* origin;
-	
+	std::atomic<bool> finished;	
 };
 
 class Master : public Worker {
@@ -91,10 +98,10 @@ private:
 class Runnable {
     
 public:
-    virtual bool processFrame(Frame *org = NULL, bool removeFrame = true) = 0;
+    virtual bool processFrame(bool removeFrame = true) = 0;
 	virtual void removeFrames() = 0;
 	virtual bool hasFrames() = 0;
-	virtual Frame* getFrame() = 0;
+    virtual void stop() = 0;
 };
 
 #endif

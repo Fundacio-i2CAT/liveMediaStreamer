@@ -267,6 +267,7 @@ void BaseFilter::processEvent()
         Jzon::Node* params = e.getParams();
         Jzon::Object outputNode;
 
+
         if (action.empty()) {
             break;
         }

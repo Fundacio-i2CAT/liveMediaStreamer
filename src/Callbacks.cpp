@@ -51,7 +51,7 @@ namespace callbacks
             return;
         }
 
-        path->setDestinationFilter(mixerID, pipeMngr->getFilter(mixerID)->generateReaderID());
+        path->setDestinationFilter(mixerID, (int)port);
 
         if (!pipeMngr->connectPath(path)) {
             utils::errorMsg("Failed connection to path");

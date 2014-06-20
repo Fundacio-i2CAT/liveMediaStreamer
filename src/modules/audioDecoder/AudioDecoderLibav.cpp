@@ -209,6 +209,10 @@ bool AudioDecoderLibav::inputConfig()
 
 bool AudioDecoderLibav::outputConfig()
 {
+    if (inChannels == 0 && inSampleRate == 0) {
+        return true;
+    }
+
     resampleCtx = swr_alloc_set_opts
                   (
                     resampleCtx, 

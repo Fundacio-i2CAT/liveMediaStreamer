@@ -25,19 +25,22 @@
 
 #include "Types.hh"
 #include <string>
+
 #define ID_LENGTH 4
 
 static bool logConfigured = false;
 enum DefinedLogLevel {ERROR, WARNING, DEBUG, INFO};
 
 namespace utils 
-{  
+{
     SampleFmt getSampleFormatFromString(std::string stringSampleFmt);
     ACodecType getCodecFromString(std::string stringCodec);
     std::string getAudioCodecAsString(ACodecType codec);
     std::string getFilterTypeAsString(FilterType type);
     std::string getSampleFormatAsString(SampleFmt sFormat);
 	std::string randomIdGenerator(unsigned int length);
+    int getPayloadFromCodec(std::string codec); 
+
     
     void errorMsg(std::string msg);
     void warningMsg(std::string msg);

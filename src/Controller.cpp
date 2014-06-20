@@ -133,7 +133,7 @@ bool Controller::readAndParse()
 
 bool Controller::processEvent()
 {
-    if (inputRootNode->Has("filterID")) {
+    if (inputRootNode->Get("filterID").ToInt() != 0) {
         return processFilterEvent();
     }
     
@@ -386,7 +386,8 @@ bool PipelineManager::addWorkerToPath(Path *path, Worker* worker)
     return true;
 }
 
-void PipelineManager::startWorkers(){   
+void PipelineManager::startWorkers()
+{   
     for (auto it : filters) {
         if (it.second.second != NULL && 
             !it.second.second->isRunning()){
@@ -396,7 +397,8 @@ void PipelineManager::startWorkers(){
     }
 }
 
-void PipelineManager::stopWorkers(){
+void PipelineManager::stopWorkers()
+{
     for (auto it : filters) {
         if (it.second.second != NULL && 
             it.second.second->isRunning()){

@@ -34,6 +34,7 @@
 #include <iostream>
 #include "../src/Controller.hh"
 #include "../src/Callbacks.hh"
+#include "../src/Utils.hh"
 #include "../src/modules/audioMixer/AudioMixer.hh"
 #include "../src/modules/audioEncoder/AudioEncoderLibav.hh"
 
@@ -69,7 +70,20 @@ void createMixerEncoderTxPath()
         exit(1);
     }
 
-    audioMixerWorker->start();
+    std::vector<int> readers;
+    std::string sessionId = utils::randomIdGenerator(ID_LENGTH);
+
+    readers.push_back(path->getDstReaderID());
+        
+    if(!pipeMngr->getTransmitter()->addSession(sessionId, readers)) {
+        std::cerr << "Error adding session to transsmiter" << std::endl;
+        exit(1);
+    }
+
+    pipeMngr->getTransmitter()->publishSession(sessionId);
+
+    pipeMngr->startWorkers();
+
 }
 
 int main(int argc, char *argv[]) {
@@ -87,9 +101,6 @@ int main(int argc, char *argv[]) {
     ctrl->pipelineManager()->getReceiver()->setCallback(callbacks::connectToMixerCallback);
 
     createMixerEncoderTxPath();
-
-    ctrl->pipelineManager()->getReceiver()->runManager();
-    ctrl->pipelineManager()->getTransmitter()->runManager();
 
     port = atoi(argv[1]);
     if (!ctrl->createSocket(port)) {

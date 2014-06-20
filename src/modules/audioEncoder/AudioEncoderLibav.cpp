@@ -70,7 +70,6 @@ bool AudioEncoderLibav::doProcessFrame(Frame *org, Frame *dst)
 {     
     int ret, gotFrame;
 
-
     AudioFrame* aRawFrame = dynamic_cast<AudioFrame*>(org);
 
     checkInputParams(aRawFrame->getSampleFmt(), aRawFrame->getChannels(), aRawFrame->getSampleRate());

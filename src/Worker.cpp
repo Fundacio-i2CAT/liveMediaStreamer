@@ -157,6 +157,9 @@ void Worker::setFps(int maxFps)
 Master::Master(Runnable *processor_, unsigned int maxFps):Worker(processor_,maxFps) {
 }
 
+Master::Master():Worker() {
+}
+
 bool Master::addSlave(Slave *slave_) {
 	if (slaves.size() == MAX_SLAVE)
 		return false;
@@ -263,6 +266,9 @@ void Master::processAll() {
 Slave::Slave(int id_, Runnable *processor_, unsigned int maxFps):Worker(processor_,maxFps) {
 	id = id_;
 	finished = true;
+}
+
+Slave::Slave():Worker() {
 }
 
 void Slave::process() {

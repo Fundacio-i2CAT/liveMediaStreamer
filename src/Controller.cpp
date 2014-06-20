@@ -309,7 +309,7 @@ bool PipelineManager::connectPath(Path* path)
     std::vector<int> pathFilters = path->getFilters();
 
     if (pathFilters.empty()) {
-        if (filters[orgFilterId].first->connectManyToMany(filters[dstFilterId].first, path->getDstReaderID(), path->getOrgWriterID())) {
+        if (filters[orgFilterId].first->connectManyToMany(filters[dstFilterId].first, path->getDstReaderID(), path->getOrgWriterID(), path->getShared())) {
             return true;
         } else {
             std::cerr << "Error connecting head to tail!" << std::endl;
@@ -317,29 +317,29 @@ bool PipelineManager::connectPath(Path* path)
         }
     }
 
-    if (!filters[orgFilterId].first->connectManyToOne(filters[pathFilters.front()].first, path->getOrgWriterID())) {
+    if (!filters[orgFilterId].first->connectManyToOne(filters[pathFilters.front()].first, path->getOrgWriterID(), path->getShared())) {
         std::cerr << "Error connecting path head to first filter!" << std::endl;
         return false;
     }
 
     for (unsigned i = 0; i < pathFilters.size() - 1; i++) {
-        if (!filters[pathFilters[i]].first->connectOneToOne(filters[pathFilters[i+1]].first)) {
+        if (!filters[pathFilters[i]].first->connectOneToOne(filters[pathFilters[i+1]].first, path->getShared())) {
             std::cerr << "Error connecting path filters!" << std::endl;
             return false;
         }
     }
 
-    if (!filters[pathFilters.back()].first->connectOneToMany(filters[dstFilterId].first, path->getDstReaderID())) {
+    if (!filters[pathFilters.back()].first->connectOneToMany(filters[dstFilterId].first, path->getDstReaderID(), path->getShared())) {
         std::cerr << "Error connecting path last filter to path tail!" << std::endl;
         return false;
     }
 
     //TODO: manage worker assignment better
-    for (auto it : pathFilters) {
+    /*for (auto it : pathFilters) {
         Worker* worker = new Worker(filters[it].first);
         filters[it].second = worker;
         worker->start();
-    }
+    }*/
 
     return true;
 

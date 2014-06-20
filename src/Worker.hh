@@ -62,6 +62,7 @@ protected:
 class Slave : public Worker {
 public:
 	Slave(int id_, Runnable *processor_, unsigned int maxFps = 0);
+	Slave();
 	int getId(){return id;};
 	bool getFinished(){return finished;};
 	void setFalse();
@@ -75,6 +76,7 @@ private:
 class Master : public Worker {
 public:
 	Master(Runnable *processor_, unsigned int maxFps = 0);
+	Master();
 	bool addSlave(Slave *slave_);
 	void removeSlave(int id);
 protected:

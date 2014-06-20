@@ -27,7 +27,7 @@
 
 class Path {
 public:
-    Path(int originFilterID, int orgWriterID); 
+    Path(int originFilterID, int orgWriterID, bool sharedQueue = false); 
     void setDestinationFilter(int destinationFilterID, int dstReaderID);
     const int getDstReaderID() const {return dstReaderID;};
     const int getOrgWriterID() const {return orgWriterID;};
@@ -35,11 +35,13 @@ public:
     const int getDestinationFilterID() const {return destinationFilterID;};
     void addWorker(Worker* worker);
     std::vector<int> getFilters(){return filterIDs;};
+	bool getShared(){return shared;};
 
 protected:
     void addFilterID(int filterID);
 
 private:
+	bool shared;
     int originFilterID;
     int destinationFilterID;
     int orgWriterID;
@@ -49,17 +51,22 @@ private:
 
 class VideoDecoderPath : public Path {
 public:
-    VideoDecoderPath(int originFilterID, int orgWriterID);
+    VideoDecoderPath(int originFilterID, int orgWriterID, bool sharedQueue = false);
+};
+
+class VideoEncoderPath : public Path {
+public:
+    VideoEncoderPath(int originFilterID, int orgWriterID, bool sharedQueue = false);
 };
 
 class AudioDecoderPath : public Path {
 public:
-    AudioDecoderPath(int originFilterID, int orgWriterID);
+    AudioDecoderPath(int originFilterID, int orgWriterID, bool sharedQueue = false);
 };
 
 class AudioEncoderPath : public Path {
 public:
-    AudioEncoderPath(int originFilterID, int orgWriterID);
+    AudioEncoderPath(int originFilterID, int orgWriterID, bool sharedQueue = false);
 };
 
 #endif

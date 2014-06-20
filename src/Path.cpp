@@ -26,13 +26,15 @@
 #include "modules/videoDecoder/VideoDecoderLibav.hh"
 #include "modules/audioDecoder/AudioDecoderLibav.hh"
 #include "modules/audioEncoder/AudioEncoderLibav.hh"
+#include "modules/videoEncoder/VideoEncoderX264.hh"
 
-Path::Path(int originFilterID, int orgWriterID) 
+Path::Path(int originFilterID, int orgWriterID, bool sharedQueue) 
 {
     this->originFilterID = originFilterID;
     this->orgWriterID = orgWriterID;
     destinationFilterID = -1;
     dstReaderID = -1;
+	shared = sharedQueue;
 }
 
 void Path::addFilterID(int filterID)
@@ -46,15 +48,29 @@ void Path::setDestinationFilter(int destinationFilterID, int dstReaderID)
     this->dstReaderID = dstReaderID;
 }
 
-VideoDecoderPath::VideoDecoderPath(int originFilterID, int orgWriterID) : 
-Path(originFilterID, orgWriterID)
+VideoDecoderPath::VideoDecoderPath(int originFilterID, int orgWriterID, bool sharedQueue) : 
+Path(originFilterID, orgWriterID, sharedQueue)
 {
+	VideoDecoderLibav *decoder = new VideoDecoderLibav();
+    int id = rand();
+    Controller::getInstance()->pipelineManager()->addFilter(id, decoder);
+    addFilterID(id);
  //   VideoDecoderLibav *decoder = new VideoDecoderLibav();
  //   addFilter(decoder);
 }
 
-AudioDecoderPath::AudioDecoderPath(int originFilterID, int orgWriterID) :
-Path(originFilterID, orgWriterID)
+VideoEncoderPath::VideoEncoderPath(int originFilterID, int orgWriterID, bool sharedQueue) :
+Path(originFilterID, orgWriterID, sharedQueue)
+{
+    VideoEncoderX264 *encoder = new VideoEncoderX264();
+    int id = rand();
+	printf("ID del encoder: %d\n", id);
+    Controller::getInstance()->pipelineManager()->addFilter(id, encoder);
+    addFilterID(id);
+}
+
+AudioDecoderPath::AudioDecoderPath(int originFilterID, int orgWriterID, bool sharedQueue) :
+Path(originFilterID, orgWriterID, sharedQueue)
 {
     AudioDecoderLibav *decoder = new AudioDecoderLibav();
     int id = rand();
@@ -62,8 +78,8 @@ Path(originFilterID, orgWriterID)
     addFilterID(id);
 }
 
-AudioEncoderPath::AudioEncoderPath(int originFilterID, int orgWriterID) :
-Path(originFilterID, orgWriterID)
+AudioEncoderPath::AudioEncoderPath(int originFilterID, int orgWriterID, bool sharedQueue) :
+Path(originFilterID, orgWriterID, sharedQueue)
 {
     AudioEncoderLibav *encoder = new AudioEncoderLibav();
     int id = rand();

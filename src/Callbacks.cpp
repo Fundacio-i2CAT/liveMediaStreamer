@@ -91,4 +91,24 @@ namespace callbacks
         
         return;
     }
+
+	void connectToDecoderCallback(char const* medium, unsigned short port)
+	{
+        PipelineManager* pipeMngr = Controller::getInstance()->pipelineManager();
+        Path* path = NULL;
+
+        path = new Path(pipeMngr->getReceiverID(), (int)port);
+        
+        if (!path == -1) {
+            std::cerr << "[Callback] No path or no transmitter!" << std::endl;
+            return;
+        }
+
+        if (!pipeMngr->addPath(port, path)) {
+            //TODO: ERROR
+            return;
+        }
+        
+        return;
+	}
 }

@@ -385,7 +385,8 @@ bool PipelineManager::addWorkerToPath(Path *path, Worker* worker)
     return true;
 }
 
-void PipelineManager::startWorkers(){   
+void PipelineManager::startWorkers()
+{   
     for (auto it : filters) {
         if (it.second.second != NULL && 
             !it.second.second->isRunning()){
@@ -395,7 +396,8 @@ void PipelineManager::startWorkers(){
     }
 }
 
-void PipelineManager::stopWorkers(){
+void PipelineManager::stopWorkers()
+{
     for (auto it : filters) {
         if (it.second.second != NULL && 
             it.second.second->isRunning()){

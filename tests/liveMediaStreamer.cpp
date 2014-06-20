@@ -70,8 +70,6 @@ void createMixerEncoderTxPath()
         exit(1);
     }
 
-    audioMixerWorker->start();
-
     std::vector<int> readers;
     std::string sessionId = utils::randomIdGenerator(ID_LENGTH);
 
@@ -83,6 +81,9 @@ void createMixerEncoderTxPath()
     }
 
     pipeMngr->getTransmitter()->publishSession(sessionId);
+
+    pipeMngr->startWorkers();
+
 }
 
 int main(int argc, char *argv[]) {
@@ -100,9 +101,6 @@ int main(int argc, char *argv[]) {
     ctrl->pipelineManager()->getReceiver()->setCallback(callbacks::connectToMixerCallback);
 
     createMixerEncoderTxPath();
-
-    ctrl->pipelineManager()->getReceiver()->runManager();
-    ctrl->pipelineManager()->getTransmitter()->runManager();
 
     port = atoi(argv[1]);
     if (!ctrl->createSocket(port)) {

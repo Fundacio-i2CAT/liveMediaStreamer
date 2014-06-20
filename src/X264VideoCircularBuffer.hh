@@ -51,6 +51,10 @@ extern "C" {
         X264VideoCircularBuffer();
         bool pushBack();
         bool forcePushBack();
+        
+        Frame *innerGetRear();
+        void innerAddFrame();
+        Frame *innerForceGetRear();
 
         X264VideoFrame* inputFrame;
 };

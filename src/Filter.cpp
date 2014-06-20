@@ -155,16 +155,21 @@ bool BaseFilter::connect(BaseFilter *R, int writerID, int readerID, bool slaveQu
     Reader* r;
     FrameQueue *queue;
     
+    utils::debugMsg("slaveQueue Value: " + std::to_string(slaveQueue));
+    
     if (writers.size() < getMaxWriters() && writers.count(writerID) <= 0) {
         writers[writerID] = new Writer();
+        utils::debugMsg("New writer created " + std::to_string(writerID));
     }
     
 	if (slaveQueue) {
-		if (!(writers.count(writerID) > 0 && writers[writerID]->isConnected())) {
+		if (writers.count(writerID) > 0 && !writers[writerID]->isConnected()) {
+            utils::errorMsg("Writer " + std::to_string(writerID) + " null or not connected");
 		    return false;
 		}
 	} else {
 		if (writers.count(writerID) > 0 && writers[writerID]->isConnected()) {
+            utils::errorMsg("Writer " + std::to_string(writerID) + " null or already connected");
 		    return false;
 		}
 	}
@@ -175,9 +180,11 @@ bool BaseFilter::connect(BaseFilter *R, int writerID, int readerID, bool slaveQu
 		queue = writers[writerID]->getQueue();
 	} else {
     	queue = allocQueue(writerID);
+        utils::debugMsg("New queue allocated for writer " + std::to_string(writerID));
 	}
     
     if (!(r = R->setReader(readerID, queue))) {
+        utils::errorMsg("Could not set the queue to the reader");
         return false;
     }
 	
@@ -191,14 +198,12 @@ bool BaseFilter::connectOneToOne(BaseFilter *R, bool slaveQueue)
 {
     int writerID = R->generateWriterID();
     int readerID = R->generateReaderID();
-
     return connect(R, writerID, readerID, slaveQueue);
 }
 
 bool BaseFilter::connectManyToOne(BaseFilter *R, int writerID, bool slaveQueue)
 {
     int readerID = R->generateReaderID();
-
     return connect(R, writerID, readerID, slaveQueue);
 }
 
@@ -210,7 +215,6 @@ bool BaseFilter::connectManyToMany(BaseFilter *R, int readerID, int writerID, bo
 bool BaseFilter::connectOneToMany(BaseFilter *R, int readerID, bool slaveQueue)
 {
     int writerID = R->generateWriterID();
-
     return connect(R, writerID, readerID, slaveQueue);
 }
 

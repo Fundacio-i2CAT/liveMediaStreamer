@@ -22,7 +22,7 @@
 
 #include "X264VideoCircularBuffer.hh"
 #include <cstring>
-#include <iostream>
+#include "Utils.hh"
 
 X264VideoCircularBuffer* X264VideoCircularBuffer::createNew()
 {
@@ -32,6 +32,10 @@ X264VideoCircularBuffer* X264VideoCircularBuffer::createNew()
 
 Frame* X264VideoCircularBuffer::getRear()
 {
+    if (elements >= max) {
+        return NULL;
+    }
+    
     return inputFrame;
 }
 
@@ -59,16 +63,20 @@ bool X264VideoCircularBuffer::config()
 
 bool X264VideoCircularBuffer::pushBack() 
 {
+    Frame* interleavedVideoFrame;
+    
 	int sizeBuffer = inputFrame->getSizeNals();
 	x264_nal_t** buffer = inputFrame->getNals();
 
 	int i = 0;
     for (i=0; i<sizeBuffer; i++) {
 		int sizeNal = (*buffer)[i].i_payload;
-		Frame* interleavedVideoFrame= VideoFrameQueue::getRear();
+        if ((interleavedVideoFrame = innerGetRear()) == NULL){
+            interleavedVideoFrame = innerForceGetRear();
+        }
 		memcpy(interleavedVideoFrame->getDataBuf(), (*buffer)[i].p_payload, sizeNal);
 		interleavedVideoFrame->setLength(sizeNal);
-		VideoFrameQueue::addFrame();		
+		innerAddFrame();
 	}
 	
     return true;
@@ -79,3 +87,27 @@ bool X264VideoCircularBuffer::forcePushBack()
     return pushBack();
 }
 
+Frame* X264VideoCircularBuffer::innerGetRear() 
+{
+    if (elements >= max) {
+        return NULL;
+    }
+    
+    return frames[rear];
+}
+
+Frame* X264VideoCircularBuffer::innerForceGetRear()
+{
+    Frame *frame;
+    while ((frame = innerGetRear()) == NULL) {
+        utils::debugMsg("Frame discarted");
+        flush();
+    }
+    return frame;
+}
+
+void X264VideoCircularBuffer::innerAddFrame() 
+{
+    rear =  (rear + 1) % max;
+    ++elements;
+}

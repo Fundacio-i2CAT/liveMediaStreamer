@@ -1,6 +1,6 @@
 /*
  *  VideoEncoderX264 - Video Encoder X264
- *  Copyright (C) 2013  Fundació i2CAT, Internet i Innovació digital a Catalunya
+ *  Copyright (C) 2014  Fundació i2CAT, Internet i Innovació digital a Catalunya
  *
  *  This file is part of media-streamer.
  *
@@ -40,7 +40,7 @@ extern "C" {
 
 class VideoEncoderX264: public OneToOneFilter {
 	public:
-		VideoEncoderX264();
+		VideoEncoderX264(bool force_ = false);
 		~VideoEncoderX264();
 		bool doProcessFrame(Frame *org, Frame *dst);
 		bool configure(int width, int height, PixType pixelFormat);		

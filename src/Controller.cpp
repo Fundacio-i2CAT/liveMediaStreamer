@@ -18,14 +18,15 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  *  Authors:  Marc Palau <marc.palau@i2cat.net>,
+ *            David Cassany <david.cassany@i2cat.net>
+ *			  Martin German <martin.german@i2cat.net>
  */
 
 #include "Controller.hh"
-#include <iostream>
+#include "Utils.hh"
 
 Controller* Controller::ctrlInstance = NULL;
 PipelineManager* PipelineManager::pipeMngrInstance = NULL;
-WorkerManager* WorkerManager::workMngrInstance = NULL;
 
 void sendAndClose(Jzon::Object outputNode, int socket);
 
@@ -33,7 +34,6 @@ Controller::Controller()
 {    
     ctrlInstance = this;
     pipeMngrInstance = PipelineManager::getInstance();
-    workMngrInstance = WorkerManager::getInstance();
     inputRootNode = new Jzon::Object();
     parser = new Jzon::Parser(*inputRootNode);
     initializeEventMap();
@@ -63,10 +63,6 @@ PipelineManager* Controller::pipelineManager()
     return pipeMngrInstance;
 }
 
-WorkerManager* Controller::workerManager()
-{
-    return workMngrInstance;
-}
 
 bool Controller::createSocket(int port)
 {
@@ -77,12 +73,12 @@ bool Controller::createSocket(int port)
     listeningSocket = socket(AF_INET, SOCK_STREAM, 0);
     
     if (listeningSocket < 0) {
-        std::cerr << "ERROR opening socket" << std::endl;
+        utils::errorMsg("Opening socket");
         return false;
     }
      
     if (setsockopt(listeningSocket, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(int)) == -1 ) {
-        std::cerr << "ERROR setting socket options" << std::endl;
+        utils::errorMsg("Setting socket options");
         return false;
     }
     
@@ -92,7 +88,7 @@ bool Controller::createSocket(int port)
     serv_addr.sin_port = htons(port);
     
     if (bind(listeningSocket, (struct sockaddr *) &serv_addr, sizeof(serv_addr)) < 0) {
-        std::cerr << "ERROR on binding" << std::endl;
+        utils::errorMsg("On binding");
         return false;
     } 
 
@@ -121,7 +117,7 @@ bool Controller::readAndParse()
     inputRootNode->Clear();
 
     if (read(connectionSocket, inBuffer, MSG_BUFFER_MAX_LENGTH - 1) < 0) {
-        std::cerr << "ERROR reading from socket" << std::endl;
+        utils::errorMsg("Reading from socket");
         return false;
     }
 
@@ -209,6 +205,8 @@ PipelineManager::PipelineManager()
     transmitterID = rand();
     addFilter(receiverID, SourceManager::getInstance());
     addFilter(transmitterID, SinkManager::getInstance());
+    addWorker(receiverID, new LiveMediaWorker(SourceManager::getInstance()));
+    addWorker(transmitterID, new LiveMediaWorker(SinkManager::getInstance()));
 }
 
 PipelineManager* PipelineManager::getInstance()
@@ -292,6 +290,14 @@ BaseFilter* PipelineManager::getFilter(int id)
     return filters[id].first;
 }
 
+Worker* PipelineManager::getWorker(int id)
+{
+    if (filters.count(id) <= 0) {
+        return NULL;
+    }
+    
+    return filters[id].second;
+}
 
 bool PipelineManager::connectPath(Path* path)
 {
@@ -309,42 +315,47 @@ bool PipelineManager::connectPath(Path* path)
     std::vector<int> pathFilters = path->getFilters();
 
     if (pathFilters.empty()) {
-        if (filters[orgFilterId].first->connectManyToMany(filters[dstFilterId].first, path->getDstReaderID(), path->getOrgWriterID(), path->getShared())) {
+        if (filters[orgFilterId].first->connectManyToMany(filters[dstFilterId].first, path->getDstReaderID(), path->getOrgWriterID())) {
             return true;
         } else {
-            std::cerr << "Error connecting head to tail!" << std::endl;
+            utils::errorMsg("Connecting head to tail!");
             return false;
         }
     }
 
     if (!filters[orgFilterId].first->connectManyToOne(filters[pathFilters.front()].first, path->getOrgWriterID(), path->getShared())) {
-        std::cerr << "Error connecting path head to first filter!" << std::endl;
+        utils::errorMsg("Connecting path head to first filter!");
         return false;
     }
 
     for (unsigned i = 0; i < pathFilters.size() - 1; i++) {
-        if (!filters[pathFilters[i]].first->connectOneToOne(filters[pathFilters[i+1]].first, path->getShared())) {
-            std::cerr << "Error connecting path filters!" << std::endl;
+        if (!filters[pathFilters[i]].first->connectOneToOne(filters[pathFilters[i+1]].first)) {
+            utils::errorMsg("Connecting path filters!");
             return false;
         }
     }
 
-    if (!filters[pathFilters.back()].first->connectOneToMany(filters[dstFilterId].first, path->getDstReaderID(), path->getShared())) {
-        std::cerr << "Error connecting path last filter to path tail!" << std::endl;
+    if (!filters[pathFilters.back()].first->connectOneToMany(filters[dstFilterId].first, path->getDstReaderID())) {
+        utils::errorMsg("Connecting path last filter to path tail!");
         return false;
     }
 
     //TODO: manage worker assignment better
-    /*for (auto it : pathFilters) {
-        Worker* worker = new Worker(filters[it].first);
-        filters[it].second = worker;
-        worker->start();
-    }*/
+    for (auto it : pathFilters) {
+        if (filters[it].second == NULL){
+            Worker* worker = new Worker(filters[it].first);
+            filters[it].second = worker;
+            utils::debugMsg("New worker created for filter " + std::to_string(it));
+            worker->start();
+            utils::debugMsg("Worker " + std::to_string(it) + " started");
+        }
+    }
 
     return true;
 
 }
 
+//TODO: deprected method
 bool PipelineManager::addWorkerToPath(Path *path, Worker* worker)
 {
     std::vector<int> pathFilters = path->getFilters();
@@ -354,9 +365,44 @@ bool PipelineManager::addWorkerToPath(Path *path, Worker* worker)
         return false;
     }
 
-    for (auto it : pathFilters) {
-        worker->setProcessor(filters[it].first);
-        filters[it].second = worker;
+    if (worker == NULL){
+        for (auto it : pathFilters) {
+            if (filters[it].second == NULL){
+                worker = new Worker(filters[it].first);
+                filters[it].second = worker;
+                utils::debugMsg("New worker created for filter " + std::to_string(it));
+            }
+        }
+    } else {
+        for (auto it : pathFilters) {
+            if (filters[it].second == NULL){
+                worker->setProcessor(filters[it].first);
+                filters[it].second = worker;
+                utils::debugMsg("Worker set for filter " + std::to_string(it));
+            }
+        }
+    }
+    
+    return true;
+}
+
+void PipelineManager::startWorkers(){   
+    for (auto it : filters) {
+        if (it.second.second != NULL && 
+            !it.second.second->isRunning()){
+            it.second.second->start();
+            utils::debugMsg("Worker " + std::to_string(it.first) + " started");
+        }
+    }
+}
+
+void PipelineManager::stopWorkers(){
+    for (auto it : filters) {
+        if (it.second.second != NULL && 
+            it.second.second->isRunning()){
+            it.second.second->stop();
+            utils::debugMsg("Worker " + std::to_string(it.first) + " stoped");
+        }
     }
 }
 
@@ -405,33 +451,6 @@ void PipelineManager::getStateEvent(Jzon::Node* params, Jzon::Object &outputNode
     }
 
     outputNode.Add("paths", pathList);
-}
-
-/////////////////////////////////
-//WORKER MANAGER IMPLEMENTATION//
-/////////////////////////////////
-
-WorkerManager::WorkerManager()
-{
-    workMngrInstance = this;
-}
-
-WorkerManager* WorkerManager::getInstance()
-{
-    if (workMngrInstance != NULL) {
-        return workMngrInstance;
-    }
-
-    return new WorkerManager();
-}
-
-void WorkerManager::destroyInstance()
-{
-    WorkerManager * workMngrInstance = WorkerManager::getInstance();
-    if (workMngrInstance != NULL) {
-        delete workMngrInstance;
-        workMngrInstance = NULL;
-    }
 }
 
 /////////////////////////////////

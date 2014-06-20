@@ -27,9 +27,6 @@
 
 #include <chrono>
 #include "Worker.hh"
-#include <iostream>
-
-
 
 Worker::Worker(Runnable *processor_, unsigned int maxFps): processor(processor_), run(false), enabled(false)
 { 
@@ -140,12 +137,36 @@ bool Worker::isEnabled()
     return enabled;
 }
 
-void Worker::setFps(int maxFps)
+void Worker::setFps(unsigned int maxFps)
 {
     if (maxFps != 0){
         frameTime = 1000000/maxFps;
     } else {
         frameTime = 0;
+    }
+}
+
+
+///////////////////////////////////////////////////
+//                LIVEMEDIAWORKER CLASS                //
+///////////////////////////////////////////////////
+
+LiveMediaWorker::LiveMediaWorker(Runnable *processor_) : Worker(processor_,0){
+    enabled = false;
+}
+
+void LiveMediaWorker::process()
+{
+    enabled = true;
+    processor->processFrame();
+    enabled = false;
+}
+
+void LiveMediaWorker::stop()
+{   
+    processor->stop();
+    if (isRunning()){
+        thread.join();
     }
 }
 

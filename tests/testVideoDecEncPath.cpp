@@ -44,14 +44,12 @@
 
 void signalHandler(int signum)
 {
-    std::cout << "Interrupt signal (" << signum << ") received.\n";
+    utils::infoMsg("Interruption signal received");
     
-    SourceManager *mngr = SourceManager::getInstance();
-	SinkManager *transmitter = SinkManager::getInstance();
-    mngr->closeManager();
-	transmitter->closeManager();
+    PipelineManager *pipe = Controller::getInstance()->pipelineManager();
+    pipe->stopWorkers();
     
-    std::cout << "Manager closed\n";
+    utils::infoMsg("Workers Stopped");
 	exit(1);
 }
 
@@ -59,7 +57,7 @@ void connect(char const* medium, unsigned short port){}
 
 int main(int argc, char** argv) 
 {   
-    std::string sessionId, sessionIdTransmitter;
+    std::string sessionId, sessionIdTransmitter, sessionIdTransmitterSlave1, sessionIdTransmitterSlave2;
     std::string sdp;
     Session* session;
 	PipelineManager *pipeMngr = Controller::getInstance()->pipelineManager();
@@ -78,7 +76,7 @@ int main(int argc, char** argv)
 	VideoEncoderX264* encoder1080 = new VideoEncoderX264();
     Worker *vDecoderWorker = new Worker();
 	Worker *vEncoderWorker;// = new Worker();
-	Master *vEnconderMaster = new Master();
+	Master *vEncoderMaster = new Master();
 	Slave *vEncoderSlave1 = new Slave();
 	Slave *vEncoderSlave2 = new Slave();
 	Slave *vEncoderSlave3 = new Slave();
@@ -96,8 +94,12 @@ int main(int argc, char** argv)
 
 	int pathID = V_CLIENT_PORT;
 	int pathMaster = rand();
+	int pathSlave1 = rand();
+	int pathSlave2 = rand();
 	int videoDecoderID = rand();
 	int videoEncoderMasterID;
+	int videoEncoderSlave1ID;
+	int videoEncoderSlave2ID;
 	//int id1 = V_CLIENT_PORT;
     
     signal(SIGINT, signalHandler); 
@@ -106,34 +108,43 @@ int main(int argc, char** argv)
         sessionId = utils::randomIdGenerator(ID_LENGTH);
         session = Session::createNewByURL(*(mngr->envir()), argv[0], argv[i], sessionId);
         mngr->addSession(session);
+		session->initiateSession();
     }
+	
+	pipeMngr->startWorkers();
     
-    sessionId = utils::randomIdGenerator(ID_LENGTH);
+   /* sessionId = utils::randomIdGenerator(ID_LENGTH);
     
     sdp = SourceManager::makeSessionSDP(sessionId, "this is a test");
     
     sdp += SourceManager::makeSubsessionSDP(V_MEDIUM, PROTOCOL, PAYLOAD, V_CODEC, 
-                                       BANDWITH, V_TIME_STMP_FREQ, V_CLIENT_PORT);
+                                       BANDWITH, V_TIME_STMP_FREQ, V_CLIENT_PORT);*/
     // sdp += handlers::makeSubsessionSDP(A_MEDIUM, PROTOCOL, PAYLOAD, A_CODEC, 
     //                                    BANDWITH, A_TIME_STMP_FREQ, A_CLIENT_PORT);
     
-    session = Session::createNew(*(mngr->envir()), sdp, sessionId);
+    //session = Session::createNew(*(mngr->envir()), sdp, sessionId);
     
-    mngr->addSession(session);
-    session->initiateSession();
+    //mngr->addSession(session);
+    //session->initiateSession();
     
-    mngr->runManager();
-	transmitter->runManager();
+    //mngr->runManager();
+	//transmitter->runManager();
 	
+	sleep(3);
+	Path* decoderPath;//= pipeMngr->getPath(pathID);
+	std::map<int, Path*> paths = pipeMngr->getPaths();
+	for (auto it : paths) {
+		decoderPath = it.second;
+		break;
+	}
 
-	Path* decoderPath = pipeMngr->getPath(pathID);
 
 	if(!pipeMngr->addFilter(videoDecoderID, decoder)) {
-        std::cerr << "Error adding decoder to the pipeline" << std::endl;
+       utils::errorMsg("Error adding decoder to the pipeline");
     }
 
 	if(!pipeMngr->addWorker(videoDecoderID, vDecoderWorker)) {
-        std::cerr << "Error adding decoder worker" << std::endl;
+        utils::errorMsg("Error adding decoder worker");
     }
 	
 	decoderPath->setDestinationFilter(videoDecoderID, pipeMngr->getFilter(videoDecoderID)->generateReaderID());
@@ -158,24 +169,23 @@ int main(int argc, char** argv)
 	/*if(!decoder->connectOneToOne(encoder)) {
         std::cerr << "Error connecting video encoder" << std::endl;
     }*/
-	
+	utils::debugMsg("START Master Path");
 	Path* encoderPathMaster = new VideoEncoderPath(videoDecoderID, decoder->generateWriterID());
 	std::vector<int> filters = encoderPathMaster->getFilters();
 	videoEncoderMasterID = filters[0];
-	printf("%d\n", videoEncoderMasterID);
 
-	if(!pipeMngr->addWorker(videoEncoderMasterID, vEnconderMaster)) {
-        std::cerr << "Error adding decoder worker" << std::endl;
+	if(!pipeMngr->addWorker(videoEncoderMasterID, vEncoderMaster)) {
+        utils::errorMsg("Error adding decoder worker");
     }	
 
 	encoderPathMaster->setDestinationFilter(pipeMngr->getTransmitterID(), transmitter->generateReaderID());
 
 	if (!pipeMngr->addPath(pathMaster, encoderPathMaster)) {
-        std::cerr << "Error adding master path to the pipeline" << std::endl;
+        utils::errorMsg("Error adding master path to the pipeline");
     }
 
 	if (!pipeMngr->connectPath(encoderPathMaster)) {
-		std::cerr << "Error connecting master path" << std::endl;
+		utils::errorMsg("Error connecting master path");
 	}
 
     std::vector<int> readers;
@@ -187,8 +197,71 @@ int main(int argc, char** argv)
     }
 
     transmitter->publishSession(sessionIdTransmitter);
+	utils::debugMsg("END Master Path");
 
-	
+	utils::debugMsg("START Slave Path 1");
+	Path* encoderPathSlave1 = new VideoEncoderPath(videoDecoderID, decoder->generateWriterID(), true);
+	std::vector<int> filtersSlave1 = encoderPathSlave1->getFilters();
+	videoEncoderSlave1ID = filtersSlave1[0];
+	encoder720 = dynamic_cast<VideoEncoderX264*> (pipeMngr->getFilter(videoEncoderSlave1ID));
+	encoder720->configure(1280, 720, YUYV422);
+
+	if(!pipeMngr->addWorker(videoEncoderSlave1ID, vEncoderSlave1)) {
+        utils::errorMsg("Error adding decoder worker");
+    }	
+
+	encoderPathSlave1->setDestinationFilter(pipeMngr->getTransmitterID(), transmitter->generateReaderID());
+
+	if (!pipeMngr->addPath(pathSlave1, encoderPathSlave1)) {
+        utils::errorMsg("Error adding slave1 path to the pipeline");
+    }
+
+	if (!pipeMngr->connectPath(encoderPathSlave1)) {
+		utils::errorMsg("Error connecting slave1 path");
+	}
+
+    std::vector<int> readersSlave1;
+    readersSlave1.push_back(encoderPathSlave1->getDstReaderID());
+
+    sessionIdTransmitterSlave1 = utils::randomIdGenerator(ID_LENGTH);
+    if (!transmitter->addSession(sessionIdTransmitterSlave1, readersSlave1)) {
+        return 1;
+    }
+
+    transmitter->publishSession(sessionIdTransmitterSlave1);
+	utils::debugMsg("END Slave Path 1");
+
+	utils::debugMsg("START Slave Path 2");
+	Path* encoderPathSlave2 = new VideoEncoderPath(videoDecoderID, decoder->generateWriterID(), true);
+	std::vector<int> filtersSlave2 = encoderPathSlave2->getFilters();
+	videoEncoderSlave2ID = filtersSlave2[0];
+	encoder480 = dynamic_cast<VideoEncoderX264*> (pipeMngr->getFilter(videoEncoderSlave2ID));
+	encoder480->configure(720, 480, YUYV422);
+
+	if(!pipeMngr->addWorker(videoEncoderSlave2ID, vEncoderSlave2)) {
+        utils::errorMsg("Error adding decoder worker");
+    }	
+
+	encoderPathSlave2->setDestinationFilter(pipeMngr->getTransmitterID(), transmitter->generateReaderID());
+
+	if (!pipeMngr->addPath(pathSlave2, encoderPathSlave2)) {
+        utils::errorMsg("Error adding slave2 path to the pipeline");
+    }
+
+	if (!pipeMngr->connectPath(encoderPathSlave2)) {
+		utils::errorMsg("Error connecting slave2 path");
+	}
+
+    std::vector<int> readersSlave2;
+    readersSlave2.push_back(encoderPathSlave2->getDstReaderID());
+
+    sessionIdTransmitterSlave2 = utils::randomIdGenerator(ID_LENGTH);
+    if (!transmitter->addSession(sessionIdTransmitterSlave2, readersSlave2)) {
+        return 1;
+    }
+
+    transmitter->publishSession(sessionIdTransmitterSlave2);
+	utils::debugMsg("END Slave Path 2");
 
 	//vEnconderMaster = new Master();
 /*    if(!pipeMngr->addFilter(videoEncoderMasterID, encoder)) {
@@ -228,15 +301,23 @@ int main(int argc, char** argv)
 	//vEncoderSlave3 = new Slave(3, encoder1080);
 	//vEnconderMaster->addSlave(vEncoderSlave3);
 	
-
+	vEncoderMaster->addSlave(vEncoderSlave1);
+	vEncoderMaster->addSlave(vEncoderSlave2);
     vDecoderWorker->start();
+	vEncoderMaster->setFps(24);
+	vEncoderSlave1->setFps(24);
+	vEncoderSlave2->setFps(24);
 	//vEncoderWorker->start();
-	vEnconderMaster->start();
-	/*vEncoderSlave1->start();
-	vEncoderSlave2->start();*/
+	vEncoderMaster->start();
+	vEncoderSlave1->start();
+	vEncoderSlave2->start();
 	//vEncoderSlave3->start();
+    while(pipeMngr->getWorker(pipeMngr->getReceiverID())->isRunning() || 
+        pipeMngr->getWorker(pipeMngr->getTransmitterID())->isRunning()) {
+        sleep(1);
+    }
     
-    while(mngr->isRunning()) {
+   // while(mngr->isRunning()) {
 		//printf("antes getFrame\n");
 		/*h264Frame720 = reader720->getFrame();
 		h264Frame480 = reader480->getFrame();
@@ -278,10 +359,10 @@ int main(int argc, char** argv)
       /*  reader720->removeFrame();        
         reader480->removeFrame();*/
 		//reader1080->removeFrame();
-    }
+    //}
     
-    h264Frames720.close();
-	h264Frames480.close();
+   // h264Frames720.close();
+	//h264Frames480.close();
 	//h264Frames1080.close();
     
     return 0;

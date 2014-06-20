@@ -18,15 +18,17 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  *  Authors:  Marc Palau <marc.palau@i2cat.net>
+ *            David Cassany <david.cassany@i2cat.net>
+ *			  Martin German <martin.german@i2cat.net>
  */
 
 #include <iostream>
 #include "Path.hh"
 #include "Controller.hh"
 #include "modules/videoDecoder/VideoDecoderLibav.hh"
+#include "modules/videoEncoder/VideoEncoderX264.hh"
 #include "modules/audioDecoder/AudioDecoderLibav.hh"
 #include "modules/audioEncoder/AudioEncoderLibav.hh"
-#include "modules/videoEncoder/VideoEncoderX264.hh"
 
 Path::Path(int originFilterID, int orgWriterID, bool sharedQueue) 
 {
@@ -48,15 +50,41 @@ void Path::setDestinationFilter(int destinationFilterID, int dstReaderID)
     this->dstReaderID = dstReaderID;
 }
 
-VideoDecoderPath::VideoDecoderPath(int originFilterID, int orgWriterID, bool sharedQueue) : 
-Path(originFilterID, orgWriterID, sharedQueue)
+VideoTranscoderPath::VideoTranscoderPath(int originFilterID, int orgWriterID) : 
+Path(originFilterID, orgWriterID)
 {
-	VideoDecoderLibav *decoder = new VideoDecoderLibav();
+    VideoDecoderLibav *decoder = new VideoDecoderLibav();
     int id = rand();
     Controller::getInstance()->pipelineManager()->addFilter(id, decoder);
     addFilterID(id);
- //   VideoDecoderLibav *decoder = new VideoDecoderLibav();
- //   addFilter(decoder);
+    
+    VideoEncoderX264 *encoder = new VideoEncoderX264(true);
+    id = rand();
+    Controller::getInstance()->pipelineManager()->addFilter(id, encoder);
+    addFilterID(id);
+}
+
+AudioTranscoderPath::AudioTranscoderPath(int originFilterID, int orgWriterID) : 
+Path(originFilterID, orgWriterID)
+{
+    AudioDecoderLibav *decoder = new AudioDecoderLibav();
+    int id = rand();
+    Controller::getInstance()->pipelineManager()->addFilter(id, decoder);
+    addFilterID(id);
+    
+    AudioEncoderLibav *encoder = new AudioEncoderLibav();
+    id = rand();
+    Controller::getInstance()->pipelineManager()->addFilter(id, encoder);
+    addFilterID(id);
+}
+
+VideoDecoderPath::VideoDecoderPath(int originFilterID, int orgWriterID, bool sharedQueue) : 
+Path(originFilterID, orgWriterID, sharedQueue)
+{
+    VideoDecoderLibav *decoder = new VideoDecoderLibav();
+    int id = rand();
+    Controller::getInstance()->pipelineManager()->addFilter(id, decoder);
+    addFilterID(id);
 }
 
 VideoEncoderPath::VideoEncoderPath(int originFilterID, int orgWriterID, bool sharedQueue) :
@@ -64,7 +92,6 @@ Path(originFilterID, orgWriterID, sharedQueue)
 {
     VideoEncoderX264 *encoder = new VideoEncoderX264();
     int id = rand();
-	printf("ID del encoder: %d\n", id);
     Controller::getInstance()->pipelineManager()->addFilter(id, encoder);
     addFilterID(id);
 }

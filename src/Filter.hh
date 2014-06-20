@@ -125,6 +125,7 @@ private:
     using BaseFilter::writers;
     using BaseFilter::oFrames;
     using BaseFilter::dFrames;
+    void stop() {};
 };
 
 class OneToManyFilter : public BaseFilter {
@@ -144,6 +145,7 @@ private:
     using BaseFilter::writers;
     using BaseFilter::oFrames;
     using BaseFilter::dFrames;
+    void stop() {};
 };
 
 class HeadFilter : public BaseFilter {
@@ -157,8 +159,6 @@ protected:
     int getNullWriterID();
     
 private:
-    //TODO: error message
-    bool processFrame(bool removeFrame = true) {};
     using BaseFilter::demandOriginFrames;
     using BaseFilter::demandDestinationFrames;
     using BaseFilter::addFrames;
@@ -177,7 +177,6 @@ protected:
     //TODO: desctructor
     
 private:
-    bool processFrame(bool removeFrame = true) {};
     FrameQueue *allocQueue(int wId) {return NULL;};
     using BaseFilter::demandOriginFrames;
     using BaseFilter::demandDestinationFrames;
@@ -203,6 +202,7 @@ private:
     using BaseFilter::writers;
     using BaseFilter::oFrames;
     using BaseFilter::dFrames;
+    void stop() {};
 };
 
 #endif

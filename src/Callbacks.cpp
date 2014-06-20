@@ -18,6 +18,8 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  *  Authors:  Marc Palau <marc.palau@i2cat.net>,
+ *            David Cassany <david.cassany@i2cat.net>
+ *			  Martin German <martin.german@i2cat.net>
  */
 
 #include "Callbacks.hh"
@@ -25,7 +27,7 @@
 #include "Filter.hh"
 #include "Types.hh"
 #include "Path.hh"
-#include <iostream>
+#include "Utils.hh"
 
 namespace callbacks
 {
@@ -45,19 +47,19 @@ namespace callbacks
         }
 
         if (!path || mixerID == -1) {
-            std::cerr << "[Callback] No path or no mixer!" << std::endl;
+            utils::errorMsg("No path or no mixer");
             return;
         }
 
         path->setDestinationFilter(mixerID, pipeMngr->getFilter(mixerID)->generateReaderID());
 
         if (!pipeMngr->connectPath(path)) {
-            //TODO: ERROR
+            utils::errorMsg("Failed connection to path");
             return;
         }
 
         if (!pipeMngr->addPath(port, path)) {
-            //TODO: ERROR
+            utils::errorMsg("Failed adding path");
             return;
         }
 
@@ -73,19 +75,51 @@ namespace callbacks
         path = new Path(pipeMngr->getReceiverID(), (int)port);
         
         if (!path || transmitterID == -1) {
-            std::cerr << "[Callback] No path or no transmitter!" << std::endl;
+            utils::errorMsg("No path or transmitter");
             return;
         }
 
         path->setDestinationFilter(transmitterID, pipeMngr->getFilter(transmitterID)->generateReaderID());
 
         if (!pipeMngr->connectPath(path)) {
-            //TODO: ERROR
+            utils::errorMsg("Failed connection to path");
             return;
         }
 
         if (!pipeMngr->addPath(port, path)) {
-            //TODO: ERROR
+            utils::errorMsg("Failed adding path");
+            return;
+        }
+        
+        return;
+    }
+    
+    void connectTranscoderToTransmitter(char const* medium, unsigned short port)
+    {
+        PipelineManager* pipeMngr = Controller::getInstance()->pipelineManager();
+        Path* path = NULL;
+        int transmitterID = pipeMngr->getTransmitterID();
+        
+        if (strcmp(medium, "audio") == 0) {
+            path = new AudioTranscoderPath(pipeMngr->getReceiverID(), (int)port);
+        } else if (strcmp(medium, "video") == 0) {
+            path = new VideoTranscoderPath(pipeMngr->getReceiverID(), (int)port);
+        }
+        
+        if (!path || transmitterID == -1) {
+            utils::errorMsg("No path or no mixer");
+            return;
+        }
+        
+        path->setDestinationFilter(transmitterID, pipeMngr->getFilter(transmitterID)->generateReaderID());
+        
+        if (!pipeMngr->connectPath(path)) {
+            utils::errorMsg("Failed connection to path");
+            return;
+        }
+        
+        if (!pipeMngr->addPath(port, path)) {
+            utils::errorMsg("Failed adding path");
             return;
         }
         

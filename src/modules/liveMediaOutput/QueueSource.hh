@@ -7,6 +7,7 @@
 #include "../../IOInterface.hh"
 #include "../../Frame.hh"
 
+#define POLL_TIME 1000
 
 class QueueSource: public FramedSource {
 

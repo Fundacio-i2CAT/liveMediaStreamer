@@ -18,6 +18,7 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  *  Authors:  Marc Palau <marc.palau@i2cat.net>,
+ *            David Cassany <david.cassany@i2cat.net>
  */
 
 #ifndef _CONTROLLER_HH
@@ -40,13 +41,16 @@ public:
     bool addWorker(int id, Worker* worker);
     bool addFilter(int id, BaseFilter* filter);
     BaseFilter* getFilter(int id);
+    Worker* getWorker(int id);
     SourceManager* getReceiver();
     SinkManager* getTransmitter();
 
     Path* getPath(int id);
     std::map<int, Path*> getPaths() {return paths;};
     bool connectPath(Path* path);   
-    bool addWorkerToPath(Path *path, Worker* worker);
+    bool addWorkerToPath(Path *path, Worker* worker = NULL);
+    void startWorkers();
+    void stopWorkers();
     void getStateEvent(Jzon::Node* params, Jzon::Object &outputNode);
 
 private:
@@ -59,23 +63,11 @@ private:
     int transmitterID;
 };
 
-class WorkerManager {
-public:
-    static WorkerManager* getInstance();
-    static void destroyInstance();
-
-private:
-    WorkerManager();
-    static WorkerManager* workMngrInstance;
-
-};
-
 class Controller {
 public:
     static Controller* getInstance();
     static void destroyInstance();
     PipelineManager* pipelineManager();
-    WorkerManager* workerManager();
 
     bool createSocket(int port);
     bool listenSocket();
@@ -100,7 +92,6 @@ private:
 
     static Controller* ctrlInstance;
     PipelineManager* pipeMngrInstance;
-    WorkerManager* workMngrInstance;
 
 };
 

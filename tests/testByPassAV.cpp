@@ -30,15 +30,12 @@
 
 void signalHandler( int signum )
 {
-    std::cout << "Interrupt signal (" << signum << ") received.\n";
+    utils::infoMsg("Interruption signal received");
     
-    Controller *ctrl = Controller::getInstance();
-    SourceManager *receiver = ctrl->pipelineManager()->getReceiver();
-    SinkManager *transmitter = ctrl->pipelineManager()->getTransmitter();
-    receiver->closeManager();
-    transmitter->closeManager();
+    PipelineManager *pipe = Controller::getInstance()->pipelineManager();
+    pipe->stopWorkers();
     
-    std::cout << "Managers closed\n";
+    utils::infoMsg("Workers Stopped");
 }
 
 int main(int argc, char** argv) 
@@ -48,14 +45,14 @@ int main(int argc, char** argv)
     std::vector<int> readers;
     Session* session;
 
-    Controller *ctrl = Controller::getInstance();
-    SourceManager *receiver = ctrl->pipelineManager()->getReceiver();
-    SinkManager *transmitter = ctrl->pipelineManager()->getTransmitter();
+    PipelineManager *pipe = Controller::getInstance()->pipelineManager();
+    SourceManager *receiver = pipe->getReceiver();
+    SinkManager *transmitter = pipe->getTransmitter();
     
     //This will connect every input directly to the transmitter
     receiver->setCallback(callbacks::connectToTransmitter);
 
-    Frame *codedFrame;
+    pipe->startWorkers();
     
     signal(SIGINT, signalHandler); 
     
@@ -76,20 +73,17 @@ int main(int argc, char** argv)
     sdp += SourceManager::makeSubsessionSDP(A_MEDIUM, PROTOCOL, A_PAYLOAD, A_CODEC, 
                                        A_BANDWITH, A_TIME_STMP_FREQ, A_CLIENT_PORT, A_CHANNELS);
     
-    std::cout << sdp << "\n\n";
+    utils::infoMsg(sdp);
     
     session = Session::createNew(*(receiver->envir()), sdp, sessionId);
     
     receiver->addSession(session);
 
     session->initiateSession();
-       
-    receiver->runManager();
-    transmitter->runManager();
     
     sleep(2);
     
-    for (auto it : ctrl->pipelineManager()->getPaths()){
+    for (auto it : pipe->getPaths()){
         readers.push_back(it.second->getDstReaderID());    
     }
     
@@ -99,7 +93,8 @@ int main(int argc, char** argv)
     }
     transmitter->publishSession(sessionId);
 
-    while(receiver->isRunning() && transmitter->isRunning()) {
+    while(pipe->getWorker(pipe->getReceiverID())->isRunning() && 
+        pipe->getWorker(pipe->getTransmitterID())->isRunning()) {
         sleep(1);
     }
 

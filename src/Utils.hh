@@ -36,6 +36,8 @@ namespace utils
     std::string getFilterTypeAsString(FilterType type);
     std::string getSampleFormatAsString(SampleFmt sFormat);
 	std::string randomIdGenerator(unsigned int length);
+    int getPayloadFromCodec(std::string codec); 
+
 }
 
 #endif

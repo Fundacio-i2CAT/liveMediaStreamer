@@ -180,4 +180,22 @@ namespace utils
         std::generate_n(id.begin(), length, randAlphaNum);
         return id;
     }
+
+    int getPayloadFromCodec(std::string codec) 
+    {
+        int payload;
+
+        if (codec.compare("pcmu") == 0 ||
+              codec.compare("opus") == 0 ||
+                codec.compare("pcm") == 0) {
+            payload = 97;
+        } else if (codec.compare("mp3") == 0) {
+            payload = 14;
+        } else {
+            payload = -1;
+        }
+
+        return payload;
+    }
+
 }

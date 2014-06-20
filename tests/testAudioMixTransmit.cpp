@@ -1,16 +1,5 @@
-#ifndef _LIVEMEDIA_HH
 #include <liveMedia/liveMedia.hh>
-#endif
-
 #include <string>
-
-#ifndef _HANDLERS_HH
-#include "../src/network/Handlers.hh"
-#endif
-
-#ifndef _SOURCE_MANAGER_HH
-#include "../src/network/SourceManager.hh"
-#endif
 
 #include "../src/AudioFrame.hh"
 #include "../src/modules/audioDecoder/AudioDecoderLibav.hh"
@@ -18,6 +7,7 @@
 #include "../src/modules/audioMixer/AudioMixer.hh"
 #include "../src/Controller.hh"
 #include "../src/Callbacks.hh"
+#include "../src/Utils.hh"
 
 #include <iostream>
 #include <csignal>
@@ -74,9 +64,6 @@ int main(int argc, char** argv)
     receiver->setCallback(callbacks::connectToMixerCallback);
     AudioMixer *mixer = new AudioMixer(4);
 
-    Worker* audioEncoderWorker = new Worker();
-    Worker* audioDecoder1Worker = new Worker();
-    Worker* audioDecoder2Worker = new Worker();
     Worker* audioMixerWorker = new Worker();
 
     int audioMixerID = rand();
@@ -88,18 +75,18 @@ int main(int argc, char** argv)
     signal(SIGINT, signalHandler); 
     
     for (int i = 1; i <= argc-1; ++i) {
-        sessionId = handlers::randomIdGenerator(ID_LENGTH);
+        sessionId = utils::randomIdGenerator(ID_LENGTH);
         session = Session::createNewByURL(*(receiver->envir()), argv[0], argv[i], sessionId);
         receiver->addSession(session);
     }
     
-    sessionId = handlers::randomIdGenerator(ID_LENGTH);
+    sessionId = utils::randomIdGenerator(ID_LENGTH);
     
-    sdp = handlers::makeSessionSDP("testSession", "this is a test");
+    sdp = SourceManager::makeSessionSDP("testSession", "this is a test");
     
-    sdp += handlers::makeSubsessionSDP(A_MEDIUM, PROTOCOL, PAYLOAD1, A_CODEC1, BANDWITH, 
+    sdp += SourceManager::makeSubsessionSDP(A_MEDIUM, PROTOCOL, PAYLOAD1, A_CODEC1, BANDWITH, 
                                         A_TIME_STMP_FREQ1, A_CLIENT_PORT1, A_CHANNELS);
-    sdp += handlers::makeSubsessionSDP(A_MEDIUM, PROTOCOL, PAYLOAD2, A_CODEC2, BANDWITH, 
+    sdp += SourceManager::makeSubsessionSDP(A_MEDIUM, PROTOCOL, PAYLOAD2, A_CODEC2, BANDWITH, 
                                         A_TIME_STMP_FREQ2, A_CLIENT_PORT2, A_CHANNELS);
     
     session = Session::createNew(*(receiver->envir()), sdp, sessionId);
@@ -133,7 +120,7 @@ int main(int argc, char** argv)
     std::vector<int> readers;
     readers.push_back(path->getDstReaderID());
 
-    sessionId = handlers::randomIdGenerator(ID_LENGTH);
+    sessionId = utils::randomIdGenerator(ID_LENGTH);
     if (!transmitter->addSession(sessionId, readers)) {
         return 1;
     }
@@ -144,14 +131,7 @@ int main(int argc, char** argv)
         std::cerr << "Error adding mixer worker" << std::endl;
     }
 
-    pipeMngr->addWorkerToPath(pipeMngr->getPath(A_CLIENT_PORT1), audioDecoder1Worker);
-    pipeMngr->addWorkerToPath(pipeMngr->getPath(A_CLIENT_PORT2), audioDecoder2Worker);
-    pipeMngr->addWorkerToPath(pipeMngr->getPath(encoderPathID), audioEncoderWorker);
-
-    audioDecoder1Worker->start();
-    audioDecoder2Worker->start();
     audioMixerWorker->start();
-    audioEncoderWorker->start();
 
     std::string command;
     std::string aux;
@@ -180,7 +160,7 @@ int main(int argc, char** argv)
         rootNode.Add("params", params);
         rootNode.Add("action", command);
 
-        Event e(rootNode, std::chrono::system_clock::now());
+        Event e(rootNode, std::chrono::system_clock::now(), 0);
         pipeMngr->getFilter(pipeMngr->getPath(id)->getDestinationFilterID())->pushEvent(e);
     }
     

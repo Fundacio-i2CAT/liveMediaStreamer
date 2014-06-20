@@ -303,6 +303,8 @@ void AudioMixer::doGetState(Jzon::Object &filterNode)
     filterNode.Add("sampleRate", sampleRate);
     filterNode.Add("channels", frameChannels);
     filterNode.Add("sampleFormat", utils::getSampleFormatAsString(sampleFormat));
+    filterNode.Add("masterGain", masterGain);
+    filterNode.Add("masterDelay", 0);
 
     for (auto it : gains) {
         Jzon::Object gain;

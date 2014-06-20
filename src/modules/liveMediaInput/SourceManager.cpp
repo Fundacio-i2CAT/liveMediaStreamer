@@ -183,8 +183,10 @@ void SourceManager::addSessionEvent(Jzon::Node* params, Jzon::Object &outputNode
 {
     std::string sessionId = utils::randomIdGenerator(ID_LENGTH);
     std::string sdp, medium, codec;
-    int payload, bandwith, timeStampFrequency, channels, port;
+    int payload, bandwidth, timeStampFrequency, channels, port;
     Session* session;
+
+
 
     if (!params) {
         outputNode.Add("error", "Error adding session. Wrong parameters!");
@@ -201,16 +203,27 @@ void SourceManager::addSessionEvent(Jzon::Node* params, Jzon::Object &outputNode
         
         Jzon::Array subsessions = params->Get("subsessions").AsArray();
         sdp = makeSessionSDP("testSession", "this is a test");
+
         
         for (Jzon::Array::iterator it = subsessions.begin(); it != subsessions.end(); ++it) {
             medium = (*it).Get("medium").ToString();
             codec = (*it).Get("codec").ToString();
-            payload = (*it).Get("payload").ToInt();
-            bandwith = (*it).Get("bandwith").ToInt();
+            bandwidth = (*it).Get("bandwidth").ToInt();
             timeStampFrequency = (*it).Get("timeStampFrequency").ToInt();
+            port = (*it).Get("port").ToInt();
             channels = (*it).Get("channels").ToInt();
 
-            sdp += makeSubsessionSDP(medium, PROTOCOL, payload, codec, bandwith, 
+            payload = utils::getPayloadFromCodec(codec);
+
+
+
+            if (payload < 0) {
+                outputNode.Add("error", "Payload type is not valid!!");
+                return;
+            }
+
+
+            sdp += makeSubsessionSDP(medium, PROTOCOL, payload, codec, bandwidth, 
                                                 timeStampFrequency, port, channels);
         }
 
@@ -289,7 +302,7 @@ FrameQueue* createVideoQueue(char const* codecName)
 FrameQueue* createAudioQueue(unsigned char rtpPayloadFormat, char const* codecName, unsigned channels, unsigned sampleRate)
 {
     ACodecType codec;
-    
+
     //is this one neeeded? in should be implicit in PCMU case
     if (rtpPayloadFormat == 0) {
         codec = G711;

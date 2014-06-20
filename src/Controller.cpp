@@ -137,7 +137,7 @@ bool Controller::readAndParse()
 
 bool Controller::processEvent()
 {
-    if (inputRootNode->Has("filterID")) {
+    if (inputRootNode->Get("filterID").ToInt() != 0) {
         return processFilterEvent();
     }
     

@@ -30,6 +30,8 @@
 
 #define RETRIES 8
 #define TIMEOUT 2500 //us
+#define DISC_RETRIES 50
+#define DISC_TIMEOUT 1000 //us
 
 BaseFilter::BaseFilter(int maxReaders_, int maxWriters_, bool force_) : 
     force(force_), maxReaders(maxReaders_), maxWriters(maxWriters_)
@@ -221,41 +223,33 @@ bool BaseFilter::connectOneToMany(BaseFilter *R, int readerID, bool slaveQueue)
     return connect(R, writerID, readerID, slaveQueue);
 }
 
-
-bool BaseFilter::connect(Reader *r)
+bool BaseFilter::disconnect(BaseFilter *R, int writerID, int readerID)
 {
-    if (writers.size() < getMaxWriters() && writers.count(DEFAULT_ID) <= 0) {
-        writers[DEFAULT_ID] = new Writer();
-    }
-    
-    if (writers[DEFAULT_ID]->isConnected()) {
+    int retries = 0;
+
+    if (!writers[writerID]->isConnected()){
         return false;
     }
 
-    if (r->isConnected()){
-        return false;
-    }
-    
-    FrameQueue *queue = allocQueue(DEFAULT_ID);
-    writers[DEFAULT_ID]->setQueue(queue);
-    return writers[DEFAULT_ID]->connect(r);
-}
-
-
-bool BaseFilter::disconnect(int wId, BaseFilter *R, int rId)
-{
-    if (!writers[wId]->isConnected()){
-        return false;
-    }
-
-    Reader *r = R->getReader(rId);
+    Reader *r = R->getReader(readerID);
     if (!r->isConnected()){
         return false;
     }
-    dFrames.erase(wId);
-    R->oFrames.erase(rId);
-    writers[wId]->disconnect(r);
-    writers.erase(wId);
+    dFrames.erase(writerID);
+    R->oFrames.erase(readerID);
+    writers[writerID]->disconnect(r);
+    writers.erase(writerID);
+
+    while(R->getReader(readerID)) {
+        std::this_thread::sleep_for(std::chrono::microseconds(DISC_TIMEOUT));
+        retries++;
+
+        if (retries >= DISC_RETRIES) {
+            utils::errorMsg("Error deleting reader when disconnecting filter!");
+            return false;
+        }
+    }
+
     return true;
 }
 

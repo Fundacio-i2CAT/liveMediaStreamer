@@ -351,38 +351,46 @@ bool PipelineManager::connectPath(Path* path)
     }
 
     return true;
-
 }
 
-//TODO: deprected method
-bool PipelineManager::addWorkerToPath(Path *path, Worker* worker)
+bool PipelineManager::deletePath(Path* path) 
 {
     std::vector<int> pathFilters = path->getFilters();
+    int orgFilterID = path->getOriginFilterID();
+    int dstFilterID = path->getDestinationFilterID();
 
-    if (pathFilters.empty()) {
-        //TODO: error msg
+    if (filters.count(orgFilterID) <= 0 || filters.count(dstFilterID) <= 0) {
         return false;
     }
 
-    if (worker == NULL){
-        for (auto it : pathFilters) {
-            if (filters[it].second == NULL){
-                worker = new Worker(filters[it].first);
-                filters[it].second = worker;
-                utils::debugMsg("New worker created for filter " + std::to_string(it));
-            }
-        }
-    } else {
-        for (auto it : pathFilters) {
-            if (filters[it].second == NULL){
-                worker->setProcessor(filters[it].first);
-                filters[it].second = worker;
-                utils::debugMsg("Worker set for filter " + std::to_string(it));
-            }
+    for (auto it : pathFilters) {
+        if (filters.count(it) <= 0) {
+            return false;
         }
     }
-    
-    return true;
+
+    if (!filters[orgFilterID].first->disconnect(filters[pathFilters.front()].first, path->getOrgWriterID(), DEFAULT_ID)) {
+        utils::errorMsg("Error disconnectinc path head from first filter!");
+        return false;
+    }
+
+    for (unsigned i = 0; i < pathFilters.size() - 1; i++) {
+        if (!filters[pathFilters[i]].first->disconnect(filters[pathFilters[i+1]].first, DEFAULT_ID, DEFAULT_ID)) {
+            utils::errorMsg("Connecting path filters!");
+            return false;
+        }
+    }
+
+    if (!filters[pathFilters.back()].first->disconnect(filters[dstFilterID].first, DEFAULT_ID, path->getDstReaderID())) {
+        utils::errorMsg("Connecting path last filter to path tail!");
+        return false;
+    }
+
+    for (auto it : pathFilters) {
+        filters[it].second->stop();
+        delete filters[it].second;
+        delete filters[it].first;
+    }
 }
 
 void PipelineManager::startWorkers()

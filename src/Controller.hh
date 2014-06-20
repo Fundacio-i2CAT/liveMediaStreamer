@@ -52,6 +52,7 @@ public:
     void startWorkers();
     void stopWorkers();
     void getStateEvent(Jzon::Node* params, Jzon::Object &outputNode);
+    bool deletePath(Path* path); 
 
 private:
     PipelineManager();

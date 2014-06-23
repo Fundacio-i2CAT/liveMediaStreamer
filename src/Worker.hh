@@ -37,9 +37,9 @@ class Runnable;
 class Worker {
     
 public:
-    Worker(Runnable *processor_, unsigned int maxFps = 0);
+    Worker(Runnable *processor_);
     Worker();
-    void setProcessor(Runnable *processor, unsigned int maxFps = 0);
+    void setProcessor(Runnable *processor);
 
     
     bool start();
@@ -48,16 +48,15 @@ public:
     virtual void enable();
     virtual void disable();
     bool isEnabled();
-    void setFps(unsigned int maxFps);
+    
     
 protected:
-    virtual void process();
+    virtual void process() = 0;
     Runnable *processor;
     std::thread thread;
     std::atomic<bool> run;
     std::atomic<bool> enabled;
     //TODO: owuld be good to make it atomic, but not sure if it is lock-free
-    unsigned int frameTime; //microseconds
 };
 
 class LiveMediaWorker : public Worker {
@@ -70,9 +69,27 @@ private:
     void process();
 };
 
-class Slave : public Worker {
+class BestEffort : public Worker {
 public:
-	Slave(int id_, Runnable *processor_, unsigned int maxFps = 0);
+	BestEffort(Runnable *processor_);
+	BestEffort();
+protected:
+	void process();
+};
+
+class ConstantFramerate : public Worker {
+public:
+	ConstantFramerate(Runnable *processor_, unsigned int maxFps = 24);
+	ConstantFramerate();
+	void setFps(unsigned int maxFps);
+protected:
+	virtual void process() = 0;
+	unsigned int frameTime; //microseconds
+};
+
+class Slave : public ConstantFramerate {
+public:
+	Slave(int id_, Runnable *processor_, unsigned int maxFps = 24);
 	Slave();
 	int getId(){return id;};
 	bool getFinished(){return finished;};
@@ -84,9 +101,9 @@ private:
 	std::atomic<bool> finished;	
 };
 
-class Master : public Worker {
+class Master : public ConstantFramerate {
 public:
-	Master(Runnable *processor_, unsigned int maxFps = 0);
+	Master(Runnable *processor_, unsigned int maxFps = 24);
 	Master();
 	bool addSlave(Slave *slave_);
 	void removeSlave(int id);

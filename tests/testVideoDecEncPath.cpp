@@ -74,7 +74,7 @@ int main(int argc, char** argv)
 	VideoEncoderX264* encoder720 = new VideoEncoderX264();
 	VideoEncoderX264* encoder480 = new VideoEncoderX264();
 	VideoEncoderX264* encoder1080 = new VideoEncoderX264();
-    Worker *vDecoderWorker = new Worker();
+    Worker *vDecoderWorker = new BestEffort();
 	Worker *vEncoderWorker;// = new Worker();
 	Master *vEncoderMaster = new Master();
 	Slave *vEncoderSlave1 = new Slave();
@@ -83,6 +83,7 @@ int main(int argc, char** argv)
     std::ofstream h264Frames720, h264Frames480, h264Frames1080;
 
 	encoder720->configure(1280, 720, YUYV422);
+	
 	encoder480->configure(720, 480, YUYV422);
 	//encoder1080->configure(1920, 1080, YUYV422);
 
@@ -173,6 +174,8 @@ int main(int argc, char** argv)
 	Path* encoderPathMaster = new VideoEncoderPath(videoDecoderID, decoder->generateWriterID());
 	std::vector<int> filters = encoderPathMaster->getFilters();
 	videoEncoderMasterID = filters[0];
+	//encoder720 = dynamic_cast<VideoEncoderX264*> (pipeMngr->getFilter(videoEncoderMasterID));
+	//encoder720->configure(1280, 720, YUYV422);
 
 	if(!pipeMngr->addWorker(videoEncoderMasterID, vEncoderMaster)) {
         utils::errorMsg("Error adding decoder worker");

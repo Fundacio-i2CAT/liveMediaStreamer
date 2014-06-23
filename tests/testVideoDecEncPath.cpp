@@ -113,19 +113,19 @@ int main(int argc, char** argv)
 	
 	pipeMngr->startWorkers();
     
-   /* sessionId = utils::randomIdGenerator(ID_LENGTH);
+    sessionId = utils::randomIdGenerator(ID_LENGTH);
     
     sdp = SourceManager::makeSessionSDP(sessionId, "this is a test");
     
     sdp += SourceManager::makeSubsessionSDP(V_MEDIUM, PROTOCOL, PAYLOAD, V_CODEC, 
-                                       BANDWITH, V_TIME_STMP_FREQ, V_CLIENT_PORT);*/
+                                       BANDWITH, V_TIME_STMP_FREQ, V_CLIENT_PORT);
     // sdp += handlers::makeSubsessionSDP(A_MEDIUM, PROTOCOL, PAYLOAD, A_CODEC, 
     //                                    BANDWITH, A_TIME_STMP_FREQ, A_CLIENT_PORT);
     
-    //session = Session::createNew(*(mngr->envir()), sdp, sessionId);
+    session = Session::createNew(*(mngr->envir()), sdp, sessionId);
     
-    //mngr->addSession(session);
-    //session->initiateSession();
+    mngr->addSession(session);
+    session->initiateSession();
     
     //mngr->runManager();
 	//transmitter->runManager();

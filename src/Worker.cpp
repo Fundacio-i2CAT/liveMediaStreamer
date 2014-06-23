@@ -18,6 +18,7 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  *  Authors:  David Cassany <david.cassany@i2cat.net>,
+ *  		  Martin German <martin.german@i2cat.net>
  *            
  */
 
@@ -75,7 +76,7 @@ void Worker::process()
                 idleCount = 0;
                 enlapsedTime = std::chrono::duration_cast<std::chrono::microseconds>(
                     std::chrono::system_clock::now() - previousTime);
-                if ((timeToSleep = frameTime - enlapsedTime.count()) <= 0){
+                if ((timeToSleep = frameTime - enlapsedTime.count()) >= 0){
                     std::this_thread::sleep_for(
                         std::chrono::microseconds(timeToSleep));
                 }
@@ -215,14 +216,14 @@ void Master::process() {
 			if (sync) {
 				processAll();
 				sync = false;
+				previousTime = std::chrono::system_clock::now();
+				processor->processFrame(false);
 			}
-			processor->processFrame(false);
-            previousTime = std::chrono::system_clock::now();
             if (allFinished()) {
                 idleCount = 0;
                 enlapsedTime = std::chrono::duration_cast<std::chrono::microseconds>(
                     std::chrono::system_clock::now() - previousTime);
-                if ((timeToSleep = frameTime - enlapsedTime.count()) <= 0){
+                if ((timeToSleep = frameTime - enlapsedTime.count()) >= 0){
                     std::this_thread::sleep_for(
                         std::chrono::microseconds(timeToSleep));
                 }
@@ -241,14 +242,13 @@ void Master::process() {
 			if (sync) {
 				processAll();
 				sync = false;
-			}
-			processor->processFrame(false);
+				processor->processFrame(false);
+			}			
 			while (!allFinished()) {
 			}
 			idleCount = 0;
 			processor->removeFrames();
-			sync = true;
-			
+			sync = true;			
         }
         if (idleCount <= ACTIVE_TIMEOUT){
             idleCount++;

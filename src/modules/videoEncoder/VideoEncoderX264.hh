@@ -69,6 +69,8 @@ class VideoEncoderX264: public OneToOneFilter {
 		x264_param_t xparams;
 		x264_t* encoder;
 		struct SwsContext* swsCtx;
+		struct timeval presentationTime;
+		uint64_t timestamp;
 		
 		bool config(Frame *org, Frame *dst);
 		void encodeHeadersFrame(Frame *decodedFrame, Frame *encodedFrame);

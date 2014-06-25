@@ -22,6 +22,7 @@
 
 #include "X264VideoCircularBuffer.hh"
 #include <cstring>
+#include <sys/time.h>
 #include "Utils.hh"
 
 X264VideoCircularBuffer* X264VideoCircularBuffer::createNew()
@@ -76,6 +77,7 @@ bool X264VideoCircularBuffer::pushBack()
         }
 		memcpy(interleavedVideoFrame->getDataBuf(), (*buffer)[i].p_payload, sizeNal);
 		interleavedVideoFrame->setLength(sizeNal);
+		interleavedVideoFrame->setPresentationTime(inputFrame->getPresentationTime());
 		innerAddFrame();
 	}
 	

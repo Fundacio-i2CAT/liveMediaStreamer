@@ -48,7 +48,8 @@ void signalHandler(int signum)
     
     PipelineManager *pipe = Controller::getInstance()->pipelineManager();
     pipe->stopWorkers();
-    
+
+	delete pipe;    
     utils::infoMsg("Workers Stopped");
 	exit(1);
 }

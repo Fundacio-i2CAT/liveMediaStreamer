@@ -225,6 +225,9 @@ void Master::process() {
 			}
 			enlapsedTime = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now() - previousTime);
 			accumulatedTime+= frameTime - enlapsedTime.count();
+			if (((-1) * accumulatedTime) >  threshold) {
+				accumulatedTime= 0 - threshold;
+			}
 			while (accumulatedTime >  threshold){
                 std::this_thread::sleep_for(std::chrono::microseconds(accumulatedTime - threshold));
 				accumulatedTime= threshold;
@@ -288,6 +291,9 @@ void Slave::process() {
             if (processor->processFrame(false)) {
 				enlapsedTime = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now() - previousTime);
 				accumulatedTime+= frameTime - enlapsedTime.count();
+				if (((-1) * accumulatedTime) >  threshold) {
+					accumulatedTime= 0 - threshold;
+				}
 				while (accumulatedTime >  threshold){
                 	std::this_thread::sleep_for(std::chrono::microseconds(accumulatedTime - threshold));
 					accumulatedTime= threshold;

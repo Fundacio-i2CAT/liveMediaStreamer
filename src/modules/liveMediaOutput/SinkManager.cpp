@@ -150,12 +150,15 @@ ServerMediaSubsession *SinkManager::createSubsessionByReader(Reader *reader)
     if ((vQueue = dynamic_cast<VideoFrameQueue*>(reader->getQueue())) != NULL){
         return createVideoMediaSubsession(vQueue->getCodec(), reader);
     }
+
     if ((aQueue = dynamic_cast<AudioFrameQueue*>(reader->getQueue())) != NULL){
         return createAudioMediaSubsession(aQueue->getCodec(), reader);
     }
+
     if ((circularBuffer = dynamic_cast<AudioCircularBuffer*>(reader->getQueue())) != NULL){
         //TODO
     }
+
     return NULL;
 }
 
@@ -215,20 +218,28 @@ void SinkManager::initializeEventMap()
 void SinkManager::addSessionEvent(Jzon::Node* params, Jzon::Object &outputNode)
 {
     std::vector<int> readers;
-    std::string sessionId = utils::randomIdGenerator(ID_LENGTH);
+    std::string sessionId;
 
     if (!params) {
         outputNode.Add("error", "Error adding session. Wrong parameters!");
         return;
     }
 
-    if (params->Has("readers") && params->Get("readers").IsArray()) {
+    if (params->Has("sessionName")) {
+        sessionId = params->Get("sessionName").ToString();
+    } else {
+        sessionId = utils::randomIdGenerator(ID_LENGTH);
+    }
+
+    if (!params->Has("readers") || !params->Get("readers").IsArray()) {
+        outputNode.Add("error", "Error adding session. Wrong parameters!");
+        return;
+    }
         
-        Jzon::Array jsonReaders = params->Get("readers").AsArray();
-        
-        for (Jzon::Array::iterator it = jsonReaders.begin(); it != jsonReaders.end(); ++it) {
-            readers.push_back((*it).ToInt());
-        }
+    Jzon::Array jsonReaders = params->Get("readers").AsArray();
+    
+    for (Jzon::Array::iterator it = jsonReaders.begin(); it != jsonReaders.end(); ++it) {
+        readers.push_back((*it).ToInt());
     }
     
     if (readers.empty()) {
@@ -241,7 +252,12 @@ void SinkManager::addSessionEvent(Jzon::Node* params, Jzon::Object &outputNode)
 
     publishSession(sessionId);
 
-    outputNode.Add("error", Jzon::null);
+    outputNode.Add("sessionID", sessionId);
 } 
+
+void SinkManager::doGetState(Jzon::Object &filterNode)
+{
+
+}
 
 

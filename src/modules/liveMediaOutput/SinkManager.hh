@@ -65,7 +65,7 @@ private:
     ServerMediaSubsession *createSubsessionByReader(Reader *reader);
     ServerMediaSubsession *createVideoMediaSubsession(VCodecType codec, Reader *reader);
     ServerMediaSubsession *createAudioMediaSubsession(ACodecType codec, Reader *reader);
-    void doGetState(Jzon::Object &filterNode) {/*TODO*/};
+    void doGetState(Jzon::Object &filterNode);
    
     static SinkManager* mngrInstance;
     std::map<std::string, ServerMediaSession*> sessionList;

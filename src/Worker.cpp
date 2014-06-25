@@ -128,21 +128,21 @@ BestEffort::BestEffort() : Worker(){
 }
 
 void BestEffort::process() {
-	/*int idleCount = 0;
+	int idleCount = 0;
     std::chrono::microseconds active(ACTIVE);
-    std::chrono::milliseconds idle(IDLE);*/
+    std::chrono::milliseconds idle(IDLE);
 	while(run){
 		while (enabled){
 			if (processor->processFrame()){
+				idleCount = 0;
 			}
-            //idleCount = 0;
         }
-        /*if (idleCount <= ACTIVE_TIMEOUT){
+        if (idleCount <= ACTIVE_TIMEOUT){
             idleCount++;
             std::this_thread::sleep_for(active);
         } else {
             std::this_thread::sleep_for(idle);
-        }*/
+        }
 	}
 }
 
@@ -204,10 +204,11 @@ void Master::removeSlave(int id) {
 void Master::process() {
 	int accumulatedTime = 0;
 	int threshold = int(frameTime/10);
-    int timeout;
-    int timeToSleep = 0;
     std::chrono::microseconds enlapsedTime;
     std::chrono::system_clock::time_point previousTime;
+	int idleCount = 0;
+    std::chrono::microseconds active(ACTIVE);
+    std::chrono::milliseconds idle(IDLE);
 
 	std::atomic<bool> sync;
 	sync = true;
@@ -224,12 +225,22 @@ void Master::process() {
 			}
 			enlapsedTime = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now() - previousTime);
 			accumulatedTime+= frameTime - enlapsedTime.count();
+			if (((-1) * accumulatedTime) >  threshold) {
+				accumulatedTime= 0 - threshold;
+			}
 			while (accumulatedTime >  threshold){
                 std::this_thread::sleep_for(std::chrono::microseconds(accumulatedTime - threshold));
 				accumulatedTime= threshold;
             }
 			processor->removeFrames();
 			sync = true;
+			idleCount = 0;
+        }
+		if (idleCount <= ACTIVE_TIMEOUT){
+            idleCount++;
+            std::this_thread::sleep_for(active);
+        } else {
+            std::this_thread::sleep_for(idle);
         }      
     }
 }
@@ -268,10 +279,25 @@ Slave::Slave():ConstantFramerate() {
 }
 
 void Slave::process() {
+	int accumulatedTime = 0;
+	int threshold = int(frameTime/10);
+    std::chrono::microseconds enlapsedTime;
+    std::chrono::system_clock::time_point previousTime;
+
     while(run){
         while (enabled && !finished) {
+			finished = true;
+			previousTime = std::chrono::system_clock::now();
             if (processor->processFrame(false)) {
-				finished = true;
+				enlapsedTime = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now() - previousTime);
+				accumulatedTime+= frameTime - enlapsedTime.count();
+				if (((-1) * accumulatedTime) >  threshold) {
+					accumulatedTime= 0 - threshold;
+				}
+				while (accumulatedTime >  threshold){
+                	std::this_thread::sleep_for(std::chrono::microseconds(accumulatedTime - threshold));
+					accumulatedTime= threshold;
+				}				
             }
         }
     }

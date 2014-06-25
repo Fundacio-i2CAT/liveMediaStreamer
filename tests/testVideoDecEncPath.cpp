@@ -48,7 +48,8 @@ void signalHandler(int signum)
     
     PipelineManager *pipe = Controller::getInstance()->pipelineManager();
     pipe->stopWorkers();
-    
+
+	delete pipe;    
     utils::infoMsg("Workers Stopped");
 	exit(1);
 }
@@ -175,7 +176,7 @@ int main(int argc, char** argv)
 	std::vector<int> filters = encoderPathMaster->getFilters();
 	videoEncoderMasterID = filters[0];
 	//encoder720 = dynamic_cast<VideoEncoderX264*> (pipeMngr->getFilter(videoEncoderMasterID));
-	//encoder720->configure(1280, 720, YUYV422);
+	//encoder720->configure(1920, 1080, YUYV422);
 
 	if(!pipeMngr->addWorker(videoEncoderMasterID, vEncoderMaster)) {
         utils::errorMsg("Error adding decoder worker");
@@ -265,44 +266,6 @@ int main(int argc, char** argv)
 
     transmitter->publishSession(sessionIdTransmitterSlave2);
 	utils::debugMsg("END Slave Path 2");
-
-	//vEnconderMaster = new Master();
-/*    if(!pipeMngr->addFilter(videoEncoderMasterID, encoder)) {
-        std::cerr << "Error adding encoder to the pipeline" << std::endl;
-    }*/
-/*
-	if(!pipeMngr->addWorker(videoEncoderMasterID, vEnconderMaster)) {
-        std::cerr << "Error adding encoder worker" << std::endl;
-    }*/
-
-	/*if(!decoder->connectOneToOne(encoder720, true)) {
-        std::cerr << "Error connecting video encoder!" << std::endl;
-    }
-
-	if(!decoder->connectOneToOne(encoder480, true)) {
-        std::cerr << "Error connecting video encoder!!" << std::endl;
-    }*/
-
-   // Reader *reader1080 = new Reader();
-	//BaseFilter *encoder = pipeMngr->getFilter(videoEncoderMasterID);
-	//encoder->connect(reader1080);
-  /*  Reader *reader720 = new Reader();
-	encoder720->connect(reader720);
-	Reader *reader480 = new Reader();
-	encoder480->connect(reader480);*/
-	//Reader *reader1080 = new Reader();
-	//encoder1080->connect(reader1080);
-
-    //vDecoderWorker = new Worker(decoder);
-	//vEnconderMaster = new Master(encoder);
-	//vEncoderWorker = new Worker(encoder);
-	
-	/*vEncoderSlave1 = new Slave(1, encoder720);
-	vEnconderMaster->addSlave(vEncoderSlave1);
-	vEncoderSlave2 = new Slave(2, encoder480);
-	vEnconderMaster->addSlave(vEncoderSlave2);*/
-	//vEncoderSlave3 = new Slave(3, encoder1080);
-	//vEnconderMaster->addSlave(vEncoderSlave3);
 	
 	vEncoderMaster->addSlave(vEncoderSlave1);
 	vEncoderMaster->addSlave(vEncoderSlave2);
@@ -310,63 +273,13 @@ int main(int argc, char** argv)
 	vEncoderMaster->setFps(24);
 	vEncoderSlave1->setFps(24);
 	vEncoderSlave2->setFps(24);
-	//vEncoderWorker->start();
 	vEncoderMaster->start();
 	vEncoderSlave1->start();
 	vEncoderSlave2->start();
-	//vEncoderSlave3->start();
     while(pipeMngr->getWorker(pipeMngr->getReceiverID())->isRunning() || 
         pipeMngr->getWorker(pipeMngr->getTransmitterID())->isRunning()) {
         sleep(1);
     }
-    
-   // while(mngr->isRunning()) {
-		//printf("antes getFrame\n");
-		/*h264Frame720 = reader720->getFrame();
-		h264Frame480 = reader480->getFrame();
-		//h264Frame1080 = reader1080->getFrame();
-		
-        //if (!h264Frame720 || !h264Frame1080 || !h264Frame480) {
-		if (!h264Frame720 || !h264Frame480) {
-            usleep(500);
-            continue;
-        }
-		//printf("despues getFrame\n");
-        if (! h264Frames720.is_open()){
-            h264Frames720.open("frames720.h264", std::ios::out | std::ios::app | std::ios::binary);
-        }
-
-        if (! h264Frames480.is_open()){
-            h264Frames480.open("frames480.h264", std::ios::out | std::ios::app | std::ios::binary);
-        }*/
-/*
-        if (! h264Frames1080.is_open()){
-            h264Frames1080.open("frames1080.h264", std::ios::out | std::ios::app | std::ios::binary);
-        }*/
-		
-	/*	if (h264Frame720->getLength() > 0) {
-            h264Frames720.write(reinterpret_cast<const char*>(h264Frame720->getDataBuf()), h264Frame720->getLength());
-            //printf("Filled buffer! Frame size: %d\n", h264Frame->getLength());
-        }
-
-		if (h264Frame480->getLength() > 0) {
-            h264Frames480.write(reinterpret_cast<const char*>(h264Frame480->getDataBuf()), h264Frame480->getLength());
-            //printf("Filled buffer! Frame size: %d\n", h264Frame->getLength());
-        }
-        */
-	/*	if (h264Frame1080->getLength() > 0) {
-            h264Frames1080.write(reinterpret_cast<const char*>(h264Frame1080->getDataBuf()), h264Frame1080->getLength());
-            //printf("Filled buffer! Frame size: %d\n", h264Frame->getLength());
-        }*/
-
-      /*  reader720->removeFrame();        
-        reader480->removeFrame();*/
-		//reader1080->removeFrame();
-    //}
-    
-   // h264Frames720.close();
-	//h264Frames480.close();
-	//h264Frames1080.close();
     
     return 0;
 }

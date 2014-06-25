@@ -23,8 +23,8 @@
 #include "VideoEncoderX264.hh"
 
 VideoEncoderX264::VideoEncoderX264(bool force_): OneToOneFilter(force_){
-	fps = 25;
-	gop = 25;
+	fps = 24;
+	gop = 24;
 	pts = 0;
 	forceIntra = false;
 	firstTime = true;
@@ -33,16 +33,21 @@ VideoEncoderX264::VideoEncoderX264(bool force_): OneToOneFilter(force_){
 	encoder = NULL;
 	bitrate = 2000;
 	x264_param_default_preset(&xparams, "ultrafast", "zerolatency");
-	xparams.i_threads = 4;
+	xparams.i_threads = 1;
 	xparams.i_width = DEFAULT_WIDTH;
 	xparams.i_height = DEFAULT_HEIGHT;
 	xparams.i_fps_num = fps;
 	xparams.i_fps_den = 1;
 	xparams.b_intra_refresh = 0;
 	xparams.i_keyint_max = gop;
+	//xparams.b_vfr_input = 1;
 	xparams.rc.i_bitrate = bitrate;
+	xparams.i_timebase_num = 90000;
+	xparams.i_timebase_den = 90000 / fps;
 	x264_param_apply_profile(&xparams, "baseline");
     fType = VIDEO_ENCODER;
+	gettimeofday(&presentationTime, NULL);
+	timestamp = ((uint64_t)presentationTime.tv_sec * (uint64_t)1000000) + (uint64_t)presentationTime.tv_usec;
 }
 
 VideoEncoderX264::~VideoEncoderX264(){
@@ -90,7 +95,10 @@ bool VideoEncoderX264::doProcessFrame(Frame *org, Frame *dst) {
 	}
 
 	x264Frame->setNals(&ppNal, piNal, frameLength);
-
+	timestamp+= ((uint64_t) 1000000 / (uint64_t)fps);
+	presentationTime.tv_sec= (timestamp / 1000000);
+	presentationTime.tv_usec= (timestamp % 1000000);
+	x264Frame->setPresentationTime(presentationTime);
 	pts++;
 	return true;
 }
@@ -111,6 +119,7 @@ void VideoEncoderX264::encodeHeadersFrame(Frame *decodedFrame, Frame *encodedFra
 		printf("Error: encoder headers\n");
 	}
 	x264Frame->setNals(&ppNal, piNal, encodeSize);
+	x264Frame->setPresentationTime(presentationTime);
 }
 
 FrameQueue* VideoEncoderX264::allocQueue(int wId) {
@@ -198,8 +207,6 @@ bool VideoEncoderX264::config(Frame *org, Frame *dst) {
 	xparams.i_width = outWidth;
 	xparams.i_height = outHeight;
 	xparams.i_fps_num = fps;
-	xparams.i_fps_den = 1;
-	xparams.b_intra_refresh = 0;
 	xparams.i_keyint_max = gop;
 	x264_param_apply_profile(&xparams, "baseline");
 	return true;

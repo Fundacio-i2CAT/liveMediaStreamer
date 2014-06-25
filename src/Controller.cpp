@@ -368,6 +368,8 @@ bool PipelineManager::removePath(int id)
         return false;
     }
 
+    paths.erase(id);
+
     return true;
 }
 

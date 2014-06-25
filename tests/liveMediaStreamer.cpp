@@ -64,7 +64,7 @@ void createMixerEncoderTxPath()
         exit(1);
     }
 
-    Worker* audioMixerWorker = new Worker();
+    Worker* audioMixerWorker = new BestEffort();
     if(!pipeMngr->addWorker(audioMixerID, audioMixerWorker)) {
         std::cerr << "Error adding mixer worker" << std::endl;
         exit(1);

@@ -364,17 +364,12 @@ void AudioEncoderLibav::checkInputParams(SampleFmt sampleFormat, int channels, i
 
 void AudioEncoderLibav::configEvent(Jzon::Node* params, Jzon::Object &outputNode) 
 {
-    ACodecType newCodec;
     int newChannels = internalChannels;
     int newSampleRate = internalSampleRate;
 
     if (!params) {
         outputNode.Add("error", "Error configuring audio encoder");
         return;
-    }
-
-    if (params->Has("codec")) {
-        newCodec = utils::getCodecFromString(params->Get("codec").ToString());
     }
 
     if (params->Has("sampleRate")) {
@@ -385,7 +380,7 @@ void AudioEncoderLibav::configEvent(Jzon::Node* params, Jzon::Object &outputNode
         newChannels = params->Get("channels").ToInt();
     }
 
-    if(!configure(newCodec, newChannels, newSampleRate)) {
+    if(!configure(fCodec, newChannels, newSampleRate)) {
         outputNode.Add("error", "Error configuring audio encoder");
     } else {
         outputNode.Add("error", Jzon::null);

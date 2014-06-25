@@ -52,10 +52,11 @@ public:
     void startWorkers();
     void stopWorkers();
     void getStateEvent(Jzon::Node* params, Jzon::Object &outputNode);
-    bool removePath(int id);
+    void reconfigAudioEncoderEvent(Jzon::Node* params, Jzon::Object &outpuNode);
 
 private:
     PipelineManager();
+    bool removePath(int id);
     bool deletePath(Path* path); 
     
     static PipelineManager* pipeMngrInstance;

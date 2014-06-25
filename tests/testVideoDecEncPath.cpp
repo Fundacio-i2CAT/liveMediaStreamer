@@ -273,11 +273,9 @@ int main(int argc, char** argv)
 	vEncoderMaster->setFps(24);
 	vEncoderSlave1->setFps(24);
 	vEncoderSlave2->setFps(24);
-	//vEncoderWorker->start();
 	vEncoderMaster->start();
 	vEncoderSlave1->start();
 	vEncoderSlave2->start();
-	//vEncoderSlave3->start();
     while(pipeMngr->getWorker(pipeMngr->getReceiverID())->isRunning() || 
         pipeMngr->getWorker(pipeMngr->getTransmitterID())->isRunning()) {
         sleep(1);

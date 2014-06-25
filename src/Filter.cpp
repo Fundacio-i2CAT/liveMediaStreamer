@@ -97,6 +97,8 @@ bool BaseFilter::demandOriginFrames()
     for(int i = 0; i < RETRIES; i++){
         for (auto it : readers) {
             if (!it.second->isConnected()) {
+                //NOTE: think about readers as shared pointers
+                delete readers[it.first];
                 readers.erase(it.first);
                 continue;
             }
@@ -193,6 +195,7 @@ bool BaseFilter::connect(BaseFilter *R, int writerID, int readerID, bool slaveQu
 	if (!slaveQueue) {
     	writers[writerID]->setQueue(queue);
 	}
+
     return writers[writerID]->connect(r);
 }
 
@@ -229,12 +232,17 @@ bool BaseFilter::disconnect(BaseFilter *R, int writerID, int readerID)
     }
 
     Reader *r = R->getReader(readerID);
+
     if (!r->isConnected()){
         return false;
     }
+
     dFrames.erase(writerID);
     R->oFrames.erase(readerID);
     writers[writerID]->disconnect(r);
+
+    //NOTE: think about writers as shared pointers
+    delete writers[writerID];
     writers.erase(writerID);
 
     while(R->getReader(readerID)) {

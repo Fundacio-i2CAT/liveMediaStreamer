@@ -113,6 +113,7 @@ bool SourceManager::removeSession(std::string id)
         return false;
     }
 
+    delete sessionMap[id];
     sessionMap.erase(id);
 
     return true;

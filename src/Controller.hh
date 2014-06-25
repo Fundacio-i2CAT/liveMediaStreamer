@@ -52,10 +52,12 @@ public:
     void startWorkers();
     void stopWorkers();
     void getStateEvent(Jzon::Node* params, Jzon::Object &outputNode);
-    bool deletePath(Path* path); 
+    bool removePath(int id);
 
 private:
     PipelineManager();
+    bool deletePath(Path* path); 
+    
     static PipelineManager* pipeMngrInstance;
 
     std::map<int, Path*> paths;

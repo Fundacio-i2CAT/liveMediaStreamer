@@ -354,6 +354,24 @@ bool PipelineManager::connectPath(Path* path)
     return true;
 }
 
+bool PipelineManager::removePath(int id)
+{
+    Path* path = NULL;
+
+    path = getPath(id);
+
+    if (!path) {
+        return false;
+    }
+
+    if (!deletePath(path)) {
+        return false;
+    }
+
+    return true;
+}
+
+
 bool PipelineManager::deletePath(Path* path) 
 {
     std::vector<int> pathFilters = path->getFilters();
@@ -392,6 +410,8 @@ bool PipelineManager::deletePath(Path* path)
         delete filters[it].second;
         delete filters[it].first;
     }
+
+    delete path;
 }
 
 void PipelineManager::startWorkers()

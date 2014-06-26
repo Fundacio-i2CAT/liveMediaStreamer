@@ -95,7 +95,7 @@ bool AudioEncoderLibav::doProcessFrame(Frame *org, Frame *dst)
 
     if (gotFrame) {
         dst->setLength(pkt.size);
-		timestamp+= (((uint64_t) 1000000 * (libavFrame->nb_samples))/ (uint64_t) internalSampleRate);
+		timestamp+= (((uint64_t) (1000000 * (libavFrame->nb_samples)))/ (uint64_t) internalSampleRate);
 		presentationTime.tv_sec= (timestamp / 1000000);
 		presentationTime.tv_usec= (timestamp % 1000000);
 		dst->setPresentationTime(presentationTime);

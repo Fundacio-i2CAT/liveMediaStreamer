@@ -62,10 +62,10 @@ private:
     
     bool processFrame(bool removeFrame = false);
     
-    ServerMediaSubsession *createSubsessionByReader(Reader *reader);
-    ServerMediaSubsession *createVideoMediaSubsession(VCodecType codec, Reader *reader);
-    ServerMediaSubsession *createAudioMediaSubsession(ACodecType codec, Reader *reader);
-    void doGetState(Jzon::Object &filterNode) {/*TODO*/};
+    ServerMediaSubsession *createSubsessionByReader(Reader *reader, int readerId);
+    ServerMediaSubsession *createVideoMediaSubsession(VCodecType codec, Reader *reader, int readerId);
+    ServerMediaSubsession *createAudioMediaSubsession(ACodecType codec, Reader *reader, int readerId);
+    void doGetState(Jzon::Object &filterNode);
    
     static SinkManager* mngrInstance;
     std::map<std::string, ServerMediaSession*> sessionList;

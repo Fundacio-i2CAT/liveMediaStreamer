@@ -30,7 +30,7 @@
 class H264QueueServerMediaSubsession: public QueueServerMediaSubsession {
 public:
   static H264QueueServerMediaSubsession*
-  createNew(UsageEnvironment& env, Reader *reader, Boolean reuseFirstSource);
+  createNew(UsageEnvironment& env, Reader *reader, int readerId, Boolean reuseFirstSource);
 
   // Used to implement "getAuxSDPLine()":
   void checkForAuxSDPLine1();
@@ -38,7 +38,7 @@ public:
 
 protected:
   H264QueueServerMediaSubsession(UsageEnvironment& env,
-                                 Reader *reader, Boolean reuseFirstSource);
+                                 Reader *reader, int readerId, Boolean reuseFirstSource);
       // called only by createNew();
   virtual ~H264QueueServerMediaSubsession();
 

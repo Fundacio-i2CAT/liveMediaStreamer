@@ -70,20 +70,7 @@ void createMixerEncoderTxPath()
         exit(1);
     }
 
-    std::vector<int> readers;
-    std::string sessionId = utils::randomIdGenerator(ID_LENGTH);
-
-    readers.push_back(path->getDstReaderID());
-        
-    if(!pipeMngr->getTransmitter()->addSession(sessionId, readers)) {
-        std::cerr << "Error adding session to transsmiter" << std::endl;
-        exit(1);
-    }
-
-    pipeMngr->getTransmitter()->publishSession(sessionId);
-
     pipeMngr->startWorkers();
-
 }
 
 int main(int argc, char *argv[]) {

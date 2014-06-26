@@ -31,11 +31,11 @@
 class AudioQueueServerMediaSubsession: public QueueServerMediaSubsession {
 public:
   static AudioQueueServerMediaSubsession*
-  createNew(UsageEnvironment& env, Reader *reader, Boolean reuseFirstSource);
+  createNew(UsageEnvironment& env, Reader *reader, int readerId, Boolean reuseFirstSource);
 
 protected:
   AudioQueueServerMediaSubsession(UsageEnvironment& env,
-                                 Reader *reader, Boolean reuseFirstSource);
+                                 Reader *reader, int readerId, Boolean reuseFirstSource);
       // called only by createNew();
   virtual ~AudioQueueServerMediaSubsession(){};
 

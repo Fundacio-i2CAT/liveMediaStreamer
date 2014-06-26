@@ -100,7 +100,7 @@ bool SinkManager::addSession(std::string id, std::vector<int> readers, std::stri
     ServerMediaSubsession *subsession;
     
     for (auto & reader : readers){
-        if ((subsession = createSubsessionByReader(getReader(reader))) != NULL){
+        if ((subsession = createSubsessionByReader(getReader(reader), reader)) != NULL) {
             servSession->addSubsession(subsession);
         } else {
             //TODO: delete ServerMediaSession and previous subsessions
@@ -113,14 +113,14 @@ bool SinkManager::addSession(std::string id, std::vector<int> readers, std::stri
     return true;
 }
 
-ServerMediaSubsession *SinkManager::createVideoMediaSubsession(VCodecType codec, Reader *reader)
+ServerMediaSubsession *SinkManager::createVideoMediaSubsession(VCodecType codec, Reader *reader, int readerId)
 {
     switch(codec){
         case H264:
-            return H264QueueServerMediaSubsession::createNew(*(envir()), reader, True);
+            return H264QueueServerMediaSubsession::createNew(*(envir()), reader, readerId, True);
             break;
         case VP8:
-            return VP8QueueServerMediaSubsession::createNew(*(envir()), reader, True);
+            return VP8QueueServerMediaSubsession::createNew(*(envir()), reader, readerId, True);
             break;
         default:
             break;
@@ -128,34 +128,37 @@ ServerMediaSubsession *SinkManager::createVideoMediaSubsession(VCodecType codec,
     return NULL;
 }
 
-ServerMediaSubsession *SinkManager::createAudioMediaSubsession(ACodecType codec, Reader *reader)
+ServerMediaSubsession *SinkManager::createAudioMediaSubsession(ACodecType codec, Reader *reader, int readerId)
 {
     switch(codec){
         case AAC:
             //TODO
             break;
         default:
-            return AudioQueueServerMediaSubsession::createNew(*(envir()), reader, True);
+            return AudioQueueServerMediaSubsession::createNew(*(envir()), reader, readerId, True);
             break;
     }
     return NULL;
 }
 
-ServerMediaSubsession *SinkManager::createSubsessionByReader(Reader *reader)
+ServerMediaSubsession *SinkManager::createSubsessionByReader(Reader *reader, int readerId)
 {
     VideoFrameQueue *vQueue;
     AudioFrameQueue *aQueue;
     AudioCircularBuffer *circularBuffer;
     
     if ((vQueue = dynamic_cast<VideoFrameQueue*>(reader->getQueue())) != NULL){
-        return createVideoMediaSubsession(vQueue->getCodec(), reader);
+        return createVideoMediaSubsession(vQueue->getCodec(), reader, readerId);
     }
+
     if ((aQueue = dynamic_cast<AudioFrameQueue*>(reader->getQueue())) != NULL){
-        return createAudioMediaSubsession(aQueue->getCodec(), reader);
+        return createAudioMediaSubsession(aQueue->getCodec(), reader, readerId);
     }
+
     if ((circularBuffer = dynamic_cast<AudioCircularBuffer*>(reader->getQueue())) != NULL){
         //TODO
     }
+
     return NULL;
 }
 
@@ -215,20 +218,28 @@ void SinkManager::initializeEventMap()
 void SinkManager::addSessionEvent(Jzon::Node* params, Jzon::Object &outputNode)
 {
     std::vector<int> readers;
-    std::string sessionId = utils::randomIdGenerator(ID_LENGTH);
+    std::string sessionId;
 
     if (!params) {
         outputNode.Add("error", "Error adding session. Wrong parameters!");
         return;
     }
 
-    if (params->Has("readers") && params->Get("readers").IsArray()) {
+    if (params->Has("sessionName")) {
+        sessionId = params->Get("sessionName").ToString();
+    } else {
+        sessionId = utils::randomIdGenerator(ID_LENGTH);
+    }
+
+    if (!params->Has("readers") || !params->Get("readers").IsArray()) {
+        outputNode.Add("error", "Error adding session. Wrong parameters!");
+        return;
+    }
         
-        Jzon::Array jsonReaders = params->Get("readers").AsArray();
-        
-        for (Jzon::Array::iterator it = jsonReaders.begin(); it != jsonReaders.end(); ++it) {
-            readers.push_back((*it).ToInt());
-        }
+    Jzon::Array jsonReaders = params->Get("readers").AsArray();
+    
+    for (Jzon::Array::iterator it = jsonReaders.begin(); it != jsonReaders.end(); ++it) {
+        readers.push_back((*it).ToInt());
     }
     
     if (readers.empty()) {
@@ -241,7 +252,37 @@ void SinkManager::addSessionEvent(Jzon::Node* params, Jzon::Object &outputNode)
 
     publishSession(sessionId);
 
-    outputNode.Add("error", Jzon::null);
+    outputNode.Add("sessionID", sessionId);
 } 
+
+void SinkManager::doGetState(Jzon::Object &filterNode)
+{
+    Jzon::Array sessionArray;
+    ServerMediaSubsession* subsession;
+    int readerId;
+
+    for (auto it : sessionList) {
+        Jzon::Array jsonReaders;
+        Jzon::Object jsonSession;
+        std::string uri = rtspServer->rtspURL(it.second);
+
+        jsonSession.Add("id", it.first);
+        jsonSession.Add("uri", uri);
+        
+        ServerMediaSubsessionIterator sIt(*it.second);
+        subsession = sIt.next();
+
+        while(subsession) {
+            readerId = dynamic_cast<QueueServerMediaSubsession*>(subsession)->getReaderId();
+            jsonReaders.Add(readerId);
+            subsession = sIt.next();
+        }
+
+        jsonSession.Add("readers", jsonReaders);
+        sessionArray.Add(jsonSession);
+    }
+
+    filterNode.Add("sessions", sessionArray);
+}
 
 

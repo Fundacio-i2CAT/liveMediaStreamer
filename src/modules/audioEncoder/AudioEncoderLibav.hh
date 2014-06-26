@@ -85,7 +85,9 @@ private:
     int                 samplesPerFrame;
     int                 internalBufferSize;
     unsigned char       *internalBuffer;
-    unsigned char       *auxBuff[1];    
+    unsigned char       *auxBuff[1];
+	struct timeval presentationTime;
+	uint64_t timestamp; 
 };
 
 #endif

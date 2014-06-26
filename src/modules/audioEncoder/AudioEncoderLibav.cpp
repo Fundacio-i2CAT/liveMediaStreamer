@@ -50,6 +50,8 @@ AudioEncoderLibav::AudioEncoderLibav()  : OneToOneFilter()
     sampleRate = DEFAULT_SAMPLE_RATE;
     sampleFmt = S16P;
     libavSampleFmt = AV_SAMPLE_FMT_S16P;
+	gettimeofday(&presentationTime, NULL);
+	timestamp = ((uint64_t)presentationTime.tv_sec * (uint64_t)1000000) + (uint64_t)presentationTime.tv_usec;
 
     initializeEventMap();
 }
@@ -86,8 +88,6 @@ bool AudioEncoderLibav::doProcessFrame(Frame *org, Frame *dst)
 
     ret = avcodec_encode_audio2(codecCtx, &pkt, libavFrame, &gotFrame);
 
-    std::cout << "Samples: " << libavFrame->nb_samples << std::endl;
-
     if (ret < 0) {
         fprintf(stderr, "Error encoding audio frame\n");
         return false;
@@ -95,6 +95,10 @@ bool AudioEncoderLibav::doProcessFrame(Frame *org, Frame *dst)
 
     if (gotFrame) {
         dst->setLength(pkt.size);
+		timestamp+= (((uint64_t) 1000000 * (libavFrame->nb_samples))/ (uint64_t) internalSampleRate);
+		presentationTime.tv_sec= (timestamp / 1000000);
+		presentationTime.tv_usec= (timestamp % 1000000);
+		dst->setPresentationTime(presentationTime);
 
         if (!raw.is_open()){
             raw.open("raw.pcm", std::ios::out | std::ios::app | std::ios::binary);

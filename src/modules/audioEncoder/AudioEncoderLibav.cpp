@@ -125,7 +125,7 @@ bool AudioEncoderLibav::configure(ACodecType codec, int internalChannels, int in
 
     switch(fCodec) {
         case PCM:
-            codecID = AV_CODEC_ID_PCM_S16LE; 
+            codecID = AV_CODEC_ID_PCM_S16BE; 
             internalLibavSampleFormat = AV_SAMPLE_FMT_S16;
             internalSampleFmt = S16;
             break;

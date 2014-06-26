@@ -69,18 +69,22 @@ RTPSink* AudioQueueServerMediaSubsession
            FramedSource* /*inputSource*/) {
     AudioFrameQueue *aQueue;
     unsigned char payloadType = rtpPayloadTypeIfDynamic;
-    
+
     if ((aQueue = dynamic_cast<AudioFrameQueue*>(fReader->getQueue())) == NULL){
         return NULL;
     }
     
+    std::string codecStr = utils::getAudioCodecAsString(aQueue->getCodec());
+    
     if (aQueue->getCodec() == PCM && 
-        aQueue->getSampleRate() == 44100 &&
-        aQueue->getSampleFmt() == S16){
-        if (aQueue->getChannels() == 2){
-            payloadType = 10;
-        } else if (aQueue->getChannels() == 1) {
-            payloadType = 11;
+        aQueue->getSampleFmt() == S16) {
+        codecStr = "L16";
+        if (aQueue->getSampleRate() == 44100) {
+            if (aQueue->getChannels() == 2){
+                payloadType = 10;
+            } else if (aQueue->getChannels() == 1) {
+                payloadType = 11;
+            }
         }
     } else if ((aQueue->getCodec() == PCMU || aQueue->getCodec() == G711) && 
               aQueue->getSampleRate() == 8000 &&
@@ -95,6 +99,6 @@ RTPSink* AudioQueueServerMediaSubsession
     return SimpleRTPSink
     ::createNew(envir(), rtpGroupsock, payloadType,
                 aQueue->getSampleRate(), "audio", 
-                utils::getAudioCodecAsString(aQueue->getCodec()).c_str(),
+                codecStr.c_str(),
                 aQueue->getChannels(), False);
 }

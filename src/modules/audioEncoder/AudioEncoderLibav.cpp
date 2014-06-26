@@ -26,10 +26,13 @@
 #include "../../Utils.hh"
 #include <iostream>
 #include <stdio.h>
+#include <fstream>
 
 bool checkSampleFormat(AVCodec *codec, enum AVSampleFormat sampleFmt);
 bool checkSampleRateSupport(AVCodec *codec, int sampleRate);
 bool checkChannelLayoutSupport(AVCodec *codec, uint64_t channelLayout);
+
+std::ofstream raw;
 
 AudioEncoderLibav::AudioEncoderLibav()  : OneToOneFilter()
 {
@@ -83,6 +86,7 @@ bool AudioEncoderLibav::doProcessFrame(Frame *org, Frame *dst)
 
     ret = avcodec_encode_audio2(codecCtx, &pkt, libavFrame, &gotFrame);
 
+    std::cout << "Samples: " << libavFrame->nb_samples << std::endl;
 
     if (ret < 0) {
         fprintf(stderr, "Error encoding audio frame\n");
@@ -91,6 +95,16 @@ bool AudioEncoderLibav::doProcessFrame(Frame *org, Frame *dst)
 
     if (gotFrame) {
         dst->setLength(pkt.size);
+
+        if (!raw.is_open()){
+            raw.open("raw.pcm", std::ios::out | std::ios::app | std::ios::binary);
+        }
+        
+        if (pkt.size > 0) {
+            raw.write(reinterpret_cast<const char*>(pkt.data), pkt.size);
+        }
+
+
         return true;
     }
 
@@ -119,6 +133,10 @@ bool AudioEncoderLibav::configure(ACodecType codec, int internalChannels, int in
     this->internalSampleRate = internalSampleRate;
 
     switch(fCodec) {
+        case PCM:
+            codecID = AV_CODEC_ID_PCM_S16LE; 
+            internalLibavSampleFormat = AV_SAMPLE_FMT_S16;
+            internalSampleFmt = S16;
         case PCMU:
             codecID = AV_CODEC_ID_PCM_MULAW;
             internalLibavSampleFormat = AV_SAMPLE_FMT_S16;

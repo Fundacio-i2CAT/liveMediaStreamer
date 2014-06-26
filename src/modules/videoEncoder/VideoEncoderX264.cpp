@@ -33,7 +33,7 @@ VideoEncoderX264::VideoEncoderX264(bool force_): OneToOneFilter(force_){
 	encoder = NULL;
 	bitrate = 2000;
 	x264_param_default_preset(&xparams, "ultrafast", "zerolatency");
-	xparams.i_threads = 1;
+	xparams.i_threads = 4;
 	xparams.i_width = DEFAULT_WIDTH;
 	xparams.i_height = DEFAULT_HEIGHT;
 	xparams.i_fps_num = fps;
@@ -42,8 +42,6 @@ VideoEncoderX264::VideoEncoderX264(bool force_): OneToOneFilter(force_){
 	xparams.i_keyint_max = gop;
 	//xparams.b_vfr_input = 1;
 	xparams.rc.i_bitrate = bitrate;
-	xparams.i_timebase_num = 90000;
-	xparams.i_timebase_den = 90000 / fps;
 	x264_param_apply_profile(&xparams, "baseline");
     fType = VIDEO_ENCODER;
 	gettimeofday(&presentationTime, NULL);
@@ -126,7 +124,7 @@ FrameQueue* VideoEncoderX264::allocQueue(int wId) {
 	return X264VideoCircularBuffer::createNew();
 }
 
-bool VideoEncoderX264::configure(int width, int height, PixType pixelFormat, int gop_, int fps_) {
+bool VideoEncoderX264::configure(int width, int height, PixType pixelFormat, int gop_, int fps_, int bitrate_) {
 	
 	if (!width || !height)
 		return false;
@@ -135,6 +133,7 @@ bool VideoEncoderX264::configure(int width, int height, PixType pixelFormat, int
 	outHeight = height;
 	fps = fps_;
 	gop = gop_;
+	bitrate = bitrate_;
 	switch (pixelFormat) {
 		case P_NONE:
 			outPixel = AV_PIX_FMT_NONE;
@@ -157,6 +156,7 @@ bool VideoEncoderX264::configure(int width, int height, PixType pixelFormat, int
 	xparams.i_height = outHeight;
 	xparams.i_fps_num = fps;
 	xparams.i_keyint_max = gop;
+	xparams.rc.i_bitrate = bitrate;
 	x264_param_apply_profile(&xparams, "baseline");
 	configureOut = true;
 	return true;
@@ -215,6 +215,7 @@ bool VideoEncoderX264::config(Frame *org, Frame *dst) {
 	xparams.i_height = outHeight;
 	xparams.i_fps_num = fps;
 	xparams.i_keyint_max = gop;
+	xparams.rc.i_bitrate = bitrate;
 	x264_param_apply_profile(&xparams, "baseline");
 	return true;
 }

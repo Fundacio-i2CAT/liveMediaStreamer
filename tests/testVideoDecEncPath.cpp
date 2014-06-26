@@ -176,7 +176,7 @@ int main(int argc, char** argv)
 	std::vector<int> filters = encoderPathMaster->getFilters();
 	videoEncoderMasterID = filters[0];
 	encoder1080 = dynamic_cast<VideoEncoderX264*> (pipeMngr->getFilter(videoEncoderMasterID));
-	encoder1080->configure(1920, 1080, YUYV422, 24, 24);
+	encoder1080->configure(1920, 1080, YUYV422, 24, 24, 4000);
 
 	if(!pipeMngr->addWorker(videoEncoderMasterID, vEncoderMaster)) {
         utils::errorMsg("Error adding decoder worker");
@@ -208,7 +208,7 @@ int main(int argc, char** argv)
 	std::vector<int> filtersSlave1 = encoderPathSlave1->getFilters();
 	videoEncoderSlave1ID = filtersSlave1[0];
 	encoder720 = dynamic_cast<VideoEncoderX264*> (pipeMngr->getFilter(videoEncoderSlave1ID));
-	encoder720->configure(1280, 720, YUYV422, 24, 24);
+	encoder720->configure(1280, 720, YUYV422, 24, 24, 2000);
 
 	if(!pipeMngr->addWorker(videoEncoderSlave1ID, vEncoderSlave1)) {
         utils::errorMsg("Error adding decoder worker");
@@ -240,7 +240,7 @@ int main(int argc, char** argv)
 	std::vector<int> filtersSlave2 = encoderPathSlave2->getFilters();
 	videoEncoderSlave2ID = filtersSlave2[0];
 	encoder480 = dynamic_cast<VideoEncoderX264*> (pipeMngr->getFilter(videoEncoderSlave2ID));
-	encoder480->configure(720, 480, YUYV422, 24, 24);
+	encoder480->configure(720, 480, YUYV422, 24, 24, 1000);
 
 	if(!pipeMngr->addWorker(videoEncoderSlave2ID, vEncoderSlave2)) {
         utils::errorMsg("Error adding decoder worker");

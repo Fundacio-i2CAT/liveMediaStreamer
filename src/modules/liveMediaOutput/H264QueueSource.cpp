@@ -7,12 +7,13 @@
 #define LONG_START_LENGTH 4
 
 
-H264QueueSource* H264QueueSource::createNew(UsageEnvironment& env, Reader *reader) {
-  return new H264QueueSource(env, reader);
+H264QueueSource* H264QueueSource::createNew(UsageEnvironment& env, Reader *reader, int readerId) 
+{
+  return new H264QueueSource(env, reader, readerId);
 }
 
-H264QueueSource::H264QueueSource(UsageEnvironment& env, Reader *reader)
-: QueueSource(env, reader) {
+H264QueueSource::H264QueueSource(UsageEnvironment& env, Reader *reader, int readerId)
+: QueueSource(env, reader, readerId) {
 }
 
 uint8_t startOffset(unsigned char const* ptr) {

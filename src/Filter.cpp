@@ -201,7 +201,7 @@ bool BaseFilter::connect(BaseFilter *R, int writerID, int readerID, bool slaveQu
 
 bool BaseFilter::connectOneToOne(BaseFilter *R, bool slaveQueue)
 {
-    int writerID = R->generateWriterID();
+    int writerID = generateWriterID();
     int readerID = R->generateReaderID();
     return connect(R, writerID, readerID, slaveQueue);
 }
@@ -219,7 +219,7 @@ bool BaseFilter::connectManyToMany(BaseFilter *R, int readerID, int writerID, bo
 
 bool BaseFilter::connectOneToMany(BaseFilter *R, int readerID, bool slaveQueue)
 {
-    int writerID = R->generateWriterID();
+    int writerID = generateWriterID();
     return connect(R, writerID, readerID, slaveQueue);
 }
 
@@ -249,8 +249,13 @@ bool BaseFilter::disconnect(BaseFilter *R, int writerID, int readerID)
         std::this_thread::sleep_for(std::chrono::microseconds(DISC_TIMEOUT));
         retries++;
 
-        if (retries >= DISC_RETRIES) {
-            utils::errorMsg("Error deleting reader when disconnecting filter!");
+        if (retries < DISC_RETRIES) {
+            continue;
+        }
+
+        utils::errorMsg("Asynchronous reader deletion!");
+        
+        if (!R->deleteReader(readerID)) {
             return false;
         }
     }
@@ -322,8 +327,26 @@ bool BaseFilter::hasFrames()
 	if (!demandOriginFrames() || !demandDestinationFrames()) {
 		return false;
 	}
+
 	return true;
 }
+
+bool BaseFilter::deleteReader(int id)
+{
+    if (readers.count(id) <= 0) {
+        return false;
+    }
+
+    if (readers[id]->isConnected()) {
+        return false;
+    }
+
+    delete readers[id];
+    readers.erase(id);
+
+    return true;
+}
+
 
 OneToOneFilter::OneToOneFilter(bool force_) : 
 BaseFilter(1, 1, force_)

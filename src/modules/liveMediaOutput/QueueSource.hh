@@ -12,19 +12,21 @@
 class QueueSource: public FramedSource {
 
 public:
-    static QueueSource* createNew(UsageEnvironment& env, Reader *reader);
+    static QueueSource* createNew(UsageEnvironment& env, Reader *reader, int readerId);
     virtual void doGetNextFrame();
     virtual void doStopGettingFrames();
     Reader* getReader() {return fReader;};
 
 protected:
-    QueueSource(UsageEnvironment& env, Reader *reader);
+    QueueSource(UsageEnvironment& env, Reader *reader, int readerId);
         // called only by createNew()
     static void staticDoGetNextFrame(FramedSource* source);
+    void checkStatus();
 
 protected:
     Frame* frame;
     Reader *fReader;
+    int fReaderId;
 };
 
 #endif

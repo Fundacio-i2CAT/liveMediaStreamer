@@ -268,7 +268,7 @@ void SinkManager::doGetState(Jzon::Object &filterNode)
 
         jsonSession.Add("id", it.first);
         jsonSession.Add("uri", uri);
-        
+
         ServerMediaSubsessionIterator sIt(*it.second);
         subsession = sIt.next();
 
@@ -284,5 +284,28 @@ void SinkManager::doGetState(Jzon::Object &filterNode)
 
     filterNode.Add("sessions", sessionArray);
 }
+
+std::string SinkManager::getSessionIdFromReaderId(int readerId)
+{
+    ServerMediaSubsession* subsession;
+    std::string sessionID;
+
+    for (auto it : sessionList) {
+        ServerMediaSubsessionIterator sIt(*it.second);
+        subsession = sIt.next();
+
+        while(subsession) {
+            if (readerId == dynamic_cast<QueueServerMediaSubsession*>(subsession)->getReaderId()) {
+                sessionID = it.first;
+                return sessionID;
+            }
+
+            subsession = sIt.next();
+        }
+    }
+
+    return sessionID;
+}
+
 
 

@@ -64,6 +64,7 @@ public:
     const int getMaxReaders() const {return maxReaders;};
     virtual void pushEvent(Event e);
     void getState(Jzon::Object &filterNode);
+    bool deleteReader(int id);
 
     
 protected:

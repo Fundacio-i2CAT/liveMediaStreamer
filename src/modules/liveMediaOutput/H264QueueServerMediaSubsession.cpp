@@ -96,7 +96,7 @@ FramedSource* H264QueueServerMediaSubsession::createNewStreamSource(unsigned /*c
     //TODO: WTF
     estBitrate = 1000; // kbps, estimate
 
-    H264QueueSource* source = H264QueueSource::createNew(envir(), fReader);
+    H264QueueSource* source = H264QueueSource::createNew(envir(), fReader, fReaderId);
     if (!source) {
         return NULL; 
     }

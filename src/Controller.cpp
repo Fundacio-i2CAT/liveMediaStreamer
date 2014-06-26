@@ -394,21 +394,23 @@ bool PipelineManager::deletePath(Path* path)
     }
 
     if (!filters[orgFilterID].first->disconnect(filters[pathFilters.front()].first, path->getOrgWriterID(), DEFAULT_ID)) {
-        utils::errorMsg("Error disconnectinc path head from first filter!");
+        utils::errorMsg("Error disconnecting path head from first filter!");
         return false;
     }
 
+
     for (unsigned i = 0; i < pathFilters.size() - 1; i++) {
         if (!filters[pathFilters[i]].first->disconnect(filters[pathFilters[i+1]].first, DEFAULT_ID, DEFAULT_ID)) {
-            utils::errorMsg("Connecting path filters!");
+            utils::errorMsg("Error disconnecting path filters!");
             return false;
         }
     }
 
     if (!filters[pathFilters.back()].first->disconnect(filters[dstFilterID].first, DEFAULT_ID, path->getDstReaderID())) {
-        utils::errorMsg("Connecting path last filter to path tail!");
+        utils::errorMsg("Error disconnecting path last filter to path tail!");
         return false;
     }
+
 
     for (auto it : pathFilters) {
         filters[it].second->stop();
@@ -417,6 +419,8 @@ bool PipelineManager::deletePath(Path* path)
     }
 
     delete path;
+
+    return true;
 }
 
 void PipelineManager::startWorkers()
@@ -533,28 +537,19 @@ void PipelineManager::reconfigAudioEncoderEvent(Jzon::Node* params, Jzon::Object
     path->setDestinationFilter(transmitterID, transmitter->generateReaderID());
 
     if (!connectPath(path)) {
-        exit(1);
+        outputNode.Add("error", "Error configure audio encoder. Encoder ID is not valid");
+        return;
     }
 
     int encoderPathID = rand();
 
     if (!addPath(encoderPathID, path)) {
-        exit(1);
+        outputNode.Add("error", "Error configure audio encoder. Encoder ID is not valid");
+        return;
     }
 
-    std::vector<int> readers;
-    std::string sessionId = utils::randomIdGenerator(ID_LENGTH);
+    outputNode.Add("error", Jzon::null);
 
-    readers.push_back(path->getDstReaderID());
-        
-    if(!transmitter->addSession(sessionId, readers)) {
-        std::cerr << "Error adding session to transsmiter" << std::endl;
-        exit(1);
-    }
-
-    transmitter->publishSession(sessionId);
-
-    startWorkers();
 }
 
 /////////////////////////////////

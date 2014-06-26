@@ -51,6 +51,7 @@ public:
     ServerMediaSession* getSession(std::string id); 
     bool publishSession(std::string id);
     bool removeSession(std::string id);
+    std::string getSessionIdFromReaderId(int readerId);
     
     void stop();
     

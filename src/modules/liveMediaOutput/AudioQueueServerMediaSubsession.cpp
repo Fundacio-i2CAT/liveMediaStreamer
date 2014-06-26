@@ -53,7 +53,7 @@ FramedSource* AudioQueueServerMediaSubsession::createNewStreamSource(unsigned /*
         bitsPerSecond = aQueue->getSampleRate()*1*aQueue->getChannels();
     }
     
-    qSource = QueueSource::createNew(envir(), fReader);
+    qSource = QueueSource::createNew(envir(), fReader, fReaderId);
     
     if (bitsPerSecond > 0){
         estBitrate = (bitsPerSecond+500)/1000; // kbps

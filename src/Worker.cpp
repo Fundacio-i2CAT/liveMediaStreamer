@@ -132,11 +132,10 @@ void BestEffort::process() {
     std::chrono::microseconds active(ACTIVE);
     std::chrono::milliseconds idle(IDLE);
 	while(run){
-		while (enabled){
-			if (processor->processFrame()){
-				idleCount = 0;
-			}
+		while (enabled && processor->processFrame()){
+			idleCount = 0;
         }
+        
         if (idleCount <= ACTIVE_TIMEOUT){
             idleCount++;
             std::this_thread::sleep_for(active);

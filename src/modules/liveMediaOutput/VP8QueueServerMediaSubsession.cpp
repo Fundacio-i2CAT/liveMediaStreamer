@@ -41,7 +41,7 @@ FramedSource* VP8QueueServerMediaSubsession::createNewStreamSource(unsigned /*cl
     //TODO: WTF
     estBitrate = 1000; // kbps, estimate
 
-    return QueueSource::createNew(envir(), fReader);
+    return QueueSource::createNew(envir(), fReader, fReaderId);
 }
 
 RTPSink* VP8QueueServerMediaSubsession

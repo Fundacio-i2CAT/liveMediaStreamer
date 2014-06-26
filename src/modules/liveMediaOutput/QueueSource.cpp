@@ -1,16 +1,19 @@
 #include "QueueSource.hh"
-#include <iostream>
+#include "SinkManager.hh"
 
-QueueSource* QueueSource::createNew(UsageEnvironment& env, Reader *reader) {
-  return new QueueSource(env, reader);
+QueueSource* QueueSource::createNew(UsageEnvironment& env, Reader *reader, int readerId) {
+  return new QueueSource(env, reader, readerId);
 }
 
 
-QueueSource::QueueSource(UsageEnvironment& env, Reader *reader)
-  : FramedSource(env), fReader(reader) {
+QueueSource::QueueSource(UsageEnvironment& env, Reader *reader, int readerId)
+  : FramedSource(env), fReader(reader), fReaderId(readerId) {
 }
 
-void QueueSource::doGetNextFrame() {
+void QueueSource::doGetNextFrame() 
+{
+    checkStatus();
+
     if ((frame = fReader->getFrame()) == NULL) {
         nextTask() = envir().taskScheduler().scheduleDelayedTask(POLL_TIME,
             (TaskFunc*)QueueSource::staticDoGetNextFrame, this);
@@ -38,5 +41,22 @@ void QueueSource::doStopGettingFrames() {
 
 void QueueSource::staticDoGetNextFrame(FramedSource* source) {
     source->doGetNextFrame();
+}
+
+void QueueSource::checkStatus()
+{
+    if (fReader->isConnected()) {
+        return;
+    }
+
+    SinkManager* transmitter = SinkManager::getInstance();
+
+    transmitter->deleteReader(fReaderId);
+
+    std::string sessionID = transmitter->getSessionIdFromReaderId(fReaderId);
+
+    if (!sessionID.empty()) {
+        transmitter->removeSession(sessionID);
+    }
 }
 

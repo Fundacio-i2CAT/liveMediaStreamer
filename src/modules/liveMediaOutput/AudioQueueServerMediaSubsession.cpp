@@ -28,14 +28,14 @@
 
 AudioQueueServerMediaSubsession*
 AudioQueueServerMediaSubsession::createNew(UsageEnvironment& env,
-                          Reader *reader,
+                          Reader *reader, int readerId,
                           Boolean reuseFirstSource) {
-  return new AudioQueueServerMediaSubsession(env, reader, reuseFirstSource);
+  return new AudioQueueServerMediaSubsession(env, reader, readerId, reuseFirstSource);
 }
 
 AudioQueueServerMediaSubsession::AudioQueueServerMediaSubsession(UsageEnvironment& env,
-                                    Reader *reader, Boolean reuseFirstSource)
-  : QueueServerMediaSubsession(env, reader, reuseFirstSource) {
+                                    Reader *reader, int readerId, Boolean reuseFirstSource)
+  : QueueServerMediaSubsession(env, reader, readerId, reuseFirstSource) {
 }
 
 FramedSource* AudioQueueServerMediaSubsession::createNewStreamSource(unsigned /*clientSessionId*/, unsigned& estBitrate) {

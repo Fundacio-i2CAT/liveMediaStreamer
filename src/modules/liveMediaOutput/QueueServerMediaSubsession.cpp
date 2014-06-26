@@ -26,9 +26,9 @@
 
 QueueServerMediaSubsession
 ::QueueServerMediaSubsession(UsageEnvironment& env, Reader *reader,
-                Boolean reuseFirstSource)
+                int readerId, Boolean reuseFirstSource)
     : OnDemandServerMediaSubsession(env, reuseFirstSource),
-        fReader(reader) {
+        fReader(reader), fReaderId(readerId) {
 }
 
 QueueServerMediaSubsession::~QueueServerMediaSubsession() {

@@ -27,14 +27,14 @@
 
 VP8QueueServerMediaSubsession*
 VP8QueueServerMediaSubsession::createNew(UsageEnvironment& env,
-                          Reader *reader,
+                          Reader *reader, int readerId,
                           Boolean reuseFirstSource) {
-  return new VP8QueueServerMediaSubsession(env, reader, reuseFirstSource);
+  return new VP8QueueServerMediaSubsession(env, reader, readerId, reuseFirstSource);
 }
 
 VP8QueueServerMediaSubsession::VP8QueueServerMediaSubsession(UsageEnvironment& env,
-                                    Reader *reader, Boolean reuseFirstSource)
-  : QueueServerMediaSubsession(env, reader, reuseFirstSource) {
+                                    Reader *reader, int readerId, Boolean reuseFirstSource)
+  : QueueServerMediaSubsession(env, reader, readerId, reuseFirstSource) {
 }
 
 FramedSource* VP8QueueServerMediaSubsession::createNewStreamSource(unsigned /*clientSessionId*/, unsigned& estBitrate) {

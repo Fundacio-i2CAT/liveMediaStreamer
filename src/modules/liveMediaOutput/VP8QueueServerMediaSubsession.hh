@@ -30,11 +30,11 @@
 class VP8QueueServerMediaSubsession: public QueueServerMediaSubsession {
 public:
   static VP8QueueServerMediaSubsession*
-  createNew(UsageEnvironment& env, Reader *reader, Boolean reuseFirstSource);
+  createNew(UsageEnvironment& env, Reader *reader, int readerId, Boolean reuseFirstSource);
 
 protected:
   VP8QueueServerMediaSubsession(UsageEnvironment& env,
-                                 Reader *reader, Boolean reuseFirstSource);
+                                 Reader *reader, int readerId, Boolean reuseFirstSource);
       // called only by createNew();
   virtual ~VP8QueueServerMediaSubsession(){};
 

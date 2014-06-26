@@ -30,14 +30,17 @@
 
 
 class QueueServerMediaSubsession: public OnDemandServerMediaSubsession {
+public:
+    int getReaderId() {return fReaderId;};
 protected: 
     QueueServerMediaSubsession(UsageEnvironment& env, Reader *reader,
-                               Boolean reuseFirstSource);
+                               int readerId, Boolean reuseFirstSource);
     
     virtual ~QueueServerMediaSubsession();
 
 protected:
     Reader* fReader;
+    int fReaderId;
 };
 
 #endif

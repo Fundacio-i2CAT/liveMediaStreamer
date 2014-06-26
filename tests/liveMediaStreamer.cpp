@@ -50,7 +50,7 @@ void createMixerEncoderTxPath()
     }
 
     Path *path = new AudioEncoderPath(audioMixerID, pipeMngr->getFilter(audioMixerID)->generateWriterID());
-    dynamic_cast<AudioEncoderLibav*>(pipeMngr->getFilter(path->getFilters().front()))->configure(OPUS);
+    dynamic_cast<AudioEncoderLibav*>(pipeMngr->getFilter(path->getFilters().front()))->configure(PCM);
 
     path->setDestinationFilter(pipeMngr->getTransmitterID(), pipeMngr->getTransmitter()->generateReaderID());
 

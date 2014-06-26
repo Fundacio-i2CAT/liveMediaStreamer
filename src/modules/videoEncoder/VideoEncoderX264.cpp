@@ -126,13 +126,15 @@ FrameQueue* VideoEncoderX264::allocQueue(int wId) {
 	return X264VideoCircularBuffer::createNew();
 }
 
-bool VideoEncoderX264::configure(int width, int height, PixType pixelFormat) {
+bool VideoEncoderX264::configure(int width, int height, PixType pixelFormat, int gop_, int fps_) {
 	
 	if (!width || !height)
 		return false;
 
 	outWidth = width;
 	outHeight = height;
+	fps = fps_;
+	gop = gop_;
 	switch (pixelFormat) {
 		case P_NONE:
 			outPixel = AV_PIX_FMT_NONE;
@@ -151,6 +153,11 @@ bool VideoEncoderX264::configure(int width, int height, PixType pixelFormat) {
 			colorspace = X264_CSP_I420;
 			break;
 	}
+	xparams.i_width = outWidth;
+	xparams.i_height = outHeight;
+	xparams.i_fps_num = fps;
+	xparams.i_keyint_max = gop;
+	x264_param_apply_profile(&xparams, "baseline");
 	configureOut = true;
 	return true;
 }

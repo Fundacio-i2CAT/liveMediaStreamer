@@ -155,7 +155,7 @@ int main(int argc, char** argv)
 	pipeMngr->connectPath(decoderPath);
        
     //Let some time to initiate reciver sessions
-    sleep(2);
+    //sleep(2);
 
      //mngr->getWriterID(V_CLIENT_PORT);
 
@@ -269,11 +269,11 @@ int main(int argc, char** argv)
 	utils::debugMsg("END Slave Path 2");
 	
 	vEncoderMaster->addSlave(vEncoderSlave1);
-	vEncoderMaster->addSlave(vEncoderSlave2);
-    vDecoderWorker->start();
+	vEncoderMaster->addSlave(vEncoderSlave2);    
 	vEncoderMaster->setFps(24);
 	vEncoderSlave1->setFps(24);
 	vEncoderSlave2->setFps(24);
+	vDecoderWorker->start();
 	vEncoderMaster->start();
 	vEncoderSlave1->start();
 	vEncoderSlave2->start();

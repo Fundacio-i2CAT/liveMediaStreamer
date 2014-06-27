@@ -44,7 +44,7 @@ VideoEncoderX264::VideoEncoderX264(bool force_): OneToOneFilter(force_){
 	xparams.rc.i_bitrate = bitrate;
 	x264_param_apply_profile(&xparams, "baseline");
     fType = VIDEO_ENCODER;
-	gettimeofday(&presentationTime, NULL);
+	presentationTime = utils::getPresentationTime();
 	timestamp = ((uint64_t)presentationTime.tv_sec * (uint64_t)1000000) + (uint64_t)presentationTime.tv_usec;
 }
 
@@ -61,7 +61,8 @@ bool VideoEncoderX264::doProcessFrame(Frame *org, Frame *dst) {
 	AVFrame *outFrame;
 
 	picIn.i_pts = pts;
-	
+	setPresentationTime(dst);
+
 	if (firstTime) {
 		config(org, dst);
 		encodeHeadersFrame(org, dst);
@@ -93,14 +94,10 @@ bool VideoEncoderX264::doProcessFrame(Frame *org, Frame *dst) {
 	}
 
 	x264Frame->setNals(&ppNal, piNal, frameLength);
-	timestamp+= ((uint64_t) 1000000 / (uint64_t)fps);
-	presentationTime.tv_sec= (timestamp / 1000000);
-	presentationTime.tv_usec= (timestamp % 1000000);
-	x264Frame->setPresentationTime(presentationTime);
+
 	pts++;
 	return true;
 }
-
 
 void VideoEncoderX264::encodeHeadersFrame(Frame *decodedFrame, Frame *encodedFrame) {
 	InterleavedVideoFrame* videoFrame = dynamic_cast<InterleavedVideoFrame*> (decodedFrame);
@@ -117,7 +114,6 @@ void VideoEncoderX264::encodeHeadersFrame(Frame *decodedFrame, Frame *encodedFra
 		printf("Error: encoder headers\n");
 	}
 	x264Frame->setNals(&ppNal, piNal, encodeSize);
-	x264Frame->setPresentationTime(presentationTime);
 }
 
 FrameQueue* VideoEncoderX264::allocQueue(int wId) {
@@ -168,8 +164,7 @@ bool VideoEncoderX264::config(Frame *org, Frame *dst) {
 	PixType inPixelType, outPixelType;
 	inWidth = videoFrame->getWidth();
 	inHeight = videoFrame->getHeight();
-	inPixelType = videoFrame->getPixelFormat();
-	
+	inPixelType = videoFrame->getPixelFormat();	
 
 	switch (inPixelType) {
 		case P_NONE:
@@ -218,6 +213,14 @@ bool VideoEncoderX264::config(Frame *org, Frame *dst) {
 	xparams.rc.i_bitrate = bitrate;
 	x264_param_apply_profile(&xparams, "baseline");
 	return true;
+}
+
+void VideoEncoderX264::setPresentationTime(Frame* dst)
+{
+	timestamp+= ((uint64_t) 1000000 / (uint64_t)fps);
+	presentationTime.tv_sec= (timestamp / 1000000);
+	presentationTime.tv_usec= (timestamp % 1000000);
+	dst->setPresentationTime(presentationTime);
 }
 
 void VideoEncoderX264::resizeEvent(Jzon::Node* params)

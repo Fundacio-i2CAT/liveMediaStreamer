@@ -35,6 +35,7 @@ extern "C" {
 #include "../../AudioFrame.hh"
 #include "../../FrameQueue.hh"
 #include "../../Filter.hh"
+#include "../../Utils.hh"
 
 class AudioEncoderLibav : public OneToOneFilter {
 
@@ -62,6 +63,7 @@ private:
     bool inputConfig();
     void configEvent(Jzon::Node* params, Jzon::Object &outputNode);
     void doGetState(Jzon::Object &filterNode);
+	void setPresentationTime(Frame* dst);
    
     AVCodec             *codec;
     AVCodecContext      *codecCtx;

@@ -24,6 +24,7 @@
 #define _VIDEO_ENCODER_X264_HH
 
 #include <stdint.h>
+#include "../../Utils.hh"
 #include "../../VideoFrame.hh"
 #include "../../X264VideoFrame.hh"
 #include "../../Filter.hh"
@@ -46,8 +47,7 @@ class VideoEncoderX264: public OneToOneFilter {
 		bool configure(int width, int height, PixType pixelFormat, int gop_ = 24, int fps_ = 24, int bitrate_ = 2000);		
 		void setIntra(){forceIntra = true;};
 		FrameQueue* allocQueue(int wId);
-		void initializeEventMap();
-		
+		void initializeEventMap();		
 
 	private:
 		x264_picture_t picIn;
@@ -80,6 +80,7 @@ class VideoEncoderX264: public OneToOneFilter {
 		void changeGOPEvent(Jzon::Node* params);
 		void forceIntraEvent(Jzon::Node* params);
 		void doGetState(Jzon::Object &filterNode);
+		void setPresentationTime(Frame* dst);
 };
 
 #endif

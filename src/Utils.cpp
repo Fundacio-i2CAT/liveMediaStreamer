@@ -27,6 +27,7 @@
 #include <log4cplus/logger.h>
 #include <log4cplus/loggingmacros.h>
 #include <log4cplus/configurator.h>
+ #include <sys/time.h>
 
 using namespace log4cplus;
 
@@ -289,4 +290,14 @@ namespace utils
         Logger logger = Logger::getInstance(LOG4CPLUS_TEXT("main"));
         LOG4CPLUS_INFO(logger, msg);
     }
+
+	void startPresentacionTime()
+	{
+		gettimeofday(&timestampAV, NULL);
+	}
+
+	struct timeval getPresentationTime() 
+	{
+		return timestampAV;
+	}
 }

@@ -47,10 +47,9 @@ AudioEncoderLibav::AudioEncoderLibav()  : OneToOneFilter()
     sampleRate = DEFAULT_SAMPLE_RATE;
     sampleFmt = S16P;
     libavSampleFmt = AV_SAMPLE_FMT_S16P;
-	gettimeofday(&presentationTime, NULL);
-	timestamp = ((uint64_t)presentationTime.tv_sec * (uint64_t)1000000) + (uint64_t)presentationTime.tv_usec;
-
     initializeEventMap();
+	presentationTime = utils::getPresentationTime();
+	timestamp = ((uint64_t)presentationTime.tv_sec * (uint64_t)1000000) + (uint64_t)presentationTime.tv_usec;
 }
 
 AudioEncoderLibav::~AudioEncoderLibav()
@@ -91,10 +90,7 @@ bool AudioEncoderLibav::doProcessFrame(Frame *org, Frame *dst)
     }
 
     if (gotFrame) {
-        timestamp+= (((uint64_t) (1000000 * (libavFrame->nb_samples)))/ (uint64_t) internalSampleRate);
-        presentationTime.tv_sec= (timestamp / 1000000);
-        presentationTime.tv_usec= (timestamp % 1000000);
-        dst->setPresentationTime(presentationTime);
+        setPresentationTime(dst);
         dst->setLength(pkt.size);
         return true;
     }
@@ -370,6 +366,14 @@ void AudioEncoderLibav::checkInputParams(SampleFmt sampleFormat, int channels, i
     } else {
         inputConfig();
     }
+}
+
+void AudioEncoderLibav::setPresentationTime(Frame* dst) 
+{
+	timestamp+= (((uint64_t) (1000000 * (libavFrame->nb_samples)))/ (uint64_t) internalSampleRate);
+	presentationTime.tv_sec= (timestamp / 1000000);
+	presentationTime.tv_usec= (timestamp % 1000000);
+	dst->setPresentationTime(presentationTime);
 }
 
 void AudioEncoderLibav::configEvent(Jzon::Node* params, Jzon::Object &outputNode) 

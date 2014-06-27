@@ -82,6 +82,7 @@ int main(int argc, char** argv)
 	Slave *vEncoderSlave2 = new Slave();
 	Slave *vEncoderSlave3 = new Slave();
     std::ofstream h264Frames720, h264Frames480, h264Frames1080;
+	utils::startPresentacionTime();
 
 	//encoder720->configure(1280, 720, YUYV422);
 	

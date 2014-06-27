@@ -29,6 +29,7 @@
 #define ID_LENGTH 4
 
 static bool logConfigured = false;
+static struct timeval timestampAV;
 enum DefinedLogLevel {ERROR, WARNING, DEBUG, INFO};
 
 namespace utils 
@@ -48,6 +49,8 @@ namespace utils
     void debugMsg(std::string msg);
     
     void setLogLevel(DefinedLogLevel level);
+	void startPresentacionTime();
+	struct timeval getPresentationTime();
 }
 
 #endif

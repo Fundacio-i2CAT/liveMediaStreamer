@@ -25,9 +25,7 @@
 #define _VIDEO_FRAME_HH
 
 #include "Frame.hh"
-
-#define DEFAULT_WIDTH 1920
-#define DEFAULT_HEIGHT 1080
+#include "Types.hh"
 
 class VideoFrame : public Frame {
     

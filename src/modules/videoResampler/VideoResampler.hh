@@ -1,5 +1,5 @@
 /*
- *  VideoDecoderLibav.hh - A libav-based video decoder
+ *  VideoResampler.hh - A libav-based video resampler
  *  Copyright (C) 2014  Fundació i2CAT, Internet i Innovació digital a Catalunya
  *
  *  This file is part of media-streamer.
@@ -21,13 +21,13 @@
  *           Marc Palau <marc.palau@i2cat.net>
  */
 
-#ifndef _VIDEO_DECODER_LIBAV_HH
-#define _VIDEO_DECODER_LIBAV_HH
+#ifndef _VIDEO_RESAMPLER_HH
+#define _VIDEO_RESAMPLER_HH
 
 extern "C" {
-#include <libavcodec/avcodec.h>
 #include <libavutil/avutil.h>
 #include <libswscale/swscale.h>
+#include <libavcodec/avcodec.h>
 }
 
 #include "../../VideoFrame.hh"
@@ -35,28 +35,31 @@ extern "C" {
 #include "../../Filter.hh"
 
 
-class VideoDecoderLibav : public OneToOneFilter {
+class VideoResampler : public OneToOneFilter {
 
     public:
-        VideoDecoderLibav();
+        VideoResampler();
         bool doProcessFrame(Frame *org, Frame *dst);
         FrameQueue* allocQueue(int wId);
-        bool configure(int width, int height, PixType pixelFormat);
-		void initializeEventMap();
+        bool configure(int width, int height, int period, PixType pixelFormat);
+        void initializeEventMap();
         
     private:
-        bool toBuffer(VideoFrame *decodedFrame, VideoFrame *codedFrame);
-        bool reconfigure(VCodecType codec);
-        bool inputConfig();
-		void doGetState(Jzon::Object &filterNode);
+        void configEvent(Jzon::Node* params, Jzon::Object &outputNode);
+        void doGetState(Jzon::Object &filterNode);
+        bool reconfigure(VideoFrame* orgFrame);
         
-        AVCodec             *codec;
-        AVCodecContext      *codecCtx;
-        AVFrame             *frame;
-        AVPacket            pkt;
-        AVCodecID           libavCodecId;
+        struct SwsContext   *imgConvertCtx;
+        AVFrame             *inFrame, *outFrame;
+        AVPixelFormat       libavInPixFmt, libavOutPixFmt;
 
-        VCodecType          fCodec;
+        int                 outputWidth;
+        int                 outputHeight;
+        int                 discartCount;
+        int                 discartPeriod;
+        PixType             inPixFmt, outPixFmt;
+        bool                needsConfig;
 };
 
 #endif
+

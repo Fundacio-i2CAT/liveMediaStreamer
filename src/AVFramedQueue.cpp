@@ -93,17 +93,15 @@ bool AVFramedQueue::frameToRead()
 //VIDEO FRAME QUEUE METHODS IMPLEMENTATION//
 ////////////////////////////////////////////
 
-VideoFrameQueue* VideoFrameQueue::createNew(VCodecType codec, unsigned delay, unsigned width, unsigned height, PixType pixelFormat)
+VideoFrameQueue* VideoFrameQueue::createNew(VCodecType codec, unsigned delay, PixType pixelFormat)
 {
-    return new VideoFrameQueue(codec, delay, width, height, pixelFormat);
+    return new VideoFrameQueue(codec, delay, pixelFormat);
 }
 
-VideoFrameQueue::VideoFrameQueue(VCodecType codec, unsigned delay, unsigned width, unsigned height, PixType pixelFormat)
+VideoFrameQueue::VideoFrameQueue(VCodecType codec, unsigned delay, PixType pixelFormat)
 {
     this->codec = codec;
     this->delay = delay;
-    this->width = width;
-    this->height = height;
     this->pixelFormat = pixelFormat;
 
     config();
@@ -128,13 +126,13 @@ bool VideoFrameQueue::config()
             //TODO: implement this initialization
             break;
         case RAW:
-            if (pixelFormat == P_NONE || width == 0 || height == 0) {
+            if (pixelFormat == P_NONE) {
                 //TODO: error message
                 break;
             }
             max = DEFAULT_RAW_FRAMES;
             for (int i=0; i<max; i++) {
-                frames[i] = InterleavedVideoFrame::createNew(codec, width, height, pixelFormat);
+                frames[i] = InterleavedVideoFrame::createNew(codec, DEFAULT_WIDTH, DEFAULT_HEIGHT, pixelFormat);
             }
             break;
         default:

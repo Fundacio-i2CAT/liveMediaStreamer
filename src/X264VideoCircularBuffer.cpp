@@ -51,14 +51,14 @@ Frame* X264VideoCircularBuffer::forceGetRear()
 }
 
 
-X264VideoCircularBuffer::X264VideoCircularBuffer(): VideoFrameQueue(H264, 0, DEFAULT_WIDTH, DEFAULT_HEIGHT, YUYV422)
+X264VideoCircularBuffer::X264VideoCircularBuffer(): VideoFrameQueue(H264, 0, YUYV422)
 {
     config();
 }
 
 bool X264VideoCircularBuffer::config()
 {
-    inputFrame = X264VideoFrame::createNew(codec, width, height, pixelFormat);
+    inputFrame = X264VideoFrame::createNew(codec, DEFAULT_WIDTH, DEFAULT_HEIGHT, pixelFormat);
     return true;
 }
 

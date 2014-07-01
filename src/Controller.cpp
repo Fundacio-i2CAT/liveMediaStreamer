@@ -145,9 +145,11 @@ bool Controller::processFilterEvent()
 {
     int filterID = -1;
     BaseFilter *filter = NULL;
+    Jzon::Object outputNode;
 
     if (!inputRootNode->Has("action") || !inputRootNode->Has("params")) {
-        //TODO: error
+        outputNode.Add("error", "Error while processing event. Invalid JSON format...");
+        sendAndClose(outputNode, connectionSocket);
         return false;
     }
 
@@ -155,7 +157,8 @@ bool Controller::processFilterEvent()
     filter = pipeMngrInstance->getFilter(filterID);
 
     if (!filter) {
-        //TODO: error
+        outputNode.Add("error", "Error while processing event. There is no filter with this ID...");
+        sendAndClose(outputNode, connectionSocket);
         return false;
     }
 
@@ -170,7 +173,8 @@ bool Controller::processInternalEvent()
     Jzon::Object outputNode;
 
     if (!inputRootNode->Has("action") || !inputRootNode->Has("params")) {
-        //TODO: error
+        outputNode.Add("error", "Error while processing event. Invalid JSON format...");
+        sendAndClose(outputNode, connectionSocket);
         return false;
     }
 
@@ -178,6 +182,8 @@ bool Controller::processInternalEvent()
     Jzon::Object params = inputRootNode->Get("params");
 
     if (eventMap.count(action) <= 0) {
+        outputNode.Add("error", "Error while processing event. The action does not exist...");
+        sendAndClose(outputNode, connectionSocket);
         return false;
     }
         
@@ -345,7 +351,7 @@ bool PipelineManager::connectPath(Path* path)
 
     //TODO: manage worker assignment better
     for (auto it : pathFilters) {
-        if (filters[it].second == NULL){
+        if (filters[it].second == NULL) { 
             Worker* worker = new BestEffort(filters[it].first);
             filters[it].second = worker;
             utils::debugMsg("New worker created for filter " + std::to_string(it));

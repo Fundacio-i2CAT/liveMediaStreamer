@@ -22,6 +22,7 @@
 
 #include "X264VideoCircularBuffer.hh"
 #include <cstring>
+#include <iostream>
 #include <sys/time.h>
 #include "Utils.hh"
 
@@ -69,12 +70,13 @@ bool X264VideoCircularBuffer::pushBack()
 	int sizeBuffer = inputFrame->getSizeNals();
 	x264_nal_t** buffer = inputFrame->getNals();
 
-	int i = 0;
+    int i = 0;
     for (i=0; i<sizeBuffer; i++) {
-		int sizeNal = (*buffer)[i].i_payload;
+        int sizeNal = (*buffer)[i].i_payload;
         if ((interleavedVideoFrame = innerGetRear()) == NULL){
             interleavedVideoFrame = innerForceGetRear();
         }
+
 		memcpy(interleavedVideoFrame->getDataBuf(), (*buffer)[i].p_payload, sizeNal);
 		interleavedVideoFrame->setLength(sizeNal);
 		interleavedVideoFrame->setPresentationTime(inputFrame->getPresentationTime());

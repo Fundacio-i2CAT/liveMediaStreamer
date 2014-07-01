@@ -204,6 +204,8 @@ namespace utils
             payload = 97;
         } else if (codec.compare("mp3") == 0) {
             payload = 14;
+        } else if (codec.compare("H264") == 0) {
+            payload = 96;
         } else {
             payload = -1;
         }

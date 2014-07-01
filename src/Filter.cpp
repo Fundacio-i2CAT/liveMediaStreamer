@@ -274,15 +274,13 @@ void BaseFilter::processEvent()
         Jzon::Node* params = e.getParams();
         Jzon::Object outputNode;
 
-
-        if (action.empty()) {
+        if (action.empty() || eventMap.count(action) <= 0) {
+            outputNode.Add("error", "Error while processing event. Wrong action...");
+            e.sendAndClose(outputNode);
+            eventQueue.pop();
             break;
         }
 
-        if (eventMap.count(action) <= 0) {
-            break;
-        }
-        
         eventMap[action](params, outputNode);
         e.sendAndClose(outputNode);
 

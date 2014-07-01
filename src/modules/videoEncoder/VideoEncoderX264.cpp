@@ -110,9 +110,11 @@ void VideoEncoderX264::encodeHeadersFrame(Frame *decodedFrame, Frame *encodedFra
 	x264_picture_alloc(&picIn, colorspace, outWidth, outHeight);
 	
 	encodeSize = x264_encoder_headers(encoder, &ppNal, &piNal);
+
 	if (encodeSize < 0) {
 		printf("Error: encoder headers\n");
 	}
+
 	x264Frame->setNals(&ppNal, piNal, encodeSize);
 }
 

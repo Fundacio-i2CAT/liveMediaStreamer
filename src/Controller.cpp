@@ -345,7 +345,7 @@ bool PipelineManager::connectPath(Path* path)
 
     //TODO: manage worker assignment better
     for (auto it : pathFilters) {
-        if (filters[it].second == NULL){
+        if (filters[it].second == NULL) { 
             Worker* worker = new BestEffort(filters[it].first);
             filters[it].second = worker;
             utils::debugMsg("New worker created for filter " + std::to_string(it));

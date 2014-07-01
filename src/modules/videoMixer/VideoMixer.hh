@@ -61,13 +61,16 @@ class VideoMixer : public ManyToOneFilter {
         VideoMixer(int inputChannels, int outputWidth, int outputHeight);
         FrameQueue *allocQueue(int wId);
         bool doProcessFrame(std::map<int, Frame*> orgFrames, Frame *dst);
-        bool setPositionSize(int id, float width, float height, float x, float y, int layer);
 
     protected:
         Reader *setReader(int readerID, FrameQueue* queue);
+        void initializeEventMap();
+        void doGetState(Jzon::Object &filterNode);
 
     private:
         void pasteToLayout(int frameID, VideoFrame* vFrame);
+        bool setPositionSize(int id, float width, float height, float x, float y, int layer);
+        void setPositionSizeEvent(Jzon::Node* params, Jzon::Object &outputNode); 
 
         std::map<int, PositionSize*> positionAndSizes;        
         int outputWidth;

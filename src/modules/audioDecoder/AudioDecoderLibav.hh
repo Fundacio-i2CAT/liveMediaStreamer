@@ -20,10 +20,6 @@
  *  Authors:  Marc Palau <marc.palau@i2cat.net>
  */
 
-#ifndef __STDC_CONSTANT_MACROS
-#define __STDC_CONSTANT_MACROS 1 
-#endif
-
 #ifndef _AUDIO_DECODER_LIBAV_HH
 #define _AUDIO_DECODER_LIBAV_HH
 

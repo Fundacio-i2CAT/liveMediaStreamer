@@ -21,6 +21,9 @@
  */
 
 #include "X264VideoFrame.hh"
+#include <string>
+#include <iostream>
+#include "Utils.hh"
 
 X264VideoFrame* X264VideoFrame::createNew(VCodecType codec, unsigned int width, unsigned height, PixType pixelFormat)
 {

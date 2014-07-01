@@ -24,6 +24,9 @@
 #include "../../AVFramedQueue.hh"
 #include <iostream>
 #include <chrono>
+ #include <fstream>
+
+std::ofstream frames;
 
 PositionSize::PositionSize(int width, int height, int x, int y, int layer)
 {
@@ -31,6 +34,7 @@ PositionSize::PositionSize(int width, int height, int x, int y, int layer)
     this->height = height;
     this->x = x;
     this->y = y;
+    this->layer = layer;
 }
 
 VideoMixer::VideoMixer(int inputChannels) : ManyToOneFilter(inputChannels, true)
@@ -68,19 +72,18 @@ bool VideoMixer::doProcessFrame(std::map<int, Frame*> orgFrames, Frame *dst)
 
     for (int lay=0; lay < MAX_LAYERS; lay++) {
         for (auto it : orgFrames) {
-            if (positionAndSizes[it.first]->getLayer() == lay) {
-                if (!it.second) {
-                    frameNumber--;
-                    continue;
-                }
-                vFrame = dynamic_cast<VideoFrame*>(it.second);
-                pasteToLayout(it.first, vFrame);
-                frameNumber--;
+            if (positionAndSizes[it.first]->getLayer() != lay) {
+                continue;
             }
 
-            if (frameNumber == 0) {
-                break;
+            if (!it.second) {
+                frameNumber--;
+                continue;
             }
+
+            vFrame = dynamic_cast<VideoFrame*>(it.second);
+            pasteToLayout(it.first, vFrame);
+            frameNumber--;
         }
 
         if (frameNumber == 0) {
@@ -131,7 +134,7 @@ void VideoMixer::pasteToLayout(int frameID, VideoFrame* vFrame)
 
 Reader* VideoMixer::setReader(int readerID, FrameQueue* queue)
 {
-    if (reader.count(id) < 0) {
+    if (readers.count(readerID) < 0) {
         return NULL;
     }
 
@@ -143,4 +146,61 @@ Reader* VideoMixer::setReader(int readerID, FrameQueue* queue)
     positionAndSizes[readerID] = posSize;
 
     return r;
+}
+
+void VideoMixer::initializeEventMap()
+{
+     eventMap["setPositionSize"] = std::bind(&VideoMixer::setPositionSizeEvent, 
+                                                this, std::placeholders::_1, std::placeholders::_2);
+
+}
+
+void VideoMixer::setPositionSizeEvent(Jzon::Node* params, Jzon::Object &outputNode)
+{
+    std::cerr << "setPosition Event!" << std::endl;
+
+    if (!params) {
+        outputNode.Add("error", "Error changing master volume");
+        return;
+    }
+
+    if (!params->Has("id") || !params->Has("width") || !params->Has("height") || 
+                !params->Has("x") || !params->Has("y") || !params->Has("layer")) {
+
+        outputNode.Add("error", "Error setting position and size. Check parameters!");
+        return;
+    }
+
+    int id = params->Get("id").ToInt();
+    float width = params->Get("width").ToFloat();
+    float height = params->Get("height").ToFloat();
+    float x = params->Get("x").ToFloat();
+    float y = params->Get("y").ToFloat();
+    int layer = params->Get("layer").ToInt();
+
+    if (!setPositionSize(id, width, height, x, y, layer)) {
+        outputNode.Add("error", "Error setting position and size. Check parameters!");
+    } else {
+        outputNode.Add("error", Jzon::null);
+    }
+}
+
+void VideoMixer::doGetState(Jzon::Object &filterNode)
+{
+    Jzon::Array jsonPosSize;
+
+    filterNode.Add("width", outputWidth);
+    filterNode.Add("height", outputHeight);
+
+    for (auto it : positionAndSizes) {
+        Jzon::Object posSize;
+        posSize.Add("width", it.second->getWidth());
+        posSize.Add("height", it.second->getHeight());
+        posSize.Add("x", it.second->getX());
+        posSize.Add("y", it.second->getY());
+        posSize.Add("layer", it.second->getLayer());
+        jsonPosSize.Add(posSize);
+    }
+
+    filterNode.Add("posAndSize", jsonPosSize);
 }

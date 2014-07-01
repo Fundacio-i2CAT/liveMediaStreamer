@@ -44,6 +44,8 @@ VideoMixer::VideoMixer(int inputChannels) : ManyToOneFilter(inputChannels, true)
     fType = VIDEO_MIXER;
 
     layoutImg = cv::Mat(outputHeight, outputWidth, CV_8UC3);
+
+    initializeEventMap();
 }
 
 VideoMixer::VideoMixer(int inputChannels, int outputWidth, int outputHeight) :
@@ -54,6 +56,7 @@ ManyToOneFilter(inputChannels, true)
     fType = VIDEO_MIXER;
 
     layoutImg = cv::Mat(outputHeight, outputWidth, CV_8UC3);
+    initializeEventMap();
 }
 
 FrameQueue* VideoMixer::allocQueue(int wId)
@@ -69,6 +72,8 @@ bool VideoMixer::doProcessFrame(std::map<int, Frame*> orgFrames, Frame *dst)
     layoutImg.data = dst->getDataBuf();
     dst->setLength(layoutImg.step * outputHeight);
     dynamic_cast<VideoFrame*>(dst)->setSize(outputWidth, outputHeight);
+
+    layoutImg = cv::Scalar(0, 0, 0);
 
     for (int lay=0; lay < MAX_LAYERS; lay++) {
         for (auto it : orgFrames) {

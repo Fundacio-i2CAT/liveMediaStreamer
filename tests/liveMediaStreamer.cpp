@@ -98,7 +98,7 @@ void createVideoMixerEncoderTxPath()
     int encoderId = path->getFilters().front();
     VideoEncoderX264 *encoder = dynamic_cast<VideoEncoderX264*>(pipeMngr->getFilter(encoderId));
 
-    encoder->configure(1920, 1080, YUYV422, VENCODER_FPS, VENCODER_FPS, 4000);
+    encoder->configure(1280, 720, YUYV422, VENCODER_FPS, VENCODER_FPS, 4000);
 
     Worker* worker = new Master(pipeMngr->getFilter(encoderId), VENCODER_FPS);
     pipeMngr->addWorker(encoderId, worker);

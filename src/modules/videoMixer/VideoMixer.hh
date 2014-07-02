@@ -29,6 +29,7 @@
  
 
 #define MAX_LAYERS 8
+#define VMIXER_MAX_CHANNELS 8
 
 class PositionSize {
 
@@ -57,7 +58,7 @@ private:
 class VideoMixer : public ManyToOneFilter {
     
     public:
-        VideoMixer(int inputChannels);
+        VideoMixer(int inputChannels = VMIXER_MAX_CHANNELS);
         VideoMixer(int inputChannels, int outputWidth, int outputHeight);
         FrameQueue *allocQueue(int wId);
         bool doProcessFrame(std::map<int, Frame*> orgFrames, Frame *dst);

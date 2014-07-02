@@ -29,6 +29,7 @@
 #define COMPRESSION_THRESHOLD 0.6
 #define DEFAULT_MASTER_GAIN 0.6
 #define DEFAULT_CHANNEL_GAIN 1.0
+#define AMIXER_MAX_CHANNELS 8
 
 
 enum mixingAlgorithm
@@ -40,7 +41,7 @@ enum mixingAlgorithm
 class AudioMixer : public ManyToOneFilter {
     
     public:
-        AudioMixer(int inputChannels);
+        AudioMixer(int inputChannels = AMIXER_MAX_CHANNELS);
         AudioMixer(int inputChannels, int frameChannels, int sampleRate);
         FrameQueue *allocQueue(int wId);
         bool doProcessFrame(std::map<int, Frame*> orgFrames, Frame *dst);

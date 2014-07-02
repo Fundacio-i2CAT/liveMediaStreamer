@@ -57,7 +57,7 @@ public:
     void reconfigAudioEncoderEvent(Jzon::Node* params, Jzon::Object &outpuNode);
     void createFilterEvent(Jzon::Node* params, Jzon::Object &outputNode);
     void createPathEvent(Jzon::Node* params, Jzon::Object &outputNode);
-
+    void addWorkerEvent(Jzon::Node* params, Jzon::Object &outputNode);
 
 private:
     PipelineManager();

@@ -191,7 +191,7 @@ bool Controller::processInternalEvent()
         sendAndClose(outputNode, connectionSocket);
         return false;
     }
-        
+
     eventMap[action](&params, outputNode);
     sendAndClose(outputNode, connectionSocket);
 
@@ -207,6 +207,8 @@ void Controller::initializeEventMap()
     eventMap["createPath"] = std::bind(&PipelineManager::createPathEvent, pipeMngrInstance, 
                                             std::placeholders::_1, std::placeholders::_2);
     eventMap["createFilter"] = std::bind(&PipelineManager::createFilterEvent, pipeMngrInstance, 
+                                            std::placeholders::_1, std::placeholders::_2);
+    eventMap["addWorker"] = std::bind(&PipelineManager::addWorkerEvent, pipeMngrInstance, 
                                             std::placeholders::_1, std::placeholders::_2);
 
 }
@@ -375,7 +377,7 @@ Path* PipelineManager::createPath(int orgFilter, int dstFilter, int orgWriter, i
         realDstReader = destinationFilter->generateReaderID();
     }
 
-    path = new Path(orgFilter, dstFilter, orgWriter, dstReader, midFilters); 
+    path = new Path(orgFilter, dstFilter, realOrgWriter, realDstReader, midFilters); 
 
     return path;
 }
@@ -659,7 +661,6 @@ void PipelineManager::createFilterEvent(Jzon::Node* params, Jzon::Object &output
 
 void PipelineManager::createPathEvent(Jzon::Node* params, Jzon::Object &outputNode) 
 {
-    Jzon::Array jsonFiltersIds;
     std::vector<int> filtersIds;
     int id, orgFilterId, dstFilterId;
     int orgWriterId = -1;
@@ -671,32 +672,29 @@ void PipelineManager::createPathEvent(Jzon::Node* params, Jzon::Object &outputNo
         return;
     }
 
-    if (!params->Has("id") || !params->Has("orgFilterId") || !params->Has("dstFilterId")) {
+    if (!params->Has("id") || !params->Has("orgFilterId") || 
+          !params->Has("dstFilterId") || !params->Has("orgWriterId") || !params->Has("dstReaderId")) {
         outputNode.Add("error", "Error creating path. Invalid JSON format...");
         return;
     }
 
-    if (!params->Has("midFiltersIds") || !params->Get("midFiltersIds").IsArray()) {
-        outputNode.Add("error", "Error creating path. Invalid JSON format...");
-        return;
-    }
+   if (!params->Has("midFiltersIds") || !params->Get("midFiltersIds").IsArray()) {
+      outputNode.Add("error", "Error creating path. Invalid JSON format...");
+      return;
+   }
         
-    jsonFiltersIds = params->Get("midFiltersIds").AsArray();
+    Jzon::Array& jsonFiltersIds = params->Get("midFiltersIds").AsArray();
     id = params->Get("id").ToInt();
     orgFilterId = params->Get("orgFilterId").ToInt();
     dstFilterId = params->Get("dstFilterId").ToInt();
+    orgWriterId = params->Get("orgWriterId").ToInt();
+    dstReaderId = params->Get("dstReaderId").ToInt();
 
-    if (params->Has("orgWriterId")) {
-        orgWriterId = params->Get("orgWriterId").ToInt();
-    }
 
-    if (params->Has("dstReaderId")) {
-        dstReaderId = params->Get("dstReaderId").ToInt();
-    }
-    
     for (Jzon::Array::iterator it = jsonFiltersIds.begin(); it != jsonFiltersIds.end(); ++it) {
         filtersIds.push_back((*it).ToInt());
     }
+
 
     path = createPath(orgFilterId, dstFilterId, orgWriterId, dstReaderId, filtersIds);
 
@@ -714,6 +712,49 @@ void PipelineManager::createPathEvent(Jzon::Node* params, Jzon::Object &outputNo
         outputNode.Add("error", "Error registering path. Path ID already exists...");
         return;
     }
+
+    outputNode.Add("error", Jzon::null);
+}
+
+void PipelineManager::addWorkerEvent(Jzon::Node* params, Jzon::Object &outputNode) 
+{
+    int id, fps;
+    std::string type;
+    Worker* worker = NULL;
+
+    if(!params) {
+        outputNode.Add("error", "Error creating path. Invalid JSON format...");
+        return;
+    }
+
+    if (!params->Has("id") || !params->Has("type") || !params->Has("fps")) {
+        outputNode.Add("error", "Error creating path. Invalid JSON format...");
+        return;
+    }
+
+    id = params->Get("id").ToInt();
+    type = params->Get("type").ToString();
+    fps = params->Get("fps").ToInt();
+
+    if (type.compare("bestEffort") == 0) {
+        worker = new BestEffort();
+    } else if (type.compare("master") == 0) {
+        worker = new Master();
+    } else if (type.compare("slave") == 0) {
+        worker = new Slave();
+    }
+
+    if (!worker) {
+        outputNode.Add("error", "Error creating worker. Check type...");
+        return;
+    }
+
+    if (!addWorker(id, worker)) {
+        outputNode.Add("error", "Error adding worker to filter. Check filter ID...");
+        return;
+    }
+
+    startWorkers();
 
     outputNode.Add("error", Jzon::null);
 }

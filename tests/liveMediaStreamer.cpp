@@ -139,7 +139,7 @@ int main(int argc, char *argv[]) {
     Controller* ctrl = Controller::getInstance();
     ctrl->pipelineManager()->getReceiver()->setCallback(callbacks::connectToMixerCallback);
 
-    createVideoMixerEncoderTxPath();
+    //createVideoMixerEncoderTxPath();
 
     port = atoi(argv[1]);
     if (!ctrl->createSocket(port)) {

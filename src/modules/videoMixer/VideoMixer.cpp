@@ -24,9 +24,6 @@
 #include "../../AVFramedQueue.hh"
 #include <iostream>
 #include <chrono>
- #include <fstream>
-
-std::ofstream frames;
 
 PositionSize::PositionSize(int width, int height, int x, int y, int layer)
 {
@@ -35,6 +32,7 @@ PositionSize::PositionSize(int width, int height, int x, int y, int layer)
     this->x = x;
     this->y = y;
     this->layer = layer;
+    enabled = true;
 }
 
 VideoMixer::VideoMixer(int inputChannels) : ManyToOneFilter(inputChannels, true)
@@ -81,7 +79,7 @@ bool VideoMixer::doProcessFrame(std::map<int, Frame*> orgFrames, Frame *dst)
                 continue;
             }
 
-            if (!it.second) {
+            if (!it.second || !positionAndSizes[it.first]->isEnabled()) {
                 frameNumber--;
                 continue;
             }
@@ -91,7 +89,7 @@ bool VideoMixer::doProcessFrame(std::map<int, Frame*> orgFrames, Frame *dst)
             frameNumber--;
         }
 
-        if (frameNumber == 0) {
+        if (frameNumber <= 0) {
             break;
         }
     }
@@ -99,7 +97,7 @@ bool VideoMixer::doProcessFrame(std::map<int, Frame*> orgFrames, Frame *dst)
     return true;
 }
 
-bool VideoMixer::setPositionSize(int id, float width, float height, float x, float y, int layer)
+bool VideoMixer::setPositionSize(int id, float width, float height, float x, float y, int layer, bool enabled)
 {
     //NOTE: w, h, x and y are set as layout size percentages
 
@@ -118,6 +116,7 @@ bool VideoMixer::setPositionSize(int id, float width, float height, float x, flo
     it->second->setX(x*outputWidth);
     it->second->setY(y*outputHeight);
     it->second->setLayer(layer);
+    it->second->setEnabled(enabled);
 
     return true;
 }
@@ -170,7 +169,7 @@ void VideoMixer::setPositionSizeEvent(Jzon::Node* params, Jzon::Object &outputNo
     }
 
     if (!params->Has("id") || !params->Has("width") || !params->Has("height") || 
-                !params->Has("x") || !params->Has("y") || !params->Has("layer")) {
+                !params->Has("x") || !params->Has("y") || !params->Has("layer") || !params->Has("enabled")) {
 
         outputNode.Add("error", "Error setting position and size. Check parameters!");
         return;
@@ -182,8 +181,9 @@ void VideoMixer::setPositionSizeEvent(Jzon::Node* params, Jzon::Object &outputNo
     float x = params->Get("x").ToFloat();
     float y = params->Get("y").ToFloat();
     int layer = params->Get("layer").ToInt();
+    bool enabled = params->Get("enabled").ToBool();
 
-    if (!setPositionSize(id, width, height, x, y, layer)) {
+    if (!setPositionSize(id, width, height, x, y, layer, enabled)) {
         outputNode.Add("error", "Error setting position and size. Check parameters!");
     } else {
         outputNode.Add("error", Jzon::null);

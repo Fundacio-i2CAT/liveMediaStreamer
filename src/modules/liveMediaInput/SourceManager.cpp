@@ -282,7 +282,7 @@ void SourceManager::doGetState(Jzon::Object &filterNode)
             Jzon::Object jsonSubsession;
 
             jsonSubsession.Add("port", subsession->clientPortNum());
-            jsonSubsession.Add("medium", subsession->clientPortNum());
+            jsonSubsession.Add("medium", subsession->mediumName());
             jsonSubsession.Add("codec", subsession->codecName());
 
             subsessionArray.Add(jsonSubsession);
@@ -290,6 +290,8 @@ void SourceManager::doGetState(Jzon::Object &filterNode)
 
         jsonSession.Add("id", it.first);
         jsonSession.Add("subsession", subsessionArray);
+
+        sessionArray.Add(jsonSession);
     }
 
     filterNode.Add("sessions", sessionArray);

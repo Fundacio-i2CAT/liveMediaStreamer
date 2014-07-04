@@ -210,5 +210,5 @@ void VideoMixer::doGetState(Jzon::Object &filterNode)
         jsonPosSize.Add(posSize);
     }
 
-    filterNode.Add("posAndSize", jsonPosSize);
+    filterNode.Add("channels", jsonPosSize);
 }

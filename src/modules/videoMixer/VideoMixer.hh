@@ -80,6 +80,7 @@ class VideoMixer : public ManyToOneFilter {
         int outputWidth;
         int outputHeight;
         cv::Mat layoutImg;
+        int maxChannels;
 };
 
 

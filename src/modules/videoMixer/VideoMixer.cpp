@@ -40,6 +40,7 @@ VideoMixer::VideoMixer(int inputChannels) : ManyToOneFilter(inputChannels, true)
     outputWidth = DEFAULT_WIDTH;
     outputHeight = DEFAULT_HEIGHT;
     fType = VIDEO_MIXER;
+    maxChannels = inputChannels;
 
     layoutImg = cv::Mat(outputHeight, outputWidth, CV_8UC3);
 
@@ -52,6 +53,7 @@ ManyToOneFilter(inputChannels, true)
     this->outputWidth = outputWidth;
     this->outputHeight = outputHeight;
     fType = VIDEO_MIXER;
+    maxChannels = inputChannels;
 
     layoutImg = cv::Mat(outputHeight, outputWidth, CV_8UC3);
     initializeEventMap();
@@ -196,6 +198,7 @@ void VideoMixer::doGetState(Jzon::Object &filterNode)
 
     filterNode.Add("width", outputWidth);
     filterNode.Add("height", outputHeight);
+    filterNode.Add("maxChannels", maxChannels);
 
     for (auto it : positionAndSizes) {
         Jzon::Object posSize;

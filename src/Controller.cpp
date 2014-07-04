@@ -678,7 +678,8 @@ void PipelineManager::createPathEvent(Jzon::Node* params, Jzon::Object &outputNo
     }
 
     if (!params->Has("id") || !params->Has("orgFilterId") || 
-          !params->Has("dstFilterId") || !params->Has("orgWriterId") || !params->Has("dstReaderId")) {
+          !params->Has("dstFilterId") || !params->Has("orgWriterId") || 
+            !params->Has("dstReaderId") || !params->Has("sharedQueue")) {
         outputNode.Add("error", "Error creating path. Invalid JSON format...");
         return;
     }
@@ -694,16 +695,11 @@ void PipelineManager::createPathEvent(Jzon::Node* params, Jzon::Object &outputNo
     dstFilterId = params->Get("dstFilterId").ToInt();
     orgWriterId = params->Get("orgWriterId").ToInt();
     dstReaderId = params->Get("dstReaderId").ToInt();
-
-    if (params->Has("sharedQueue")) {
-        sharedQueue = params->Get("sharedQueue").ToBool();
-    }
-
+    sharedQueue = params->Get("sharedQueue").ToBool();
 
     for (Jzon::Array::iterator it = jsonFiltersIds.begin(); it != jsonFiltersIds.end(); ++it) {
         filtersIds.push_back((*it).ToInt());
     }
-
 
     path = createPath(orgFilterId, dstFilterId, orgWriterId, dstReaderId, filtersIds, sharedQueue);
 

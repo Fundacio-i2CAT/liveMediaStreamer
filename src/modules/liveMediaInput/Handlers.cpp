@@ -292,7 +292,9 @@ namespace handlers
         subsession->sink = sink;
         mngr->writers[wId] = writer;
 
-        mngr->callback(subsession->mediumName(), subsession->clientPortNum());
+        if (mngr->hasCallback()) {
+            mngr->callback(subsession->mediumName(), subsession->clientPortNum());
+        }
         
         subsession->sink->startPlaying(*(subsession->readSource()),
                                        handlers::subsessionAfterPlaying, subsession);

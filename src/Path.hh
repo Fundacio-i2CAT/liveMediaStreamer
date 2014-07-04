@@ -30,6 +30,8 @@
 class Path {
 public:
     Path(int originFilterID, int orgWriterID, bool sharedQueue = false); 
+    Path(int originFilterID, int destinationFilterID, int orgWriterID, 
+            int dstReaderID, std::vector<int> midFiltersIDs, bool sharedQueue = false); 
     void setDestinationFilter(int destinationFilterID, int dstReaderID);
     const int getDstReaderID() const {return dstReaderID;};
     const int getOrgWriterID() const {return orgWriterID;};

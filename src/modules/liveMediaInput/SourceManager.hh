@@ -80,6 +80,7 @@ public:
     Session* getSession(std::string id);
     int getWriterID(unsigned int port);
     void setCallback(std::function<void(char const*, unsigned short)> callbackFunction);
+    bool hasCallback();
     
     UsageEnvironment* envir() {return env;};
     
@@ -88,7 +89,7 @@ protected:
     
 private:
     friend bool handlers::addSubsessionSink(UsageEnvironment& env, MediaSubsession *subsession);
-    void doGetState(Jzon::Object &filterNode) {/*TODO*/};
+    void doGetState(Jzon::Object &filterNode);
     void addSessionEvent(Jzon::Node* params, Jzon::Object &outputNode);
 
     bool processFrame(bool removeFrame = false);
@@ -114,6 +115,7 @@ public:
     
     std::string getId() {return scs->getId();};
     MediaSubsession* getSubsessionByPort(int port);
+    StreamClientState* getScs() {return scs;};
     
     bool initiateSession();
     

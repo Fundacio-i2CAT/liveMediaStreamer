@@ -78,6 +78,14 @@ void SourceManager::setCallback(std::function<void(char const*, unsigned short)>
     }
 }
 
+bool SourceManager::hasCallback()
+{
+    if (callback) {
+        return true;
+    }
+
+    return false;
+}
 
 bool SourceManager::processFrame(bool removeFrame)
 {   
@@ -259,6 +267,34 @@ std::string SourceManager::makeSubsessionSDP(std::string mediumName, std::string
     
     return sdp.str();
 }
+
+void SourceManager::doGetState(Jzon::Object &filterNode)
+{
+    Jzon::Array sessionArray;
+    MediaSubsession* subsession;
+
+    for (auto it : sessionMap) {
+        Jzon::Array subsessionArray;
+        Jzon::Object jsonSession;
+        MediaSubsessionIterator iter(*(it.second->getScs()->session));
+
+        while ((subsession = iter.next()) != NULL) {
+            Jzon::Object jsonSubsession;
+
+            jsonSubsession.Add("port", subsession->clientPortNum());
+            jsonSubsession.Add("medium", subsession->clientPortNum());
+            jsonSubsession.Add("codec", subsession->codecName());
+
+            subsessionArray.Add(jsonSubsession);
+        }
+
+        jsonSession.Add("id", it.first);
+        jsonSession.Add("subsession", subsessionArray);
+    }
+
+    filterNode.Add("sessions", sessionArray);
+}
+
 
 FrameQueue* createVideoQueue(char const* codecName)
 {

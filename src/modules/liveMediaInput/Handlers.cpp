@@ -292,7 +292,7 @@ namespace handlers
         subsession->sink = sink;
         mngr->writers[wId] = writer;
 
-        if (callback) {
+        if (mngr->hasCallback()) {
             mngr->callback(subsession->mediumName(), subsession->clientPortNum());
         }
         

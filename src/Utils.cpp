@@ -128,6 +128,9 @@ namespace utils
             case VIDEO_MIXER:
                 stringType = "videoMixer";
                 break;
+            case VIDEO_RESAMPLER:
+                stringType = "videoResampler";
+                break;
             case AUDIO_DECODER:
                 stringType = "audioDecoder";
                 break;
@@ -146,6 +149,35 @@ namespace utils
         }
 
         return stringType;
+    }
+
+    FilterType getFilterTypeFromString(std::string stringFilterType)
+    {
+        FilterType fType;
+        
+        if (stringFilterType.compare("videoDecoder") == 0) {
+           fType = VIDEO_DECODER;
+        } else if (stringFilterType.compare("videoEncoder") == 0) {
+           fType = VIDEO_ENCODER;
+        }  else if (stringFilterType.compare("videoMixer") == 0) {
+           fType = VIDEO_MIXER;
+        }  else if (stringFilterType.compare("videoResampler") == 0) {
+           fType = VIDEO_RESAMPLER;
+        }  else if (stringFilterType.compare("audioDecoder") == 0) {
+           fType = AUDIO_DECODER;
+        }  else if (stringFilterType.compare("audioEncoder") == 0) {
+           fType = AUDIO_ENCODER;
+        }  else if (stringFilterType.compare("audioMixer") == 0) {
+           fType = AUDIO_MIXER;
+        }  else if (stringFilterType.compare("receiver") == 0) {
+           fType = RECEIVER;
+        }  else if (stringFilterType.compare("transmitter") == 0) {
+           fType = TRANSMITTER;
+        }  else {
+           fType = F_NONE;
+        }
+
+        return fType;
     }
 
     std::string getSampleFormatAsString(SampleFmt sFormat) 

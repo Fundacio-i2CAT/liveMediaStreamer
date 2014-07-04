@@ -24,6 +24,8 @@
 #ifndef _CONTROLLER_HH
 #define _CONTROLLER_HH
 
+#include <vector>
+
 #include "modules/liveMediaInput/SourceManager.hh"
 #include "modules/liveMediaOutput/SinkManager.hh"
 #include "Path.hh"
@@ -53,11 +55,16 @@ public:
     void stopWorkers();
     void getStateEvent(Jzon::Node* params, Jzon::Object &outputNode);
     void reconfigAudioEncoderEvent(Jzon::Node* params, Jzon::Object &outpuNode);
+    void createFilterEvent(Jzon::Node* params, Jzon::Object &outputNode);
+    void createPathEvent(Jzon::Node* params, Jzon::Object &outputNode);
+    void addWorkerEvent(Jzon::Node* params, Jzon::Object &outputNode);
 
 private:
     PipelineManager();
     bool removePath(int id);
     bool deletePath(Path* path); 
+    BaseFilter* createFilter(FilterType type);
+    Path* createPath(int orgFilter, int dstFilter, int orgWriter, int dstReader, std::vector<int> midFilters);
     
     static PipelineManager* pipeMngrInstance;
 

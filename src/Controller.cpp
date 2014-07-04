@@ -25,6 +25,11 @@
 #include "Controller.hh"
 #include "Utils.hh"
 #include "modules/audioEncoder/AudioEncoderLibav.hh"
+#include "modules/audioDecoder/AudioDecoderLibav.hh"
+#include "modules/audioMixer/AudioMixer.hh"
+#include "modules/videoEncoder/VideoEncoderX264.hh"
+#include "modules/videoDecoder/VideoDecoderLibav.hh"
+#include "modules/videoMixer/VideoMixer.hh"
 
 Controller* Controller::ctrlInstance = NULL;
 PipelineManager* PipelineManager::pipeMngrInstance = NULL;
@@ -186,7 +191,7 @@ bool Controller::processInternalEvent()
         sendAndClose(outputNode, connectionSocket);
         return false;
     }
-        
+
     eventMap[action](&params, outputNode);
     sendAndClose(outputNode, connectionSocket);
 
@@ -198,7 +203,13 @@ void Controller::initializeEventMap()
     eventMap["getState"] = std::bind(&PipelineManager::getStateEvent, pipeMngrInstance, 
                                             std::placeholders::_1, std::placeholders::_2);
     eventMap["reconfigAudioEncoder"] = std::bind(&PipelineManager::reconfigAudioEncoderEvent, pipeMngrInstance, 
-                                                            std::placeholders::_1, std::placeholders::_2);
+                                                    std::placeholders::_1, std::placeholders::_2);
+    eventMap["createPath"] = std::bind(&PipelineManager::createPathEvent, pipeMngrInstance, 
+                                            std::placeholders::_1, std::placeholders::_2);
+    eventMap["createFilter"] = std::bind(&PipelineManager::createFilterEvent, pipeMngrInstance, 
+                                            std::placeholders::_1, std::placeholders::_2);
+    eventMap["addWorker"] = std::bind(&PipelineManager::addWorkerEvent, pipeMngrInstance, 
+                                            std::placeholders::_1, std::placeholders::_2);
 
 }
 
@@ -258,6 +269,35 @@ bool PipelineManager::addPath(int id, Path* path)
     return true;
 }
 
+BaseFilter* PipelineManager::createFilter(FilterType type)
+{
+    BaseFilter* filter = NULL;
+
+    switch (type) {
+        case VIDEO_DECODER:
+            filter = new VideoDecoderLibav();
+            break;
+        case VIDEO_ENCODER:
+            filter = new VideoEncoderX264();
+            break;
+        case VIDEO_MIXER:
+            filter = new VideoMixer();
+            break;
+        case AUDIO_DECODER:
+            filter = new AudioDecoderLibav();
+            break;
+        case AUDIO_ENCODER:
+            filter = new AudioEncoderLibav();
+            break;
+        case AUDIO_MIXER:
+            filter = new AudioMixer();
+            break;
+    }
+
+    return filter;
+}
+
+
 bool PipelineManager::addFilter(int id, BaseFilter* filter)
 {
     if (filters.count(id) > 0) {
@@ -308,19 +348,46 @@ Worker* PipelineManager::getWorker(int id)
     return filters[id].second;
 }
 
+Path* PipelineManager::createPath(int orgFilter, int dstFilter, int orgWriter, int dstReader, std::vector<int> midFilters)
+{
+    Path* path;
+    BaseFilter* originFilter;
+    BaseFilter* destinationFilter;
+    int realOrgWriter = orgWriter;
+    int realDstReader = dstReader;
+
+    if (filters.count(orgFilter) <= 0 || filters.count(dstFilter) <= 0) {
+        return NULL;
+    }
+
+    for (auto it : midFilters) {
+        if (filters.count(it) <= 0) {
+            return NULL;
+        }
+    }
+
+    originFilter = filters[orgFilter].first;
+    destinationFilter = filters[dstFilter].first;
+
+    if (realOrgWriter < 0) {
+        realOrgWriter = originFilter->generateWriterID();
+    }
+
+    if (realDstReader < 0) {
+        realDstReader = destinationFilter->generateReaderID();
+    }
+
+    path = new Path(orgFilter, dstFilter, realOrgWriter, realDstReader, midFilters); 
+
+    return path;
+}
+
+
 bool PipelineManager::connectPath(Path* path)
 {
     int orgFilterId = path->getOriginFilterID();
     int dstFilterId = path->getDestinationFilterID();
     
-    if (filters.count(orgFilterId) <= 0) {
-        return false;
-    }
-
-    if (filters.count(dstFilterId) <= 0) {
-        return false;
-    }
-
     std::vector<int> pathFilters = path->getFilters();
 
     if (pathFilters.empty()) {
@@ -557,6 +624,141 @@ void PipelineManager::reconfigAudioEncoderEvent(Jzon::Node* params, Jzon::Object
     outputNode.Add("error", Jzon::null);
 
 }
+
+void PipelineManager::createFilterEvent(Jzon::Node* params, Jzon::Object &outputNode)
+{
+    int id;
+    FilterType fType;
+    BaseFilter* filter;
+
+    if(!params) {
+        outputNode.Add("error", "Error creating filter. Invalid JSON format...");
+        return;
+    }
+
+    if (!params->Has("id") || !params->Has("type")) {
+        outputNode.Add("error", "Error creating filter. Invalid JSON format...");
+        return;
+    }
+
+    id = params->Get("id").ToInt();
+    fType = utils::getFilterTypeFromString(params->Get("type").ToString());
+
+    filter = createFilter(fType);
+
+    if (!filter) {
+        outputNode.Add("error", "Error creating filter. Specified type is not correct..");
+        return;
+    }
+
+    if (!addFilter(id, filter)) {
+        outputNode.Add("error", "Error registering filter. Specified ID already exists..");
+        return;
+    }
+
+    outputNode.Add("error", Jzon::null);
+}
+
+void PipelineManager::createPathEvent(Jzon::Node* params, Jzon::Object &outputNode) 
+{
+    std::vector<int> filtersIds;
+    int id, orgFilterId, dstFilterId;
+    int orgWriterId = -1;
+    int dstReaderId = -1;
+    Path* path;
+
+    if(!params) {
+        outputNode.Add("error", "Error creating path. Invalid JSON format...");
+        return;
+    }
+
+    if (!params->Has("id") || !params->Has("orgFilterId") || 
+          !params->Has("dstFilterId") || !params->Has("orgWriterId") || !params->Has("dstReaderId")) {
+        outputNode.Add("error", "Error creating path. Invalid JSON format...");
+        return;
+    }
+
+   if (!params->Has("midFiltersIds") || !params->Get("midFiltersIds").IsArray()) {
+      outputNode.Add("error", "Error creating path. Invalid JSON format...");
+      return;
+   }
+        
+    Jzon::Array& jsonFiltersIds = params->Get("midFiltersIds").AsArray();
+    id = params->Get("id").ToInt();
+    orgFilterId = params->Get("orgFilterId").ToInt();
+    dstFilterId = params->Get("dstFilterId").ToInt();
+    orgWriterId = params->Get("orgWriterId").ToInt();
+    dstReaderId = params->Get("dstReaderId").ToInt();
+
+
+    for (Jzon::Array::iterator it = jsonFiltersIds.begin(); it != jsonFiltersIds.end(); ++it) {
+        filtersIds.push_back((*it).ToInt());
+    }
+
+
+    path = createPath(orgFilterId, dstFilterId, orgWriterId, dstReaderId, filtersIds);
+
+    if (!path) {
+        outputNode.Add("error", "Error creating path. Check introduced filter IDs...");
+        return;
+    }
+
+    if (!connectPath(path)) {
+        outputNode.Add("error", "Error connecting path. Better pray Jesus...");
+        return;
+    }
+
+    if (!addPath(id, path)) {
+        outputNode.Add("error", "Error registering path. Path ID already exists...");
+        return;
+    }
+
+    outputNode.Add("error", Jzon::null);
+}
+
+void PipelineManager::addWorkerEvent(Jzon::Node* params, Jzon::Object &outputNode) 
+{
+    int id, fps;
+    std::string type;
+    Worker* worker = NULL;
+
+    if(!params) {
+        outputNode.Add("error", "Error creating path. Invalid JSON format...");
+        return;
+    }
+
+    if (!params->Has("id") || !params->Has("type") || !params->Has("fps")) {
+        outputNode.Add("error", "Error creating path. Invalid JSON format...");
+        return;
+    }
+
+    id = params->Get("id").ToInt();
+    type = params->Get("type").ToString();
+    fps = params->Get("fps").ToInt();
+
+    if (type.compare("bestEffort") == 0) {
+        worker = new BestEffort();
+    } else if (type.compare("master") == 0) {
+        worker = new Master();
+    } else if (type.compare("slave") == 0) {
+        worker = new Slave();
+    }
+
+    if (!worker) {
+        outputNode.Add("error", "Error creating worker. Check type...");
+        return;
+    }
+
+    if (!addWorker(id, worker)) {
+        outputNode.Add("error", "Error adding worker to filter. Check filter ID...");
+        return;
+    }
+
+    startWorkers();
+
+    outputNode.Add("error", Jzon::null);
+}
+
 
 /////////////////////////////////
 /////////////////////////////////

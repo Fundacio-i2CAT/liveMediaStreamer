@@ -40,6 +40,19 @@ Path::Path(int originFilterID, int orgWriterID, bool sharedQueue)
 	shared = sharedQueue;
 }
 
+Path::Path(int originFilterID, int destinationFilterID, int orgWriterID, 
+            int dstReaderID, std::vector<int> midFiltersIDs, bool sharedQueue)
+{
+    this->originFilterID = originFilterID;
+    this->orgWriterID = orgWriterID;
+    this->destinationFilterID = destinationFilterID;
+    this->dstReaderID = dstReaderID;
+    shared = sharedQueue;
+
+    filterIDs = midFiltersIDs;
+}
+
+
 void Path::addFilterID(int filterID)
 {
     filterIDs.push_back(filterID);

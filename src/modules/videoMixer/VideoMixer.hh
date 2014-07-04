@@ -29,6 +29,7 @@
  
 
 #define MAX_LAYERS 8
+#define VMIXER_MAX_CHANNELS 8
 
 class PositionSize {
 
@@ -39,11 +40,13 @@ public:
     int getX() {return x;};
     int getY() {return y;};
     int getLayer() {return layer;};
+    bool isEnabled() {return enabled;};
     void setWidth(int width) {this->width = width;};
     void setHeight(int height) {this->height = height;};
     void setX(int x) {this->x = x;};
     void setY(int y) {this->y = y;};
     void setLayer(int layer) {this->layer = layer;};
+    void setEnabled(bool enabled) {this->enabled = enabled;};
 
 private:
     int width;
@@ -51,13 +54,14 @@ private:
     int x;
     int y;
     int layer;
+    bool enabled;
 
 };
 
 class VideoMixer : public ManyToOneFilter {
     
     public:
-        VideoMixer(int inputChannels);
+        VideoMixer(int inputChannels = VMIXER_MAX_CHANNELS);
         VideoMixer(int inputChannels, int outputWidth, int outputHeight);
         FrameQueue *allocQueue(int wId);
         bool doProcessFrame(std::map<int, Frame*> orgFrames, Frame *dst);
@@ -69,13 +73,14 @@ class VideoMixer : public ManyToOneFilter {
 
     private:
         void pasteToLayout(int frameID, VideoFrame* vFrame);
-        bool setPositionSize(int id, float width, float height, float x, float y, int layer);
+        bool setPositionSize(int id, float width, float height, float x, float y, int layer, bool enabled);
         void setPositionSizeEvent(Jzon::Node* params, Jzon::Object &outputNode); 
 
         std::map<int, PositionSize*> positionAndSizes;        
         int outputWidth;
         int outputHeight;
         cv::Mat layoutImg;
+        int maxChannels;
 };
 
 

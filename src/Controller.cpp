@@ -30,6 +30,7 @@
 #include "modules/videoEncoder/VideoEncoderX264.hh"
 #include "modules/videoDecoder/VideoDecoderLibav.hh"
 #include "modules/videoMixer/VideoMixer.hh"
+#include "modules/videoResampler/VideoResampler.hh"
 
 Controller* Controller::ctrlInstance = NULL;
 PipelineManager* PipelineManager::pipeMngrInstance = NULL;
@@ -283,6 +284,9 @@ BaseFilter* PipelineManager::createFilter(FilterType type)
         case VIDEO_MIXER:
             filter = new VideoMixer();
             break;
+        case VIDEO_RESAMPLER:
+            filter = new VideoResampler();
+            break;
         case AUDIO_DECODER:
             filter = new AudioDecoderLibav();
             break;
@@ -348,7 +352,7 @@ Worker* PipelineManager::getWorker(int id)
     return filters[id].second;
 }
 
-Path* PipelineManager::createPath(int orgFilter, int dstFilter, int orgWriter, int dstReader, std::vector<int> midFilters)
+Path* PipelineManager::createPath(int orgFilter, int dstFilter, int orgWriter, int dstReader, std::vector<int> midFilters, bool sharedQueue)
 {
     Path* path;
     BaseFilter* originFilter;
@@ -377,7 +381,7 @@ Path* PipelineManager::createPath(int orgFilter, int dstFilter, int orgWriter, i
         realDstReader = destinationFilter->generateReaderID();
     }
 
-    path = new Path(orgFilter, dstFilter, realOrgWriter, realDstReader, midFilters); 
+    path = new Path(orgFilter, dstFilter, realOrgWriter, realDstReader, midFilters, sharedQueue); 
 
     return path;
 }
@@ -665,6 +669,7 @@ void PipelineManager::createPathEvent(Jzon::Node* params, Jzon::Object &outputNo
     int id, orgFilterId, dstFilterId;
     int orgWriterId = -1;
     int dstReaderId = -1;
+    bool sharedQueue = false;
     Path* path;
 
     if(!params) {
@@ -690,13 +695,17 @@ void PipelineManager::createPathEvent(Jzon::Node* params, Jzon::Object &outputNo
     orgWriterId = params->Get("orgWriterId").ToInt();
     dstReaderId = params->Get("dstReaderId").ToInt();
 
+    if (params->Has("sharedQueue")) {
+        sharedQueue = params->Get("sharedQueue").ToBool();
+    }
+
 
     for (Jzon::Array::iterator it = jsonFiltersIds.begin(); it != jsonFiltersIds.end(); ++it) {
         filtersIds.push_back((*it).ToInt());
     }
 
 
-    path = createPath(orgFilterId, dstFilterId, orgWriterId, dstReaderId, filtersIds);
+    path = createPath(orgFilterId, dstFilterId, orgWriterId, dstReaderId, filtersIds, sharedQueue);
 
     if (!path) {
         outputNode.Add("error", "Error creating path. Check introduced filter IDs...");

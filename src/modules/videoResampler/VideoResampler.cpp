@@ -25,6 +25,8 @@
 #include "../../AVFramedQueue.hh"
 #include "../../Utils.hh"
 
+
+
 AVPixelFormat getLibavPixFmt(PixType pixType);
 
 VideoResampler::VideoResampler()
@@ -94,7 +96,7 @@ bool VideoResampler::doProcessFrame(Frame *org, Frame *dst)
     VideoFrame* dstFrame = dynamic_cast<VideoFrame*>(dst);
     VideoFrame* orgFrame = dynamic_cast<VideoFrame*>(org);
     int outWidth, outHeight;
-    int length;
+    int length, height;
 
     if (!reconfigure(orgFrame)){
         return false;
@@ -116,6 +118,33 @@ bool VideoResampler::doProcessFrame(Frame *org, Frame *dst)
         return false;
     }
     
+    //NOTE: to delete it!
+    if (! rawFramesIn.is_open()){
+        rawFramesIn.open("framesIn.yuv", std::ios::out | std::ios::app | std::ios::binary);
+    } 
+    if (orgFrame->getLength() > 0) {
+        rawFramesIn.write(reinterpret_cast<const char*>(orgFrame->getDataBuf()), orgFrame->getLength());
+    }
+    
+    
+    if (buff == NULL){
+        buff = (unsigned char *) malloc(sizeof(char)* orgFrame->getLength());
+    }
+        
+    length = avpicture_layout((AVPicture *)inFrame, (AVPixelFormat) inFrame->format,
+                              inFrame->width, inFrame->height, 
+                              buff, length);
+    
+    if (! rawFramesOut.is_open()){
+        rawFramesOut.open("framesOut.yuv", std::ios::out | std::ios::app | std::ios::binary);
+    } 
+    if (length > 0) {
+        rawFramesOut.write(reinterpret_cast<const char*>(buff), length);
+    } else {
+        utils::errorMsg("avpicture_layout failed");
+    }
+    //NOTE: finnish deletion part
+    
     if (outputWidth == 0){
         outWidth = orgFrame->getWidth();
     } else {
@@ -128,6 +157,8 @@ bool VideoResampler::doProcessFrame(Frame *org, Frame *dst)
         outHeight = outputHeight;
     }
     
+    
+    
     length = avpicture_fill((AVPicture *) outFrame, dstFrame->getDataBuf(), 
                             libavOutPixFmt, outWidth, outHeight);
     
@@ -136,8 +167,13 @@ bool VideoResampler::doProcessFrame(Frame *org, Frame *dst)
         return false;
     }
     
-    sws_scale(imgConvertCtx, inFrame->data, inFrame->linesize, 0, 
+    height = sws_scale(imgConvertCtx, inFrame->data, inFrame->linesize, 0, 
               inFrame->height, outFrame->data, outFrame->linesize);
+    
+    if (height <= 0){
+        utils::errorMsg("Could not convert image");
+        return false;
+    }
     
     dstFrame->setLength(length);
     dstFrame->setSize(outWidth, outHeight);

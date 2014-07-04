@@ -34,6 +34,9 @@ extern "C" {
 #include "../../FrameQueue.hh"
 #include "../../Filter.hh"
 
+//NOTE: delete it!
+#include <fstream>
+#include <iostream>
 
 class VideoResampler : public OneToOneFilter {
 
@@ -59,6 +62,11 @@ class VideoResampler : public OneToOneFilter {
         int                 discartPeriod;
         PixType             inPixFmt, outPixFmt;
         bool                needsConfig;
+        
+        //NOTE: delete it!!
+        std::ofstream rawFramesIn;
+        std::ofstream rawFramesOut;
+        unsigned char* buff;
 };
 
 #endif

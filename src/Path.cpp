@@ -26,6 +26,7 @@
 #include "Path.hh"
 #include "Controller.hh"
 #include "modules/videoDecoder/VideoDecoderLibav.hh"
+#include "modules/videoResampler/VideoResampler.hh"
 #include "modules/videoEncoder/VideoEncoderX264.hh"
 #include "modules/audioDecoder/AudioDecoderLibav.hh"
 #include "modules/audioEncoder/AudioEncoderLibav.hh"
@@ -69,6 +70,11 @@ Path(originFilterID, orgWriterID)
     VideoDecoderLibav *decoder = new VideoDecoderLibav();
     int id = rand();
     Controller::getInstance()->pipelineManager()->addFilter(id, decoder);
+    addFilterID(id);
+    
+    VideoResampler *resampler = new VideoResampler();
+    id = rand();
+    Controller::getInstance()->pipelineManager()->addFilter(id, resampler);
     addFilterID(id);
     
     VideoEncoderX264 *encoder = new VideoEncoderX264(true);

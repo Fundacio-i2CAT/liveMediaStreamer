@@ -39,7 +39,9 @@ VideoDecoderLibav::VideoDecoderLibav()
     fType = VIDEO_DECODER;
 
     frame = av_frame_alloc();
-
+    frame->width = 0;
+    frame->height = 0;
+    
     fCodec = VC_NONE;
 }
 

@@ -29,7 +29,7 @@ AVPixelFormat getLibavPixFmt(PixType pixType);
 
 VideoResampler::VideoResampler()
 {
-    fType = VIDEO_DECODER;
+    fType = VIDEO_RESAMPLER;
 
     inFrame = av_frame_alloc();
     outFrame = av_frame_alloc();

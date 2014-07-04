@@ -128,6 +128,9 @@ namespace utils
             case VIDEO_MIXER:
                 stringType = "videoMixer";
                 break;
+            case VIDEO_RESAMPLER:
+                stringType = "videoResampler";
+                break;
             case AUDIO_DECODER:
                 stringType = "audioDecoder";
                 break;
@@ -158,6 +161,8 @@ namespace utils
            fType = VIDEO_ENCODER;
         }  else if (stringFilterType.compare("videoMixer") == 0) {
            fType = VIDEO_MIXER;
+        }  else if (stringFilterType.compare("videoResampler") == 0) {
+           fType = VIDEO_RESAMPLER;
         }  else if (stringFilterType.compare("audioDecoder") == 0) {
            fType = AUDIO_DECODER;
         }  else if (stringFilterType.compare("audioEncoder") == 0) {

@@ -61,7 +61,7 @@ ManyToOneFilter(inputChannels, true)
 
 FrameQueue* VideoMixer::allocQueue(int wId)
 {
-    return VideoFrameQueue::createNew(RAW, 0, outputWidth, outputHeight, RGB24);
+    return VideoFrameQueue::createNew(RAW, 0, RGB24);
 }
 
 bool VideoMixer::doProcessFrame(std::map<int, Frame*> orgFrames, Frame *dst)

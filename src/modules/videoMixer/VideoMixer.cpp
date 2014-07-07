@@ -163,8 +163,6 @@ void VideoMixer::initializeEventMap()
 
 void VideoMixer::setPositionSizeEvent(Jzon::Node* params, Jzon::Object &outputNode)
 {
-    std::cerr << "setPosition Event!" << std::endl;
-
     if (!params) {
         outputNode.Add("error", "Error changing master volume");
         return;

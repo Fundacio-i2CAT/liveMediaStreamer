@@ -200,6 +200,7 @@ void VideoMixer::doGetState(Jzon::Object &filterNode)
 
     for (auto it : positionAndSizes) {
         Jzon::Object posSize;
+        posSize.Add("id", it.first);
         posSize.Add("width", it.second->getWidth());
         posSize.Add("height", it.second->getHeight());
         posSize.Add("x", it.second->getX());

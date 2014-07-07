@@ -348,7 +348,7 @@ Worker* PipelineManager::getWorker(int id)
     return filters[id].second;
 }
 
-Path* PipelineManager::createPath(int orgFilter, int dstFilter, int orgWriter, int dstReader, std::vector<int> midFilters)
+Path* PipelineManager::createPath(int orgFilter, int dstFilter, int orgWriter, int dstReader, std::vector<int> midFilters, bool sharedQueue)
 {
     Path* path;
     BaseFilter* originFilter;
@@ -377,7 +377,7 @@ Path* PipelineManager::createPath(int orgFilter, int dstFilter, int orgWriter, i
         realDstReader = destinationFilter->generateReaderID();
     }
 
-    path = new Path(orgFilter, dstFilter, realOrgWriter, realDstReader, midFilters); 
+    path = new Path(orgFilter, dstFilter, realOrgWriter, realDstReader, midFilters, sharedQueue); 
 
     return path;
 }
@@ -665,6 +665,7 @@ void PipelineManager::createPathEvent(Jzon::Node* params, Jzon::Object &outputNo
     int id, orgFilterId, dstFilterId;
     int orgWriterId = -1;
     int dstReaderId = -1;
+    bool sharedQueue = false;
     Path* path;
 
     if(!params) {
@@ -673,7 +674,8 @@ void PipelineManager::createPathEvent(Jzon::Node* params, Jzon::Object &outputNo
     }
 
     if (!params->Has("id") || !params->Has("orgFilterId") || 
-          !params->Has("dstFilterId") || !params->Has("orgWriterId") || !params->Has("dstReaderId")) {
+          !params->Has("dstFilterId") || !params->Has("orgWriterId") || 
+            !params->Has("dstReaderId") || !params->Has("sharedQueue")) {
         outputNode.Add("error", "Error creating path. Invalid JSON format...");
         return;
     }
@@ -689,14 +691,15 @@ void PipelineManager::createPathEvent(Jzon::Node* params, Jzon::Object &outputNo
     dstFilterId = params->Get("dstFilterId").ToInt();
     orgWriterId = params->Get("orgWriterId").ToInt();
     dstReaderId = params->Get("dstReaderId").ToInt();
-
+    dstReaderId = params->Get("dstReaderId").ToInt();
+    sharedQueue = params->Get("sharedQueue").ToBool();
 
     for (Jzon::Array::iterator it = jsonFiltersIds.begin(); it != jsonFiltersIds.end(); ++it) {
         filtersIds.push_back((*it).ToInt());
     }
 
 
-    path = createPath(orgFilterId, dstFilterId, orgWriterId, dstReaderId, filtersIds);
+    path = createPath(orgFilterId, dstFilterId, orgWriterId, dstReaderId, filtersIds, sharedQueue);
 
     if (!path) {
         outputNode.Add("error", "Error creating path. Check introduced filter IDs...");

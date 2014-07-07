@@ -210,6 +210,8 @@ void Controller::initializeEventMap()
                                             std::placeholders::_1, std::placeholders::_2);
     eventMap["addWorker"] = std::bind(&PipelineManager::addWorkerEvent, pipeMngrInstance, 
                                             std::placeholders::_1, std::placeholders::_2);
+    eventMap["addSlavesToWorker"] = std::bind(&PipelineManager::addSlavesToWorkerEvent, pipeMngrInstance, 
+                                            std::placeholders::_1, std::placeholders::_2);
 
 }
 
@@ -379,6 +381,7 @@ Path* PipelineManager::createPath(int orgFilter, int dstFilter, int orgWriter, i
 
     path = new Path(orgFilter, dstFilter, realOrgWriter, realDstReader, midFilters, sharedQueue); 
 
+
     return path;
 }
 
@@ -391,7 +394,12 @@ bool PipelineManager::connectPath(Path* path)
     std::vector<int> pathFilters = path->getFilters();
 
     if (pathFilters.empty()) {
-        if (filters[orgFilterId].first->connectManyToMany(filters[dstFilterId].first, path->getDstReaderID(), path->getOrgWriterID())) {
+        if (filters[orgFilterId].first->connectManyToMany(filters[dstFilterId].first, 
+                                                          path->getDstReaderID(), 
+                                                          path->getOrgWriterID(),
+                                                          path->getShared()
+                                                          )) 
+        {
             return true;
         } else {
             utils::errorMsg("Connecting head to tail!");
@@ -726,7 +734,7 @@ void PipelineManager::addWorkerEvent(Jzon::Node* params, Jzon::Object &outputNod
     Worker* worker = NULL;
 
     if(!params) {
-        outputNode.Add("error", "Error creating path. Invalid JSON format...");
+        outputNode.Add("error", "Error creating worker. Invalid JSON format...");
         return;
     }
 
@@ -755,6 +763,56 @@ void PipelineManager::addWorkerEvent(Jzon::Node* params, Jzon::Object &outputNod
     if (!addWorker(id, worker)) {
         outputNode.Add("error", "Error adding worker to filter. Check filter ID...");
         return;
+    }
+
+    startWorkers();
+
+    outputNode.Add("error", Jzon::null);
+}
+
+void PipelineManager::addSlavesToWorkerEvent(Jzon::Node* params, Jzon::Object &outputNode) 
+{
+    Master* master = NULL;
+    std::vector<Worker*> slaves;
+    int masterId;
+
+
+    if(!params) {
+        outputNode.Add("error", "Error adding slaves to worker. Invalid JSON format...");
+        return;
+    }
+
+    if (!params->Has("master")) {
+        outputNode.Add("error", "Error adding slaves to worker. Invalid JSON format...");
+        return;
+    }
+
+    if (!params->Has("slaves") || !params->Get("slaves").IsArray()) {
+        outputNode.Add("error", "Error adding slaves to worker. Invalid JSON format...");
+        return;
+    }
+
+    masterId = params->Get("master").ToInt();
+    Jzon::Array& jsonSlavesIds = params->Get("slaves").AsArray();
+
+    master = dynamic_cast<Master*>(getWorker(masterId));
+
+    if (!master) {
+        outputNode.Add("error", "Error adding slaves to worker. Invalid Master ID...");
+        return;
+    }
+
+    for (Jzon::Array::iterator it = jsonSlavesIds.begin(); it != jsonSlavesIds.end(); ++it) {
+        slaves.push_back(getWorker((*it).ToInt()));
+    }
+
+    for (auto it : slaves) {
+        if (!it) {
+            outputNode.Add("error", "Error adding slaves to worker. Invalid slave ID...");
+            return;
+        }
+
+        master->addSlave(dynamic_cast<Slave*>(it));
     }
 
     startWorkers();

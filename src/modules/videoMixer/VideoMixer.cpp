@@ -32,7 +32,7 @@ PositionSize::PositionSize(int width, int height, int x, int y, int layer)
     this->x = x;
     this->y = y;
     this->layer = layer;
-    enabled = true;
+    enabled = false;
 }
 
 VideoMixer::VideoMixer(int inputChannels) : ManyToOneFilter(inputChannels, true)

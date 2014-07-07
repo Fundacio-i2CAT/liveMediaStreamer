@@ -96,7 +96,7 @@ bool VideoResampler::doProcessFrame(Frame *org, Frame *dst)
     VideoFrame* dstFrame = dynamic_cast<VideoFrame*>(dst);
     VideoFrame* orgFrame = dynamic_cast<VideoFrame*>(org);
     int outWidth, outHeight;
-    int length, height;
+    int height;
 
     if (!reconfigure(orgFrame)){
         return false;
@@ -109,42 +109,10 @@ bool VideoResampler::doProcessFrame(Frame *org, Frame *dst)
         return false;
     }
 
-    length = avpicture_fill((AVPicture *) inFrame, orgFrame->getDataBuf(), 
-                            libavInPixFmt, orgFrame->getWidth(), 
-                            orgFrame->getHeight());
-    
-    if (length <= 0){
-        utils::errorMsg("Could not read input frame");
+    if (!setAVFrame(inFrame, orgFrame, libavInPixFmt)){
         return false;
     }
-    
-    //NOTE: to delete it!
-    if (! rawFramesIn.is_open()){
-        rawFramesIn.open("framesIn.yuv", std::ios::out | std::ios::app | std::ios::binary);
-    } 
-    if (orgFrame->getLength() > 0) {
-        rawFramesIn.write(reinterpret_cast<const char*>(orgFrame->getDataBuf()), orgFrame->getLength());
-    }
-    
-    
-    if (buff == NULL){
-        buff = (unsigned char *) malloc(sizeof(char)* orgFrame->getLength());
-    }
         
-    length = avpicture_layout((AVPicture *)inFrame, (AVPixelFormat) inFrame->format,
-                              inFrame->width, inFrame->height, 
-                              buff, length);
-    
-    if (! rawFramesOut.is_open()){
-        rawFramesOut.open("framesOut.yuv", std::ios::out | std::ios::app | std::ios::binary);
-    } 
-    if (length > 0) {
-        rawFramesOut.write(reinterpret_cast<const char*>(buff), length);
-    } else {
-        utils::errorMsg("avpicture_layout failed");
-    }
-    //NOTE: finnish deletion part
-    
     if (outputWidth == 0){
         outWidth = orgFrame->getWidth();
     } else {
@@ -157,13 +125,7 @@ bool VideoResampler::doProcessFrame(Frame *org, Frame *dst)
         outHeight = outputHeight;
     }
     
-    
-    
-    length = avpicture_fill((AVPicture *) outFrame, dstFrame->getDataBuf(), 
-                            libavOutPixFmt, outWidth, outHeight);
-    
-    if (length <= 0){
-        utils::errorMsg("Could not prepare output buffers");
+    if (!setAVFrame(outFrame, dstFrame, libavOutPixFmt)){
         return false;
     }
     
@@ -175,7 +137,7 @@ bool VideoResampler::doProcessFrame(Frame *org, Frame *dst)
         return false;
     }
     
-    dstFrame->setLength(length);
+    dstFrame->setLength(avpicture_get_size (libavOutPixFmt, outWidth, outHeight));
     dstFrame->setSize(outWidth, outHeight);
     dstFrame->setPresentationTime(orgFrame->getPresentationTime());
     dstFrame->setUpdatedTime();
@@ -284,3 +246,20 @@ AVPixelFormat getLibavPixFmt(PixType pixType)
     
     return AV_PIX_FMT_NONE;
 }
+
+bool VideoResampler::setAVFrame(AVFrame *aFrame, VideoFrame* vFrame, AVPixelFormat format)
+{      
+    if (avpicture_fill((AVPicture *) aFrame, vFrame->getDataBuf(), 
+            format, vFrame->getWidth(), 
+            vFrame->getHeight()) <= 0){
+        utils::errorMsg("Could not feed AVFrame");
+        return false;
+    }
+    
+    inFrame->width = vFrame->getWidth();
+    inFrame->height = vFrame->getHeight();
+    inFrame->format = format;
+    
+    return true;
+}
+

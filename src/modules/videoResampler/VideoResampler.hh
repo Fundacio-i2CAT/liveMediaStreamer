@@ -34,10 +34,6 @@ extern "C" {
 #include "../../FrameQueue.hh"
 #include "../../Filter.hh"
 
-//NOTE: delete it!
-#include <fstream>
-#include <iostream>
-
 class VideoResampler : public OneToOneFilter {
 
     public:
@@ -51,6 +47,7 @@ class VideoResampler : public OneToOneFilter {
         void configEvent(Jzon::Node* params, Jzon::Object &outputNode);
         void doGetState(Jzon::Object &filterNode);
         bool reconfigure(VideoFrame* orgFrame);
+        bool setAVFrame(AVFrame *aFrame, VideoFrame* vFrame, AVPixelFormat format);
         
         struct SwsContext   *imgConvertCtx;
         AVFrame             *inFrame, *outFrame;
@@ -62,11 +59,6 @@ class VideoResampler : public OneToOneFilter {
         int                 discartPeriod;
         PixType             inPixFmt, outPixFmt;
         bool                needsConfig;
-        
-        //NOTE: delete it!!
-        std::ofstream rawFramesIn;
-        std::ofstream rawFramesOut;
-        unsigned char* buff;
 };
 
 #endif

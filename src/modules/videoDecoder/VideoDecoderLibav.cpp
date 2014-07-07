@@ -39,8 +39,7 @@ VideoDecoderLibav::VideoDecoderLibav()
     fType = VIDEO_DECODER;
 
     frame = av_frame_alloc();
-    frame->width = 0;
-    frame->height = 0;
+    frameCopy = av_frame_alloc();
     
     fCodec = VC_NONE;
 }
@@ -53,13 +52,14 @@ FrameQueue* VideoDecoderLibav::allocQueue(int wId)
 bool VideoDecoderLibav::doProcessFrame(Frame *org, Frame *dst)
 {
     int len, gotFrame = 0;
+    bool ret = false;
     VideoFrame* vDecodedFrame = dynamic_cast<VideoFrame*>(dst);
     VideoFrame* vCodedFrame = dynamic_cast<VideoFrame*>(org);
 
     if (!reconfigure(vCodedFrame->getCodec())){
         return false;
     }
-    
+       
     pkt.size = org->getLength();
     pkt.data = org->getDataBuf();
    
@@ -71,7 +71,7 @@ bool VideoDecoderLibav::doProcessFrame(Frame *org, Frame *dst)
             return false;
         }
         
-        if (gotFrame) {
+        if (gotFrame) {           
             if (toBuffer(vDecodedFrame, vCodedFrame)) {
                 return true;
             }
@@ -105,8 +105,6 @@ bool VideoDecoderLibav::inputConfig()
             return false;
             break;
     }
-
-    av_frame_unref(frame);
 
     if (codecCtx != NULL) {
         avcodec_close(codecCtx);
@@ -148,16 +146,22 @@ bool VideoDecoderLibav::inputConfig()
 
 bool VideoDecoderLibav::toBuffer(VideoFrame *decodedFrame, VideoFrame *codedFrame)
 {
-    unsigned int length;
-
-    length = avpicture_get_size((AVPixelFormat) frame->format, frame->width, frame->height);
+    int ret, length;
     
-    length = avpicture_layout((AVPicture *)frame, (AVPixelFormat) frame->format,
-                              frame->width, frame->height, 
-                              decodedFrame->getDataBuf(), length);
-    
+    length = avpicture_fill((AVPicture *) frameCopy, decodedFrame->getDataBuf(), 
+                            (AVPixelFormat) frame->format, frame->width, frame->height); 
     if (length <= 0){
-        utils::errorMsg("Could not write to frame buffer");
+        utils::errorMsg("Could not fill decoded frame");
+        return false;
+    }
+    
+    frameCopy->width = frame->width;
+    frameCopy->height = frame->height;
+    frameCopy->format = frame->format;
+       
+    ret = av_frame_copy(frameCopy, frame);
+    if (ret < 0){
+        utils::errorMsg("Could not copy decoded frame data");
         return false;
     }
     

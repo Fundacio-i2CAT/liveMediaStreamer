@@ -52,7 +52,7 @@ class VideoDecoderLibav : public OneToOneFilter {
         
         AVCodec             *codec;
         AVCodecContext      *codecCtx;
-        AVFrame             *frame;
+        AVFrame             *frame, *frameCopy;
         AVPacket            pkt;
         AVCodecID           libavCodecId;
 

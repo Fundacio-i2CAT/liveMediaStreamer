@@ -64,7 +64,7 @@ private:
     bool removePath(int id);
     bool deletePath(Path* path); 
     BaseFilter* createFilter(FilterType type);
-    Path* createPath(int orgFilter, int dstFilter, int orgWriter, int dstReader, std::vector<int> midFilters);
+    Path* createPath(int orgFilter, int dstFilter, int orgWriter, int dstReader, std::vector<int> midFilters, bool sharedQueue);
     
     static PipelineManager* pipeMngrInstance;
 

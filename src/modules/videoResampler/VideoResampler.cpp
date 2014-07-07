@@ -212,10 +212,7 @@ void VideoResampler::initializeEventMap()
 
 void VideoResampler::doGetState(Jzon::Object &filterNode)
 {
-    /* filterNode.Add("codec", utils::getAudioCodecAsString(fCodec));
-     *   filterNode.Add("sampleRate", sampleRate);
-     *   filterNode.Add("channels", channels);
-     *   filterNode.Add("sampleFormat", utils::getSampleFormatAsString(sampleFmt));*/
+    //TODO:
 }
 
 AVPixelFormat getLibavPixFmt(PixType pixType)

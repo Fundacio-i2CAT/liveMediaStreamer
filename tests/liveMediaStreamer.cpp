@@ -156,7 +156,7 @@ int main(int argc, char *argv[]) {
             continue;
         }
 
-        ctrl->processEvent();
+        ctrl->processRequest();
     }
 
     close(sockfd);

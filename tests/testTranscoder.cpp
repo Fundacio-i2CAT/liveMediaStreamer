@@ -86,9 +86,6 @@ int main(int argc, char** argv)
     }
     transmitter->publishSession(sessionId);
     
-    id = pipe->searchFilterIDByType(VIDEO_ENCODER);
-    //pipe->getWorker(id)->setFps(25);
-    
     while(pipe->getWorker(pipe->getReceiverID())->isRunning() || 
         pipe->getWorker(pipe->getTransmitterID())->isRunning()) {
         sleep(1);

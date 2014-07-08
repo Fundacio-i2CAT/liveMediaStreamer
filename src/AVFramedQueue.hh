@@ -51,17 +51,15 @@ protected:
 class VideoFrameQueue : public AVFramedQueue {
 
 public:
-    static VideoFrameQueue* createNew(VCodecType codec, unsigned delay, unsigned width = 0, 
-                                            unsigned height = 0, PixType pixelFormat = P_NONE);
+    static VideoFrameQueue* createNew(VCodecType codec, unsigned delay, 
+                                      PixType pixelFormat = P_NONE);
     
     const VCodecType getCodec() const {return codec;};
 
 protected:
-    VideoFrameQueue(VCodecType codec, unsigned delay, unsigned width, unsigned height, PixType pixelFormat);
+    VideoFrameQueue(VCodecType codec, unsigned delay, PixType pixelFormat);
     VCodecType codec;
     PixType pixelFormat;
-    unsigned width;
-    unsigned height;
     bool config();
 
 };

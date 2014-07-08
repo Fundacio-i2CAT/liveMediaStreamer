@@ -30,6 +30,7 @@
 #include "modules/videoEncoder/VideoEncoderX264.hh"
 #include "modules/videoDecoder/VideoDecoderLibav.hh"
 #include "modules/videoMixer/VideoMixer.hh"
+#include "modules/videoResampler/VideoResampler.hh"
 
 Controller* Controller::ctrlInstance = NULL;
 PipelineManager* PipelineManager::pipeMngrInstance = NULL;
@@ -326,6 +327,9 @@ BaseFilter* PipelineManager::createFilter(FilterType type)
         case VIDEO_MIXER:
             filter = new VideoMixer();
             break;
+        case VIDEO_RESAMPLER:
+            filter = new VideoResampler();
+            break;
         case AUDIO_DECODER:
             filter = new AudioDecoderLibav();
             break;
@@ -422,7 +426,6 @@ Path* PipelineManager::createPath(int orgFilter, int dstFilter, int orgWriter, i
 
     path = new Path(orgFilter, dstFilter, realOrgWriter, realDstReader, midFilters, sharedQueue); 
 
-
     return path;
 }
 
@@ -466,15 +469,15 @@ bool PipelineManager::connectPath(Path* path)
     }
 
     //TODO: manage worker assignment better
-    for (auto it : pathFilters) {
-        if (filters[it].second == NULL) { 
-            Worker* worker = new BestEffort(filters[it].first);
-            filters[it].second = worker;
-            utils::debugMsg("New worker created for filter " + std::to_string(it));
-            worker->start();
-            utils::debugMsg("Worker " + std::to_string(it) + " started");
-        }
-    }
+    // for (auto it : pathFilters) {
+    //     if (filters[it].second == NULL) { 
+    //         Worker* worker = new BestEffort(filters[it].first);
+    //         filters[it].second = worker;
+    //         utils::debugMsg("New worker created for filter " + std::to_string(it));
+    //         worker->start();
+    //         utils::debugMsg("Worker " + std::to_string(it) + " started");
+    //     }
+    // }
 
     return true;
 }
@@ -740,13 +743,11 @@ void PipelineManager::createPathEvent(Jzon::Node* params, Jzon::Object &outputNo
     dstFilterId = params->Get("dstFilterId").ToInt();
     orgWriterId = params->Get("orgWriterId").ToInt();
     dstReaderId = params->Get("dstReaderId").ToInt();
-    dstReaderId = params->Get("dstReaderId").ToInt();
     sharedQueue = params->Get("sharedQueue").ToBool();
 
     for (Jzon::Array::iterator it = jsonFiltersIds.begin(); it != jsonFiltersIds.end(); ++it) {
         filtersIds.push_back((*it).ToInt());
     }
-
 
     path = createPath(orgFilterId, dstFilterId, orgWriterId, dstReaderId, filtersIds, sharedQueue);
 

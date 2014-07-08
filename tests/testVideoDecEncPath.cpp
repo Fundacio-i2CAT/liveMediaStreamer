@@ -114,6 +114,9 @@ int main(int argc, char** argv)
 		session->initiateSession();
     }
 	
+
+    utils::setLogLevel(INFO);
+
 	pipeMngr->startWorkers();
     
     sessionId = utils::randomIdGenerator(ID_LENGTH);

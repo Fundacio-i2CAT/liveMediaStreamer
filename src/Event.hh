@@ -31,7 +31,7 @@
 class Event {
     
 public:
-    Event(Jzon::Object rootNode, std::chrono::system_clock::time_point timestamp, int socket);
+    Event(Jzon::Object rootNode, std::chrono::system_clock::time_point timestamp, int socket, int delay = 0 /*ms*/);
     ~Event();    
     bool canBeExecuted(std::chrono::system_clock::time_point currentTime);
     std::string getAction();
@@ -43,6 +43,7 @@ private:
     Jzon::Object* inputRootNode;
     std::chrono::system_clock::time_point timestamp;
     int socket;
+    std::chrono::milliseconds delay;
 
 };
 

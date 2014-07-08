@@ -33,11 +33,12 @@ bool Event::operator<(const Event& e) const
     return timestamp > e.timestamp;
 }
 
-Event::Event(Jzon::Object rootNode, std::chrono::system_clock::time_point timestamp, int socket) 
+Event::Event(Jzon::Object rootNode, std::chrono::system_clock::time_point timestamp, int socket, int delay) 
 {
     inputRootNode = new Jzon::Object(rootNode);
     this->timestamp = timestamp;
     this->socket = socket;
+    this->delay = std::chrono::milliseconds(delay);
 }
 
 Event::~Event()
@@ -49,7 +50,7 @@ Event::~Event()
 
 bool Event::canBeExecuted(std::chrono::system_clock::time_point currentTime)
 {
-    return currentTime > timestamp;
+    return std::chrono::duration_cast<std::chrono::milliseconds>(currentTime - timestamp) > delay;
 }
 
 std::string Event::getAction()

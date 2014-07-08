@@ -185,6 +185,7 @@ bool Controller::processEvent(Jzon::Object event, int socket)
 bool Controller::processFilterEvent(Jzon::Object event, int socket) 
 {
     int filterID = -1;
+    int delay = 0;
     BaseFilter *filter = NULL;
     Jzon::Object outputNode;
 
@@ -203,7 +204,11 @@ bool Controller::processFilterEvent(Jzon::Object event, int socket)
         return false;
     }
 
-    Event e(event, std::chrono::system_clock::now(), socket);
+    if (socket < 0 && event.Has("delay")) {
+        delay = event.Get("delay").ToInt();
+    }
+
+    Event e(event, std::chrono::system_clock::now(), socket, delay);
     filter->pushEvent(e);
 
     return true;

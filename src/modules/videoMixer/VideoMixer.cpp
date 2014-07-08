@@ -37,9 +37,10 @@ ChannelConfig::ChannelConfig(int width, int height, int x, int y, int layer)
     this->y = y;
     this->layer = layer;
     enabled = false;
+    opacity = 1.0;
 }
 
-void ChannelConfig::config(int width, int height, int x, int y, int layer, bool enabled)
+void ChannelConfig::config(int width, int height, int x, int y, int layer, bool enabled, float opacity)
 {
     this->width = width;
     this->height = height;
@@ -47,6 +48,7 @@ void ChannelConfig::config(int width, int height, int x, int y, int layer, bool 
     this->y = y;
     this->layer = layer;
     this->enabled = enabled;
+    this->opacity = opacity;
 }
 
 ///////////////////////////////////////////////////
@@ -117,7 +119,7 @@ bool VideoMixer::doProcessFrame(std::map<int, Frame*> orgFrames, Frame *dst)
     return true;
 }
 
-bool VideoMixer::configChannel(int id, float width, float height, float x, float y, int layer, bool enabled)
+bool VideoMixer::configChannel(int id, float width, float height, float x, float y, int layer, bool enabled, float opacity)
 {
     //NOTE: w, h, x and y are set as layout size percentages
 
@@ -134,7 +136,8 @@ bool VideoMixer::configChannel(int id, float width, float height, float x, float
                                x*outputWidth,
                                y*outputHeight,
                                layer,
-                               enabled
+                               enabled,
+                               opacity
                               );
 
     return true;
@@ -144,6 +147,7 @@ void VideoMixer::pasteToLayout(int frameID, VideoFrame* vFrame)
 {
     ChannelConfig* chConfig = channelsConfig[frameID];
     cv::Mat img(vFrame->getHeight(), vFrame->getWidth(), CV_8UC3, vFrame->getDataBuf());
+    cv::Mat aux(chConfig->getHeight(), chConfig->getWidth(), CV_8UC3);
     
     cv::Size sz(chConfig->getWidth(), chConfig->getHeight());
 
@@ -153,11 +157,24 @@ void VideoMixer::pasteToLayout(int frameID, VideoFrame* vFrame)
     int cropX = (vFrame->getWidth() - chConfig->getWidth())/2; 
     int cropY = (vFrame->getHeight() - chConfig->getHeight())/2; 
 
-    if (cropX >= 0 && cropX + sz.width < vFrame->getWidth() && cropY >= 0 && cropY + sz.height < vFrame->getHeight()) {
-        img(cv::Rect(cropX, cropY, sz.width, sz.height)).copyTo(layoutImg(cv::Rect(x, y, sz.width, sz.height)));
-    } else {
-        resize(img, layoutImg(cv::Rect(x, y, sz.width, sz.height)), sz, 0, 0, cv::INTER_NEAREST);
-    }
+   // if (cropX >= 0 && cropX + sz.width < vFrame->getWidth() && cropY >= 0 && cropY + sz.height < vFrame->getHeight()) {
+   //     img(cv::Rect(cropX, cropY, sz.width, sz.height)).copyTo(layoutImg(cv::Rect(x, y, sz.width, sz.height)));
+   // } else {
+        resize(img, aux, sz, 0, 0, cv::INTER_NEAREST);
+
+        if (chConfig->getOpacity() == 1) {
+            aux.copyTo(layoutImg(cv::Rect(x, y, sz.width, sz.height)));
+        } else  {
+            addWeighted(
+                aux, 
+                chConfig->getOpacity(),
+                layoutImg, 
+                1 - chConfig->getOpacity(), 
+                0.0, 
+                layoutImg
+            );
+        }
+   // }
 }
 
 Reader* VideoMixer::setReader(int readerID, FrameQueue* queue)
@@ -189,9 +206,10 @@ void VideoMixer::configChannelEvent(Jzon::Node* params, Jzon::Object &outputNode
     }
 
     if (!params->Has("id") || !params->Has("width") || !params->Has("height") || 
-                !params->Has("x") || !params->Has("y") || !params->Has("layer") || !params->Has("enabled")) {
+            !params->Has("x") || !params->Has("y") || !params->Has("layer") || 
+                !params->Has("enabled") || !params->Has("opacity")) {
 
-        outputNode.Add("error", "Error setting position and size. Check parameters!");
+        outputNode.Add("error", "Error configure channel. Check parameters!");
         return;
     }
 
@@ -202,8 +220,9 @@ void VideoMixer::configChannelEvent(Jzon::Node* params, Jzon::Object &outputNode
     float y = params->Get("y").ToFloat();
     int layer = params->Get("layer").ToInt();
     bool enabled = params->Get("enabled").ToBool();
+    float opacity = params->Get("opacity").ToFloat();
 
-    if (!configChannel(id, width, height, x, y, layer, enabled)) {
+    if (!configChannel(id, width, height, x, y, layer, enabled, opacity)) {
         outputNode.Add("error", "Error configurating channel. Check parameters!");
     } else {
         outputNode.Add("error", Jzon::null);

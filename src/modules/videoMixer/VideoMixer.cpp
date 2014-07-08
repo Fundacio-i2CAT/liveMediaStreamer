@@ -25,7 +25,11 @@
 #include <iostream>
 #include <chrono>
 
-PositionSize::PositionSize(int width, int height, int x, int y, int layer)
+///////////////////////////////////////////////////
+//                ChannelConfig Class            //
+///////////////////////////////////////////////////
+
+ChannelConfig::ChannelConfig(int width, int height, int x, int y, int layer)
 {
     this->width = width;
     this->height = height;
@@ -33,7 +37,33 @@ PositionSize::PositionSize(int width, int height, int x, int y, int layer)
     this->y = y;
     this->layer = layer;
     enabled = false;
+    cropWidth = 1;
+    cropHeight = 1;
+    cropX = 0;
+    cropY = 0;
 }
+
+void ChannelConfig::setChannelConfig(int width, int height, int x, int y, int layer, bool enabled)
+{
+    this->width = width;
+    this->height = height;
+    this->x = x;
+    this->y = y;
+    this->layer = layer;
+    this->enabled = enabled;
+}
+
+void ChannelConfig::setChannelCropConfig(int width, int height, int x, int y)
+{
+    cropWidth = width;
+    cropHeight = height;
+    cropX = x;
+    cropY = y;
+}
+
+///////////////////////////////////////////////////
+//                VideoMixer Class               //
+///////////////////////////////////////////////////
 
 VideoMixer::VideoMixer(int inputChannels) : ManyToOneFilter(inputChannels, true)
 {
@@ -99,13 +129,11 @@ bool VideoMixer::doProcessFrame(std::map<int, Frame*> orgFrames, Frame *dst)
     return true;
 }
 
-bool VideoMixer::setPositionSize(int id, float width, float height, float x, float y, int layer, bool enabled)
+bool VideoMixer::configChannel(int id, float width, float height, float x, float y, int layer, bool enabled)
 {
     //NOTE: w, h, x and y are set as layout size percentages
 
-    auto it = positionAndSizes.find(id);
-
-    if (it == positionAndSizes.end()) {
+    if (channelsConfig.count(id) <= 0) {
         return false;
     }
 
@@ -113,12 +141,13 @@ bool VideoMixer::setPositionSize(int id, float width, float height, float x, flo
         return false;
     }
 
-    it->second->setWidth(width*outputWidth);
-    it->second->setHeight(height*outputHeight);
-    it->second->setX(x*outputWidth);
-    it->second->setY(y*outputHeight);
-    it->second->setLayer(layer);
-    it->second->setEnabled(enabled);
+    channelsConfig[id].setChannelConfig(width*outputWidth, 
+                                        height*outputHeight, 
+                                        x*outputWidth,
+                                        y*outputHeight,
+                                        layer,
+                                        enabled
+                                        );
 
     return true;
 }

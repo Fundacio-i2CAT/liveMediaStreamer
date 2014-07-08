@@ -31,22 +31,23 @@
 #define MAX_LAYERS 8
 #define VMIXER_MAX_CHANNELS 8
 
-class PositionSize {
+class ChannelConfig {
 
 public:
-    PositionSize(int width, int height, int x, int y, int layer);
+    ChannelConfig(int width, int height, int x, int y, int layer);
+    bool config(int width, int height, int x, int y, int layer, bool enabled);
+    bool cropConfig(float width, float height, float x, float y);
+
     int getWidth() {return width;};
     int getHeight() {return height;};
     int getX() {return x;};
     int getY() {return y;};
+    int getCropWidth() {return cropWidth;};
+    int getCropHeight() {return cropHeight;};
+    int getCropX() {return cropX;};
+    int getCropY() {return cropY};
     int getLayer() {return layer;};
     bool isEnabled() {return enabled;};
-    void setWidth(int width) {this->width = width;};
-    void setHeight(int height) {this->height = height;};
-    void setX(int x) {this->x = x;};
-    void setY(int y) {this->y = y;};
-    void setLayer(int layer) {this->layer = layer;};
-    void setEnabled(bool enabled) {this->enabled = enabled;};
 
 private:
     int width;
@@ -55,7 +56,10 @@ private:
     int y;
     int layer;
     bool enabled;
-
+    float cropWidth;
+    float cropHeight;
+    float cropX;
+    float cropY;
 };
 
 class VideoMixer : public ManyToOneFilter {
@@ -76,7 +80,7 @@ class VideoMixer : public ManyToOneFilter {
         bool setPositionSize(int id, float width, float height, float x, float y, int layer, bool enabled);
         void setPositionSizeEvent(Jzon::Node* params, Jzon::Object &outputNode); 
 
-        std::map<int, PositionSize*> positionAndSizes;        
+        std::map<int, ChannelConfig> channelsConfig;        
         int outputWidth;
         int outputHeight;
         cv::Mat layoutImg;

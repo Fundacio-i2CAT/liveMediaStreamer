@@ -155,6 +155,8 @@ void VideoMixer::pasteToLayout(int frameID, VideoFrame* vFrame)
 
     if (cropX >= 0 && cropX + sz.width < vFrame->getWidth() && cropY >= 0 && cropY + sz.height < vFrame->getHeight()) {
         img(cv::Rect(cropX, cropY, sz.width, sz.height)).copyTo(layoutImg(cv::Rect(x, y, sz.width, sz.height)));
+    } else {
+        resize(img, layoutImg(cv::Rect(x, y, sz.width, sz.height)), sz, 0, 0, cv::INTER_NEAREST);
     }
 }
 

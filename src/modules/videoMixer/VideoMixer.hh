@@ -35,17 +35,12 @@ class ChannelConfig {
 
 public:
     ChannelConfig(int width, int height, int x, int y, int layer);
-    bool config(int width, int height, int x, int y, int layer, bool enabled);
-    bool cropConfig(float width, float height, float x, float y);
+    void config(int width, int height, int x, int y, int layer, bool enabled);
 
     int getWidth() {return width;};
     int getHeight() {return height;};
     int getX() {return x;};
     int getY() {return y;};
-    int getCropWidth() {return cropWidth;};
-    int getCropHeight() {return cropHeight;};
-    int getCropX() {return cropX;};
-    int getCropY() {return cropY};
     int getLayer() {return layer;};
     bool isEnabled() {return enabled;};
 
@@ -56,10 +51,6 @@ private:
     int y;
     int layer;
     bool enabled;
-    float cropWidth;
-    float cropHeight;
-    float cropX;
-    float cropY;
 };
 
 class VideoMixer : public ManyToOneFilter {
@@ -77,10 +68,11 @@ class VideoMixer : public ManyToOneFilter {
 
     private:
         void pasteToLayout(int frameID, VideoFrame* vFrame);
-        bool setPositionSize(int id, float width, float height, float x, float y, int layer, bool enabled);
-        void setPositionSizeEvent(Jzon::Node* params, Jzon::Object &outputNode); 
+        bool configChannel(int id, float width, float height, float x, float y, int layer, bool enabled);
 
-        std::map<int, ChannelConfig> channelsConfig;        
+        void configChannelEvent(Jzon::Node* params, Jzon::Object &outputNode); 
+
+        std::map<int, ChannelConfig*> channelsConfig;        
         int outputWidth;
         int outputHeight;
         cv::Mat layoutImg;

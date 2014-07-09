@@ -29,7 +29,7 @@
 //                ChannelConfig Class            //
 ///////////////////////////////////////////////////
 
-ChannelConfig::ChannelConfig(int width, int height, int x, int y, int layer)
+ChannelConfig::ChannelConfig(float width, float height, float x, float y, int layer)
 {
     this->width = width;
     this->height = height;
@@ -40,7 +40,7 @@ ChannelConfig::ChannelConfig(int width, int height, int x, int y, int layer)
     opacity = 1.0;
 }
 
-void ChannelConfig::config(int width, int height, int x, int y, int layer, bool enabled, float opacity)
+void ChannelConfig::config(float width, float height, float x, float y, int layer, bool enabled, float opacity)
 {
     this->width = width;
     this->height = height;
@@ -131,14 +131,7 @@ bool VideoMixer::configChannel(int id, float width, float height, float x, float
         return false;
     }
 
-    channelsConfig[id]->config(width*outputWidth, 
-                               height*outputHeight, 
-                               x*outputWidth,
-                               y*outputHeight,
-                               layer,
-                               enabled,
-                               opacity
-                              );
+    channelsConfig[id]->config(width, height, x, y, layer, enabled, opacity);
 
     return true;
 }
@@ -147,15 +140,15 @@ void VideoMixer::pasteToLayout(int frameID, VideoFrame* vFrame)
 {
     ChannelConfig* chConfig = channelsConfig[frameID];
     cv::Mat img(vFrame->getHeight(), vFrame->getWidth(), CV_8UC3, vFrame->getDataBuf());
-    cv::Mat aux(chConfig->getHeight(), chConfig->getWidth(), CV_8UC3);
+    cv::Mat aux(chConfig->getHeight()*outputHeight, chConfig->getWidth()*outputWidth, CV_8UC3);
     
-    cv::Size sz(chConfig->getWidth(), chConfig->getHeight());
+    cv::Size sz(chConfig->getWidth()*outputWidth, chConfig->getHeight()*outputHeight);
 
-    int x = chConfig->getX();
-    int y = chConfig->getY();
+    int x = chConfig->getX()*outputWidth;
+    int y = chConfig->getY()*outputHeight;
 
-    int cropX = (vFrame->getWidth() - chConfig->getWidth())/2; 
-    int cropY = (vFrame->getHeight() - chConfig->getHeight())/2; 
+    int cropX = (vFrame->getWidth() - chConfig->getWidth()*outputWidth)/2; 
+    int cropY = (vFrame->getHeight() - chConfig->getHeight()*outputHeight)/2; 
 
    // if (cropX >= 0 && cropX + sz.width < vFrame->getWidth() && cropY >= 0 && cropY + sz.height < vFrame->getHeight()) {
    //     img(cv::Rect(cropX, cropY, sz.width, sz.height)).copyTo(layoutImg(cv::Rect(x, y, sz.width, sz.height)));

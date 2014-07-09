@@ -18,12 +18,15 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  *  Authors: Martin German <martin.german@i2cat.net>
+ *           David Cassany <david.cassany@i2cat.net>
  */
 
 #include "X264VideoFrame.hh"
 #include <string>
-#include <iostream>
 #include "Utils.hh"
+#include <cstring>
+
+//TODO: force h264 codec
 
 X264VideoFrame* X264VideoFrame::createNew(VCodecType codec, unsigned int width, unsigned height, PixType pixelFormat)
 {
@@ -36,10 +39,38 @@ X264VideoFrame::X264VideoFrame(VCodecType codec, unsigned int width, unsigned he
     this->height = height;
     this->pixelFormat = pixelFormat;
     this->codec = codec;
+    
+    this->hNalsNum = 0;
+    this->headerLength = 0;
+    
+    for(int i = 0; i < MAX_HEADER_NALS; i++){
+        headerNals[i] = (unsigned char *) malloc(sizeof(unsigned char)*MAX_HEADER_NAL_SIZE);
+    }
+    
 }
 
-void X264VideoFrame::setNals(x264_nal_t **nals, int size, int frameSize){
+void X264VideoFrame::setNals(x264_nal_t **nals, int num, int frameSize)
+{
 	ppNals = nals;
-	sizeNals = size;
+    nalsNum = num;
 	frameLength = frameSize;
+}
+
+void X264VideoFrame::setHeaderNals(x264_nal_t **nals, int num, int headerSize)
+{
+    hNalsNum = num;
+    headerLength = headerSize;
+    
+    for(int i = 0; i < hNalsNum; i++){       
+        memcpy(headerNals[i], (*nals)[i].p_payload, (*nals)[i].i_payload);
+        hNalSize[i] = (*nals)[i].i_payload;
+    }
+}
+
+void X264VideoFrame::clearNals()
+{
+    hNalsNum = 0; 
+    headerLength = 0;
+    nalsNum = 0;
+    frameLength = 0;
 }

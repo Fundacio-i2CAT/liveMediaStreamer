@@ -18,6 +18,7 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  *  Authors:  Martin German <martin.german@i2cat.net>
+ *            David Cassany <david.cassany@i2cat.net>
  */
 
 #ifndef _VIDEO_ENCODER_X264_HH
@@ -30,6 +31,7 @@
 #include "../../Filter.hh"
 #include "../../FrameQueue.hh"
 #include "../../X264VideoCircularBuffer.hh"
+#include "../../Types.hh"
 
 extern "C" {
 #include <x264.h>
@@ -38,13 +40,14 @@ extern "C" {
 #include <libavformat/avformat.h>
 }
 
-
 class VideoEncoderX264: public OneToOneFilter {
 	public:
 		VideoEncoderX264(bool force_ = false);
 		~VideoEncoderX264();
 		bool doProcessFrame(Frame *org, Frame *dst);
-		bool configure(int width, int height, PixType pixelFormat, int gop_ = 24, int fps_ = 24, int bitrate_ = 2000);		
+        bool configure(int gop_ = DEFAULT_GOP, int fps_ = DEFAULT_FRAME_RATE, 
+                       int bitrate_ = DEFAULT_BITRATE, 
+                       int threads_ = DEFAULT_ENCODER_THREADS, bool annexB_ = false);		
 		void setIntra(){forceIntra = true;};
 		FrameQueue* allocQueue(int wId);
 		void initializeEventMap();		
@@ -52,33 +55,32 @@ class VideoEncoderX264: public OneToOneFilter {
 	private:
 		x264_picture_t picIn;
 		x264_picture_t picOut;
-		AVPixelFormat inPixel;
-		AVPixelFormat outPixel;
+        x264_nal_t *ppNal;
+        x264_param_t xparams;
+        x264_t* encoder;
+        
+        AVPixelFormat libavInPixFmt;
+        AVFrame *midFrame;
+        
+        PixType inPixFmt;
+        bool annexB;
 		bool forceIntra;
 		bool firstTime;
-		bool configureOut;
+		bool needsConfig;
 		int fps;
 		int pts;
-		int inWidth;
-		int inHeight;
-		int outWidth;
-		int outHeight;
 		int bitrate;
 		int colorspace;
 		int gop;
-		x264_param_t xparams;
-		x264_t* encoder;
-		struct SwsContext* swsCtx;
+        int threads;
 		struct timeval presentationTime;
 		uint64_t timestamp;
-		
-		bool config(Frame *org, Frame *dst);
-		void encodeHeadersFrame(Frame *decodedFrame, Frame *encodedFrame);
-		void resizeEvent(Jzon::Node* params);
-		void changeBitrateEvent(Jzon::Node* params);
-		void changeFramerateEvent(Jzon::Node* params);
-		void changeGOPEvent(Jzon::Node* params);
+        
+        bool reconfigure(VideoFrame *orgFrame, X264VideoFrame* x264Frame);
+        bool encodeHeadersFrame(X264VideoFrame* x264Frame);
+        bool fill_x264_picture(VideoFrame* videoFrame);
 		void forceIntraEvent(Jzon::Node* params);
+        void configEvent(Jzon::Node* params, Jzon::Object &outputNode);
 		void doGetState(Jzon::Object &filterNode);
 		void setPresentationTime(Frame* dst);
 };

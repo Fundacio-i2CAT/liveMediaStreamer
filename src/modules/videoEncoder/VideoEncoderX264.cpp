@@ -18,203 +18,197 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  *  Authors:  Martin German <martin.german@i2cat.net>
+ *            David Cassany <david.cassany@i2cat.net>
  */
 
 #include "VideoEncoderX264.hh"
 
-VideoEncoderX264::VideoEncoderX264(bool force_): OneToOneFilter(force_){
-	fps = 24;
-	gop = 24;
+static unsigned char const start_code[4] = {0x00, 0x00, 0x00, 0x01};
+
+VideoEncoderX264::VideoEncoderX264(bool force_): OneToOneFilter(force_)
+{
+    fType = VIDEO_ENCODER;
+    
+    configure();
+    
 	pts = 0;
 	forceIntra = false;
-	firstTime = true;
-	configureOut = false;
-	swsCtx = NULL;
 	encoder = NULL;
-	bitrate = 2000;
-	x264_param_default_preset(&xparams, "ultrafast", "zerolatency");
-	xparams.i_threads = 4;
-	xparams.i_width = DEFAULT_WIDTH;
-	xparams.i_height = DEFAULT_HEIGHT;
-	xparams.i_fps_num = fps;
-	xparams.i_fps_den = 1;
-	xparams.b_intra_refresh = 0;
-	xparams.i_keyint_max = gop;
-	//xparams.b_vfr_input = 1;
-	xparams.rc.i_bitrate = bitrate;
-	x264_param_apply_profile(&xparams, "baseline");
-    fType = VIDEO_ENCODER;
+    x264_picture_init(&picIn);
+    midFrame = av_frame_alloc();
 	presentationTime = utils::getPresentationTime();
 	timestamp = ((uint64_t)presentationTime.tv_sec * (uint64_t)1000000) + (uint64_t)presentationTime.tv_usec;
 }
 
 VideoEncoderX264::~VideoEncoderX264(){
-	//delete encoder;
+	//TODO: delete encoder;
 }
 
 bool VideoEncoderX264::doProcessFrame(Frame *org, Frame *dst) {
-	InterleavedVideoFrame* videoFrame = dynamic_cast<InterleavedVideoFrame*> (org);
+	VideoFrame* videoFrame = dynamic_cast<VideoFrame*> (org);
 	X264VideoFrame* x264Frame = dynamic_cast<X264VideoFrame*> (dst);
-	int inFps, frameLength, length; 
-	x264_nal_t *ppNal;
+	int frameLength; 
 	int piNal;
-	AVFrame *outFrame;
-
 	picIn.i_pts = pts;
 	setPresentationTime(dst);
 
-	if (firstTime) {
-		config(org, dst);
-		encodeHeadersFrame(org, dst);
-		firstTime = false;
-		return true;
+    if (!reconfigure(videoFrame, x264Frame)) {
+		return false;
 	}
 
 	if (forceIntra) {
 		picIn.i_type = X264_TYPE_I;
 		forceIntra = false;
-	}
-	else
+	} else {
 		picIn.i_type = X264_TYPE_AUTO;
-
-	outFrame = av_frame_alloc();
-	length = avpicture_fill((AVPicture *) outFrame, videoFrame->getDataBuf(), inPixel, inWidth, inHeight);
-
-    if (length <= 0){
-        return false;
     }
 
-	sws_scale(swsCtx, (uint8_t const * const *) outFrame->data, outFrame->linesize, 0, inHeight, picIn.img.plane, picIn.img.i_stride);
+    if (!fill_x264_picture(videoFrame)){
+        utils::errorMsg("Could not fill x264_picture_t from frame");
+        return false;
+    }
 
 	frameLength = x264_encoder_encode(encoder, &ppNal, &piNal, &picIn, &picOut);
 
 	if (frameLength < 1) {
-		printf("Error encoding video frame\n");
+		utils::errorMsg("Could not encode video frame");
 		return false;
 	}
 
 	x264Frame->setNals(&ppNal, piNal, frameLength);
-
-	pts++;
+    
+    pts++;
 	return true;
 }
 
-void VideoEncoderX264::encodeHeadersFrame(Frame *decodedFrame, Frame *encodedFrame) {
-	InterleavedVideoFrame* videoFrame = dynamic_cast<InterleavedVideoFrame*> (decodedFrame);
-	X264VideoFrame* x264Frame = dynamic_cast<X264VideoFrame*> (encodedFrame);
-	int inFps, encodeSize;
+bool VideoEncoderX264::fill_x264_picture(VideoFrame* videoFrame)
+{
+    if (avpicture_fill((AVPicture *) midFrame, videoFrame->getDataBuf(), 
+            (AVPixelFormat) libavInPixFmt, videoFrame->getWidth(), 
+            videoFrame->getHeight()) <= 0){
+        utils::errorMsg("Could not feed AVFrame");
+        return false;
+    }
+    picIn.img.i_csp = colorspace;
+    
+    for(int i = 0; i < 4; i++){
+        picIn.img.i_stride[i] = midFrame->linesize[i];
+        picIn.img.plane[i] = midFrame->data[i];
+    }
+    
+    return true;
+}
+
+bool VideoEncoderX264::encodeHeadersFrame(X264VideoFrame* x264Frame) 
+{
+	int encodeSize;
+    int piNal;
 	x264_nal_t *ppNal;
-	int piNal;
-	
-	encoder = x264_encoder_open(&xparams);
-	x264_picture_alloc(&picIn, colorspace, outWidth, outHeight);
 	
 	encodeSize = x264_encoder_headers(encoder, &ppNal, &piNal);
 
 	if (encodeSize < 0) {
-		printf("Error: encoder headers\n");
+		utils::errorMsg("Could not encode headers");
+        return false;
 	}
 
-	x264Frame->setNals(&ppNal, piNal, encodeSize);
+	x264Frame->setHeaderNals(&ppNal, piNal, encodeSize);
+
+    return true;
 }
 
 FrameQueue* VideoEncoderX264::allocQueue(int wId) {
 	return X264VideoCircularBuffer::createNew();
 }
 
-bool VideoEncoderX264::configure(int width, int height, PixType pixelFormat, int gop_, int fps_, int bitrate_) {
-	
-	if (!width || !height)
-		return false;
-
-	outWidth = width;
-	outHeight = height;
+bool VideoEncoderX264::configure(int gop_, int fps_, int bitrate_, int threads_, bool annexB_)
+{
+	//TODO: validate inputs
 	fps = fps_;
 	gop = gop_;
 	bitrate = bitrate_;
-	switch (pixelFormat) {
-		case P_NONE:
-			outPixel = AV_PIX_FMT_NONE;
-			colorspace = X264_CSP_NONE;
-			break;
-		case RGB24:
-			outPixel = PIX_FMT_RGB24;
-			colorspace = X264_CSP_RGB;
-			break;
-		case RGB32:
-			outPixel = PIX_FMT_RGBA;
-			colorspace = X264_CSP_BGRA;
-			break;
-		case YUYV422:
-			outPixel = PIX_FMT_YUV420P;
-			colorspace = X264_CSP_I420;
-			break;
-	}
-	xparams.i_width = outWidth;
-	xparams.i_height = outHeight;
-	xparams.i_fps_num = fps;
-	xparams.i_keyint_max = gop;
-	xparams.rc.i_bitrate = bitrate;
-	x264_param_apply_profile(&xparams, "baseline");
-	configureOut = true;
+    threads = threads_;
+    annexB = annexB_;
+    
+	needsConfig = true;
 	return true;
 }
 
-bool VideoEncoderX264::config(Frame *org, Frame *dst) {
-	InterleavedVideoFrame* videoFrame = dynamic_cast<InterleavedVideoFrame*> (org);
-	X264VideoFrame* x264Frame = dynamic_cast<X264VideoFrame*> (dst);
-	PixType inPixelType, outPixelType;
-	inWidth = videoFrame->getWidth();
-	inHeight = videoFrame->getHeight();
-	inPixelType = videoFrame->getPixelFormat();	
-
-	switch (inPixelType) {
-		case P_NONE:
-			inPixel = AV_PIX_FMT_NONE;
-			break;
-		case RGB24:
-			inPixel = PIX_FMT_RGB24;
-			break;
-		case RGB32:
-			inPixel = PIX_FMT_RGBA;
-			break;
-		case YUYV422:
-			inPixel = PIX_FMT_YUV420P;
-			break;
-	}
-	
-	if (!configureOut) {
-		outWidth = x264Frame->getWidth();
-		outHeight = x264Frame->getHeight();
-		outPixelType = x264Frame->getPixelFormat();
-		switch (outPixelType) {
-			case P_NONE:
-				outPixel = AV_PIX_FMT_NONE;
-				colorspace = X264_CSP_NONE;
-				break;
-			case RGB24:
-				outPixel = PIX_FMT_RGB24;
-				colorspace = X264_CSP_RGB;
-				break;
-			case RGB32:
-				outPixel = PIX_FMT_RGBA;
-				colorspace = X264_CSP_BGRA;
-				break;
-			case YUYV422:
-				outPixel = PIX_FMT_YUV420P;
-				colorspace = X264_CSP_I420;
-				break;
-		}
-	}
-
-	swsCtx = sws_getContext(inWidth, inHeight, inPixel, outWidth, outHeight, outPixel, SWS_FAST_BILINEAR, NULL, NULL, NULL);
-	xparams.i_width = outWidth;
-	xparams.i_height = outHeight;
-	xparams.i_fps_num = fps;
-	xparams.i_keyint_max = gop;
-	xparams.rc.i_bitrate = bitrate;
-	x264_param_apply_profile(&xparams, "baseline");
-	return true;
+bool VideoEncoderX264::reconfigure(VideoFrame* orgFrame, X264VideoFrame* x264Frame)
+{   
+    if (needsConfig || orgFrame->getWidth() != xparams.i_width ||
+        orgFrame->getHeight() != xparams.i_height ||
+        orgFrame->getPixelFormat() != inPixFmt)
+    {
+        inPixFmt = orgFrame->getPixelFormat();
+        switch (inPixFmt) {
+            case RGB24:
+                libavInPixFmt = AV_PIX_FMT_RGB24;
+                colorspace = X264_CSP_RGB;
+                break;
+            case YUV420P:
+                libavInPixFmt = AV_PIX_FMT_YUV420P;
+                colorspace = X264_CSP_I420;
+                break;
+            case YUV422P:
+                libavInPixFmt = AV_PIX_FMT_YUV422P;
+                colorspace = X264_CSP_I422;
+                break;
+            case YUV444P:
+                libavInPixFmt = AV_PIX_FMT_YUV444P;
+                colorspace = X264_CSP_I444;
+                break;
+            default:
+                utils::errorMsg("Uncompatibe input pixel format");
+                libavInPixFmt = AV_PIX_FMT_NONE;
+                colorspace = X264_CSP_NONE;
+                return false;
+                break;
+        }
+        
+        x264_param_default_preset(&xparams, "ultrafast", "zerolatency");
+        xparams.i_threads = threads;
+        xparams.i_fps_num = fps;
+        xparams.i_fps_den = 1;
+        xparams.b_intra_refresh = 0;
+        xparams.i_keyint_max = gop;
+        //xparams.b_vfr_input = 1;
+        xparams.rc.i_bitrate = bitrate;
+        if (annexB){
+            xparams.b_annexb = 1;
+            xparams.b_repeat_headers = 1;
+        }
+        
+        if (orgFrame->getWidth() != xparams.i_width || 
+            orgFrame->getHeight() != xparams.i_height){
+            xparams.i_width = orgFrame->getWidth();
+            xparams.i_height = orgFrame->getHeight();
+            if (encoder != NULL){
+                x264_encoder_close(encoder);
+                encoder = x264_encoder_open(&xparams);
+                needsConfig = false;
+            }
+        }
+        //TODO: set profile
+        x264_param_apply_profile(&xparams, "baseline");
+        
+        
+        if (encoder == NULL){
+            encoder = x264_encoder_open(&xparams);
+        } else if (needsConfig && x264_encoder_reconfig(encoder, &xparams) < 0){
+            utils::errorMsg("Could not reconfigure encoder, closing and opening again");
+            x264_encoder_close(encoder);
+            encoder = x264_encoder_open(&xparams);
+        }
+        
+        needsConfig = false;
+        
+        if (!annexB){
+            return encodeHeadersFrame(x264Frame);
+        }
+    }
+    
+    return true;
 }
 
 void VideoEncoderX264::setPresentationTime(Frame* dst)
@@ -225,77 +219,46 @@ void VideoEncoderX264::setPresentationTime(Frame* dst)
 	dst->setPresentationTime(presentationTime);
 }
 
-void VideoEncoderX264::resizeEvent(Jzon::Node* params)
+void VideoEncoderX264::configEvent(Jzon::Node* params, Jzon::Object &outputNode)
 {
-	if (!params) {
-		return;
-	}
+    int tmpFps, tmpGop, tmpBitrate, tmpThreads;
+    bool tmpAnnexB;
+    
+    if (!params) {
+        return;
+    }
 
-	if (!params->Has("width") || !params->Has("height")) {
-		return;
-	}
-
-	int width = params->Get("width").ToInt();
-	int height = params->Get("height").ToInt();
-
-	if (width)
-		outWidth = width;
-
-	if (height)
-		outHeight = height;	
-
-	sws_freeContext(swsCtx);
-	swsCtx = sws_getContext(inWidth, inHeight, inPixel, outWidth, outHeight, outPixel, SWS_FAST_BILINEAR, NULL, NULL, NULL);
-	xparams.i_width = outWidth;
-	xparams.i_height = outHeight;
-	x264_param_apply_profile(&xparams, "baseline");
-	encoder = x264_encoder_open(&xparams);
-	x264_picture_alloc(&picIn, colorspace, outWidth, outHeight);
-}
-
-void VideoEncoderX264::changeBitrateEvent(Jzon::Node* params)
-{
-	if (!params) {
-		return;
-	}
-
-	if (!params->Has("bitrate")) {
-		return;
-	}
-
-	bitrate = params->Get("bitrate").ToInt();
-	xparams.rc.i_bitrate = bitrate;
-	x264_param_apply_profile(&xparams, "baseline");
-}
-
-void VideoEncoderX264::changeFramerateEvent(Jzon::Node* params)
-{
-	if (!params) {
-		return;
-	}
-
-	if (!params->Has("framerate")) {
-		return;
-	}
-
-	fps = params->Get("framerate").ToInt();
-	xparams.i_fps_num = fps;
-	x264_param_apply_profile(&xparams, "baseline");
-}
-
-void VideoEncoderX264::changeGOPEvent(Jzon::Node* params)
-{	
-	if (!params) {
-		return;
-	}
-
-	if (!params->Has("gop")) {
-		return;
-	}
-
-	gop = params->Get("gop").ToInt();
-	xparams.i_keyint_max = gop;
-	x264_param_apply_profile(&xparams, "baseline");
+    tmpFps = fps;
+    tmpGop = gop;
+    tmpBitrate = bitrate;
+    tmpThreads = threads;
+    tmpAnnexB = annexB;
+    
+    if (params->Has("fps")){
+        tmpFps = params->Get("fps").ToInt();
+    }
+    
+    if (params->Has("gop")){
+        tmpGop = params->Get("gop").ToInt();
+    }
+    
+    if (params->Has("bitrate")){
+        tmpBitrate = params->Get("bitrate").ToInt();
+    }
+    
+    if (params->Has("threads")){
+        tmpThreads = params->Get("threads").ToInt();
+    }
+    
+    if (params->Has("annexb")){
+        tmpAnnexB = params->Get("annexb").ToBool();
+    }
+    
+    if (!configure(tmpGop, tmpFps, tmpBitrate, tmpThreads)){
+        outputNode.Add("error", "Error configuring vide encoder");
+    } else {
+        outputNode.Add("error", Jzon::null);
+    }
 }
 
 void VideoEncoderX264::forceIntraEvent(Jzon::Node* params)
@@ -305,18 +268,11 @@ void VideoEncoderX264::forceIntraEvent(Jzon::Node* params)
 
 void VideoEncoderX264::initializeEventMap()
 {
-	eventMap["resize"] = std::bind(&VideoEncoderX264::resizeEvent, this, std::placeholders::_1);
-	eventMap["changeBitrate"] = std::bind(&VideoEncoderX264::changeBitrateEvent, this, std::placeholders::_1);
-	eventMap["chengeFramerate"] = std::bind(&VideoEncoderX264::changeFramerateEvent, this, std::placeholders::_1);
-	eventMap["changeGOP"] = std::bind(&VideoEncoderX264::changeGOPEvent, this, std::placeholders::_1);
 	eventMap["forceIntra"] = std::bind(&VideoEncoderX264::forceIntraEvent, this, std::placeholders::_1);
+    eventMap["configEvent"] = std::bind(&VideoEncoderX264::configEvent, this, std::placeholders::_1, std::placeholders::_2);
 }
 
 void VideoEncoderX264::doGetState(Jzon::Object &filterNode)
 {
-   /* filterNode.Add("codec", utils::getAudioCodecAsString(fCodec));
-    filterNode.Add("sampleRate", sampleRate);
-    filterNode.Add("channels", channels);
-    filterNode.Add("sampleFormat", utils::getSampleFormatAsString(sampleFmt));*/
+    //TODO
 }
-

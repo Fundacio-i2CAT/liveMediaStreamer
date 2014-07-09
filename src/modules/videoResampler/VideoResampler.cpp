@@ -139,6 +139,7 @@ bool VideoResampler::doProcessFrame(Frame *org, Frame *dst)
     
     dstFrame->setLength(avpicture_get_size (libavOutPixFmt, outWidth, outHeight));
     dstFrame->setSize(outWidth, outHeight);
+    dstFrame->setPixelFormat(outPixFmt);
     dstFrame->setPresentationTime(orgFrame->getPresentationTime());
     dstFrame->setUpdatedTime();
    
@@ -199,7 +200,7 @@ void VideoResampler::configEvent(Jzon::Node* params, Jzon::Object &outputNode)
     
     
     if (!configure(width, height, period, pixelType)){
-        outputNode.Add("error", "Error configuring audio decoder");
+        outputNode.Add("error", "Error configuring video resampler");
     } else {
         outputNode.Add("error", Jzon::null);
     }

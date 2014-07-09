@@ -18,11 +18,12 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  *  Authors:  Martin German <martin.german@i2cat.net>
+ *            David Cassany <david.cassany@i2cat.net>
  */
 
 #include "X264VideoCircularBuffer.hh"
 #include <cstring>
-#include <iostream>
+#include <string>
 #include <sys/time.h>
 #include "Utils.hh"
 
@@ -66,22 +67,45 @@ bool X264VideoCircularBuffer::config()
 bool X264VideoCircularBuffer::pushBack() 
 {
     Frame* interleavedVideoFrame;
+    int nalsNum;
+    x264_nal_t** nals;
+    unsigned char** hNals;
+    int* hNalSize;
     
-	int sizeBuffer = inputFrame->getSizeNals();
-	x264_nal_t** buffer = inputFrame->getNals();
+    //TODO: add update time
+    
+    if ((nalsNum = inputFrame->getHeaderNalsNum()) > 0){       
+        hNals = inputFrame->getHeaderNals();
+        hNalSize = inputFrame->getHeaderNalsSize();
+        
+        for (int i=0; i<nalsNum; i++) {
+            if ((interleavedVideoFrame = innerGetRear()) == NULL){
+                interleavedVideoFrame = innerForceGetRear();
+            }
+            
+            memcpy(interleavedVideoFrame->getDataBuf(), hNals[i], hNalSize[i]);
+            interleavedVideoFrame->setLength(hNalSize[i]);
+            interleavedVideoFrame->setPresentationTime(inputFrame->getPresentationTime());
+            innerAddFrame();
+        }
+    }
+    
+    nalsNum = inputFrame->getNalsNum();
+    nals = inputFrame->getNals();
 
-    int i = 0;
-    for (i=0; i<sizeBuffer; i++) {
-        int sizeNal = (*buffer)[i].i_payload;
+    for (int i=0; i<nalsNum; i++) {
+        int sizeNal = (*nals)[i].i_payload;
         if ((interleavedVideoFrame = innerGetRear()) == NULL){
             interleavedVideoFrame = innerForceGetRear();
         }
 
-		memcpy(interleavedVideoFrame->getDataBuf(), (*buffer)[i].p_payload, sizeNal);
-		interleavedVideoFrame->setLength(sizeNal);
+        memcpy(interleavedVideoFrame->getDataBuf(), (*nals)[i].p_payload, (*nals)[i].i_payload);
+        interleavedVideoFrame->setLength((*nals)[i].i_payload);
 		interleavedVideoFrame->setPresentationTime(inputFrame->getPresentationTime());
 		innerAddFrame();
 	}
+	
+	inputFrame->clearNals();
 	
     return true;
 }   
@@ -96,7 +120,6 @@ Frame* X264VideoCircularBuffer::innerGetRear()
     if (elements >= max) {
         return NULL;
     }
-    
     return frames[rear];
 }
 

@@ -18,6 +18,7 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  *  Authors: Martin German <martin.german@i2cat.net>
+ *           David Cassany <david.cassany@i2cat.net>
  */
 
 #ifndef _X264_VIDEO_FRAME_HH
@@ -29,21 +30,33 @@ extern "C" {
 	#include <x264.h>
 }
 
+#define MAX_HEADER_NALS 8
+#define MAX_HEADER_NAL_SIZE 4096
+
 class X264VideoFrame : public VideoFrame {
 
 	public:
-		static X264VideoFrame* createNew(VCodecType codec, unsigned int width, unsigned height, PixType pixelFormat);
+		static X264VideoFrame* createNew(VCodecType codec, unsigned int width, unsigned int height, PixType pixelFormat);
 		~X264VideoFrame();
-		void setNals(x264_nal_t **nals, int size, int frameSize);
+		void setNals(x264_nal_t **nals, int num, int frameSize);
+        void setHeaderNals(x264_nal_t **nals, int num, int headerSize);
 		x264_nal_t** getNals() {return ppNals;};
-		unsigned char* getBufferNals() {return ppNals[0]->p_payload;};
-		int getSizeNals() {return sizeNals;};
-		int getTotalFrameLength() {return frameLength;};
+        int getNalsNum() {return nalsNum;};
+        unsigned char** getHeaderNals() {return headerNals;};
+        int getHeaderNalsNum() {return hNalsNum;};
+        int* getHeaderNalsSize() {return hNalSize;};
+        
+        void clearNals();
 		
 	protected:
 		x264_nal_t **ppNals;
-		int sizeNals;
+		int nalsNum;
 		int frameLength;
+        
+        int hNalsNum;
+        unsigned char *headerNals[MAX_HEADER_NALS];
+        int hNalSize[MAX_HEADER_NALS];
+        int headerLength;
 	private:
 		X264VideoFrame(VCodecType codec, unsigned int width, unsigned height, PixType pixelFormat);
 };

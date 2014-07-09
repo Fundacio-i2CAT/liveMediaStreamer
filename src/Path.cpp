@@ -104,6 +104,11 @@ Path(originFilterID, orgWriterID, sharedQueue)
     int id = rand();
     Controller::getInstance()->pipelineManager()->addFilter(id, decoder);
     addFilterID(id);
+    
+    VideoResampler *resampler = new VideoResampler();
+    id = rand();
+    Controller::getInstance()->pipelineManager()->addFilter(id, resampler);
+    addFilterID(id);
 }
 
 VideoEncoderPath::VideoEncoderPath(int originFilterID, int orgWriterID, bool sharedQueue) :

@@ -18,6 +18,7 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  *  Authors:  Martin German <martin.german@i2cat.net>
+ *            David Cassany <david.cassany@i2cat.net>
  */
 
 #ifndef _VIDEO_CIRCULAR_BUFFER_HH

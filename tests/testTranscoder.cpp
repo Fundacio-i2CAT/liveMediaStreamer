@@ -1,5 +1,6 @@
 #include "../src/modules/liveMediaInput/SourceManager.hh"
 #include "../src/modules/liveMediaOutput/SinkManager.hh"
+#include "../src/modules/videoResampler/VideoResampler.hh"
 #include "../src/AudioFrame.hh"
 #include "../src/Controller.hh"
 #include "../src/Callbacks.hh"
@@ -34,11 +35,13 @@ int main(int argc, char** argv)
     std::string sdp;
     std::vector<int> readers;
     Session* session;
-    int id;
+    int id, count = 0;
+    VideoResampler *resampler;
 
     utils::setLogLevel(INFO);
     
-    PipelineManager *pipe = Controller::getInstance()->pipelineManager();
+    Controller *ctrl = Controller::getInstance();
+    PipelineManager *pipe = ctrl->pipelineManager();
     SourceManager *receiver = pipe->getReceiver();
     SinkManager *transmitter = pipe->getTransmitter();
     
@@ -74,21 +77,37 @@ int main(int argc, char** argv)
 
     session->initiateSession();
     
-    sleep(2);
+    sleep(1);
        
     for (auto it : pipe->getPaths()){
         readers.push_back(it.second->getDstReaderID());    
     }
     
+    id = pipe->searchFilterIDByType(VIDEO_RESAMPLER);
+    resampler = dynamic_cast<VideoResampler*> (pipe->getFilter(id));
+    
+    resampler->configure(0, 0, 0, YUV420P);
+    
     sessionId = utils::randomIdGenerator(ID_LENGTH);
     if (! transmitter->addSession(sessionId, readers)){
         return 1;
     }
+    
     transmitter->publishSession(sessionId);
     
     while(pipe->getWorker(pipe->getReceiverID())->isRunning() || 
         pipe->getWorker(pipe->getTransmitterID())->isRunning()) {
         sleep(1);
+        if (count == 10){
+            resampler->configure(1280, 534, 2, YUV420P);
+            utils::infoMsg("Half frame rate");
+        } 
+        if (count == 20){
+            resampler->configure(640, 534, 0, YUV420P);
+            utils::infoMsg("Regular frame rate");
+            count = 0;
+        }
+        count++;
     }
 
     return 0;

@@ -140,7 +140,6 @@ void VideoMixer::pasteToLayout(int frameID, VideoFrame* vFrame)
 {
     ChannelConfig* chConfig = channelsConfig[frameID];
     cv::Mat img(vFrame->getHeight(), vFrame->getWidth(), CV_8UC3, vFrame->getDataBuf());
-    cv::Mat aux(chConfig->getHeight()*outputHeight, chConfig->getWidth()*outputWidth, CV_8UC3);
     
     cv::Size sz(chConfig->getWidth()*outputWidth, chConfig->getHeight()*outputHeight);
 
@@ -150,24 +149,22 @@ void VideoMixer::pasteToLayout(int frameID, VideoFrame* vFrame)
     int cropX = (vFrame->getWidth() - chConfig->getWidth()*outputWidth)/2; 
     int cropY = (vFrame->getHeight() - chConfig->getHeight()*outputHeight)/2; 
 
-   // if (cropX >= 0 && cropX + sz.width < vFrame->getWidth() && cropY >= 0 && cropY + sz.height < vFrame->getHeight()) {
-   //     img(cv::Rect(cropX, cropY, sz.width, sz.height)).copyTo(layoutImg(cv::Rect(x, y, sz.width, sz.height)));
-   // } else {
-        resize(img, aux, sz, 0, 0, cv::INTER_NEAREST);
+    if (cropX < 0 || cropX + sz.width > vFrame->getWidth() || cropY < 0 || cropY + sz.height > vFrame->getHeight()) {
+        return;
+    }
 
-        if (chConfig->getOpacity() == 1) {
-            aux.copyTo(layoutImg(cv::Rect(x, y, sz.width, sz.height)));
-        } else  {
-            addWeighted(
-                aux, 
-                chConfig->getOpacity(),
-                layoutImg, 
-                1 - chConfig->getOpacity(), 
-                0.0, 
-                layoutImg
-            );
-        }
-   // }
+    if (chConfig->getOpacity() == 1) {
+        img(cv::Rect(cropX, cropY, sz.width, sz.height)).copyTo(layoutImg(cv::Rect(x, y, sz.width, sz.height)));
+    } else {
+        addWeighted(
+            img(cv::Rect(cropX, cropY, sz.width, sz.height)), 
+            chConfig->getOpacity(),
+            layoutImg, 
+            1 - chConfig->getOpacity(), 
+            0.0, 
+            layoutImg
+        );
+    }
 }
 
 Reader* VideoMixer::setReader(int readerID, FrameQueue* queue)

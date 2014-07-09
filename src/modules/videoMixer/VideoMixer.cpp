@@ -159,10 +159,10 @@ void VideoMixer::pasteToLayout(int frameID, VideoFrame* vFrame)
         addWeighted(
             img(cv::Rect(cropX, cropY, sz.width, sz.height)), 
             chConfig->getOpacity(),
-            layoutImg, 
+            layoutImg(cv::Rect(x, y, sz.width, sz.height)), 
             1 - chConfig->getOpacity(), 
             0.0, 
-            layoutImg
+            layoutImg(cv::Rect(x, y, sz.width, sz.height))
         );
     }
 }

@@ -46,6 +46,8 @@ VideoResampler::VideoResampler()
     libavOutPixFmt = getLibavPixFmt(outPixFmt);
 
     needsConfig = false;
+
+    initializeEventMap();
 }
 
 FrameQueue* VideoResampler::allocQueue(int wId)
@@ -125,6 +127,10 @@ bool VideoResampler::doProcessFrame(Frame *org, Frame *dst)
         outHeight = outputHeight;
     }
     
+    dstFrame->setLength(avpicture_get_size (libavOutPixFmt, outWidth, outHeight));
+    dstFrame->setSize(outWidth, outHeight);
+    dstFrame->setPixelFormat(outPixFmt);
+    
     if (!setAVFrame(outFrame, dstFrame, libavOutPixFmt)){
         return false;
     }
@@ -137,9 +143,6 @@ bool VideoResampler::doProcessFrame(Frame *org, Frame *dst)
         return false;
     }
     
-    dstFrame->setLength(avpicture_get_size (libavOutPixFmt, outWidth, outHeight));
-    dstFrame->setSize(outWidth, outHeight);
-    dstFrame->setPixelFormat(outPixFmt);
     dstFrame->setPresentationTime(orgFrame->getPresentationTime());
     dstFrame->setUpdatedTime();
    
@@ -254,9 +257,9 @@ bool VideoResampler::setAVFrame(AVFrame *aFrame, VideoFrame* vFrame, AVPixelForm
         return false;
     }
     
-    inFrame->width = vFrame->getWidth();
-    inFrame->height = vFrame->getHeight();
-    inFrame->format = format;
+    aFrame->width = vFrame->getWidth();
+    aFrame->height = vFrame->getHeight();
+    aFrame->format = format;
     
     return true;
 }

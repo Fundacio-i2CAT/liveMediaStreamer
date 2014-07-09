@@ -87,6 +87,7 @@ bool SinkManager::processFrame(bool removeFrame)
 bool SinkManager::addSession(std::string id, std::vector<int> readers, std::string info, std::string desc)
 {
     if (sessionList.count(id) > 0){
+        utils::errorMsg("Failed, this session already exists: " + id);
         return false;
     }
     
@@ -94,6 +95,7 @@ bool SinkManager::addSession(std::string id, std::vector<int> readers, std::stri
         = ServerMediaSession::createNew(*(envir()), id.c_str(), info.c_str(), desc.c_str());
         
     if (servSession == NULL){
+        utils::errorMsg("Failed creating new ServerMediaSession");
         return false;
     }
     
@@ -104,6 +106,7 @@ bool SinkManager::addSession(std::string id, std::vector<int> readers, std::stri
             servSession->addSubsession(subsession);
         } else {
             //TODO: delete ServerMediaSession and previous subsessions
+            utils::errorMsg("Failed adding subsessions");
             return false;
         }
     }
@@ -158,7 +161,7 @@ ServerMediaSubsession *SinkManager::createSubsessionByReader(Reader *reader, int
     if ((circularBuffer = dynamic_cast<AudioCircularBuffer*>(reader->getQueue())) != NULL){
         //TODO
     }
-
+    
     return NULL;
 }
 
@@ -221,7 +224,7 @@ void SinkManager::addSessionEvent(Jzon::Node* params, Jzon::Object &outputNode)
     std::string sessionId;
 
     if (!params) {
-        outputNode.Add("error", "Error adding session. Wrong parameters!");
+        outputNode.Add("error", "Error adding session. No parameters!");
         return;
     }
 
@@ -232,7 +235,7 @@ void SinkManager::addSessionEvent(Jzon::Node* params, Jzon::Object &outputNode)
     }
 
     if (!params->Has("readers") || !params->Get("readers").IsArray()) {
-        outputNode.Add("error", "Error adding session. Wrong parameters!");
+        outputNode.Add("error", "Error adding session. Readers does not exist or is not an array!");
         return;
     }
         
@@ -243,11 +246,13 @@ void SinkManager::addSessionEvent(Jzon::Node* params, Jzon::Object &outputNode)
     }
     
     if (readers.empty()) {
-        outputNode.Add("error", "Error adding session. Wrong parameters!");
+        outputNode.Add("error", "Error adding session. Readers array is empty!");
+        return;
     }
 
     if(!addSession(sessionId, readers)) {
-        outputNode.Add("error", "Error adding session. Wrong parameters!");
+        outputNode.Add("error", "Error adding session. Internal error!");
+        return;
     }
 
     publishSession(sessionId);

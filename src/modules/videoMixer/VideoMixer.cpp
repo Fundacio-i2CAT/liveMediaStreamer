@@ -29,7 +29,7 @@
 //                ChannelConfig Class            //
 ///////////////////////////////////////////////////
 
-ChannelConfig::ChannelConfig(int width, int height, int x, int y, int layer)
+ChannelConfig::ChannelConfig(float width, float height, float x, float y, int layer)
 {
     this->width = width;
     this->height = height;
@@ -37,9 +37,10 @@ ChannelConfig::ChannelConfig(int width, int height, int x, int y, int layer)
     this->y = y;
     this->layer = layer;
     enabled = false;
+    opacity = 1.0;
 }
 
-void ChannelConfig::config(int width, int height, int x, int y, int layer, bool enabled)
+void ChannelConfig::config(float width, float height, float x, float y, int layer, bool enabled, float opacity)
 {
     this->width = width;
     this->height = height;
@@ -47,6 +48,7 @@ void ChannelConfig::config(int width, int height, int x, int y, int layer, bool 
     this->y = y;
     this->layer = layer;
     this->enabled = enabled;
+    this->opacity = opacity;
 }
 
 ///////////////////////////////////////////////////
@@ -117,7 +119,7 @@ bool VideoMixer::doProcessFrame(std::map<int, Frame*> orgFrames, Frame *dst)
     return true;
 }
 
-bool VideoMixer::configChannel(int id, float width, float height, float x, float y, int layer, bool enabled)
+bool VideoMixer::configChannel(int id, float width, float height, float x, float y, int layer, bool enabled, float opacity)
 {
     //NOTE: w, h, x and y are set as layout size percentages
 
@@ -129,13 +131,7 @@ bool VideoMixer::configChannel(int id, float width, float height, float x, float
         return false;
     }
 
-    channelsConfig[id]->config(width*outputWidth, 
-                               height*outputHeight, 
-                               x*outputWidth,
-                               y*outputHeight,
-                               layer,
-                               enabled
-                              );
+    channelsConfig[id]->config(width, height, x, y, layer, enabled, opacity);
 
     return true;
 }
@@ -144,18 +140,34 @@ void VideoMixer::pasteToLayout(int frameID, VideoFrame* vFrame)
 {
     ChannelConfig* chConfig = channelsConfig[frameID];
     cv::Mat img(vFrame->getHeight(), vFrame->getWidth(), CV_8UC3, vFrame->getDataBuf());
+    cv::Mat aux(chConfig->getHeight()*outputHeight, chConfig->getWidth()*outputWidth, CV_8UC3);
     
-    cv::Size sz(chConfig->getWidth(), chConfig->getHeight());
+    cv::Size sz(chConfig->getWidth()*outputWidth, chConfig->getHeight()*outputHeight);
 
-    int x = chConfig->getX();
-    int y = chConfig->getY();
+    int x = chConfig->getX()*outputWidth;
+    int y = chConfig->getY()*outputHeight;
 
-    int cropX = (vFrame->getWidth() - chConfig->getWidth())/2; 
-    int cropY = (vFrame->getHeight() - chConfig->getHeight())/2; 
+    int cropX = (vFrame->getWidth() - chConfig->getWidth()*outputWidth)/2; 
+    int cropY = (vFrame->getHeight() - chConfig->getHeight()*outputHeight)/2; 
 
-    if (cropX >= 0 && cropX + sz.width < vFrame->getWidth() && cropY >= 0 && cropY + sz.height < vFrame->getHeight()) {
-        img(cv::Rect(cropX, cropY, sz.width, sz.height)).copyTo(layoutImg(cv::Rect(x, y, sz.width, sz.height)));
-    }
+   // if (cropX >= 0 && cropX + sz.width < vFrame->getWidth() && cropY >= 0 && cropY + sz.height < vFrame->getHeight()) {
+   //     img(cv::Rect(cropX, cropY, sz.width, sz.height)).copyTo(layoutImg(cv::Rect(x, y, sz.width, sz.height)));
+   // } else {
+        resize(img, aux, sz, 0, 0, cv::INTER_NEAREST);
+
+        if (chConfig->getOpacity() == 1) {
+            aux.copyTo(layoutImg(cv::Rect(x, y, sz.width, sz.height)));
+        } else  {
+            addWeighted(
+                aux, 
+                chConfig->getOpacity(),
+                layoutImg, 
+                1 - chConfig->getOpacity(), 
+                0.0, 
+                layoutImg
+            );
+        }
+   // }
 }
 
 Reader* VideoMixer::setReader(int readerID, FrameQueue* queue)
@@ -167,7 +179,7 @@ Reader* VideoMixer::setReader(int readerID, FrameQueue* queue)
     Reader* r = new Reader();
     readers[readerID] = r;
 
-    channelsConfig[readerID] = new ChannelConfig(outputWidth, outputHeight, 0, 0, 0);
+    channelsConfig[readerID] = new ChannelConfig(1, 1, 0, 0, 0);
 
     return r;
 }
@@ -187,9 +199,10 @@ void VideoMixer::configChannelEvent(Jzon::Node* params, Jzon::Object &outputNode
     }
 
     if (!params->Has("id") || !params->Has("width") || !params->Has("height") || 
-                !params->Has("x") || !params->Has("y") || !params->Has("layer") || !params->Has("enabled")) {
+            !params->Has("x") || !params->Has("y") || !params->Has("layer") || 
+                !params->Has("enabled") || !params->Has("opacity")) {
 
-        outputNode.Add("error", "Error setting position and size. Check parameters!");
+        outputNode.Add("error", "Error configure channel. Check parameters!");
         return;
     }
 
@@ -200,8 +213,9 @@ void VideoMixer::configChannelEvent(Jzon::Node* params, Jzon::Object &outputNode
     float y = params->Get("y").ToFloat();
     int layer = params->Get("layer").ToInt();
     bool enabled = params->Get("enabled").ToBool();
+    float opacity = params->Get("opacity").ToFloat();
 
-    if (!configChannel(id, width, height, x, y, layer, enabled)) {
+    if (!configChannel(id, width, height, x, y, layer, enabled, opacity)) {
         outputNode.Add("error", "Error configurating channel. Check parameters!");
     } else {
         outputNode.Add("error", Jzon::null);
@@ -210,22 +224,24 @@ void VideoMixer::configChannelEvent(Jzon::Node* params, Jzon::Object &outputNode
 
 void VideoMixer::doGetState(Jzon::Object &filterNode)
 {
-    Jzon::Array jsonPosSize;
+    Jzon::Array jsonChannelConfigs;
 
     filterNode.Add("width", outputWidth);
     filterNode.Add("height", outputHeight);
     filterNode.Add("maxChannels", maxChannels);
 
     for (auto it : channelsConfig) {
-        Jzon::Object posSize;
-        posSize.Add("id", it.first);
-        posSize.Add("width", it.second->getWidth());
-        posSize.Add("height", it.second->getHeight());
-        posSize.Add("x", it.second->getX());
-        posSize.Add("y", it.second->getY());
-        posSize.Add("layer", it.second->getLayer());
-        jsonPosSize.Add(posSize);
+        Jzon::Object chConfig;
+        chConfig.Add("id", it.first);
+        chConfig.Add("width", it.second->getWidth());
+        chConfig.Add("height", it.second->getHeight());
+        chConfig.Add("x", it.second->getX());
+        chConfig.Add("y", it.second->getY());
+        chConfig.Add("layer", it.second->getLayer());
+        chConfig.Add("enabled", it.second->isEnabled());
+        chConfig.Add("opacity", it.second->getOpacity());
+        jsonChannelConfigs.Add(chConfig);
     }
 
-    filterNode.Add("channels", jsonPosSize);
+    filterNode.Add("channels", jsonChannelConfigs);
 }

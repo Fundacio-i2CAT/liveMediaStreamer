@@ -34,23 +34,25 @@
 class ChannelConfig {
 
 public:
-    ChannelConfig(int width, int height, int x, int y, int layer);
-    void config(int width, int height, int x, int y, int layer, bool enabled);
+    ChannelConfig(float width, float height, float x, float y, int layer);
+    void config(float width, float height, float x, float y, int layer, bool enabled, float opacity);
 
-    int getWidth() {return width;};
-    int getHeight() {return height;};
-    int getX() {return x;};
-    int getY() {return y;};
+    float getWidth() {return width;};
+    float getHeight() {return height;};
+    float getX() {return x;};
+    float getY() {return y;};
     int getLayer() {return layer;};
+    float getOpacity() {return opacity;};
     bool isEnabled() {return enabled;};
 
 private:
-    int width;
-    int height;
-    int x;
-    int y;
+    float width;
+    float height;
+    float x;
+    float y;
     int layer;
     bool enabled;
+    float opacity;
 };
 
 class VideoMixer : public ManyToOneFilter {
@@ -68,7 +70,7 @@ class VideoMixer : public ManyToOneFilter {
 
     private:
         void pasteToLayout(int frameID, VideoFrame* vFrame);
-        bool configChannel(int id, float width, float height, float x, float y, int layer, bool enabled);
+        bool configChannel(int id, float width, float height, float x, float y, int layer, bool enabled, float opacity);
 
         void configChannelEvent(Jzon::Node* params, Jzon::Object &outputNode); 
 

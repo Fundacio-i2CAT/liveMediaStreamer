@@ -30,7 +30,7 @@
 #include "modules/liveMediaOutput/SinkManager.hh"
 #include "Path.hh"
 
-#define MSG_BUFFER_MAX_LENGTH 4096
+#define MSG_BUFFER_MAX_LENGTH 4096*4
 
 class PipelineManager {
 public:

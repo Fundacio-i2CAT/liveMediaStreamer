@@ -179,7 +179,7 @@ Reader* VideoMixer::setReader(int readerID, FrameQueue* queue)
     Reader* r = new Reader();
     readers[readerID] = r;
 
-    channelsConfig[readerID] = new ChannelConfig(outputWidth, outputHeight, 0, 0, 0);
+    channelsConfig[readerID] = new ChannelConfig(1, 1, 0, 0, 0);
 
     return r;
 }

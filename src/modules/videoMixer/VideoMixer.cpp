@@ -32,7 +32,7 @@ PositionSize::PositionSize(int width, int height, int x, int y, int layer)
     this->x = x;
     this->y = y;
     this->layer = layer;
-    enabled = true;
+    enabled = false;
 }
 
 VideoMixer::VideoMixer(int inputChannels) : ManyToOneFilter(inputChannels, true)
@@ -163,8 +163,6 @@ void VideoMixer::initializeEventMap()
 
 void VideoMixer::setPositionSizeEvent(Jzon::Node* params, Jzon::Object &outputNode)
 {
-    std::cerr << "setPosition Event!" << std::endl;
-
     if (!params) {
         outputNode.Add("error", "Error changing master volume");
         return;
@@ -202,6 +200,7 @@ void VideoMixer::doGetState(Jzon::Object &filterNode)
 
     for (auto it : positionAndSizes) {
         Jzon::Object posSize;
+        posSize.Add("id", it.first);
         posSize.Add("width", it.second->getWidth());
         posSize.Add("height", it.second->getHeight());
         posSize.Add("x", it.second->getX());

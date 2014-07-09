@@ -58,13 +58,14 @@ public:
     void createFilterEvent(Jzon::Node* params, Jzon::Object &outputNode);
     void createPathEvent(Jzon::Node* params, Jzon::Object &outputNode);
     void addWorkerEvent(Jzon::Node* params, Jzon::Object &outputNode);
+    void addSlavesToWorkerEvent(Jzon::Node* params, Jzon::Object &outputNode);
 
 private:
     PipelineManager();
     bool removePath(int id);
     bool deletePath(Path* path); 
     BaseFilter* createFilter(FilterType type);
-    Path* createPath(int orgFilter, int dstFilter, int orgWriter, int dstReader, std::vector<int> midFilters, bool sharedQueue);
+    Path* createPath(int orgFilter, int dstFilter, int orgWriter, int dstReader, std::vector<int> midFilters, bool sharedQueue = false);
     
     static PipelineManager* pipeMngrInstance;
 
@@ -83,16 +84,18 @@ public:
     bool createSocket(int port);
     bool listenSocket();
     bool readAndParse();
-    bool processEvent();
     bool run() {return runFlag;};
+    void processRequest(); 
 
 protected:
     void initializeEventMap();
     
 private:
     Controller();
-    bool processFilterEvent(); 
-    bool processInternalEvent(); 
+    bool processFilterEvent(Jzon::Object event, int socket); 
+    bool processInternalEvent(Jzon::Object event, int socket); 
+    bool processEventArray(const Jzon::Array events);
+    bool processEvent(Jzon::Object event, int socket); 
 
     int listeningSocket, connectionSocket;
     char inBuffer[MSG_BUFFER_MAX_LENGTH];

@@ -138,63 +138,104 @@ bool Controller::readAndParse()
     return true;
 }
 
-bool Controller::processEvent()
+void Controller::processRequest() 
 {
-    if (inputRootNode->Get("filterID").ToInt() != 0) {
-        return processFilterEvent();
+    Jzon::Object outputNode;
+
+    if (inputRootNode->Get("events").IsArray()) {
+        const Jzon::Array &events = inputRootNode->Get("events").AsArray();
+
+        if (!processEventArray(events)) {
+            outputNode.Add("error", "Error while processing event array...");
+        } else {
+            outputNode.Add("error", Jzon::null);
+        }
+        
+        sendAndClose(outputNode, connectionSocket);
+
+    } else if (inputRootNode->Get("events").IsObject()) {
+        processEvent(inputRootNode->Get("events"), connectionSocket);
+
+    } else {
+        outputNode.Add("error", "Error while processing event. INvalid JSON format...");
+        sendAndClose(outputNode, connectionSocket);
     }
     
-    return processInternalEvent();
 }
 
-bool Controller::processFilterEvent() 
+bool Controller::processEventArray(const Jzon::Array events)
+{
+    for (Jzon::Array::const_iterator it = events.begin(); it != events.end(); ++it) {
+        if(!processEvent((*it), -1)) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+bool Controller::processEvent(Jzon::Object event, int socket) 
+{
+    if (event.Get("filterID").ToInt() != 0) {
+        return processFilterEvent(event, socket);
+    }
+ 
+    return processInternalEvent(event, socket);
+}
+
+bool Controller::processFilterEvent(Jzon::Object event, int socket) 
 {
     int filterID = -1;
+    int delay = 0;
     BaseFilter *filter = NULL;
     Jzon::Object outputNode;
 
-    if (!inputRootNode->Has("action") || !inputRootNode->Has("params")) {
+    if (!event.Has("action") || !event.Has("params")) {
         outputNode.Add("error", "Error while processing event. Invalid JSON format...");
-        sendAndClose(outputNode, connectionSocket);
+        sendAndClose(outputNode, socket);
         return false;
     }
 
-    filterID = inputRootNode->Get("filterID").ToInt();
+    filterID = event.Get("filterID").ToInt();
     filter = pipeMngrInstance->getFilter(filterID);
 
     if (!filter) {
         outputNode.Add("error", "Error while processing event. There is no filter with this ID...");
-        sendAndClose(outputNode, connectionSocket);
+        sendAndClose(outputNode, socket);
         return false;
     }
 
-    Event e(*inputRootNode, std::chrono::system_clock::now(), connectionSocket);
+    if (socket < 0 && event.Has("delay")) {
+        delay = event.Get("delay").ToInt();
+    }
+
+    Event e(event, std::chrono::system_clock::now(), socket, delay);
     filter->pushEvent(e);
 
     return true;
 }
 
-bool Controller::processInternalEvent() 
+bool Controller::processInternalEvent(Jzon::Object event, int socket) 
 {
     Jzon::Object outputNode;
 
-    if (!inputRootNode->Has("action") || !inputRootNode->Has("params")) {
+    if (!event.Has("action") || !event.Has("params")) {
         outputNode.Add("error", "Error while processing event. Invalid JSON format...");
-        sendAndClose(outputNode, connectionSocket);
+        sendAndClose(outputNode, socket);
         return false;
     }
 
-    std::string action = inputRootNode->Get("action").ToString();
-    Jzon::Object params = inputRootNode->Get("params");
+    std::string action = event.Get("action").ToString();
+    Jzon::Object params = event.Get("params");
 
     if (eventMap.count(action) <= 0) {
         outputNode.Add("error", "Error while processing event. The action does not exist...");
-        sendAndClose(outputNode, connectionSocket);
+        sendAndClose(outputNode, socket);
         return false;
     }
 
     eventMap[action](&params, outputNode);
-    sendAndClose(outputNode, connectionSocket);
+    sendAndClose(outputNode, socket);
 
     return true;
 }
@@ -210,6 +251,8 @@ void Controller::initializeEventMap()
     eventMap["createFilter"] = std::bind(&PipelineManager::createFilterEvent, pipeMngrInstance, 
                                             std::placeholders::_1, std::placeholders::_2);
     eventMap["addWorker"] = std::bind(&PipelineManager::addWorkerEvent, pipeMngrInstance, 
+                                            std::placeholders::_1, std::placeholders::_2);
+    eventMap["addSlavesToWorker"] = std::bind(&PipelineManager::addSlavesToWorkerEvent, pipeMngrInstance, 
                                             std::placeholders::_1, std::placeholders::_2);
 
 }
@@ -395,7 +438,12 @@ bool PipelineManager::connectPath(Path* path)
     std::vector<int> pathFilters = path->getFilters();
 
     if (pathFilters.empty()) {
-        if (filters[orgFilterId].first->connectManyToMany(filters[dstFilterId].first, path->getDstReaderID(), path->getOrgWriterID())) {
+        if (filters[orgFilterId].first->connectManyToMany(filters[dstFilterId].first, 
+                                                          path->getDstReaderID(), 
+                                                          path->getOrgWriterID(),
+                                                          path->getShared()
+                                                          )) 
+        {
             return true;
         } else {
             utils::errorMsg("Connecting head to tail!");
@@ -695,6 +743,7 @@ void PipelineManager::createPathEvent(Jzon::Node* params, Jzon::Object &outputNo
     dstFilterId = params->Get("dstFilterId").ToInt();
     orgWriterId = params->Get("orgWriterId").ToInt();
     dstReaderId = params->Get("dstReaderId").ToInt();
+    dstReaderId = params->Get("dstReaderId").ToInt();
     sharedQueue = params->Get("sharedQueue").ToBool();
 
     for (Jzon::Array::iterator it = jsonFiltersIds.begin(); it != jsonFiltersIds.end(); ++it) {
@@ -728,7 +777,7 @@ void PipelineManager::addWorkerEvent(Jzon::Node* params, Jzon::Object &outputNod
     Worker* worker = NULL;
 
     if(!params) {
-        outputNode.Add("error", "Error creating path. Invalid JSON format...");
+        outputNode.Add("error", "Error creating worker. Invalid JSON format...");
         return;
     }
 
@@ -757,6 +806,56 @@ void PipelineManager::addWorkerEvent(Jzon::Node* params, Jzon::Object &outputNod
     if (!addWorker(id, worker)) {
         outputNode.Add("error", "Error adding worker to filter. Check filter ID...");
         return;
+    }
+
+    startWorkers();
+
+    outputNode.Add("error", Jzon::null);
+}
+
+void PipelineManager::addSlavesToWorkerEvent(Jzon::Node* params, Jzon::Object &outputNode) 
+{
+    Master* master = NULL;
+    std::vector<Worker*> slaves;
+    int masterId;
+
+
+    if(!params) {
+        outputNode.Add("error", "Error adding slaves to worker. Invalid JSON format...");
+        return;
+    }
+
+    if (!params->Has("master")) {
+        outputNode.Add("error", "Error adding slaves to worker. Invalid JSON format...");
+        return;
+    }
+
+    if (!params->Has("slaves") || !params->Get("slaves").IsArray()) {
+        outputNode.Add("error", "Error adding slaves to worker. Invalid JSON format...");
+        return;
+    }
+
+    masterId = params->Get("master").ToInt();
+    Jzon::Array& jsonSlavesIds = params->Get("slaves").AsArray();
+
+    master = dynamic_cast<Master*>(getWorker(masterId));
+
+    if (!master) {
+        outputNode.Add("error", "Error adding slaves to worker. Invalid Master ID...");
+        return;
+    }
+
+    for (Jzon::Array::iterator it = jsonSlavesIds.begin(); it != jsonSlavesIds.end(); ++it) {
+        slaves.push_back(getWorker((*it).ToInt()));
+    }
+
+    for (auto it : slaves) {
+        if (!it) {
+            outputNode.Add("error", "Error adding slaves to worker. Invalid slave ID...");
+            return;
+        }
+
+        master->addSlave(dynamic_cast<Slave*>(it));
     }
 
     startWorkers();

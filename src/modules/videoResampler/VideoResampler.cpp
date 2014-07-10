@@ -62,6 +62,10 @@ bool VideoResampler::reconfigure(VideoFrame* orgFrame)
         orgFrame->getHeight() != inFrame->height ||
         orgFrame->getPixelFormat() != inPixFmt)
     {
+        std::cout << "needsConfig: " << needsConfig << std::endl;
+
+
+
         inPixFmt = orgFrame->getPixelFormat();
         libavInPixFmt = getLibavPixFmt(inPixFmt);
 
@@ -85,10 +89,13 @@ bool VideoResampler::reconfigure(VideoFrame* orgFrame)
         imgConvertCtx = sws_getContext(orgFrame->getWidth(), orgFrame->getHeight(), 
                                        libavInPixFmt, outWidth, outHeight,
                                        libavOutPixFmt, SWS_FAST_BILINEAR, 0, 0, 0);
+
         if (!imgConvertCtx){
             utils::errorMsg("Could not get the swscale context");
             return false;
         }
+
+        needsConfig = false;
     }
     return true;
 }

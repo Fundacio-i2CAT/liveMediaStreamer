@@ -135,9 +135,9 @@ bool SinkManager::addConnection(int reader, std::string ip, unsigned int port){
     void* streamState = NULL;
     netAddressBits addr = our_inet_addr(ip.c_str());
     netAddressBits dstAddr;
-    unsigned clientSessionId;
-    unsigned short rtpSeqNum;
-    unsigned rtpTimestamp;
+    u_int32_t clientSessionId;
+    unsigned short rtpSeqNum = 0;
+    unsigned rtpTimestamp = 0;
     uint8_t destinationTTL = 255;
     Boolean multicast = False;
     Port serverRTPPort(0);
@@ -169,17 +169,33 @@ bool SinkManager::addConnection(int reader, std::string ip, unsigned int port){
     }
     
     do {
-        clientSessionId = rand();
+        clientSessionId = our_random32();
     } while (qSubsession->hasDestinationClient(clientSessionId));
     
-    subIt.reset();
-    subsession = subIt.next();
+    subsession->getStreamParameters(clientSessionId, addr, 
+                                    port, port + 1, -1, 0, 0, dstAddr, destinationTTL, 
+                                    multicast, serverRTPPort, serverRTCPPort, streamState);
     
-    subsession->getStreamParameters(clientSessionId, addr, port, port + 1, 
-                                    -1, 0, 0, dstAddr, destinationTTL, multicast, 
-                                    serverRTPPort, serverRTCPPort, streamState);
-    subsession->startStream(clientSessionId, streamState, NULL, 
-                            NULL, rtpSeqNum, rtpTimestamp, NULL, NULL);
+    //NOTE delete it
+//     if (!qSubsession->hasDestinationClient(clientSessionId)){
+//         utils::infoMsg("no destionation added");
+//         //return false;
+//     } else {
+//         utils::infoMsg("Got subsession parameters");
+//     }
+    
+    if (streamState == NULL){
+        utils::infoMsg("no stream state");
+        //return false;
+    } else {
+        utils::infoMsg("Got subsession stream state");
+    }
+    
+    
+    
+    subsession->startStream(clientSessionId, 
+                            streamState, NULL, NULL, rtpSeqNum, rtpTimestamp, NULL, NULL);
+    
     connections[clientSessionId].first = reader;
     connections[clientSessionId].second = (StreamState*) streamState;
     

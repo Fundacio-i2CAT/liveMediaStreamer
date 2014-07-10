@@ -37,12 +37,17 @@ AudioEncoderLibav::AudioEncoderLibav()  : OneToOneFilter()
 
     codec = NULL;
     codecCtx = NULL;
+    resampleCtx = NULL;
     libavFrame = av_frame_alloc();
     av_init_packet(&pkt);
     pkt.data = NULL;
+    internalBuffer = NULL;
     pkt.size = 0;
     fType = AUDIO_ENCODER;
 
+    internalChannels = DEFAULT_CHANNELS;
+    internalSampleRate = DEFAULT_SAMPLE_RATE;
+    fCodec = OPUS;
     channels = DEFAULT_CHANNELS;
     sampleRate = DEFAULT_SAMPLE_RATE;
     sampleFmt = S16P;
@@ -50,6 +55,10 @@ AudioEncoderLibav::AudioEncoderLibav()  : OneToOneFilter()
     initializeEventMap();
 	presentationTime = utils::getPresentationTime();
 	timestamp = ((uint64_t)presentationTime.tv_sec * (uint64_t)1000000) + (uint64_t)presentationTime.tv_usec;
+
+    configure(OPUS);
+
+    config();
 }
 
 AudioEncoderLibav::~AudioEncoderLibav()
@@ -73,7 +82,9 @@ bool AudioEncoderLibav::doProcessFrame(Frame *org, Frame *dst)
 
     AudioFrame* aRawFrame = dynamic_cast<AudioFrame*>(org);
 
-    checkInputParams(aRawFrame->getSampleFmt(), aRawFrame->getChannels(), aRawFrame->getSampleRate());
+    if(!reconfigure(aRawFrame)) {
+        return false;
+    }
     
     //set up buffer and buffer length pointers
     pkt.data = dst->getDataBuf();
@@ -113,7 +124,7 @@ Reader* AudioEncoderLibav::setReader(int readerID, FrameQueue* queue)
     return r;
 }
 
-bool AudioEncoderLibav::configure(ACodecType codec, int internalChannels, int internalSampleRate)
+void AudioEncoderLibav::configure(ACodecType codec, int internalChannels, int internalSampleRate)
 {
     fCodec = codec;
     this->internalChannels = internalChannels;
@@ -150,7 +161,7 @@ bool AudioEncoderLibav::configure(ACodecType codec, int internalChannels, int in
             break;
     }
 
-    return config();
+    needsConfig = true;
 }
 
 bool AudioEncoderLibav::config() 
@@ -212,7 +223,7 @@ bool AudioEncoderLibav::config()
                     sampleRate,
                     0,
                     NULL 
-                  );  
+                  );
 
     if (resampleCtx == NULL) {
         fprintf(stderr, "Error allocating resample context\n");
@@ -265,35 +276,7 @@ bool AudioEncoderLibav::config()
         return false;
     }
 
-    return true;
-}
-
-bool AudioEncoderLibav::inputConfig()
-{
-     resampleCtx = swr_alloc_set_opts
-                  (
-                    resampleCtx, 
-                    av_get_default_channel_layout(internalChannels),
-                    internalLibavSampleFormat, 
-                    internalSampleRate,
-                    av_get_default_channel_layout(channels),
-                    libavSampleFmt,
-                    sampleRate,
-                    0,
-                    NULL 
-                  );  
-
-    if (resampleCtx == NULL) {
-        fprintf(stderr, "Error allocating resample context\n");
-        return false;
-    }
-
-    if (swr_is_initialized(resampleCtx) == 0) {
-        if (swr_init(resampleCtx) < 0) {
-            fprintf(stderr, "Error initializing encoder resample context\n");
-            return false;
-        } 
-    }
+    needsConfig = false;
 
     return true;
 }
@@ -325,47 +308,46 @@ int AudioEncoderLibav::resample(AudioFrame* src, AVFrame* dst)
     }
 }
 
-void AudioEncoderLibav::checkInputParams(SampleFmt sampleFormat, int channels, int sampleRate)
-{
-    if (sampleFmt == sampleFormat && this->channels == channels && this->sampleRate == sampleRate) {
-        return;
-    }
+bool AudioEncoderLibav::reconfigure(AudioFrame* frame)
+{    
+    if (sampleFmt != frame->getSampleFmt() || 
+        channels != frame->getChannels() || 
+        sampleRate != frame->getSampleRate() ||
+        needsConfig)
+    {
+        sampleFmt = frame->getSampleFmt();
+        channels = frame->getChannels();
+        sampleRate = frame->getSampleRate();
 
-    sampleFmt = sampleFormat;
-    this->channels = channels;
-    this->sampleRate = sampleRate;
+        switch(sampleFmt){
+            case U8:
+                libavSampleFmt = AV_SAMPLE_FMT_U8;
+                break;
+            case S16:
+                libavSampleFmt = AV_SAMPLE_FMT_S16;
+                break;
+            case FLT:
+                libavSampleFmt = AV_SAMPLE_FMT_FLT;
+                break;
+            case U8P:
+                libavSampleFmt = AV_SAMPLE_FMT_U8P;
+                break;
+            case S16P:
+                libavSampleFmt = AV_SAMPLE_FMT_S16P;
+                break;
+            case FLTP:
+                libavSampleFmt = AV_SAMPLE_FMT_FLTP;
+                break;
+            default:
+                libavSampleFmt = AV_SAMPLE_FMT_NONE;
+                break;
+        }
 
-    switch(sampleFmt){
-        case U8:
-            libavSampleFmt = AV_SAMPLE_FMT_U8;
-            break;
-        case S16:
-            libavSampleFmt = AV_SAMPLE_FMT_S16;
-            break;
-        case FLT:
-            libavSampleFmt = AV_SAMPLE_FMT_FLT;
-            break;
-        case U8P:
-            libavSampleFmt = AV_SAMPLE_FMT_U8P;
-            break;
-        case S16P:
-            libavSampleFmt = AV_SAMPLE_FMT_S16P;
-            break;
-        case FLTP:
-            libavSampleFmt = AV_SAMPLE_FMT_FLTP;
-            break;
-        default:
-            libavSampleFmt = AV_SAMPLE_FMT_NONE;
-            break;
-    }
+        return config();
 
-    if (channels != internalChannels || sampleRate != internalSampleRate) {
-        internalChannels = channels;
-        internalSampleRate = sampleRate;
-        config();
-    } else {
-        inputConfig();
-    }
+    } 
+
+    return true;
 }
 
 void AudioEncoderLibav::setPresentationTime(Frame* dst) 
@@ -394,11 +376,9 @@ void AudioEncoderLibav::configEvent(Jzon::Node* params, Jzon::Object &outputNode
         newChannels = params->Get("channels").ToInt();
     }
 
-    if(!configure(fCodec, newChannels, newSampleRate)) {
-        outputNode.Add("error", "Error configuring audio encoder");
-    } else {
-        outputNode.Add("error", Jzon::null);
-    }
+    configure(fCodec, newChannels, newSampleRate);
+
+    outputNode.Add("error", Jzon::null);
 }
 
 void AudioEncoderLibav::initializeEventMap()

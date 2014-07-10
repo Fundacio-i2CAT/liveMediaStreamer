@@ -22,6 +22,8 @@
  */
 
 
+#include <Groupsock.hh>
+
 #include "SinkManager.hh"
 #include "../../AVFramedQueue.hh"
 #include "../../AudioCircularBuffer.hh"
@@ -87,7 +89,15 @@ bool SinkManager::processFrame(bool removeFrame)
 bool SinkManager::addSession(std::string id, std::vector<int> readers, std::string info, std::string desc)
 {
     if (sessionList.count(id) > 0){
+        utils::errorMsg("Could not add session, already existing ID");
         return false;
+    }
+    
+    for(auto it : readers){
+        if (activeReaders.count(it) > 0){
+            utils::errorMsg("Readers already included in other sessions");
+            return false;
+        }
     }
     
     ServerMediaSession* servSession
@@ -103,12 +113,75 @@ bool SinkManager::addSession(std::string id, std::vector<int> readers, std::stri
         if ((subsession = createSubsessionByReader(getReader(reader), reader)) != NULL) {
             servSession->addSubsession(subsession);
         } else {
-            //TODO: delete ServerMediaSession and previous subsessions
+            servSession->deleteAllSubsessions();
+            Medium::close(servSession);
             return false;
         }
     }
     
     sessionList[id] = servSession;
+    
+    for(auto it : readers){
+        activeReaders[it] = id;
+    }
+    
+    return true;
+}
+
+bool SinkManager::addConnection(int reader, std::string ip, unsigned int port){
+    ServerMediaSubsession* subsession;
+    QueueServerMediaSubsession* qSubsession;
+    ServerMediaSession* session;
+    void* streamState = NULL;
+    netAddressBits addr = our_inet_addr(ip.c_str());
+    netAddressBits dstAddr;
+    uint32_t clientSessionId;
+    unsigned short rtpSeqNum;
+    unsigned rtpTimestamp;
+    uint8_t destinationTTL = 255;
+    Boolean multicast = False;
+    Port serverRTPPort(0);
+    Port serverRTCPPort(0);
+    
+    if ((port % 2) != 0){
+        utils::errorMsg("Port must be an even number");
+        return false;
+    }
+    
+    if (activeReaders.count(reader) <= 0){
+        utils::errorMsg("Reader is not active, must have an associated session");
+        return false;
+    }
+    
+    session = sessionList[activeReaders[reader]];
+    ServerMediaSubsessionIterator subIt(*session);
+    subsession = subIt.next();
+    
+    while(subsession){
+        if (!(qSubsession = dynamic_cast<QueueServerMediaSubsession *>(subsession))){
+            utils::errorMsg("Could not cast to QueueServerMediaSubsession");
+            return false;
+        }
+        if (qSubsession->getReaderId() == reader){
+            break;
+        }
+        subsession = subIt.next();
+    }
+    
+    do {
+        clientSessionId = rand();
+    } while (qSubsession->hasDestinationSession(clientSessionId));
+    
+    subIt.reset();
+    subsession = subIt.next();
+    
+    subsession->getStreamParameters(clientSessionId, addr, port, port + 1, 
+                                    -1, 0, 0, dstAddr, destinationTTL, multicast, 
+                                    serverRTPPort, serverRTCPPort, streamState);
+    subsession->startStream(clientSessionId, streamState, NULL, 
+                            NULL, rtpSeqNum, rtpTimestamp, NULL, NULL);
+    connections[clientSessionId].first = reader;
+    connections[clientSessionId].second = dynamic_cast<StreamState*> (streamState);
     
     return true;
 }
@@ -164,19 +237,47 @@ ServerMediaSubsession *SinkManager::createSubsessionByReader(Reader *reader, int
 
 bool SinkManager::removeSession(std::string id)
 {   
-    if (sessionList.find(id) == sessionList.end()){
+    if (sessionList.count(id) <= 0){
         utils::errorMsg("Failed, no session found with this id (" + id + ")");
         return false;
     }
-   
-    //TODO: manage closure, should add RTSP reference?
     
-    //RTSPServer::closeAllClientSessionsForServerMediaSession()
-    //session->deleteAllSubsessions()
+    for( std::map<int, std::string>::iterator i = activeReaders.begin(); i != activeReaders.end(); ) {
+        if(i->second.compare(id) == 0) {
+            activeReaders.erase( i++ ); 
+        } else {
+            ++i;
+        }
+    }
+    
+    rtspServer->closeAllClientSessionsForServerMediaSession(sessionList[id]);
+    sessionList[id]->deleteAllSubsessions();
+    Medium::close(sessionList[id]);
     
     sessionList.erase(id);
     
     return false;
+}
+
+bool SinkManager::deleteReader(int id)
+{
+    Reader* reader = getReader(id);
+    if (reader == NULL){
+        return false;
+    }
+    
+    if (activeReaders.count(id) > 0){
+        removeSession(activeReaders[id]);
+    }
+    
+    if (reader->isConnected()) {
+        return false;
+    }
+    
+    delete reader;
+    readers.erase(id);
+    
+    return true;
 }
 
 bool SinkManager::publishSession(std::string id)
@@ -284,28 +385,3 @@ void SinkManager::doGetState(Jzon::Object &filterNode)
 
     filterNode.Add("sessions", sessionArray);
 }
-
-std::string SinkManager::getSessionIdFromReaderId(int readerId)
-{
-    ServerMediaSubsession* subsession;
-    std::string sessionID;
-
-    for (auto it : sessionList) {
-        ServerMediaSubsessionIterator sIt(*it.second);
-        subsession = sIt.next();
-
-        while(subsession) {
-            if (readerId == dynamic_cast<QueueServerMediaSubsession*>(subsession)->getReaderId()) {
-                sessionID = it.first;
-                return sessionID;
-            }
-
-            subsession = sIt.next();
-        }
-    }
-
-    return sessionID;
-}
-
-
-

@@ -28,12 +28,13 @@
 #include "../../IOInterface.hh"
 
 #include <BasicUsageEnvironment.hh>
-#include <liveMedia/liveMedia.hh>
+#include <liveMedia.hh>
 #include <map>
 #include <string>
 
 #define RTSP_PORT 8554
 #define MAX_VIDEO_FRAME_SIZE 256*1024
+#define MANUAL_CLIENT_SESSION_ID 1
 
 class SinkManager : public TailFilter {
 private:
@@ -47,11 +48,12 @@ public:
 
     bool addSession(std::string id, std::vector<int> readers, 
                     std::string info = "", std::string desc = "");
+    bool addConnection(int reader, std::string ip, unsigned int port);
     
     ServerMediaSession* getSession(std::string id); 
     bool publishSession(std::string id);
     bool removeSession(std::string id);
-    std::string getSessionIdFromReaderId(int readerId);
+    bool deleteReader(int id);
     
     void stop();
     
@@ -70,6 +72,8 @@ private:
    
     static SinkManager* mngrInstance;
     std::map<std::string, ServerMediaSession*> sessionList;
+    std::map<int, std::string> activeReaders;
+    std::map<int, std::pair<int, StreamState*>> connections;
     UsageEnvironment* env;
     uint8_t watch;
     

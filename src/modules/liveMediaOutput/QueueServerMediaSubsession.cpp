@@ -31,8 +31,14 @@ QueueServerMediaSubsession
         fReader(reader), fReaderId(readerId) {
 }
 
-QueueServerMediaSubsession::~QueueServerMediaSubsession() {
+QueueServerMediaSubsession::~QueueServerMediaSubsession() 
+{
     //TODO:
     //delete[] fQueue;
+}
+
+bool hasDestinationSession(uint32_t id)
+{
+    return fDestinationsHashTable->Lookup(id) != NULL;
 }
 

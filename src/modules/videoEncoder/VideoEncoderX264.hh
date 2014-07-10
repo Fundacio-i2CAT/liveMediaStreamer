@@ -47,7 +47,7 @@ class VideoEncoderX264: public OneToOneFilter {
 		bool doProcessFrame(Frame *org, Frame *dst);
         bool configure(int gop_ = DEFAULT_GOP, int fps_ = DEFAULT_FRAME_RATE, 
                        int bitrate_ = DEFAULT_BITRATE, 
-                       int threads_ = DEFAULT_ENCODER_THREADS, bool annexB_ = false);		
+                       int threads_ = DEFAULT_ENCODER_THREADS, bool annexB_ = true);		
 		void setIntra(){forceIntra = true;};
 		FrameQueue* allocQueue(int wId);
 		void initializeEventMap();		

@@ -37,8 +37,8 @@ QueueServerMediaSubsession::~QueueServerMediaSubsession()
     //delete[] fQueue;
 }
 
-bool hasDestinationSession(uint32_t id)
+bool QueueServerMediaSubsession::hasDestinationClient(unsigned id)
 {
-    return fDestinationsHashTable->Lookup(id) != NULL;
+    return fDestinationsHashTable->Lookup(std::to_string(id).c_str()) != NULL;
 }
 

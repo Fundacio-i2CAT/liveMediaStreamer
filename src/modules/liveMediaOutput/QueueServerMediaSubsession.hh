@@ -32,11 +32,11 @@
 class QueueServerMediaSubsession: public OnDemandServerMediaSubsession {
 public:
     int getReaderId() {return fReaderId;};
+    bool hasDestinationClient(unsigned id);
+    
 protected: 
     QueueServerMediaSubsession(UsageEnvironment& env, Reader *reader,
                                int readerId, Boolean reuseFirstSource);
-    
-    bool hasDestinationSession(uint32_t id);
     
     virtual ~QueueServerMediaSubsession();
 

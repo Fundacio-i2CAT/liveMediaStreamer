@@ -22,7 +22,7 @@
  */
 
 
-#include <Groupsock.hh>
+#include <GroupsockHelper.hh>
 
 #include "SinkManager.hh"
 #include "../../AVFramedQueue.hh"
@@ -135,7 +135,7 @@ bool SinkManager::addConnection(int reader, std::string ip, unsigned int port){
     void* streamState = NULL;
     netAddressBits addr = our_inet_addr(ip.c_str());
     netAddressBits dstAddr;
-    uint32_t clientSessionId;
+    unsigned clientSessionId;
     unsigned short rtpSeqNum;
     unsigned rtpTimestamp;
     uint8_t destinationTTL = 255;
@@ -170,7 +170,7 @@ bool SinkManager::addConnection(int reader, std::string ip, unsigned int port){
     
     do {
         clientSessionId = rand();
-    } while (qSubsession->hasDestinationSession(clientSessionId));
+    } while (qSubsession->hasDestinationClient(clientSessionId));
     
     subIt.reset();
     subsession = subIt.next();
@@ -181,7 +181,7 @@ bool SinkManager::addConnection(int reader, std::string ip, unsigned int port){
     subsession->startStream(clientSessionId, streamState, NULL, 
                             NULL, rtpSeqNum, rtpTimestamp, NULL, NULL);
     connections[clientSessionId].first = reader;
-    connections[clientSessionId].second = dynamic_cast<StreamState*> (streamState);
+    connections[clientSessionId].second = (StreamState*) streamState;
     
     return true;
 }

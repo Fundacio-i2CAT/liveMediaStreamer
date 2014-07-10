@@ -73,7 +73,7 @@ private:
     static SinkManager* mngrInstance;
     std::map<std::string, ServerMediaSession*> sessionList;
     std::map<int, std::string> activeReaders;
-    std::map<int, std::pair<int, StreamState*>> connections;
+    std::map<unsigned, std::pair<int, StreamState*>> connections;
     UsageEnvironment* env;
     uint8_t watch;
     

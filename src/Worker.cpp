@@ -27,6 +27,7 @@
 #define ACTIVE_TIMEOUT 500
 
 #include <chrono>
+#include <iostream>
 #include "Worker.hh"
 
 Worker::Worker(): run(false), enabled(false), pendingTask(false), canExecute(false)
@@ -267,6 +268,7 @@ void BestEffortMaster::process()
         checkPendingTasks();
 
         for (auto it : processors) {
+            it.second->processEvent();
 
             if (!enabled || !it.second->hasFrames()) {
                 continue;
@@ -316,6 +318,7 @@ void BestEffortSlave::process()
         checkPendingTasks();
 
         for (auto it : processors) {
+            it.second->processEvent();
 
             if (!enabled || finished) {
                 continue;
@@ -368,7 +371,10 @@ void ConstantFramerateMaster::process()
 
         startPoint = std::chrono::system_clock::now();
 
+        checkPendingTasks();
+
         for (auto it : processors) {
+            it.second->processEvent();
 
             if (!enabled || !it.second->hasFrames()) {
                 continue;
@@ -421,7 +427,10 @@ void ConstantFramerateSlave::process()
 
         startPoint = std::chrono::system_clock::now();
 
+        checkPendingTasks();
+
         for (auto it : processors) {
+            it.second->processEvent();
 
             if (!enabled || finished) {
                 continue;

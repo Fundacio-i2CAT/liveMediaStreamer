@@ -315,6 +315,7 @@ void BaseFilter::getState(Jzon::Object &filterNode)
 {
     eventQueueMutex.lock();
     filterNode.Add("type", utils::getFilterTypeAsString(fType));
+    filterNode.Add("workerId", workerId);
     doGetState(filterNode);
     eventQueueMutex.unlock();
 }

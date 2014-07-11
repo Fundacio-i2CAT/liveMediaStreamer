@@ -350,6 +350,7 @@ void PipelineManager::getStateEvent(Jzon::Node* params, Jzon::Object &outputNode
 {
     Jzon::Array filterList;
     Jzon::Array pathList;
+    Jzon::Array workersList;
 
     for (auto it : filters) {
         Jzon::Object filter;
@@ -380,6 +381,15 @@ void PipelineManager::getStateEvent(Jzon::Node* params, Jzon::Object &outputNode
     }
 
     outputNode.Add("paths", pathList);
+    
+    for (auto it : workers) {
+        Jzon::Object worker;
+        worker.Add("id", it.first);
+        workersList.Add(worker);
+    }
+
+    outputNode.Add("workers", workersList);
+
 }
 
 void PipelineManager::reconfigAudioEncoderEvent(Jzon::Node* params, Jzon::Object &outputNode)
@@ -612,6 +622,42 @@ void PipelineManager::addSlavesToWorkerEvent(Jzon::Node* params, Jzon::Object &o
 
     for (Jzon::Array::iterator it = jsonSlavesIds.begin(); it != jsonSlavesIds.end(); ++it) {
         master->addSlave((*it).ToInt(), dynamic_cast<Slave*>(workers[(*it).ToInt()]));
+    }
+
+    startWorkers();
+
+    outputNode.Add("error", Jzon::null);
+}
+
+void PipelineManager::addFiltersToWorkerEvent(Jzon::Node* params, Jzon::Object &outputNode)
+{
+    int workerId;
+    Worker *worker = NULL;
+
+    if(!params) {
+        outputNode.Add("error", "Error adding slaves to worker. Invalid JSON format...");
+        return;
+    }
+
+    if (!params->Has("worker")) {
+        outputNode.Add("error", "Error adding filters to worker. Invalid JSON format...");
+        return;
+    }
+
+    if (!params->Has("filters") || !params->Get("filters").IsArray()) {
+        outputNode.Add("error", "Error adding filters to worker. Invalid JSON format...");
+        return;
+    }
+
+    workerId = params->Get("worker").ToInt();
+    Jzon::Array& jsonFiltersIds = params->Get("filters").AsArray();
+
+    for (Jzon::Array::iterator it = jsonFiltersIds.begin(); it != jsonFiltersIds.end(); ++it) {
+
+        if (!addFilterToWorker(workerId, (*it).ToInt())) {
+            outputNode.Add("error", "Error adding filters to worker. Invalid internal error...");
+            return;
+        }
     }
 
     startWorkers();

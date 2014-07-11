@@ -247,6 +247,8 @@ void Controller::initializeEventMap()
                                             std::placeholders::_1, std::placeholders::_2);
     eventMap["addSlavesToWorker"] = std::bind(&PipelineManager::addSlavesToWorkerEvent, pipeMngrInstance, 
                                             std::placeholders::_1, std::placeholders::_2);
+    eventMap["addFiltersToWorker"] = std::bind(&PipelineManager::addFiltersToWorkerEvent, pipeMngrInstance, 
+                                            std::placeholders::_1, std::placeholders::_2);
 
 }
 

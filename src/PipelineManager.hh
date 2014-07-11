@@ -68,6 +68,8 @@ public:
     void createPathEvent(Jzon::Node* params, Jzon::Object &outputNode);
     void addWorkerEvent(Jzon::Node* params, Jzon::Object &outputNode);
     void addSlavesToWorkerEvent(Jzon::Node* params, Jzon::Object &outputNode);
+    void addFiltersToWorkerEvent(Jzon::Node* params, Jzon::Object &outputNode);
+
 
 private:
     PipelineManager();

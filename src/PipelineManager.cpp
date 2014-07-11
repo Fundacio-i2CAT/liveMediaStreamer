@@ -132,7 +132,7 @@ BaseFilter* PipelineManager::getFilter(int id)
 
 bool PipelineManager::addWorker(int id, Worker* worker)
 {
-    if (workers.count(id) <= 0) {
+    if (workers.count(id) > 0) {
         return false;
     }
 

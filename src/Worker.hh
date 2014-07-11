@@ -29,6 +29,9 @@
 #include <thread>
 #include <map>
 #include "Frame.hh"
+#include "Types.hh"
+#include "Jzon.h"
+#include "Utils.hh"
 
 #define MAX_SLAVE 16
 #define DEFAULT_MAX_FPS 24
@@ -41,7 +44,6 @@ public:
     Worker(Runnable *processor_);
     Worker();
     void setProcessor(Runnable *processor);
-
     
     bool start();
     bool isRunning();
@@ -51,6 +53,10 @@ public:
     bool isEnabled();
     bool addProcessor(int id, Runnable *processor);
     bool removeProcessor(int id);
+    WorkerType getType(){return type;};
+    std::map<int, Runnable*> getProcessors(){return processors;};
+    void getState(Jzon::Object &workerNode);
+
     
 protected:
     virtual void process() = 0;
@@ -65,6 +71,7 @@ protected:
     std::atomic<bool> pendingTask;
     std::atomic<bool> canExecute;
 
+    WorkerType type;
     //TODO: owuld be good to make it atomic, but not sure if it is lock-free
 };
 

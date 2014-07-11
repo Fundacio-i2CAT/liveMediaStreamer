@@ -29,7 +29,6 @@
 #include <chrono>
 #include "Worker.hh"
 
-
 Worker::Worker(): run(false), enabled(false), pendingTask(false), canExecute(false)
 {
 }
@@ -136,6 +135,18 @@ void Worker::commitTask()
     pendingTask = false;
 }
 
+void Worker::getState(Jzon::Object &workerNode)
+{
+    Jzon::Array pList;
+    for (auto it : processors) {
+        pList.Add(it.first);
+    }
+
+    workerNode.Add("type", utils::getWorkerTypeAsString(type));
+    workerNode.Add("processors", pList);
+}
+
+
 ///////////////////////////////////////////////////
 //            LIVEMEDIAWORKER CLASS              //
 ///////////////////////////////////////////////////
@@ -143,6 +154,7 @@ void Worker::commitTask()
 LiveMediaWorker::LiveMediaWorker() : Worker()
 {
     enabled = false;
+    type = LIVEMEDIA;
 }
 
 void LiveMediaWorker::process()
@@ -238,7 +250,10 @@ void Slave::setFalse()
 //           BEST EFFORT MASTER CLASS            //
 ///////////////////////////////////////////////////
 
-BestEffortMaster::BestEffortMaster() : Master() {}
+BestEffortMaster::BestEffortMaster() : Master() 
+{
+    type = BEST_EFFORT_MASTER;
+}
 
 void BestEffortMaster::process() 
 {
@@ -284,7 +299,10 @@ void BestEffortMaster::process()
 //           BEST EFFORT SLAVE CLASS             //
 ///////////////////////////////////////////////////
 
-BestEffortSlave::BestEffortSlave() : Slave() {}
+BestEffortSlave::BestEffortSlave() : Slave()
+{
+    type = BEST_EFFORT_SLAVE;
+}
 
 void BestEffortSlave::process() 
 {
@@ -328,6 +346,7 @@ void BestEffortSlave::process()
 ConstantFramerateMaster::ConstantFramerateMaster(unsigned int maxFps) : Master()
 {
      frameTime = 1000000/maxFps;
+     type = C_FRAMERATE_MASTER;
 }
 
 void ConstantFramerateMaster::setFps(unsigned int maxFps)
@@ -379,7 +398,8 @@ void ConstantFramerateMaster::process()
 
 ConstantFramerateSlave::ConstantFramerateSlave(unsigned int maxFps) : Slave()
 {
-     frameTime = 1000000/maxFps;
+    frameTime = 1000000/maxFps;
+    type = C_FRAMERATE_SLAVE;
 }
 
 void ConstantFramerateSlave::setFps(unsigned int maxFps)

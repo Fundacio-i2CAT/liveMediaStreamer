@@ -208,6 +208,32 @@ namespace utils
         return stringFormat;
 
     }
+
+    std::string getWorkerTypeAsString(WorkerType type)
+    {
+        std::string stringWorker;
+
+        switch(type) {
+            case LIVEMEDIA:
+                stringWorker = "livemedia";
+                break;
+            case BEST_EFFORT_MASTER:
+                stringWorker = "bestEffortMaster";
+                break;
+            case BEST_EFFORT_SLAVE:
+                stringWorker = "bestEffortSlave";
+                break;
+            case C_FRAMERATE_MASTER:
+                stringWorker = "cFramerateMaster";
+                break;
+            case C_FRAMERATE_SLAVE:
+                stringWorker = "cFramerateSlave";
+                break;
+        }
+
+        return stringWorker;
+    }
+
     
     char randAlphaNum()
     {

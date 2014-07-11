@@ -393,6 +393,7 @@ void PipelineManager::getStateEvent(Jzon::Node* params, Jzon::Object &outputNode
     for (auto it : workers) {
         Jzon::Object worker;
         worker.Add("id", it.first);
+        it.second->getState(worker);
         workersList.Add(worker);
     }
 
@@ -576,9 +577,9 @@ void PipelineManager::addWorkerEvent(Jzon::Node* params, Jzon::Object &outputNod
         worker = new BestEffortMaster();
     } else if (type.compare("bestEffortSlave") == 0) {
         worker = new BestEffortSlave();
-    } else if (type.compare("constantFramerateMaster") == 0) {
+    } else if (type.compare("cFramerateMaster") == 0) {
         worker = new ConstantFramerateMaster();
-    } else if (type.compare("constantFramerateMaster") == 0) {
+    } else if (type.compare("cFramerateMaster") == 0) {
         worker = new ConstantFramerateSlave();
     }
 

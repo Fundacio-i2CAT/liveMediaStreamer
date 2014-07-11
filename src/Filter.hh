@@ -65,7 +65,8 @@ public:
     virtual void pushEvent(Event e);
     void getState(Jzon::Object &filterNode);
     bool deleteReader(int id);
-
+    int getWorkerId(){return workerId;};
+    void setWorkerId(int id){workerId = id;};
     
 protected:
     BaseFilter(int maxReaders_, int maxWriters_, bool force_ = false);
@@ -102,6 +103,7 @@ private:
     int maxReaders;
     std::priority_queue<Event> eventQueue;
     std::mutex eventQueueMutex;
+    int workerId;
     
     std::map<int, bool> rUpdates;
 };

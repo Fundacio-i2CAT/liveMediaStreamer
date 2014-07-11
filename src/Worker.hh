@@ -27,10 +27,11 @@
 
 #include <atomic>
 #include <thread>
-#include <list>
+#include <map>
 #include "Frame.hh"
 
 #define MAX_SLAVE 16
+#define DEFAULT_MAX_FPS 24
 
 class Runnable;
 
@@ -48,20 +49,28 @@ public:
     virtual void enable();
     virtual void disable();
     bool isEnabled();
-    
+    bool addProcessor(int id, Runnable *processor);
+    bool removeProcessor(int id);
     
 protected:
     virtual void process() = 0;
-    Runnable *processor;
+    void checkPendingTasks();
+    void signalTask();
+    void commitTask();  
+
+    std::map<int, Runnable*> processors;
     std::thread thread;
     std::atomic<bool> run;
     std::atomic<bool> enabled;
+    std::atomic<bool> pendingTask;
+    std::atomic<bool> canExecute;
+
     //TODO: owuld be good to make it atomic, but not sure if it is lock-free
 };
 
 class LiveMediaWorker : public Worker {
 public:
-    LiveMediaWorker(Runnable *processor_);
+    LiveMediaWorker();
     void enable() {};
     void disable() {};
     void stop();
@@ -69,51 +78,67 @@ private:
     void process();
 };
 
-class BestEffort : public Worker {
+class Slave : public Worker {
 public:
-	BestEffort(Runnable *processor_);
-	BestEffort();
-protected:
-	void process();
-};
-
-class ConstantFramerate : public Worker {
-public:
-	ConstantFramerate(Runnable *processor_, unsigned int maxFps = 24);
-	ConstantFramerate();
-	void setFps(unsigned int maxFps);
-protected:
-	virtual void process() = 0;
-	unsigned int frameTime; //microseconds
-};
-
-class Slave : public ConstantFramerate {
-public:
-	Slave(int id_, Runnable *processor_, unsigned int maxFps = 24);
 	Slave();
-	int getId(){return id;};
 	bool getFinished(){return finished;};
 	void setFalse();
+
 protected:
-	void process();
-private:
-	int id;
+	virtual void process() = 0;
 	std::atomic<bool> finished;	
 };
 
-class Master : public ConstantFramerate {
+class Master : public Worker {
 public:
-	Master(Runnable *processor_, unsigned int maxFps = 24);
 	Master();
-	bool addSlave(Slave *slave_);
-	void removeSlave(int id);
+	bool addSlave(int id, Slave *slave);
+	bool removeSlave(int id);
+
 protected:
-	void process();
-private:
-	std::list<Slave*> slaves;
+	virtual void process() = 0;
 	bool allFinished();
 	void processAll();
+
+private:
+    std::map<int, Slave*> slaves;
+
 };
+
+class BestEffortMaster : public Master {
+public:
+    BestEffortMaster();
+
+protected:
+    void process();
+};
+
+class BestEffortSlave : public Slave {
+public:
+    BestEffortSlave();
+
+protected:
+    void process();
+};
+
+class ConstantFramerateMaster : public Master {
+public:
+    ConstantFramerateMaster(unsigned int maxFps = DEFAULT_MAX_FPS);
+    void setFps(unsigned int maxFps);
+protected:
+    void process();
+    unsigned int frameTime; //microseconds
+};
+
+class ConstantFramerateSlave : public Slave {
+public:
+    ConstantFramerateSlave(unsigned int maxFps = DEFAULT_MAX_FPS);
+    void setFps(unsigned int maxFps);
+protected:
+    void process();
+    unsigned int frameTime; //microseconds
+};
+
 
 class Runnable {
     

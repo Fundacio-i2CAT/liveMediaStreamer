@@ -25,55 +25,12 @@
 #define _CONTROLLER_HH
 
 #include <vector>
+#include <map>
+#include <functional>
 
-#include "modules/liveMediaInput/SourceManager.hh"
-#include "modules/liveMediaOutput/SinkManager.hh"
-#include "Path.hh"
+#include "PipelineManager.hh"
 
 #define MSG_BUFFER_MAX_LENGTH 4096*4
-
-class PipelineManager {
-public:
-    static PipelineManager* getInstance();
-    static void destroyInstance();
-    int getReceiverID() {return receiverID;};
-    int getTransmitterID() {return transmitterID;};
-    int searchFilterIDByType(FilterType type);
-    bool addPath(int id, Path* path);
-    bool addWorker(int id, Worker* worker);
-    bool addFilter(int id, BaseFilter* filter);
-    BaseFilter* getFilter(int id);
-    Worker* getWorker(int id);
-    SourceManager* getReceiver();
-    SinkManager* getTransmitter();
-
-    Path* getPath(int id);
-    std::map<int, Path*> getPaths() {return paths;};
-    bool connectPath(Path* path);   
-    bool addWorkerToPath(Path *path, Worker* worker = NULL);
-    void startWorkers();
-    void stopWorkers();
-    void getStateEvent(Jzon::Node* params, Jzon::Object &outputNode);
-    void reconfigAudioEncoderEvent(Jzon::Node* params, Jzon::Object &outpuNode);
-    void createFilterEvent(Jzon::Node* params, Jzon::Object &outputNode);
-    void createPathEvent(Jzon::Node* params, Jzon::Object &outputNode);
-    void addWorkerEvent(Jzon::Node* params, Jzon::Object &outputNode);
-    void addSlavesToWorkerEvent(Jzon::Node* params, Jzon::Object &outputNode);
-
-private:
-    PipelineManager();
-    bool removePath(int id);
-    bool deletePath(Path* path); 
-    BaseFilter* createFilter(FilterType type);
-    Path* createPath(int orgFilter, int dstFilter, int orgWriter, int dstReader, std::vector<int> midFilters, bool sharedQueue = false);
-    
-    static PipelineManager* pipeMngrInstance;
-
-    std::map<int, Path*> paths;
-    std::map<int, std::pair<BaseFilter*, Worker*> > filters;
-    int receiverID;
-    int transmitterID;
-};
 
 class Controller {
 public:

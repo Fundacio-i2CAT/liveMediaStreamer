@@ -29,32 +29,53 @@
 #include <chrono>
 #include "Worker.hh"
 
-Worker::Worker(Runnable *processor_): processor(processor_), run(false), enabled(false)
-{ 
-   /* if (maxFps != 0){
-        frameTime = 1000000/maxFps;
-    } else {
-        frameTime = 0;
-    }*/
-	this->processor = processor_;
-    enabled = true;
-}
 
-Worker::Worker(): run(false), enabled(false)
-{ 
-    processor = NULL;
-}
-
-void Worker::setProcessor(Runnable *processor) 
+Worker::Worker(): run(false), enabled(false), pendingTask(false), canExecute(false)
 {
-    /*if (maxFps != 0){
-        frameTime = 1000000/maxFps;
-    } else {
-        frameTime = 0;
-    }*/
+}
 
-    this->processor = processor;
+bool Worker::addProcessor(int id, Runnable *processor) 
+{
+    if (processors.count(id) > 0) {
+        return false;
+    }
+
+    if (!run) {
+        processors[id] = processor;
+        enabled = true;
+        return true;
+    }
+
+    signalTask();
+
+    processors[id] = processor;
     enabled = true;
+
+    commitTask();
+
+    return true;
+}
+
+bool Worker::removeProcessor(int id)
+{
+    if (processors.count(id) <= 0) {
+        return false;
+    }
+
+    if (!run) {
+        delete processors[id];
+        processors.erase(id);
+        return true;
+    }
+
+    signalTask();
+
+    delete processors[id];
+    processors.erase(id);
+
+    commitTask();
+
+    return true;
 }
 
 bool Worker::start()
@@ -94,75 +115,222 @@ bool Worker::isEnabled()
     return enabled;
 }
 
+void Worker::checkPendingTasks()
+{
+    if (pendingTask) {
+        canExecute = true;
+
+        while (pendingTask) {}
+        canExecute = false;
+    }
+}
+
+void Worker::signalTask()
+{
+    pendingTask = true;
+    while (!canExecute) {}
+}
+
+void Worker::commitTask()
+{
+    pendingTask = false;
+}
+
 ///////////////////////////////////////////////////
 //            LIVEMEDIAWORKER CLASS              //
 ///////////////////////////////////////////////////
 
-LiveMediaWorker::LiveMediaWorker(Runnable *processor_) : Worker(processor_){
+LiveMediaWorker::LiveMediaWorker() : Worker()
+{
     enabled = false;
 }
 
 void LiveMediaWorker::process()
 {
     enabled = true;
-    processor->processFrame();
+    processors.begin()->second->processFrame();
     enabled = false;
 }
 
 void LiveMediaWorker::stop()
 {   
-    processor->stop();
+    processors.begin()->second->stop();
     if (isRunning()){
         thread.join();
     }
 }
 
 ///////////////////////////////////////////////////
-//              BESTEFFORT CLASS                 //
+//                MASTER CLASS                   //
 ///////////////////////////////////////////////////
 
-BestEffort::BestEffort(Runnable *processor_) : Worker(processor_){
+Master::Master() : Worker() 
+{
+    slaves.clear();
 }
 
-BestEffort::BestEffort() : Worker(){
+bool Master::addSlave(int id, Slave *slave) 
+{
+    if (slaves.size() == MAX_SLAVE) {
+        return false;
+    }
+
+    if (slaves.count(id) > 0) {
+        return false;
+    }
+
+    slaves[id] = slave;
+
+    return true;        
 }
 
-void BestEffort::process() {
-	int idleCount = 0;
+bool Master::removeSlave(int id) 
+{   
+    if (slaves.count(id) <= 0) {
+        return false;
+    }
+
+    slaves.erase(id);
+
+    return true;
+}
+
+bool Master::allFinished() 
+{
+    bool end = true;
+
+    if (slaves.empty()) {
+        return end;
+    }
+
+    for (auto it : slaves) {
+        if (!it.second->getFinished()) {
+            end = false;
+            break;
+        }
+    }
+
+    return end;
+}
+
+void Master::processAll() 
+{
+    for (auto it :slaves) {
+        it.second->setFalse();
+    }
+}
+
+///////////////////////////////////////////////////
+//                SLAVE CLASS                    //
+///////////////////////////////////////////////////
+
+Slave::Slave() : Worker() 
+{
+    finished = true;
+}
+
+void Slave::setFalse() 
+{
+    finished = false;
+}
+
+///////////////////////////////////////////////////
+//           BEST EFFORT MASTER CLASS            //
+///////////////////////////////////////////////////
+
+BestEffortMaster::BestEffortMaster() : Master() {}
+
+void BestEffortMaster::process() 
+{
+    int idleCount = 0;
+    bool idleFlag = true;
     std::chrono::microseconds active(ACTIVE);
     std::chrono::milliseconds idle(IDLE);
-	while(run){
-		while (enabled && processor->processFrame()){
-			idleCount = 0;
-        }
-        
-        if (idleCount <= ACTIVE_TIMEOUT){
-            idleCount++;
-            std::this_thread::sleep_for(active);
-        } else {
-            std::this_thread::sleep_for(idle);
-        }
-	}
-}
 
+    while(run) {
+        idleFlag = true;
+        checkPendingTasks();
+
+        for (auto it : processors) {
+
+            if (!enabled || !it.second->hasFrames()) {
+                continue;
+            }
+
+            processAll();
+            it.second->processFrame(false);
+
+            while (!allFinished()) {
+                /* Maybe we can sleep a bit here */
+            }
+
+            it.second->removeFrames();
+            idleFlag = false;
+            idleCount = 0;
+        }
+
+        if (idleFlag) {
+            if (idleCount <= ACTIVE_TIMEOUT){
+                idleCount++;
+                std::this_thread::sleep_for(active);
+            } else {
+                std::this_thread::sleep_for(idle);
+            }
+        }
+    }
+}
 
 ///////////////////////////////////////////////////
-//          CONSTANTFRAMERATE CLASS              //
+//           BEST EFFORT SLAVE CLASS             //
 ///////////////////////////////////////////////////
 
-ConstantFramerate::ConstantFramerate(Runnable *processor_, unsigned int maxFps) : Worker(processor_){
-	if (maxFps != 0){
-		frameTime = 1000000/maxFps;
-	} else {
-		frameTime = 1000000/24;
-	}
+BestEffortSlave::BestEffortSlave() : Slave() {}
+
+void BestEffortSlave::process() 
+{
+    int idleCount = 0;
+    bool idleFlag = true;
+    std::chrono::microseconds active(ACTIVE);
+    std::chrono::milliseconds idle(IDLE);
+
+    while(run) {
+        idleFlag = true;
+        checkPendingTasks();
+
+        for (auto it : processors) {
+
+            if (!enabled || finished) {
+                continue;
+            }
+
+            finished = true;
+            it.second->processFrame(false);
+
+            idleFlag = false;
+            idleCount = 0;
+        }
+
+        if (idleFlag) {
+            if (idleCount <= ACTIVE_TIMEOUT){
+                idleCount++;
+                std::this_thread::sleep_for(active);
+            } else {
+                std::this_thread::sleep_for(idle);
+            }
+        }
+    }
 }
 
-ConstantFramerate::ConstantFramerate() : Worker() {
-	frameTime = 1000000/24;
+///////////////////////////////////////////////////
+//        CONST FRAMERATE SLAVE CLASS            //
+///////////////////////////////////////////////////
+
+ConstantFramerateMaster::ConstantFramerateMaster(unsigned int maxFps) : Master()
+{
+     frameTime = 1000000/maxFps;
 }
 
-void ConstantFramerate::setFps(unsigned int maxFps)
+void ConstantFramerateMaster::setFps(unsigned int maxFps)
 {
     if (maxFps != 0){
         frameTime = 1000000/maxFps;
@@ -171,138 +339,82 @@ void ConstantFramerate::setFps(unsigned int maxFps)
     }
 }
 
-///////////////////////////////////////////////////
-//                MASTER CLASS                   //
-///////////////////////////////////////////////////
-
-Master::Master(Runnable *processor_, unsigned int maxFps):ConstantFramerate(processor_,maxFps) {
-	slaves.clear();
-}
-
-Master::Master():ConstantFramerate() {
-	slaves.clear();
-}
-
-bool Master::addSlave(Slave *slave_) {
-	if (slaves.size() == MAX_SLAVE)
-		return false;
-	slaves.push_back(slave_);
-	return true;		
-}
-
-void Master::removeSlave(int id) {
-	for (std::list<Slave*>::iterator it = slaves.begin(); it != slaves.end(); it++) {
-		Slave* slave = *it;
-		if (slave->getId() == id) {
-			slaves.remove(slave);
-			break;
-		}
-	}
-}
-
-void Master::process() {
-	int accumulatedTime = 0;
-	int threshold = int(frameTime/10);
+void ConstantFramerateMaster::process()
+{
     std::chrono::microseconds enlapsedTime;
-    std::chrono::system_clock::time_point previousTime;
-	int idleCount = 0;
-    std::chrono::microseconds active(ACTIVE);
-    std::chrono::milliseconds idle(IDLE);
+    std::chrono::system_clock::time_point startPoint;
+    std::chrono::microseconds chronoFrameTime(frameTime);
 
-	std::atomic<bool> sync;
-	sync = true;
+    while(run) {
 
-    while(run){
-        while (enabled && processor->hasFrames()) {
-			if (sync) {
-				previousTime = std::chrono::system_clock::now();
-				processAll();
-				sync = false;				
-				processor->processFrame(false);
-			}
-			while (!allFinished()){
-			}
-			enlapsedTime = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now() - previousTime);
-			accumulatedTime+= frameTime - enlapsedTime.count();
-			if (((-1) * accumulatedTime) >  threshold) {
-				accumulatedTime= 0 - threshold;
-			}
-			while (accumulatedTime >  threshold){
-                std::this_thread::sleep_for(std::chrono::microseconds(accumulatedTime - threshold));
-				accumulatedTime= threshold;
+        startPoint = std::chrono::system_clock::now();
+
+        for (auto it : processors) {
+
+            if (!enabled || !it.second->hasFrames()) {
+                continue;
             }
-			processor->removeFrames();
-			sync = true;
-			idleCount = 0;
+
+            processAll();
+            it.second->processFrame(false);
+
+            while (!allFinished()) {
+                /* Maybe we can sleep a bit here */
+            }
+
+            it.second->removeFrames();
         }
-		if (idleCount <= ACTIVE_TIMEOUT){
-            idleCount++;
-            std::this_thread::sleep_for(active);
-        } else {
-            std::this_thread::sleep_for(idle);
-        }      
-    }
-}
 
-bool Master::allFinished() {
-	bool end = true;
-	if (!slaves.empty()) {
-		for (std::list<Slave*>::iterator it = slaves.begin(); it != slaves.end(); it++) {
-			Slave* slave = *it;
-			if (slave->getFinished() == false) {
-				end = false;
-				break;
-			}
-		}
-	}
-	return end;
-}
+        enlapsedTime = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now() - startPoint);
 
-void Master::processAll() {
-	for (std::list<Slave*>::iterator it = slaves.begin(); it != slaves.end(); it++) {
-		Slave* slave = *it;
-		slave->setFalse();	
-	}
-}
-
-///////////////////////////////////////////////////
-//                SLAVE CLASS                    //
-///////////////////////////////////////////////////
-
-Slave::Slave(int id_, Runnable *processor_, unsigned int maxFps):ConstantFramerate(processor_,maxFps) {
-	id = id_;
-	finished = true;
-}
-
-Slave::Slave():ConstantFramerate() {
-}
-
-void Slave::process() {
-	int accumulatedTime = 0;
-	int threshold = int(frameTime/10);
-    std::chrono::microseconds enlapsedTime;
-    std::chrono::system_clock::time_point previousTime;
-
-    while(run){
-        while (enabled && !finished) {
-			finished = true;
-			previousTime = std::chrono::system_clock::now();
-            if (processor->processFrame(false)) {
-				enlapsedTime = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now() - previousTime);
-				accumulatedTime+= frameTime - enlapsedTime.count();
-				if (((-1) * accumulatedTime) >  threshold) {
-					accumulatedTime= 0 - threshold;
-				}
-				while (accumulatedTime >  threshold){
-                	std::this_thread::sleep_for(std::chrono::microseconds(accumulatedTime - threshold));
-					accumulatedTime= threshold;
-				}				
-            }
+        if (enlapsedTime < chronoFrameTime) {
+            std::this_thread::sleep_for(std::chrono::microseconds(chronoFrameTime - enlapsedTime));
         }
     }
 }
 
-void Slave::setFalse() {
-	finished = false;
+///////////////////////////////////////////////////
+//        CONST FRAMERATE SLAVE CLASS            //
+///////////////////////////////////////////////////
+
+ConstantFramerateSlave::ConstantFramerateSlave(unsigned int maxFps) : Slave()
+{
+     frameTime = 1000000/maxFps;
 }
 
+void ConstantFramerateSlave::setFps(unsigned int maxFps)
+{
+    if (maxFps != 0){
+        frameTime = 1000000/maxFps;
+    } else {
+        frameTime = 1000000/24;
+    }
+}
+
+void ConstantFramerateSlave::process() 
+{
+    std::chrono::microseconds enlapsedTime;
+    std::chrono::system_clock::time_point startPoint;
+    std::chrono::microseconds chronoFrameTime(frameTime);
+
+    while(run) {
+
+        startPoint = std::chrono::system_clock::now();
+
+        for (auto it : processors) {
+
+            if (!enabled || finished) {
+                continue;
+            }
+
+            finished = true;
+            it.second->processFrame(false);
+        }
+
+        enlapsedTime = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now() - startPoint);
+
+        if (enlapsedTime < chronoFrameTime) {
+            std::this_thread::sleep_for(std::chrono::microseconds(chronoFrameTime - enlapsedTime));
+        }
+    }
+}

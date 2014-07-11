@@ -27,15 +27,23 @@ PipelineManager::PipelineManager()
 {
     pipeMngrInstance = this;
     receiverID = rand();
+    int receiverWorkerId = rand();
     transmitterID = rand();
+    int transmitterWorkerId = rand();
+
     addFilter(receiverID, SourceManager::getInstance());
     addFilter(transmitterID, SinkManager::getInstance());
-
     LiveMediaWorker *receiverWorker = new LiveMediaWorker();
-    receiverWorker->addProcessor(receiverID, SourceManager::getInstance());
-
     LiveMediaWorker *transmitterWorker = new LiveMediaWorker();
+
+    addWorker(receiverWorkerId, receiverWorker);
+    addWorker(transmitterWorkerId, transmitterWorker);
+
+    receiverWorker->addProcessor(receiverID, SourceManager::getInstance());
+    SourceManager::getInstance()->setWorkerId(receiverWorkerId);
+
     transmitterWorker->addProcessor(transmitterID, SinkManager::getInstance());
+    SinkManager::getInstance()->setWorkerId(transmitterWorkerId);
 }
 
 PipelineManager* PipelineManager::getInstance()

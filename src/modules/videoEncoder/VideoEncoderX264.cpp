@@ -38,10 +38,13 @@ VideoEncoderX264::VideoEncoderX264(bool force_): OneToOneFilter(force_)
     midFrame = av_frame_alloc();
 	presentationTime = utils::getPresentationTime();
 	timestamp = ((uint64_t)presentationTime.tv_sec * (uint64_t)1000000) + (uint64_t)presentationTime.tv_usec;
+
+    initializeEventMap();
 }
 
 VideoEncoderX264::~VideoEncoderX264(){
 	//TODO: delete encoder;
+    initializeEventMap();
 }
 
 bool VideoEncoderX264::doProcessFrame(Frame *org, Frame *dst) {
@@ -269,7 +272,7 @@ void VideoEncoderX264::forceIntraEvent(Jzon::Node* params)
 void VideoEncoderX264::initializeEventMap()
 {
 	eventMap["forceIntra"] = std::bind(&VideoEncoderX264::forceIntraEvent, this, std::placeholders::_1);
-    eventMap["configEvent"] = std::bind(&VideoEncoderX264::configEvent, this, std::placeholders::_1, std::placeholders::_2);
+    eventMap["configure"] = std::bind(&VideoEncoderX264::configEvent, this, std::placeholders::_1, std::placeholders::_2);
 }
 
 void VideoEncoderX264::doGetState(Jzon::Object &filterNode)

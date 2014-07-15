@@ -268,22 +268,24 @@ void BestEffortMaster::process()
         checkPendingTasks();
 
         processAll();
-        
+
         for (auto it : processors) {
             it.second->processEvent();
 
-            if (!it.second->isEnabled()) {
+            if (!it.second->isEnabled() || !it.second->hasFrames()) {
                 continue;
             }
 
-            idleFlag &= it.second->processFrame(false);
+            if (it.second->processFrame(false)) {
+                idleFlag = false;
+                idleCount = 0;
+            }
+
         }
 
         while (!allFinished()) {
             std::this_thread::sleep_for(active);
         }
-
-        idleCount = 0;
 
         for (auto it : processors) {
             it.second->removeFrames();
@@ -316,7 +318,6 @@ void BestEffortSlave::process()
     std::chrono::milliseconds idle(IDLE);
 
     while(run) {
-        
         checkPendingTasks();
 
         if (finished) {
@@ -332,16 +333,17 @@ void BestEffortSlave::process()
         for (auto it : processors) {
             it.second->processEvent();
 
-            if (!enabled) {
+            if (!it.second->isEnabled()) {
                 continue;
             }
 
             it.second->processFrame(false);
 
         }
-
-        finished = true;
+        
         idleCount = 0;
+        finished = true;
+
     }
 }
 

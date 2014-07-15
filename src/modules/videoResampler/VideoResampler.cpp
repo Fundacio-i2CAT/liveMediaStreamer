@@ -62,9 +62,6 @@ bool VideoResampler::reconfigure(VideoFrame* orgFrame)
         orgFrame->getHeight() != inFrame->height ||
         orgFrame->getPixelFormat() != inPixFmt)
     {
-        std::cout << "needsConfig: " << needsConfig << std::endl;
-
-
 
         inPixFmt = orgFrame->getPixelFormat();
         libavInPixFmt = getLibavPixFmt(inPixFmt);

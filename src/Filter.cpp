@@ -34,7 +34,7 @@
 #define DISC_TIMEOUT 1000 //us
 
 BaseFilter::BaseFilter(int maxReaders_, int maxWriters_, bool force_) : 
-    force(force_), maxReaders(maxReaders_), maxWriters(maxWriters_)
+    force(force_), maxReaders(maxReaders_), maxWriters(maxWriters_), enabled(true)
 {
 
 }

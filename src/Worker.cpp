@@ -228,7 +228,7 @@ bool Master::allFinished()
 
 void Master::processAll() 
 {
-    for (auto it :slaves) {
+    for (auto it : slaves) {
         it.second->setFalse();
     }
 }
@@ -267,23 +267,26 @@ void BestEffortMaster::process()
         idleFlag = true;
         checkPendingTasks();
 
+        processAll();
+        
         for (auto it : processors) {
             it.second->processEvent();
 
-            if (!enabled || !it.second->hasFrames()) {
+            if (!it.second->isEnabled()) {
                 continue;
             }
 
-            processAll();
-            it.second->processFrame(false);
+            idleFlag &= it.second->processFrame(false);
+        }
 
-            while (!allFinished()) {
-                /* Maybe we can sleep a bit here */
-            }
+        while (!allFinished()) {
+            std::this_thread::sleep_for(active);
+        }
 
+        idleCount = 0;
+
+        for (auto it : processors) {
             it.second->removeFrames();
-            idleFlag = false;
-            idleCount = 0;
         }
 
         if (idleFlag) {
@@ -309,36 +312,36 @@ BestEffortSlave::BestEffortSlave() : Slave()
 void BestEffortSlave::process() 
 {
     int idleCount = 0;
-    bool idleFlag = true;
     std::chrono::microseconds active(ACTIVE);
     std::chrono::milliseconds idle(IDLE);
 
     while(run) {
-        idleFlag = true;
+        
         checkPendingTasks();
 
-        for (auto it : processors) {
-            it.second->processEvent();
-
-            if (!enabled || finished) {
-                continue;
-            }
-
-            finished = true;
-            it.second->processFrame(false);
-
-            idleFlag = false;
-            idleCount = 0;
-        }
-
-        if (idleFlag) {
+        if (finished) {
             if (idleCount <= ACTIVE_TIMEOUT){
                 idleCount++;
                 std::this_thread::sleep_for(active);
             } else {
                 std::this_thread::sleep_for(idle);
             }
+            continue;
         }
+
+        for (auto it : processors) {
+            it.second->processEvent();
+
+            if (!enabled) {
+                continue;
+            }
+
+            it.second->processFrame(false);
+
+        }
+
+        finished = true;
+        idleCount = 0;
     }
 }
 

@@ -153,7 +153,8 @@ public:
     virtual bool processFrame(bool removeFrame = true) = 0;
     virtual void processEvent() = 0;
 	virtual void removeFrames() = 0;
-	virtual bool hasFrames() = 0;
+    virtual bool hasFrames() = 0;
+	virtual bool isEnabled() = 0;
     virtual void stop() = 0;
 };
 

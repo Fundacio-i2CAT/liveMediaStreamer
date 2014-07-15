@@ -67,6 +67,7 @@ public:
     bool deleteReader(int id);
     int getWorkerId(){return workerId;};
     void setWorkerId(int id){workerId = id;};
+    bool isEnabled(){return enabled;};
     
 protected:
     BaseFilter(int maxReaders_, int maxWriters_, bool force_ = false);
@@ -104,6 +105,7 @@ private:
     std::priority_queue<Event> eventQueue;
     std::mutex eventQueueMutex;
     int workerId;
+    bool enabled;
     
     std::map<int, bool> rUpdates;
 };

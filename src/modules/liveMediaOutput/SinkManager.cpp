@@ -89,7 +89,7 @@ bool SinkManager::processFrame(bool removeFrame)
 bool SinkManager::addSession(std::string id, std::vector<int> readers, std::string info, std::string desc)
 {
     if (sessionList.count(id) > 0){
-        utils::errorMsg("Could not add session, already existing ID");
+        utils::errorMsg("Failed, this session already exists: " + id);
         return false;
     }
     
@@ -104,6 +104,7 @@ bool SinkManager::addSession(std::string id, std::vector<int> readers, std::stri
         = ServerMediaSession::createNew(*(envir()), id.c_str(), info.c_str(), desc.c_str());
         
     if (servSession == NULL){
+        utils::errorMsg("Failed creating new ServerMediaSession");
         return false;
     }
     
@@ -176,22 +177,10 @@ bool SinkManager::addConnection(int reader, std::string ip, unsigned int port){
                                     port, port + 1, -1, 0, 0, dstAddr, destinationTTL, 
                                     multicast, serverRTPPort, serverRTCPPort, streamState);
     
-    //NOTE delete it
-//     if (!qSubsession->hasDestinationClient(clientSessionId)){
-//         utils::infoMsg("no destionation added");
-//         //return false;
-//     } else {
-//         utils::infoMsg("Got subsession parameters");
-//     }
-    
-    if (streamState == NULL){
-        utils::infoMsg("no stream state");
-        //return false;
-    } else {
-        utils::infoMsg("Got subsession stream state");
-    }
-    
-    
+    if (!qSubsession->hasDestinationClient(clientSessionId) || streamState == NULL){
+        utils::infoMsg("Could not getStreamParameters");
+        return false;
+    } 
     
     subsession->startStream(clientSessionId, 
                             streamState, NULL, NULL, rtpSeqNum, rtpTimestamp, NULL, NULL);
@@ -338,7 +327,7 @@ void SinkManager::addSessionEvent(Jzon::Node* params, Jzon::Object &outputNode)
     std::string sessionId;
 
     if (!params) {
-        outputNode.Add("error", "Error adding session. Wrong parameters!");
+        outputNode.Add("error", "Error adding session. No parameters!");
         return;
     }
 
@@ -349,7 +338,7 @@ void SinkManager::addSessionEvent(Jzon::Node* params, Jzon::Object &outputNode)
     }
 
     if (!params->Has("readers") || !params->Get("readers").IsArray()) {
-        outputNode.Add("error", "Error adding session. Wrong parameters!");
+        outputNode.Add("error", "Error adding session. Readers does not exist or is not an array!");
         return;
     }
         
@@ -360,11 +349,13 @@ void SinkManager::addSessionEvent(Jzon::Node* params, Jzon::Object &outputNode)
     }
     
     if (readers.empty()) {
-        outputNode.Add("error", "Error adding session. Wrong parameters!");
+        outputNode.Add("error", "Error adding session. Readers array is empty!");
+        return;
     }
 
     if(!addSession(sessionId, readers)) {
-        outputNode.Add("error", "Error adding session. Wrong parameters!");
+        outputNode.Add("error", "Error adding session. Internal error!");
+        return;
     }
 
     publishSession(sessionId);

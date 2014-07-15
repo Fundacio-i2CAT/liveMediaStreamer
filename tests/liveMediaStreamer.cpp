@@ -57,7 +57,6 @@ void createAudioMixerEncoderTxPath()
     }
 
     Path *path = new AudioEncoderPath(audioMixerID, pipeMngr->getFilter(audioMixerID)->generateWriterID());
-    dynamic_cast<AudioEncoderLibav*>(pipeMngr->getFilter(path->getFilters().front()))->configure(PCM);
 
     path->setDestinationFilter(pipeMngr->getTransmitterID(), pipeMngr->getTransmitter()->generateReaderID());
 
@@ -80,50 +79,6 @@ void createAudioMixerEncoderTxPath()
     pipeMngr->startWorkers();
 }
 
-void createVideoMixerEncoderTxPath()
-{
-    PipelineManager *pipeMngr = Controller::getInstance()->pipelineManager();
-    
-    VideoMixer *mixer = new VideoMixer(4);
-    int videoMixerID = rand();
-
-    if(!pipeMngr->addFilter(videoMixerID, mixer)) {
-        std::cerr << "Error adding mixer to the pipeline" << std::endl;
-    }
-
-    Path *path = new VideoEncoderPath(videoMixerID, mixer->generateWriterID());
-
-    path->setDestinationFilter(pipeMngr->getTransmitterID(), pipeMngr->getTransmitter()->generateReaderID());
-
-    int encoderId = path->getFilters().front();
-    VideoEncoderX264 *encoder = dynamic_cast<VideoEncoderX264*>(pipeMngr->getFilter(encoderId));
-
-    encoder->configure(1280, 720, YUYV422, VENCODER_FPS, VENCODER_FPS, 4000);
-
-    Worker* worker = new Master(pipeMngr->getFilter(encoderId), VENCODER_FPS);
-    pipeMngr->addWorker(encoderId, worker);
-    utils::debugMsg("New worker created for filter " + std::to_string(encoderId));
-    worker->start();
-    utils::debugMsg("Worker " + std::to_string(encoderId) + " started");
-
-    if (!pipeMngr->connectPath(path)) {
-        exit(1);
-    }
-
-    int encoderPathID = rand();
-
-    if (!pipeMngr->addPath(encoderPathID, path)) {
-        exit(1);
-    }
-
-    Worker* videoMixerWorker = new BestEffort();
-    if(!pipeMngr->addWorker(videoMixerID, videoMixerWorker)) {
-        std::cerr << "Error adding mixer worker" << std::endl;
-        exit(1);
-    }
-
-    pipeMngr->startWorkers();
-}
 
 int main(int argc, char *argv[]) {
 
@@ -137,9 +92,6 @@ int main(int argc, char *argv[]) {
     }
 
     Controller* ctrl = Controller::getInstance();
-    //ctrl->pipelineManager()->getReceiver()->setCallback(callbacks::connectToMixerCallback);
-
-    //createVideoMixerEncoderTxPath();
 
     port = atoi(argv[1]);
     if (!ctrl->createSocket(port)) {

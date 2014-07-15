@@ -468,17 +468,6 @@ bool PipelineManager::connectPath(Path* path)
         return false;
     }
 
-    //TODO: manage worker assignment better
-    for (auto it : pathFilters) {
-        if (filters[it].second == NULL) { 
-            Worker* worker = new BestEffort(filters[it].first);
-            filters[it].second = worker;
-            utils::debugMsg("New worker created for filter " + std::to_string(it));
-            worker->start();
-            utils::debugMsg("Worker " + std::to_string(it) + " started");
-        }
-    }
-
     return true;
 }
 
@@ -742,7 +731,6 @@ void PipelineManager::createPathEvent(Jzon::Node* params, Jzon::Object &outputNo
     orgFilterId = params->Get("orgFilterId").ToInt();
     dstFilterId = params->Get("dstFilterId").ToInt();
     orgWriterId = params->Get("orgWriterId").ToInt();
-    dstReaderId = params->Get("dstReaderId").ToInt();
     dstReaderId = params->Get("dstReaderId").ToInt();
     sharedQueue = params->Get("sharedQueue").ToBool();
 

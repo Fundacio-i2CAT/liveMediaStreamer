@@ -39,6 +39,6 @@ QueueServerMediaSubsession::~QueueServerMediaSubsession()
 
 bool QueueServerMediaSubsession::hasDestinationClient(unsigned id)
 {
-    return fDestinationsHashTable->Lookup(std::to_string(id).c_str()) != NULL;
+    return fDestinationsHashTable->Lookup((char const*) id) != NULL;
 }
 

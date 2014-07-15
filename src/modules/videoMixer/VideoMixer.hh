@@ -31,31 +31,28 @@
 #define MAX_LAYERS 8
 #define VMIXER_MAX_CHANNELS 8
 
-class PositionSize {
+class ChannelConfig {
 
 public:
-    PositionSize(int width, int height, int x, int y, int layer);
-    int getWidth() {return width;};
-    int getHeight() {return height;};
-    int getX() {return x;};
-    int getY() {return y;};
+    ChannelConfig(float width, float height, float x, float y, int layer);
+    void config(float width, float height, float x, float y, int layer, bool enabled, float opacity);
+
+    float getWidth() {return width;};
+    float getHeight() {return height;};
+    float getX() {return x;};
+    float getY() {return y;};
     int getLayer() {return layer;};
+    float getOpacity() {return opacity;};
     bool isEnabled() {return enabled;};
-    void setWidth(int width) {this->width = width;};
-    void setHeight(int height) {this->height = height;};
-    void setX(int x) {this->x = x;};
-    void setY(int y) {this->y = y;};
-    void setLayer(int layer) {this->layer = layer;};
-    void setEnabled(bool enabled) {this->enabled = enabled;};
 
 private:
-    int width;
-    int height;
-    int x;
-    int y;
+    float width;
+    float height;
+    float x;
+    float y;
     int layer;
     bool enabled;
-
+    float opacity;
 };
 
 class VideoMixer : public ManyToOneFilter {
@@ -73,10 +70,11 @@ class VideoMixer : public ManyToOneFilter {
 
     private:
         void pasteToLayout(int frameID, VideoFrame* vFrame);
-        bool setPositionSize(int id, float width, float height, float x, float y, int layer, bool enabled);
-        void setPositionSizeEvent(Jzon::Node* params, Jzon::Object &outputNode); 
+        bool configChannel(int id, float width, float height, float x, float y, int layer, bool enabled, float opacity);
 
-        std::map<int, PositionSize*> positionAndSizes;        
+        void configChannelEvent(Jzon::Node* params, Jzon::Object &outputNode); 
+
+        std::map<int, ChannelConfig*> channelsConfig;        
         int outputWidth;
         int outputHeight;
         cv::Mat layoutImg;

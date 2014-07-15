@@ -25,8 +25,6 @@
 #include "../../AVFramedQueue.hh"
 #include "../../Utils.hh"
 
-
-
 AVPixelFormat getLibavPixFmt(PixType pixType);
 
 VideoResampler::VideoResampler()
@@ -46,6 +44,8 @@ VideoResampler::VideoResampler()
     libavOutPixFmt = getLibavPixFmt(outPixFmt);
 
     needsConfig = false;
+
+    initializeEventMap();
 }
 
 FrameQueue* VideoResampler::allocQueue(int wId)
@@ -83,10 +83,13 @@ bool VideoResampler::reconfigure(VideoFrame* orgFrame)
         imgConvertCtx = sws_getContext(orgFrame->getWidth(), orgFrame->getHeight(), 
                                        libavInPixFmt, outWidth, outHeight,
                                        libavOutPixFmt, SWS_FAST_BILINEAR, 0, 0, 0);
+
         if (!imgConvertCtx){
             utils::errorMsg("Could not get the swscale context");
             return false;
         }
+
+        needsConfig = false;
     }
     return true;
 }
@@ -125,6 +128,10 @@ bool VideoResampler::doProcessFrame(Frame *org, Frame *dst)
         outHeight = outputHeight;
     }
     
+    dstFrame->setLength(avpicture_get_size (libavOutPixFmt, outWidth, outHeight));
+    dstFrame->setSize(outWidth, outHeight);
+    dstFrame->setPixelFormat(outPixFmt);
+    
     if (!setAVFrame(outFrame, dstFrame, libavOutPixFmt)){
         return false;
     }
@@ -137,9 +144,6 @@ bool VideoResampler::doProcessFrame(Frame *org, Frame *dst)
         return false;
     }
     
-    dstFrame->setLength(avpicture_get_size (libavOutPixFmt, outWidth, outHeight));
-    dstFrame->setSize(outWidth, outHeight);
-    dstFrame->setPixelFormat(outPixFmt);
     dstFrame->setPresentationTime(orgFrame->getPresentationTime());
     dstFrame->setUpdatedTime();
    
@@ -208,7 +212,7 @@ void VideoResampler::configEvent(Jzon::Node* params, Jzon::Object &outputNode)
 
 void VideoResampler::initializeEventMap()
 {
-    eventMap["configEvent"] = std::bind(&VideoResampler::configEvent, this, std::placeholders::_1, std::placeholders::_2);
+    eventMap["configure"] = std::bind(&VideoResampler::configEvent, this, std::placeholders::_1, std::placeholders::_2);
 }
 
 void VideoResampler::doGetState(Jzon::Object &filterNode)
@@ -254,9 +258,9 @@ bool VideoResampler::setAVFrame(AVFrame *aFrame, VideoFrame* vFrame, AVPixelForm
         return false;
     }
     
-    inFrame->width = vFrame->getWidth();
-    inFrame->height = vFrame->getHeight();
-    inFrame->format = format;
+    aFrame->width = vFrame->getWidth();
+    aFrame->height = vFrame->getHeight();
+    aFrame->format = format;
     
     return true;
 }

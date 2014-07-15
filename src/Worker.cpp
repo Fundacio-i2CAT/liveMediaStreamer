@@ -371,27 +371,30 @@ void ConstantFramerateMaster::process()
     std::chrono::microseconds enlapsedTime;
     std::chrono::system_clock::time_point startPoint;
     std::chrono::microseconds chronoFrameTime(frameTime);
+    std::chrono::microseconds active(ACTIVE);
 
     while(run) {
 
         startPoint = std::chrono::system_clock::now();
 
         checkPendingTasks();
+        processAll();
 
         for (auto it : processors) {
             it.second->processEvent();
 
-            if (!enabled || !it.second->hasFrames()) {
+            if (!it.second->isEnabled()) {
                 continue;
             }
 
-            processAll();
             it.second->processFrame(false);
+        }
 
-            while (!allFinished()) {
-                /* Maybe we can sleep a bit here */
-            }
+        while (!allFinished()) {
+            std::this_thread::sleep_for(active);
+        }
 
+        for (auto it : processors) {
             it.second->removeFrames();
         }
 
@@ -434,17 +437,26 @@ void ConstantFramerateSlave::process()
 
         checkPendingTasks();
 
+        if (finished) {
+            enlapsedTime = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now() - startPoint);
+
+            if (enlapsedTime < chronoFrameTime) {
+                std::this_thread::sleep_for(std::chrono::microseconds(chronoFrameTime - enlapsedTime));
+            }
+            continue;
+        }
+
         for (auto it : processors) {
             it.second->processEvent();
 
-            if (!enabled || finished) {
+            if (!it.second->isEnabled()) {
                 continue;
             }
 
-            finished = true;
             it.second->processFrame(false);
         }
 
+        finished = true;
         enlapsedTime = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now() - startPoint);
 
         if (enlapsedTime < chronoFrameTime) {

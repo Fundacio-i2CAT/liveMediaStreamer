@@ -172,8 +172,6 @@ void SourceManager::addSessionEvent(Jzon::Node* params, Jzon::Object &outputNode
     int payload, bandwidth, timeStampFrequency, channels, port;
     Session* session;
 
-
-
     if (!params) {
         outputNode.Add("error", "Error adding session. Wrong parameters!");
         return;
@@ -188,8 +186,7 @@ void SourceManager::addSessionEvent(Jzon::Node* params, Jzon::Object &outputNode
     } else if (params->Has("subsessions") && params->Get("subsessions").IsArray()) {
         
         Jzon::Array subsessions = params->Get("subsessions").AsArray();
-        sdp = makeSessionSDP("testSession", "this is a test");
-
+        sdp = makeSessionSDP(sessionId, "this is a test");
         
         for (Jzon::Array::iterator it = subsessions.begin(); it != subsessions.end(); ++it) {
             medium = (*it).Get("medium").ToString();
@@ -201,13 +198,10 @@ void SourceManager::addSessionEvent(Jzon::Node* params, Jzon::Object &outputNode
 
             payload = utils::getPayloadFromCodec(codec);
 
-
-
             if (payload < 0) {
                 outputNode.Add("error", "Payload type is not valid!!");
                 return;
             }
-
 
             sdp += makeSubsessionSDP(medium, PROTOCOL, payload, codec, bandwidth, 
                                                 timeStampFrequency, port, channels);

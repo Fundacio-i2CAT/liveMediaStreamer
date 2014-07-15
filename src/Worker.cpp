@@ -272,7 +272,7 @@ void BestEffortMaster::process()
         for (auto it : processors) {
             it.second->processEvent();
 
-            if (!it.second->isEnabled() || !it.second->hasFrames()) {
+            if (!it.second->isEnabled()) {
                 continue;
             }
 

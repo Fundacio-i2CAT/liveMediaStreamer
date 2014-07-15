@@ -1,6 +1,7 @@
 #include "../src/modules/liveMediaInput/SourceManager.hh"
 #include "../src/modules/liveMediaOutput/SinkManager.hh"
 #include "../src/modules/videoResampler/VideoResampler.hh"
+#include "../src/modules/videoEncoder/VideoEncoderX264.hh"
 #include "../src/AudioFrame.hh"
 #include "../src/Controller.hh"
 #include "../src/Callbacks.hh"
@@ -37,6 +38,10 @@ int main(int argc, char** argv)
     Session* session;
     int id, count = 0;
     VideoResampler *resampler;
+    VideoEncoderX264 *encoder;
+    BestEffort* wRes = new BestEffort();
+    Master* wEnc = new Master();
+    BestEffort* wDec = new BestEffort();
 
     utils::setLogLevel(INFO);
     
@@ -47,8 +52,6 @@ int main(int argc, char** argv)
     
     //This will connect every input directly to the transmitter
     receiver->setCallback(callbacks::connectTranscoderToTransmitter);
-     
-    pipe->startWorkers();
     
     signal(SIGINT, signalHandler); 
     
@@ -85,6 +88,14 @@ int main(int argc, char** argv)
     
     id = pipe->searchFilterIDByType(VIDEO_RESAMPLER);
     resampler = dynamic_cast<VideoResampler*> (pipe->getFilter(id));
+    pipe->addWorker(id, wRes);
+    
+    id = pipe->searchFilterIDByType(VIDEO_ENCODER);
+    encoder = dynamic_cast<VideoEncoderX264*> (pipe->getFilter(id));
+    pipe->addWorker(id, wEnc);
+    
+    id = pipe->searchFilterIDByType(VIDEO_DECODER);
+    pipe->addWorker(id, wDec);
     
     resampler->configure(0, 0, 0, YUV420P);
     
@@ -93,17 +104,24 @@ int main(int argc, char** argv)
         return 1;
     }
     
+    pipe->startWorkers();
+    
     transmitter->publishSession(sessionId);
+    transmitter->addConnection(readers.front(), "127.0.0.1", 3030);
     
     while(pipe->getWorker(pipe->getReceiverID())->isRunning() || 
         pipe->getWorker(pipe->getTransmitterID())->isRunning()) {
         sleep(1);
         if (count == 10){
             resampler->configure(1280, 534, 2, YUV420P);
+            encoder->configure(12, 12);
+            wEnc->setFps(12);
             utils::infoMsg("Half frame rate");
         } 
         if (count == 20){
             resampler->configure(640, 534, 0, YUV420P);
+            encoder->configure(24, 24);
+            wEnc->setFps(24);
             utils::infoMsg("Regular frame rate");
             count = 0;
         }

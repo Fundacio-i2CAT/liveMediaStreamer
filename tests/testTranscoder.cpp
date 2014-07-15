@@ -39,9 +39,9 @@ int main(int argc, char** argv)
     int id, count = 0;
     VideoResampler *resampler;
     VideoEncoderX264 *encoder;
-    BestEffort* wRes = new BestEffort();
-    Master* wEnc = new Master();
-    BestEffort* wDec = new BestEffort();
+    BestEffortMaster* wRes = new BestEffortMaster();
+    ConstantFramerateMaster* wEnc = new ConstantFramerateMaster();
+    BestEffortMaster* wDec = new BestEffortMaster();
 
     utils::setLogLevel(INFO);
     
@@ -49,6 +49,13 @@ int main(int argc, char** argv)
     PipelineManager *pipe = ctrl->pipelineManager();
     SourceManager *receiver = pipe->getReceiver();
     SinkManager *transmitter = pipe->getTransmitter();
+
+    int wResId = rand();
+    int wEncId = rand();
+    int wDecId = rand();
+    pipe->addWorker(wResId, wRes);
+    pipe->addWorker(wEncId, wEnc);
+    pipe->addWorker(wDecId, wDec);
     
     //This will connect every input directly to the transmitter
     receiver->setCallback(callbacks::connectTranscoderToTransmitter);
@@ -85,17 +92,21 @@ int main(int argc, char** argv)
     for (auto it : pipe->getPaths()){
         readers.push_back(it.second->getDstReaderID());    
     }
-    
+
     id = pipe->searchFilterIDByType(VIDEO_RESAMPLER);
     resampler = dynamic_cast<VideoResampler*> (pipe->getFilter(id));
-    pipe->addWorker(id, wRes);
+    wRes->addProcessor(id, resampler);
+    resampler->setWorkerId(wResId);
+    
     
     id = pipe->searchFilterIDByType(VIDEO_ENCODER);
     encoder = dynamic_cast<VideoEncoderX264*> (pipe->getFilter(id));
-    pipe->addWorker(id, wEnc);
+    wEnc->addProcessor(id, encoder);
+    encoder->setWorkerId(wEncId);
     
     id = pipe->searchFilterIDByType(VIDEO_DECODER);
-    pipe->addWorker(id, wDec);
+    wEnc->addProcessor(id, pipe->getFilter(id));
+    pipe->getFilter(id)->setWorkerId(wEncId);
     
     resampler->configure(0, 0, 0, YUV420P);
     
@@ -107,7 +118,7 @@ int main(int argc, char** argv)
     pipe->startWorkers();
     
     transmitter->publishSession(sessionId);
-    transmitter->addConnection(readers.front(), "127.0.0.1", 3030);
+  //  transmitter->addConnection(readers.front(), "127.0.0.1", 3030);
     
     while(pipe->getWorker(pipe->getReceiverID())->isRunning() || 
         pipe->getWorker(pipe->getTransmitterID())->isRunning()) {

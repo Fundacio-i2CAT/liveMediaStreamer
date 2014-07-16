@@ -113,15 +113,15 @@ int main(int argc, char** argv)
         pipe->getWorker(pipe->getTransmitterID())->isRunning()) {
         sleep(1);
         if (count == 10){
-            resampler->configure(1280, 534, 2, YUV420P);
-            encoder->configure(12, 12);
-            wEnc->setFps(12);
+            //resampler->configure(1280, 534, 2, YUV420P);
+            //encoder->configure(12, 12);
+            //wEnc->setFps(12);
             utils::infoMsg("Half frame rate");
         } 
         if (count == 20){
-            resampler->configure(640, 534, 0, YUV420P);
-            encoder->configure(24, 24);
-            wEnc->setFps(24);
+            //resampler->configure(640, 534, 0, YUV420P);
+            //encoder->configure(24, 24);
+            //wEnc->setFps(24);
             utils::infoMsg("Regular frame rate");
             count = 0;
         }

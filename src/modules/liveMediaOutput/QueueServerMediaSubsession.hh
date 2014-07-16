@@ -30,19 +30,12 @@
 
 
 class QueueServerMediaSubsession: public OnDemandServerMediaSubsession {
-public:
-    int getReaderId() {return fReaderId;};
-    bool hasDestinationClient(unsigned id);
-    
 protected: 
-    QueueServerMediaSubsession(UsageEnvironment& env, Reader *reader,
-                               int readerId, Boolean reuseFirstSource);
-    
-    virtual ~QueueServerMediaSubsession();
+    QueueServerMediaSubsession(UsageEnvironment& env, StreamReplicator* replicator,
+                               Boolean reuseFirstSource);
 
 protected:
-    Reader* fReader;
-    int fReaderId;
+    StreamReplicator* fReplicator;
 };
 
 #endif

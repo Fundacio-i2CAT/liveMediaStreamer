@@ -63,7 +63,7 @@ int main(int argc, char** argv)
     signal(SIGINT, signalHandler); 
 
     pipe->startWorkers();
-    
+
     for (int i = 1; i <= argc-1; ++i) {
         sessionId = utils::randomIdGenerator(ID_LENGTH);
         session = Session::createNewByURL(*(receiver->envir()), argv[0], argv[i], sessionId);
@@ -89,7 +89,7 @@ int main(int argc, char** argv)
 
     // session->initiateSession();
     
-    sleep(10);
+    sleep(1);
        
     for (auto it : pipe->getPaths()){
         readers.push_back(it.second->getDstReaderID());    
@@ -98,8 +98,6 @@ int main(int argc, char** argv)
     id = pipe->searchFilterIDByType(VIDEO_RESAMPLER);
     resampler = dynamic_cast<VideoResampler*> (pipe->getFilter(id));
     wRes->addProcessor(id, resampler);
-    if (!resampler)
-        std::cout << "RESAMPLER NUUUULL" << std::endl;
     resampler->setWorkerId(wResId);
     
     

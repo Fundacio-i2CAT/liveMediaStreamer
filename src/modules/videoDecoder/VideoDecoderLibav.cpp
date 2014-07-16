@@ -218,6 +218,7 @@ PixType getPixelFormat(AVPixelFormat format)
             return YUYV422;
             break;
         case AV_PIX_FMT_YUV420P:
+        case AV_PIX_FMT_YUVJ420P:
             return YUV420P;
             break;
         case AV_PIX_FMT_YUV422P:

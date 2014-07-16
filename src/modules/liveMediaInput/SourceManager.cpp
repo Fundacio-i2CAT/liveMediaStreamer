@@ -177,10 +177,11 @@ void SourceManager::addSessionEvent(Jzon::Node* params, Jzon::Object &outputNode
         return;
     }
 
-    if (params->Has("uri") && params->Has("progName")) {
+    if (params->Has("uri") && params->Has("progName") && params->Has("id")) {
         
         std::string progName = params->Get("progName").ToString();
         std::string rtspURL = params->Get("uri").ToString();
+        sessionId = params->Get("id").ToString();
         session = Session::createNewByURL(*env, progName, rtspURL, sessionId);
     
     } else if (params->Has("subsessions") && params->Get("subsessions").IsArray()) {
@@ -283,7 +284,7 @@ void SourceManager::doGetState(Jzon::Object &filterNode)
         }
 
         jsonSession.Add("id", it.first);
-        jsonSession.Add("subsession", subsessionArray);
+        jsonSession.Add("subsessions", subsessionArray);
 
         sessionArray.Add(jsonSession);
     }

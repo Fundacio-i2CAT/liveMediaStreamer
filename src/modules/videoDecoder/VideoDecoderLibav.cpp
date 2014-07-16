@@ -218,7 +218,6 @@ PixType getPixelFormat(AVPixelFormat format)
             return YUYV422;
             break;
         case AV_PIX_FMT_YUV420P:
-        case AV_PIX_FMT_YUVJ420P:
             return YUV420P;
             break;
         case AV_PIX_FMT_YUV422P:
@@ -226,6 +225,9 @@ PixType getPixelFormat(AVPixelFormat format)
             break;
         case AV_PIX_FMT_YUV444P:
             return YUV444P;
+            break;
+        case AV_PIX_FMT_YUVJ420P:
+            return YUVJ420P;
             break;
         default:
             utils::errorMsg("Unknown output pixel format");

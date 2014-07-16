@@ -403,7 +403,8 @@ bool Session::initiateSession()
         }
         return true;
     } else if (client != NULL){
-        client->sendDescribeCommand(handlers::continueAfterDESCRIBE);
+        unsigned ret = client->sendDescribeCommand(handlers::continueAfterDESCRIBE);
+        std::cout << "SNED DESCRIBE COMMAND RETURN: " << ret << std::endl;
         return true;
     }
     

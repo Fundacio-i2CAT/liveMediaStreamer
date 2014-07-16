@@ -69,25 +69,25 @@ int main(int argc, char** argv)
         session->initiateSession();
     }
     
-    sessionId = utils::randomIdGenerator(ID_LENGTH);
+    // sessionId = utils::randomIdGenerator(ID_LENGTH);
     
-    sdp = SourceManager::makeSessionSDP(sessionId, "this is a test");
+    // sdp = SourceManager::makeSessionSDP(sessionId, "this is a test");
     
-    sdp += SourceManager::makeSubsessionSDP(V_MEDIUM, PROTOCOL, V_PAYLOAD, V_CODEC, 
-                                       V_BANDWITH, V_TIME_STMP_FREQ, V_CLIENT_PORT);
+    // sdp += SourceManager::makeSubsessionSDP(V_MEDIUM, PROTOCOL, V_PAYLOAD, V_CODEC, 
+    //                                    V_BANDWITH, V_TIME_STMP_FREQ, V_CLIENT_PORT);
     
-    //sdp += SourceManager::makeSubsessionSDP(A_MEDIUM, PROTOCOL, A_PAYLOAD, A_CODEC, 
-                                       //A_BANDWITH, A_TIME_STMP_FREQ, A_CLIENT_PORT, A_CHANNELS);
+    // //sdp += SourceManager::makeSubsessionSDP(A_MEDIUM, PROTOCOL, A_PAYLOAD, A_CODEC, 
+    //                                    //A_BANDWITH, A_TIME_STMP_FREQ, A_CLIENT_PORT, A_CHANNELS);
     
-    utils::infoMsg(sdp);
+    // utils::infoMsg(sdp);
     
-    session = Session::createNew(*(receiver->envir()), sdp, sessionId);
+    // session = Session::createNew(*(receiver->envir()), sdp, sessionId);
     
-    receiver->addSession(session);
+    // receiver->addSession(session);
 
-    session->initiateSession();
+    // session->initiateSession();
     
-    sleep(1);
+    sleep(10);
        
     for (auto it : pipe->getPaths()){
         readers.push_back(it.second->getDstReaderID());    
@@ -96,6 +96,8 @@ int main(int argc, char** argv)
     id = pipe->searchFilterIDByType(VIDEO_RESAMPLER);
     resampler = dynamic_cast<VideoResampler*> (pipe->getFilter(id));
     wRes->addProcessor(id, resampler);
+    if (!resampler)
+        std::cout << "RESAMPLER NUUUULL" << std::endl;
     resampler->setWorkerId(wResId);
     
     
@@ -120,23 +122,23 @@ int main(int argc, char** argv)
     transmitter->publishSession(sessionId);
   //  transmitter->addConnection(readers.front(), "127.0.0.1", 3030);
     
-    while(pipe->getWorker(pipe->getReceiverID())->isRunning() || 
-        pipe->getWorker(pipe->getTransmitterID())->isRunning()) {
+    while(pipe->getWorker(pipe->getReceiver()->getWorkerId())->isRunning() || 
+        pipe->getWorker(pipe->getTransmitter()->getWorkerId())->isRunning()) {
         sleep(1);
-        if (count == 10){
-            resampler->configure(1280, 534, 2, YUV420P);
-            encoder->configure(12, 12);
-            wEnc->setFps(12);
-            utils::infoMsg("Half frame rate");
-        } 
-        if (count == 20){
-            resampler->configure(640, 534, 0, YUV420P);
-            encoder->configure(24, 24);
-            wEnc->setFps(24);
-            utils::infoMsg("Regular frame rate");
-            count = 0;
-        }
-        count++;
+        // if (count == 10){
+        //     resampler->configure(1280, 534, 2, YUV420P);
+        //     encoder->configure(12, 12);
+        //     wEnc->setFps(12);
+        //     utils::infoMsg("Half frame rate");
+        // } 
+        // if (count == 20){
+        //     resampler->configure(640, 534, 0, YUV420P);
+        //     encoder->configure(24, 24);
+        //     wEnc->setFps(24);
+        //     utils::infoMsg("Regular frame rate");
+        //     count = 0;
+        // }
+        // count++;
     }
 
     return 0;

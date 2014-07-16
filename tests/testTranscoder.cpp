@@ -61,6 +61,8 @@ int main(int argc, char** argv)
     receiver->setCallback(callbacks::connectTranscoderToTransmitter);
     
     signal(SIGINT, signalHandler); 
+
+    pipe->startWorkers();
     
     for (int i = 1; i <= argc-1; ++i) {
         sessionId = utils::randomIdGenerator(ID_LENGTH);

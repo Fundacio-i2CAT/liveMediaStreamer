@@ -44,7 +44,6 @@ namespace handlers
     void continueAfterDESCRIBE(RTSPClient* rtspClient, int resultCode, char* resultString) 
     {
         do {
-            std::cout << " CONTINUE AFTER DESCRIBE " << std::endl;
             UsageEnvironment& env = rtspClient->envir(); 
             StreamClientState& scs = *(((ExtendedRTSPClient*)rtspClient)->getScs());
 
@@ -98,7 +97,6 @@ namespace handlers
     void continueAfterSETUP(RTSPClient* rtspClient, int resultCode, char* resultString) 
     {
         do {
-            std::cout << " CONTINUE AFTER SETUP " << std::endl;
             UsageEnvironment& env = rtspClient->envir(); 
             StreamClientState& scs = *(((ExtendedRTSPClient*)rtspClient)->getScs());
 
@@ -159,9 +157,6 @@ namespace handlers
         UsageEnvironment& env = rtspClient->envir(); 
         StreamClientState& scs = *(((ExtendedRTSPClient*)rtspClient)->getScs());
     
-        std::cout << " SETUP NEXT SUBSESSION " << std::endl;
-
-
         scs.subsession = scs.iter->next();
         if (scs.subsession != NULL) {
             if (!scs.subsession->initiate()) {

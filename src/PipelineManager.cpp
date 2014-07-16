@@ -44,6 +44,9 @@ PipelineManager::PipelineManager()
 
     transmitterWorker->addProcessor(transmitterID, SinkManager::getInstance());
     SinkManager::getInstance()->setWorkerId(transmitterWorkerId);
+
+    receiverWorker->start();
+    transmitterWorker->start();
 }
 
 PipelineManager* PipelineManager::getInstance()

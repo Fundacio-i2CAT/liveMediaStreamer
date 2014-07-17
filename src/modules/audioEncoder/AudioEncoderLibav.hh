@@ -23,6 +23,8 @@
 #ifndef _AUDIO_ENCODER_LIBAV_HH
 #define _AUDIO_ENCODER_LIBAV_HH
 
+#include <chrono>
+
 extern "C" {
     #include <libavcodec/avcodec.h>
     #include <libswresample/swresample.h>
@@ -83,8 +85,8 @@ private:
     int                 internalBufferSize;
     unsigned char       *internalBuffer;
     unsigned char       *auxBuff[1];
-	struct timeval presentationTime;
-	uint64_t timestamp; 
+    std::chrono::microseconds currentTime;
+    struct timeval presentationTime;
 };
 
 #endif

@@ -26,8 +26,7 @@
 #define IDLE 100
 #define ACTIVE_TIMEOUT 500
 
-#include <chrono>
-#include <iostream>
+#include <cmath>
 #include "Worker.hh"
 
 Worker::Worker(): run(false), enabled(false), pendingTask(false), canExecute(false)
@@ -233,19 +232,6 @@ void Master::processAll()
     }
 }
 
-///////////////////////////////////////////////////
-//                SLAVE CLASS                    //
-///////////////////////////////////////////////////
-
-Slave::Slave() : Worker() 
-{
-    finished = true;
-}
-
-void Slave::setFalse() 
-{
-    finished = false;
-}
 
 ///////////////////////////////////////////////////
 //           BEST EFFORT MASTER CLASS            //
@@ -303,15 +289,21 @@ void BestEffortMaster::process()
 }
 
 ///////////////////////////////////////////////////
-//           BEST EFFORT SLAVE CLASS             //
+//           SLAVE CLASS             //
 ///////////////////////////////////////////////////
 
-BestEffortSlave::BestEffortSlave() : Slave()
+Slave::Slave() : Worker() 
 {
-    type = BEST_EFFORT_SLAVE;
+    finished = true;
+    type = SLAVE;
 }
 
-void BestEffortSlave::process() 
+void Slave::setFalse() 
+{
+    finished = false;
+}
+
+void Slave::process() 
 {
     int idleCount = 0;
     std::chrono::microseconds active(ACTIVE);
@@ -351,31 +343,32 @@ void BestEffortSlave::process()
 //        CONST FRAMERATE SLAVE CLASS            //
 ///////////////////////////////////////////////////
 
-ConstantFramerateMaster::ConstantFramerateMaster(unsigned int maxFps) : Master()
+ConstantFramerateMaster::ConstantFramerateMaster(double maxFps) : Master()
 {
-     frameTime = 1000000/maxFps;
+     setFps(maxFps);
      type = C_FRAMERATE_MASTER;
 }
 
-void ConstantFramerateMaster::setFps(unsigned int maxFps)
+void ConstantFramerateMaster::setFps(double maxFps)
 {
     if (maxFps != 0){
-        frameTime = 1000000/maxFps;
+        frameTime = std::round(1000000/maxFps);
     } else {
-        frameTime = 1000000/24;
+        frameTime = std::round(1000000/DEFAULT_FRAME_RATE);
     }
 }
 
 void ConstantFramerateMaster::process()
 {
     std::chrono::microseconds enlapsedTime;
-    std::chrono::system_clock::time_point startPoint;
-    std::chrono::microseconds chronoFrameTime(frameTime);
+    std::chrono::high_resolution_clock::time_point startPoint;
+    std::chrono::microseconds chronoFrameTime;
     std::chrono::microseconds active(ACTIVE);
 
     while(run) {
 
-        startPoint = std::chrono::system_clock::now();
+        startPoint = std::chrono::high_resolution_clock::now();
+        chronoFrameTime = std::chrono::microseconds(frameTime);
 
         checkPendingTasks();
         processAll();
@@ -398,69 +391,12 @@ void ConstantFramerateMaster::process()
             it.second->removeFrames();
         }
 
-        enlapsedTime = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now() - startPoint);
-
+        enlapsedTime = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - startPoint);
+        
         if (enlapsedTime < chronoFrameTime) {
             std::this_thread::sleep_for(std::chrono::microseconds(chronoFrameTime - enlapsedTime));
-        }
-    }
-}
-
-///////////////////////////////////////////////////
-//        CONST FRAMERATE SLAVE CLASS            //
-///////////////////////////////////////////////////
-
-ConstantFramerateSlave::ConstantFramerateSlave(unsigned int maxFps) : Slave()
-{
-    frameTime = 1000000/maxFps;
-    type = C_FRAMERATE_SLAVE;
-}
-
-void ConstantFramerateSlave::setFps(unsigned int maxFps)
-{
-    if (maxFps != 0){
-        frameTime = 1000000/maxFps;
-    } else {
-        frameTime = 1000000/24;
-    }
-}
-
-void ConstantFramerateSlave::process() 
-{
-    std::chrono::microseconds enlapsedTime;
-    std::chrono::system_clock::time_point startPoint;
-    std::chrono::microseconds chronoFrameTime(frameTime);
-
-    while(run) {
-
-        startPoint = std::chrono::system_clock::now();
-
-        checkPendingTasks();
-
-        if (finished) {
-            enlapsedTime = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now() - startPoint);
-
-            if (enlapsedTime < chronoFrameTime) {
-                std::this_thread::sleep_for(std::chrono::microseconds(chronoFrameTime - enlapsedTime));
-            }
-            continue;
-        }
-
-        for (auto it : processors) {
-            it.second->processEvent();
-
-            if (!it.second->isEnabled()) {
-                continue;
-            }
-
-            it.second->processFrame(false);
-        }
-
-        finished = true;
-        enlapsedTime = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now() - startPoint);
-
-        if (enlapsedTime < chronoFrameTime) {
-            std::this_thread::sleep_for(std::chrono::microseconds(chronoFrameTime - enlapsedTime));
+        } else {
+            utils::warningMsg("Your server may be to slow");
         }
     }
 }

@@ -106,6 +106,9 @@ bool BaseFilter::demandOriginFrames()
             oFrames[it.first] = it.second->getFrame();
             if (oFrames[it.first] == NULL) {
                 oFrames[it.first] = it.second->getFrame(force);
+                if (force) {
+                    newFrame = true;
+                }
                 rUpdates[it.first] = false;
                 missedOne = true;
             } else {

@@ -25,6 +25,7 @@
 #define _VIDEO_ENCODER_X264_HH
 
 #include <stdint.h>
+#include <chrono>
 #include "../../Utils.hh"
 #include "../../VideoFrame.hh"
 #include "../../X264VideoFrame.hh"
@@ -40,14 +41,16 @@ extern "C" {
 #include <libavformat/avformat.h>
 }
 
+#define FRAME_TIME_THRESHOLD 2000 //usec
+
 class VideoEncoderX264: public OneToOneFilter {
 	public:
 		VideoEncoderX264(bool force_ = false);
 		~VideoEncoderX264();
 		bool doProcessFrame(Frame *org, Frame *dst);
-        bool configure(int gop_ = DEFAULT_GOP, int fps_ = DEFAULT_FRAME_RATE, 
+        bool configure(int gop_ = DEFAULT_GOP,
                        int bitrate_ = DEFAULT_BITRATE, 
-                       int threads_ = DEFAULT_ENCODER_THREADS, bool annexB_ = false);		
+                       int threads_ = DEFAULT_ENCODER_THREADS, bool annexB_ = false);
 		void setIntra(){forceIntra = true;};
 		FrameQueue* allocQueue(int wId);
 		void initializeEventMap();		
@@ -71,10 +74,17 @@ class VideoEncoderX264: public OneToOneFilter {
 		int pts;
 		int bitrate;
 		int colorspace;
-		int gop;
+		int gop; //ms
         int threads;
-		struct timeval presentationTime;
-		uint64_t timestamp;
+        
+        std::chrono::microseconds frameDuration;
+        std::chrono::microseconds frameTimestamp;
+        std::chrono::microseconds enlapsedTime;
+        std::chrono::microseconds threshold;
+        std::chrono::high_resolution_clock::time_point currentTime;
+        std::chrono::high_resolution_clock::time_point previousTime;
+        
+        struct timeval presentationTime;
         
         bool reconfigure(VideoFrame *orgFrame, X264VideoFrame* x264Frame);
         bool encodeHeadersFrame(X264VideoFrame* x264Frame);

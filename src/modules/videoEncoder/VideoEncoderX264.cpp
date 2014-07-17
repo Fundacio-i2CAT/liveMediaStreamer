@@ -21,30 +21,28 @@
  *            David Cassany <david.cassany@i2cat.net>
  */
 
+#include <cmath>
 #include "VideoEncoderX264.hh"
-
-static unsigned char const start_code[4] = {0x00, 0x00, 0x00, 0x01};
 
 VideoEncoderX264::VideoEncoderX264(bool force_): OneToOneFilter(force_)
 {
     fType = VIDEO_ENCODER;
     
-    configure();
-    
 	pts = 0;
+    fps  = DEFAULT_FRAME_RATE;
 	forceIntra = false;
 	encoder = NULL;
     x264_picture_init(&picIn);
     midFrame = av_frame_alloc();
-	presentationTime = utils::getPresentationTime();
-	timestamp = ((uint64_t)presentationTime.tv_sec * (uint64_t)1000000) + (uint64_t)presentationTime.tv_usec;
-
+    threshold = std::chrono::microseconds(FRAME_TIME_THRESHOLD);
+    
+    configure();
+    
     initializeEventMap();
 }
 
 VideoEncoderX264::~VideoEncoderX264(){
 	//TODO: delete encoder;
-    initializeEventMap();
 }
 
 bool VideoEncoderX264::doProcessFrame(Frame *org, Frame *dst) {
@@ -53,7 +51,6 @@ bool VideoEncoderX264::doProcessFrame(Frame *org, Frame *dst) {
 	int frameLength; 
 	int piNal;
 	picIn.i_pts = pts;
-	setPresentationTime(dst);
 
     if (!reconfigure(videoFrame, x264Frame)) {
 		return false;
@@ -78,6 +75,7 @@ bool VideoEncoderX264::doProcessFrame(Frame *org, Frame *dst) {
 		return false;
 	}
 
+	setPresentationTime(dst);
 	x264Frame->setNals(&ppNal, piNal, frameLength);
     
     pts++;
@@ -124,10 +122,9 @@ FrameQueue* VideoEncoderX264::allocQueue(int wId) {
 	return X264VideoCircularBuffer::createNew();
 }
 
-bool VideoEncoderX264::configure(int gop_, int fps_, int bitrate_, int threads_, bool annexB_)
+bool VideoEncoderX264::configure(int gop_, int bitrate_, int threads_, bool annexB_)
 {
 	//TODO: validate inputs
-	fps = fps_;
 	gop = gop_;
 	bitrate = bitrate_;
     threads = threads_;
@@ -139,6 +136,19 @@ bool VideoEncoderX264::configure(int gop_, int fps_, int bitrate_, int threads_,
 
 bool VideoEncoderX264::reconfigure(VideoFrame* orgFrame, X264VideoFrame* x264Frame)
 {   
+    previousTime = currentTime;
+    currentTime = std::chrono::high_resolution_clock::now();
+    enlapsedTime = std::chrono::duration_cast<std::chrono::microseconds>(currentTime - previousTime);
+    
+    if (enlapsedTime > (frameDuration + threshold) || enlapsedTime < (frameDuration - threshold)){
+        fps = std::round(1000000.0/enlapsedTime.count());
+        if (fps == 0){
+            utils::warningMsg("Got zero value for fps, using default " + std::to_string(DEFAULT_FRAME_RATE));
+            fps = DEFAULT_FRAME_RATE;
+        }
+        needsConfig = true;
+    }
+    
     if (needsConfig || orgFrame->getWidth() != xparams.i_width ||
         orgFrame->getHeight() != xparams.i_height ||
         orgFrame->getPixelFormat() != inPixFmt)
@@ -168,14 +178,15 @@ bool VideoEncoderX264::reconfigure(VideoFrame* orgFrame, X264VideoFrame* x264Fra
                 return false;
                 break;
         }
+
+        frameDuration = std::chrono::microseconds(1000000/fps);
         
         x264_param_default_preset(&xparams, "ultrafast", "zerolatency");
         xparams.i_threads = threads;
         xparams.i_fps_num = fps;
         xparams.i_fps_den = 1;
         xparams.b_intra_refresh = 0;
-        xparams.i_keyint_max = gop;
-        //xparams.b_vfr_input = 1;
+        xparams.i_keyint_max = std::round(1000.0*gop/frameDuration.count());
         xparams.rc.i_bitrate = bitrate;
         if (annexB){
             xparams.b_annexb = 1;
@@ -203,6 +214,8 @@ bool VideoEncoderX264::reconfigure(VideoFrame* orgFrame, X264VideoFrame* x264Fra
             x264_encoder_close(encoder);
             encoder = x264_encoder_open(&xparams);
         }
+
+        frameTimestamp = std::chrono::duration_cast<std::chrono::microseconds>(currentTime.time_since_epoch());
         
         needsConfig = false;
         
@@ -216,9 +229,9 @@ bool VideoEncoderX264::reconfigure(VideoFrame* orgFrame, X264VideoFrame* x264Fra
 
 void VideoEncoderX264::setPresentationTime(Frame* dst)
 {
-	timestamp+= ((uint64_t) 1000000 / (uint64_t)fps);
-	presentationTime.tv_sec= (timestamp / 1000000);
-	presentationTime.tv_usec= (timestamp % 1000000);
+    frameTimestamp += frameDuration;
+    presentationTime.tv_sec= frameTimestamp.count()/1000000;
+    presentationTime.tv_usec= frameTimestamp.count()%1000000;
 	dst->setPresentationTime(presentationTime);
 }
 
@@ -231,15 +244,10 @@ void VideoEncoderX264::configEvent(Jzon::Node* params, Jzon::Object &outputNode)
         return;
     }
 
-    tmpFps = fps;
     tmpGop = gop;
     tmpBitrate = bitrate;
     tmpThreads = threads;
     tmpAnnexB = annexB;
-    
-    if (params->Has("fps")){
-        tmpFps = params->Get("fps").ToInt();
-    }
     
     if (params->Has("gop")){
         tmpGop = params->Get("gop").ToInt();

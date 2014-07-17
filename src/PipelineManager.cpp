@@ -578,13 +578,11 @@ void PipelineManager::addWorkerEvent(Jzon::Node* params, Jzon::Object &outputNod
 
     if (type.compare("bestEffortMaster") == 0) {
         worker = new BestEffortMaster();
-    } else if (type.compare("bestEffortSlave") == 0) {
-        worker = new BestEffortSlave();
+    } else if (type.compare("slave") == 0) {
+        worker = new Slave();
     } else if (type.compare("cFramerateMaster") == 0) {
         worker = new ConstantFramerateMaster(fps);
-    } else if (type.compare("cFramerateSlave") == 0) {
-        worker = new ConstantFramerateSlave(fps);
-    }
+    } 
 
     if (!worker) {
         outputNode.Add("error", "Error creating worker. Check type...");

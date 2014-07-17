@@ -28,13 +28,13 @@
 #include <atomic>
 #include <thread>
 #include <map>
+#include <chrono>
 #include "Frame.hh"
 #include "Types.hh"
 #include "Jzon.h"
 #include "Utils.hh"
 
 #define MAX_SLAVE 16
-#define DEFAULT_MAX_FPS 24
 
 class Runnable;
 
@@ -87,13 +87,13 @@ private:
 
 class Slave : public Worker {
 public:
-	Slave();
-	bool getFinished(){return finished;};
-	void setFalse();
-
+    Slave();
+    bool getFinished(){return finished;};
+    void setFalse();
+    
 protected:
-	virtual void process() = 0;
-	std::atomic<bool> finished;	
+    void process();
+    std::atomic<bool> finished; 
 };
 
 class Master : public Worker {
@@ -120,31 +120,15 @@ protected:
     void process();
 };
 
-class BestEffortSlave : public Slave {
-public:
-    BestEffortSlave();
-
-protected:
-    void process();
-};
-
 class ConstantFramerateMaster : public Master {
 public:
-    ConstantFramerateMaster(unsigned int maxFps = DEFAULT_MAX_FPS);
-    void setFps(unsigned int maxFps);
+    ConstantFramerateMaster(double maxFps = 0);
+    void setFps(double maxFps);
 protected:
     void process();
     unsigned int frameTime; //microseconds
 };
 
-class ConstantFramerateSlave : public Slave {
-public:
-    ConstantFramerateSlave(unsigned int maxFps = DEFAULT_MAX_FPS);
-    void setFps(unsigned int maxFps);
-protected:
-    void process();
-    unsigned int frameTime; //microseconds
-};
 
 
 class Runnable {

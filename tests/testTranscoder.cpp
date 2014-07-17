@@ -24,7 +24,7 @@
 #define A_PAYLOAD 97
 #define A_CODEC "OPUS"
 #define A_BANDWITH 128
-#define A_CLIENT_PORT 6007
+#define A_CLIENT_PORT 6006
 #define A_TIME_STMP_FREQ 48000
 #define A_CHANNELS 2
 
@@ -47,11 +47,11 @@ int main(int argc, char** argv)
     int id, count = 0;
     VideoResampler *resampler;
     VideoEncoderX264 *encoder;
-    BestEffortMaster* wRes = new BestEffortMaster();
-    ConstantFramerateMaster* wEnc = new ConstantFramerateMaster();
-    BestEffortMaster* wDec = new BestEffortMaster();
-    //BestEffortMaster* aDec = new BestEffortMaster();
-    //BestEffortMaster* aEnc = new BestEffortMaster();
+   // BestEffortMaster* wRes = new BestEffortMaster();
+   // ConstantFramerateMaster* wEnc = new ConstantFramerateMaster();
+   // BestEffortMaster* wDec = new BestEffortMaster();
+    BestEffortMaster* aDec = new BestEffortMaster();
+    BestEffortMaster* aEnc = new BestEffortMaster();
 
     utils::setLogLevel(INFO);
     
@@ -63,13 +63,13 @@ int main(int argc, char** argv)
     int wResId = rand();
     int wEncId = rand();
     int wDecId = rand();
-    //int aDecId = rand();
-    //int aEncId = rand();
-    pipe->addWorker(wResId, wRes);
-    pipe->addWorker(wEncId, wEnc);
-    pipe->addWorker(wDecId, wDec);
-    //pipe->addWorker(aDecId, aDec);
-    //pipe->addWorker(aEncId, aEnc);
+    int aDecId = rand();
+    int aEncId = rand();
+    //pipe->addWorker(wResId, wRes);
+    //pipe->addWorker(wEncId, wEnc);
+    //pipe->addWorker(wDecId, wDec);
+    pipe->addWorker(aDecId, aDec);
+    pipe->addWorker(aEncId, aEnc);
     
     //This will connect every input directly to the transmitter
     receiver->setCallback(callbacks::connectTranscoderToTransmitter);
@@ -89,11 +89,11 @@ int main(int argc, char** argv)
     
     sdp = SourceManager::makeSessionSDP(sessionId, "this is a test");
     
-    sdp += SourceManager::makeSubsessionSDP(V_MEDIUM, PROTOCOL, V_PAYLOAD, V_CODEC, 
-                                       V_BANDWITH, V_TIME_STMP_FREQ, V_CLIENT_PORT);
+    // sdp += SourceManager::makeSubsessionSDP(V_MEDIUM, PROTOCOL, V_PAYLOAD, V_CODEC, 
+    //                                    V_BANDWITH, V_TIME_STMP_FREQ, V_CLIENT_PORT);
     
-    //sdp += SourceManager::makeSubsessionSDP(A_MEDIUM, PROTOCOL, A_PAYLOAD, A_CODEC, 
-    //                                   A_BANDWITH, A_TIME_STMP_FREQ, A_CLIENT_PORT, A_CHANNELS);
+    sdp += SourceManager::makeSubsessionSDP(A_MEDIUM, PROTOCOL, A_PAYLOAD, A_CODEC, 
+                                       A_BANDWITH, A_TIME_STMP_FREQ, A_CLIENT_PORT, A_CHANNELS);
     
     utils::infoMsg(sdp);
     
@@ -107,30 +107,30 @@ int main(int argc, char** argv)
         readers.push_back(it.second->getDstReaderID());    
     }
     
-    //id = pipe->searchFilterIDByType(AUDIO_DECODER);
-    //aDec->addProcessor(id, pipe->getFilter(id));
-    //    pipe->getFilter(id)->setWorkerId(aDecId);
+    id = pipe->searchFilterIDByType(AUDIO_DECODER);
+    aDec->addProcessor(id, pipe->getFilter(id));
+    pipe->getFilter(id)->setWorkerId(aDecId);
     
-    //id = pipe->searchFilterIDByType(AUDIO_ENCODER);
-    //aEnc->addProcessor(id, pipe->getFilter(id));
-    //pipe->getFilter(id)->setWorkerId(aEncId);
+    id = pipe->searchFilterIDByType(AUDIO_ENCODER);
+    aEnc->addProcessor(id, pipe->getFilter(id));
+    pipe->getFilter(id)->setWorkerId(aEncId);
 
-    id = pipe->searchFilterIDByType(VIDEO_RESAMPLER);
-    resampler = dynamic_cast<VideoResampler*> (pipe->getFilter(id));
-    wRes->addProcessor(id, resampler);
-    resampler->setWorkerId(wResId);
+    // id = pipe->searchFilterIDByType(VIDEO_RESAMPLER);
+    // resampler = dynamic_cast<VideoResampler*> (pipe->getFilter(id));
+    // wRes->addProcessor(id, resampler);
+    // resampler->setWorkerId(wResId);
     
     
-    id = pipe->searchFilterIDByType(VIDEO_ENCODER);
-    encoder = dynamic_cast<VideoEncoderX264*> (pipe->getFilter(id));
-    wEnc->addProcessor(id, encoder);
-    encoder->setWorkerId(wEncId);
+    // id = pipe->searchFilterIDByType(VIDEO_ENCODER);
+    // encoder = dynamic_cast<VideoEncoderX264*> (pipe->getFilter(id));
+    // wEnc->addProcessor(id, encoder);
+    // encoder->setWorkerId(wEncId);
     
-    id = pipe->searchFilterIDByType(VIDEO_DECODER);
-    wEnc->addProcessor(id, pipe->getFilter(id));
-    pipe->getFilter(id)->setWorkerId(wEncId);
+    // id = pipe->searchFilterIDByType(VIDEO_DECODER);
+    // wEnc->addProcessor(id, pipe->getFilter(id));
+    // pipe->getFilter(id)->setWorkerId(wEncId);
     
-    resampler->configure(0, 0, 0, YUV420P);
+    // resampler->configure(0, 0, 0, YUV420P);
     
     sessionId = utils::randomIdGenerator(ID_LENGTH);
     if (! transmitter->addSession(sessionId, readers)){
@@ -141,18 +141,18 @@ int main(int argc, char** argv)
     
     transmitter->publishSession(sessionId);
   //  transmitter->addConnection(readers.front(), "127.0.0.1", 3030);
-    wEnc->setFps(24000.0/1005);
+  //  wEnc->setFps(24000.0/1005);
     
     while(pipe->getWorker(pipe->getReceiver()->getWorkerId())->isRunning() || 
         pipe->getWorker(pipe->getTransmitter()->getWorkerId())->isRunning()) {
         sleep(1);
         if (count == 10){
-            resampler->configure(1280, 534, 2, YUV420P);
+         //   resampler->configure(1280, 534, 2, YUV420P);
             //wEnc->setFps(12000.0/1005);
             utils::infoMsg("Half frame rate");
         } 
         if (count == 20){
-            resampler->configure(640, 534, 0, YUV420P);
+           // resampler->configure(640, 534, 0, YUV420P);
             //wEnc->setFps(24000.0/1005);
             utils::infoMsg("Regular frame rate");
             count = 0;

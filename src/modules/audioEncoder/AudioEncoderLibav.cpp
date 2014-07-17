@@ -55,6 +55,7 @@ AudioEncoderLibav::AudioEncoderLibav()  : OneToOneFilter()
     initializeEventMap();
 
     configure(OPUS);
+    config();
 }
 
 AudioEncoderLibav::~AudioEncoderLibav()
@@ -88,6 +89,7 @@ bool AudioEncoderLibav::doProcessFrame(Frame *org, Frame *dst)
 
     //resample in order to adapt to encoder constraints
     resample(aRawFrame, libavFrame);
+
 
     ret = avcodec_encode_audio2(codecCtx, &pkt, libavFrame, &gotFrame);
 

@@ -53,7 +53,7 @@ Frame* AudioCircularBuffer::getFront()
     }
 
     if (!popFront(outputFrame->getPlanarDataBuf(), outputFrame->getSamples())) {
-        //std::cerr << "There is not enough data to fill a frame. Impossible to get frame!\n";
+        //std::cerr << "There is not enough data to fill a frame. Impossible to get frame!" << outputFrame->getSamples() << "\n";
         return NULL;
     }
 

@@ -257,7 +257,7 @@ void VideoEncoderX264::configEvent(Jzon::Node* params, Jzon::Object &outputNode)
         tmpAnnexB = params->Get("annexb").ToBool();
     }
     
-    if (!configure(tmpGop, tmpFps, tmpBitrate, tmpThreads)){
+    if (!configure(tmpGop, tmpFps, tmpBitrate, tmpThreads, tmpAnnexB)){
         outputNode.Add("error", "Error configuring vide encoder");
     } else {
         outputNode.Add("error", Jzon::null);

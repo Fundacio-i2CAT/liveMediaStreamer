@@ -52,7 +52,6 @@ FrameQueue* VideoDecoderLibav::allocQueue(int wId)
 bool VideoDecoderLibav::doProcessFrame(Frame *org, Frame *dst)
 {
     int len, gotFrame = 0;
-    bool ret = false;
     VideoFrame* vDecodedFrame = dynamic_cast<VideoFrame*>(dst);
     VideoFrame* vCodedFrame = dynamic_cast<VideoFrame*>(org);
 

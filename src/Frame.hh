@@ -39,12 +39,12 @@ class Frame {
         
         struct timeval getPresentationTime();
         system_clock::time_point getUpdatedTime();
-        virtual unsigned char *getDataBuf() {};
-        virtual unsigned char **getPlanarDataBuf() {};
-        virtual unsigned int getLength() {};
-        virtual unsigned int getMaxLength() {};
+        virtual unsigned char *getDataBuf() {return NULL;};
+        virtual unsigned char **getPlanarDataBuf() {return NULL;};
+        virtual unsigned int getLength() {return 0;}
+        virtual unsigned int getMaxLength() {return 0;};
         virtual void setLength(unsigned int length) {};
-        virtual bool isPlanar() {};
+        virtual bool isPlanar() {return false;};
         
     protected:
         struct timeval              presentationTime;

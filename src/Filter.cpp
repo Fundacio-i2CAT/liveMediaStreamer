@@ -354,9 +354,6 @@ BaseFilter(1, 1, force_)
 
 bool OneToOneFilter::processFrame(bool removeFrame)
 {
-    bool newData = false;
-	Frame* origin;
-
 	if (!demandOriginFrames() || !demandDestinationFrames()) {
         	return false;
 	}
@@ -379,8 +376,6 @@ BaseFilter(1, writersNum, force_)
 
 bool OneToManyFilter::processFrame(bool removeFrame)
 {
-    bool newData;
-
     if (!demandOriginFrames() || !demandDestinationFrames()){
         return false;
     }
@@ -453,8 +448,6 @@ BaseFilter(readersNum, 1, force_)
 
 bool ManyToOneFilter::processFrame(bool removeFrame)
 {
-    bool newData;
-
     if (!demandOriginFrames() || !demandDestinationFrames()) {
         return false;
     }

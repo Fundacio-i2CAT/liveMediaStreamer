@@ -112,7 +112,7 @@ bool AudioEncoderLibav::doProcessFrame(Frame *org, Frame *dst)
 
 Reader* AudioEncoderLibav::setReader(int readerID, FrameQueue* queue)
 {
-    if (readers.size() >= getMaxReaders() || readers.count(readerID) > 0 ) {
+    if ((int)readers.size() >= getMaxReaders() || readers.count(readerID) > 0 ) {
         return NULL;
     }
 
@@ -306,6 +306,8 @@ int AudioEncoderLibav::resample(AudioFrame* src, AVFrame* dst)
                   );
 
     }
+
+    return samples;
 }
 
 bool AudioEncoderLibav::reconfigure(AudioFrame* frame)

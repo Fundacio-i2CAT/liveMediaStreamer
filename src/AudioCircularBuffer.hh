@@ -31,7 +31,7 @@
  class AudioCircularBuffer : public FrameQueue {
 
     public:
-        static AudioCircularBuffer* createNew(unsigned int ch, unsigned int sRate, unsigned int maxSamples, SampleFmt sFmt);
+        static AudioCircularBuffer* createNew(int ch, int sRate, int maxSamples, SampleFmt sFmt);
         ~AudioCircularBuffer();
         void setOutputFrameSamples(int samples); 
 
@@ -43,7 +43,7 @@
         Frame *forceGetRear();
         Frame *forceGetFront();
         int delay; //(ms)
-        bool frameToRead() {};
+        bool frameToRead() {return false;};
         int getFreeSamples();
 
     protected:
@@ -51,18 +51,18 @@
 
 
     private:
-        AudioCircularBuffer(unsigned int ch, unsigned int sRate, unsigned int maxSamples, SampleFmt sFmt);
+        AudioCircularBuffer(int ch, int sRate, int maxSamples, SampleFmt sFmt);
 
         bool pushBack(unsigned char **buffer, int samplesRequested);
         bool popFront(unsigned char **buffer, int samplesRequested);
         bool forcePushBack(unsigned char **buffer, int samplesRequested);
         
         std::atomic<int> byteCounter;
-        unsigned channels;
-        unsigned sampleRate;
-        unsigned bytesPerSample;
-        unsigned chMaxSamples;
-        unsigned channelMaxLength;
+        int channels;
+        int sampleRate;
+        int bytesPerSample;
+        int chMaxSamples;
+        int channelMaxLength;
         unsigned char *data[MAX_CHANNELS];
         SampleFmt sampleFormat;
         bool outputFrameAlreadyRead;

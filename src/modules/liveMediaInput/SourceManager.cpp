@@ -39,7 +39,7 @@ FrameQueue* createAudioQueue(unsigned char rtpPayloadFormat,
                              char const* codecName, unsigned channels, 
                              unsigned sampleRate);
 
-SourceManager::SourceManager(int writersNum): watch(0), HeadFilter(writersNum)
+SourceManager::SourceManager(int writersNum): HeadFilter(writersNum), watch(0)
 {    
     TaskScheduler* scheduler = BasicTaskScheduler::createNew();
     this->env = BasicUsageEnvironment::createNew(*scheduler);

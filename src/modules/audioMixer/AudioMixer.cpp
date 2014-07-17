@@ -92,7 +92,7 @@ void AudioMixer::mixNonEmptyFrames(std::map<int, Frame*> orgFrames, std::vector<
         for (auto id : filledFramesIds) {
             nOfSamples = dynamic_cast<AudioFrame*>(orgFrames[id])->getChannelFloatSamples(samples, ch);
 
-            if (mixedSamples.size() != nOfSamples) {
+            if ((int)mixedSamples.size() != nOfSamples) {
                 mixedSamples.resize(nOfSamples);
             }
 

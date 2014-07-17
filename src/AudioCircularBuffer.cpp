@@ -35,7 +35,7 @@ int mod (int a, int b)
     return ret;
 }
 
-AudioCircularBuffer* AudioCircularBuffer::createNew(unsigned int ch, unsigned int sRate, unsigned int maxSamples, SampleFmt sFmt)
+AudioCircularBuffer* AudioCircularBuffer::createNew(int ch, int sRate, int maxSamples, SampleFmt sFmt)
 {
     return new AudioCircularBuffer(ch, sRate, maxSamples, sFmt);
 }
@@ -92,7 +92,7 @@ Frame* AudioCircularBuffer::forceGetFront()
     return outputFrame;
 }
 
-AudioCircularBuffer::AudioCircularBuffer(unsigned int ch, unsigned int sRate, unsigned int maxSamples, SampleFmt sFmt)
+AudioCircularBuffer::AudioCircularBuffer(int ch, int sRate, int maxSamples, SampleFmt sFmt)
 {
     byteCounter = 0;
     front = 0;

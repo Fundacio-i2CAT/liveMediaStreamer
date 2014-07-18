@@ -36,14 +36,12 @@ public:
     void flush();
     virtual Frame *forceGetRear();
     Frame *forceGetFront();
-    int delay; //(ms)
     const int getElements() {return elements;};
     bool frameToRead();
 
 protected:
 
     Frame* frames[MAX_FRAMES];
-    std::atomic<int> elements;
     int max;
     
 };

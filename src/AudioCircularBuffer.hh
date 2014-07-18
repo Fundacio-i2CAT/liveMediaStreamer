@@ -42,7 +42,6 @@
         void flush();
         Frame *forceGetRear();
         Frame *forceGetFront();
-        int delay; //(ms)
         bool frameToRead() {return false;};
         int getFreeSamples();
 
@@ -56,8 +55,7 @@
         bool pushBack(unsigned char **buffer, int samplesRequested);
         bool popFront(unsigned char **buffer, int samplesRequested);
         bool forcePushBack(unsigned char **buffer, int samplesRequested);
-        
-        std::atomic<int> byteCounter;
+
         int channels;
         int sampleRate;
         int bytesPerSample;

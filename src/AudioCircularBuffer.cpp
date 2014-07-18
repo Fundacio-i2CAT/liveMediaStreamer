@@ -94,7 +94,7 @@ Frame* AudioCircularBuffer::forceGetFront()
 
 AudioCircularBuffer::AudioCircularBuffer(int ch, int sRate, int maxSamples, SampleFmt sFmt)
 {
-    byteCounter = 0;
+    elements = 0;
     front = 0;
     rear = 0;
     channels = ch;
@@ -153,7 +153,7 @@ bool AudioCircularBuffer::pushBack(unsigned char **buffer, int samplesRequested)
 {
     int bytesRequested = samplesRequested * bytesPerSample;
 
-    if (bytesRequested > (channelMaxLength - byteCounter)) {
+    if (bytesRequested > (channelMaxLength - elements)) {
         return false;
     }
 
@@ -162,7 +162,7 @@ bool AudioCircularBuffer::pushBack(unsigned char **buffer, int samplesRequested)
             memcpy(data[i] + rear, buffer[i], bytesRequested);
         }
 
-        byteCounter += bytesRequested;
+        elements += bytesRequested;
         rear = (rear + bytesRequested) % channelMaxLength;
 
         return true;
@@ -175,7 +175,7 @@ bool AudioCircularBuffer::pushBack(unsigned char **buffer, int samplesRequested)
         memcpy(data[i], buffer[i] + firstCopiedBytes, bytesRequested - firstCopiedBytes);
     }
 
-    byteCounter += bytesRequested;
+    elements += bytesRequested;
     rear = (rear + bytesRequested) % channelMaxLength;
 
     return true;
@@ -185,7 +185,7 @@ bool AudioCircularBuffer::popFront(unsigned char **buffer, int samplesRequested)
 {
     int bytesRequested = samplesRequested * bytesPerSample;
 
-    if ((bytesRequested > byteCounter) || bytesRequested == 0) {
+    if ((bytesRequested > elements) || bytesRequested == 0) {
         return false;
     }
 
@@ -194,7 +194,7 @@ bool AudioCircularBuffer::popFront(unsigned char **buffer, int samplesRequested)
             memcpy(buffer[i], data[i] + front, bytesRequested);
         }
 
-        byteCounter -= bytesRequested;
+        elements -= bytesRequested;
         front = (front + bytesRequested) % channelMaxLength;
 
         return true;
@@ -207,7 +207,7 @@ bool AudioCircularBuffer::popFront(unsigned char **buffer, int samplesRequested)
         memcpy(buffer[i] + firstCopiedBytes, data[i], bytesRequested - firstCopiedBytes);
     }
 
-    byteCounter -= bytesRequested;
+    elements -= bytesRequested;
     front = (front + bytesRequested) % channelMaxLength;
 
     return true;
@@ -215,7 +215,7 @@ bool AudioCircularBuffer::popFront(unsigned char **buffer, int samplesRequested)
 
 int AudioCircularBuffer::getFreeSamples()
 {
-    int freeBytes = channelMaxLength - byteCounter;
+    int freeBytes = channelMaxLength - elements;
 
     if (freeBytes == 0) {
         return freeBytes;

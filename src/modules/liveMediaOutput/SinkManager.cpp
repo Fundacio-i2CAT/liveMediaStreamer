@@ -32,7 +32,7 @@
 
 SinkManager *SinkManager::mngrInstance = NULL;
 
-SinkManager::SinkManager(int readersNum): watch(0), TailFilter(readersNum)
+SinkManager::SinkManager(int readersNum): TailFilter(readersNum), watch(0)
 {    
     TaskScheduler* scheduler = BasicTaskScheduler::createNew();
     this->env = BasicUsageEnvironment::createNew(*scheduler);

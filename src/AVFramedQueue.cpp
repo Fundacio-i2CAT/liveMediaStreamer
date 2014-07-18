@@ -67,7 +67,7 @@ Frame* AVFramedQueue::forceGetRear()
 {
     Frame *frame;
     while ((frame = getRear()) == NULL) {
-        utils::debugMsg("Frame discarted");
+        utils::debugMsg("Frame discarted by AVFramedQueue");
         flush();
     }
     return frame;

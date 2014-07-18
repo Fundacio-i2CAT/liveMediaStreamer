@@ -55,7 +55,7 @@ void ChannelConfig::config(float width, float height, float x, float y, int laye
 //                VideoMixer Class               //
 ///////////////////////////////////////////////////
 
-VideoMixer::VideoMixer(int inputChannels) : ManyToOneFilter(inputChannels, true)
+VideoMixer::VideoMixer(int inputChannels) : ManyToOneFilter(inputChannels)
 {
     outputWidth = DEFAULT_WIDTH;
     outputHeight = DEFAULT_HEIGHT;
@@ -68,7 +68,7 @@ VideoMixer::VideoMixer(int inputChannels) : ManyToOneFilter(inputChannels, true)
 }
 
 VideoMixer::VideoMixer(int inputChannels, int outputWidth, int outputHeight) :
-ManyToOneFilter(inputChannels, true)
+ManyToOneFilter(inputChannels)
 {
     this->outputWidth = outputWidth;
     this->outputHeight = outputHeight;

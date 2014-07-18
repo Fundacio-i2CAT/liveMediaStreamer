@@ -127,7 +127,7 @@ Frame* X264VideoCircularBuffer::innerForceGetRear()
 {
     Frame *frame;
     while ((frame = innerGetRear()) == NULL) {
-        utils::debugMsg("Frame discarted");
+        utils::debugMsg("Frame discarted by X264 Circular Buffer");
         flush();
     }
     return frame;

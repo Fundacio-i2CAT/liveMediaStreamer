@@ -98,7 +98,7 @@ BaseFilter* PipelineManager::createFilter(FilterType type)
             filter = new VideoDecoderLibav();
             break;
         case VIDEO_ENCODER:
-            filter = new VideoEncoderX264();
+            filter = new VideoEncoderX264(true);
             break;
         case VIDEO_MIXER:
             filter = new VideoMixer();

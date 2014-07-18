@@ -62,14 +62,12 @@ bool Worker::removeProcessor(int id)
     }
 
     if (!run) {
-        delete processors[id];
         processors.erase(id);
         return true;
     }
 
     signalTask();
 
-    delete processors[id];
     processors.erase(id);
 
     commitTask();
@@ -364,22 +362,21 @@ void ConstantFramerateMaster::process()
     std::chrono::high_resolution_clock::time_point startPoint;
     std::chrono::microseconds chronoFrameTime;
     std::chrono::microseconds active(ACTIVE);
-
+    
     while(run) {
-
         startPoint = std::chrono::high_resolution_clock::now();
         chronoFrameTime = std::chrono::microseconds(frameTime);
 
         checkPendingTasks();
         processAll();
-
+        
         for (auto it : processors) {
             it.second->processEvent();
 
             if (!it.second->isEnabled()) {
                 continue;
             }
-
+            
             it.second->processFrame(false);
         }
 
@@ -391,7 +388,8 @@ void ConstantFramerateMaster::process()
             it.second->removeFrames();
         }
 
-        enlapsedTime = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - startPoint);
+        enlapsedTime = std::chrono::duration_cast<std::chrono::microseconds>(
+            std::chrono::high_resolution_clock::now() - startPoint);
         
         if (enlapsedTime < chronoFrameTime) {
             std::this_thread::sleep_for(std::chrono::microseconds(chronoFrameTime - enlapsedTime));

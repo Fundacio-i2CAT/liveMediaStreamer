@@ -61,6 +61,7 @@
         int bytesPerSample;
         int chMaxSamples;
         int channelMaxLength;
+        int delayBytes;
         unsigned char *data[MAX_CHANNELS];
         SampleFmt sampleFormat;
         bool outputFrameAlreadyRead;

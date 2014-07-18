@@ -97,8 +97,10 @@ AudioCircularBuffer::AudioCircularBuffer(int ch, int sRate, int maxSamples, Samp
     elements = 0;
     front = 0;
     rear = 0;
+    delay = 0; //ms
     channels = ch;
     sampleRate = sRate;
+    delayBytes = delay * sampleRate/1000;
     this->chMaxSamples = maxSamples;
     sampleFormat = sFmt;
     outputFrameAlreadyRead = true;
@@ -185,7 +187,7 @@ bool AudioCircularBuffer::popFront(unsigned char **buffer, int samplesRequested)
 {
     int bytesRequested = samplesRequested * bytesPerSample;
 
-    if ((bytesRequested > elements) || bytesRequested == 0) {
+    if ((bytesRequested > (elements - delayBytes)) || bytesRequested == 0) {
         return false;
     }
 

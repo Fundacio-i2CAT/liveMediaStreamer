@@ -88,9 +88,6 @@ bool VideoMixer::doProcessFrame(std::map<int, Frame*> orgFrames, Frame *dst)
 {
     int frameNumber = orgFrames.size();
     VideoFrame *vFrame;
-    bool someFrame = false;
-
-    
 
     layoutImg.data = dst->getDataBuf();
     dst->setLength(layoutImg.step * outputHeight);
@@ -104,7 +101,11 @@ bool VideoMixer::doProcessFrame(std::map<int, Frame*> orgFrames, Frame *dst)
                 continue;
             }
 
-            if (!it.second || !channelsConfig[it.first]->isEnabled()) {
+            if (!it.second) {
+                return false;
+            }
+
+            if (!channelsConfig[it.first]->isEnabled()) {
                 frameNumber--;
                 continue;
             }
@@ -112,7 +113,6 @@ bool VideoMixer::doProcessFrame(std::map<int, Frame*> orgFrames, Frame *dst)
             vFrame = dynamic_cast<VideoFrame*>(it.second);
             pasteToLayout(it.first, vFrame);
             frameNumber--;
-            someFrame = true;
         }
 
         if (frameNumber <= 0) {
@@ -120,7 +120,7 @@ bool VideoMixer::doProcessFrame(std::map<int, Frame*> orgFrames, Frame *dst)
         }
     }
 
-    return someFrame;
+    return true;
 }
 
 bool VideoMixer::configChannel(int id, float width, float height, float x, float y, int layer, bool enabled, float opacity)

@@ -21,6 +21,7 @@
  */
 
 #include "AudioCircularBuffer.hh"
+#include "Utils.hh"
 #include <cstring>
 #include <iostream>
 
@@ -53,7 +54,7 @@ Frame* AudioCircularBuffer::getFront()
     }
 
     if (!popFront(outputFrame->getPlanarDataBuf(), outputFrame->getSamples())) {
-        //std::cerr << "There is not enough data to fill a frame. Impossible to get frame!" << outputFrame->getSamples() << "\n";
+        utils::warningMsg("There is not enough data to fill a frame. Impossible to get new frame!");
         return NULL;
     }
 
@@ -86,7 +87,7 @@ Frame* AudioCircularBuffer::forceGetRear()
 Frame* AudioCircularBuffer::forceGetFront()
 {
     if (!popFront(outputFrame->getPlanarDataBuf(), outputFrame->getSamples())) {
-        std::cerr << "There is not enough data to fill a frame. Reusing previous frame!\n";
+        utils::warningMsg("There is not enough data to fill a frame. Reusing previous frame!");
     }
 
     return outputFrame;
@@ -229,12 +230,13 @@ int AudioCircularBuffer::getFreeSamples()
 bool AudioCircularBuffer::forcePushBack(unsigned char **buffer, int samplesRequested)
 {
     if(!pushBack(inputFrame->getPlanarDataBuf(), inputFrame->getSamples())) {
-        std::cerr << "There is not enough free space in the buffer. Discarding " 
-        << inputFrame->getSamples() - getFreeSamples() << "samples.\n";
+        utils::warningMsg("There is not enough free space in the buffer. Discarding samples");
         if (getFreeSamples() != 0) {
             pushBack(inputFrame->getPlanarDataBuf(), getFreeSamples());
         }
+        return false;
     }
+    return true;
 }
 
 void AudioCircularBuffer::setOutputFrameSamples(int samples) {

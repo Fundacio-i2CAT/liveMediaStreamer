@@ -134,6 +134,7 @@ protected:
 class Runnable {
     
 public:
+    ~Runnable(){};
     virtual bool processFrame(bool removeFrame = true) = 0;
     virtual void processEvent() = 0;
 	virtual void removeFrames() = 0;

@@ -54,7 +54,7 @@ Frame* AudioCircularBuffer::getFront()
     }
 
     if (!popFront(outputFrame->getPlanarDataBuf(), outputFrame->getSamples())) {
-        utils::warningMsg("There is not enough data to fill a frame. Impossible to get new frame!");
+        utils::debugMsg("There is not enough data to fill a frame. Impossible to get new frame!");
         return NULL;
     }
 
@@ -87,7 +87,7 @@ Frame* AudioCircularBuffer::forceGetRear()
 Frame* AudioCircularBuffer::forceGetFront()
 {
     if (!popFront(outputFrame->getPlanarDataBuf(), outputFrame->getSamples())) {
-        utils::warningMsg("There is not enough data to fill a frame. Reusing previous frame!");
+        utils::debugMsg("There is not enough data to fill a frame. Reusing previous frame!");
     }
 
     return outputFrame;
@@ -126,7 +126,7 @@ bool AudioCircularBuffer::config()
         case S16:
         case FLT:
             bytesPerSample = 0;
-            std::cerr << "[Audio Circular Buffer] Only planar sample formats are supported (U8P, S16P, FLTP)\n";
+            utils::errorMsg("[Audio Circular Buffer] Only planar sample formats are supported (U8P, S16P, FLTP)");
             break;
     }
 
@@ -230,7 +230,7 @@ int AudioCircularBuffer::getFreeSamples()
 bool AudioCircularBuffer::forcePushBack(unsigned char **buffer, int samplesRequested)
 {
     if(!pushBack(inputFrame->getPlanarDataBuf(), inputFrame->getSamples())) {
-        utils::warningMsg("There is not enough free space in the buffer. Discarding samples");
+        utils::debugMsg("There is not enough free space in the buffer. Discarding samples");
         if (getFreeSamples() != 0) {
             pushBack(inputFrame->getPlanarDataBuf(), getFreeSamples());
         }

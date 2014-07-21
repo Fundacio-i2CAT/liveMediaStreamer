@@ -31,7 +31,7 @@
 #define MAX_CHANNELS 2
 #define DEFAULT_SAMPLE_RATE 48000
 #define MAX_FRAME_TIME 100 //ms
-#define DEFAULT_FRAME_TIME 20 //ms
+#define DEFAULT_FRAME_TIME 10 //ms
 
 
 class AudioFrame : public Frame {

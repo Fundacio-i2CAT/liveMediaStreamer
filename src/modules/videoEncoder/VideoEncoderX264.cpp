@@ -155,10 +155,6 @@ bool VideoEncoderX264::reconfigure(VideoFrame* orgFrame, X264VideoFrame* x264Fra
     {
         inPixFmt = orgFrame->getPixelFormat();
         switch (inPixFmt) {
-            case RGB24:
-                libavInPixFmt = AV_PIX_FMT_RGB24;
-                colorspace = X264_CSP_RGB;
-                break;
             case YUV420P:
                 libavInPixFmt = AV_PIX_FMT_YUV420P;
                 colorspace = X264_CSP_I420;

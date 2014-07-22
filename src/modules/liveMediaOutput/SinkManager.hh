@@ -37,6 +37,9 @@
 #define MAX_VIDEO_FRAME_SIZE 256*1024
 #define MANUAL_CLIENT_SESSION_ID 1
 #define TTL 255
+#define INITIAL_SERVER_PORT 6970
+
+class Connection;
 
 class SinkManager : public TailFilter {
 private:
@@ -50,7 +53,7 @@ public:
 
     bool addSession(std::string id, std::vector<int> readers, 
                     std::string info = "", std::string desc = "");
-    //bool addConnection(int reader, std::string ip, unsigned int port);
+    bool addConnection(int reader, std::string ip, unsigned int port);
     
     ServerMediaSession* getSession(std::string id); 
     bool publishSession(std::string id);
@@ -82,7 +85,7 @@ private:
     static SinkManager* mngrInstance;
     std::map<std::string, ServerMediaSession*> sessionList;
     std::map<int, StreamReplicator*> replicas;
-    //std::map<int, Connection*> connections;
+    std::map<int, Connection*> connections;
     UsageEnvironment* env;
     uint8_t watch;
     
@@ -114,11 +117,12 @@ protected:
 };
 
 class VideoConnection : public Connection{   
-private:
+public:
     VideoConnection(UsageEnvironment* env, 
                     std::string ip, unsigned port, 
                     FramedSource *source, VCodecType codec);
-    
+
+private:
     VCodecType fCodec;
 };
 

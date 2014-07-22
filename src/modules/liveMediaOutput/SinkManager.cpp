@@ -120,14 +120,19 @@ bool SinkManager::addSession(std::string id, std::vector<int> readers, std::stri
     return true;
 }
 
-// bool SinkManager::addConnection(int reader, std::string ip, unsigned int port){
-//     netAddressBits addr = our_inet_addr(ip.c_str());
-//     if ((port % 2) != 0){
-//         utils::errorMsg("Port must be an even number");
-//         return false;
-//     }
-// 
-// }
+bool SinkManager::addConnection(int reader, std::string ip, unsigned int port)
+{
+    VideoFrameQueue *vQueue;
+    unsigned id;
+    if ((vQueue = dynamic_cast<VideoFrameQueue*>(getReader(reader)->getQueue())) != NULL){
+        do {
+            id = rand();
+        } while(connections.count(id) > 0);
+        connections[id] = new VideoConnection(envir(), ip, port, replicas[reader]->createStreamReplica(), vQueue->getCodec());
+        return true;
+    }
+    return false;
+}
 
 Reader *SinkManager::setReader(int readerId, FrameQueue* queue)
 {
@@ -408,6 +413,7 @@ Connection::Connection(UsageEnvironment* env,
                        std::string ip, unsigned port, FramedSource *source) : 
                        fEnv(env), fIp(ip), fPort(port), fSource(source)
 {
+    unsigned serverPort = INITIAL_SERVER_PORT;
     destinationAddress.s_addr = our_inet_addr(fIp.c_str());
     if ((port%2) != 0){
         utils::warningMsg("Port should be an even number");
@@ -415,8 +421,19 @@ Connection::Connection(UsageEnvironment* env,
     const Port rtpPort(port);
     const Port rtcpPort(port+1);
     
-    rtpGroupsock = new Groupsock(*fEnv, destinationAddress, rtpPort, TTL);
-    rtcpGroupsock = new Groupsock(*fEnv, destinationAddress, rtcpPort, TTL);
+    for (;;serverPort+=2){
+        rtpGroupsock = new Groupsock(*fEnv, destinationAddress, Port(serverPort), TTL);
+        rtcpGroupsock = new Groupsock(*fEnv, destinationAddress, Port(serverPort+1), TTL);
+        if (rtpGroupsock->socketNum() < 0 || rtcpGroupsock->socketNum() < 0) {
+            delete rtpGroupsock;
+            delete rtcpGroupsock;
+            continue; // try again
+        }
+        break;
+    }
+    
+    rtpGroupsock->changeDestinationParameters(destinationAddress, rtpPort, TTL);
+    rtcpGroupsock->changeDestinationParameters(destinationAddress, rtcpPort, TTL);
 }
 
 Connection::~Connection()
@@ -439,7 +456,7 @@ void Connection::afterPlaying(void* clientData) {
 void Connection::startPlaying()
 {
     if (sink != NULL){
-        sink->startPlaying(*fSource, &Connection::afterPlaying, (void *) sink);
+        sink->startPlaying(*fSource, &Connection::afterPlaying, sink);
     }
 }
 

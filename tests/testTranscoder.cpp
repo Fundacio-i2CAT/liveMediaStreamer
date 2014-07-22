@@ -149,7 +149,7 @@ int main(int argc, char** argv)
     pipe->startWorkers();
     
     
-  //  transmitter->addConnection(readers.front(), "127.0.0.1", 3030);
+    transmitter->addConnection(readers.front(), "127.0.0.1", 3030);
     wEnc->setFps(5000.0/1005);
     
     while(pipe->getWorker(pipe->getReceiver()->getWorkerId())->isRunning() || 

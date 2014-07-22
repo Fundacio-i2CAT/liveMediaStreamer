@@ -35,7 +35,7 @@ int AudioFrame::getDefaultSamples(int sampleRate)
 }
 
 
-AudioFrame::AudioFrame(unsigned int ch, unsigned int sRate, unsigned int maxSamples, ACodecType codec)
+AudioFrame::AudioFrame(int ch, int sRate, int maxSamples, ACodecType codec)
 {
     channels = ch;
     sampleRate = sRate;
@@ -48,12 +48,12 @@ AudioFrame::AudioFrame(unsigned int ch, unsigned int sRate, unsigned int maxSamp
 //INTERLEAVED AUDIO FRAME METHODS IMPLEMENTATION//
 //////////////////////////////////////////////////
 
-InterleavedAudioFrame* InterleavedAudioFrame::createNew(unsigned int ch, unsigned int sRate, unsigned int maxSamples, ACodecType codec, SampleFmt sFmt)
+InterleavedAudioFrame* InterleavedAudioFrame::createNew(int ch, int sRate, int maxSamples, ACodecType codec, SampleFmt sFmt)
 {
     return new InterleavedAudioFrame(ch, sRate, maxSamples, codec, sFmt);
 }
 
-InterleavedAudioFrame::InterleavedAudioFrame(unsigned int ch, unsigned int sRate, unsigned int maxSamples, ACodecType codec, SampleFmt sFmt)
+InterleavedAudioFrame::InterleavedAudioFrame(int ch, int sRate, int maxSamples, ACodecType codec, SampleFmt sFmt)
 : AudioFrame(ch, sRate, maxSamples, codec)
 {
     sampleFmt = sFmt;
@@ -83,12 +83,12 @@ InterleavedAudioFrame::InterleavedAudioFrame(unsigned int ch, unsigned int sRate
 //PLANAR AUDIO FRAME METHODS IMPLEMENTATION//
 /////////////////////////////////////////////
 
-PlanarAudioFrame* PlanarAudioFrame::createNew(unsigned int ch, unsigned int sRate, unsigned int maxSamples, ACodecType codec, SampleFmt sFmt)
+PlanarAudioFrame* PlanarAudioFrame::createNew(int ch, int sRate, int maxSamples, ACodecType codec, SampleFmt sFmt)
 {
     return new PlanarAudioFrame(ch, sRate, maxSamples, codec, sFmt);
 }
 
-PlanarAudioFrame::PlanarAudioFrame(unsigned int ch, unsigned int sRate, unsigned int maxSamples, ACodecType codec, SampleFmt sFmt)
+PlanarAudioFrame::PlanarAudioFrame(int ch, int sRate, int maxSamples, ACodecType codec, SampleFmt sFmt)
 : AudioFrame(ch, sRate, maxSamples, codec)
 {
     sampleFmt = sFmt;

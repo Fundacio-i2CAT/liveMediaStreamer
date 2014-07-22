@@ -27,14 +27,14 @@
 
 H264QueueServerMediaSubsession*
 H264QueueServerMediaSubsession::createNew(UsageEnvironment& env,
-                          StreamReplicator* replicator,
+                          StreamReplicator* replicator, int readerId,
                           Boolean reuseFirstSource) {
-    return new H264QueueServerMediaSubsession(env, replicator, reuseFirstSource);
+    return new H264QueueServerMediaSubsession(env, replicator, readerId, reuseFirstSource);
 }
 
 H264QueueServerMediaSubsession::H264QueueServerMediaSubsession(UsageEnvironment& env,
-                          StreamReplicator* replicator, Boolean reuseFirstSource)
-: QueueServerMediaSubsession(env, replicator, reuseFirstSource),
+                          StreamReplicator* replicator, int readerId, Boolean reuseFirstSource)
+: QueueServerMediaSubsession(env, replicator, readerId, reuseFirstSource),
     fAuxSDPLine(NULL), fDoneFlag(0), fDummyRTPSink(NULL) {
 }
 

@@ -53,11 +53,8 @@ AudioEncoderLibav::AudioEncoderLibav()  : OneToOneFilter()
     sampleFmt = S16P;
     libavSampleFmt = AV_SAMPLE_FMT_S16P;
     initializeEventMap();
-	presentationTime = utils::getPresentationTime();
-	timestamp = ((uint64_t)presentationTime.tv_sec * (uint64_t)1000000) + (uint64_t)presentationTime.tv_usec;
 
     configure(OPUS);
-
     config();
 }
 
@@ -93,10 +90,11 @@ bool AudioEncoderLibav::doProcessFrame(Frame *org, Frame *dst)
     //resample in order to adapt to encoder constraints
     resample(aRawFrame, libavFrame);
 
+
     ret = avcodec_encode_audio2(codecCtx, &pkt, libavFrame, &gotFrame);
 
     if (ret < 0) {
-        fprintf(stderr, "Error encoding audio frame\n");
+        utils::errorMsg("Error encoding audio frame");
         return false;
     }
 
@@ -112,7 +110,7 @@ bool AudioEncoderLibav::doProcessFrame(Frame *org, Frame *dst)
 
 Reader* AudioEncoderLibav::setReader(int readerID, FrameQueue* queue)
 {
-    if (readers.size() >= getMaxReaders() || readers.count(readerID) > 0 ) {
+    if ((int)readers.size() >= getMaxReaders() || readers.count(readerID) > 0 ) {
         return NULL;
     }
 
@@ -173,31 +171,29 @@ bool AudioEncoderLibav::config()
     
     codec = avcodec_find_encoder(codecID);
     if (!codec) {
-        fprintf(stderr, "Error finding encoder\n");
+        utils::errorMsg("Error finding encoder");
         return false;
     }
     
     codecCtx = avcodec_alloc_context3(codec);
     if (codecCtx == NULL) {
-        fprintf(stderr, "Error allocating codec context\n");
+        utils::errorMsg("Error allocating codec context");
         return false;
     }
 
     if (fCodec != PCMU && fCodec != PCM) {
         if (!checkSampleFormat(codec, internalLibavSampleFormat)) {
-            fprintf(stderr, "Encoder does not support sample format %s\n", 
-                            av_get_sample_fmt_name(internalLibavSampleFormat));
+            utils::errorMsg("Encoder does not support sample format");
             return false;
         }
 
         if (!checkSampleRateSupport(codec, internalSampleRate)) {
-            fprintf(stderr, "Encoder does not support sample rate %d\n", internalSampleRate);
+            utils::errorMsg("Encoder does not support sample rate " + std::to_string(internalSampleRate));
             return false;
         }
 
         if (!checkChannelLayoutSupport(codec, av_get_default_channel_layout(internalChannels))) {
-            fprintf(stderr, "Encoder does not support channel layout %ld\n", 
-                                av_get_default_channel_layout(internalChannels));
+            utils::errorMsg("Encoder does not support channel layout");
             return false;
         }
     }
@@ -208,7 +204,7 @@ bool AudioEncoderLibav::config()
     codecCtx->sample_fmt = internalLibavSampleFormat;
 
     if (avcodec_open2(codecCtx, codec, NULL) < 0) {
-        fprintf(stderr, "Could not open codec context\n");
+        utils::errorMsg("Could not open codec context");
         return false;
     }
 
@@ -226,13 +222,13 @@ bool AudioEncoderLibav::config()
                   );
 
     if (resampleCtx == NULL) {
-        fprintf(stderr, "Error allocating resample context\n");
+        utils::errorMsg("Error allocating resample context");
         return false;
     }
 
     if (swr_is_initialized(resampleCtx) == 0) {
         if (swr_init(resampleCtx) < 0) {
-            fprintf(stderr, "Error initializing encoder resample context\n");
+            utils::errorMsg("Error initializing encoder resample context");
             return false;
         } 
     }
@@ -254,7 +250,7 @@ bool AudioEncoderLibav::config()
                                                       libavFrame->nb_samples, codecCtx->sample_fmt, 0);
 
     if (internalBufferSize < 0) {
-       fprintf(stderr, "Could not get sample buffer size\n");
+        utils::errorMsg("Could not get sample buffer size");
        return false;
     }
 
@@ -264,7 +260,9 @@ bool AudioEncoderLibav::config()
 
     internalBuffer = new unsigned char[internalBufferSize]();
     if (!internalBuffer) {
-        fprintf(stderr, "Could not allocate %d bytes for samples buffer\n", internalBufferSize);
+        utils::errorMsg("Could not allocate " + 
+            std::to_string(internalBufferSize) + 
+            " bytes for samples buffer");
         return false;
     }
 
@@ -272,11 +270,14 @@ bool AudioEncoderLibav::config()
     int ret = avcodec_fill_audio_frame(libavFrame, codecCtx->channels, codecCtx->sample_fmt,
                                         (const uint8_t*)internalBuffer, internalBufferSize, 0);
     if (ret < 0) {
-        fprintf(stderr, "Could not setup audio frame\n");
+        utils::errorMsg("Could not setup audio frame");
         return false;
     }
 
     needsConfig = false;
+    
+    std::chrono::high_resolution_clock::time_point tp = std::chrono::high_resolution_clock::now();
+    currentTime = std::chrono::duration_cast<std::chrono::microseconds>(tp.time_since_epoch());
 
     return true;
 }
@@ -306,6 +307,8 @@ int AudioEncoderLibav::resample(AudioFrame* src, AVFrame* dst)
                   );
 
     }
+
+    return samples;
 }
 
 bool AudioEncoderLibav::reconfigure(AudioFrame* frame)
@@ -352,10 +355,11 @@ bool AudioEncoderLibav::reconfigure(AudioFrame* frame)
 
 void AudioEncoderLibav::setPresentationTime(Frame* dst) 
 {
-	timestamp+= (((uint64_t) (1000000 * (libavFrame->nb_samples)))/ (uint64_t) internalSampleRate);
-	presentationTime.tv_sec= (timestamp / 1000000);
-	presentationTime.tv_usec= (timestamp % 1000000);
-	dst->setPresentationTime(presentationTime);
+    std::chrono::microseconds frameDuration(1000000*libavFrame->nb_samples/internalSampleRate);
+    currentTime += frameDuration;
+    presentationTime.tv_sec= currentTime.count()/1000000;
+    presentationTime.tv_usec= currentTime.count()%1000000;
+    dst->setPresentationTime(presentationTime);
 }
 
 void AudioEncoderLibav::configEvent(Jzon::Node* params, Jzon::Object &outputNode) 

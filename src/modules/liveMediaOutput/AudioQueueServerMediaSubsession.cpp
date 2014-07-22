@@ -28,77 +28,73 @@
 
 AudioQueueServerMediaSubsession*
 AudioQueueServerMediaSubsession::createNew(UsageEnvironment& env,
-                          Reader *reader, int readerId,
+                          StreamReplicator* replicator, int readerId,
+                          ACodecType codec, unsigned channels,
+                          unsigned sampleRate, SampleFmt sampleFormat,
                           Boolean reuseFirstSource) {
-  return new AudioQueueServerMediaSubsession(env, reader, readerId, reuseFirstSource);
+  return new AudioQueueServerMediaSubsession(env, replicator, readerId, 
+                                             codec, channels, sampleRate,
+                                             sampleFormat, reuseFirstSource);
 }
 
 AudioQueueServerMediaSubsession::AudioQueueServerMediaSubsession(UsageEnvironment& env,
-                                    Reader *reader, int readerId, Boolean reuseFirstSource)
-  : QueueServerMediaSubsession(env, reader, readerId, reuseFirstSource) {
+                          StreamReplicator* replicator, int readerId, 
+                          ACodecType codec, unsigned channels,
+                          unsigned sampleRate, SampleFmt sampleFormat,
+                          Boolean reuseFirstSource)
+  : QueueServerMediaSubsession(env, replicator, readerId, reuseFirstSource), fCodec(codec),
+                          fChannels(channels), fSampleRate(sampleRate), fSampleFormat(sampleFormat) {
 }
 
 FramedSource* AudioQueueServerMediaSubsession::createNewStreamSource(unsigned /*clientSessionId*/, unsigned& estBitrate) {
-    AudioFrameQueue *aQueue;
     QueueSource *qSource;
     unsigned bitsPerSecond = 0;
     
-    if ((aQueue = dynamic_cast<AudioFrameQueue*>(fReader->getQueue())) == NULL){
-        return NULL;
+    if (fSampleFormat == S16){
+        bitsPerSecond = fSampleRate*2*fChannels;
+    } else if (fSampleFormat == U8){
+        bitsPerSecond = fSampleRate*1*fChannels;
     }
-    
-    if (aQueue->getSampleFmt() == S16){
-        bitsPerSecond = aQueue->getSampleRate()*2*aQueue->getChannels();
-    } else if (aQueue->getSampleFmt() == U8){
-        bitsPerSecond = aQueue->getSampleRate()*1*aQueue->getChannels();
-    }
-    
-    qSource = QueueSource::createNew(envir(), fReader, fReaderId);
     
     if (bitsPerSecond > 0){
         estBitrate = (bitsPerSecond+500)/1000; // kbps
     } else {
         estBitrate = 128; // kbps, estimate
     }
-    return qSource;
+    return fReplicator->createStreamReplica();
 }
 
 RTPSink* AudioQueueServerMediaSubsession
 ::createNewRTPSink(Groupsock* rtpGroupsock,
            unsigned char rtpPayloadTypeIfDynamic,
            FramedSource* /*inputSource*/) {
-    AudioFrameQueue *aQueue;
     unsigned char payloadType = rtpPayloadTypeIfDynamic;
-
-    if ((aQueue = dynamic_cast<AudioFrameQueue*>(fReader->getQueue())) == NULL){
-        return NULL;
-    }
     
-    std::string codecStr = utils::getAudioCodecAsString(aQueue->getCodec());
+    std::string codecStr = utils::getAudioCodecAsString(fCodec);
     
-    if (aQueue->getCodec() == PCM && 
-        aQueue->getSampleFmt() == S16) {
+    if (fCodec == PCM && 
+        fSampleFormat == S16) {
         codecStr = "L16";
-        if (aQueue->getSampleRate() == 44100) {
-            if (aQueue->getChannels() == 2){
+        if (fSampleRate == 44100) {
+            if (fChannels == 2){
                 payloadType = 10;
-            } else if (aQueue->getChannels() == 1) {
+            } else if (fChannels == 1) {
                 payloadType = 11;
             }
         }
-    } else if ((aQueue->getCodec() == PCMU || aQueue->getCodec() == G711) && 
-              aQueue->getSampleRate() == 8000 &&
-              aQueue->getChannels() == 1){
+    } else if ((fCodec == PCMU || fCodec == G711) && 
+                fSampleRate == 8000 &&
+                fChannels == 1){
         payloadType = 0;
     }
     
-    if (aQueue->getCodec() == MP3){
+    if (fCodec == MP3){
         return MPEG1or2AudioRTPSink::createNew(envir(), rtpGroupsock);
     }
     
     return SimpleRTPSink
     ::createNew(envir(), rtpGroupsock, payloadType,
-                aQueue->getSampleRate(), "audio", 
+                fSampleRate, "audio", 
                 codecStr.c_str(),
-                aQueue->getChannels(), False);
+                fChannels, False);
 }

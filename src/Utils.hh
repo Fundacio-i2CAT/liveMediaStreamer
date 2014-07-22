@@ -28,8 +28,6 @@
 
 #define ID_LENGTH 4
 
-static bool logConfigured = false;
-static struct timeval timestampAV;
 enum DefinedLogLevel {ERROR, WARNING, DEBUG, INFO};
 
 namespace utils 
@@ -40,6 +38,7 @@ namespace utils
     std::string getAudioCodecAsString(ACodecType codec);
     std::string getFilterTypeAsString(FilterType type);
     std::string getSampleFormatAsString(SampleFmt sFormat);
+    std::string getWorkerTypeAsString(WorkerType type);
 	std::string randomIdGenerator(unsigned int length);
     int getPayloadFromCodec(std::string codec); 
 
@@ -51,7 +50,6 @@ namespace utils
     
     void setLogLevel(DefinedLogLevel level);
 	void startPresentacionTime();
-	struct timeval getPresentationTime();
 }
 
 #endif

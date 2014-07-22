@@ -70,7 +70,7 @@ void createAudioMixerEncoderTxPath()
         exit(1);
     }
 
-    Worker* audioMixerWorker = new BestEffort();
+    Worker* audioMixerWorker = new BestEffortMaster();
     if(!pipeMngr->addWorker(audioMixerID, audioMixerWorker)) {
         std::cerr << "Error adding mixer worker" << std::endl;
         exit(1);
@@ -82,9 +82,7 @@ void createAudioMixerEncoderTxPath()
 
 int main(int argc, char *argv[]) {
 
-    int sockfd, newsockfd, port, n;
-    char buffer[2048];
-    struct timeval in_time;
+    int sockfd, port;
 
     if (argc < 2) {
         fprintf(stderr,"ERROR, no port provided\n");

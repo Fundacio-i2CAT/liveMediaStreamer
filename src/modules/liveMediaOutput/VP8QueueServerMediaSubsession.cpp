@@ -27,19 +27,20 @@
 
 VP8QueueServerMediaSubsession*
 VP8QueueServerMediaSubsession::createNew(UsageEnvironment& env,
-                          StreamReplicator* replicator,
+                          StreamReplicator* replicator, int readerId,
                           Boolean reuseFirstSource) {
-    return new VP8QueueServerMediaSubsession(env, replicator, reuseFirstSource);
+    return new VP8QueueServerMediaSubsession(env, replicator, readerId, reuseFirstSource);
 }
 
 VP8QueueServerMediaSubsession::VP8QueueServerMediaSubsession(UsageEnvironment& env,
-                          StreamReplicator* replicator, Boolean reuseFirstSource)
-  : QueueServerMediaSubsession(env, replicator, reuseFirstSource) {
+                          StreamReplicator* replicator, int readerId, 
+                          Boolean reuseFirstSource)
+  : QueueServerMediaSubsession(env, replicator, readerId, reuseFirstSource) {
 }
 
 FramedSource* VP8QueueServerMediaSubsession::createNewStreamSource(unsigned /*clientSessionId*/, unsigned& estBitrate) {
     //TODO: WTF
-    estBitrate = 1000; // kbps, estimate
+    estBitrate = 2000; // kbps, estimate
 
     return fReplicator->createStreamReplica();
 }

@@ -29,12 +29,14 @@
 
 #include <BasicUsageEnvironment.hh>
 #include <liveMedia.hh>
+#include <Groupsock.hh>
 #include <map>
 #include <string>
 
 #define RTSP_PORT 8554
 #define MAX_VIDEO_FRAME_SIZE 256*1024
 #define MANUAL_CLIENT_SESSION_ID 1
+#define TTL 255
 
 class SinkManager : public TailFilter {
 private:
@@ -48,11 +50,12 @@ public:
 
     bool addSession(std::string id, std::vector<int> readers, 
                     std::string info = "", std::string desc = "");
-    bool addConnection(int reader, std::string ip, unsigned int port);
+    //bool addConnection(int reader, std::string ip, unsigned int port);
     
     ServerMediaSession* getSession(std::string id); 
     bool publishSession(std::string id);
     bool removeSession(std::string id);
+    bool removeSessionByReaderId(int readerId);
     bool deleteReader(int id);
     
     void stop();
@@ -62,22 +65,74 @@ public:
 private: 
     void initializeEventMap();
     void addSessionEvent(Jzon::Node* params, Jzon::Object &outputNode);
+    Reader *setReader(int readerID, FrameQueue* queue);
     
     bool processFrame(bool removeFrame = false);
     
-    ServerMediaSubsession *createSubsessionByReader(Reader *reader, int readerId);
-    ServerMediaSubsession *createVideoMediaSubsession(VCodecType codec, Reader *reader, int readerId);
-    ServerMediaSubsession *createAudioMediaSubsession(ACodecType codec, Reader *reader, int readerId);
+    ServerMediaSubsession *createSubsessionByReader(int readerId);
+    ServerMediaSubsession *createVideoMediaSubsession(VCodecType codec, int readerId);
+    ServerMediaSubsession *createAudioMediaSubsession(ACodecType codec, 
+                                                      unsigned channels,
+                                                      unsigned sampleRate,
+                                                      SampleFmt sampleFormat, int readerId);
+    void createVideoQueueSource(VCodecType codec, Reader *reader, int readerId);
+    void createAudioQueueSource(ACodecType codec, Reader *reader, int readerId);
     void doGetState(Jzon::Object &filterNode);
    
     static SinkManager* mngrInstance;
     std::map<std::string, ServerMediaSession*> sessionList;
-    std::map<int, std::string> activeReaders;
-    std::map<unsigned, std::pair<int, StreamState*>> connections;
+    std::map<int, StreamReplicator*> replicas;
+    //std::map<int, Connection*> connections;
     UsageEnvironment* env;
     uint8_t watch;
     
     RTSPServer* rtspServer;
 };
+
+class Connection {
+    
+public:
+    void startPlaying();
+    void stopPlaying();
+    
+protected:
+    Connection(UsageEnvironment* env, std::string ip, 
+               unsigned port, FramedSource *source);
+    static void afterPlaying(void* clientData);
+    
+    ~Connection();
+    
+    UsageEnvironment* fEnv;
+    FramedSource *fSource;
+    std::string fIp;
+    unsigned fPort;
+    struct in_addr destinationAddress;
+    RTPSink *sink;
+    RTCPInstance* rtcp;
+    Groupsock *rtpGroupsock;
+    Groupsock *rtcpGroupsock;
+};
+
+class VideoConnection : public Connection{   
+private:
+    VideoConnection(UsageEnvironment* env, 
+                    std::string ip, unsigned port, 
+                    FramedSource *source, VCodecType codec);
+    
+    VCodecType fCodec;
+};
+
+// class AudioConnection {   
+// private:
+//     AudioConnection(UsageEnvironment* env, std::string ip, unsigned port, 
+//                     FramedSource *source, ACodecType codec,
+//                     unsigned channels, unsigned sampleRate,
+//                     SampleFmt sampleFormat);
+//     
+//     ACodecType fCodec;
+//     unsigned fChannels;
+//     unsigned fSampleRate;
+//     SampleFmt fSampleFormat;
+// };
 
 #endif

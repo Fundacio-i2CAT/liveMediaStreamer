@@ -23,7 +23,7 @@
 
  #include "VideoFrame.hh"
 
-void VideoFrame::setSize(unsigned int width, unsigned int height)
+void VideoFrame::setSize(int width, int height)
 {
     this->width = width;
     this->height = height;
@@ -43,7 +43,7 @@ InterleavedVideoFrame* InterleavedVideoFrame::createNew(VCodecType codec, unsign
     return new InterleavedVideoFrame(codec, maxLength);
 }
 
-InterleavedVideoFrame* InterleavedVideoFrame::createNew(VCodecType codec, unsigned int width, unsigned height, PixType pixelFormat)
+InterleavedVideoFrame* InterleavedVideoFrame::createNew(VCodecType codec, int width, int height, PixType pixelFormat)
 {
     return new InterleavedVideoFrame(codec, width, height, pixelFormat);
 }
@@ -58,7 +58,7 @@ InterleavedVideoFrame::InterleavedVideoFrame(VCodecType codec, unsigned int maxL
     this->codec = codec;
 }
 
-InterleavedVideoFrame::InterleavedVideoFrame(VCodecType codec, unsigned int width, unsigned height, PixType pixelFormat)
+InterleavedVideoFrame::InterleavedVideoFrame(VCodecType codec, int width, int height, PixType pixelFormat)
 {
     this->width = width;
     this->height = height;

@@ -39,7 +39,7 @@ FrameQueue* createAudioQueue(unsigned char rtpPayloadFormat,
                              char const* codecName, unsigned channels, 
                              unsigned sampleRate);
 
-SourceManager::SourceManager(int writersNum): watch(0), HeadFilter(writersNum)
+SourceManager::SourceManager(int writersNum): HeadFilter(writersNum), watch(0)
 {    
     TaskScheduler* scheduler = BasicTaskScheduler::createNew();
     this->env = BasicUsageEnvironment::createNew(*scheduler);
@@ -172,24 +172,22 @@ void SourceManager::addSessionEvent(Jzon::Node* params, Jzon::Object &outputNode
     int payload, bandwidth, timeStampFrequency, channels, port;
     Session* session;
 
-
-
     if (!params) {
         outputNode.Add("error", "Error adding session. Wrong parameters!");
         return;
     }
 
-    if (params->Has("uri") && params->Has("progName")) {
+    if (params->Has("uri") && params->Has("progName") && params->Has("id")) {
         
         std::string progName = params->Get("progName").ToString();
         std::string rtspURL = params->Get("uri").ToString();
+        sessionId = params->Get("id").ToString();
         session = Session::createNewByURL(*env, progName, rtspURL, sessionId);
     
     } else if (params->Has("subsessions") && params->Get("subsessions").IsArray()) {
         
         Jzon::Array subsessions = params->Get("subsessions").AsArray();
-        sdp = makeSessionSDP("testSession", "this is a test");
-
+        sdp = makeSessionSDP(sessionId, "this is a test");
         
         for (Jzon::Array::iterator it = subsessions.begin(); it != subsessions.end(); ++it) {
             medium = (*it).Get("medium").ToString();
@@ -201,13 +199,10 @@ void SourceManager::addSessionEvent(Jzon::Node* params, Jzon::Object &outputNode
 
             payload = utils::getPayloadFromCodec(codec);
 
-
-
             if (payload < 0) {
                 outputNode.Add("error", "Payload type is not valid!!");
                 return;
             }
-
 
             sdp += makeSubsessionSDP(medium, PROTOCOL, payload, codec, bandwidth, 
                                                 timeStampFrequency, port, channels);
@@ -289,7 +284,7 @@ void SourceManager::doGetState(Jzon::Object &filterNode)
         }
 
         jsonSession.Add("id", it.first);
-        jsonSession.Add("subsession", subsessionArray);
+        jsonSession.Add("subsessions", subsessionArray);
 
         sessionArray.Add(jsonSession);
     }
@@ -409,7 +404,8 @@ bool Session::initiateSession()
         }
         return true;
     } else if (client != NULL){
-        client->sendDescribeCommand(handlers::continueAfterDESCRIBE);
+        unsigned ret = client->sendDescribeCommand(handlers::continueAfterDESCRIBE);
+        std::cout << "SNED DESCRIBE COMMAND RETURN: " << ret << std::endl;
         return true;
     }
     

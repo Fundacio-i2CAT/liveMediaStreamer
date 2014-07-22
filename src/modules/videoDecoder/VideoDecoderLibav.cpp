@@ -52,7 +52,6 @@ FrameQueue* VideoDecoderLibav::allocQueue(int wId)
 bool VideoDecoderLibav::doProcessFrame(Frame *org, Frame *dst)
 {
     int len, gotFrame = 0;
-    bool ret = false;
     VideoFrame* vDecodedFrame = dynamic_cast<VideoFrame*>(dst);
     VideoFrame* vCodedFrame = dynamic_cast<VideoFrame*>(org);
 
@@ -225,6 +224,9 @@ PixType getPixelFormat(AVPixelFormat format)
             break;
         case AV_PIX_FMT_YUV444P:
             return YUV444P;
+            break;
+        case AV_PIX_FMT_YUVJ420P:
+            return YUVJ420P;
             break;
         default:
             utils::errorMsg("Unknown output pixel format");

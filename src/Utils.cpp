@@ -27,9 +27,12 @@
 #include <log4cplus/logger.h>
 #include <log4cplus/loggingmacros.h>
 #include <log4cplus/configurator.h>
- #include <sys/time.h>
+#include <sys/time.h>
+#include <random> 
 
 using namespace log4cplus;
+
+static bool logConfigured = false;
 
 namespace utils 
 {
@@ -208,6 +211,29 @@ namespace utils
         return stringFormat;
 
     }
+
+    std::string getWorkerTypeAsString(WorkerType type)
+    {
+        std::string stringWorker;
+
+        switch(type) {
+            case LIVEMEDIA:
+                stringWorker = "livemedia";
+                break;
+            case BEST_EFFORT_MASTER:
+                stringWorker = "bestEffortMaster";
+                break;
+            case SLAVE:
+                stringWorker = "slave";
+                break;
+            case C_FRAMERATE_MASTER:
+                stringWorker = "cFramerateMaster";
+                break;
+        }
+
+        return stringWorker;
+    }
+
     
     char randAlphaNum()
     {
@@ -324,14 +350,4 @@ namespace utils
         Logger logger = Logger::getInstance(LOG4CPLUS_TEXT("main"));
         LOG4CPLUS_INFO(logger, msg);
     }
-
-	void startPresentacionTime()
-	{
-		gettimeofday(&timestampAV, NULL);
-	}
-
-	struct timeval getPresentationTime() 
-	{
-		return timestampAV;
-	}
 }

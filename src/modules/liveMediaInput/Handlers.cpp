@@ -312,7 +312,7 @@ namespace handlers
         std::string line;
         std::string prefix = "s=";
         std::istringstream iss(sdp);
-        for (line; std::getline(iss, line);)
+        for (; std::getline(iss, line);)
         {
             if(0 == line.find(prefix)) {
                 line = prefix + sessionName + "\n";

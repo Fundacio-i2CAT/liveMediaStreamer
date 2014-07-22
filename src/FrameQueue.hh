@@ -49,13 +49,16 @@ public:
     virtual Frame *forceGetRear() = 0;
     virtual Frame *forceGetFront() = 0;
     virtual bool frameToRead() = 0;
-    int delay; //(ms)
 
 protected:
     virtual bool config() = 0;
 
     std::atomic<int> rear;
     std::atomic<int> front;
+    std::atomic<int> elements;
+    
+    int delay; //(ms)
+    
     system_clock::time_point currentTime;
     milliseconds enlapsedTime;
 

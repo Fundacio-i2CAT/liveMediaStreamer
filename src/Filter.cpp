@@ -34,7 +34,7 @@
 #define DISC_TIMEOUT 1000 //us
 
 BaseFilter::BaseFilter(int maxReaders_, int maxWriters_, bool force_) : 
-    force(force_), maxReaders(maxReaders_), maxWriters(maxWriters_)
+    force(force_), maxReaders(maxReaders_), maxWriters(maxWriters_), enabled(true)
 {
 
 }
@@ -106,6 +106,9 @@ bool BaseFilter::demandOriginFrames()
             oFrames[it.first] = it.second->getFrame();
             if (oFrames[it.first] == NULL) {
                 oFrames[it.first] = it.second->getFrame(force);
+                if (force) {
+                    newFrame = true;
+                }
                 rUpdates[it.first] = false;
                 missedOne = true;
             } else {
@@ -120,6 +123,7 @@ bool BaseFilter::demandOriginFrames()
             break;
         }
     }
+
 
     return newFrame;
 }
@@ -315,6 +319,7 @@ void BaseFilter::getState(Jzon::Object &filterNode)
 {
     eventQueueMutex.lock();
     filterNode.Add("type", utils::getFilterTypeAsString(fType));
+    filterNode.Add("workerId", workerId);
     doGetState(filterNode);
     eventQueueMutex.unlock();
 }
@@ -353,11 +358,6 @@ BaseFilter(1, 1, force_)
 
 bool OneToOneFilter::processFrame(bool removeFrame)
 {
-    bool newData = false;
-	Frame* origin;
-
-    processEvent();
-
 	if (!demandOriginFrames() || !demandDestinationFrames()) {
         	return false;
 	}
@@ -380,10 +380,6 @@ BaseFilter(1, writersNum, force_)
 
 bool OneToManyFilter::processFrame(bool removeFrame)
 {
-    bool newData;
-
-    processEvent();
-
     if (!demandOriginFrames() || !demandDestinationFrames()){
         return false;
     }
@@ -456,10 +452,6 @@ BaseFilter(readersNum, 1, force_)
 
 bool ManyToOneFilter::processFrame(bool removeFrame)
 {
-    bool newData;
-
-    processEvent();
-
     if (!demandOriginFrames() || !demandDestinationFrames()) {
         return false;
     }

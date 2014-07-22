@@ -30,15 +30,15 @@
 class VideoFrame : public Frame {
     
     public:
-        void setSize(unsigned int width, unsigned int height);
+        void setSize(int width, int height);
 		void setPixelFormat(PixType pixelFormat);
         VCodecType getCodec() {return codec;};
-        unsigned int getWidth() {return width;};
-        unsigned int getHeight() {return height;};
+        int getWidth() {return width;};
+        int getHeight() {return height;};
 		PixType getPixelFormat() {return pixelFormat;};
               
     protected:
-        unsigned int width, height;
+        int width, height;
         PixType pixelFormat;
         VCodecType codec;
 };
@@ -46,7 +46,7 @@ class VideoFrame : public Frame {
 class InterleavedVideoFrame : public VideoFrame {
     public:
         static InterleavedVideoFrame* createNew(VCodecType codec, unsigned int maxLength);
-        static InterleavedVideoFrame* createNew(VCodecType codec, unsigned int width, unsigned height, PixType pixelFormat);
+        static InterleavedVideoFrame* createNew(VCodecType codec, int width, int height, PixType pixelFormat);
         unsigned char* getDataBuf() {return frameBuff;};
         unsigned int getLength() {return bufferLen;};
         unsigned int getMaxLength() {return bufferMaxLen;};
@@ -55,7 +55,7 @@ class InterleavedVideoFrame : public VideoFrame {
               
     private:
         InterleavedVideoFrame(VCodecType codec, unsigned int maxLength);
-        InterleavedVideoFrame(VCodecType codec, unsigned int width, unsigned height, PixType pixelFormat);
+        InterleavedVideoFrame(VCodecType codec, int width, int height, PixType pixelFormat);
         unsigned char *frameBuff;
         unsigned int bufferLen;
         unsigned int bufferMaxLen;

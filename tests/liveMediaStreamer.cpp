@@ -91,6 +91,8 @@ int main(int argc, char *argv[]) {
 
     Controller* ctrl = Controller::getInstance();
 
+    utils::setLogLevel(ERROR);
+
     port = atoi(argv[1]);
     if (!ctrl->createSocket(port)) {
         exit(1);

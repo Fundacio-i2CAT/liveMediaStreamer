@@ -38,6 +38,7 @@ class VideoResampler : public OneToOneFilter {
 
     public:
         VideoResampler();
+        ~VideoResampler();
         bool doProcessFrame(Frame *org, Frame *dst);
         FrameQueue* allocQueue(int wId);
         bool configure(int width, int height, int period, PixType pixelFormat);

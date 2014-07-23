@@ -50,6 +50,13 @@ VideoResampler::VideoResampler()
     initializeEventMap();
 }
 
+VideoResampler::~VideoResampler()
+{
+    av_free(inFrame);
+    av_free(outFrame);
+    sws_freeContext(imgConvertCtx);
+}
+
 FrameQueue* VideoResampler::allocQueue(int wId)
 {
     return VideoFrameQueue::createNew(RAW, 0, outPixFmt);

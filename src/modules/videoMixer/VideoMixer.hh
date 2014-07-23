@@ -60,6 +60,7 @@ class VideoMixer : public ManyToOneFilter {
     public:
         VideoMixer(int inputChannels = VMIXER_MAX_CHANNELS);
         VideoMixer(int inputChannels, int outputWidth, int outputHeight);
+        ~VideoMixer();
         FrameQueue *allocQueue(int wId);
         bool doProcessFrame(std::map<int, Frame*> orgFrames, Frame *dst);
 

@@ -161,6 +161,24 @@ Worker* PipelineManager::getWorker(int id)
     return workers[id];
 }
 
+bool PipelineManager::removeWorker(int id)
+{
+    Worker* worker = NULL;
+
+    worker = getWorker(id);
+
+    if (!worker) {
+        return false;
+    }
+
+    worker->stop();
+    delete workers[id];
+    workers.erase(id);
+
+    return true;
+} 
+
+
 bool PipelineManager::addFilterToWorker(int workerId, int filterId)
 {
     if (filters.count(filterId) <= 0 || workers.count(workerId) <= 0) {
@@ -297,6 +315,16 @@ bool PipelineManager::deletePath(Path* path)
         }
     }
 
+    if (pathFilters.empty()) {
+
+        if (!filters[orgFilterID]->disconnect(filters[dstFilterID], path->getOrgWriterID(), path->getDstReaderID())) {
+            utils::errorMsg("Error disconnecting path head from path tail!");
+            return false;
+        }
+
+        return true;
+    }
+
     if (!filters[orgFilterID]->disconnect(filters[pathFilters.front()], path->getOrgWriterID(), DEFAULT_ID)) {
         utils::errorMsg("Error disconnecting path head from first filter!");
         return false;
@@ -406,9 +434,9 @@ void PipelineManager::getStateEvent(Jzon::Node* params, Jzon::Object &outputNode
 
 void PipelineManager::reconfigAudioEncoderEvent(Jzon::Node* params, Jzon::Object &outputNode)
 {
-    int encoderID, mixerID, pathID;
+    int encoderID, mixerID, pathID = 0;
     int sampleRate, channels;
-    Path* path;
+    Path* path = NULL;
     ACodecType codec;
     std::string sCodec;
     SinkManager* transmitter = getTransmitter();
@@ -556,6 +584,55 @@ void PipelineManager::createPathEvent(Jzon::Node* params, Jzon::Object &outputNo
     outputNode.Add("error", Jzon::null);
 }
 
+void PipelineManager::removePathEvent(Jzon::Node* params, Jzon::Object &outputNode)
+{
+    int id;
+
+    if(!params) {
+        outputNode.Add("error", "Error removing path. Invalid JSON format...");
+        return;
+    }
+
+    if (!params->Has("id")) {
+        outputNode.Add("error", "Error removing path. Invalid JSON format...");
+        return;
+    }
+
+    id = params->Get("id").ToInt();
+
+    if (!removePath(id)) {
+        outputNode.Add("error", "Error removing path. Internal error...");
+        return;
+    }
+
+    outputNode.Add("error", Jzon::null);
+}
+
+void PipelineManager::removeWorkerEvent(Jzon::Node* params, Jzon::Object &outputNode)
+{
+    int id;
+
+    if(!params) {
+        outputNode.Add("error", "Error removing worker. Invalid JSON format...");
+        return;
+    }
+
+    if (!params->Has("id")) {
+        outputNode.Add("error", "Error removing worker. Invalid JSON format...");
+        return;
+    }
+
+    id = params->Get("id").ToInt();
+
+    if (!removeWorker(id)) {
+        outputNode.Add("error", "Error removing worker. Internal error...");
+        return;
+    }
+
+    outputNode.Add("error", Jzon::null);
+}
+
+
 void PipelineManager::addWorkerEvent(Jzon::Node* params, Jzon::Object &outputNode) 
 {
     int id, fps;
@@ -642,7 +719,6 @@ void PipelineManager::addSlavesToWorkerEvent(Jzon::Node* params, Jzon::Object &o
 void PipelineManager::addFiltersToWorkerEvent(Jzon::Node* params, Jzon::Object &outputNode)
 {
     int workerId;
-    Worker *worker = NULL;
 
     if(!params) {
         outputNode.Add("error", "Error adding slaves to worker. Invalid JSON format...");
@@ -674,3 +750,56 @@ void PipelineManager::addFiltersToWorkerEvent(Jzon::Node* params, Jzon::Object &
 
     outputNode.Add("error", Jzon::null);
 }
+
+void PipelineManager::resetEvent(Jzon::Node* params, Jzon::Object &outputNode)
+{
+    for (auto it : paths) {
+        if (!deletePath(it.second)) {
+            outputNode.Add("error", "Error deleting paths. Internal error...");
+            return;
+        }
+
+        delete it.second;
+    }
+
+    for (auto it : workers) {
+        it.second->stop();
+        delete it.second;
+    }
+
+    for (auto it : filters) {
+        delete it.second;
+    }
+
+    paths.clear();
+    workers.clear();
+    filters.clear();
+
+    SourceManager::destroyInstance();
+    SinkManager::destroyInstance();
+
+    receiverID = rand();
+    int receiverWorkerId = rand();
+    transmitterID = rand();
+    int transmitterWorkerId = rand();
+
+    addFilter(receiverID, SourceManager::getInstance());
+    addFilter(transmitterID, SinkManager::getInstance());
+    LiveMediaWorker *receiverWorker = new LiveMediaWorker();
+    LiveMediaWorker *transmitterWorker = new LiveMediaWorker();
+
+    addWorker(receiverWorkerId, receiverWorker);
+    addWorker(transmitterWorkerId, transmitterWorker);
+
+    receiverWorker->addProcessor(receiverID, SourceManager::getInstance());
+    SourceManager::getInstance()->setWorkerId(receiverWorkerId);
+
+    transmitterWorker->addProcessor(transmitterID, SinkManager::getInstance());
+    SinkManager::getInstance()->setWorkerId(transmitterWorkerId);
+
+    receiverWorker->start();
+    transmitterWorker->start();
+
+    outputNode.Add("error", Jzon::null);
+}
+

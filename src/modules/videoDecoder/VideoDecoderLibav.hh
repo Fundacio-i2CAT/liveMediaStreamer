@@ -39,6 +39,7 @@ class VideoDecoderLibav : public OneToOneFilter {
 
     public:
         VideoDecoderLibav();
+        ~VideoDecoderLibav();
         bool doProcessFrame(Frame *org, Frame *dst);
         FrameQueue* allocQueue(int wId);
         bool configure(int width, int height, PixType pixelFormat);

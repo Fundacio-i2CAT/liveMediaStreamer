@@ -79,6 +79,15 @@ ManyToOneFilter(inputChannels)
     initializeEventMap();
 }
 
+VideoMixer::~VideoMixer()
+{
+    for (auto it : channelsConfig) {
+        delete it.second;
+    }
+
+    channelsConfig.clear();
+}
+
 FrameQueue* VideoMixer::allocQueue(int wId)
 {
     return VideoFrameQueue::createNew(RAW, 0, RGB24);

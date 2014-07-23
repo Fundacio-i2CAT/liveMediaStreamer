@@ -43,6 +43,7 @@ class AudioMixer : public ManyToOneFilter {
     public:
         AudioMixer(int inputChannels = AMIXER_MAX_CHANNELS);
         AudioMixer(int inputChannels, int frameChannels, int sampleRate);
+        ~AudioMixer();
         FrameQueue *allocQueue(int wId);
         bool doProcessFrame(std::map<int, Frame*> orgFrames, Frame *dst);
 

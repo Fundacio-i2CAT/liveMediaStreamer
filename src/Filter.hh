@@ -68,10 +68,10 @@ public:
     int getWorkerId(){return workerId;};
     void setWorkerId(int id){workerId = id;};
     bool isEnabled(){return enabled;};
+    virtual ~BaseFilter() = 0;
     
 protected:
     BaseFilter(int maxReaders_, int maxWriters_, bool force_ = false);
-    //TODO: desctructor
 	void removeFrames();
     bool hasFrames();
     virtual FrameQueue *allocQueue(int wId) = 0;
@@ -114,7 +114,7 @@ class OneToOneFilter : public BaseFilter {
     
 protected:
     OneToOneFilter(bool force_ = false);
-    //TODO: desctructor
+    virtual ~OneToOneFilter() = 0;
     virtual bool doProcessFrame(Frame *org, Frame *dst) = 0;
     
 private:
@@ -134,7 +134,7 @@ class OneToManyFilter : public BaseFilter {
     
 protected:
     OneToManyFilter(int writersNum = MAX_WRITERS, bool force_ = false);
-    //TODO: desctructor
+    virtual ~OneToManyFilter() = 0;
     virtual bool doProcessFrame(Frame *org, std::map<int, Frame *> dstFrames) = 0;
     
 private:
@@ -157,7 +157,7 @@ public:
 
 protected:
     HeadFilter(int writersNum = MAX_WRITERS);
-    //TODO: desctructor
+    virtual ~HeadFilter() = 0;
     int getNullWriterID();
     
 private:
@@ -176,7 +176,7 @@ public:
 
 protected:
     TailFilter(int readersNum = MAX_READERS);
-    //TODO: desctructor
+    ~TailFilter();
     
 private:
     FrameQueue *allocQueue(int wId) {return NULL;};
@@ -192,8 +192,8 @@ class ManyToOneFilter : public BaseFilter {
     
 protected:
     ManyToOneFilter(int readersNum = MAX_READERS, bool force_ = false);
-    //TODO: desctructor
-    virtual bool doProcessFrame(std::map<int, Frame *> orgFrames, Frame *dst) = 0;
+    virtual ~ManyToOneFilter() = 0;
+    virtual bool doProcessFrame(std::map<int, Frame*> orgFrames, Frame *dst) = 0;
 
 private:
     bool processFrame(bool removeFrame = true);

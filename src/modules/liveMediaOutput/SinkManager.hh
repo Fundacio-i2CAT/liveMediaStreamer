@@ -106,9 +106,11 @@ protected:
     ~Connection();
     
     UsageEnvironment* fEnv;
-    FramedSource *fSource;
     std::string fIp;
     unsigned fPort;
+    FramedSource *fSource;
+    
+    
     struct in_addr destinationAddress;
     RTPSink *sink;
     RTCPInstance* rtcp;

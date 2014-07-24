@@ -74,9 +74,7 @@ void SinkManager::destroyInstance()
 }
 
 bool SinkManager::processFrame(bool removeFrame)
-{
-    SinkManager* instance = SinkManager::getInstance();
-    
+{   
     if (envir() == NULL){
         return false;
     }
@@ -191,10 +189,10 @@ ServerMediaSubsession *SinkManager::createVideoMediaSubsession(VCodecType codec,
 {
     switch(codec){
         case H264:
-            return H264QueueServerMediaSubsession::createNew(*(envir()), replicas[readerId], readerId, True);
+            return H264QueueServerMediaSubsession::createNew(*(envir()), replicas[readerId], readerId, False);
             break;
         case VP8:
-            return VP8QueueServerMediaSubsession::createNew(*(envir()), replicas[readerId], readerId, True);
+            return VP8QueueServerMediaSubsession::createNew(*(envir()), replicas[readerId], readerId, False);
             break;
         default:
             break;
@@ -215,7 +213,7 @@ ServerMediaSubsession *SinkManager::createAudioMediaSubsession(ACodecType codec,
         default:
             return AudioQueueServerMediaSubsession::createNew(*(envir()), replicas[readerId], 
                                                               readerId, codec, channels,
-                                                              sampleRate, sampleFormat, True);
+                                                              sampleRate, sampleFormat, False);
             break;
     }
     return NULL;
@@ -314,7 +312,6 @@ bool SinkManager::publishSession(std::string id)
     
     rtspServer->addServerMediaSession(sessionList[id]);
     char* url = rtspServer->rtspURL(sessionList[id]);
-    UsageEnvironment& env = rtspServer->envir();
     
     utils::infoMsg("Play " + id + " stream using the URL " + url);
     delete[] url;
@@ -462,7 +459,7 @@ void Connection::startPlaying()
 
 void Connection::stopPlaying()
 {
-    if (sink){
+    if (sink != NULL){
         sink->stopPlaying();
     }
 }
@@ -483,13 +480,15 @@ VideoConnection::VideoConnection(UsageEnvironment* env,
             sink = NULL;
             break;
     }
-    if (sink){
+    if (sink != NULL){
         const unsigned maxCNAMElen = 100;
         unsigned char CNAME[maxCNAMElen+1];
         gethostname((char*)CNAME, maxCNAMElen);
         CNAME[maxCNAMElen] = '\0';
         rtcp = RTCPInstance::createNew(*fEnv, rtcpGroupsock, 5000, CNAME,
                                        sink, NULL, False);
+    } else {
+        utils::errorMsg("VideoConnection could not be created");
     }
     startPlaying();
 }

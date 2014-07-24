@@ -110,7 +110,7 @@ bool AudioEncoderLibav::doProcessFrame(Frame *org, Frame *dst)
 
 Reader* AudioEncoderLibav::setReader(int readerID, FrameQueue* queue)
 {
-    if ((int)readers.size() >= getMaxReaders() || readers.count(readerID) > 0 ) {
+    if (readers.size() >= getMaxReaders() || readers.count(readerID) > 0 ) {
         return NULL;
     }
 

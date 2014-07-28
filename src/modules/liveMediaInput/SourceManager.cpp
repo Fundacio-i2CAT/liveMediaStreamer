@@ -64,7 +64,7 @@ void SourceManager::stop()
 
 void SourceManager::destroyInstance()
 {
-    SourceManager * mngrInstance = SourceManager::getInstance();
+    SourceManager* mngrInstance = SourceManager::getInstance();
     if (mngrInstance != NULL){
         delete mngrInstance;
         mngrInstance = NULL;

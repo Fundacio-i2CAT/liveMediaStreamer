@@ -51,7 +51,7 @@ public:
     ACodecType getCodec() {return fCodec;};
     void configure(ACodecType codec, int internalChannels = DEFAULT_CHANNELS, int internalSampleRate = DEFAULT_SAMPLE_RATE);
 
-    Reader *setReader(int readerID, FrameQueue* queue);
+    Reader* setReader(int readerID, FrameQueue* queue, bool sharedQueue = false);
 
 private:
     void initializeEventMap();

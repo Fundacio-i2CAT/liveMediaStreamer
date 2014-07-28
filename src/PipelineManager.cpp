@@ -305,7 +305,7 @@ bool PipelineManager::deletePath(Path* path)
     int orgFilterId = path->getOriginFilterID();
     int dstFilterId = path->getDestinationFilterID();
 
-    if (filters.count(orgFilterID) <= 0 || filters.count(dstFilterID) <= 0) {
+    if (filters.count(orgFilterId) <= 0 || filters.count(dstFilterId) <= 0) {
         return false;
     }
 
@@ -760,9 +760,6 @@ void PipelineManager::resetEvent(Jzon::Node* params, Jzon::Object &outputNode)
     paths.clear();
     workers.clear();
     filters.clear();
-
-    SourceManager::destroyInstance();
-    SinkManager::destroyInstance();
 
     receiverID = rand();
     int receiverWorkerId = rand();

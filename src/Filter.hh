@@ -60,7 +60,7 @@ public:
     bool disconnect(BaseFilter *R, int writerID, int readerID);
     bool disconnectWriter(int writerId);
     bool disconnectReader(int readerId);
-    bool disconnectAll();
+    void disconnectAll();
     
     FilterType getType() {return fType;};
     int generateReaderID();
@@ -81,7 +81,7 @@ protected:
     bool hasFrames();
     virtual FrameQueue *allocQueue(int wId) = 0;
     virtual bool processFrame(bool removeFrame = true) = 0;
-    virtual Reader *setReader(int readerID, FrameQueue* queue);
+    virtual Reader *setReader(int readerID, FrameQueue* queue, bool sharedQueue = false);
     virtual void doGetState(Jzon::Object &filterNode) = 0;
 
     Reader* getReader(int id);

@@ -49,6 +49,8 @@ public:
     virtual Frame *forceGetRear() = 0;
     virtual Frame *forceGetFront() = 0;
     virtual bool frameToRead() = 0;
+    bool isConnected() {return connected;};
+    void setConnected(bool conn) {connected = conn;};
 
 protected:
     virtual bool config() = 0;
@@ -56,6 +58,7 @@ protected:
     std::atomic<int> rear;
     std::atomic<int> front;
     std::atomic<int> elements;
+    std::atomic<bool> connected;
     
     int delay; //(ms)
     

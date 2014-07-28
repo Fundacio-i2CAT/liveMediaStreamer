@@ -180,13 +180,13 @@ void VideoMixer::pasteToLayout(int frameID, VideoFrame* vFrame)
     }
 }
 
-Reader* VideoMixer::setReader(int readerID, FrameQueue* queue)
+Reader* VideoMixer::setReader(int readerID, FrameQueue* queue, bool sharedQueue)
 {
     if (readers.count(readerID) < 0) {
         return NULL;
     }
 
-    Reader* r = new Reader();
+    Reader* r = new Reader(sharedQueue);
     readers[readerID] = r;
 
     channelsConfig[readerID] = new ChannelConfig(1, 1, 0, 0, 0);

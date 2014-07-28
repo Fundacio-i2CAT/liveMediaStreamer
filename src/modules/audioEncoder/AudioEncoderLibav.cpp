@@ -111,13 +111,13 @@ bool AudioEncoderLibav::doProcessFrame(Frame *org, Frame *dst)
     return false;
 }
 
-Reader* AudioEncoderLibav::setReader(int readerID, FrameQueue* queue)
+Reader* AudioEncoderLibav::setReader(int readerID, FrameQueue* queue, bool sharedQueue)
 {
     if ((int)readers.size() >= getMaxReaders() || readers.count(readerID) > 0 ) {
         return NULL;
     }
 
-    Reader* r = new Reader();
+    Reader* r = new Reader(sharedQueue);
     readers[readerID] = r;
 
     dynamic_cast<AudioCircularBuffer*>(queue)->setOutputFrameSamples(samplesPerFrame);

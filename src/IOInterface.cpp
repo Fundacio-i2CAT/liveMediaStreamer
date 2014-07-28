@@ -29,8 +29,9 @@
 //READER IMPLEMENTATION//
 /////////////////////////
 
-Reader::Reader()
+Reader::Reader(bool sharedQueue)
 {
+    this->sharedQueue = sharedQueue;
     queue = NULL;
 }
 
@@ -48,8 +49,8 @@ Frame* Reader::getFrame(bool force)
 {
     Frame* frame;
 
-    if (!connected) {
-        utils::errorMsg("The reader is not connected");
+    if (!queue->isConnected()) {
+        utils::errorMsg("The queue is not connected");
         return NULL;
     }
 
@@ -78,8 +79,13 @@ void Reader::disconnect()
         return;
     }
 
+    if (sharedQueue) {
+        queue = NULL;
+        return;
+    }
+
     if (queue->isConnected()) {
-        queue->setConnection(false);
+        queue->setConnected(false);
         queue = NULL;
     } else {
         delete queue;
@@ -162,8 +168,8 @@ Frame* Writer::getFrame(bool force)
 {
     Frame* frame;
 
-    if (!connected) {
-        utils::errorMsg("The writer is not connected");
+    if (!queue->isConnected()) {
+        utils::errorMsg("The queue is not connected");
         return NULL;
     }
 

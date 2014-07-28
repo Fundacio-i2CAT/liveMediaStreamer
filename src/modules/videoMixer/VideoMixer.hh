@@ -63,9 +63,9 @@ class VideoMixer : public ManyToOneFilter {
         ~VideoMixer();
         FrameQueue *allocQueue(int wId);
         bool doProcessFrame(std::map<int, Frame*> orgFrames, Frame *dst);
+        Reader* setReader(int readerID, FrameQueue* queue, bool sharedQueue = false);
 
     protected:
-        Reader *setReader(int readerID, FrameQueue* queue);
         void doGetState(Jzon::Object &filterNode);
 
     private:

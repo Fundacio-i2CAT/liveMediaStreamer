@@ -46,7 +46,7 @@ VideoDecoderLibav::VideoDecoderLibav()
 
 FrameQueue* VideoDecoderLibav::allocQueue(int wId)
 {
-    return VideoFrameQueue::createNew(RAW, 0, RGB24);
+    return VideoFrameQueue::createNew(RAW, RGB24);
 }
 
 bool VideoDecoderLibav::doProcessFrame(Frame *org, Frame *dst)

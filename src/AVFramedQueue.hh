@@ -25,6 +25,7 @@
 #define _AV_FRAMED_QUEUE_HH
 
 #include "FrameQueue.hh"
+#include "AudioFrame.hh"
 
 class AVFramedQueue : public FrameQueue {
 
@@ -49,13 +50,12 @@ protected:
 class VideoFrameQueue : public AVFramedQueue {
 
 public:
-    static VideoFrameQueue* createNew(VCodecType codec, unsigned delay, 
-                                      PixType pixelFormat = P_NONE);
+    static VideoFrameQueue* createNew(VCodecType codec, PixType pixelFormat = P_NONE);
     
     const VCodecType getCodec() const {return codec;};
 
 protected:
-    VideoFrameQueue(VCodecType codec, unsigned delay, PixType pixelFormat);
+    VideoFrameQueue(VCodecType codec, PixType pixelFormat);
     VCodecType codec;
     PixType pixelFormat;
     bool config();
@@ -65,7 +65,7 @@ protected:
 class AudioFrameQueue : public AVFramedQueue {
 
 public:
-    static AudioFrameQueue* createNew(ACodecType codec, unsigned delay, unsigned sampleRate = 48000, unsigned channels = 2, SampleFmt sFmt = S16);
+    static AudioFrameQueue* createNew(ACodecType codec, unsigned sampleRate = DEFAULT_SAMPLE_RATE, unsigned channels = DEFAULT_CHANNELS, SampleFmt sFmt = S16);
     
     unsigned getSampleRate() const {return sampleRate;};
     unsigned getChannels() const {return channels;};
@@ -73,7 +73,7 @@ public:
     const SampleFmt getSampleFmt() const {return sampleFormat;};
 
 protected:
-    AudioFrameQueue(ACodecType codec, SampleFmt sFmt, unsigned sampleRate, unsigned channels, unsigned delay);
+    AudioFrameQueue(ACodecType codec, SampleFmt sFmt, unsigned sampleRate, unsigned channels);
 
     ACodecType codec;
     SampleFmt sampleFormat;

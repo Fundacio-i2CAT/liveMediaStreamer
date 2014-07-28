@@ -57,12 +57,6 @@ protected:
     std::atomic<int> front;
     std::atomic<int> elements;
     
-    int delay; //(ms)
-    
-    system_clock::time_point currentTime;
-    milliseconds enlapsedTime;
-
-    
 };
 
 #endif

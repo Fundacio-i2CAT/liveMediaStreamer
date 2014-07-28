@@ -53,7 +53,7 @@ Frame* X264VideoCircularBuffer::forceGetRear()
 }
 
 
-X264VideoCircularBuffer::X264VideoCircularBuffer(): VideoFrameQueue(H264, 0, YUYV422)
+X264VideoCircularBuffer::X264VideoCircularBuffer(): VideoFrameQueue(H264, YUYV422)
 {
     config();
 }
@@ -94,7 +94,6 @@ bool X264VideoCircularBuffer::pushBack()
     nals = inputFrame->getNals();
 
     for (int i=0; i<nalsNum; i++) {
-        int sizeNal = (*nals)[i].i_payload;
         if ((interleavedVideoFrame = innerGetRear()) == NULL){
             interleavedVideoFrame = innerForceGetRear();
         }

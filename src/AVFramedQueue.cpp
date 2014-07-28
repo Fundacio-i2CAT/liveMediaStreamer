@@ -83,25 +83,23 @@ bool AVFramedQueue::frameToRead()
 {
     if (elements <= 0){
         return false;
+    } else {
+        return true;
     }
-    currentTime = system_clock::now();
-    enlapsedTime = duration_cast<milliseconds>(currentTime - frames[front]->getUpdatedTime());
-    return enlapsedTime.count() > delay;
 }
 
 ////////////////////////////////////////////
 //VIDEO FRAME QUEUE METHODS IMPLEMENTATION//
 ////////////////////////////////////////////
 
-VideoFrameQueue* VideoFrameQueue::createNew(VCodecType codec, unsigned delay, PixType pixelFormat)
+VideoFrameQueue* VideoFrameQueue::createNew(VCodecType codec, PixType pixelFormat)
 {
-    return new VideoFrameQueue(codec, delay, pixelFormat);
+    return new VideoFrameQueue(codec, pixelFormat);
 }
 
-VideoFrameQueue::VideoFrameQueue(VCodecType codec, unsigned delay, PixType pixelFormat)
+VideoFrameQueue::VideoFrameQueue(VCodecType codec, PixType pixelFormat)
 {
     this->codec = codec;
-    this->delay = delay;
     this->pixelFormat = pixelFormat;
 
     config();
@@ -150,16 +148,15 @@ bool VideoFrameQueue::config()
 
 unsigned getMaxSamples(unsigned sampleRate);
 
-AudioFrameQueue* AudioFrameQueue::createNew(ACodecType codec,  unsigned delay, unsigned sampleRate, unsigned channels, SampleFmt sFmt)
+AudioFrameQueue* AudioFrameQueue::createNew(ACodecType codec, unsigned sampleRate, unsigned channels, SampleFmt sFmt)
 {
-    return new AudioFrameQueue(codec, sFmt, sampleRate, channels, delay);
+    return new AudioFrameQueue(codec, sFmt, sampleRate, channels);
 }
 
-AudioFrameQueue::AudioFrameQueue(ACodecType codec, SampleFmt sFmt, unsigned sampleRate, unsigned channels, unsigned delay)
+AudioFrameQueue::AudioFrameQueue(ACodecType codec, SampleFmt sFmt, unsigned sampleRate, unsigned channels)
 {
     this->codec = codec;
     this->sampleFormat = sFmt;
-    this->delay = delay;
     this->channels = channels;
     this->sampleRate = sampleRate;
 

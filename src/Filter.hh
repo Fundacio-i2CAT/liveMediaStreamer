@@ -56,7 +56,12 @@ public:
     bool connectManyToOne(BaseFilter *R, int writerID, bool slaveQueue = false);
     bool connectOneToMany(BaseFilter *R, int readerID, bool slaveQueue = false);
     bool connectManyToMany(BaseFilter *R, int readerID, int writerID, bool slaveQueue = false);
+
     bool disconnect(BaseFilter *R, int writerID, int readerID);
+    bool disconnectWriter(int writerId);
+    bool disconnectReader(int readerId);
+    bool disconnectAll();
+    
     FilterType getType() {return fType;};
     int generateReaderID();
     int generateWriterID();

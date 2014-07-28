@@ -32,12 +32,11 @@
 Reader::Reader()
 {
     queue = NULL;
-    connected = false;
 }
 
 Reader::~Reader()
 {
-    delete queue;
+    disconnect();
 }
 
 void Reader::setQueue(FrameQueue *queue)
@@ -71,13 +70,32 @@ void Reader::removeFrame()
 void Reader::setConnection(FrameQueue *queue)
 {
     this->queue = queue;
-    connected = true;
 }
 
 void Reader::disconnect()
 {
-    connected = false;
+    if (!queue) {
+        return;
+    }
+
+    if (queue->isConnected()) {
+        queue->setConnection(false);
+        queue = NULL;
+    } else {
+        delete queue;
+        queue = NULL;
+    }
 }
+
+bool Reader::isConnected()
+{
+    if (!queue) {
+        return false;
+    }
+
+    return queue->isConnected();
+}
+
 
 /////////////////////////
 //WRITER IMPLEMENTATION//
@@ -86,7 +104,11 @@ void Reader::disconnect()
 Writer::Writer()
 {
     queue = NULL;
-    connected = false;
+}
+
+Writer::~Writer()
+{
+    disconnect();
 }
 
 bool Writer::connect(Reader *reader)
@@ -97,17 +119,38 @@ bool Writer::connect(Reader *reader)
     }
 
     reader->setConnection(queue);
-
-    connected = true;
+    queue->setConnected(true);
     return true;
+}
+
+void Writer::disconnect()
+{
+    if (!queue) {
+        return;
+    }
+
+    if (queue->isConnected()) {
+        queue->setConnected(false);
+        queue = NULL;
+    } else {
+        delete queue;
+        queue = NULL;
+    }
 }
 
 void Writer::disconnect(Reader *reader)
 {
     reader->disconnect();
+    disconnect();
+}
 
-    queue = NULL;
-    connected = false;
+bool Writer::isConnected()
+{
+    if (!queue) {
+        return false;
+    }
+
+    return queue->isConnected();
 }
 
 void Writer::setQueue(FrameQueue *queue)

@@ -68,7 +68,7 @@ Reader* BaseFilter::getReader(int id)
 
 Reader* BaseFilter::setReader(int readerID, FrameQueue* queue)
 {
-    if (readers.size() >= getMaxReaders() || readers.count(readerID) > 0 ) {
+    if ((int)readers.size() >= getMaxReaders() || readers.count(readerID) > 0 ) {
         return NULL;
     }
 
@@ -183,7 +183,7 @@ bool BaseFilter::connect(BaseFilter *R, int writerID, int readerID, bool slaveQu
     
     utils::debugMsg("slaveQueue Value: " + std::to_string(slaveQueue));
     
-    if (writers.size() < getMaxWriters() && writers.count(writerID) <= 0) {
+    if ((int)writers.size() < getMaxWriters() && writers.count(writerID) <= 0) {
         writers[writerID] = new Writer();
         utils::debugMsg("New writer created " + std::to_string(writerID));
     }
@@ -245,42 +245,56 @@ bool BaseFilter::connectOneToMany(BaseFilter *R, int readerID, bool slaveQueue)
     return connect(R, writerID, readerID, slaveQueue);
 }
 
-bool BaseFilter::disconnect(BaseFilter *R, int writerID, int readerID)
+bool BaseFilter::disconnectWriter(int writerId)
+{
+    if (writers.count(writerId) <= 0) {
+        return false
+    }
+
+    writers[writerId]->disconnect();
+}
+
+bool BaseFilter::disconnectReader(int readerId)
+{
+    if (readers.count(readerId) <= 0) {
+        return false
+    }
+
+    readers[readerId]->disconnect();
+}
+
+bool BaseFilter::disconnectAll()
+{
+    for (auto it : writers) {
+        it.second->disconnect();
+    }
+
+    for (auto it : readers) {
+        it.second->disconnect();
+    }
+}
+
+bool BaseFilter::disconnect(BaseFilter *R, int writerId, int readerId)
 {
     int retries = 0;
 
-    if (!writers[writerID]->isConnected()){
+    if (writers.count(writerId) <= 0) {
         return false;
     }
 
-    Reader *r = R->getReader(readerID);
+    Reader *r = R->getReader(readerId);
 
-    if (!r->isConnected()){
+    if (!r) {
         return false;
     }
 
-    dFrames.erase(writerID);
-    R->oFrames.erase(readerID);
-    writers[writerID]->disconnect(r);
+    writers[writerId]->disconnect(r);
+    dFrames.erase(writerId);
+    R->oFrames.erase(readerId);
 
     //NOTE: think about writers as shared pointers
-    delete writers[writerID];
-    writers.erase(writerID);
-
-    while(R->getReader(readerID)) {
-        std::this_thread::sleep_for(std::chrono::microseconds(DISC_TIMEOUT));
-        retries++;
-
-        if (retries < DISC_RETRIES) {
-            continue;
-        }
-
-        utils::errorMsg("Asynchronous reader deletion!");
-        
-        if (!R->deleteReader(readerID)) {
-            return false;
-        }
-    }
+    delete writers[writerId];
+    writers.erase(writerId);
 
     return true;
 }

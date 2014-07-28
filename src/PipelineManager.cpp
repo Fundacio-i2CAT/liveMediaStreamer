@@ -302,8 +302,8 @@ bool PipelineManager::removePath(int id)
 bool PipelineManager::deletePath(Path* path) 
 {
     std::vector<int> pathFilters = path->getFilters();
-    int orgFilterID = path->getOriginFilterID();
-    int dstFilterID = path->getDestinationFilterID();
+    int orgFilterId = path->getOriginFilterID();
+    int dstFilterId = path->getDestinationFilterID();
 
     if (filters.count(orgFilterID) <= 0 || filters.count(dstFilterID) <= 0) {
         return false;
@@ -315,31 +315,17 @@ bool PipelineManager::deletePath(Path* path)
         }
     }
 
-    if (pathFilters.empty()) {
-
-        if (!filters[orgFilterID]->disconnect(filters[dstFilterID], path->getOrgWriterID(), path->getDstReaderID())) {
-            utils::errorMsg("Error disconnecting path head from path tail!");
-            return false;
-        }
-
-        return true;
-    }
-
-    if (!filters[orgFilterID]->disconnect(filters[pathFilters.front()], path->getOrgWriterID(), DEFAULT_ID)) {
-        utils::errorMsg("Error disconnecting path head from first filter!");
+    if(!filters[orgFilterId]->disconnectWriter(path->getOrgWriterID())) {
+        utils::errorMsg("Error disconnecting path head!");
         return false;
     }
 
-
-    for (unsigned i = 0; i < pathFilters.size() - 1; i++) {
-        if (!filters[pathFilters[i]]->disconnect(filters[pathFilters[i+1]], DEFAULT_ID, DEFAULT_ID)) {
-            utils::errorMsg("Error disconnecting path filters!");
-            return false;
-        }
+    for (auto it : pathFilters) {
+        filters[it]->disconnectAll();
     }
 
-    if (!filters[pathFilters.back()]->disconnect(filters[dstFilterID], DEFAULT_ID, path->getDstReaderID())) {
-        utils::errorMsg("Error disconnecting path last filter to path tail!");
+    if(!filters[dstFilterId]->disconnectReader(path->getDstReaderID())) {
+        utils::errorMsg("Error disconnecting path tail!");
         return false;
     }
 

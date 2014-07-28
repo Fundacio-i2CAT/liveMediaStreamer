@@ -45,7 +45,7 @@ public:
     Writer();
     bool connect(Reader *reader);
     void disconnect(Reader *reader);
-    bool isConnected() {return connected;};
+    bool isConnected();
     void setQueue(FrameQueue *queue);
     Frame* getFrame(bool force = false);
     void addFrame();
@@ -54,8 +54,6 @@ public:
 protected:
     FrameQueue *queue;
 
-private:
-    bool connected;
 };
 
 
@@ -64,7 +62,7 @@ public:
     Reader();
     virtual ~Reader();
     void setQueue(FrameQueue *queue);
-    bool isConnected() {return connected;};
+    bool isConnected();
     Frame* getFrame(bool force = false);
     void removeFrame();
     void setConnection(FrameQueue *queue);
@@ -77,8 +75,6 @@ private:
     friend class Writer;
 
     void disconnect();
-    
-    bool connected;
 };
 
 #endif

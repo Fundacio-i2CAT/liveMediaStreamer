@@ -68,7 +68,7 @@ public:
     int getWorkerId(){return workerId;};
     void setWorkerId(int id){workerId = id;};
     bool isEnabled(){return enabled;};
-    virtual ~BaseFilter() = 0;
+    virtual ~BaseFilter();
     
 protected:
     BaseFilter(int maxReaders_, int maxWriters_, bool force_ = false);
@@ -77,7 +77,6 @@ protected:
     virtual FrameQueue *allocQueue(int wId) = 0;
     virtual bool processFrame(bool removeFrame = true) = 0;
     virtual Reader *setReader(int readerID, FrameQueue* queue);
-    virtual void initializeEventMap() = 0;
     virtual void doGetState(Jzon::Object &filterNode) = 0;
 
     Reader* getReader(int id);
@@ -114,7 +113,6 @@ class OneToOneFilter : public BaseFilter {
     
 protected:
     OneToOneFilter(bool force_ = false);
-    virtual ~OneToOneFilter() = 0;
     virtual bool doProcessFrame(Frame *org, Frame *dst) = 0;
     
 private:
@@ -134,7 +132,6 @@ class OneToManyFilter : public BaseFilter {
     
 protected:
     OneToManyFilter(int writersNum = MAX_WRITERS, bool force_ = false);
-    virtual ~OneToManyFilter() = 0;
     virtual bool doProcessFrame(Frame *org, std::map<int, Frame *> dstFrames) = 0;
     
 private:
@@ -157,7 +154,6 @@ public:
 
 protected:
     HeadFilter(int writersNum = MAX_WRITERS);
-    virtual ~HeadFilter() = 0;
     int getNullWriterID();
     
 private:
@@ -176,7 +172,6 @@ public:
 
 protected:
     TailFilter(int readersNum = MAX_READERS);
-    ~TailFilter();
     
 private:
     FrameQueue *allocQueue(int wId) {return NULL;};
@@ -192,7 +187,6 @@ class ManyToOneFilter : public BaseFilter {
     
 protected:
     ManyToOneFilter(int readersNum = MAX_READERS, bool force_ = false);
-    virtual ~ManyToOneFilter() = 0;
     virtual bool doProcessFrame(std::map<int, Frame*> orgFrames, Frame *dst) = 0;
 
 private:

@@ -36,7 +36,25 @@
 BaseFilter::BaseFilter(int maxReaders_, int maxWriters_, bool force_) : 
     force(force_), maxReaders(maxReaders_), maxWriters(maxWriters_), enabled(true)
 {
+}
 
+BaseFilter::~BaseFilter()
+{
+    //NOTE: IF BASEFILTER CONNECTED AT THIS POINT, UNDEFINED BEHAVIOUR
+
+    for (auto it : readers) {
+        delete it.second;
+    }
+
+    for (auto it : writers) {
+        delete it.second;
+    }
+
+    readers.clear();
+    writers.clear();
+    oFrames.clear();
+    dFrames.clear();
+    rUpdates.clear();
 }
 
 Reader* BaseFilter::getReader(int id) 

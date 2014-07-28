@@ -66,10 +66,10 @@ class VideoMixer : public ManyToOneFilter {
 
     protected:
         Reader *setReader(int readerID, FrameQueue* queue);
-        void initializeEventMap();
         void doGetState(Jzon::Object &filterNode);
 
     private:
+        void initializeEventMap();
         void pasteToLayout(int frameID, VideoFrame* vFrame);
         bool configChannel(int id, float width, float height, float x, float y, int layer, bool enabled, float opacity);
 

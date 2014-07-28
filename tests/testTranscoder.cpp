@@ -89,8 +89,8 @@ int main(int argc, char** argv)
     
     sdp = SourceManager::makeSessionSDP(sessionId, "this is a test");
     
-    // // sdp += SourceManager::makeSubsessionSDP(V_MEDIUM, PROTOCOL, V_PAYLOAD, V_CODEC, 
-    // //                                    V_BANDWITH, V_TIME_STMP_FREQ, V_CLIENT_PORT);
+    sdp += SourceManager::makeSubsessionSDP(V_MEDIUM, PROTOCOL, V_PAYLOAD, V_CODEC, 
+                                       V_BANDWITH, V_TIME_STMP_FREQ, V_CLIENT_PORT);
     
     sdp += SourceManager::makeSubsessionSDP(A_MEDIUM, PROTOCOL, A_PAYLOAD, A_CODEC, 
                                         A_BANDWITH, A_TIME_STMP_FREQ, A_CLIENT_PORT, A_CHANNELS);
@@ -115,22 +115,22 @@ int main(int argc, char** argv)
     aEnc->addProcessor(id, pipe->getFilter(id));
     pipe->getFilter(id)->setWorkerId(aEncId);
 
-    // id = pipe->searchFilterIDByType(VIDEO_RESAMPLER);
-    // resampler = dynamic_cast<VideoResampler*> (pipe->getFilter(id));
-    // wRes->addProcessor(id, resampler);
-    // resampler->setWorkerId(wResId);
+    id = pipe->searchFilterIDByType(VIDEO_RESAMPLER);
+    resampler = dynamic_cast<VideoResampler*> (pipe->getFilter(id));
+    wRes->addProcessor(id, resampler);
+    resampler->setWorkerId(wResId);
     
     
-    // id = pipe->searchFilterIDByType(VIDEO_ENCODER);
-    // encoder = dynamic_cast<VideoEncoderX264*> (pipe->getFilter(id));
-    // wEnc->addProcessor(id, encoder);
-    // encoder->setWorkerId(wEncId);
+    id = pipe->searchFilterIDByType(VIDEO_ENCODER);
+    encoder = dynamic_cast<VideoEncoderX264*> (pipe->getFilter(id));
+    wEnc->addProcessor(id, encoder);
+    encoder->setWorkerId(wEncId);
     
-    // id = pipe->searchFilterIDByType(VIDEO_DECODER);
-    // wEnc->addProcessor(id, pipe->getFilter(id));
-    // pipe->getFilter(id)->setWorkerId(wEncId);
+    id = pipe->searchFilterIDByType(VIDEO_DECODER);
+    wEnc->addProcessor(id, pipe->getFilter(id));
+    pipe->getFilter(id)->setWorkerId(wEncId);
     
-    // resampler->configure(0, 0, 0, YUV420P);
+    resampler->configure(0, 0, 0, YUV420P);
     
     sessionId = utils::randomIdGenerator(ID_LENGTH);
     if (! transmitter->addSession(sessionId, readers)){
@@ -141,7 +141,7 @@ int main(int argc, char** argv)
     
     transmitter->publishSession(sessionId);
   //  transmitter->addConnection(readers.front(), "127.0.0.1", 3030);
-  //  wEnc->setFps(24000.0/1005);
+    wEnc->setFps(24000.0/1005);
     
     while(pipe->getWorker(pipe->getReceiver()->getWorkerId())->isRunning() || 
         pipe->getWorker(pipe->getTransmitter()->getWorkerId())->isRunning()) {

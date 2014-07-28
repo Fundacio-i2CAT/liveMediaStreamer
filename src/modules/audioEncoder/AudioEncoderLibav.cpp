@@ -54,7 +54,7 @@ AudioEncoderLibav::AudioEncoderLibav()  : OneToOneFilter()
     libavSampleFmt = AV_SAMPLE_FMT_S16P;
     initializeEventMap();
 
-    configure(OPUS);
+    configure(fCodec);
     config();
 }
 
@@ -90,8 +90,11 @@ bool AudioEncoderLibav::doProcessFrame(Frame *org, Frame *dst)
     //resample in order to adapt to encoder constraints
     resample(aRawFrame, libavFrame);
 
-
     ret = avcodec_encode_audio2(codecCtx, &pkt, libavFrame, &gotFrame);
+
+    std::cout << std::endl;
+    std::cout << pkt.pts << std::endl;
+    std::cout << pkt.dts << std::endl;
 
     if (ret < 0) {
         utils::errorMsg("Error encoding audio frame");

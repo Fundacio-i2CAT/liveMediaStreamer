@@ -255,6 +255,10 @@ void Controller::initializeEventMap()
                                             std::placeholders::_1, std::placeholders::_2);
     eventMap["reset"] = std::bind(&PipelineManager::resetEvent, pipeMngrInstance, 
                                             std::placeholders::_1, std::placeholders::_2);
+    eventMap["start"] = std::bind(&PipelineManager::startEvent, pipeMngrInstance, 
+                                            std::placeholders::_1, std::placeholders::_2);
+    eventMap["stop"] = std::bind(&PipelineManager::stopEvent, pipeMngrInstance, 
+                                            std::placeholders::_1, std::placeholders::_2);
 
 }
 

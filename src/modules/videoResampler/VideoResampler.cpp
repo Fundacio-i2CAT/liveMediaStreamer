@@ -25,8 +25,6 @@
 #include "../../AVFramedQueue.hh"
 #include "../../Utils.hh"
 
-
-
 AVPixelFormat getLibavPixFmt(PixType pixType);
 
 VideoResampler::VideoResampler()
@@ -69,7 +67,6 @@ bool VideoResampler::reconfigure(VideoFrame* orgFrame)
         orgFrame->getHeight() != inFrame->height ||
         orgFrame->getPixelFormat() != inPixFmt)
     {
-
         inPixFmt = orgFrame->getPixelFormat();
         libavInPixFmt = getLibavPixFmt(inPixFmt);
 
@@ -250,9 +247,6 @@ AVPixelFormat getLibavPixFmt(PixType pixType)
             break;
         case YUV444P:
             return AV_PIX_FMT_YUV444P;
-            break;
-        case YUVJ420P:
-            return AV_PIX_FMT_YUVJ420P;
             break;
         default:
             utils::errorMsg("Unknown output pixel format");

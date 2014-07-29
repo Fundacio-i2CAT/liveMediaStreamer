@@ -65,8 +65,8 @@ public:
     FilterType getType() {return fType;};
     int generateReaderID();
     int generateWriterID();
-    const int getMaxWriters() const {return maxWriters;};
-    const int getMaxReaders() const {return maxReaders;};
+    const unsigned getMaxWriters() const {return maxWriters;};
+    const unsigned getMaxReaders() const {return maxReaders;};
     virtual void pushEvent(Event e);
     void getState(Jzon::Object &filterNode);
     bool deleteReader(int id);
@@ -76,7 +76,7 @@ public:
     virtual ~BaseFilter();
     
 protected:
-    BaseFilter(int maxReaders_, int maxWriters_, bool force_ = false);
+    BaseFilter(unsigned maxReaders_, unsigned maxWriters_, bool force_ = false);
 	void removeFrames();
     bool hasFrames();
     virtual FrameQueue *allocQueue(int wId) = 0;
@@ -104,8 +104,8 @@ private:
     bool connect(BaseFilter *R, int writerID, int readerID, bool slaveQueue = false);
 
     bool force;
-    int maxWriters;
-    int maxReaders;
+    unsigned maxWriters;
+    unsigned maxReaders;
     std::priority_queue<Event> eventQueue;
     std::mutex eventQueueMutex;
     int workerId;
@@ -136,7 +136,7 @@ private:
 class OneToManyFilter : public BaseFilter {
     
 protected:
-    OneToManyFilter(int writersNum = MAX_WRITERS, bool force_ = false);
+    OneToManyFilter(unsigned writersNum = MAX_WRITERS, bool force_ = false);
     virtual bool doProcessFrame(Frame *org, std::map<int, Frame *> dstFrames) = 0;
     
 private:
@@ -158,7 +158,7 @@ public:
     void pushEvent(Event e);
 
 protected:
-    HeadFilter(int writersNum = MAX_WRITERS);
+    HeadFilter(unsigned writersNum = MAX_WRITERS);
     int getNullWriterID();
     
 private:
@@ -176,7 +176,7 @@ public:
     void pushEvent(Event e);
 
 protected:
-    TailFilter(int readersNum = MAX_READERS);
+    TailFilter(unsigned readersNum = MAX_READERS);
     
 private:
     FrameQueue *allocQueue(int wId) {return NULL;};
@@ -191,8 +191,8 @@ private:
 class ManyToOneFilter : public BaseFilter {
     
 protected:
-    ManyToOneFilter(int readersNum = MAX_READERS, bool force_ = false);
-    virtual bool doProcessFrame(std::map<int, Frame*> orgFrames, Frame *dst) = 0;
+    ManyToOneFilter(unsigned readersNum = MAX_READERS, bool force_ = false);
+    virtual bool doProcessFrame(std::map<int, Frame *> orgFrames, Frame *dst) = 0;
 
 private:
     bool processFrame(bool removeFrame = true);

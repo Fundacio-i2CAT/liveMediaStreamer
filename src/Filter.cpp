@@ -33,7 +33,7 @@
 #define DISC_RETRIES 50
 #define DISC_TIMEOUT 1000 //us
 
-BaseFilter::BaseFilter(int maxReaders_, int maxWriters_, bool force_) : 
+BaseFilter::BaseFilter(unsigned maxReaders_, unsigned maxWriters_, bool force_) : 
     force(force_), maxReaders(maxReaders_), maxWriters(maxWriters_), enabled(true)
 {
 }
@@ -410,7 +410,7 @@ bool OneToOneFilter::processFrame(bool removeFrame)
     return true;
 }
 
-OneToManyFilter::OneToManyFilter(int writersNum, bool force_) : 
+OneToManyFilter::OneToManyFilter(unsigned writersNum, bool force_) : 
 BaseFilter(1, writersNum, force_)
 {
 }
@@ -431,7 +431,7 @@ bool OneToManyFilter::processFrame(bool removeFrame)
     return true;
 }
 
-HeadFilter::HeadFilter(int writersNum) : 
+HeadFilter::HeadFilter(unsigned writersNum) : 
 BaseFilter(0, writersNum, false)
 {
     
@@ -457,7 +457,7 @@ void HeadFilter::pushEvent(Event e)
 
 
 
-TailFilter::TailFilter(int readersNum) : 
+TailFilter::TailFilter(unsigned readersNum) : 
 BaseFilter(readersNum, 0, false)
 {
 
@@ -482,7 +482,7 @@ void TailFilter::pushEvent(Event e)
 }
 
 
-ManyToOneFilter::ManyToOneFilter(int readersNum, bool force_) : 
+ManyToOneFilter::ManyToOneFilter(unsigned readersNum, bool force_) : 
 BaseFilter(readersNum, 1, force_)
 {
 }

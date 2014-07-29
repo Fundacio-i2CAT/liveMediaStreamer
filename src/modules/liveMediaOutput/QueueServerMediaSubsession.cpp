@@ -25,14 +25,9 @@
 #include "QueueServerMediaSubsession.hh"
 
 QueueServerMediaSubsession
-::QueueServerMediaSubsession(UsageEnvironment& env, Reader *reader,
-                int readerId, Boolean reuseFirstSource)
+::QueueServerMediaSubsession(UsageEnvironment& env, StreamReplicator* replicator, 
+                             int readerId, Boolean reuseFirstSource)
     : OnDemandServerMediaSubsession(env, reuseFirstSource),
-        fReader(reader), fReaderId(readerId) {
-}
-
-QueueServerMediaSubsession::~QueueServerMediaSubsession() {
-    //TODO:
-    //delete[] fQueue;
+        fReplicator(replicator), fReaderId(readerId) {
 }
 

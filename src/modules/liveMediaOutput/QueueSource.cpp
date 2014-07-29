@@ -35,10 +35,6 @@ void QueueSource::doGetNextFrame()
     afterGetting(this);
 }
 
-void QueueSource::doStopGettingFrames() {
-    return;
-}
-
 void QueueSource::staticDoGetNextFrame(FramedSource* source) {
     source->doGetNextFrame();
 }
@@ -49,14 +45,6 @@ void QueueSource::checkStatus()
         return;
     }
 
-    SinkManager* transmitter = SinkManager::getInstance();
-
-    transmitter->deleteReader(fReaderId);
-
-    std::string sessionID = transmitter->getSessionIdFromReaderId(fReaderId);
-
-    if (!sessionID.empty()) {
-        transmitter->removeSession(sessionID);
-    }
+    stopGettingFrames();
 }
 

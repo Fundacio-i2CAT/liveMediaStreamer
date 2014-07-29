@@ -27,14 +27,14 @@
 
 H264QueueServerMediaSubsession*
 H264QueueServerMediaSubsession::createNew(UsageEnvironment& env,
-                          Reader *reader, int readerId,
+                          StreamReplicator* replicator, int readerId,
                           Boolean reuseFirstSource) {
-  return new H264QueueServerMediaSubsession(env, reader, readerId, reuseFirstSource);
+    return new H264QueueServerMediaSubsession(env, replicator, readerId, reuseFirstSource);
 }
 
 H264QueueServerMediaSubsession::H264QueueServerMediaSubsession(UsageEnvironment& env,
-                                    Reader *reader, int readerId, Boolean reuseFirstSource)
-  : QueueServerMediaSubsession(env, reader, readerId, reuseFirstSource),
+                          StreamReplicator* replicator, int readerId, Boolean reuseFirstSource)
+: QueueServerMediaSubsession(env, replicator, readerId, reuseFirstSource),
     fAuxSDPLine(NULL), fDoneFlag(0), fDummyRTPSink(NULL) {
 }
 
@@ -94,14 +94,9 @@ char const* H264QueueServerMediaSubsession::getAuxSDPLine(RTPSink* rtpSink, Fram
 
 FramedSource* H264QueueServerMediaSubsession::createNewStreamSource(unsigned /*clientSessionId*/, unsigned& estBitrate) {
     //TODO: WTF
-    estBitrate = 1000; // kbps, estimate
-
-    H264QueueSource* source = H264QueueSource::createNew(envir(), fReader, fReaderId);
-    if (!source) {
-        return NULL; 
-    }
+    estBitrate = 2000; // kbps, estimate
     
-    return H264VideoStreamDiscreteFramer::createNew(envir(), source);
+    return H264VideoStreamDiscreteFramer::createNew(envir(), fReplicator->createStreamReplica());
 }
 
 RTPSink* H264QueueServerMediaSubsession

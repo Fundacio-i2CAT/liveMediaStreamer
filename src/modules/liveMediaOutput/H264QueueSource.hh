@@ -12,7 +12,6 @@ public:
     static H264QueueSource* createNew(UsageEnvironment& env, Reader *reader, int readerId);
     virtual void doGetNextFrame();
 
-
 protected:
     H264QueueSource(UsageEnvironment& env, Reader *reader, int readerId);
 };

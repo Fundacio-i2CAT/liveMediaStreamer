@@ -59,6 +59,7 @@ private:
 class SourceManager : public HeadFilter {
 private:
     SourceManager(int writersNum = MAX_WRITERS);
+    ~SourceManager();
     
 public:
     static SourceManager* getInstance();

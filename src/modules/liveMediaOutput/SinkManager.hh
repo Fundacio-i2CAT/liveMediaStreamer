@@ -38,6 +38,7 @@
 class SinkManager : public TailFilter {
 private:
     SinkManager(int readersNum = MAX_READERS);
+    ~SinkManager();
     
 public:
     static SinkManager* getInstance();

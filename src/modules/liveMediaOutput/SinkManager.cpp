@@ -51,6 +51,13 @@ SinkManager::SinkManager(int readersNum): TailFilter(readersNum), watch(0)
 
 }
 
+SinkManager::~SinkManager()
+{
+    //TODO: maange session destruction
+    env->reclaim();
+    mngrInstance = NULL;
+}
+
 SinkManager* 
 SinkManager::getInstance(){
     if (mngrInstance != NULL){

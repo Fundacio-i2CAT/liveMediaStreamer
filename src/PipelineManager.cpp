@@ -26,27 +26,6 @@
 PipelineManager::PipelineManager()
 {
     pipeMngrInstance = this;
-    receiverID = rand();
-    int receiverWorkerId = rand();
-    transmitterID = rand();
-    int transmitterWorkerId = rand();
-
-    addFilter(receiverID, SourceManager::getInstance());
-    addFilter(transmitterID, SinkManager::getInstance());
-    LiveMediaWorker *receiverWorker = new LiveMediaWorker();
-    LiveMediaWorker *transmitterWorker = new LiveMediaWorker();
-
-    addWorker(receiverWorkerId, receiverWorker);
-    addWorker(transmitterWorkerId, transmitterWorker);
-
-    receiverWorker->addProcessor(receiverID, SourceManager::getInstance());
-    SourceManager::getInstance()->setWorkerId(receiverWorkerId);
-
-    transmitterWorker->addProcessor(transmitterID, SinkManager::getInstance());
-    SinkManager::getInstance()->setWorkerId(transmitterWorkerId);
-
-    receiverWorker->start();
-    transmitterWorker->start();
 }
 
 PipelineManager* PipelineManager::getInstance()
@@ -65,6 +44,76 @@ void PipelineManager::destroyInstance()
         delete pipeMngrInstance;
         pipeMngrInstance = NULL;
     }
+}
+
+bool PipelineManager::start()
+{
+    receiverID = rand();
+    int receiverWorkerId = rand();
+    transmitterID = rand();
+    int transmitterWorkerId = rand();
+
+    if (!addFilter(receiverID, SourceManager::getInstance())) {
+        return false;
+    }
+
+    if (!addFilter(transmitterID, SinkManager::getInstance())) {
+        return false;
+    }
+
+    LiveMediaWorker *receiverWorker = new LiveMediaWorker();
+    LiveMediaWorker *transmitterWorker = new LiveMediaWorker();
+
+    if(!addWorker(receiverWorkerId, receiverWorker)) {
+        return false;
+    }
+
+    if(!addWorker(transmitterWorkerId, transmitterWorker)) {
+        return false;
+    }
+
+    if (!receiverWorker->addProcessor(receiverID, SourceManager::getInstance())) {
+        return false;
+    }
+
+    SourceManager::getInstance()->setWorkerId(receiverWorkerId);
+
+    if (!transmitterWorker->addProcessor(transmitterID, SinkManager::getInstance())) {
+        return false;
+    }
+
+    SinkManager::getInstance()->setWorkerId(transmitterWorkerId);
+
+    receiverWorker->start();
+    transmitterWorker->start();
+
+    return true;
+}
+
+bool PipelineManager::stop()
+{
+    for (auto it : paths) {
+        if (!deletePath(it.second)) {
+            return false;
+        }
+
+        delete it.second;
+    }
+
+    for (auto it : workers) {
+        it.second->stop();
+        delete it.second;
+    }
+
+    for (auto it : filters) {
+        delete it.second;
+    }
+
+    paths.clear();
+    workers.clear();
+    filters.clear();
+
+    return true;
 }
 
 int PipelineManager::searchFilterIDByType(FilterType type)
@@ -737,51 +786,37 @@ void PipelineManager::addFiltersToWorkerEvent(Jzon::Node* params, Jzon::Object &
     outputNode.Add("error", Jzon::null);
 }
 
+void PipelineManager::startEvent(Jzon::Node* params, Jzon::Object &outputNode)
+{
+    if (!start()) {
+        outputNode.Add("error", "Error starting pipe. Internal error...");
+        return;
+    }
+
+    outputNode.Add("error", Jzon::null);
+}
+
+void PipelineManager::stopEvent(Jzon::Node* params, Jzon::Object &outputNode)
+{
+    if (!stop()) {
+        outputNode.Add("error", "Error stopping pipe. Internal error...");
+        return;
+    }
+
+    outputNode.Add("error", Jzon::null);
+}
+
 void PipelineManager::resetEvent(Jzon::Node* params, Jzon::Object &outputNode)
 {
-    for (auto it : paths) {
-        if (!deletePath(it.second)) {
-            outputNode.Add("error", "Error deleting paths. Internal error...");
-            return;
-        }
-
-        delete it.second;
+    if (!stop()) {
+        outputNode.Add("error", "Error stopping pipe. Internal error...");
+        return;
     }
 
-    for (auto it : workers) {
-        it.second->stop();
-        delete it.second;
+     if (!start()) {
+        outputNode.Add("error", "Error starting pipe. Internal error...");
+        return;
     }
-
-    for (auto it : filters) {
-        delete it.second;
-    }
-
-    paths.clear();
-    workers.clear();
-    filters.clear();
-
-    receiverID = rand();
-    int receiverWorkerId = rand();
-    transmitterID = rand();
-    int transmitterWorkerId = rand();
-
-    addFilter(receiverID, SourceManager::getInstance());
-    addFilter(transmitterID, SinkManager::getInstance());
-    LiveMediaWorker *receiverWorker = new LiveMediaWorker();
-    LiveMediaWorker *transmitterWorker = new LiveMediaWorker();
-
-    addWorker(receiverWorkerId, receiverWorker);
-    addWorker(transmitterWorkerId, transmitterWorker);
-
-    receiverWorker->addProcessor(receiverID, SourceManager::getInstance());
-    SourceManager::getInstance()->setWorkerId(receiverWorkerId);
-
-    transmitterWorker->addProcessor(transmitterID, SinkManager::getInstance());
-    SinkManager::getInstance()->setWorkerId(transmitterWorkerId);
-
-    receiverWorker->start();
-    transmitterWorker->start();
 
     outputNode.Add("error", Jzon::null);
 }

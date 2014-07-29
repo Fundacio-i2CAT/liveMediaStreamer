@@ -49,6 +49,17 @@ SourceManager::SourceManager(int writersNum): HeadFilter(writersNum), watch(0)
     initializeEventMap();
 }
 
+SourceManager::~SourceManager()
+{
+    for (auto it : sessionMap) {
+        delete it.second;
+    }
+
+    env->reclaim();
+    mngrInstance = NULL;
+}
+
+
 SourceManager* SourceManager::getInstance()
 {
     if (mngrInstance != NULL){

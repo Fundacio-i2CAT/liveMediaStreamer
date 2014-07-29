@@ -45,6 +45,10 @@ public:
     static void destroyInstance();
     int getReceiverID() {return receiverID;};
     int getTransmitterID() {return transmitterID;};
+
+    bool start();
+    bool stop();
+
     int searchFilterIDByType(FilterType type);
     bool addWorker(int id, Worker* worker);
     bool addPath(int id, Path* path);
@@ -62,6 +66,7 @@ public:
     bool addWorkerToPath(Path *path, Worker* worker = NULL);
     void startWorkers();
     void stopWorkers();
+
     void getStateEvent(Jzon::Node* params, Jzon::Object &outputNode);
     void reconfigAudioEncoderEvent(Jzon::Node* params, Jzon::Object &outpuNode);
     void createFilterEvent(Jzon::Node* params, Jzon::Object &outputNode);
@@ -71,6 +76,8 @@ public:
     void removeWorkerEvent(Jzon::Node* params, Jzon::Object &outputNode);
     void addSlavesToWorkerEvent(Jzon::Node* params, Jzon::Object &outputNode);
     void addFiltersToWorkerEvent(Jzon::Node* params, Jzon::Object &outputNode);
+    void stopEvent(Jzon::Node* params, Jzon::Object &outputNode);
+    void startEvent(Jzon::Node* params, Jzon::Object &outputNode);
     void resetEvent(Jzon::Node* params, Jzon::Object &outputNode);
 
 private:

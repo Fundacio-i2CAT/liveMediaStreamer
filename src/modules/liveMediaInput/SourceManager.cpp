@@ -314,7 +314,7 @@ FrameQueue* createVideoQueue(char const* codecName)
     } else if (strcmp(codecName, "MJPEG") == 0) {
         codec = MJPEG;
     } else {
-        //TODO: codec not supported
+        return NULL;
     }
     
     return VideoFrameQueue::createNew(codec, 0);

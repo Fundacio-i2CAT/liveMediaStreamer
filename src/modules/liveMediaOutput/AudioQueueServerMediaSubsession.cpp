@@ -47,7 +47,7 @@ AudioQueueServerMediaSubsession::AudioQueueServerMediaSubsession(UsageEnvironmen
 }
 
 FramedSource* AudioQueueServerMediaSubsession::createNewStreamSource(unsigned /*clientSessionId*/, unsigned& estBitrate) {
-    QueueSource *qSource;
+    
     unsigned bitsPerSecond = 0;
     
     if (fSampleFormat == S16){

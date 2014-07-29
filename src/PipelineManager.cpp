@@ -23,6 +23,8 @@
 
 #include "PipelineManager.hh"
 
+#define WORKER_DELETE_SLEEPING_TIME 500 //us
+
 PipelineManager::PipelineManager()
 {
     pipeMngrInstance = this;
@@ -96,12 +98,14 @@ bool PipelineManager::stop()
         if (!deletePath(it.second)) {
             return false;
         }
-
-        delete it.second;
     }
 
     for (auto it : workers) {
         it.second->stop();
+        while (it.second->isRunning()) {
+            std::this_thread::sleep_for(std::chrono::microseconds(WORKER_DELETE_SLEEPING_TIME));
+        }
+
         delete it.second;
     }
 

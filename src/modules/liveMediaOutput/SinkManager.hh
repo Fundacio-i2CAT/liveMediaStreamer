@@ -98,13 +98,13 @@ class Connection {
 public:
     void startPlaying();
     void stopPlaying();
+    ~Connection();
     
 protected:
     Connection(UsageEnvironment* env, std::string ip, 
                unsigned port, FramedSource *source);
     static void afterPlaying(void* clientData);
     
-    ~Connection();
     
     UsageEnvironment* fEnv;
     std::string fIp;

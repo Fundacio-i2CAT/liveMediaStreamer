@@ -55,7 +55,6 @@ SourceManager::~SourceManager()
         delete it.second;
     }
 
-    env->reclaim();
     mngrInstance = NULL;
 }
 

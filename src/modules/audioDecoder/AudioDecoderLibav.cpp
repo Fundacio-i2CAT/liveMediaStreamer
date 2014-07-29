@@ -51,7 +51,6 @@ AudioDecoderLibav::AudioDecoderLibav() : OneToOneFilter()
 
 AudioDecoderLibav::~AudioDecoderLibav()
 {
-    av_free(codec);
     avcodec_close(codecCtx);
     av_free(codecCtx);
     swr_free(&resampleCtx);

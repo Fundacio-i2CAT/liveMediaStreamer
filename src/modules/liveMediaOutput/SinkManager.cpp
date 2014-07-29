@@ -189,10 +189,10 @@ ServerMediaSubsession *SinkManager::createVideoMediaSubsession(VCodecType codec,
 {
     switch(codec){
         case H264:
-            return H264QueueServerMediaSubsession::createNew(*(envir()), replicas[readerId], readerId, False);
+            return H264QueueServerMediaSubsession::createNew(*(envir()), replicas[readerId], readerId, True);
             break;
         case VP8:
-            return VP8QueueServerMediaSubsession::createNew(*(envir()), replicas[readerId], readerId, False);
+            return VP8QueueServerMediaSubsession::createNew(*(envir()), replicas[readerId], readerId, True);
             break;
         default:
             break;
@@ -213,7 +213,7 @@ ServerMediaSubsession *SinkManager::createAudioMediaSubsession(ACodecType codec,
         default:
             return AudioQueueServerMediaSubsession::createNew(*(envir()), replicas[readerId], 
                                                               readerId, codec, channels,
-                                                              sampleRate, sampleFormat, False);
+                                                              sampleRate, sampleFormat, True);
             break;
     }
     return NULL;
@@ -419,8 +419,8 @@ Connection::Connection(UsageEnvironment* env,
     const Port rtcpPort(port+1);
     
     for (;;serverPort+=2){
-        rtpGroupsock = new Groupsock(*fEnv, destinationAddress, Port(serverPort), TTL);
-        rtcpGroupsock = new Groupsock(*fEnv, destinationAddress, Port(serverPort+1), TTL);
+        rtpGroupsock = new Groupsock(*fEnv, destinationAddress, rtpPort, TTL);
+        rtcpGroupsock = new Groupsock(*fEnv, destinationAddress, rtcpPort, TTL);
         if (rtpGroupsock->socketNum() < 0 || rtcpGroupsock->socketNum() < 0) {
             delete rtpGroupsock;
             delete rtcpGroupsock;
@@ -429,8 +429,8 @@ Connection::Connection(UsageEnvironment* env,
         break;
     }
     
-    rtpGroupsock->changeDestinationParameters(destinationAddress, rtpPort, TTL);
-    rtcpGroupsock->changeDestinationParameters(destinationAddress, rtcpPort, TTL);
+    //rtpGroupsock->changeDestinationParameters(destinationAddress, rtpPort, TTL);
+    //rtcpGroupsock->changeDestinationParameters(destinationAddress, rtcpPort, TTL);
 }
 
 Connection::~Connection()

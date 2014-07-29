@@ -145,6 +145,7 @@ void addConnections(std::vector<int> readers, std::string ip, unsigned port)
     SinkManager *transmitter = pipe->getTransmitter();
     for(auto reader : readers){
         transmitter->addConnection(reader, ip, port);
+        utils::infoMsg("added connection for " + ip + ":" + std::to_string(port));
         port+=2;
     }
 }

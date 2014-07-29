@@ -101,7 +101,7 @@ bool VideoMixer::doProcessFrame(std::map<int, Frame*> orgFrames, Frame *dst)
                 continue;
             }
 
-            if (!it.second) {
+            if (!it.second && channelsConfig[it.first]->isEnabled()) {
                 return false;
             }
 

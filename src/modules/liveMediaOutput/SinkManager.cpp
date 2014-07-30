@@ -52,11 +52,14 @@ SinkManager::SinkManager(int readersNum): TailFilter(readersNum), watch(0)
     mngrInstance = this;
     fType = TRANSMITTER;
     initializeEventMap();
-
 }
 
 SinkManager::~SinkManager()
 {
+    for (auto it : sessionList) {
+        rtspServer->deleteServerMediaSession(it.second);
+    }
+
     for (auto it : replicas) {
         Medium::close(it.second);
     }
@@ -66,7 +69,7 @@ SinkManager::~SinkManager()
     }
 
     //TODO: it causes seg fault. Check it please!
-    //Medium::close(rtspServer);
+    Medium::close(rtspServer);
     //env->reclaim();
     mngrInstance = NULL;
 }

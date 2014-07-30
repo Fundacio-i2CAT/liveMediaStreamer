@@ -109,6 +109,16 @@ AudioCircularBuffer::AudioCircularBuffer(int ch, int sRate, int maxSamples, Samp
     config();
 }
 
+AudioCircularBuffer::~AudioCircularBuffer()
+{
+    for (int i=0; i<channels; i++) {
+        delete[] data[i];
+    }
+
+    delete inputFrame;
+    delete outputFrame;
+}
+
 bool AudioCircularBuffer::config()
 {
     switch(sampleFormat) {
@@ -145,12 +155,6 @@ bool AudioCircularBuffer::config()
     return true;
 }
 
-AudioCircularBuffer::~AudioCircularBuffer()
-{
-    for (int i=0; i<channels; i++) {
-        delete[] data[i];
-    }
-}
 
 bool AudioCircularBuffer::pushBack(unsigned char **buffer, int samplesRequested) 
 {

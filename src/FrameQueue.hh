@@ -41,6 +41,7 @@ class FrameQueue {
 
 public:
     FrameQueue();
+    virtual ~FrameQueue() {};
     virtual Frame *getRear() = 0;
     virtual Frame *getFront() = 0;
     virtual void addFrame() = 0;

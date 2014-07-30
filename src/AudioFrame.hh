@@ -70,6 +70,8 @@ class AudioFrame : public Frame {
 class InterleavedAudioFrame : public AudioFrame {
     public:
         static InterleavedAudioFrame* createNew(int ch, int sRate, int maxSamples, ACodecType codec, SampleFmt sFmt);
+        ~InterleavedAudioFrame();
+
         unsigned char* getDataBuf() {return frameBuff;};
         unsigned int getLength() {return bufferLen;};
         unsigned int getMaxLength() {return bufferMaxLen;};
@@ -88,6 +90,8 @@ class InterleavedAudioFrame : public AudioFrame {
 class PlanarAudioFrame : public AudioFrame {
     public:
         static PlanarAudioFrame* createNew(int ch, int sRate, int maxSamples, ACodecType codec, SampleFmt sFmt);
+        ~PlanarAudioFrame();
+
         unsigned char** getPlanarDataBuf() {return frameBuff;};
         unsigned int getLength() {return bufferLen;};
         unsigned int getMaxLength() {return bufferMaxLen;};

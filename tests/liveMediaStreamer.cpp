@@ -25,64 +25,19 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <unistd.h>
-#include <sys/types.h> 
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <map>
-#include <string>
+
 #include <iostream>
 #include "../src/Controller.hh"
-#include "../src/Callbacks.hh"
 #include "../src/Utils.hh"
-#include "../src/modules/audioMixer/AudioMixer.hh"
-#include "../src/modules/videoMixer/VideoMixer.hh"
-#include "../src/modules/videoEncoder/VideoEncoderX264.hh"
-#include "../src/modules/audioEncoder/AudioEncoderLibav.hh"
 
 #define VMIXER_CHANNELS 4
 #define VMIXER_OUTWIDTH 1280
 #define VMIXER_OUTHEIGHT 720
 #define VENCODER_FPS 25
 
-void createAudioMixerEncoderTxPath()
-{
-    PipelineManager *pipeMngr = Controller::getInstance()->pipelineManager();
-    
-    AudioMixer *mixer = new AudioMixer(4);
-    int audioMixerID = rand();
-
-    if(!pipeMngr->addFilter(audioMixerID, mixer)) {
-        std::cerr << "Error adding mixer to the pipeline" << std::endl;
-    }
-
-    Path *path = new AudioEncoderPath(audioMixerID, pipeMngr->getFilter(audioMixerID)->generateWriterID());
-
-    path->setDestinationFilter(pipeMngr->getTransmitterID(), pipeMngr->getTransmitter()->generateReaderID());
-
-    if (!pipeMngr->connectPath(path)) {
-        exit(1);
-    }
-
-    int encoderPathID = rand();
-
-    if (!pipeMngr->addPath(encoderPathID, path)) {
-        exit(1);
-    }
-
-    Worker* audioMixerWorker = new BestEffortMaster();
-    if(!pipeMngr->addWorker(audioMixerID, audioMixerWorker)) {
-        std::cerr << "Error adding mixer worker" << std::endl;
-        exit(1);
-    }
-
-    pipeMngr->startWorkers();
-}
-
-
 int main(int argc, char *argv[]) {
 
-    int sockfd, port;
+    int port;
 
     if (argc < 2) {
         fprintf(stderr,"ERROR, no port provided\n");
@@ -111,6 +66,7 @@ int main(int argc, char *argv[]) {
         ctrl->processRequest();
     }
 
-    close(sockfd);
+    ctrl->stopAndCloseSocket();
+
     return 0; 
 }

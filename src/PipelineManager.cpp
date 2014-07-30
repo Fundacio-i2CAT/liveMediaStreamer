@@ -144,7 +144,7 @@ bool PipelineManager::addPath(int id, Path* path)
 
 BaseFilter* PipelineManager::createFilter(FilterType type)
 {
-    BaseFilter* filter = NULL;
+    BaseFilter* filter;
 
     switch (type) {
         case VIDEO_DECODER:
@@ -167,6 +167,10 @@ BaseFilter* PipelineManager::createFilter(FilterType type)
             break;
         case AUDIO_MIXER:
             filter = new AudioMixer();
+            break;
+        default:
+            utils::errorMsg("Filter type not contemplated!");
+            filter = NULL;
             break;
     }
 

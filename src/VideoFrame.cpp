@@ -85,3 +85,9 @@ InterleavedVideoFrame::InterleavedVideoFrame(VCodecType codec, int width, int he
     bufferMaxLen = width * height * bytesPerPixel;
     frameBuff = new unsigned char [bufferMaxLen]();
 }
+
+InterleavedVideoFrame::~InterleavedVideoFrame()
+{
+    delete[] frameBuff;
+}
+

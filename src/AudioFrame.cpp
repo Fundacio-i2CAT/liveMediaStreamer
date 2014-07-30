@@ -79,6 +79,12 @@ InterleavedAudioFrame::InterleavedAudioFrame(int ch, int sRate, int maxSamples, 
     frameBuff = new unsigned char [bufferMaxLen]();
 }
 
+InterleavedAudioFrame::~InterleavedAudioFrame() 
+{
+    delete[] frameBuff;
+}
+
+
 /////////////////////////////////////////////
 //PLANAR AUDIO FRAME METHODS IMPLEMENTATION//
 /////////////////////////////////////////////
@@ -115,6 +121,14 @@ PlanarAudioFrame::PlanarAudioFrame(int ch, int sRate, int maxSamples, ACodecType
         frameBuff[i] = new unsigned char [bufferMaxLen]();
     }
 }
+
+PlanarAudioFrame::~PlanarAudioFrame()
+{
+    for (int i = 0; i < MAX_CHANNELS; i++) {
+        delete[] frameBuff[i];
+    }
+}
+
 
 int PlanarAudioFrame::getChannelFloatSamples(std::vector<float> &samplesVec, int channel) 
 {

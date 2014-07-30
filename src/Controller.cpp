@@ -24,6 +24,10 @@
 
 #include "Controller.hh"
 #include "Utils.hh"
+#include <sys/types.h> 
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <unistd.h>
 
 Controller* Controller::ctrlInstance = NULL;
 PipelineManager* PipelineManager::pipeMngrInstance = NULL;
@@ -110,6 +114,12 @@ bool Controller::listenSocket()
 
     return true;
 }
+
+void Controller::stopAndCloseSocket()
+{
+    close(listeningSocket);
+}
+
 
 bool Controller::readAndParse()
 {

@@ -33,6 +33,7 @@ using namespace std::chrono;
 class Frame {
     public:
         Frame();
+        virtual ~Frame() {};
               
         void setPresentationTime(struct timeval pTime);
         void setUpdatedTime();

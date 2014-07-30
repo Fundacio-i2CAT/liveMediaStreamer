@@ -34,6 +34,10 @@ Worker::Worker(): run(false), enabled(false), pendingTask(false), canExecute(fal
 {
 }
 
+Worker::~Worker()
+{
+}
+
 bool Worker::addProcessor(int id, Runnable *processor) 
 {
     if (processors.count(id) > 0) {

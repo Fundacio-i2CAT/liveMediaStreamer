@@ -26,6 +26,13 @@
 #include "AudioFrame.hh"
 #include "Utils.hh"
 
+AVFramedQueue::~AVFramedQueue()
+{
+    for (auto it : frames) {
+        delete it; 
+    }
+}
+
 Frame* AVFramedQueue::getRear() 
 {
     if (elements >= max) {

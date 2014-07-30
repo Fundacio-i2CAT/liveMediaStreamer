@@ -229,7 +229,7 @@ PixType getPixelFormat(AVPixelFormat format)
             return YUVJ420P;
             break;
         default:
-            utils::errorMsg("Unknown output pixel format");
+            utils::errorMsg("[Decoder] Unknown output pixel format");
             break;
     }
     

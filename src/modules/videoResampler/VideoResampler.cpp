@@ -241,8 +241,11 @@ AVPixelFormat getLibavPixFmt(PixType pixType)
         case YUV444P:
             return AV_PIX_FMT_YUV444P;
             break;
+        case YUVJ420P:
+            return AV_PIX_FMT_YUVJ420P;
+            break;
         default:
-            utils::errorMsg("Unknown output pixel format");
+            utils::errorMsg("[Resampler] Unknown output pixel format");
             break;
     }
     

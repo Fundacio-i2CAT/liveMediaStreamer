@@ -115,14 +115,12 @@ bool VideoFrameQueue::config()
             for (int i=0; i<max; i++) {
                 frames[i] = InterleavedVideoFrame::createNew(codec, LENGTH_H264);
             }
-            return true;
             break;
         case VP8:
             max = DEFAULT_VIDEO_FRAMES;
             for (int i=0; i<max; i++) {
                 frames[i] = InterleavedVideoFrame::createNew(codec, LENGTH_VP8);
             }
-            return true;
             break;
         case MJPEG:
             //TODO: implement this initialization
@@ -136,12 +134,14 @@ bool VideoFrameQueue::config()
             for (int i=0; i<max; i++) {
                 frames[i] = InterleavedVideoFrame::createNew(codec, DEFAULT_WIDTH, DEFAULT_HEIGHT, pixelFormat);
             }
-            return true;
             break;
         default:
-            //TODO: error message
+            utils::errorMsg("[Video Frame Queue] Codec not supported!");
+            return false;
             break;
     }
+
+    return true;
 }
 
 ////////////////////////////////////////////
@@ -215,8 +215,11 @@ bool AudioFrameQueue::config()
             }
             break;
         default:
-            //TODO: codec not supported
+            utils::errorMsg("[Audio Frame Queue] Codec not supported!");
+            return false;
             break;
     }
+
+    return true;
 
 }

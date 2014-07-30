@@ -27,12 +27,15 @@
 #define A_TIME_STMP_FREQ 48000
 #define A_CHANNELS 2
 
+bool run = true;
+
 void signalHandler( int signum )
 {
     utils::infoMsg("Interruption signal received");
     
     PipelineManager *pipe = Controller::getInstance()->pipelineManager();
-    pipe->stopWorkers();
+    pipe->stop();
+    run = false;
     
     utils::infoMsg("Workers Stopped");
 }
@@ -184,6 +187,7 @@ int main(int argc, char* argv[])
     }
 
     PipelineManager *pipe = Controller::getInstance()->pipelineManager();
+    pipe->start();
     SourceManager *receiver = pipe->getReceiver();
     SinkManager *transmitter = pipe->getTransmitter();
 
@@ -219,11 +223,10 @@ int main(int argc, char* argv[])
         addConnections(readers, ip, port);
     }
     
-    while(pipe->getWorker(pipe->getReceiver()->getWorkerId())->isRunning() || 
-        pipe->getWorker(pipe->getTransmitter()->getWorkerId())->isRunning()) {
+    while (run) {
         sleep(1);
     }
-
+ 
     return 0;
 }
 

@@ -273,7 +273,11 @@ void sendAndClose(Jzon::Object outputNode, int socket)
     writer.Write();
     std::string result = writer.GetResult();
     const char* res = result.c_str();
-    (void)write(socket, res, result.size());
+    int ret = write(socket, res, result.size());
+
+    if (ret < 0) {
+        utils::errorMsg("Error writting socket");
+    }
 
     if (socket >= 0){
         close(socket);

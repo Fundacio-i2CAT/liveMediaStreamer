@@ -40,12 +40,12 @@ class AudioFrame : public Frame {
         AudioFrame(int ch, int sRate, int maxSamples, ACodecType codec);
         AudioFrame() {};
 
-        void setChannelNumber(unsigned int ch) {channels = ch;};
-        void setSampleRate(unsigned int sRate) {sampleRate = sRate;};
+        void setChannelNumber(int ch) {channels = ch;};
+        void setSampleRate(int sRate) {sampleRate = sRate;};
         void setSampleFormat(SampleFmt sFmt) {sampleFmt = sFmt;};
         void setCodec(ACodecType cType) {fCodec = cType;};
-        void setSamples(unsigned int samples) {this->samples = samples;};
-        void setMaxSamples(unsigned int maxSamples) {this->maxSamples = maxSamples;};
+        void setSamples(int samples) {this->samples = samples;};
+        void setMaxSamples(int maxSamples) {this->maxSamples = maxSamples;};
         ACodecType getCodec() {return fCodec;};
         SampleFmt getSampleFmt() {return sampleFmt;};
         int getChannels() {return channels;};
@@ -62,7 +62,7 @@ class AudioFrame : public Frame {
 
               
     protected:
-        unsigned int channels, sampleRate, samples, maxSamples, bytesPerSample; 
+        int channels, sampleRate, samples, maxSamples, bytesPerSample; 
         ACodecType fCodec;
         SampleFmt sampleFmt;
 };

@@ -120,7 +120,7 @@ int PlanarAudioFrame::getChannelFloatSamples(std::vector<float> &samplesVec, int
 {
     assert (sampleFmt == S16P);
 
-    if (samplesVec.size() != samples) {
+    if ((int)samplesVec.size() != samples) {
         samplesVec.resize(samples);
     }
 
@@ -130,7 +130,7 @@ int PlanarAudioFrame::getChannelFloatSamples(std::vector<float> &samplesVec, int
 
     unsigned char* b = frameBuff[channel];
 
-    for (int i=0; i<samples*bytesPerSample; i+=bytesPerSample) {
+    for (int i=0; i < samples*bytesPerSample; i+=bytesPerSample) {
         value = (short)(b[i] | b[i+1] << 8);
         fValue = value / 32768.0f;
         samplesVec[samplesIndex] = fValue;

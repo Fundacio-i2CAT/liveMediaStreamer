@@ -103,9 +103,9 @@ protected:
 private:
     bool connect(BaseFilter *R, int writerID, int readerID, bool slaveQueue = false);
 
-    bool force;
-    unsigned maxWriters;
     unsigned maxReaders;
+    unsigned maxWriters;
+    bool force;
     std::priority_queue<Event> eventQueue;
     std::mutex eventQueueMutex;
     int workerId;

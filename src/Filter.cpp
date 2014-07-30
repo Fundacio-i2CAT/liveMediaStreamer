@@ -34,7 +34,7 @@
 #define DISC_TIMEOUT 1000 //us
 
 BaseFilter::BaseFilter(unsigned maxReaders_, unsigned maxWriters_, bool force_) : 
-    force(force_), maxReaders(maxReaders_), maxWriters(maxWriters_), enabled(true)
+    maxReaders(maxReaders_), maxWriters(maxWriters_), force(force_), enabled(true)
 {
 }
 
@@ -68,7 +68,7 @@ Reader* BaseFilter::getReader(int id)
 
 Reader* BaseFilter::setReader(int readerID, FrameQueue* queue, bool sharedQueue)
 {
-    if ((int)readers.size() >= getMaxReaders() || readers.count(readerID) > 0 ) {
+    if (readers.size() >= getMaxReaders() || readers.count(readerID) > 0 ) {
         return NULL;
     }
 
@@ -190,7 +190,7 @@ bool BaseFilter::connect(BaseFilter *R, int writerID, int readerID, bool slaveQu
     
     utils::debugMsg("slaveQueue Value: " + std::to_string(slaveQueue));
     
-    if ((int)writers.size() < getMaxWriters() && writers.count(writerID) <= 0) {
+    if (writers.size() < getMaxWriters() && writers.count(writerID) <= 0) {
         writers[writerID] = new Writer();
         utils::debugMsg("New writer created " + std::to_string(writerID));
     }

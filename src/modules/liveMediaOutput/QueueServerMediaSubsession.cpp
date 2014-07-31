@@ -34,6 +34,5 @@ QueueServerMediaSubsession
 QueueServerMediaSubsession::~QueueServerMediaSubsession()
 {
     Medium::close(fReplicator);
-    std::cout << "QUEUE SERVER MEDIA SUBSESSION DESTRUCTOR" << std::endl;
 }
 

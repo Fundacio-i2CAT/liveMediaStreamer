@@ -64,6 +64,11 @@ SinkManager::~SinkManager()
        delete it.second;
     }
 
+    Medium::close(rtspServer);
+    delete &envir()->taskScheduler();
+    envir()->reclaim();
+    env = NULL;
+    
     mngrInstance = NULL;
 }
 
@@ -90,11 +95,8 @@ bool SinkManager::processFrame(bool removeFrame)
     if (envir() == NULL){
         return false;
     }
+    
     envir()->taskScheduler().doEventLoop((char*) &watch); 
-    
-    delete &envir()->taskScheduler();
-    envir()->reclaim();
-    
     return true;
 }
 
@@ -447,14 +449,14 @@ Connection::Connection(UsageEnvironment* env,
 
 Connection::~Connection()
 {
-    // Medium::close(fSource);
-    // if (sink) {
-    //     sink->stopPlaying();
-    //     Medium::close(sink);
-    //     Medium::close(rtcp);
-    // }
-    // delete rtpGroupsock;
-    // delete rtcpGroupsock;
+    Medium::close(fSource);
+    if (sink) {
+        sink->stopPlaying();
+        Medium::close(sink);
+        Medium::close(rtcp);
+    }
+    delete rtpGroupsock;
+    delete rtcpGroupsock;
 }
 
 void Connection::afterPlaying(void* clientData) {

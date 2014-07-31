@@ -49,7 +49,7 @@ protected:
                                   SampleFmt sampleFormat,
                                   Boolean reuseFirstSource);
       // called only by createNew();
-  virtual ~AudioQueueServerMediaSubsession(){std::cout << "AUDIO QUEUE SERVER MEDIA SUBSESSION DESTRUCTOR" << std::endl;};
+  virtual ~AudioQueueServerMediaSubsession(){};
 
 protected: // redefined virtual functions
   FramedSource* createNewStreamSource(unsigned clientSessionId,

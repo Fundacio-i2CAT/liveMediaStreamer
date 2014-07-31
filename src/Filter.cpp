@@ -40,8 +40,6 @@ BaseFilter::BaseFilter(unsigned maxReaders_, unsigned maxWriters_, bool force_) 
 
 BaseFilter::~BaseFilter()
 {
-    disconnectAll();
-
     for (auto it : readers) {
         delete it.second;
     }

@@ -94,12 +94,6 @@ bool PipelineManager::start()
 
 bool PipelineManager::stop()
 {
-    for (auto it : paths) {
-        if (!deletePath(it.second)) {
-            return false;
-        }
-    }
-
     for (auto it : workers) {
         it.second->stop();
         while (it.second->isRunning()) {
@@ -109,12 +103,20 @@ bool PipelineManager::stop()
         delete it.second;
     }
 
+    workers.clear();
+    
+    for (auto it : paths) {
+        if (!deletePath(it.second)) {
+            return false;
+        }
+    }
+
+    paths.clear();
+    
     for (auto it : filters) {
         delete it.second;
     }
 
-    paths.clear();
-    workers.clear();
     filters.clear();
 
     return true;
@@ -361,6 +363,7 @@ bool PipelineManager::deletePath(Path* path)
     std::vector<int> pathFilters = path->getFilters();
     int orgFilterId = path->getOriginFilterID();
     int dstFilterId = path->getDestinationFilterID();
+    Worker *worker = NULL;
 
     if (filters.count(orgFilterId) <= 0 || filters.count(dstFilterId) <= 0) {
         return false;
@@ -377,17 +380,18 @@ bool PipelineManager::deletePath(Path* path)
         return false;
     }
 
-    for (auto it : pathFilters) {
-        filters[it]->disconnectAll();
-    }
-
     if(!filters[dstFilterId]->disconnectReader(path->getDstReaderID())) {
         utils::errorMsg("Error disconnecting path tail!");
         return false;
     }
 
     for (auto it : pathFilters) {
-        workers[filters[it]->getWorkerId()]->removeProcessor(it);
+        worker = getWorker(filters[it]->getWorkerId());
+
+        if (worker) {
+            worker->removeProcessor(it);
+        }
+        
         delete filters[it];
         filters.erase(it);
     }

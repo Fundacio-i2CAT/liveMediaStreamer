@@ -30,11 +30,6 @@
 #include "../src/Controller.hh"
 #include "../src/Utils.hh"
 
-#define VMIXER_CHANNELS 4
-#define VMIXER_OUTWIDTH 1280
-#define VMIXER_OUTHEIGHT 720
-#define VENCODER_FPS 25
-
 int main(int argc, char *argv[]) {
 
     int port;

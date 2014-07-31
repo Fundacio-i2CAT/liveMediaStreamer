@@ -56,21 +56,14 @@ SinkManager::SinkManager(int readersNum): TailFilter(readersNum), watch(0)
 
 SinkManager::~SinkManager()
 {
-    for (auto it : sessionList) {
-        rtspServer->deleteServerMediaSession(it.second);
-    }
-
     for (auto it : replicas) {
-        Medium::close(it.second);
+       Medium::close(it.second);
     }
 
     for (auto it : connections) {
-        delete it.second;
+       delete it.second;
     }
 
-    //TODO: it causes seg fault. Check it please!
-    Medium::close(rtspServer);
-    //env->reclaim();
     mngrInstance = NULL;
 }
 
@@ -454,14 +447,14 @@ Connection::Connection(UsageEnvironment* env,
 
 Connection::~Connection()
 {
-    Medium::close(fSource);
-    if (sink) {
-        sink->stopPlaying();
-        Medium::close(sink);
-        Medium::close(rtcp);
-    }
-    delete rtpGroupsock;
-    delete rtcpGroupsock;
+    // Medium::close(fSource);
+    // if (sink) {
+    //     sink->stopPlaying();
+    //     Medium::close(sink);
+    //     Medium::close(rtcp);
+    // }
+    // delete rtpGroupsock;
+    // delete rtcpGroupsock;
 }
 
 void Connection::afterPlaying(void* clientData) {

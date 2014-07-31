@@ -46,7 +46,6 @@ VideoDecoderLibav::VideoDecoderLibav()
 
 VideoDecoderLibav::~VideoDecoderLibav()
 {
-    av_free(codec);
     avcodec_close(codecCtx);
     av_free(codecCtx);
     av_free(frame);

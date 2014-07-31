@@ -423,20 +423,20 @@ bool Session::initiateSession()
 }
 
 Session::~Session() {
-    MediaSubsession* subsession;
-    this->scs->iter = new MediaSubsessionIterator(*(this->scs->session));
-    subsession = this->scs->iter->next();
-    while (subsession != NULL) {
-        subsession->deInitiate();
-        Medium::close(subsession->sink);
-        subsession = this->scs->iter->next();
-    }
-    Medium::close(this->scs->session);
-    delete this->scs->iter;
+    // MediaSubsession* subsession;
+    // this->scs->iter = new MediaSubsessionIterator(*(this->scs->session));
+    // subsession = this->scs->iter->next();
+    // while (subsession != NULL) {
+    //     subsession->deInitiate();
+    //     Medium::close(subsession->sink);
+    //     subsession = this->scs->iter->next();
+    // }
+    // Medium::close(this->scs->session);
+    // delete this->scs->iter;
     
-    if (client != NULL) {
-        Medium::close(client);
-    }
+    // if (client != NULL) {
+    //     Medium::close(client);
+    // }
 }
 
 MediaSubsession* Session::getSubsessionByPort(int port)

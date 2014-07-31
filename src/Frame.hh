@@ -27,6 +27,7 @@
 #include <sys/time.h>
 #include <chrono>
 #include "Types.hh"
+#include <iostream>
 
 using namespace std::chrono;
 

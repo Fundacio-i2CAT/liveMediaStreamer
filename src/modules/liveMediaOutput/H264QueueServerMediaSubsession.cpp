@@ -40,6 +40,7 @@ H264QueueServerMediaSubsession::H264QueueServerMediaSubsession(UsageEnvironment&
 
 H264QueueServerMediaSubsession::~H264QueueServerMediaSubsession() {
   delete[] fAuxSDPLine;
+  std::cout << "H264 QUEUE SERVER MEDIA SUBSESSION DESTRUCTOR" << std::endl;
 }
 
 static void afterPlayingDummy(void* clientData) {

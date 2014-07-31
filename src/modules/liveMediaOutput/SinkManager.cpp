@@ -118,15 +118,26 @@ bool SinkManager::addSession(std::string id, std::vector<int> readers, std::stri
     return true;
 }
 
-bool SinkManager::addConnection(int reader, std::string ip, unsigned int port)
+bool SinkManager::addConnection(int reader, unsigned id, std::string ip, unsigned int port)
 {
     VideoFrameQueue *vQueue;
-    unsigned id;
+    AudioFrameQueue *aQueue;
+
+    if (connections.count(id) > 0){
+        utils:errorMsg("Connection id must be unique");
+        return false;
+    }
     if ((vQueue = dynamic_cast<VideoFrameQueue*>(getReader(reader)->getQueue())) != NULL){
-        do {
-            id = rand();
-        } while(connections.count(id) > 0);
-        connections[id] = new VideoConnection(envir(), ip, port, replicas[reader]->createStreamReplica(), vQueue->getCodec());
+        connections[id] = new VideoConnection(envir(), ip, port, 
+                                              replicas[reader]->createStreamReplica(), 
+                                              vQueue->getCodec());
+        return true;
+    }
+    if ((aQueue = dynamic_cast<AudioFrameQueue*>(getReader(reader)->getQueue())) != NULL){ 
+        connections[id] = new AudioConnection(envir(), ip, port, 
+                                              replicas[reader]->createStreamReplica(), 
+                                              aQueue->getCodec(), aQueue->getChannels(),
+                                              aQueue->getSampleRate(), aQueue->getSampleFmt());
         return true;
     }
     return false;
@@ -491,3 +502,54 @@ VideoConnection::VideoConnection(UsageEnvironment* env,
     }
     startPlaying();
 }
+
+AudioConnection::AudioConnection(UsageEnvironment* env, 
+                                 std::string ip, unsigned port, 
+                                 FramedSource *source, ACodecType codec, 
+                                 unsigned channels, unsigned sampleRate, 
+                                 SampleFmt sampleFormat) : Connection(env, ip, port, source), 
+                                 fCodec(codec), fChannels(channels), fSampleRate(sampleRate), 
+                                 fSampleFormat(sampleFormat)
+{
+    unsigned char payloadType = 97;
+    std::string codecStr = utils::getAudioCodecAsString(fCodec);
+    
+    if (fCodec == PCM && 
+        fSampleFormat == S16) {
+        codecStr = "L16";
+        if (fSampleRate == 44100) {
+            if (fChannels == 2){
+                payloadType = 10;
+            } else if (fChannels == 1) {
+                payloadType = 11;
+            }
+        }
+    } else if ((fCodec == PCMU || fCodec == G711) && 
+                fSampleRate == 8000 &&
+                fChannels == 1){
+        payloadType = 0;
+    }
+    
+    if (fCodec == MP3){
+        sink =  MPEG1or2AudioRTPSink::createNew(*fEnv, rtpGroupsock);
+    } else {
+        sink =  SimpleRTPSink
+            ::createNew(*fEnv, rtpGroupsock, payloadType,
+                        fSampleRate, "audio", 
+                        codecStr.c_str(),
+                        fChannels, False);
+    }
+    
+    if (sink != NULL){
+        const unsigned maxCNAMElen = 100;
+        unsigned char CNAME[maxCNAMElen+1];
+        gethostname((char*)CNAME, maxCNAMElen);
+        CNAME[maxCNAMElen] = '\0';
+        rtcp = RTCPInstance::createNew(*fEnv, rtcpGroupsock, 5000, CNAME,
+                                       sink, NULL, False);
+    } else {
+        utils::errorMsg("AudioConnection could not be created");
+    }
+    startPlaying();
+}
+

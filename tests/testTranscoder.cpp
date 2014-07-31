@@ -159,22 +159,26 @@ int main(int argc, char* argv[])
     unsigned port = 0;
     std::string ip;
     std::string sessionId;
+    std::string rtspUri;
 
     utils::setLogLevel(INFO);
     
     for (int i = 1; i < argc; i++) {     
         if (strcmp(argv[i],"-v")==0) {
             vPort = std::stoi(argv[i+1]);
-            printf("video input port: %d",vPort);
+            utils::infoMsg("video input port: " + std::to_string(vPort));
         } else if (strcmp(argv[i],"-a")==0) {
             aPort = std::stoi(argv[i+1]);
-            printf("audio input port: %d",aPort);
+            utils::infoMsg("audio input port: " + std::to_string(aPort));
         } else if (strcmp(argv[i],"-d")==0) {
             ip = argv[i + 1];
-            printf("\ndestination IP:%s",ip.c_str());
+            utils::infoMsg("destination IP: " + ip);
         } else if (strcmp(argv[i],"-P")==0) {
             port = std::stoi(argv[i+1]);
-            printf("destination port: %d",port);
+            utils::infoMsg("destination port: " + std::to_string(port));
+        } else if (strcmp(argv[i],"-R")==0) {
+            rtspUri = argv[i+1];
+            utils::infoMsg("RTSP uri: " + rtspUri);
         }
     }
     
@@ -197,6 +201,10 @@ int main(int argc, char* argv[])
     
     if (aPort != 0){
         addAudioSource(aPort);
+    }
+    
+    if (!rtspUri.empty()){
+        addRTSPSource(rtspUri);
     }
        
     for (auto it : pipe->getPaths()){

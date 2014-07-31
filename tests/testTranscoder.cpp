@@ -224,7 +224,7 @@ int main(int argc, char* argv[])
     }
     
     while (run) {
-        sleep(10);
+        sleep(5);
         pipe->stop();
         break;
     }

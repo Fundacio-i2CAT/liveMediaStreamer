@@ -203,10 +203,10 @@ ServerMediaSubsession *SinkManager::createVideoMediaSubsession(VCodecType codec,
 {
     switch(codec){
         case H264:
-            return H264QueueServerMediaSubsession::createNew(*(envir()), replicas[readerId], readerId, True);
+            return H264QueueServerMediaSubsession::createNew(*(envir()), replicas[readerId], readerId, False);
             break;
         case VP8:
-            return VP8QueueServerMediaSubsession::createNew(*(envir()), replicas[readerId], readerId, True);
+            return VP8QueueServerMediaSubsession::createNew(*(envir()), replicas[readerId], readerId, False);
             break;
         default:
             break;
@@ -227,7 +227,7 @@ ServerMediaSubsession *SinkManager::createAudioMediaSubsession(ACodecType codec,
         default:
             return AudioQueueServerMediaSubsession::createNew(*(envir()), replicas[readerId], 
                                                               readerId, codec, channels,
-                                                              sampleRate, sampleFormat, True);
+                                                              sampleRate, sampleFormat, False);
             break;
     }
     return NULL;
@@ -256,11 +256,8 @@ bool SinkManager::removeSession(std::string id)
         utils::errorMsg("Failed, no session found with this id (" + id + ")");
         return false;
     }
-    
-    rtspServer->closeAllClientSessionsForServerMediaSession(sessionList[id]);
-    sessionList[id]->deleteAllSubsessions();
-    Medium::close(sessionList[id]);
-    
+
+    rtspServer->deleteServerMediaSession(sessionList[id]);
     sessionList.erase(id);
     
     return false;
@@ -443,8 +440,8 @@ Connection::Connection(UsageEnvironment* env,
         break;
     }
     
-    //rtpGroupsock->changeDestinationParameters(destinationAddress, rtpPort, TTL);
-    //rtcpGroupsock->changeDestinationParameters(destinationAddress, rtcpPort, TTL);
+    rtpGroupsock->changeDestinationParameters(destinationAddress, rtpPort, TTL);
+    rtcpGroupsock->changeDestinationParameters(destinationAddress, rtcpPort, TTL);
 }
 
 Connection::~Connection()
@@ -467,6 +464,7 @@ void Connection::afterPlaying(void* clientData) {
 void Connection::startPlaying()
 {
     if (sink != NULL){
+        
         sink->startPlaying(*fSource, &Connection::afterPlaying, sink);
     }
 }
@@ -486,6 +484,7 @@ VideoConnection::VideoConnection(UsageEnvironment* env,
     switch(fCodec){
         case H264:
             sink = H264VideoRTPSink::createNew(*fEnv, rtpGroupsock, 96);
+            fSource = H264VideoStreamDiscreteFramer::createNew(*fEnv, fSource);
             break;
         case VP8:
             sink = VP8VideoRTPSink::createNew(*fEnv, rtpGroupsock, 96);

@@ -144,9 +144,10 @@ void addConnections(std::vector<int> readers, std::string ip, unsigned port)
     PipelineManager *pipe = Controller::getInstance()->pipelineManager();
     SinkManager *transmitter = pipe->getTransmitter();
     for(auto reader : readers){
-        transmitter->addConnection(reader, ip, port);
-        utils::infoMsg("added connection for " + ip + ":" + std::to_string(port));
-        port+=2;
+        if (transmitter->addConnection(reader, rand(), ip, port)) {
+            utils::infoMsg("added connection for " + ip + ":" + std::to_string(port));
+            port+=2;
+        }
     }
 }
 
@@ -176,9 +177,6 @@ int main(int argc, char* argv[])
         } else if (strcmp(argv[i],"-P")==0) {
             port = std::stoi(argv[i+1]);
             utils::infoMsg("destination port: " + std::to_string(port));
-        } else if (strcmp(argv[i],"-R")==0) {
-            rtspUri = argv[i+1];
-            utils::infoMsg("RTSP uri: " + rtspUri);
         }
     }
     
@@ -201,10 +199,6 @@ int main(int argc, char* argv[])
     
     if (aPort != 0){
         addAudioSource(aPort);
-    }
-    
-    if (!rtspUri.empty()){
-        addRTSPSource(rtspUri);
     }
        
     for (auto it : pipe->getPaths()){

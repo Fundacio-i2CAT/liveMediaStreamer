@@ -124,7 +124,7 @@ bool SinkManager::addConnection(int reader, unsigned id, std::string ip, unsigne
     AudioFrameQueue *aQueue;
 
     if (connections.count(id) > 0){
-        utils:errorMsg("Connection id must be unique");
+        utils::errorMsg("Connection id must be unique");
         return false;
     }
     if ((vQueue = dynamic_cast<VideoFrameQueue*>(getReader(reader)->getQueue())) != NULL){
@@ -427,8 +427,8 @@ Connection::Connection(UsageEnvironment* env,
     const Port rtcpPort(port+1);
     
     for (;;serverPort+=2){
-        rtpGroupsock = new Groupsock(*fEnv, destinationAddress, rtpPort, TTL);
-        rtcpGroupsock = new Groupsock(*fEnv, destinationAddress, rtcpPort, TTL);
+        rtpGroupsock = new Groupsock(*fEnv, destinationAddress, Port(serverPort), TTL);
+        rtcpGroupsock = new Groupsock(*fEnv, destinationAddress, Port(serverPort+1), TTL);
         if (rtpGroupsock->socketNum() < 0 || rtcpGroupsock->socketNum() < 0) {
             delete rtpGroupsock;
             delete rtcpGroupsock;

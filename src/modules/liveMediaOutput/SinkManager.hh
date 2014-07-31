@@ -128,13 +128,14 @@ private:
     VCodecType fCodec;
 };
 
-class AudioConnection : public Connection {   
-private:
+class AudioConnection : public Connection {
+public:
     AudioConnection(UsageEnvironment* env, std::string ip, unsigned port, 
                     FramedSource *source, ACodecType codec,
                     unsigned channels, unsigned sampleRate,
                     SampleFmt sampleFormat);
     
+private:
     ACodecType fCodec;
     unsigned fChannels;
     unsigned fSampleRate;

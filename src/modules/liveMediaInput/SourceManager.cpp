@@ -49,6 +49,19 @@ SourceManager::SourceManager(int writersNum): HeadFilter(writersNum), watch(0)
     initializeEventMap();
 }
 
+SourceManager::~SourceManager()
+{
+    for (auto it : sessionMap) {
+        delete it.second;
+    }
+
+    delete &envir()->taskScheduler();
+    envir()->reclaim();
+    env = NULL;
+    mngrInstance = NULL;
+}
+
+
 SourceManager* SourceManager::getInstance()
 {
     if (mngrInstance != NULL){
@@ -64,7 +77,7 @@ void SourceManager::stop()
 
 void SourceManager::destroyInstance()
 {
-    SourceManager * mngrInstance = SourceManager::getInstance();
+    SourceManager* mngrInstance = SourceManager::getInstance();
     if (mngrInstance != NULL){
         delete mngrInstance;
         mngrInstance = NULL;
@@ -92,10 +105,8 @@ bool SourceManager::processFrame(bool removeFrame)
     if (envir() == NULL){
         return false;
     }
+
     envir()->taskScheduler().doEventLoop((char*) &watch); 
-    
-    delete &envir()->taskScheduler();
-    envir()->reclaim();
     
     return true;
 }
@@ -304,7 +315,7 @@ FrameQueue* createVideoQueue(char const* codecName)
     } else if (strcmp(codecName, "MJPEG") == 0) {
         codec = MJPEG;
     } else {
-        //TODO: codec not supported
+        return NULL;
     }
     
     return VideoFrameQueue::createNew(codec);
@@ -416,11 +427,12 @@ Session::~Session() {
     MediaSubsession* subsession;
     this->scs->iter = new MediaSubsessionIterator(*(this->scs->session));
     subsession = this->scs->iter->next();
+    
     while (subsession != NULL) {
-        subsession->deInitiate();
         Medium::close(subsession->sink);
         subsession = this->scs->iter->next();
     }
+    
     Medium::close(this->scs->session);
     delete this->scs->iter;
     

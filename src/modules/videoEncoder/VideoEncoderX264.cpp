@@ -75,7 +75,7 @@ bool VideoEncoderX264::doProcessFrame(Frame *org, Frame *dst) {
 		return false;
 	}
 
-	setPresentationTime(dst);
+	updatePresentationTime(dst);
 	x264Frame->setNals(&ppNal, piNal, frameLength);
     
     pts++;
@@ -223,12 +223,12 @@ bool VideoEncoderX264::reconfigure(VideoFrame* orgFrame, X264VideoFrame* x264Fra
     return true;
 }
 
-void VideoEncoderX264::setPresentationTime(Frame* dst)
+void VideoEncoderX264::updatePresentationTime(Frame* dst)
 {
+    dst->setPresentationTime(presentationTime);
     frameTimestamp += frameDuration;
     presentationTime.tv_sec= frameTimestamp.count()/1000000;
     presentationTime.tv_usec= frameTimestamp.count()%1000000;
-	dst->setPresentationTime(presentationTime);
 }
 
 void VideoEncoderX264::configEvent(Jzon::Node* params, Jzon::Object &outputNode)

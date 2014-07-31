@@ -32,6 +32,10 @@ X264VideoCircularBuffer* X264VideoCircularBuffer::createNew()
     return new X264VideoCircularBuffer();
 }
 
+X264VideoCircularBuffer::~X264VideoCircularBuffer()
+{
+    //TODO: implement destructor
+}
 
 Frame* X264VideoCircularBuffer::getRear()
 {

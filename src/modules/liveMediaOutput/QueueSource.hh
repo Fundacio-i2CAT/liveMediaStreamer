@@ -14,7 +14,6 @@ class QueueSource: public FramedSource {
 public:
     static QueueSource* createNew(UsageEnvironment& env, Reader *reader, int readerId);
     virtual void doGetNextFrame();
-    virtual void doStopGettingFrames();
     Reader* getReader() {return fReader;};
 
 protected:

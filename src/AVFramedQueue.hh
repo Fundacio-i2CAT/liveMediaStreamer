@@ -40,6 +40,8 @@ public:
     const int getElements() {return elements;};
     bool frameToRead();
 
+    virtual ~AVFramedQueue();
+
 protected:
 
     Frame* frames[MAX_FRAMES];

@@ -22,12 +22,16 @@
  */
 
 
+#include <GroupsockHelper.hh>
+
 #include "SinkManager.hh"
 #include "../../AVFramedQueue.hh"
 #include "../../AudioCircularBuffer.hh"
 #include "H264QueueServerMediaSubsession.hh"
 #include "VP8QueueServerMediaSubsession.hh"
 #include "AudioQueueServerMediaSubsession.hh"
+#include "QueueSource.hh"
+#include "H264QueueSource.hh"
 
 
 SinkManager *SinkManager::mngrInstance = NULL;
@@ -48,7 +52,24 @@ SinkManager::SinkManager(int readersNum): TailFilter(readersNum), watch(0)
     mngrInstance = this;
     fType = TRANSMITTER;
     initializeEventMap();
+}
 
+SinkManager::~SinkManager()
+{
+    for (auto it : replicas) {
+       Medium::close(it.second);
+    }
+
+    for (auto it : connections) {
+       delete it.second;
+    }
+
+    Medium::close(rtspServer);
+    delete &envir()->taskScheduler();
+    envir()->reclaim();
+    env = NULL;
+    
+    mngrInstance = NULL;
 }
 
 SinkManager* 
@@ -70,17 +91,12 @@ void SinkManager::destroyInstance()
 }
 
 bool SinkManager::processFrame(bool removeFrame)
-{
-    SinkManager* instance = SinkManager::getInstance();
-    
+{   
     if (envir() == NULL){
         return false;
     }
+    
     envir()->taskScheduler().doEventLoop((char*) &watch); 
-    
-    delete &envir()->taskScheduler();
-    envir()->reclaim();
-    
     return true;
 }
 
@@ -102,11 +118,11 @@ bool SinkManager::addSession(std::string id, std::vector<int> readers, std::stri
     ServerMediaSubsession *subsession;
     
     for (auto & reader : readers){
-        if ((subsession = createSubsessionByReader(getReader(reader), reader)) != NULL) {
+        if ((subsession = createSubsessionByReader(reader)) != NULL) {
             servSession->addSubsession(subsession);
         } else {
-            //TODO: delete ServerMediaSession and previous subsessions
-            utils::errorMsg("Failed adding subsessions");
+            servSession->deleteAllSubsessions();
+            Medium::close(servSession);
             return false;
         }
     }
@@ -116,14 +132,81 @@ bool SinkManager::addSession(std::string id, std::vector<int> readers, std::stri
     return true;
 }
 
-ServerMediaSubsession *SinkManager::createVideoMediaSubsession(VCodecType codec, Reader *reader, int readerId)
+bool SinkManager::addConnection(int reader, std::string ip, unsigned int port)
+{
+    VideoFrameQueue *vQueue;
+    unsigned id;
+    if ((vQueue = dynamic_cast<VideoFrameQueue*>(getReader(reader)->getQueue())) != NULL){
+        do {
+            id = rand();
+        } while(connections.count(id) > 0);
+        connections[id] = new VideoConnection(envir(), ip, port, replicas[reader]->createStreamReplica(), vQueue->getCodec());
+        return true;
+    }
+    return false;
+}
+
+Reader *SinkManager::setReader(int readerId, FrameQueue* queue)
+{
+    VideoFrameQueue *vQueue;
+    AudioFrameQueue *aQueue;
+    
+    if (readers.size() >= getMaxReaders() || readers.count(readerId) > 0 ) {
+        return NULL;
+    }
+    
+    Reader* r = new Reader();
+    readers[readerId] = r;
+    
+    if ((vQueue = dynamic_cast<VideoFrameQueue*>(queue)) != NULL){
+        createVideoQueueSource(vQueue->getCodec(), r, readerId);
+    }
+    
+    if ((aQueue = dynamic_cast<AudioFrameQueue*>(queue)) != NULL){
+        createAudioQueueSource(aQueue->getCodec(), r, readerId);
+    }
+    
+    return r;
+}
+
+void SinkManager::createVideoQueueSource(VCodecType codec, Reader *reader, int readerId)
+{
+    FramedSource *source;
+    switch(codec){
+        case H264:
+            source = H264QueueSource::createNew(*(envir()), reader, readerId);
+            replicas[readerId] = StreamReplicator::createNew(*(envir()), source, False);
+            break;
+        case VP8:
+        default:
+            source = QueueSource::createNew(*(envir()), reader, readerId);
+            replicas[readerId] =  StreamReplicator::createNew(*(envir()), source, False);
+            break;
+    }
+}
+
+void SinkManager::createAudioQueueSource(ACodecType codec, Reader *reader, int readerId)
+{
+    QueueSource *source;
+    switch(codec){
+        case AAC:
+            //TODO
+            break;
+        default:
+            source = QueueSource::createNew(*(envir()), reader, readerId);
+            replicas[readerId] = StreamReplicator::createNew(*(envir()), source, False);
+            break;
+    }
+}
+
+ServerMediaSubsession *SinkManager::createVideoMediaSubsession(VCodecType codec, int readerId)
 {
     switch(codec){
         case H264:
-            return H264QueueServerMediaSubsession::createNew(*(envir()), reader, readerId, True);
+            return H264QueueServerMediaSubsession::createNew(*(envir()), replicas[readerId], readerId, False);
             break;
         case VP8:
-            return VP8QueueServerMediaSubsession::createNew(*(envir()), reader, readerId, True);
+            return VP8QueueServerMediaSubsession::createNew(*(envir()), replicas[readerId], readerId, False);
             break;
         default:
             break;
@@ -131,55 +214,100 @@ ServerMediaSubsession *SinkManager::createVideoMediaSubsession(VCodecType codec,
     return NULL;
 }
 
-ServerMediaSubsession *SinkManager::createAudioMediaSubsession(ACodecType codec, Reader *reader, int readerId)
+ServerMediaSubsession *SinkManager::createAudioMediaSubsession(ACodecType codec,
+                                                               unsigned channels,
+                                                               unsigned sampleRate,
+                                                               SampleFmt sampleFormat, 
+                                                               int readerId)
 {
     switch(codec){
         case AAC:
             //TODO
             break;
         default:
-            return AudioQueueServerMediaSubsession::createNew(*(envir()), reader, readerId, True);
+            return AudioQueueServerMediaSubsession::createNew(*(envir()), replicas[readerId], 
+                                                              readerId, codec, channels,
+                                                              sampleRate, sampleFormat, False);
             break;
     }
     return NULL;
 }
 
-ServerMediaSubsession *SinkManager::createSubsessionByReader(Reader *reader, int readerId)
+ServerMediaSubsession *SinkManager::createSubsessionByReader(int readerId)
 {
     VideoFrameQueue *vQueue;
     AudioFrameQueue *aQueue;
-    AudioCircularBuffer *circularBuffer;
     
-    if ((vQueue = dynamic_cast<VideoFrameQueue*>(reader->getQueue())) != NULL){
-        return createVideoMediaSubsession(vQueue->getCodec(), reader, readerId);
+    if ((vQueue = dynamic_cast<VideoFrameQueue*>(getReader(readerId)->getQueue())) != NULL){
+        return createVideoMediaSubsession(vQueue->getCodec(), readerId);
     }
 
-    if ((aQueue = dynamic_cast<AudioFrameQueue*>(reader->getQueue())) != NULL){
-        return createAudioMediaSubsession(aQueue->getCodec(), reader, readerId);
+    if ((aQueue = dynamic_cast<AudioFrameQueue*>(getReader(readerId)->getQueue())) != NULL){
+        return createAudioMediaSubsession(aQueue->getCodec(), aQueue->getChannels(),
+                                          aQueue->getSampleRate(), aQueue->getSampleFmt(), readerId);
     }
 
-    if ((circularBuffer = dynamic_cast<AudioCircularBuffer*>(reader->getQueue())) != NULL){
-        //TODO
-    }
-    
     return NULL;
 }
 
 bool SinkManager::removeSession(std::string id)
 {   
-    if (sessionList.find(id) == sessionList.end()){
+    if (sessionList.count(id) <= 0){
         utils::errorMsg("Failed, no session found with this id (" + id + ")");
         return false;
     }
-   
-    //TODO: manage closure, should add RTSP reference?
-    
-    //RTSPServer::closeAllClientSessionsForServerMediaSession()
-    //session->deleteAllSubsessions()
-    
+
+    rtspServer->deleteServerMediaSession(sessionList[id]);
     sessionList.erase(id);
     
     return false;
+}
+
+bool SinkManager::removeSessionByReaderId(int readerId)
+{
+    bool ret = false;
+    QueueServerMediaSubsession *qSubsession;
+    ServerMediaSubsession *subsession;
+    
+    std::map<std::string, ServerMediaSession*>::iterator it = sessionList.begin();
+    while(it != sessionList.end()){
+        ServerMediaSubsessionIterator subIt(*it->second);
+        subsession = subIt.next();
+        while(subsession){
+            if (!(qSubsession = dynamic_cast<QueueServerMediaSubsession *>(subsession))){
+                utils::errorMsg("Could not cast to QueueServerMediaSubsession");
+                return false;
+            }
+            if (qSubsession->getReaderId() == readerId){
+                std::map<std::string, ServerMediaSession*>::iterator tmpIt = it;
+                removeSession(tmpIt->first);
+                ret = true;
+                break;
+            }
+            subsession = subIt.next();
+        }
+        it++;
+    }
+    return ret;
+}
+
+bool SinkManager::deleteReader(int id)
+{
+    Reader* reader = getReader(id);
+    if (reader == NULL){
+        return false;
+    }
+    
+    removeSessionByReaderId(id);
+    
+    if (reader->isConnected()) {
+        return false;
+    }
+    
+    delete reader;
+    readers.erase(id);
+    
+    return true;
 }
 
 bool SinkManager::publishSession(std::string id)
@@ -195,7 +323,6 @@ bool SinkManager::publishSession(std::string id)
     
     rtspServer->addServerMediaSession(sessionList[id]);
     char* url = rtspServer->rtspURL(sessionList[id]);
-    UsageEnvironment& env = rtspServer->envir();
     
     utils::infoMsg("Play " + id + " stream using the URL " + url);
     delete[] url;
@@ -290,27 +417,91 @@ void SinkManager::doGetState(Jzon::Object &filterNode)
     filterNode.Add("sessions", sessionArray);
 }
 
-std::string SinkManager::getSessionIdFromReaderId(int readerId)
+Connection::Connection(UsageEnvironment* env, 
+                       std::string ip, unsigned port, FramedSource *source) : 
+                       fEnv(env), fIp(ip), fPort(port), fSource(source)
 {
-    ServerMediaSubsession* subsession;
-    std::string sessionID;
-
-    for (auto it : sessionList) {
-        ServerMediaSubsessionIterator sIt(*it.second);
-        subsession = sIt.next();
-
-        while(subsession) {
-            if (readerId == dynamic_cast<QueueServerMediaSubsession*>(subsession)->getReaderId()) {
-                sessionID = it.first;
-                return sessionID;
-            }
-
-            subsession = sIt.next();
-        }
+    unsigned serverPort = INITIAL_SERVER_PORT;
+    destinationAddress.s_addr = our_inet_addr(fIp.c_str());
+    if ((port%2) != 0){
+        utils::warningMsg("Port should be an even number");
     }
-
-    return sessionID;
+    const Port rtpPort(port);
+    const Port rtcpPort(port+1);
+    
+    for (;;serverPort+=2){
+        rtpGroupsock = new Groupsock(*fEnv, destinationAddress, rtpPort, TTL);
+        rtcpGroupsock = new Groupsock(*fEnv, destinationAddress, rtcpPort, TTL);
+        if (rtpGroupsock->socketNum() < 0 || rtcpGroupsock->socketNum() < 0) {
+            delete rtpGroupsock;
+            delete rtcpGroupsock;
+            continue; // try again
+        }
+        break;
+    }
+    
+    rtpGroupsock->changeDestinationParameters(destinationAddress, rtpPort, TTL);
+    rtcpGroupsock->changeDestinationParameters(destinationAddress, rtcpPort, TTL);
 }
 
+Connection::~Connection()
+{
+    Medium::close(fSource);
+    if (sink) {
+        sink->stopPlaying();
+        Medium::close(sink);
+        Medium::close(rtcp);
+    }
+    delete rtpGroupsock;
+    delete rtcpGroupsock;
+}
 
+void Connection::afterPlaying(void* clientData) {
+    RTPSink *clientSink = (RTPSink*) clientData;
+    clientSink->stopPlaying();
+}
 
+void Connection::startPlaying()
+{
+    if (sink != NULL){
+        
+        sink->startPlaying(*fSource, &Connection::afterPlaying, sink);
+    }
+}
+
+void Connection::stopPlaying()
+{
+    if (sink != NULL){
+        sink->stopPlaying();
+    }
+}
+
+VideoConnection::VideoConnection(UsageEnvironment* env, 
+                                 std::string ip, unsigned port, 
+                                 FramedSource *source, VCodecType codec) : 
+                                 Connection(env, ip, port, source), fCodec(codec)
+{
+    switch(fCodec){
+        case H264:
+            sink = H264VideoRTPSink::createNew(*fEnv, rtpGroupsock, 96);
+            fSource = H264VideoStreamDiscreteFramer::createNew(*fEnv, fSource);
+            break;
+        case VP8:
+            sink = VP8VideoRTPSink::createNew(*fEnv, rtpGroupsock, 96);
+            break;
+        default:
+            sink = NULL;
+            break;
+    }
+    if (sink != NULL){
+        const unsigned maxCNAMElen = 100;
+        unsigned char CNAME[maxCNAMElen+1];
+        gethostname((char*)CNAME, maxCNAMElen);
+        CNAME[maxCNAMElen] = '\0';
+        rtcp = RTCPInstance::createNew(*fEnv, rtcpGroupsock, 5000, CNAME,
+                                       sink, NULL, False);
+    } else {
+        utils::errorMsg("VideoConnection could not be created");
+    }
+    startPlaying();
+}

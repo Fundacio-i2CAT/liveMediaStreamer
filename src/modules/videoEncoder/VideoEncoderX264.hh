@@ -53,9 +53,10 @@ class VideoEncoderX264: public OneToOneFilter {
                        int threads_ = DEFAULT_ENCODER_THREADS, bool annexB_ = false);
 		void setIntra(){forceIntra = true;};
 		FrameQueue* allocQueue(int wId);
-		void initializeEventMap();		
 
-	private:
+    private:
+		void initializeEventMap();		
+        
 		x264_picture_t picIn;
 		x264_picture_t picOut;
         x264_nal_t *ppNal;
@@ -92,7 +93,7 @@ class VideoEncoderX264: public OneToOneFilter {
 		void forceIntraEvent(Jzon::Node* params);
         void configEvent(Jzon::Node* params, Jzon::Object &outputNode);
 		void doGetState(Jzon::Object &filterNode);
-		void setPresentationTime(Frame* dst);
+		void updatePresentationTime(Frame* dst);
 };
 
 #endif

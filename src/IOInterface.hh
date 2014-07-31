@@ -43,32 +43,33 @@ class Writer {
 
 public:
     Writer();
+    ~Writer();
     bool connect(Reader *reader);
     void disconnect(Reader *reader);
-    bool isConnected() {return connected;};
+    bool isConnected();
     void setQueue(FrameQueue *queue);
     Frame* getFrame(bool force = false);
     void addFrame();
 	FrameQueue* getQueue() const {return queue;};
+    void disconnect();
 
 protected:
     FrameQueue *queue;
 
-private:
-    bool connected;
 };
 
 
 class Reader {
 public:
-    Reader();
-    virtual ~Reader();
+    Reader(bool sharedQueue = false);
+    ~Reader();
     void setQueue(FrameQueue *queue);
-    bool isConnected() {return connected;};
+    bool isConnected();
     Frame* getFrame(bool force = false);
     void removeFrame();
     void setConnection(FrameQueue *queue);
     FrameQueue* getQueue() const {return queue;};
+    void disconnect();
 
 protected:
     FrameQueue *queue;
@@ -76,9 +77,7 @@ protected:
 private:
     friend class Writer;
 
-    void disconnect();
-    
-    bool connected;
+    bool sharedQueue;
 };
 
 #endif

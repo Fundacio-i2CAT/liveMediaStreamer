@@ -44,6 +44,16 @@ VideoDecoderLibav::VideoDecoderLibav()
     fCodec = VC_NONE;
 }
 
+VideoDecoderLibav::~VideoDecoderLibav()
+{
+    avcodec_close(codecCtx);
+    av_free(codecCtx);
+    av_free(frame);
+    av_free(frameCopy);
+    av_free_packet(&pkt);
+}
+
+
 FrameQueue* VideoDecoderLibav::allocQueue(int wId)
 {
     return VideoFrameQueue::createNew(RAW, RGB24);
@@ -229,7 +239,7 @@ PixType getPixelFormat(AVPixelFormat format)
             return YUVJ420P;
             break;
         default:
-            utils::errorMsg("Unknown output pixel format");
+            utils::errorMsg("[Decoder] Unknown output pixel format");
             break;
     }
     

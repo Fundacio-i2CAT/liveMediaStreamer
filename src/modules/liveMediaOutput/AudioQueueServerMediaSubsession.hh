@@ -31,11 +31,23 @@
 class AudioQueueServerMediaSubsession: public QueueServerMediaSubsession {
 public:
   static AudioQueueServerMediaSubsession*
-  createNew(UsageEnvironment& env, Reader *reader, int readerId, Boolean reuseFirstSource);
+  createNew(UsageEnvironment& env, StreamReplicator* replicator, 
+            int readerId, 
+            ACodecType codec,
+            unsigned channels,
+            unsigned sampleRate,
+            SampleFmt sampleFormat, 
+            Boolean reuseFirstSource);
 
 protected:
   AudioQueueServerMediaSubsession(UsageEnvironment& env,
-                                 Reader *reader, int readerId, Boolean reuseFirstSource);
+                                  StreamReplicator* replicator, 
+                                  int readerId, 
+                                  ACodecType codec,
+                                  unsigned channels,
+                                  unsigned sampleRate,
+                                  SampleFmt sampleFormat,
+                                  Boolean reuseFirstSource);
       // called only by createNew();
   virtual ~AudioQueueServerMediaSubsession(){};
 
@@ -45,6 +57,11 @@ protected: // redefined virtual functions
   RTPSink* createNewRTPSink(Groupsock* rtpGroupsock,
                                     unsigned char rtpPayloadTypeIfDynamic,
                     FramedSource* inputSource);
+private:
+    ACodecType fCodec;
+    unsigned fChannels;
+    unsigned fSampleRate;
+    SampleFmt fSampleFormat;
 };
 
 #endif

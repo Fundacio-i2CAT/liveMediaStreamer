@@ -185,7 +185,7 @@ bool BaseFilter::connect(BaseFilter *R, int writerID, int readerID, bool slaveQu
 {
     Reader* r;
     FrameQueue *queue;
-    
+
     utils::debugMsg("slaveQueue Value: " + std::to_string(slaveQueue));
     
     if (writers.size() < getMaxWriters() && writers.count(writerID) <= 0) {

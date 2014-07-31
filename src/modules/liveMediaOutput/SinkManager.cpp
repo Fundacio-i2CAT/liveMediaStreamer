@@ -146,7 +146,7 @@ bool SinkManager::addConnection(int reader, std::string ip, unsigned int port)
     return false;
 }
 
-Reader *SinkManager::setReader(int readerId, FrameQueue* queue)
+Reader *SinkManager::setReader(int readerId, FrameQueue* queue, bool sharedQueue)
 {
     VideoFrameQueue *vQueue;
     AudioFrameQueue *aQueue;

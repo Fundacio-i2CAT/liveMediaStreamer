@@ -41,10 +41,10 @@ public:
     bool doProcessFrame(Frame *org, Frame *dst);
     FrameQueue* allocQueue(int wId);
     bool configure(SampleFmt sampleFormat, int channels, int sampleRate);
-    void initializeEventMap();
     
 private:
 
+    void initializeEventMap();
     bool resample(AVFrame* src, AudioFrame* dst);
     void checkInputParams(ACodecType codec, SampleFmt sampleFormat, int channels, int sampleRate);
     bool inputConfig();

@@ -43,15 +43,16 @@ class AudioMixer : public ManyToOneFilter {
     public:
         AudioMixer(int inputChannels = AMIXER_MAX_CHANNELS);
         AudioMixer(int inputChannels, int frameChannels, int sampleRate);
+        ~AudioMixer();
         FrameQueue *allocQueue(int wId);
         bool doProcessFrame(std::map<int, Frame*> orgFrames, Frame *dst);
 
     protected:
         Reader *setReader(int readerID, FrameQueue* queue);
-        void initializeEventMap();
         void doGetState(Jzon::Object &filterNode);
 
     private:
+        void initializeEventMap();
         void mixNonEmptyFrames(std::map<int, Frame*> orgFrames, std::vector<int> filledFramesIds, Frame *dst); 
         void applyMixAlgorithm(std::vector<float> &fSamples, int frameNumber, int realFrameNumber);
         void applyGainToChannel(std::vector<float> &fSamples, float gain);

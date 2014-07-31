@@ -62,6 +62,8 @@ AudioMixer::AudioMixer(int inputChannels, int frameChannels, int sampleRate) : M
     mAlg = LDRC;
 }
 
+AudioMixer::~AudioMixer() {}
+
 FrameQueue *AudioMixer::allocQueue(int wId) {
     return AudioCircularBuffer::createNew(frameChannels, sampleRate, AudioFrame::getMaxSamples(sampleRate), sampleFormat);
 }

@@ -34,9 +34,25 @@
 #define DISC_TIMEOUT 1000 //us
 
 BaseFilter::BaseFilter(unsigned maxReaders_, unsigned maxWriters_, bool force_) : 
-    force(force_), maxReaders(maxReaders_), maxWriters(maxWriters_), enabled(true)
+    maxReaders(maxReaders_), maxWriters(maxWriters_), force(force_), enabled(true)
 {
+}
 
+BaseFilter::~BaseFilter()
+{
+    for (auto it : readers) {
+        delete it.second;
+    }
+
+    for (auto it : writers) {
+        delete it.second;
+    }
+
+    readers.clear();
+    writers.clear();
+    oFrames.clear();
+    dFrames.clear();
+    rUpdates.clear();
 }
 
 Reader* BaseFilter::getReader(int id) 
@@ -48,13 +64,13 @@ Reader* BaseFilter::getReader(int id)
     return readers[id];
 }
 
-Reader* BaseFilter::setReader(int readerID, FrameQueue* queue)
+Reader* BaseFilter::setReader(int readerID, FrameQueue* queue, bool sharedQueue)
 {
     if (readers.size() >= getMaxReaders() || readers.count(readerID) > 0 ) {
         return NULL;
     }
 
-    Reader* r = new Reader();
+    Reader* r = new Reader(sharedQueue);
     readers[readerID] = r;
 
     return r;
@@ -97,8 +113,9 @@ bool BaseFilter::demandOriginFrames()
     for(int i = 0; i < RETRIES; i++){
         for (auto it : readers) {
             if (!it.second->isConnected()) {
+                it.second->disconnect();
                 //NOTE: think about readers as shared pointers
-                delete readers[it.first];
+                delete it.second;
                 readers.erase(it.first);
                 continue;
             }
@@ -132,11 +149,17 @@ bool BaseFilter::demandDestinationFrames()
 {
     bool newFrame = false;
     for (auto it : writers){
-        if (it.second->isConnected()){
-            dFrames[it.first] = it.second->getFrame(true);
-            newFrame = true;
+        if (!it.second->isConnected()){
+            it.second->disconnect();
+            delete it.second;
+            writers.erase(it.first);
+            continue;
         }
+
+        dFrames[it.first] = it.second->getFrame(true);
+        newFrame = true;
     }
+
     return newFrame;
 }
 
@@ -162,7 +185,7 @@ bool BaseFilter::connect(BaseFilter *R, int writerID, int readerID, bool slaveQu
 {
     Reader* r;
     FrameQueue *queue;
-    
+
     utils::debugMsg("slaveQueue Value: " + std::to_string(slaveQueue));
     
     if (writers.size() < getMaxWriters() && writers.count(writerID) <= 0) {
@@ -181,9 +204,11 @@ bool BaseFilter::connect(BaseFilter *R, int writerID, int readerID, bool slaveQu
 		    return false;
 		}
 	}
+
     if (R->getReader(readerID) && R->getReader(readerID)->isConnected()){
         return false;
     }
+
 	if (slaveQueue) {
 		queue = writers[writerID]->getQueue();
 	} else {
@@ -191,7 +216,7 @@ bool BaseFilter::connect(BaseFilter *R, int writerID, int readerID, bool slaveQu
         utils::debugMsg("New queue allocated for writer " + std::to_string(writerID));
 	}
     
-    if (!(r = R->setReader(readerID, queue))) {
+    if (!(r = R->setReader(readerID, queue, slaveQueue))) {
         utils::errorMsg("Could not set the queue to the reader");
         return false;
     }
@@ -227,42 +252,52 @@ bool BaseFilter::connectOneToMany(BaseFilter *R, int readerID, bool slaveQueue)
     return connect(R, writerID, readerID, slaveQueue);
 }
 
-bool BaseFilter::disconnect(BaseFilter *R, int writerID, int readerID)
+bool BaseFilter::disconnectWriter(int writerId)
 {
-    int retries = 0;
-
-    if (!writers[writerID]->isConnected()){
+    if (writers.count(writerId) <= 0) {
         return false;
     }
 
-    Reader *r = R->getReader(readerID);
+    writers[writerId]->disconnect();
+    return true;
+}
 
-    if (!r->isConnected()){
+bool BaseFilter::disconnectReader(int readerId)
+{
+    if (readers.count(readerId) <= 0) {
         return false;
     }
 
-    dFrames.erase(writerID);
-    R->oFrames.erase(readerID);
-    writers[writerID]->disconnect(r);
+    readers[readerId]->disconnect();
+    return true;
+}
 
-    //NOTE: think about writers as shared pointers
-    delete writers[writerID];
-    writers.erase(writerID);
-
-    while(R->getReader(readerID)) {
-        std::this_thread::sleep_for(std::chrono::microseconds(DISC_TIMEOUT));
-        retries++;
-
-        if (retries < DISC_RETRIES) {
-            continue;
-        }
-
-        utils::errorMsg("Asynchronous reader deletion!");
-        
-        if (!R->deleteReader(readerID)) {
-            return false;
-        }
+void BaseFilter::disconnectAll()
+{
+    for (auto it : writers) {
+        it.second->disconnect();
     }
+
+    for (auto it : readers) {
+        it.second->disconnect();
+    }
+}
+
+bool BaseFilter::disconnect(BaseFilter *R, int writerId, int readerId)
+{
+    if (writers.count(writerId) <= 0) {
+        return false;
+    }
+
+    Reader *r = R->getReader(readerId);
+
+    if (!r) {
+        return false;
+    }
+
+    writers[writerId]->disconnect(r);
+    dFrames.erase(writerId);
+    R->oFrames.erase(readerId);
 
     return true;
 }

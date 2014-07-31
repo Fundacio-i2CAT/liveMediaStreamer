@@ -49,6 +49,11 @@ X264VideoFrame::X264VideoFrame(VCodecType codec, unsigned int width, unsigned he
     
 }
 
+X264VideoFrame::~X264VideoFrame()
+{
+    //TODO: implement destructor
+}
+
 void X264VideoFrame::setNals(x264_nal_t **nals, int num, int frameSize)
 {
 	ppNals = nals;

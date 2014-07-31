@@ -43,7 +43,7 @@ class Worker {
 public:
     Worker(Runnable *processor_);
     Worker();
-    void setProcessor(Runnable *processor);
+    virtual ~Worker();
     
     bool start();
     bool isRunning();
@@ -72,7 +72,6 @@ protected:
     std::atomic<bool> canExecute;
 
     WorkerType type;
-    //TODO: owuld be good to make it atomic, but not sure if it is lock-free
 };
 
 class LiveMediaWorker : public Worker {

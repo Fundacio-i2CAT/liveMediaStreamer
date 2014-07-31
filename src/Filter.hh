@@ -56,7 +56,12 @@ public:
     bool connectManyToOne(BaseFilter *R, int writerID, bool slaveQueue = false);
     bool connectOneToMany(BaseFilter *R, int readerID, bool slaveQueue = false);
     bool connectManyToMany(BaseFilter *R, int readerID, int writerID, bool slaveQueue = false);
+
     bool disconnect(BaseFilter *R, int writerID, int readerID);
+    bool disconnectWriter(int writerId);
+    bool disconnectReader(int readerId);
+    void disconnectAll();
+    
     FilterType getType() {return fType;};
     int generateReaderID();
     int generateWriterID();
@@ -68,16 +73,15 @@ public:
     int getWorkerId(){return workerId;};
     void setWorkerId(int id){workerId = id;};
     bool isEnabled(){return enabled;};
+    virtual ~BaseFilter();
     
 protected:
     BaseFilter(unsigned maxReaders_, unsigned maxWriters_, bool force_ = false);
-    //TODO: desctructor
 	void removeFrames();
     bool hasFrames();
     virtual FrameQueue *allocQueue(int wId) = 0;
     virtual bool processFrame(bool removeFrame = true) = 0;
-    virtual Reader *setReader(int readerID, FrameQueue* queue);
-    virtual void initializeEventMap() = 0;
+    virtual Reader *setReader(int readerID, FrameQueue* queue, bool sharedQueue = false);
     virtual void doGetState(Jzon::Object &filterNode) = 0;
 
     Reader* getReader(int id);
@@ -99,9 +103,9 @@ protected:
 private:
     bool connect(BaseFilter *R, int writerID, int readerID, bool slaveQueue = false);
 
-    bool force;
-    unsigned maxWriters;
     unsigned maxReaders;
+    unsigned maxWriters;
+    bool force;
     std::priority_queue<Event> eventQueue;
     std::mutex eventQueueMutex;
     int workerId;
@@ -114,7 +118,6 @@ class OneToOneFilter : public BaseFilter {
     
 protected:
     OneToOneFilter(bool force_ = false);
-    //TODO: desctructor
     virtual bool doProcessFrame(Frame *org, Frame *dst) = 0;
     
 private:
@@ -134,7 +137,6 @@ class OneToManyFilter : public BaseFilter {
     
 protected:
     OneToManyFilter(unsigned writersNum = MAX_WRITERS, bool force_ = false);
-    //TODO: desctructor
     virtual bool doProcessFrame(Frame *org, std::map<int, Frame *> dstFrames) = 0;
     
 private:
@@ -157,7 +159,6 @@ public:
 
 protected:
     HeadFilter(unsigned writersNum = MAX_WRITERS);
-    //TODO: desctructor
     int getNullWriterID();
     
 private:
@@ -176,7 +177,6 @@ public:
 
 protected:
     TailFilter(unsigned readersNum = MAX_READERS);
-    //TODO: desctructor
     
 private:
     FrameQueue *allocQueue(int wId) {return NULL;};
@@ -192,7 +192,6 @@ class ManyToOneFilter : public BaseFilter {
     
 protected:
     ManyToOneFilter(unsigned readersNum = MAX_READERS, bool force_ = false);
-    //TODO: desctructor
     virtual bool doProcessFrame(std::map<int, Frame *> orgFrames, Frame *dst) = 0;
 
 private:

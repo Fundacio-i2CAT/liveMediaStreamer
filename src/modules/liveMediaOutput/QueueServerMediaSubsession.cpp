@@ -31,3 +31,8 @@ QueueServerMediaSubsession
         fReplicator(replicator), fReaderId(readerId) {
 }
 
+QueueServerMediaSubsession::~QueueServerMediaSubsession()
+{
+    Medium::close(fReplicator);
+}
+

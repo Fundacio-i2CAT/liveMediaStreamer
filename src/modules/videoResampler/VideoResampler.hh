@@ -38,12 +38,13 @@ class VideoResampler : public OneToOneFilter {
 
     public:
         VideoResampler();
+        ~VideoResampler();
         bool doProcessFrame(Frame *org, Frame *dst);
         FrameQueue* allocQueue(int wId);
         bool configure(int width, int height, int period, PixType pixelFormat);
-        void initializeEventMap();
         
     private:
+        void initializeEventMap();
         void configEvent(Jzon::Node* params, Jzon::Object &outputNode);
         void doGetState(Jzon::Object &filterNode);
         bool reconfigure(VideoFrame* orgFrame);

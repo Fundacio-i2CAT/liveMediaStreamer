@@ -52,7 +52,24 @@ SinkManager::SinkManager(int readersNum): TailFilter(readersNum), watch(0)
     mngrInstance = this;
     fType = TRANSMITTER;
     initializeEventMap();
+}
 
+SinkManager::~SinkManager()
+{
+    for (auto it : replicas) {
+       Medium::close(it.second);
+    }
+
+    for (auto it : connections) {
+       delete it.second;
+    }
+
+    Medium::close(rtspServer);
+    delete &envir()->taskScheduler();
+    envir()->reclaim();
+    env = NULL;
+    
+    mngrInstance = NULL;
 }
 
 SinkManager* 
@@ -78,11 +95,8 @@ bool SinkManager::processFrame(bool removeFrame)
     if (envir() == NULL){
         return false;
     }
+    
     envir()->taskScheduler().doEventLoop((char*) &watch); 
-    
-    delete &envir()->taskScheduler();
-    envir()->reclaim();
-    
     return true;
 }
 
@@ -143,7 +157,7 @@ bool SinkManager::addConnection(int reader, unsigned id, std::string ip, unsigne
     return false;
 }
 
-Reader *SinkManager::setReader(int readerId, FrameQueue* queue)
+Reader *SinkManager::setReader(int readerId, FrameQueue* queue, bool sharedQueue)
 {
     VideoFrameQueue *vQueue;
     AudioFrameQueue *aQueue;
@@ -444,7 +458,7 @@ Connection::Connection(UsageEnvironment* env,
 Connection::~Connection()
 {
     Medium::close(fSource);
-    if (!sink){
+    if (sink) {
         sink->stopPlaying();
         Medium::close(sink);
         Medium::close(rtcp);

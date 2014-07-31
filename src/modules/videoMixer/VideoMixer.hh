@@ -60,15 +60,16 @@ class VideoMixer : public ManyToOneFilter {
     public:
         VideoMixer(int inputChannels = VMIXER_MAX_CHANNELS);
         VideoMixer(int inputChannels, int outputWidth, int outputHeight);
+        ~VideoMixer();
         FrameQueue *allocQueue(int wId);
         bool doProcessFrame(std::map<int, Frame*> orgFrames, Frame *dst);
+        Reader* setReader(int readerID, FrameQueue* queue, bool sharedQueue = false);
 
     protected:
-        Reader *setReader(int readerID, FrameQueue* queue);
-        void initializeEventMap();
         void doGetState(Jzon::Object &filterNode);
 
     private:
+        void initializeEventMap();
         void pasteToLayout(int frameID, VideoFrame* vFrame);
         bool configChannel(int id, float width, float height, float x, float y, int layer, bool enabled, float opacity);
 

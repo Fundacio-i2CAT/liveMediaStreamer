@@ -44,6 +44,7 @@ class Connection;
 class SinkManager : public TailFilter {
 private:
     SinkManager(int readersNum = MAX_READERS);
+    ~SinkManager();
     
 public:
     static SinkManager* getInstance();
@@ -68,7 +69,7 @@ public:
 private: 
     void initializeEventMap();
     void addSessionEvent(Jzon::Node* params, Jzon::Object &outputNode);
-    Reader *setReader(int readerID, FrameQueue* queue);
+    Reader *setReader(int readerID, FrameQueue* queue, bool sharedQueue = false);
     
     bool processFrame(bool removeFrame = false);
     
@@ -97,13 +98,13 @@ class Connection {
 public:
     void startPlaying();
     void stopPlaying();
+    ~Connection();
     
 protected:
     Connection(UsageEnvironment* env, std::string ip, 
                unsigned port, FramedSource *source);
     static void afterPlaying(void* clientData);
     
-    ~Connection();
     
     UsageEnvironment* fEnv;
     std::string fIp;

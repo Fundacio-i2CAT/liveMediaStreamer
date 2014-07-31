@@ -40,6 +40,7 @@ public:
 
     bool createSocket(int port);
     bool listenSocket();
+    void stopAndCloseSocket();
     bool readAndParse();
     bool run() {return runFlag;};
     void processRequest(); 

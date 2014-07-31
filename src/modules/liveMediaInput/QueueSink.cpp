@@ -33,6 +33,11 @@ QueueSink::QueueSink(UsageEnvironment& env, Writer *writer)
     dummyBuffer = new unsigned char[DUMMY_RECEIVE_BUFFER_SIZE];
 }
 
+QueueSink::~QueueSink()
+{
+    delete[] dummyBuffer;
+}
+
 QueueSink* QueueSink::createNew(UsageEnvironment& env, Writer *writer) 
 {
     return new QueueSink(env, writer);

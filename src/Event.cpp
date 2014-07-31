@@ -24,9 +24,7 @@
 #include "Event.hh"
 #include <iostream>
 #include <unistd.h>
-// #include <sys/types.h> 
-//#include <sys/socket.h>
-//#include <netinet/in.h>
+#include "Utils.hh"
 
 bool Event::operator<(const Event& e) const
 {
@@ -79,7 +77,11 @@ void Event::sendAndClose(Jzon::Object outputNode)
     writer.Write();
     std::string result = writer.GetResult();
     const char* res = result.c_str();
-    (void)write(socket, res, result.size());
+    int ret = write(socket, res, result.size());
+
+    if (ret < 0) {
+        utils::errorMsg("Error writting socket");
+    }
 
     if (socket >= 0){
         close(socket);

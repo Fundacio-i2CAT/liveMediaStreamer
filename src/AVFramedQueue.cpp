@@ -28,8 +28,8 @@
 
 AVFramedQueue::~AVFramedQueue()
 {
-    for (auto it : frames) {
-        delete it; 
+    for (int i = 0; i<max; i++) {
+        delete frames[i];
     }
 }
 

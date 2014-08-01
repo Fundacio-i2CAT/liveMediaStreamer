@@ -272,7 +272,7 @@ void BestEffortMaster::process()
 
         }
 
-        while (!allFinished()) {
+        while (!allFinished() && run) {
             std::this_thread::sleep_for(active);
         }
 
@@ -385,7 +385,7 @@ void ConstantFramerateMaster::process()
             it.second->processFrame(false);
         }
 
-        while (!allFinished()) {
+        while (!allFinished() && run) {
             std::this_thread::sleep_for(active);
         }
 

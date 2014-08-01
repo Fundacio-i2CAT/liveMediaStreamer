@@ -99,7 +99,6 @@ bool PipelineManager::stop()
         while (it.second->isRunning()) {
             std::this_thread::sleep_for(std::chrono::microseconds(WORKER_DELETE_SLEEPING_TIME));
         }
-
         delete it.second;
     }
 

@@ -56,15 +56,6 @@ SinkManager::SinkManager(int readersNum): TailFilter(readersNum), watch(0)
 
 SinkManager::~SinkManager()
 {
-    for (auto it : replicas) {
-       Medium::close(it.second);
-    }
-
-    for (auto it : connections) {
-       delete it.second;
-    }
-
-    Medium::close(rtspServer);
     delete &envir()->taskScheduler();
     envir()->reclaim();
     env = NULL;
@@ -82,6 +73,20 @@ SinkManager::getInstance(){
 
 void SinkManager::stop()
 {
+    for (auto it : sessionList ) {
+        rtspServer->deleteServerMediaSession(it.second);
+    }
+    
+    for (auto it : replicas) {
+       Medium::close(it.second);
+    }
+    
+    for (auto it : connections) {
+       delete it.second;
+    }
+
+    Medium::close(rtspServer);
+
     watch = 1;
 }
 
@@ -96,12 +101,18 @@ bool SinkManager::processFrame(bool removeFrame)
         return false;
     }
     
-    envir()->taskScheduler().doEventLoop((char*) &watch); 
+    envir()->taskScheduler().doEventLoop((char*) &watch);
+
     return true;
 }
 
 bool SinkManager::addSession(std::string id, std::vector<int> readers, std::string info, std::string desc)
 {
+    if (!rtspServer){
+        utils::errorMsg("Unitialized RTSPServer");
+        return false;
+    }
+
     if (sessionList.count(id) > 0){
         utils::errorMsg("Failed, this session already exists: " + id);
         return false;
@@ -393,7 +404,10 @@ void SinkManager::addSessionEvent(Jzon::Node* params, Jzon::Object &outputNode)
         return;
     }
 
-    publishSession(sessionId);
+    if (!publishSession(sessionId)){
+        outputNode.Add("error", "Error adding session. Internal error!");
+        return;
+    }
 
     outputNode.Add("sessionID", sessionId);
 } 

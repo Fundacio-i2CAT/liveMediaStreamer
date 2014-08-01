@@ -20,7 +20,9 @@ void QueueSource::doGetNextFrame()
         return;
     }
     
-    fPresentationTime = frame->getPresentationTime();
+    fPresentationTime.tv_sec = frame->getPresentationTime().count()/1000000;
+    fPresentationTime.tv_usec = frame->getPresentationTime().count()%1000000;
+
     if (fMaxSize < frame->getLength()){
         fFrameSize = fMaxSize;
         fNumTruncatedBytes = frame->getLength() - fMaxSize;

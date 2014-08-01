@@ -85,7 +85,7 @@ bool AVFramedQueue::frameToRead()
         return false;
     }
     currentTime = system_clock::now();
-    enlapsedTime = duration_cast<milliseconds>(currentTime - frames[front]->getUpdatedTime());
+    enlapsedTime = duration_cast<milliseconds>(currentTime - frames[front]->getOriginTime());
     return enlapsedTime.count() > delay;
 }
 

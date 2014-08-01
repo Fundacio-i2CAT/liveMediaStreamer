@@ -359,12 +359,12 @@ void ConstantFramerateMaster::setFps(double maxFps)
 void ConstantFramerateMaster::process()
 {
     std::chrono::microseconds enlapsedTime;
-    std::chrono::high_resolution_clock::time_point startPoint;
+    std::chrono::system_clock::time_point startPoint;
     std::chrono::microseconds chronoFrameTime;
     std::chrono::microseconds active(ACTIVE);
     
     while(run) {
-        startPoint = std::chrono::high_resolution_clock::now();
+        startPoint = std::chrono::system_clock::now();
         chronoFrameTime = std::chrono::microseconds(frameTime);
 
         checkPendingTasks();
@@ -389,7 +389,7 @@ void ConstantFramerateMaster::process()
         }
 
         enlapsedTime = std::chrono::duration_cast<std::chrono::microseconds>(
-            std::chrono::high_resolution_clock::now() - startPoint);
+            std::chrono::system_clock::now() - startPoint);
         
         if (enlapsedTime < chronoFrameTime) {
             std::this_thread::sleep_for(std::chrono::microseconds(chronoFrameTime - enlapsedTime));

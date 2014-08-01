@@ -47,7 +47,8 @@ void H264QueueSource::doGetNextFrame() {
     buff = frame->getDataBuf() + offset;
     size = size - offset;
     
-    fPresentationTime = frame->getPresentationTime();
+    fPresentationTime.tv_sec = frame->getPresentationTime().count()/1000000;
+    fPresentationTime.tv_usec = frame->getPresentationTime().count()%1000000;
 
     if (fMaxSize < size){
         fFrameSize = fMaxSize;

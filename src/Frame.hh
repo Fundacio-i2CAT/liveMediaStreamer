@@ -34,11 +34,12 @@ class Frame {
     public:
         Frame();
               
-        void setPresentationTime(struct timeval pTime);
-        void setUpdatedTime();
+        void setPresentationTime(microseconds pTime);
+        void newOriginTime();
+        void setOriginTime(system_clock::time_point orgTime);
         
-        struct timeval getPresentationTime();
-        system_clock::time_point getUpdatedTime();
+        microseconds getPresentationTime();
+        system_clock::time_point getOriginTime();
         virtual unsigned char *getDataBuf() {return NULL;};
         virtual unsigned char **getPlanarDataBuf() {return NULL;};
         virtual unsigned int getLength() {return 0;}
@@ -47,8 +48,8 @@ class Frame {
         virtual bool isPlanar() {return false;};
         
     protected:
-        struct timeval              presentationTime;
-        system_clock::time_point    updatedTime;
+        microseconds              	presentationTime;
+        system_clock::time_point    originTime;
 };
 
 #endif

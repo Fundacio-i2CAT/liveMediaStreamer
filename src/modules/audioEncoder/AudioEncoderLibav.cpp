@@ -47,7 +47,7 @@ AudioEncoderLibav::AudioEncoderLibav()  : OneToOneFilter()
 
     internalChannels = DEFAULT_CHANNELS;
     internalSampleRate = DEFAULT_SAMPLE_RATE;
-    fCodec = OPUS;
+    fCodec = PCMU;
     channels = DEFAULT_CHANNELS;
     sampleRate = DEFAULT_SAMPLE_RATE;
     sampleFmt = S16P;
@@ -279,7 +279,7 @@ bool AudioEncoderLibav::config()
 
     needsConfig = false;
     
-    std::chrono::high_resolution_clock::time_point tp = std::chrono::high_resolution_clock::now();
+    std::chrono::system_clock::time_point tp = std::chrono::system_clock::now();
     currentTime = std::chrono::duration_cast<std::chrono::microseconds>(tp.time_since_epoch());
 
     return true;
@@ -360,9 +360,7 @@ void AudioEncoderLibav::setPresentationTime(Frame* dst)
 {
     std::chrono::microseconds frameDuration(1000000*libavFrame->nb_samples/internalSampleRate);
     currentTime += frameDuration;
-    presentationTime.tv_sec= currentTime.count()/1000000;
-    presentationTime.tv_usec= currentTime.count()%1000000;
-    dst->setPresentationTime(presentationTime);
+    dst->setPresentationTime(currentTime);
 }
 
 void AudioEncoderLibav::configEvent(Jzon::Node* params, Jzon::Object &outputNode) 

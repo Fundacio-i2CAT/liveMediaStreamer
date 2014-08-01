@@ -81,10 +81,8 @@ class VideoEncoderX264: public OneToOneFilter {
         std::chrono::microseconds frameTimestamp;
         std::chrono::microseconds enlapsedTime;
         std::chrono::microseconds threshold;
-        std::chrono::high_resolution_clock::time_point currentTime;
-        std::chrono::high_resolution_clock::time_point previousTime;
-        
-        struct timeval presentationTime;
+        std::chrono::system_clock::time_point currentTime;
+        std::chrono::system_clock::time_point previousTime;
         
         bool reconfigure(VideoFrame *orgFrame, X264VideoFrame* x264Frame);
         bool encodeHeadersFrame(X264VideoFrame* x264Frame);
@@ -92,7 +90,7 @@ class VideoEncoderX264: public OneToOneFilter {
 		void forceIntraEvent(Jzon::Node* params);
         void configEvent(Jzon::Node* params, Jzon::Object &outputNode);
 		void doGetState(Jzon::Object &filterNode);
-		void updatePresentationTime(Frame* dst);
+		void updatePresentationTime(Frame* org, Frame* dst);
 };
 
 #endif

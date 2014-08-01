@@ -24,8 +24,6 @@
 #include "../../AVFramedQueue.hh"
 #include "../../AudioCircularBuffer.hh"
 #include "../../Utils.hh"
-#include <iostream>
-#include <stdio.h>
 
 bool checkSampleFormat(AVCodec *codec, enum AVSampleFormat sampleFmt);
 bool checkSampleRateSupport(AVCodec *codec, int sampleRate);
@@ -47,7 +45,7 @@ AudioEncoderLibav::AudioEncoderLibav()  : OneToOneFilter()
 
     internalChannels = DEFAULT_CHANNELS;
     internalSampleRate = DEFAULT_SAMPLE_RATE;
-    fCodec = OPUS;
+    fCodec = PCMU;
     channels = DEFAULT_CHANNELS;
     sampleRate = DEFAULT_SAMPLE_RATE;
     sampleFmt = S16P;
@@ -90,10 +88,6 @@ bool AudioEncoderLibav::doProcessFrame(Frame *org, Frame *dst)
     resample(aRawFrame, libavFrame);
 
     ret = avcodec_encode_audio2(codecCtx, &pkt, libavFrame, &gotFrame);
-
-    std::cout << std::endl;
-    std::cout << pkt.pts << std::endl;
-    std::cout << pkt.dts << std::endl;
 
     if (ret < 0) {
         utils::errorMsg("Error encoding audio frame");
@@ -278,7 +272,7 @@ bool AudioEncoderLibav::config()
 
     needsConfig = false;
     
-    std::chrono::high_resolution_clock::time_point tp = std::chrono::high_resolution_clock::now();
+    std::chrono::system_clock::time_point tp = std::chrono::system_clock::now();
     currentTime = std::chrono::duration_cast<std::chrono::microseconds>(tp.time_since_epoch());
 
     return true;
@@ -359,9 +353,7 @@ void AudioEncoderLibav::setPresentationTime(Frame* dst)
 {
     std::chrono::microseconds frameDuration(1000000*libavFrame->nb_samples/internalSampleRate);
     currentTime += frameDuration;
-    presentationTime.tv_sec= currentTime.count()/1000000;
-    presentationTime.tv_usec= currentTime.count()%1000000;
-    dst->setPresentationTime(presentationTime);
+    dst->setPresentationTime(currentTime);
 }
 
 void AudioEncoderLibav::configEvent(Jzon::Node* params, Jzon::Object &outputNode) 

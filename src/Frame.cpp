@@ -25,26 +25,30 @@
 
 Frame::Frame()
 {
-    updatedTime = system_clock::now();
+	originTime = system_clock::now();
 }
 
-void Frame::setPresentationTime(struct timeval pTime)
+void Frame::setPresentationTime(microseconds pTime)
 {
     presentationTime = pTime;
 }
 
-void Frame::setUpdatedTime()
+void Frame::newOriginTime()
 {
-    updatedTime = system_clock::now();
+	originTime = system_clock::now();
 }
 
-struct timeval Frame::getPresentationTime()
+void Frame::setOriginTime(system_clock::time_point orgTime)
+{
+    originTime = orgTime;
+}
+
+microseconds Frame::getPresentationTime()
 {
     return presentationTime;
 }
 
-system_clock::time_point Frame::getUpdatedTime()
+system_clock::time_point Frame::getOriginTime()
 {
-    return updatedTime;
+    return originTime;
 }
-

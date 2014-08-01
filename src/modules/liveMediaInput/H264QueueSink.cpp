@@ -42,7 +42,7 @@ Boolean H264QueueSink::continuePlaying()
             memmove(frame->getDataBuf() + sizeof(start_code), sPropRecords[i].sPropBytes,
                     sPropRecords[i].sPropLength);
             frame->setLength(sPropRecords[i].sPropLength + sizeof(start_code));
-            frame->setUpdatedTime();
+            frame->newOriginTime();
             fWriter->addFrame();
             frame = fWriter->getFrame(true);
         }
@@ -64,8 +64,8 @@ void H264QueueSink::afterGettingFrame(unsigned frameSize, struct timeval present
 {
     if (frame != NULL){
         frame->setLength(frameSize + sizeof(start_code));
-        frame->setUpdatedTime();
-        frame->setPresentationTime(presentationTime);
+        frame->newOriginTime();
+        frame->setPresentationTime(microseconds(presentationTime.tv_sec*1000000 + presentationTime.tv_usec));
         fWriter->addFrame();
     }
     continuePlaying();

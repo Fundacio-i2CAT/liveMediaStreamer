@@ -73,6 +73,10 @@ Jzon::Node* Event::getParams()
 
 void Event::sendAndClose(Jzon::Object outputNode)
 {
+    if (socket < 0) {
+        return;
+    }
+
     Jzon::Writer writer(outputNode, Jzon::NoFormat);
     writer.Write();
     std::string result = writer.GetResult();
@@ -80,12 +84,10 @@ void Event::sendAndClose(Jzon::Object outputNode)
     int ret = write(socket, res, result.size());
 
     if (ret < 0) {
-        utils::errorMsg("Error writting socket");
+        utils::errorMsg("Error writing socket");
     }
 
-    if (socket >= 0){
-        close(socket);
-    }
+    close(socket);
 } 
 
 

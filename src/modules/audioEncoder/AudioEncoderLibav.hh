@@ -86,7 +86,6 @@ private:
     unsigned char       *internalBuffer;
     unsigned char       *auxBuff[1];
     std::chrono::microseconds currentTime;
-    struct timeval presentationTime;
 };
 
 #endif

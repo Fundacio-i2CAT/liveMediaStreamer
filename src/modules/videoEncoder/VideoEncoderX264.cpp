@@ -75,7 +75,7 @@ bool VideoEncoderX264::doProcessFrame(Frame *org, Frame *dst) {
 		return false;
 	}
 
-	updatePresentationTime(dst);
+	updatePresentationTime(org, dst);
 	x264Frame->setNals(&ppNal, piNal, frameLength);
     
     pts++;
@@ -137,7 +137,7 @@ bool VideoEncoderX264::configure(int gop_, int bitrate_, int threads_, bool anne
 bool VideoEncoderX264::reconfigure(VideoFrame* orgFrame, X264VideoFrame* x264Frame)
 {   
     previousTime = currentTime;
-    currentTime = std::chrono::high_resolution_clock::now();
+    currentTime = std::chrono::system_clock::now();
     enlapsedTime = std::chrono::duration_cast<std::chrono::microseconds>(currentTime - previousTime);
     
     if (enlapsedTime > (frameDuration + threshold) || enlapsedTime < (frameDuration - threshold)){
@@ -211,8 +211,7 @@ bool VideoEncoderX264::reconfigure(VideoFrame* orgFrame, X264VideoFrame* x264Fra
             encoder = x264_encoder_open(&xparams);
         }
 
-        frameTimestamp = std::chrono::duration_cast<std::chrono::microseconds>(currentTime.time_since_epoch());
-        
+        frameTimestamp +=  std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now() - orgFrame->getOriginTime());
         needsConfig = false;
         
         if (!annexB){
@@ -223,12 +222,10 @@ bool VideoEncoderX264::reconfigure(VideoFrame* orgFrame, X264VideoFrame* x264Fra
     return true;
 }
 
-void VideoEncoderX264::updatePresentationTime(Frame* dst)
+void VideoEncoderX264::updatePresentationTime(Frame* org, Frame* dst)
 {
-    dst->setPresentationTime(presentationTime);
-    frameTimestamp += frameDuration;
-    presentationTime.tv_sec= frameTimestamp.count()/1000000;
-    presentationTime.tv_usec= frameTimestamp.count()%1000000;
+	frameTimestamp +=  frameDuration;
+    dst->setPresentationTime(frameTimestamp);
 }
 
 void VideoEncoderX264::configEvent(Jzon::Node* params, Jzon::Object &outputNode)

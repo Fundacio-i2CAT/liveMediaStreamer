@@ -49,6 +49,9 @@ public:
     bool start();
     bool stop();
 
+    Path* createPath(int orgFilter, int dstFilter, int orgWriter, 
+                     int dstReader, std::vector<int> midFilters, 
+                     bool sharedQueue = false);
     int searchFilterIDByType(FilterType type);
     bool addWorker(int id, Worker* worker);
     bool addPath(int id, Path* path);
@@ -68,7 +71,6 @@ public:
     void stopWorkers();
 
     void getStateEvent(Jzon::Node* params, Jzon::Object &outputNode);
-    void reconfigAudioEncoderEvent(Jzon::Node* params, Jzon::Object &outpuNode);
     void createFilterEvent(Jzon::Node* params, Jzon::Object &outputNode);
     void createPathEvent(Jzon::Node* params, Jzon::Object &outputNode);
     void removePathEvent(Jzon::Node* params, Jzon::Object &outputNode);
@@ -86,7 +88,6 @@ private:
     bool deletePath(Path* path);
     bool removeWorker(int id); 
     BaseFilter* createFilter(FilterType type);
-    Path* createPath(int orgFilter, int dstFilter, int orgWriter, int dstReader, std::vector<int> midFilters, bool sharedQueue = false);
     
     static PipelineManager* pipeMngrInstance;
 

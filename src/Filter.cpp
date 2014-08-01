@@ -123,7 +123,7 @@ bool BaseFilter::demandOriginFrames()
             oFrames[it.first] = it.second->getFrame();
             if (oFrames[it.first] == NULL) {
                 oFrames[it.first] = it.second->getFrame(force);
-                if (force) {
+                if (force && oFrames[it.first] != NULL) {
                     newFrame = true;
                 }
                 rUpdates[it.first] = false;
@@ -185,7 +185,7 @@ bool BaseFilter::connect(BaseFilter *R, int writerID, int readerID, bool slaveQu
 {
     Reader* r;
     FrameQueue *queue;
-    
+
     utils::debugMsg("slaveQueue Value: " + std::to_string(slaveQueue));
     
     if (writers.size() < getMaxWriters() && writers.count(writerID) <= 0) {

@@ -65,6 +65,7 @@ Frame* AudioCircularBuffer::getFront()
 void AudioCircularBuffer::addFrame()
 {
     forcePushBack(inputFrame->getPlanarDataBuf(), inputFrame->getSamples());
+    firstFrame = true;
 }
 
 void AudioCircularBuffer::removeFrame()
@@ -87,6 +88,9 @@ Frame* AudioCircularBuffer::forceGetRear()
 Frame* AudioCircularBuffer::forceGetFront()
 {
     if (!popFront(outputFrame->getPlanarDataBuf(), outputFrame->getSamples())) {
+        if (!firstFrame){
+            return NULL;
+        }
         utils::debugMsg("There is not enough data to fill a frame. Reusing previous frame!");
     }
 

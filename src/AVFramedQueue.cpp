@@ -28,8 +28,8 @@
 
 AVFramedQueue::~AVFramedQueue()
 {
-    for (auto it : frames) {
-        delete it; 
+    for (int i = 0; i<max; i++) {
+        delete frames[i];
     }
 }
 
@@ -54,6 +54,7 @@ void AVFramedQueue::addFrame()
 {
     rear =  (rear + 1) % max;
     ++elements;
+    firstFrame = true;
 }
 
 void AVFramedQueue::removeFrame() 
@@ -82,6 +83,9 @@ Frame* AVFramedQueue::forceGetRear()
 
 Frame* AVFramedQueue::forceGetFront()
 {
+    if (!firstFrame) {
+        return NULL;
+    }
     return frames[(front + (max - 1)) % max]; 
 }
 

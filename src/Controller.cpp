@@ -247,8 +247,6 @@ void Controller::initializeEventMap()
 {
     eventMap["getState"] = std::bind(&PipelineManager::getStateEvent, pipeMngrInstance, 
                                             std::placeholders::_1, std::placeholders::_2);
-    eventMap["reconfigAudioEncoder"] = std::bind(&PipelineManager::reconfigAudioEncoderEvent, pipeMngrInstance, 
-                                                    std::placeholders::_1, std::placeholders::_2);
     eventMap["createPath"] = std::bind(&PipelineManager::createPathEvent, pipeMngrInstance, 
                                             std::placeholders::_1, std::placeholders::_2);
     eventMap["removePath"] = std::bind(&PipelineManager::removePathEvent, pipeMngrInstance, 

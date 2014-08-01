@@ -478,66 +478,6 @@ void PipelineManager::getStateEvent(Jzon::Node* params, Jzon::Object &outputNode
 
 }
 
-void PipelineManager::reconfigAudioEncoderEvent(Jzon::Node* params, Jzon::Object &outputNode)
-{
-    int encoderID, mixerID, pathID = 0;
-    int sampleRate, channels;
-    Path* path = NULL;
-    ACodecType codec;
-    std::string sCodec;
-    SinkManager* transmitter = getTransmitter();
-
-    if (!params->Has("encoderID") || !params->Has("codec") || !params->Has("sampleRate") || !params->Has("channels")) {
-        outputNode.Add("error", "Error configure audio encoder. Encoder ID is not valid");
-        return;
-    }
-
-    encoderID = params->Get("encoderID").ToInt();
-    sampleRate = params->Get("sampleRate").ToInt();
-    channels = params->Get("channels").ToInt();
-    sCodec = params->Get("codec").ToString();
-    codec = utils::getCodecFromString(sCodec);
-
-    for (auto it : paths) {
-        if (it.second->getFilters().front() == encoderID) {
-            pathID = it.first;
-            path = it.second;
-        }
-    }
-
-    if (!path) {
-        outputNode.Add("error", "Error reconfiguring audio encoder");
-        return;
-    }
-
-    mixerID = path->getOriginFilterID();
-
-    if (!removePath(pathID)) {
-        outputNode.Add("error", "Error reconfiguring audio encoder");
-        return;
-    }
-
-    path = new AudioEncoderPath(mixerID, getFilter(mixerID)->generateWriterID());
-    dynamic_cast<AudioEncoderLibav*>(getFilter(path->getFilters().front()))->configure(codec, channels, sampleRate);
-
-    path->setDestinationFilter(transmitterID, transmitter->generateReaderID());
-
-    if (!connectPath(path)) {
-        outputNode.Add("error", "Error configure audio encoder. Encoder ID is not valid");
-        return;
-    }
-
-    int encoderPathID = rand();
-
-    if (!addPath(encoderPathID, path)) {
-        outputNode.Add("error", "Error configure audio encoder. Encoder ID is not valid");
-        return;
-    }
-
-    outputNode.Add("error", Jzon::null);
-
-}
-
 void PipelineManager::createFilterEvent(Jzon::Node* params, Jzon::Object &outputNode)
 {
     int id;

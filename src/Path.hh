@@ -53,34 +53,5 @@ private:
     std::vector<int> filterIDs;
 };
 
-class VideoTranscoderPath : public Path {
-public:
-    VideoTranscoderPath(int originFilterID, int orgWriterID);
-};
-
-class AudioTranscoderPath : public Path {
-public:
-    AudioTranscoderPath(int originFilterID, int orgWriterID);
-};
-
-class VideoDecoderPath : public Path {
-public:
-    VideoDecoderPath(int originFilterID, int orgWriterID, bool sharedQueue = false);
-};
-
-class VideoEncoderPath : public Path {
-public:
-    VideoEncoderPath(int originFilterID, int orgWriterID, bool sharedQueue = false);
-};
-
-class AudioDecoderPath : public Path {
-public:
-    AudioDecoderPath(int originFilterID, int orgWriterID, bool sharedQueue = false);
-};
-
-class AudioEncoderPath : public Path {
-public:
-    AudioEncoderPath(int originFilterID, int orgWriterID, bool sharedQueue = false);
-};
 
 #endif

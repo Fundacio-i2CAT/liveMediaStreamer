@@ -60,6 +60,7 @@ protected:
     std::atomic<int> front;
     std::atomic<int> elements;
     std::atomic<bool> connected;
+    std::atomic<bool> firstFrame;
     
     int delay; //(ms)
     

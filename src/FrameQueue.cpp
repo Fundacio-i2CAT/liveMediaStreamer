@@ -29,4 +29,5 @@ FrameQueue::FrameQueue()
     front = 0;
     elements = 0;
     connected = false;
+    firstFrame = false;
 }

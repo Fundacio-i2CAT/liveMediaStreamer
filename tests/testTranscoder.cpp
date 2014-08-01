@@ -4,7 +4,6 @@
 #include "../src/modules/videoEncoder/VideoEncoderX264.hh"
 #include "../src/AudioFrame.hh"
 #include "../src/Controller.hh"
-#include "../src/Callbacks.hh"
 #include "../src/Utils.hh"
 
 #include <csignal>
@@ -45,18 +44,24 @@ void addAudioSource(unsigned port, std::string codec = A_CODEC,
 {
     int aDecId = rand();
     int aEncId = rand();
-    int id;
+    int decId = rand();
+    int encId = rand();
+    std::vector<int> ids({decId, encId});
     std::string sessionId;
     std::string sdp;
-    AudioEncoderLibav *aEncoder;
+    
+    AudioDecoderLibav *decoder;
+    AudioEncoderLibav *encoder;
+    
+    BestEffortMaster* aDec;
+    BestEffortMaster* aEnc;
+    
     Session *session;
+    Path *path;
     
     PipelineManager *pipe = Controller::getInstance()->pipelineManager();
     SourceManager *receiver = pipe->getReceiver();
-    
-    BestEffortMaster* aDec = new BestEffortMaster();
-    BestEffortMaster* aEnc = new BestEffortMaster();
-    
+       
     sessionId = utils::randomIdGenerator(ID_LENGTH);
     sdp = SourceManager::makeSessionSDP(sessionId, "this is an audio stream");    
     sdp += SourceManager::makeSubsessionSDP(A_MEDIUM, PROTOCOL, A_PAYLOAD, codec, 
@@ -64,24 +69,36 @@ void addAudioSource(unsigned port, std::string codec = A_CODEC,
     utils::infoMsg(sdp);
     
     session = Session::createNew(*(receiver->envir()), sdp, sessionId);
-    receiver->addSession(session);
-    session->initiateSession();
+    if (!receiver->addSession(session)){
+        utils::errorMsg("Could not add audio session");
+        return;
+    }
+    if (!session->initiateSession()){
+        utils::errorMsg("Could not initiate audio session");
+        return;
+    }
     
-    //Let liveMedia start all the filters
-    usleep(100000);
-    
-    id = pipe->searchFilterIDByType(AUDIO_DECODER);
-    aDec->addProcessor(id, pipe->getFilter(id));
-    pipe->getFilter(id)->setWorkerId(aDecId);
-    
-    id = pipe->searchFilterIDByType(AUDIO_ENCODER);
-    aEncoder = dynamic_cast<AudioEncoderLibav*> (pipe->getFilter(id));
-    aEnc->addProcessor(id, aEncoder);
-    aEncoder->setWorkerId(aEncId);
-    
+    //NOTE: Adding decoder to pipeManager and handle worker
+    decoder = new AudioDecoderLibav();
+    pipe->addFilter(decId, decoder);
+    aDec = new BestEffortMaster();
+    aDec->addProcessor(decId, decoder);
+    decoder->setWorkerId(aDecId);
     pipe->addWorker(aDecId, aDec);
-    pipe->addWorker(aEncId, aEnc);
     
+    //NOTE: Adding encoder to pipeManager and handle worker
+    encoder = new AudioEncoderLibav();
+    pipe->addFilter(encId, encoder);
+    aEnc = new BestEffortMaster();
+    aEnc->addProcessor(encId, encoder);
+    encoder->setWorkerId(aEncId);
+    pipe->addWorker(aEncId, aEnc);
+   
+    //NOTE: add filter to path
+    path = pipe->createPath(pipe->getReceiverID(), pipe->getTransmitterID(), port, -1, ids);
+    pipe->addPath(port, path);       
+    pipe->connectPath(path);
+        
     pipe->startWorkers();
 }
 
@@ -91,19 +108,26 @@ void addVideoSource(unsigned port, unsigned fps = FRAME_RATE, std::string codec 
     int wResId = rand();
     int wEncId = rand();
     int wDecId = rand();
-    int id;
+    int decId = rand();
+    int resId = rand();
+    int encId = rand();
+    std::vector<int> ids({decId, resId, encId});
     std::string sessionId;
     std::string sdp;
+    
     VideoResampler *resampler;
     VideoEncoderX264 *encoder;
+    VideoDecoderLibav *decoder;
+    
+    BestEffortMaster* wDec;
+    BestEffortMaster* wRes;
+    ConstantFramerateMaster* wEnc;
+    
     Session *session;
+    Path *path;
     
     PipelineManager *pipe = Controller::getInstance()->pipelineManager();
     SourceManager *receiver = pipe->getReceiver();
-    
-    BestEffortMaster* wRes = new BestEffortMaster();
-    ConstantFramerateMaster* wEnc = new ConstantFramerateMaster();
-    BestEffortMaster* wDec = new BestEffortMaster();
     
     sessionId = utils::randomIdGenerator(ID_LENGTH);
     sdp = SourceManager::makeSessionSDP(sessionId, "this is a video stream");    
@@ -112,32 +136,45 @@ void addVideoSource(unsigned port, unsigned fps = FRAME_RATE, std::string codec 
     utils::infoMsg(sdp);
     
     session = Session::createNew(*(receiver->envir()), sdp, sessionId);
-    receiver->addSession(session);
-    session->initiateSession();
-    
-    //Let liveMedia start all the filters
-    usleep(100000);
-    
-    id = pipe->searchFilterIDByType(VIDEO_RESAMPLER);
-    resampler = dynamic_cast<VideoResampler*> (pipe->getFilter(id));
-    wRes->addProcessor(id, resampler);
-    resampler->setWorkerId(wResId);
-    
-    id = pipe->searchFilterIDByType(VIDEO_ENCODER);
-    encoder = dynamic_cast<VideoEncoderX264*> (pipe->getFilter(id));
-    wEnc->addProcessor(id, encoder);
-    encoder->setWorkerId(wEncId);
-    
-    id = pipe->searchFilterIDByType(VIDEO_DECODER);
-    wDec->addProcessor(id, pipe->getFilter(id));
-    pipe->getFilter(id)->setWorkerId(wDecId);
-    
-    resampler->configure(width, height, 0, YUV420P);
-    wEnc->setFps(fps*1000.0/1005);
-    
-    pipe->addWorker(wResId, wRes);
-    pipe->addWorker(wEncId, wEnc);
+    if (!receiver->addSession(session)){
+        utils::errorMsg("Could not add video session");
+        return;
+    }
+    if (!session->initiateSession()){
+        utils::errorMsg("Could not initiate video session");
+        return;
+    }
+       
+    //NOTE: Adding decoder to pipeManager and handle worker
+    decoder = new VideoDecoderLibav();
+    pipe->addFilter(decId, decoder);
+    wDec = new BestEffortMaster();
+    wDec->addProcessor(decId, decoder);
+    decoder->setWorkerId(wDecId);
     pipe->addWorker(wDecId, wDec);
+    
+    //NOTE: Adding resampler to pipeManager and handle worker
+    resampler = new VideoResampler();
+    pipe->addFilter(resId, resampler);
+    wRes = new BestEffortMaster();
+    wRes->addProcessor(resId, resampler);
+    resampler->setWorkerId(wResId);
+    resampler->configure(width, height, 0, YUV420P);
+    pipe->addWorker(wResId, wRes);
+    
+    //NOTE: Adding encoder to pipeManager and handle worker
+    encoder = new VideoEncoderX264(true);
+    pipe->addFilter(encId, encoder);
+    wEnc = new ConstantFramerateMaster();
+    wEnc->addProcessor(encId, encoder);
+    encoder->setWorkerId(wEncId);
+    wEnc->setFps(fps*1001.0/1000);
+    pipe->addWorker(wEncId, wEnc);
+    
+    //NOTE: add filter to path
+    path = pipe->createPath(pipe->getReceiverID(), pipe->getTransmitterID(), port, -1, ids);
+    pipe->addPath(port, path);       
+    pipe->connectPath(path);
     
     pipe->startWorkers();
 }
@@ -194,12 +231,9 @@ int main(int argc, char* argv[])
 
     PipelineManager *pipe = Controller::getInstance()->pipelineManager();
     pipe->start();
-    SourceManager *receiver = pipe->getReceiver();
     SinkManager *transmitter = pipe->getTransmitter();
 
-    receiver->setCallback(callbacks::connectTranscoderToTransmitter);
     signal(SIGINT, signalHandler); 
-    pipe->startWorkers();
     
     if (vPort != 0){
         addVideoSource(vPort, fps);

@@ -177,6 +177,7 @@ bool VideoEncoderX264::reconfigure(VideoFrame* orgFrame, X264VideoFrame* x264Fra
 
         frameDuration = std::chrono::microseconds(1000000/fps);
         
+        
         x264_param_default_preset(&xparams, "ultrafast", "zerolatency");
         xparams.i_threads = threads;
         xparams.i_fps_num = fps;
@@ -211,6 +212,7 @@ bool VideoEncoderX264::reconfigure(VideoFrame* orgFrame, X264VideoFrame* x264Fra
             encoder = x264_encoder_open(&xparams);
         }
 
+        frameTimestamp =  std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now().time_since_epoch());
         frameTimestamp +=  std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now() - orgFrame->getOriginTime());
         needsConfig = false;
         

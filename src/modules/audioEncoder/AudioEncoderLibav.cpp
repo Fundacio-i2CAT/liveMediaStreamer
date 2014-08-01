@@ -24,8 +24,6 @@
 #include "../../AVFramedQueue.hh"
 #include "../../AudioCircularBuffer.hh"
 #include "../../Utils.hh"
-#include <iostream>
-#include <stdio.h>
 
 bool checkSampleFormat(AVCodec *codec, enum AVSampleFormat sampleFmt);
 bool checkSampleRateSupport(AVCodec *codec, int sampleRate);
@@ -90,10 +88,6 @@ bool AudioEncoderLibav::doProcessFrame(Frame *org, Frame *dst)
     resample(aRawFrame, libavFrame);
 
     ret = avcodec_encode_audio2(codecCtx, &pkt, libavFrame, &gotFrame);
-
-    std::cout << std::endl;
-    std::cout << pkt.pts << std::endl;
-    std::cout << pkt.dts << std::endl;
 
     if (ret < 0) {
         utils::errorMsg("Error encoding audio frame");

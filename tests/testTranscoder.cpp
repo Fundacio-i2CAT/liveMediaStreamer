@@ -18,7 +18,7 @@
 #define V_CODEC "H264"
 #define V_BANDWITH 1200
 #define V_TIME_STMP_FREQ 90000
-#define FRAME_RATE 20
+#define FRAME_RATE 25
 
 #define A_MEDIUM "audio"
 #define A_PAYLOAD 97
@@ -85,8 +85,8 @@ void addAudioSource(unsigned port, std::string codec = A_CODEC,
     pipe->startWorkers();
 }
 
-void addVideoSource(unsigned port, std::string codec = V_CODEC, 
-                    unsigned width = 0, unsigned height = 0, unsigned fps = FRAME_RATE)
+void addVideoSource(unsigned port, unsigned fps = FRAME_RATE, std::string codec = V_CODEC, 
+                    unsigned width = 0, unsigned height = 0)
 {
     int wResId = rand();
     int wEncId = rand();
@@ -161,6 +161,7 @@ int main(int argc, char* argv[])
     unsigned vPort = 0;
     unsigned aPort = 0;
     unsigned port = 0;
+    unsigned fps = FRAME_RATE;
     std::string ip;
     std::string sessionId;
     std::string rtspUri;
@@ -180,6 +181,9 @@ int main(int argc, char* argv[])
         } else if (strcmp(argv[i],"-P")==0) {
             port = std::stoi(argv[i+1]);
             utils::infoMsg("destination port: " + std::to_string(port));
+        } else if (strcmp(argv[i],"-f")==0) {
+            fps = std::stoi(argv[i+1]);
+            utils::infoMsg("output frame rate: " + std::to_string(fps));
         }
     }
     
@@ -198,7 +202,7 @@ int main(int argc, char* argv[])
     pipe->startWorkers();
     
     if (vPort != 0){
-        addVideoSource(vPort);
+        addVideoSource(vPort, fps);
     }
     
     if (aPort != 0){

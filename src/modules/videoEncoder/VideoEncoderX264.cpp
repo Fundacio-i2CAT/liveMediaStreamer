@@ -211,6 +211,7 @@ bool VideoEncoderX264::reconfigure(VideoFrame* orgFrame, X264VideoFrame* x264Fra
             encoder = x264_encoder_open(&xparams);
         }
 
+        frameTimestamp +=  std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now() - orgFrame->getOriginTime());
         needsConfig = false;
         
         if (!annexB){
@@ -223,7 +224,7 @@ bool VideoEncoderX264::reconfigure(VideoFrame* orgFrame, X264VideoFrame* x264Fra
 
 void VideoEncoderX264::updatePresentationTime(Frame* org, Frame* dst)
 {
-	frameTimestamp +=  std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now() - org->getOriginTime());
+	frameTimestamp +=  frameDuration;
     dst->setPresentationTime(frameTimestamp);
 }
 

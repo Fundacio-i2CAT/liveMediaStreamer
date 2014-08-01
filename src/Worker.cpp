@@ -27,9 +27,14 @@
 #define ACTIVE_TIMEOUT 500
 
 #include <cmath>
+#include <iostream>
 #include "Worker.hh"
 
 Worker::Worker(): run(false), enabled(false), pendingTask(false), canExecute(false)
+{
+}
+
+Worker::~Worker()
 {
 }
 

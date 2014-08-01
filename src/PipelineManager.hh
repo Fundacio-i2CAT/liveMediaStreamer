@@ -45,9 +45,16 @@ public:
     static void destroyInstance();
     int getReceiverID() {return receiverID;};
     int getTransmitterID() {return transmitterID;};
+
+    bool start();
+    bool stop();
+
+    Path* createPath(int orgFilter, int dstFilter, int orgWriter, 
+                     int dstReader, std::vector<int> midFilters, 
+                     bool sharedQueue = false);
     int searchFilterIDByType(FilterType type);
-    bool addPath(int id, Path* path);
     bool addWorker(int id, Worker* worker);
+    bool addPath(int id, Path* path);
     bool addFilter(int id, BaseFilter* filter);
     bool addFilterToWorker(int workerId, int filterId);
 
@@ -62,21 +69,25 @@ public:
     bool addWorkerToPath(Path *path, Worker* worker = NULL);
     void startWorkers();
     void stopWorkers();
+
     void getStateEvent(Jzon::Node* params, Jzon::Object &outputNode);
-    void reconfigAudioEncoderEvent(Jzon::Node* params, Jzon::Object &outpuNode);
     void createFilterEvent(Jzon::Node* params, Jzon::Object &outputNode);
     void createPathEvent(Jzon::Node* params, Jzon::Object &outputNode);
+    void removePathEvent(Jzon::Node* params, Jzon::Object &outputNode);
     void addWorkerEvent(Jzon::Node* params, Jzon::Object &outputNode);
+    void removeWorkerEvent(Jzon::Node* params, Jzon::Object &outputNode);
     void addSlavesToWorkerEvent(Jzon::Node* params, Jzon::Object &outputNode);
     void addFiltersToWorkerEvent(Jzon::Node* params, Jzon::Object &outputNode);
-
+    void stopEvent(Jzon::Node* params, Jzon::Object &outputNode);
+    void startEvent(Jzon::Node* params, Jzon::Object &outputNode);
+    void resetEvent(Jzon::Node* params, Jzon::Object &outputNode);
 
 private:
     PipelineManager();
     bool removePath(int id);
-    bool deletePath(Path* path); 
+    bool deletePath(Path* path);
+    bool removeWorker(int id); 
     BaseFilter* createFilter(FilterType type);
-    Path* createPath(int orgFilter, int dstFilter, int orgWriter, int dstReader, std::vector<int> midFilters, bool sharedQueue = false);
     
     static PipelineManager* pipeMngrInstance;
 

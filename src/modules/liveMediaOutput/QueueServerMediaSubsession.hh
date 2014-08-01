@@ -32,6 +32,7 @@
 class QueueServerMediaSubsession: public OnDemandServerMediaSubsession {
 public:
     int getReaderId() {return fReaderId;};
+    virtual ~QueueServerMediaSubsession();
     
 protected: 
     QueueServerMediaSubsession(UsageEnvironment& env, StreamReplicator* replicator,

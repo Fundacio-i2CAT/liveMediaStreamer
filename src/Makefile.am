@@ -24,7 +24,6 @@ liblivemediastreamer_la_SOURCES = modules/audioDecoder/AudioDecoderLibav.cpp \
                                   AVFramedQueue.cpp \
                                   AudioCircularBuffer.cpp \
                                   AudioFrame.cpp \
-                                  Callbacks.cpp \
                                   Controller.cpp \
                                   Event.cpp \
                                   Filter.cpp \

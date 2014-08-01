@@ -38,7 +38,7 @@ public:
 
 protected:
     QueueSink(UsageEnvironment& env, Writer *writer);
-
+    ~QueueSink();
 
 protected: 
     virtual Boolean continuePlaying();

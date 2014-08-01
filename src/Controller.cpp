@@ -24,6 +24,10 @@
 
 #include "Controller.hh"
 #include "Utils.hh"
+#include <sys/types.h> 
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <unistd.h>
 
 Controller* Controller::ctrlInstance = NULL;
 PipelineManager* PipelineManager::pipeMngrInstance = NULL;
@@ -110,6 +114,12 @@ bool Controller::listenSocket()
 
     return true;
 }
+
+void Controller::stopAndCloseSocket()
+{
+    close(listeningSocket);
+}
+
 
 bool Controller::readAndParse()
 {
@@ -237,17 +247,25 @@ void Controller::initializeEventMap()
 {
     eventMap["getState"] = std::bind(&PipelineManager::getStateEvent, pipeMngrInstance, 
                                             std::placeholders::_1, std::placeholders::_2);
-    eventMap["reconfigAudioEncoder"] = std::bind(&PipelineManager::reconfigAudioEncoderEvent, pipeMngrInstance, 
-                                                    std::placeholders::_1, std::placeholders::_2);
     eventMap["createPath"] = std::bind(&PipelineManager::createPathEvent, pipeMngrInstance, 
+                                            std::placeholders::_1, std::placeholders::_2);
+    eventMap["removePath"] = std::bind(&PipelineManager::removePathEvent, pipeMngrInstance, 
                                             std::placeholders::_1, std::placeholders::_2);
     eventMap["createFilter"] = std::bind(&PipelineManager::createFilterEvent, pipeMngrInstance, 
                                             std::placeholders::_1, std::placeholders::_2);
     eventMap["addWorker"] = std::bind(&PipelineManager::addWorkerEvent, pipeMngrInstance, 
                                             std::placeholders::_1, std::placeholders::_2);
+    eventMap["removeWorker"] = std::bind(&PipelineManager::removeWorkerEvent, pipeMngrInstance, 
+                                            std::placeholders::_1, std::placeholders::_2);
     eventMap["addSlavesToWorker"] = std::bind(&PipelineManager::addSlavesToWorkerEvent, pipeMngrInstance, 
                                             std::placeholders::_1, std::placeholders::_2);
     eventMap["addFiltersToWorker"] = std::bind(&PipelineManager::addFiltersToWorkerEvent, pipeMngrInstance, 
+                                            std::placeholders::_1, std::placeholders::_2);
+    eventMap["reset"] = std::bind(&PipelineManager::resetEvent, pipeMngrInstance, 
+                                            std::placeholders::_1, std::placeholders::_2);
+    eventMap["start"] = std::bind(&PipelineManager::startEvent, pipeMngrInstance, 
+                                            std::placeholders::_1, std::placeholders::_2);
+    eventMap["stop"] = std::bind(&PipelineManager::stopEvent, pipeMngrInstance, 
                                             std::placeholders::_1, std::placeholders::_2);
 
 }
@@ -263,7 +281,11 @@ void sendAndClose(Jzon::Object outputNode, int socket)
     writer.Write();
     std::string result = writer.GetResult();
     const char* res = result.c_str();
-    (void)write(socket, res, result.size());
+    int ret = write(socket, res, result.size());
+
+    if (ret < 0) {
+        utils::errorMsg("Error writting socket");
+    }
 
     if (socket >= 0){
         close(socket);

@@ -4,7 +4,6 @@
 #include "../src/modules/videoEncoder/VideoEncoderX264.hh"
 #include "../src/AudioFrame.hh"
 #include "../src/Controller.hh"
-#include "../src/Callbacks.hh"
 #include "../src/Utils.hh"
 
 #include <csignal>
@@ -18,7 +17,7 @@
 #define V_CODEC "H264"
 #define V_BANDWITH 1200
 #define V_TIME_STMP_FREQ 90000
-#define FRAME_RATE 20
+#define FRAME_RATE 25
 
 #define A_MEDIUM "audio"
 #define A_PAYLOAD 97
@@ -27,12 +26,15 @@
 #define A_TIME_STMP_FREQ 48000
 #define A_CHANNELS 2
 
+bool run = true;
+
 void signalHandler( int signum )
 {
     utils::infoMsg("Interruption signal received");
     
     PipelineManager *pipe = Controller::getInstance()->pipelineManager();
-    pipe->stopWorkers();
+    pipe->stop();
+    run = false;
     
     utils::infoMsg("Workers Stopped");
 }
@@ -42,18 +44,24 @@ void addAudioSource(unsigned port, std::string codec = A_CODEC,
 {
     int aDecId = rand();
     int aEncId = rand();
-    int id;
+    int decId = rand();
+    int encId = rand();
+    std::vector<int> ids({decId, encId});
     std::string sessionId;
     std::string sdp;
-    AudioEncoderLibav *aEncoder;
+    
+    AudioDecoderLibav *decoder;
+    AudioEncoderLibav *encoder;
+    
+    BestEffortMaster* aDec;
+    BestEffortMaster* aEnc;
+    
     Session *session;
+    Path *path;
     
     PipelineManager *pipe = Controller::getInstance()->pipelineManager();
     SourceManager *receiver = pipe->getReceiver();
-    
-    BestEffortMaster* aDec = new BestEffortMaster();
-    BestEffortMaster* aEnc = new BestEffortMaster();
-    
+       
     sessionId = utils::randomIdGenerator(ID_LENGTH);
     sdp = SourceManager::makeSessionSDP(sessionId, "this is an audio stream");    
     sdp += SourceManager::makeSubsessionSDP(A_MEDIUM, PROTOCOL, A_PAYLOAD, codec, 
@@ -61,46 +69,65 @@ void addAudioSource(unsigned port, std::string codec = A_CODEC,
     utils::infoMsg(sdp);
     
     session = Session::createNew(*(receiver->envir()), sdp, sessionId);
-    receiver->addSession(session);
-    session->initiateSession();
+    if (!receiver->addSession(session)){
+        utils::errorMsg("Could not add audio session");
+        return;
+    }
+    if (!session->initiateSession()){
+        utils::errorMsg("Could not initiate audio session");
+        return;
+    }
     
-    //Let liveMedia start all the filters
-    usleep(100000);
-    
-    id = pipe->searchFilterIDByType(AUDIO_DECODER);
-    aDec->addProcessor(id, pipe->getFilter(id));
-    pipe->getFilter(id)->setWorkerId(aDecId);
-    
-    id = pipe->searchFilterIDByType(AUDIO_ENCODER);
-    aEncoder = dynamic_cast<AudioEncoderLibav*> (pipe->getFilter(id));
-    aEnc->addProcessor(id, aEncoder);
-    aEncoder->setWorkerId(aEncId);
-    
+    //NOTE: Adding decoder to pipeManager and handle worker
+    decoder = new AudioDecoderLibav();
+    pipe->addFilter(decId, decoder);
+    aDec = new BestEffortMaster();
+    aDec->addProcessor(decId, decoder);
+    decoder->setWorkerId(aDecId);
     pipe->addWorker(aDecId, aDec);
-    pipe->addWorker(aEncId, aEnc);
     
+    //NOTE: Adding encoder to pipeManager and handle worker
+    encoder = new AudioEncoderLibav();
+    pipe->addFilter(encId, encoder);
+    aEnc = new BestEffortMaster();
+    aEnc->addProcessor(encId, encoder);
+    encoder->setWorkerId(aEncId);
+    pipe->addWorker(aEncId, aEnc);
+   
+    //NOTE: add filter to path
+    path = pipe->createPath(pipe->getReceiverID(), pipe->getTransmitterID(), port, -1, ids);
+    pipe->addPath(port, path);       
+    pipe->connectPath(path);
+        
     pipe->startWorkers();
 }
 
-void addVideoSource(unsigned port, std::string codec = V_CODEC, 
-                    unsigned width = 0, unsigned height = 0, unsigned fps = FRAME_RATE)
+void addVideoSource(unsigned port, unsigned fps = FRAME_RATE, std::string codec = V_CODEC, 
+                    unsigned width = 0, unsigned height = 0)
 {
     int wResId = rand();
     int wEncId = rand();
     int wDecId = rand();
-    int id;
+    int decId = rand();
+    int resId = rand();
+    int encId = rand();
+    std::vector<int> ids({decId, resId, encId});
     std::string sessionId;
     std::string sdp;
+    
     VideoResampler *resampler;
     VideoEncoderX264 *encoder;
+    VideoDecoderLibav *decoder;
+    
+    BestEffortMaster* wDec;
+    BestEffortMaster* wRes;
+    ConstantFramerateMaster* wEnc;
+    
     Session *session;
+    Path *path;
     
     PipelineManager *pipe = Controller::getInstance()->pipelineManager();
     SourceManager *receiver = pipe->getReceiver();
-    
-    BestEffortMaster* wRes = new BestEffortMaster();
-    ConstantFramerateMaster* wEnc = new ConstantFramerateMaster();
-    BestEffortMaster* wDec = new BestEffortMaster();
     
     sessionId = utils::randomIdGenerator(ID_LENGTH);
     sdp = SourceManager::makeSessionSDP(sessionId, "this is a video stream");    
@@ -109,32 +136,45 @@ void addVideoSource(unsigned port, std::string codec = V_CODEC,
     utils::infoMsg(sdp);
     
     session = Session::createNew(*(receiver->envir()), sdp, sessionId);
-    receiver->addSession(session);
-    session->initiateSession();
-    
-    //Let liveMedia start all the filters
-    usleep(100000);
-    
-    id = pipe->searchFilterIDByType(VIDEO_RESAMPLER);
-    resampler = dynamic_cast<VideoResampler*> (pipe->getFilter(id));
-    wRes->addProcessor(id, resampler);
-    resampler->setWorkerId(wResId);
-    
-    id = pipe->searchFilterIDByType(VIDEO_ENCODER);
-    encoder = dynamic_cast<VideoEncoderX264*> (pipe->getFilter(id));
-    wEnc->addProcessor(id, encoder);
-    encoder->setWorkerId(wEncId);
-    
-    id = pipe->searchFilterIDByType(VIDEO_DECODER);
-    wDec->addProcessor(id, pipe->getFilter(id));
-    pipe->getFilter(id)->setWorkerId(wDecId);
-    
-    resampler->configure(width, height, 0, YUV420P);
-    wEnc->setFps(fps*1000.0/1005);
-    
-    pipe->addWorker(wResId, wRes);
-    pipe->addWorker(wEncId, wEnc);
+    if (!receiver->addSession(session)){
+        utils::errorMsg("Could not add video session");
+        return;
+    }
+    if (!session->initiateSession()){
+        utils::errorMsg("Could not initiate video session");
+        return;
+    }
+       
+    //NOTE: Adding decoder to pipeManager and handle worker
+    decoder = new VideoDecoderLibav();
+    pipe->addFilter(decId, decoder);
+    wDec = new BestEffortMaster();
+    wDec->addProcessor(decId, decoder);
+    decoder->setWorkerId(wDecId);
     pipe->addWorker(wDecId, wDec);
+    
+    //NOTE: Adding resampler to pipeManager and handle worker
+    resampler = new VideoResampler();
+    pipe->addFilter(resId, resampler);
+    wRes = new BestEffortMaster();
+    wRes->addProcessor(resId, resampler);
+    resampler->setWorkerId(wResId);
+    resampler->configure(width, height, 0, YUV420P);
+    pipe->addWorker(wResId, wRes);
+    
+    //NOTE: Adding encoder to pipeManager and handle worker
+    encoder = new VideoEncoderX264(true);
+    pipe->addFilter(encId, encoder);
+    wEnc = new ConstantFramerateMaster();
+    wEnc->addProcessor(encId, encoder);
+    encoder->setWorkerId(wEncId);
+    wEnc->setFps(fps*1001.0/1000);
+    pipe->addWorker(wEncId, wEnc);
+    
+    //NOTE: add filter to path
+    path = pipe->createPath(pipe->getReceiverID(), pipe->getTransmitterID(), port, -1, ids);
+    pipe->addPath(port, path);       
+    pipe->connectPath(path);
     
     pipe->startWorkers();
 }
@@ -144,9 +184,10 @@ void addConnections(std::vector<int> readers, std::string ip, unsigned port)
     PipelineManager *pipe = Controller::getInstance()->pipelineManager();
     SinkManager *transmitter = pipe->getTransmitter();
     for(auto reader : readers){
-        transmitter->addConnection(reader, ip, port);
-        utils::infoMsg("added connection for " + ip + ":" + std::to_string(port));
-        port+=2;
+        if (transmitter->addConnection(reader, rand(), ip, port)) {
+            utils::infoMsg("added connection for " + ip + ":" + std::to_string(port));
+            port+=2;
+        }
     }
 }
 
@@ -157,24 +198,29 @@ int main(int argc, char* argv[])
     unsigned vPort = 0;
     unsigned aPort = 0;
     unsigned port = 0;
+    unsigned fps = FRAME_RATE;
     std::string ip;
     std::string sessionId;
+    std::string rtspUri;
 
     utils::setLogLevel(INFO);
     
     for (int i = 1; i < argc; i++) {     
         if (strcmp(argv[i],"-v")==0) {
             vPort = std::stoi(argv[i+1]);
-            printf("video input port: %d",vPort);
+            utils::infoMsg("video input port: " + std::to_string(vPort));
         } else if (strcmp(argv[i],"-a")==0) {
             aPort = std::stoi(argv[i+1]);
-            printf("audio input port: %d",aPort);
+            utils::infoMsg("audio input port: " + std::to_string(aPort));
         } else if (strcmp(argv[i],"-d")==0) {
             ip = argv[i + 1];
-            printf("\ndestination IP:%s",ip.c_str());
+            utils::infoMsg("destination IP: " + ip);
         } else if (strcmp(argv[i],"-P")==0) {
             port = std::stoi(argv[i+1]);
-            printf("destination port: %d",port);
+            utils::infoMsg("destination port: " + std::to_string(port));
+        } else if (strcmp(argv[i],"-f")==0) {
+            fps = std::stoi(argv[i+1]);
+            utils::infoMsg("output frame rate: " + std::to_string(fps));
         }
     }
     
@@ -184,15 +230,13 @@ int main(int argc, char* argv[])
     }
 
     PipelineManager *pipe = Controller::getInstance()->pipelineManager();
-    SourceManager *receiver = pipe->getReceiver();
+    pipe->start();
     SinkManager *transmitter = pipe->getTransmitter();
 
-    receiver->setCallback(callbacks::connectTranscoderToTransmitter);
     signal(SIGINT, signalHandler); 
-    pipe->startWorkers();
     
     if (vPort != 0){
-        addVideoSource(vPort);
+        addVideoSource(vPort, fps);
     }
     
     if (aPort != 0){
@@ -219,11 +263,10 @@ int main(int argc, char* argv[])
         addConnections(readers, ip, port);
     }
     
-    while(pipe->getWorker(pipe->getReceiver()->getWorkerId())->isRunning() || 
-        pipe->getWorker(pipe->getTransmitter()->getWorkerId())->isRunning()) {
+    while (run) {
         sleep(1);
     }
-
+ 
     return 0;
 }
 

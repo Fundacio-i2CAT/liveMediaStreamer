@@ -47,6 +47,8 @@ class InterleavedVideoFrame : public VideoFrame {
     public:
         static InterleavedVideoFrame* createNew(VCodecType codec, unsigned int maxLength);
         static InterleavedVideoFrame* createNew(VCodecType codec, int width, int height, PixType pixelFormat);
+        ~InterleavedVideoFrame();
+
         unsigned char* getDataBuf() {return frameBuff;};
         unsigned int getLength() {return bufferLen;};
         unsigned int getMaxLength() {return bufferMaxLen;};

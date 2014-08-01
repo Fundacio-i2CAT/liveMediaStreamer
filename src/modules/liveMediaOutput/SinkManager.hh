@@ -44,6 +44,7 @@ class Connection;
 class SinkManager : public TailFilter {
 private:
     SinkManager(int readersNum = MAX_READERS);
+    ~SinkManager();
     
 public:
     static SinkManager* getInstance();
@@ -53,7 +54,7 @@ public:
 
     bool addSession(std::string id, std::vector<int> readers, 
                     std::string info = "", std::string desc = "");
-    bool addConnection(int reader, std::string ip, unsigned int port);
+    bool addConnection(int reader, unsigned id, std::string ip, unsigned int port);
     
     ServerMediaSession* getSession(std::string id); 
     bool publishSession(std::string id);
@@ -68,7 +69,7 @@ public:
 private: 
     void initializeEventMap();
     void addSessionEvent(Jzon::Node* params, Jzon::Object &outputNode);
-    Reader *setReader(int readerID, FrameQueue* queue);
+    Reader *setReader(int readerID, FrameQueue* queue, bool sharedQueue = false);
     
     bool processFrame(bool removeFrame = false);
     
@@ -97,13 +98,13 @@ class Connection {
 public:
     void startPlaying();
     void stopPlaying();
+    ~Connection();
     
 protected:
     Connection(UsageEnvironment* env, std::string ip, 
                unsigned port, FramedSource *source);
     static void afterPlaying(void* clientData);
     
-    ~Connection();
     
     UsageEnvironment* fEnv;
     std::string fIp;
@@ -118,7 +119,7 @@ protected:
     Groupsock *rtcpGroupsock;
 };
 
-class VideoConnection : public Connection{   
+class VideoConnection : public Connection {   
 public:
     VideoConnection(UsageEnvironment* env, 
                     std::string ip, unsigned port, 
@@ -128,17 +129,18 @@ private:
     VCodecType fCodec;
 };
 
-// class AudioConnection {   
-// private:
-//     AudioConnection(UsageEnvironment* env, std::string ip, unsigned port, 
-//                     FramedSource *source, ACodecType codec,
-//                     unsigned channels, unsigned sampleRate,
-//                     SampleFmt sampleFormat);
-//     
-//     ACodecType fCodec;
-//     unsigned fChannels;
-//     unsigned fSampleRate;
-//     SampleFmt fSampleFormat;
-// };
+class AudioConnection : public Connection {
+public:
+    AudioConnection(UsageEnvironment* env, std::string ip, unsigned port, 
+                    FramedSource *source, ACodecType codec,
+                    unsigned channels, unsigned sampleRate,
+                    SampleFmt sampleFormat);
+    
+private:
+    ACodecType fCodec;
+    unsigned fChannels;
+    unsigned fSampleRate;
+    SampleFmt fSampleFormat;
+};
 
 #endif

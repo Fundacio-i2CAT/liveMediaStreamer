@@ -24,8 +24,6 @@
 #include "../../AVFramedQueue.hh"
 #include "../../AudioCircularBuffer.hh"
 #include "../../Utils.hh"
-#include <iostream>
-#include <stdio.h>
 
 bool checkSampleFormat(AVCodec *codec, enum AVSampleFormat sampleFmt);
 bool checkSampleRateSupport(AVCodec *codec, int sampleRate);
@@ -60,7 +58,6 @@ AudioEncoderLibav::AudioEncoderLibav()  : OneToOneFilter()
 
 AudioEncoderLibav::~AudioEncoderLibav()
 {
-    av_free(codec);
     avcodec_close(codecCtx);
     av_free(codecCtx);
     swr_free(&resampleCtx);
@@ -92,10 +89,6 @@ bool AudioEncoderLibav::doProcessFrame(Frame *org, Frame *dst)
 
     ret = avcodec_encode_audio2(codecCtx, &pkt, libavFrame, &gotFrame);
 
-    std::cout << std::endl;
-    std::cout << pkt.pts << std::endl;
-    std::cout << pkt.dts << std::endl;
-
     if (ret < 0) {
         utils::errorMsg("Error encoding audio frame");
         return false;
@@ -111,13 +104,13 @@ bool AudioEncoderLibav::doProcessFrame(Frame *org, Frame *dst)
     return false;
 }
 
-Reader* AudioEncoderLibav::setReader(int readerID, FrameQueue* queue)
+Reader* AudioEncoderLibav::setReader(int readerID, FrameQueue* queue, bool sharedQueue)
 {
     if (readers.size() >= getMaxReaders() || readers.count(readerID) > 0 ) {
         return NULL;
     }
 
-    Reader* r = new Reader();
+    Reader* r = new Reader(sharedQueue);
     readers[readerID] = r;
 
     dynamic_cast<AudioCircularBuffer*>(queue)->setOutputFrameSamples(samplesPerFrame);

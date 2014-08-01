@@ -112,6 +112,9 @@ namespace utils
             case MP3:
                 stringCodec = "mp3";
                 break;
+            default:
+                stringCodec = "";
+                break;
         }
 
         return stringCodec;
@@ -148,6 +151,9 @@ namespace utils
                 break;
             case TRANSMITTER:
                 stringType = "transmitter";
+                break;
+            default:
+                stringType = "";
                 break;
         }
 
@@ -206,6 +212,9 @@ namespace utils
             case FLTP:
                 stringFormat = "fltp";
                 break;
+            default:
+                stringFormat = "";
+                break;
         }
 
         return stringFormat;
@@ -228,6 +237,9 @@ namespace utils
                 break;
             case C_FRAMERATE_MASTER:
                 stringWorker = "cFramerateMaster";
+                break;
+            default:
+                stringWorker = "";
                 break;
         }
 

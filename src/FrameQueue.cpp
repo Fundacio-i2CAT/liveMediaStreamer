@@ -27,4 +27,7 @@ FrameQueue::FrameQueue()
 {
     rear = 0;
     front = 0;
+    elements = 0;
+    connected = false;
+    firstFrame = false;
 }

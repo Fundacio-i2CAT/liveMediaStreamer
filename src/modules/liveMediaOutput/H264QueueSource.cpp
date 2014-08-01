@@ -30,7 +30,7 @@ uint8_t startOffset(unsigned char const* ptr) {
 
 void H264QueueSource::doGetNextFrame() {
     unsigned char* buff;
-    int size;
+    unsigned int size;
     uint8_t offset;
     
     if ((frame = fReader->getFrame()) == NULL) {

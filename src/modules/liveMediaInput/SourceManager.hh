@@ -59,6 +59,7 @@ private:
 class SourceManager : public HeadFilter {
 private:
     SourceManager(int writersNum = MAX_WRITERS);
+    ~SourceManager();
     
 public:
     static SourceManager* getInstance();
@@ -84,10 +85,8 @@ public:
     
     UsageEnvironment* envir() {return env;};
     
-protected:
-    void initializeEventMap();
-    
 private:
+    void initializeEventMap();
     friend bool handlers::addSubsessionSink(UsageEnvironment& env, MediaSubsession *subsession);
     void doGetState(Jzon::Object &filterNode);
     void addSessionEvent(Jzon::Node* params, Jzon::Object &outputNode);

@@ -23,8 +23,6 @@
 #include "AudioDecoderLibav.hh"
 #include "../../AudioCircularBuffer.hh"
 #include "../../Utils.hh"
-#include <iostream>
-#include <stdio.h>
 #include <functional>
 
 AudioDecoderLibav::AudioDecoderLibav() : OneToOneFilter()
@@ -51,7 +49,6 @@ AudioDecoderLibav::AudioDecoderLibav() : OneToOneFilter()
 
 AudioDecoderLibav::~AudioDecoderLibav()
 {
-    av_free(codec);
     avcodec_close(codecCtx);
     av_free(codecCtx);
     swr_free(&resampleCtx);
@@ -157,13 +154,13 @@ bool AudioDecoderLibav::inputConfig()
     codec = avcodec_find_decoder(codecID);
     if (codec == NULL)
     {
-        std::cerr << "[DECODER] Error finding codec! " << std::endl;
+        utils::errorMsg("[DECODER] Error finding codec!");
         return false;
     }
     
     codecCtx = avcodec_alloc_context3(codec);
     if (codecCtx == NULL) {
-        std::cerr << "[DECODER] Error allocating context! " << std::endl;
+        utils::errorMsg("[DECODER] Error allocating context!");
         return false;
     }
 
@@ -175,7 +172,7 @@ bool AudioDecoderLibav::inputConfig()
     AVDictionary* dictionary = NULL;
     if (avcodec_open2(codecCtx, codec, &dictionary) < 0)
     {
-        std::cerr << "[DECODER] Error open context! " << std::endl;
+        utils::errorMsg("[DECODER] Error open context!");
         return false;
     }
 
@@ -193,13 +190,13 @@ bool AudioDecoderLibav::inputConfig()
                   );  
 
     if (resampleCtx == NULL) {
-        std::cerr << "[DECODER] Error allocating resample context! " << std::endl;
+        utils::errorMsg("[DECODER] Error allocating resample context!");
         return false;
     }
 
     if (swr_is_initialized(resampleCtx) == 0) {
         if (swr_init(resampleCtx) < 0) {
-            std::cout << "Init context failure! " << std::endl;
+            utils::errorMsg("Init context failure!");
             return false;
         } 
     }
@@ -233,7 +230,7 @@ bool AudioDecoderLibav::outputConfig()
 
     if (swr_is_initialized(resampleCtx) == 0) {
         if (swr_init(resampleCtx) < 0) {
-            std::cout << "Init context failure! " << std::endl;
+            utils::errorMsg("Init context failure!");
             return false;
         } 
     }

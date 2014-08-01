@@ -44,6 +44,16 @@ VideoDecoderLibav::VideoDecoderLibav()
     fCodec = VC_NONE;
 }
 
+VideoDecoderLibav::~VideoDecoderLibav()
+{
+    avcodec_close(codecCtx);
+    av_free(codecCtx);
+    av_free(frame);
+    av_free(frameCopy);
+    av_free_packet(&pkt);
+}
+
+
 FrameQueue* VideoDecoderLibav::allocQueue(int wId)
 {
     return VideoFrameQueue::createNew(RAW, 0, RGB24);

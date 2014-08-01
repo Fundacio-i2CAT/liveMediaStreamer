@@ -65,6 +65,7 @@ Frame* AudioCircularBuffer::getFront()
 void AudioCircularBuffer::addFrame()
 {
     forcePushBack(inputFrame->getPlanarDataBuf(), inputFrame->getSamples());
+    firstFrame = true;
 }
 
 void AudioCircularBuffer::removeFrame()
@@ -87,6 +88,9 @@ Frame* AudioCircularBuffer::forceGetRear()
 Frame* AudioCircularBuffer::forceGetFront()
 {
     if (!popFront(outputFrame->getPlanarDataBuf(), outputFrame->getSamples())) {
+        if (!firstFrame){
+            return NULL;
+        }
         utils::debugMsg("There is not enough data to fill a frame. Reusing previous frame!");
     }
 
@@ -107,6 +111,16 @@ AudioCircularBuffer::AudioCircularBuffer(int ch, int sRate, int maxSamples, Samp
     outputFrameAlreadyRead = true;
 
     config();
+}
+
+AudioCircularBuffer::~AudioCircularBuffer()
+{
+    for (int i=0; i<channels; i++) {
+        delete[] data[i];
+    }
+
+    delete inputFrame;
+    delete outputFrame;
 }
 
 bool AudioCircularBuffer::config()
@@ -145,12 +159,6 @@ bool AudioCircularBuffer::config()
     return true;
 }
 
-AudioCircularBuffer::~AudioCircularBuffer()
-{
-    for (int i=0; i<channels; i++) {
-        delete[] data[i];
-    }
-}
 
 bool AudioCircularBuffer::pushBack(unsigned char **buffer, int samplesRequested) 
 {

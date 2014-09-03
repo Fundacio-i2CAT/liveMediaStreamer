@@ -22,7 +22,9 @@ protected:
 	void checkStatus();
 	static void staticDoGetNextFrame(FramedSource* source);
 	virtual ~DashSegmenterVideoSource();
-private:	
+private:
+	uint32_t decodeTime(struct timeval a, struct timeval b);
+	uint32_t segmentDuration(struct timeval a, struct timeval b);
 	i2ctx* avContext;
 	bool initFile;
 	Reader *fReader;
@@ -33,8 +35,11 @@ private:
 	unsigned char* sps;
 	uint32_t ppsSize;
 	uint32_t spsSize;
-	struct timeval presentationTime;
+	struct timeval currentTime;
+	struct timeval initialTime;
 	struct timeval previousTime;
+	float durationSampleFloat;
+	float decodeTimeFloat;
 };
 
 #endif

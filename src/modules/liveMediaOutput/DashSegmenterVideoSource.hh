@@ -10,6 +10,10 @@
 #include "../../Frame.hh"
 #include "../../Utils.hh"
 
+#define	IDR_NAL 5
+#define SEI_NAL 6
+#define INTRA_MASK 0x1F
+
 class DashSegmenterVideoSource: public FramedSource {
 
 public:

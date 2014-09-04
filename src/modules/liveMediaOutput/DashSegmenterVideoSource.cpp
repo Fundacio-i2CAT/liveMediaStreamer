@@ -98,11 +98,16 @@ void DashSegmenterVideoSource::doGetNextFrame(){
 		}
 	}
 	else {
-		uint8_t isIntra = 0;//TODO: it must be obtained from the frame source 
+		uint8_t isIntra = 0;
 		uint32_t decodeT = decodeTime(previousTime, initialTime);
 		uint32_t segmentD = segmentDuration(currentTime, previousTime);
 		printf("Se agrega segmento con decodeTime: %u y segmentTime: %u\n", decodeT, segmentD);
 		unsigned char* destinationData = new unsigned char [MAX_DAT];
+		unsigned char* buff = frame->getDataBuf();
+		if (((buff[0] & INTRA_MASK) == IDR_NAL) || ((buff[0] & INTRA_MASK) == SEI_NAL)) {
+			isIntra = 1;
+			utils::debugMsg ("Es intra!");
+		}
 		uint32_t videoSample = add_sample(frame->getDataBuf(), fFrameSize, segmentD, decodeT, VIDEO_TYPE, destinationData, isIntra, &avContext);
 		if (videoSample <= I2ERROR_MAX) {
 			delete destinationData;

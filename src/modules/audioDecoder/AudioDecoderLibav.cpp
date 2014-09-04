@@ -24,6 +24,28 @@
 #include "../../AudioCircularBuffer.hh"
 #include "../../Utils.hh"
 #include <functional>
+#include <fstream>
+
+AVSampleFormat getAVSampleFormatFromtIntCode(int id) 
+{
+    AVSampleFormat sampleFmt = AV_SAMPLE_FMT_NONE;
+
+    if (id == AV_SAMPLE_FMT_U8) {
+        sampleFmt = AV_SAMPLE_FMT_U8;
+    } else if (id == AV_SAMPLE_FMT_S16) {
+        sampleFmt = AV_SAMPLE_FMT_S16;
+    } else if (id == AV_SAMPLE_FMT_FLT) {
+        sampleFmt = AV_SAMPLE_FMT_FLT;
+    } else if (id == AV_SAMPLE_FMT_U8P) {
+        sampleFmt = AV_SAMPLE_FMT_U8P;
+    } else if (id == AV_SAMPLE_FMT_S16P) {
+        sampleFmt = AV_SAMPLE_FMT_S16P;
+    } else if (id == AV_SAMPLE_FMT_FLTP) {
+        sampleFmt = AV_SAMPLE_FMT_FLTP;
+    }
+
+    return sampleFmt;
+}
 
 AudioDecoderLibav::AudioDecoderLibav() : OneToOneFilter()
 {
@@ -65,15 +87,10 @@ bool AudioDecoderLibav::doProcessFrame(Frame *org, Frame *dst)
 {     
     int len, gotFrame;
 
-    AudioFrame* aCodedFrame;
+    AudioFrame* aCodedFrame = dynamic_cast<AudioFrame*>(org);
     AudioFrame* aDecodedFrame = dynamic_cast<AudioFrame*>(dst);
 
-    aCodedFrame = dynamic_cast<AudioFrame*>(org);
-    checkInputParams(aCodedFrame->getCodec(), 
-                     aCodedFrame->getSampleFmt(), 
-                     aCodedFrame->getChannels(), 
-                     aCodedFrame->getSampleRate() 
-                     );
+    reconfigureDecoder(aCodedFrame);
 
     pkt.size = org->getLength();
     pkt.data = org->getDataBuf();
@@ -86,7 +103,9 @@ bool AudioDecoderLibav::doProcessFrame(Frame *org, Frame *dst)
             return false;
         }
 
-        if (gotFrame){
+        if (gotFrame) {
+            checkInputParams(inFrame->format, inFrame->channels, inFrame->sample_rate);
+
             if (resample(inFrame, aDecodedFrame)) {
                 return true;
             }
@@ -144,38 +163,6 @@ bool AudioDecoderLibav::configure(SampleFmt sampleFormat, int channels, int samp
 
 bool AudioDecoderLibav::inputConfig()
 {
-    av_frame_unref(inFrame);
-
-    if (codecCtx != NULL) {
-        avcodec_close(codecCtx);
-        av_free(codecCtx);
-    }
-
-    codec = avcodec_find_decoder(codecID);
-    if (codec == NULL)
-    {
-        utils::errorMsg("[DECODER] Error finding codec!");
-        return false;
-    }
-    
-    codecCtx = avcodec_alloc_context3(codec);
-    if (codecCtx == NULL) {
-        utils::errorMsg("[DECODER] Error allocating context!");
-        return false;
-    }
-
-    codecCtx->channels = inChannels;
-    codecCtx->channel_layout = av_get_default_channel_layout(inChannels);
-    codecCtx->sample_rate = inSampleRate;
-    codecCtx->sample_fmt = inLibavSampleFmt;
-    
-    AVDictionary* dictionary = NULL;
-    if (avcodec_open2(codecCtx, codec, &dictionary) < 0)
-    {
-        utils::errorMsg("[DECODER] Error open context!");
-        return false;
-    }
-
     resampleCtx = swr_alloc_set_opts
                   (
                     resampleCtx, 
@@ -238,8 +225,6 @@ bool AudioDecoderLibav::outputConfig()
     return true;
 }
 
-
-
 bool AudioDecoderLibav::resample(AVFrame* src, AudioFrame* dst)
 {
     int samples;
@@ -283,53 +268,40 @@ bool AudioDecoderLibav::resample(AVFrame* src, AudioFrame* dst)
     return true;
 }
 
-void AudioDecoderLibav::checkInputParams(ACodecType codec, SampleFmt sampleFormat, int channels, int sampleRate)
+void AudioDecoderLibav::checkInputParams(int sampleFormatCode, int channels, int sampleRate)
 {
-    if (fCodec == codec && inSampleFmt == sampleFormat && inChannels == channels && inSampleRate == sampleRate) {
+    AVSampleFormat sampleFormat = getAVSampleFormatFromtIntCode(sampleFormatCode);
+
+
+    if (inLibavSampleFmt == sampleFormat && inChannels == channels && inSampleRate == sampleRate) {
         return;
     }
 
-    fCodec = codec;
-    inSampleFmt = sampleFormat;
+    inLibavSampleFmt = sampleFormat;
     inChannels = channels;
     inSampleRate = sampleRate;
 
-     switch(fCodec) {
-        case PCMU:
-            codecID = AV_CODEC_ID_PCM_MULAW;
+    switch(inLibavSampleFmt) {
+        case AV_SAMPLE_FMT_U8:
+            inSampleFmt = U8;
             break;
-        case OPUS:
-            codecID = AV_CODEC_ID_OPUS;
+        case AV_SAMPLE_FMT_S16:
+            inSampleFmt = S16;
             break;
-        case MP3:
-            codecID = AV_CODEC_ID_MP3;
+        case AV_SAMPLE_FMT_FLT:
+            inSampleFmt = FLT;
             break;
-        default:
-            codecID = AV_CODEC_ID_NONE;
+        case AV_SAMPLE_FMT_U8P:
+            inSampleFmt = U8P;
             break;
-    }
-    
-    switch(inSampleFmt) {
-        case U8:
-            inLibavSampleFmt = AV_SAMPLE_FMT_U8;
+        case AV_SAMPLE_FMT_S16P:
+            inSampleFmt = S16P;
             break;
-        case S16:
-            inLibavSampleFmt = AV_SAMPLE_FMT_S16;
-            break;
-        case FLT:
-            inLibavSampleFmt = AV_SAMPLE_FMT_FLT;
-            break;
-        case U8P:
-            inLibavSampleFmt = AV_SAMPLE_FMT_U8P;
-            break;
-        case S16P:
-            inLibavSampleFmt = AV_SAMPLE_FMT_S16P;
-            break;
-        case FLTP:
-            inLibavSampleFmt = AV_SAMPLE_FMT_FLTP;
+        case AV_SAMPLE_FMT_FLTP:
+            inSampleFmt = FLTP;
             break;
         default:
-            inLibavSampleFmt = AV_SAMPLE_FMT_NONE;
+            inSampleFmt = S_NONE;
             break;
     }
 
@@ -378,6 +350,63 @@ void AudioDecoderLibav::doGetState(Jzon::Object &filterNode)
     filterNode.Add("channels", outChannels);
     filterNode.Add("sampleFormat", utils::getSampleFormatAsString(outSampleFmt));
 }
+
+bool AudioDecoderLibav::reconfigureDecoder(AudioFrame* frame)
+{
+    if (frame->getCodec() == fCodec ) {
+        return true;
+    }
+
+    fCodec = frame->getCodec();
+
+    switch(fCodec) {
+        case PCMU:
+            codecID = AV_CODEC_ID_PCM_MULAW;
+            break;
+        case OPUS:
+            codecID = AV_CODEC_ID_OPUS;
+            break;
+        case MP3:
+            codecID = AV_CODEC_ID_MP3;
+            break;
+        default:
+            codecID = AV_CODEC_ID_NONE;
+            break;
+    }
+
+    av_frame_unref(inFrame);
+
+    if (codecCtx != NULL) {
+        avcodec_close(codecCtx);
+        av_free(codecCtx);
+    }
+
+    codec = avcodec_find_decoder(codecID);
+    
+    if (codec == NULL) {
+        utils::errorMsg("[DECODER] Error finding codec!");
+        return false;
+    }
+    
+    codecCtx = avcodec_alloc_context3(codec);
+    if (codecCtx == NULL) {
+        utils::errorMsg("[DECODER] Error allocating context!");
+        return false;
+    }
+
+    codecCtx->channels = inChannels;
+    codecCtx->channel_layout = av_get_default_channel_layout(inChannels);
+    codecCtx->sample_rate = inSampleRate;
+    
+    AVDictionary* dictionary = NULL;
+    if (avcodec_open2(codecCtx, codec, &dictionary) < 0) {
+        utils::errorMsg("[DECODER] Error open context!");
+        return false;
+    }
+
+    return true;
+}
+
 
 
 

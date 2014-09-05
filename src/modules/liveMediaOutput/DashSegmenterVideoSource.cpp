@@ -3,12 +3,12 @@
 #include <iostream>
 
 
-DashSegmenterVideoSource* DashSegmenterVideoSource::createNew(UsageEnvironment& env, Reader *reader, int readerId, uint32_t frameRate)
+DashSegmenterVideoSource* DashSegmenterVideoSource::createNew(UsageEnvironment& env, FramedSource* source, uint32_t frameRate)
 {
-	return new DashSegmenterVideoSource(env, reader, readerId, frameRate);
+	return new DashSegmenterVideoSource(env, source, frameRate);
 }
 
-DashSegmenterVideoSource::DashSegmenterVideoSource(UsageEnvironment& env, Reader *reader, int readerId, uint32_t frameRate): FramedSource(env), fReader(reader), fReaderId(readerId), fInputSource(NULL)
+DashSegmenterVideoSource::DashSegmenterVideoSource(UsageEnvironment& env, FramedSource* source, uint32_t frameRate): FramedSource(env), fInputSource(source)
 {
 	uint8_t i2error;
 	i2error= context_initializer(&avContext, VIDEO_TYPE);
@@ -16,16 +16,20 @@ DashSegmenterVideoSource::DashSegmenterVideoSource(UsageEnvironment& env, Reader
 		utils::errorMsg ("Media type incorrect");
 	}
 	initFile = false;
+	firstSample = true;
 	currentTime.tv_sec = 0;
 	currentTime.tv_usec = 0;
 	initialTime.tv_sec = 0;
 	initialTime.tv_usec = 0;
 	previousTime.tv_sec = 0;
 	previousTime.tv_sec = 0;
+	semgentTime.tv_sec = 0;
+	semgentTime.tv_usec = 0;
 	spsSize = 0;
 	ppsSize = 0;
 	durationSampleFloat = 0.00;
 	decodeTimeFloat = 0.00;
+	totalSegmentDuration = 0;
 }
 
 DashSegmenterVideoSource::~DashSegmenterVideoSource() {
@@ -34,34 +38,32 @@ DashSegmenterVideoSource::~DashSegmenterVideoSource() {
 }
 
 void DashSegmenterVideoSource::doGetNextFrame(){
-	if ((frame = fReader->getFrame()) == NULL) {
-		nextTask() = envir().taskScheduler().scheduleDelayedTask(POLL_TIME,
-		(TaskFunc*)DashSegmenterVideoSource::staticDoGetNextFrame, this);
-	return;
-	}
+	fInputSource->getNextFrame(nal_data, fMaxSize, afterGettingFrame, this, FramedSource::handleClosure, this);
+}
 
-	fPresentationTime.tv_sec = frame->getPresentationTime().count()/1000000;
-	fPresentationTime.tv_usec = frame->getPresentationTime().count()%1000000;
-	if ((currentTime.tv_sec != fPresentationTime.tv_sec) || (currentTime.tv_usec != fPresentationTime.tv_usec)) {
+void DashSegmenterVideoSource::afterGettingFrame(void* clientData, unsigned frameSize, unsigned numTruncatedBytes, struct timeval presentationTime, unsigned durationInMicroseconds) {
+	DashSegmenterVideoSource* source = (DashSegmenterVideoSource*)clientData;
+	source->afterGettingFrame1(frameSize, numTruncatedBytes, presentationTime, durationInMicroseconds);
+}
+
+void DashSegmenterVideoSource::afterGettingFrame1(unsigned frameSize, unsigned numTruncatedBytes, struct timeval presentationTime, unsigned durationInMicroseconds) {
+	uint32_t videoSample = 0;
+
+	if ((currentTime.tv_sec != presentationTime.tv_sec) || (currentTime.tv_usec != presentationTime.tv_usec)) {
 		previousTime = currentTime;
-		currentTime = fPresentationTime;
-	}
-
-	if (fMaxSize < frame->getLength()){
-		fFrameSize = fMaxSize;
-		fNumTruncatedBytes = frame->getLength() - fMaxSize;
-	} else {
-		fNumTruncatedBytes = 0; 
-		fFrameSize = frame->getLength();
+		currentTime = presentationTime;
 	}
 
 	if (initFile == false) {
 		if (spsSize == 0) {
-			initialTime = fPresentationTime;
-			previousTime = fPresentationTime;
+			initialTime = presentationTime;
+			previousTime = presentationTime;
+			semgentTime = presentationTime;
 			spsSize = fFrameSize;
 			sps = new unsigned char[spsSize];
 			memcpy(sps, frame->getDataBuf(), spsSize);
+			//segmentDuration = durationInMicroseconds;
+			return;
 		}
 		else if (ppsSize == 0) {
 			ppsSize = fFrameSize;
@@ -93,8 +95,15 @@ void DashSegmenterVideoSource::doGetNextFrame(){
 			initVideo = init_video_handler(metadata, metadataSize, metadata2, metadata2Size, sps, &spsSize, metadata3, metadata3Size, pps, ppsSize, destinationData, &avContext);
 			printf("Se genero INIT FILE: %u\n", initVideo);
 			initFile = true;
+			firstSample = true;
 			previousTime = fPresentationTime;
-			memcpy(fTo, destinationData, initVideo);    			
+			memcpy(fTo, destinationData, initVideo);
+			fFrameSize = initVideo;
+			fNumTruncatedBytes = 0;
+			fPresentationTime = semgentTime;
+			fDurationInMicroseconds = totalSegmentDuration;
+			totalSegmentDuration = 0;
+			afterGetting(this);
 		}
 	}
 	else {
@@ -104,31 +113,32 @@ void DashSegmenterVideoSource::doGetNextFrame(){
 		printf("Se agrega segmento con decodeTime: %u y segmentTime: %u\n", decodeT, segmentD);
 		unsigned char* destinationData = new unsigned char [MAX_DAT];
 		unsigned char* buff = frame->getDataBuf();
+		if (firstSample) {
+			semgentTime = previousTime;
+			firstSample = false;
+		}
 		if (((buff[0] & INTRA_MASK) == IDR_NAL) || ((buff[0] & INTRA_MASK) == SEI_NAL)) {
 			isIntra = 1;
 			utils::debugMsg ("Es intra!");
 		}
-		uint32_t videoSample = add_sample(frame->getDataBuf(), fFrameSize, segmentD, decodeT, VIDEO_TYPE, destinationData, isIntra, &avContext);
+		videoSample = add_sample(frame->getDataBuf(), fFrameSize, segmentD, decodeT, VIDEO_TYPE, destinationData, isIntra, &avContext);
 		if (videoSample <= I2ERROR_MAX) {
 			delete destinationData;
 		}
 		else {
 			memcpy(fTo, destinationData, videoSample);
+			firstSample = true;
+			fFrameSize = videoSample;
+			fNumTruncatedBytes = 0;
+			fPresentationTime = semgentTime;
+			fDurationInMicroseconds = totalSegmentDuration;
+			totalSegmentDuration = 0;
+			afterGetting(this);
 		}
 	}
 
-	fReader->removeFrame();
 	utils::debugMsg ("next frame!");
-	afterGetting(this);
-}
-
-void DashSegmenterVideoSource::checkStatus()
-{
-    if (fReader->isConnected()) {
-        return;
-    }
-
-    stopGettingFrames();
+	return;
 }
 
 void DashSegmenterVideoSource::staticDoGetNextFrame(FramedSource* source) {
@@ -155,6 +165,7 @@ uint32_t DashSegmenterVideoSource::segmentDuration(struct timeval a, struct time
 		durationTime++;
 		durationSampleFloat--;
 	}
+	totalSegmentDuration += durationTime;
 	return durationTime;
 }
 

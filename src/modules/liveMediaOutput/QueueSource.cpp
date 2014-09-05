@@ -11,7 +11,7 @@ QueueSource::QueueSource(UsageEnvironment& env, Reader *reader, int readerId)
 }
 
 void QueueSource::doGetNextFrame() 
-{
+{//TODO: fDurationInMicroseconds
     checkStatus();
 
     if ((frame = fReader->getFrame()) == NULL) {

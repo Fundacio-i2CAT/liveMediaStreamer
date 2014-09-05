@@ -41,7 +41,7 @@ extern "C" {
 #include <libavformat/avformat.h>
 }
 
-#define FRAME_TIME_THRESHOLD 2000 //usec
+#define FRAME_TIME_THRESHOLD 4000 //usec
 
 class VideoEncoderX264: public OneToOneFilter {
 	public:

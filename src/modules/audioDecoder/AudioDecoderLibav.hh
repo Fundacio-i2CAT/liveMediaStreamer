@@ -46,9 +46,10 @@ private:
 
     void initializeEventMap();
     bool resample(AVFrame* src, AudioFrame* dst);
-    void checkInputParams(ACodecType codec, SampleFmt sampleFormat, int channels, int sampleRate);
+    void checkInputParams(int sampleFormat, int channels, int sampleRate);
     bool inputConfig();
     bool outputConfig();
+    bool reconfigureDecoder(AudioFrame* frame);
     void configEvent(Jzon::Node* params, Jzon::Object &outputNode);
     void doGetState(Jzon::Object &filterNode);
 

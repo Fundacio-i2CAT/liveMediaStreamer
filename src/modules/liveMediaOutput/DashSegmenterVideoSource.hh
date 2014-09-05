@@ -17,11 +17,11 @@
 class DashSegmenterVideoSource: public FramedSource {
 
 public:
-    	static DashSegmenterVideoSource* createNew(UsageEnvironment& env, FramedSource* source, uint32_t frameRate = 24);
+    	static DashSegmenterVideoSource* createNew(UsageEnvironment& env, FramedSource* source, uint32_t frameRate = 24, uint32_t segmentTime = 5);
 	virtual void doGetNextFrame();
 
 protected:
-    	DashSegmenterVideoSource(UsageEnvironment& env, FramedSource* source, uint32_t frameRate = 24);
+    	DashSegmenterVideoSource(UsageEnvironment& env, FramedSource* source, uint32_t frameRate = 24, uint32_t segmentTime = 5);
 	void checkStatus();
 	static void staticDoGetNextFrame(FramedSource* source);
 	virtual ~DashSegmenterVideoSource();

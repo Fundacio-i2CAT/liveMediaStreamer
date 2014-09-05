@@ -3,18 +3,19 @@
 #include <iostream>
 
 
-DashSegmenterVideoSource* DashSegmenterVideoSource::createNew(UsageEnvironment& env, FramedSource* source, uint32_t frameRate)
+DashSegmenterVideoSource* DashSegmenterVideoSource::createNew(UsageEnvironment& env, FramedSource* source, uint32_t frameRate, uint32_t segmentTime)
 {
 	return new DashSegmenterVideoSource(env, source, frameRate);
 }
 
-DashSegmenterVideoSource::DashSegmenterVideoSource(UsageEnvironment& env, FramedSource* source, uint32_t frameRate): FramedSource(env), fInputSource(source)
+DashSegmenterVideoSource::DashSegmenterVideoSource(UsageEnvironment& env, FramedSource* source, uint32_t frameRate, uint32_t segmentTime): FramedSource(env), fInputSource(source)
 {
 	uint8_t i2error;
 	i2error= context_initializer(&avContext, VIDEO_TYPE);
 	if (i2error == I2ERROR_MEDIA_TYPE) {
 		utils::errorMsg ("Media type incorrect");
 	}
+	set_segment_duration(segmentTime, &avContext);
 	initFile = false;
 	firstSample = true;
 	currentTime.tv_sec = 0;

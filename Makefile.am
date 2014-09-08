@@ -1,7 +1,7 @@
 ACLOCAL_AMFLAGS = -I m4
 SUBDIRS = src 
 
-bin_PROGRAMS = livemediastreamer testtranscoder
+bin_PROGRAMS = livemediastreamer testtranscoder h264toisoff
 
 livemediastreamer_SOURCES = tests/liveMediaStreamer.cpp
 livemediastreamer_CPPFLAGS = -Isrc/ -std=c++11 -g -Wall -std=c++11 -g -D__STDC_CONSTANT_MACROS -I/usr/local/include/opencv -I/usr/local/include/groupsock -I/usr/local/include/liveMedia -I/usr/local/include/BasicUsageEnvironment -I/usr/local/include/UsageEnvironment -Wall
@@ -12,3 +12,8 @@ testtranscoder_SOURCES = tests/testTranscoder.cpp
 testtranscoder_CPPFLAGS = -std=c++11 -g -Wall -std=c++11 -g -D__STDC_CONSTANT_MACROS -I/usr/local/include/opencv -I/usr/local/include/groupsock -I/usr/local/include/liveMedia -I/usr/local/include/BasicUsageEnvironment -I/usr/local/include/UsageEnvironment -Wall
 testtranscoder_LDFLAGS = -Lsrc -llivemediastreamer
 testtranscoder_DEPENDENCIES = src/liblivemediastreamer.la
+
+#h264toisoff_SOURCES = tests/testH264ToISOFF.cpp
+#h264toisoff_CPPFLAGS = -std=c++11 -g -Wall -std=c++11 -g -D__STDC_CONSTANT_MACROS -I/usr/local/include/opencv -I/usr/local/include/groupsock -I/usr/local/include/liveMedia -I/usr/local/include/BasicUsageEnvironment -I/usr/local/include/UsageEnvironment -Wall
+#h264toisoff_LDFLAGS = -lBasicUsageEnvironment -lUsageEnvironment -lgroupsock -lliveMedia
+#h264toisoff_DEPENDENCIES = src/liblivemediastreamer.la

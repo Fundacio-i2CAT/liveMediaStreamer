@@ -19,8 +19,11 @@ along with this library; if not, write to the Free Software Foundation, Inc.,
 
 #include <liveMedia/liveMedia.hh>
 #include <BasicUsageEnvironment/BasicUsageEnvironment.hh>
+#include "../src/modules/liveMediaOutput/DashSegmenterVideoSource.hh"
 
-char const* inputFileName = "in.264";
+//#define MAX_DAT 10*1024*1024 
+
+char const* inputFileName = "in.h264";
 char const* outputFileName = "out.ts";
 
 void afterPlaying(void* clientData); // forward
@@ -43,12 +46,15 @@ int main(int argc, char** argv) {
   // Create a 'framer' filter for this file source, to generate presentation times for each NAL unit:
   H264VideoStreamFramer* framer = H264VideoStreamFramer::createNew(*env, inputSource, True/*includeStartCodeInOutput*/);
 
-  // Then create a filter that packs the H.264 video data into a Transport Stream:
-  MPEG2TransportStreamFromESSource* tsFrames = MPEG2TransportStreamFromESSource::createNew(*env);
-  tsFrames->addNewVideoSource(framer, 5/*mpegVersion: H.264*/);
+ 
+
+
+ // Then create a filter that packs the H.264 video data into a Transport Stream:
+/*   MPEG2TransportStreamFromESSource* tsFrames = MPEG2TransportStreamFromESSource::createNew(*env);
+  tsFrames->addNewVideoSource(framer, 5);
   
   // Open the output file as a 'file sink':
-  MediaSink* outputSink = FileSink::createNew(*env, outputFileName);
+ MediaSink* outputSink = FileSink::createNew(*env, outputFileName);
   if (outputSink == NULL) {
     *env << "Unable to open file \"" << outputFileName << "\" as a file sink\n";
     exit(1);
@@ -56,7 +62,26 @@ int main(int argc, char** argv) {
 
   // Finally, start playing:
   *env << "Beginning to read...\n";
-  outputSink->startPlaying(*tsFrames, afterPlaying, NULL);
+  outputSink->startPlaying(*tsFrames, afterPlaying, NULL);*/
+
+
+
+
+  DashSegmenterVideoSource* isoff = DashSegmenterVideoSource::createNew(*env, framer);
+  //tsFrames->addNewVideoSource(framer, 5);
+
+  MediaSink* outputSink = FileSink::createNew(*env, outputFileName, MAX_DAT, True);
+  if (outputSink == NULL) {
+    *env << "Unable to open file \"" << outputFileName << "\" as a file sink\n";
+    exit(1);
+  }
+
+  // Finally, start playing:
+  *env << "Beginning to read...\n";
+  outputSink->startPlaying(*isoff, afterPlaying, NULL);
+
+
+
 
   env->taskScheduler().doEventLoop(); // does not return
 

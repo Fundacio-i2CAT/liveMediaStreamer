@@ -34,7 +34,6 @@ private:
 	bool initFile;
 	bool firstSample;
 	FramedSource* fInputSource;
-	Frame* frame;
 	unsigned char* pps;
 	unsigned char* sps;
 	unsigned char* nal_data;

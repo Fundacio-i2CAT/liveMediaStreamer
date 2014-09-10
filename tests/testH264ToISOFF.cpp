@@ -24,7 +24,7 @@ along with this library; if not, write to the Free Software Foundation, Inc.,
 //#define MAX_DAT 10*1024*1024 
 
 char const* inputFileName = "in.h264";
-char const* outputFileName = "out.ts";
+char const* outputFileName = "out.m4v";
 
 void afterPlaying(void* clientData); // forward
 
@@ -44,7 +44,7 @@ int main(int argc, char** argv) {
   }
 
   // Create a 'framer' filter for this file source, to generate presentation times for each NAL unit:
-  H264VideoStreamFramer* framer = H264VideoStreamFramer::createNew(*env, inputSource, True/*includeStartCodeInOutput*/);
+  H264VideoStreamFramer* framer = H264VideoStreamFramer::createNew(*env, inputSource);
 
  
 

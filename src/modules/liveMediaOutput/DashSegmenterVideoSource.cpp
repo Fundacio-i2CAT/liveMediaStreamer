@@ -18,19 +18,11 @@ DashSegmenterVideoSource::DashSegmenterVideoSource(UsageEnvironment& env, Framed
 	}
 	set_segment_duration(segmentTime, &avContext);
 	initFile = false;
-	firstSample = true;
-	currentTime.tv_sec = 0;
-	currentTime.tv_usec = 0;
-	initialTime.tv_sec = 0;
-	initialTime.tv_usec = 0;
-	previousTime.tv_sec = 0;
-	previousTime.tv_sec = 0;
-	semgentTime.tv_sec = 0;
-	semgentTime.tv_usec = 0;
 	spsSize = 0;
 	ppsSize = 0;
-	durationSampleFloat = 0.00;
+	sampleDurationFloat = 0.00;
 	decodeTimeFloat = 0.00;
+	decodeTime = 0;
 	totalSegmentDuration = 0;
 	nal_data = new unsigned char[MAX_DAT];
 	utils::debugMsg("end Create");
@@ -43,7 +35,6 @@ DashSegmenterVideoSource::~DashSegmenterVideoSource() {
 
 void DashSegmenterVideoSource::doGetNextFrame(){
 	utils::debugMsg("doGetNextFrame");
-	printf ("fMaxSize %d\n", fMaxSize);
 	fInputSource->getNextFrame(nal_data, fMaxSize, afterGettingFrame, this, FramedSource::handleClosure, this);
 	utils::debugMsg("end doGetNextFrame");
 }
@@ -59,39 +50,44 @@ void DashSegmenterVideoSource::afterGettingFrame1(unsigned frameSize, unsigned n
 	unsigned char* buff = nal_data;
 	uint32_t videoSample = frameSize;
 	utils::debugMsg("afterGettingFrame1");
-	if ((currentTime.tv_sec != presentationTime.tv_sec) || (currentTime.tv_usec != presentationTime.tv_usec)) {
-		utils::debugMsg("New frame!");
-		previousTime = currentTime;
-		currentTime = presentationTime;
-	}
-
+	printf ("durationInMicroseconds %u, sec %lu, usec %lu \n", durationInMicroseconds, presentationTime.tv_sec, presentationTime.tv_usec);
 	if (initFile == false) {
-		if (frameSize >= 4 && nal_data[0] == 0 && nal_data[1] == 0 && ((nal_data[2] == 0 && nal_data[3] == 1) || nal_data[2] == 1)) {
-			utils::debugMsg("MPEG 'start code' seen in the input");
-			buff += 3;
-			videoSample -= 3;
-			if (nal_data[2] == 0 && nal_data[3] == 1) {
-				buff++;
-				videoSample--;
-			}
-		}
-		if (spsSize == 0) {
-			initialTime = presentationTime;
-			previousTime = presentationTime;
-			semgentTime = presentationTime;
+		if ((buff[0] & NAL_TYPE_MASK) == SPS_NAL) {
+			segmentTime = presentationTime;
+			printf("SPS\n");
 			printf ("spsSize %u frameSize %u numTruncatedBytes %u\n", fFrameSize, frameSize, numTruncatedBytes);
 			spsSize = frameSize;
 			sps = new unsigned char[spsSize];
-			printf("%u %u %u %u %u\n", nal_data[0], nal_data[1], nal_data[2], nal_data[3], nal_data[4]);
-			memcpy(sps, nal_data+4, spsSize);
-			printf("esto,\n");
+			printf("%u %u %u %u %u\n", buff[0], buff[1], buff[2], buff[3], buff[4]);
+			memcpy(sps, buff, spsSize);
 			//segmentDuration = durationInMicroseconds;
 			//return;
 		}
-		else if (ppsSize == 0) {
-			ppsSize = fFrameSize;
+		else if ((buff[0] & NAL_TYPE_MASK) == PPS_NAL) {
+			ppsSize = frameSize;
 			pps = new unsigned char[ppsSize];
-			memcpy(pps, nal_data, ppsSize);
+			memcpy(pps, buff, ppsSize);
+			printf("PPS\n");
+			printf ("ppsSize %u frameSize %u numTruncatedBytes %u\n", fFrameSize, frameSize, numTruncatedBytes);
+			printf("%u %u %u %u %u\n", buff[0], buff[1], buff[2], buff[3], buff[4]);
+		} else if ((buff[0] & NAL_TYPE_MASK) == SEI_NAL){
+			uint8_t isIntra = 1;
+			unsigned char* destinationData = new unsigned char [MAX_DAT];
+			uint32_t sampleDuration = durationInMicroseconds / 1000;
+			sampleDurationFloat +=  (float) durationInMicroseconds / 1000.00;
+			sampleDurationFloat -= sampleDuration;
+			if (sampleDurationFloat >= 1) {
+				sampleDurationFloat--;
+				sampleDuration++;
+			}
+			decodeTime = 0;
+			totalSegmentDuration = 0;
+			printf ("sampleDuration %u, decodeTime %u, totalSegmentDuration %u\n", sampleDuration, decodeTime, totalSegmentDuration);
+			videoSample = add_sample(buff, fFrameSize, sampleDuration, decodeTime, VIDEO_TYPE, destinationData, isIntra, &avContext);
+			delete destinationData;
+
+		}
+		if ((spsSize > 0) && (ppsSize > 0)) {
 			unsigned char *metadata, *metadata2, *metadata3, *destinationData;
 			uint32_t metadataSize = 0, metadata2Size = 0, metadata3Size = 0, initVideo = 0;
 		    	// METADATA
@@ -118,78 +114,65 @@ void DashSegmenterVideoSource::afterGettingFrame1(unsigned frameSize, unsigned n
 			initVideo = init_video_handler(metadata, metadataSize, metadata2, metadata2Size, sps, &spsSize, metadata3, metadata3Size, pps, ppsSize, destinationData, &avContext);
 			printf("Se genero INIT FILE: %u\n", initVideo);
 			initFile = true;
-			firstSample = true;
-			previousTime = fPresentationTime;
 			memcpy(fTo, destinationData, initVideo);
 			fFrameSize = initVideo;
 			fNumTruncatedBytes = 0;
-			fPresentationTime = semgentTime;
+			fPresentationTime = segmentTime;
 			fDurationInMicroseconds = totalSegmentDuration;
 			totalSegmentDuration = 0;
+			segmentTime = presentationTime;
 			afterGetting(this);
+			return;
 		}
 	}
 	else {
 		uint8_t isIntra = 0;
-		uint32_t decodeT = decodeTime(previousTime, initialTime);
-		uint32_t segmentD = segmentDuration(currentTime, previousTime);
-		printf("Se agrega segmento con decodeTime: %u y segmentTime: %u\n", decodeT, segmentD);
 		unsigned char* destinationData = new unsigned char [MAX_DAT];
-		unsigned char* buff = nal_data;
-		if (firstSample) {
-			semgentTime = previousTime;
-			firstSample = false;
+		uint32_t sampleDuration = durationInMicroseconds / 1000;
+		sampleDurationFloat +=  (float) durationInMicroseconds / 1000.00;
+		sampleDurationFloat -= sampleDuration;
+		if (sampleDurationFloat >= 1) {
+			sampleDurationFloat--;
+			sampleDuration++;
 		}
-		if (((buff[0] & INTRA_MASK) == IDR_NAL) || ((buff[0] & INTRA_MASK) == SEI_NAL)) {
+		decodeTime += durationInMicroseconds / 1000;
+		decodeTimeFloat +=  (float) durationInMicroseconds / 1000.00;
+		decodeTimeFloat -= decodeTime;
+		if (decodeTimeFloat >= 0.5) {
+			decodeTimeFloat--;
+			decodeTime++;
+		}
+		if (((buff[0] & NAL_TYPE_MASK) == IDR_NAL) || ((buff[0] & NAL_TYPE_MASK) == SEI_NAL)) {
 			isIntra = 1;
-			utils::debugMsg ("Es intra!");
+			utils::debugMsg ("Es intra!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
 		}
-		videoSample = add_sample(nal_data, fFrameSize, segmentD, decodeT, VIDEO_TYPE, destinationData, isIntra, &avContext);
+		printf ("sampleDuration %u, decodeTime %u, totalSegmentDuration %u\n", sampleDuration, decodeTime, totalSegmentDuration);
+		videoSample = add_sample(buff, frameSize, sampleDuration, decodeTime, VIDEO_TYPE, destinationData, isIntra, &avContext);
 		if (videoSample <= I2ERROR_MAX) {
+			utils::debugMsg ("no segment");
+			totalSegmentDuration += durationInMicroseconds;
 			delete destinationData;
 		}
 		else {
+			utils::debugMsg ("NEW SEGMENT!\n");
 			memcpy(fTo, destinationData, videoSample);
-			firstSample = true;
+			delete destinationData;
 			fFrameSize = videoSample;
 			fNumTruncatedBytes = 0;
-			fPresentationTime = semgentTime;
+			fPresentationTime = segmentTime;
 			fDurationInMicroseconds = totalSegmentDuration;
-			totalSegmentDuration = 0;
+			totalSegmentDuration = durationInMicroseconds;
+			segmentTime = presentationTime;
 			afterGetting(this);
+			return;
 		}
 	}
-
-	utils::debugMsg ("next frame!");
+	utils::debugMsg ("END frame!\n");
 	doGetNextFrame();
 	return;
 }
 
 void DashSegmenterVideoSource::staticDoGetNextFrame(FramedSource* source) {
     source->doGetNextFrame();
-}
-
-uint32_t DashSegmenterVideoSource::decodeTime(struct timeval a, struct timeval b) {
-	uint32_t totalA = a.tv_sec * 1000000 + a.tv_usec;
-	uint32_t totalB = b.tv_sec * 1000000 + b.tv_usec;
-	uint32_t decodeTime = (totalA - totalB)/H264_FREQUENCY;
-	decodeTimeFloat= ((float)(totalA - totalB))/((float)(H264_FREQUENCY));
-	decodeTimeFloat-= decodeTime;
-	if (decodeTimeFloat >= 0.5) 
-		decodeTime++;
-	return decodeTime;
-}
-uint32_t DashSegmenterVideoSource::segmentDuration(struct timeval a, struct timeval b) {
-	uint32_t totalA = a.tv_sec * 1000000 + a.tv_usec;
-	uint32_t totalB = b.tv_sec * 1000000 + b.tv_usec;
-	uint32_t durationTime = (totalA - totalB)/H264_FREQUENCY;
-	durationSampleFloat= ((float)(totalA - totalB))/((float)(H264_FREQUENCY));
-	durationSampleFloat-= durationTime;
-	if (durationSampleFloat >= 1) {
-		durationTime++;
-		durationSampleFloat--;
-	}
-	totalSegmentDuration += durationTime;
-	return durationTime;
 }
 

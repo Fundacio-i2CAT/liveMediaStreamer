@@ -12,7 +12,9 @@
 
 #define	IDR_NAL 5
 #define SEI_NAL 6
-#define INTRA_MASK 0x1F
+#define SPS_NAL 7
+#define PPS_NAL 8
+#define NAL_TYPE_MASK 0x1F
 
 class DashSegmenterVideoSource: public FramedSource {
 
@@ -26,25 +28,20 @@ protected:
 	static void staticDoGetNextFrame(FramedSource* source);
 	virtual ~DashSegmenterVideoSource();
 private:
-	uint32_t decodeTime(struct timeval a, struct timeval b);
-	uint32_t segmentDuration(struct timeval a, struct timeval b);
 	static void afterGettingFrame(void* clientData, unsigned frameSize, unsigned numTruncatedBytes, struct timeval presentationTime, unsigned durationInMicroseconds);
 	void afterGettingFrame1(unsigned frameSize, unsigned numTruncatedBytes, struct timeval presentationTime, unsigned durationInMicroseconds);
 	i2ctx* avContext;
 	bool initFile;
-	bool firstSample;
 	FramedSource* fInputSource;
 	unsigned char* pps;
 	unsigned char* sps;
 	unsigned char* nal_data;
 	uint32_t ppsSize;
 	uint32_t spsSize;
-	struct timeval currentTime;
-	struct timeval initialTime;
-	struct timeval previousTime;
-	struct timeval semgentTime;
-	float durationSampleFloat;
+	struct timeval segmentTime;
+	float sampleDurationFloat;
 	float decodeTimeFloat;
+	uint32_t decodeTime;
 	uint32_t totalSegmentDuration;
 };
 

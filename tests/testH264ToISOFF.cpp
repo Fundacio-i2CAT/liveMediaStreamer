@@ -23,8 +23,8 @@ along with this library; if not, write to the Free Software Foundation, Inc.,
 
 //#define MAX_DAT 10*1024*1024 
 
-char const* inputFileName = "in.h264";
-char const* outputFileName = "out.m4v";
+char const* inputFileName = "salida.h264";
+char const* outputFileName = "./segments/out.m4v";
 
 void afterPlaying(void* clientData); // forward
 

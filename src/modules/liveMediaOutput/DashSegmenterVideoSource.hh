@@ -15,6 +15,7 @@
 #define SPS_NAL 7
 #define PPS_NAL 8
 #define NAL_TYPE_MASK 0x1F
+#define NAL_LENGTH_SIZE 4
 
 class DashSegmenterVideoSource: public FramedSource {
 
@@ -36,9 +37,12 @@ private:
 	unsigned char* pps;
 	unsigned char* sps;
 	unsigned char* nal_data;
+	unsigned char* intraData;
+	uint32_t intraSize;
 	uint32_t ppsSize;
 	uint32_t spsSize;
 	struct timeval segmentTime;
+	struct timeval previousTime;
 	float sampleDurationFloat;
 	float decodeTimeFloat;
 	uint32_t decodeTime;

@@ -20,11 +20,11 @@
 class DashSegmenterVideoSource: public FramedSource {
 
 public:
-    	static DashSegmenterVideoSource* createNew(UsageEnvironment& env, FramedSource* source, uint32_t frameRate = 24, uint32_t segmentTime = 5);
+    	static DashSegmenterVideoSource* createNew(UsageEnvironment& env, FramedSource* source, bool reInit = false, uint32_t frameRate = 24, uint32_t segmentTime = 5);
 	virtual void doGetNextFrame();
 
 protected:
-    	DashSegmenterVideoSource(UsageEnvironment& env, FramedSource* source, uint32_t frameRate = 24, uint32_t segmentTime = 5);
+    	DashSegmenterVideoSource(UsageEnvironment& env, FramedSource* source, bool reInit = false, uint32_t frameRate = 24, uint32_t segmentTime = 5);
 	void checkStatus();
 	static void staticDoGetNextFrame(FramedSource* source);
 	virtual ~DashSegmenterVideoSource();
@@ -33,16 +33,18 @@ private:
 	void afterGettingFrame1(unsigned frameSize, unsigned numTruncatedBytes, struct timeval presentationTime, unsigned durationInMicroseconds);
 	i2ctx* avContext;
 	bool initFile;
+	bool reInitFile;
 	FramedSource* fInputSource;
 	unsigned char* pps;
 	unsigned char* sps;
-	unsigned char* nal_data;
+	unsigned char* sei;
+	unsigned char* nalData;
 	unsigned char* intraData;
 	uint32_t intraSize;
 	uint32_t ppsSize;
 	uint32_t spsSize;
+	uint32_t seiSize;
 	struct timeval segmentTime;
-	struct timeval previousTime;
 	float sampleDurationFloat;
 	float decodeTimeFloat;
 	uint32_t decodeTime;

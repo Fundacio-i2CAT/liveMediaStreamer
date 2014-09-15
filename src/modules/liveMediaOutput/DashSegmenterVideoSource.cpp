@@ -13,7 +13,7 @@ DashSegmenterVideoSource::DashSegmenterVideoSource(UsageEnvironment& env, Framed
 	uint8_t i2error;
 	i2error= context_initializer(&avContext, VIDEO_TYPE);
 	if (i2error == I2ERROR_MEDIA_TYPE) {
-		utils::errorMsg ("Media type incorrect");
+		printf ("Media type incorrect\n");
 	}
 	set_segment_duration(segmentTime, &avContext);
 	this->initFile = false;
@@ -85,14 +85,12 @@ void DashSegmenterVideoSource::afterGettingFrame1(unsigned frameSize, unsigned n
 			destinationData = new unsigned char [MAX_INIT_FILE_SIZE];
 		
 			initVideo = init_video_handler(metadata, metadataSize, metadata2, metadata2Size, sps, &spsSize, metadata3, metadata3Size, pps, ppsSize, destinationData, &avContext);
-			printf("Se genero INIT FILE: %u\n\n", initVideo);
 			initFile = true;
 			memcpy(fTo, destinationData, initVideo);
 			fFrameSize = initVideo;
 			fNumTruncatedBytes = 0;
 			fPresentationTime = segmentTime;
-			fDurationInMicroseconds = 0;//totalSegmentDuration;
-			//totalSegmentDuration = 0;
+			fDurationInMicroseconds = 0;
 			segmentTime = presentationTime;
 			afterGetting(this);
 			return;
@@ -111,18 +109,15 @@ void DashSegmenterVideoSource::afterGettingFrame1(unsigned frameSize, unsigned n
 			sampleDuration++;
 		}
 		destinationData = new unsigned char [MAX_DAT];
-		printf ("sampleDuration %u, decodeTime %u, totalSegmentDuration %u, size %u\n", sampleDuration, decodeTime, totalSegmentDuration, frameSize);
 		memcpy(nalDataWithSize, &nalSizeHtoN, NAL_LENGTH_SIZE);
 		memcpy(nalDataWithSize+NAL_LENGTH_SIZE, nalData, frameSize);
 		videoSample = add_sample(nalDataWithSize, frameSize + NAL_LENGTH_SIZE, sampleDuration, decodeTime, VIDEO_TYPE, destinationData, isIntra, &avContext);
 		decodeTime += sampleDuration;
 		if (videoSample <= I2ERROR_MAX) {
-			utils::debugMsg ("no segment");
 			totalSegmentDuration += durationInMicroseconds;
 			delete destinationData;
 		}
 		else {
-			utils::debugMsg ("NEW SEGMENT!\n");
 			memcpy(fTo, destinationData, videoSample);
 			delete destinationData;
 			sampleDurationFloat = 0.00;

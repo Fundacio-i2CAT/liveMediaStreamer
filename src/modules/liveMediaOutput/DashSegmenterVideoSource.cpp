@@ -1,5 +1,4 @@
 #include "DashSegmenterVideoSource.hh"
-#include "SinkManager.hh"
 #include <iostream>
 
 
@@ -48,7 +47,7 @@ void DashSegmenterVideoSource::afterGettingFrame1(unsigned frameSize, unsigned n
 	uint8_t isIntra = 0;
 	unsigned char *destinationData;
 	uint32_t videoSample = frameSize;
-	
+	//printf ("nal type %u\n", nalType);
 	switch (nalType) {
 	case SEI_NAL: //SEI
 		seiSize = frameSize;
@@ -114,10 +113,12 @@ void DashSegmenterVideoSource::afterGettingFrame1(unsigned frameSize, unsigned n
 		videoSample = add_sample(nalDataWithSize, frameSize + NAL_LENGTH_SIZE, sampleDuration, decodeTime, VIDEO_TYPE, destinationData, isIntra, &avContext);
 		decodeTime += sampleDuration;
 		if (videoSample <= I2ERROR_MAX) {
+			//printf ("no segment %u\n", videoSample);
 			totalSegmentDuration += durationInMicroseconds;
 			delete destinationData;
 		}
 		else {
+			//printf("SEGMENT!!!!!!!!!!!!!!!!!!!!!!!!!!!\n");
 			memcpy(fTo, destinationData, videoSample);
 			delete destinationData;
 			sampleDurationFloat = 0.00;

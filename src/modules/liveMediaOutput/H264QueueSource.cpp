@@ -60,7 +60,8 @@ void H264QueueSource::doGetNextFrame() {
     
     memcpy(fTo, buff, fFrameSize);
     fReader->removeFrame();
-    
+	//TODO fDurationInMicroseconds
+    fDurationInMicroseconds = 40000;
     afterGetting(this);
 }
 

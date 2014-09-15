@@ -5,26 +5,23 @@
 #include <i2libdash.h>
 #include <i2context.h>
 
-#include "../../FrameQueue.hh"
-#include "../../IOInterface.hh"
-#include "../../Frame.hh"
-#include "../../Utils.hh"
-
 #define	IDR_NAL 5
 #define SEI_NAL 6
 #define SPS_NAL 7
 #define PPS_NAL 8
 #define NAL_TYPE_MASK 0x1F
 #define NAL_LENGTH_SIZE 4
+#define FRAME_RATE 25
+#define SEGMENT_TIME 5 //seconds
 
 class DashSegmenterVideoSource: public FramedSource {
 
 public:
-    	static DashSegmenterVideoSource* createNew(UsageEnvironment& env, FramedSource* source, bool reInit = false, uint32_t frameRate = 24, uint32_t segmentTime = 5);
+    	static DashSegmenterVideoSource* createNew(UsageEnvironment& env, FramedSource* source, bool reInit = false, uint32_t frameRate = FRAME_RATE, uint32_t segmentTime = SEGMENT_TIME);
 	virtual void doGetNextFrame();
 
 protected:
-    	DashSegmenterVideoSource(UsageEnvironment& env, FramedSource* source, bool reInit = false, uint32_t frameRate = 24, uint32_t segmentTime = 5);
+    	DashSegmenterVideoSource(UsageEnvironment& env, FramedSource* source, bool reInit = false, uint32_t frameRate = FRAME_RATE, uint32_t segmentTime = SEGMENT_TIME);
 	void checkStatus();
 	static void staticDoGetNextFrame(FramedSource* source);
 	virtual ~DashSegmenterVideoSource();

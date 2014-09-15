@@ -98,7 +98,7 @@ void DashSegmenterVideoSource::afterGettingFrame1(unsigned frameSize, unsigned n
 		break;
 	case IDR_NAL: //IDR
 		isIntra = 1;
-	default:
+	default: //OTHER TYPES OF NAL
 		unsigned char* nalDataWithSize = new unsigned char [frameSize + NAL_LENGTH_SIZE];
 		uint32_t nalSizeHtoN = htonl(frameSize);
 		uint32_t sampleDuration = durationInMicroseconds / 1000;

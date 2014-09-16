@@ -25,7 +25,10 @@ DashSegmenterVideoSource::DashSegmenterVideoSource(UsageEnvironment& env, Framed
 	this->decodeTime = 0;
 	this->totalSegmentDuration = 0;
 	this->intraSize = 0;
-	this->nalData = new unsigned char[MAX_DAT];
+	this->nalData = new unsigned char[MAX_H264_SAMPLE];
+	this->sampleData = new unsigned char[MAX_H264_SAMPLE];
+	this->offset = 0;
+	this->offset = 0;
 }
 
 DashSegmenterVideoSource::~DashSegmenterVideoSource() {
@@ -43,24 +46,31 @@ void DashSegmenterVideoSource::afterGettingFrame(void* clientData, unsigned fram
 }
 
 void DashSegmenterVideoSource::afterGettingFrame1(unsigned frameSize, unsigned numTruncatedBytes, struct timeval presentationTime, unsigned durationInMicroseconds) {
+
 	unsigned char nalType = nalData[0] & NAL_TYPE_MASK;
-	uint8_t isIntra = 0;
-	unsigned char *destinationData;
 	uint32_t videoSample = frameSize;
-	//printf ("nal type %u\n", nalType);
+	init = false;
 	switch (nalType) {
 	case SEI_NAL: //SEI
+		if (seiSize)
+			delete sei;
 		seiSize = frameSize;
 		sei = new unsigned char[seiSize];
 		memcpy(sei, nalData, seiSize);
+		isIntra = 1;
 		break;
 	case SPS_NAL: //SPS
 		segmentTime = presentationTime;
+		previousTime = presentationTime;
+		if (spsSize)
+			delete sps;
 		spsSize = frameSize;
 		sps = new unsigned char[spsSize];
 		memcpy(sps, nalData, spsSize);
 		break;
 	case PPS_NAL: //PPS
+		if (ppsSize)
+			delete pps;
 		ppsSize = frameSize;
 		pps = new unsigned char[ppsSize];
 		memcpy(pps, nalData, ppsSize);
@@ -80,57 +90,68 @@ void DashSegmenterVideoSource::afterGettingFrame1(unsigned frameSize, unsigned n
 			metadata3 = new unsigned char[1];
 			metadata3[0] = 0x01;
 			metadata3Size = 1;
-			// DESTINATION DATA
-			destinationData = new unsigned char [MAX_INIT_FILE_SIZE];
 		
-			initVideo = init_video_handler(metadata, metadataSize, metadata2, metadata2Size, sps, &spsSize, metadata3, metadata3Size, pps, ppsSize, destinationData, &avContext);
+			initVideo = init_video_handler(metadata, metadataSize, metadata2, metadata2Size, sps, &spsSize, metadata3, metadata3Size, pps, ppsSize, fTo, &avContext);
 			initFile = true;
-			memcpy(fTo, destinationData, initVideo);
 			fFrameSize = initVideo;
 			fNumTruncatedBytes = 0;
 			fPresentationTime = segmentTime;
 			fDurationInMicroseconds = 0;
 			segmentTime = presentationTime;
+			init = true;
 			afterGetting(this);
 			return;
 		}
 		break;
 	case IDR_NAL: //IDR
 		isIntra = 1;
-	default: //OTHER TYPES OF NAL
-		unsigned char* nalDataWithSize = new unsigned char [frameSize + NAL_LENGTH_SIZE];
-		uint32_t nalSizeHtoN = htonl(frameSize);
-		uint32_t sampleDuration = durationInMicroseconds / 1000;
-		sampleDurationFloat +=  (float) durationInMicroseconds / 1000.00;
-		sampleDurationFloat -= sampleDuration;
-		if (sampleDurationFloat >= 1) {
-			sampleDurationFloat--;
-			sampleDuration++;
-		}
-		destinationData = new unsigned char [MAX_DAT];
-		memcpy(nalDataWithSize, &nalSizeHtoN, NAL_LENGTH_SIZE);
-		memcpy(nalDataWithSize+NAL_LENGTH_SIZE, nalData, frameSize);
-		videoSample = add_sample(nalDataWithSize, frameSize + NAL_LENGTH_SIZE, sampleDuration, decodeTime, VIDEO_TYPE, destinationData, isIntra, &avContext);
-		decodeTime += sampleDuration;
-		if (videoSample <= I2ERROR_MAX) {
-			//printf ("no segment %u\n", videoSample);
-			totalSegmentDuration += durationInMicroseconds;
-			delete destinationData;
+	default: //OTHER TYPE OF NALS
+		long int durationSam = (((presentationTime.tv_sec*1000000) + presentationTime.tv_usec)-((previousTime.tv_sec*1000000) + previousTime.tv_usec));
+		if (durationSam == 0) {//buffering
+			/*
+			+-----------+---------------+-----------+---------------+-----------+---------------+-----------+---------------+
+			|Nal 1 Size |     Nal 1     |Nal 2 Size |     Nal 2     |    ....   |     .....     |Nal N Size |     Nal N     |
+			+-----------+---------------+-----------+---------------+-----------+---------------+-----------+---------------+
+			*/
+			uint32_t nalSizeHtoN = htonl(frameSize);
+			memcpy(sampleData + offset, &nalSizeHtoN, NAL_LENGTH_SIZE);
+			offset+=NAL_LENGTH_SIZE;
+			memcpy(sampleData + offset, nalData, frameSize);
+			offset+= frameSize;			
 		}
 		else {
-			//printf("SEGMENT!!!!!!!!!!!!!!!!!!!!!!!!!!!\n");
-			memcpy(fTo, destinationData, videoSample);
-			delete destinationData;
-			sampleDurationFloat = 0.00;
-			decodeTimeFloat = 0.00;
-			fFrameSize = videoSample;
-			fNumTruncatedBytes = 0;
-			fPresentationTime = segmentTime;
-			fDurationInMicroseconds = totalSegmentDuration;
-			totalSegmentDuration = durationInMicroseconds;
-			segmentTime = presentationTime;
-			afterGetting(this);
-			return;
+			uint32_t nalSizeHtoN = htonl(frameSize);
+			uint32_t sampleDuration = durationSam / 1000;
+			sampleDurationFloat +=  (float) durationSam / 1000.00;
+			sampleDurationFloat -= sampleDuration;
+			if (sampleDurationFloat >= 1) {
+				sampleDurationFloat--;
+				sampleDuration++;
+			}
+			videoSample = add_sample(sampleData, offset, sampleDuration, decodeTime, VIDEO_TYPE, fTo, isIntra, &avContext);
+			previousTime = presentationTime;
+			isIntra = 1;
+			offset = 0;
+			memcpy(sampleData + offset, &nalSizeHtoN, NAL_LENGTH_SIZE);
+			offset+=NAL_LENGTH_SIZE;
+			memcpy(sampleData + offset, nalData, frameSize);
+			offset+= frameSize;			
+			decodeTime += sampleDuration;
+			if (videoSample <= I2ERROR_MAX) {
+				totalSegmentDuration += sampleDuration;
+			}
+			else {
+				sampleDurationFloat = 0.00;
+				decodeTimeFloat = 0.00;
+				fFrameSize = videoSample;
+				fNumTruncatedBytes = 0;
+				fPresentationTime = segmentTime;
+				fDurationInMicroseconds = totalSegmentDuration;
+				totalSegmentDuration = sampleDuration;
+				segmentTime = presentationTime;
+				afterGetting(this);
+				return;
+			}
 		}
 		break;
 	}

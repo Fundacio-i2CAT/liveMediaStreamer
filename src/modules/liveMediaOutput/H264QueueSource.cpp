@@ -46,7 +46,7 @@ void H264QueueSource::doGetNextFrame() {
     
     buff = frame->getDataBuf() + offset;
     size = size - offset;
-    
+
     fPresentationTime.tv_sec = frame->getPresentationTime().count()/1000000;
     fPresentationTime.tv_usec = frame->getPresentationTime().count()%1000000;
 
@@ -60,8 +60,6 @@ void H264QueueSource::doGetNextFrame() {
     
     memcpy(fTo, buff, fFrameSize);
     fReader->removeFrame();
-	//TODO fDurationInMicroseconds
-    fDurationInMicroseconds = 40000;
     afterGetting(this);
 }
 

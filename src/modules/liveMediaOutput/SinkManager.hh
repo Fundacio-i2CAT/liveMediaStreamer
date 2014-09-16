@@ -27,6 +27,7 @@
 #include "../../Filter.hh"
 #include "../../IOInterface.hh"
 #include "DashSegmenterVideoSource.hh"
+#include "DashFileSink.hh"
 
 #include <BasicUsageEnvironment.hh>
 #include <liveMedia.hh>
@@ -117,7 +118,7 @@ protected:
     
     struct in_addr destinationAddress;
     RTPSink *sink;
-	FileSink *outputVideoFile;
+	DashFileSink *outputVideoFile;
 	FileSink *outputAudioFile;
     RTCPInstance* rtcp;
     Groupsock *rtpGroupsock;

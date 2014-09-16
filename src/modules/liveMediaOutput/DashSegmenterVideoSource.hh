@@ -13,15 +13,17 @@
 #define NAL_LENGTH_SIZE 4
 #define FRAME_RATE 25
 #define SEGMENT_TIME 5 //seconds
+#define MAX_H264_SAMPLE 1024*1024 //1MB
 
 class DashSegmenterVideoSource: public FramedSource {
 
 public:
-    	static DashSegmenterVideoSource* createNew(UsageEnvironment& env, FramedSource* source, bool reInit = false, uint32_t frameRate = FRAME_RATE, uint32_t segmentTime = SEGMENT_TIME);
+   	static DashSegmenterVideoSource* createNew(UsageEnvironment& env, FramedSource* source, bool reInit = false, uint32_t frameRate = FRAME_RATE, uint32_t segmentTime = SEGMENT_TIME);
 	virtual void doGetNextFrame();
+	bool isInit(){return init;};
 
 protected:
-    	DashSegmenterVideoSource(UsageEnvironment& env, FramedSource* source, bool reInit = false, uint32_t frameRate = FRAME_RATE, uint32_t segmentTime = SEGMENT_TIME);
+    DashSegmenterVideoSource(UsageEnvironment& env, FramedSource* source, bool reInit = false, uint32_t frameRate = FRAME_RATE, uint32_t segmentTime = SEGMENT_TIME);
 	void checkStatus();
 	static void staticDoGetNextFrame(FramedSource* source);
 	virtual ~DashSegmenterVideoSource();
@@ -31,12 +33,14 @@ private:
 	i2ctx* avContext;
 	bool initFile;
 	bool reInitFile;
+	bool init;
 	FramedSource* fInputSource;
 	unsigned char* pps;
 	unsigned char* sps;
 	unsigned char* sei;
 	unsigned char* nalData;
-	unsigned char* intraData;
+	unsigned char* sampleData;
+	uint32_t offset;
 	uint32_t intraSize;
 	uint32_t ppsSize;
 	uint32_t spsSize;
@@ -46,6 +50,8 @@ private:
 	float decodeTimeFloat;
 	uint32_t decodeTime;
 	uint32_t totalSegmentDuration;
+	struct timeval previousTime;
+	uint8_t isIntra;
 };
 
 #endif

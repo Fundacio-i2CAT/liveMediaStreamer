@@ -577,7 +577,7 @@ DashVideoConnection::DashVideoConnection(UsageEnvironment* env,
 {
     switch(fCodec){
         case H264:
-            outputVideoFile = FileSink::createNew(*env, fileName.c_str(), MAX_DAT, True);
+            outputVideoFile = DashFileSink::createNew(*env, fileName.c_str(), MAX_DAT, True);
             fSource = DashSegmenterVideoSource::createNew(*fEnv, source, fReInit, fFps, fSegmentTime);
             break;
         case VP8:

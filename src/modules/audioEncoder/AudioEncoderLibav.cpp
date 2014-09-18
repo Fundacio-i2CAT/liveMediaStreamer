@@ -52,7 +52,7 @@ AudioEncoderLibav::AudioEncoderLibav()  : OneToOneFilter()
     libavSampleFmt = AV_SAMPLE_FMT_S16P;
     initializeEventMap();
 
-    currentTime = std::chrono::microsecond(0);
+    currentTime = std::chrono::microseconds(0);
     configure(fCodec);
     config();
 }
@@ -352,7 +352,7 @@ void AudioEncoderLibav::setPresentationTime(Frame* dst)
     if (currentTime.count() == 0) {
         currentTime = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now().time_since_epoch());
     }
-    
+
     std::chrono::microseconds frameDuration(1000000*libavFrame->nb_samples/internalSampleRate);
     currentTime += frameDuration;
     dst->setPresentationTime(currentTime);

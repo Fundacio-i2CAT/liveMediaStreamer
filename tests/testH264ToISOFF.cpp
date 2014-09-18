@@ -1,293 +1,95 @@
-#include "../src/modules/liveMediaInput/SourceManager.hh"
-#include "../src/modules/liveMediaOutput/SinkManager.hh"
-#include "../src/modules/videoResampler/VideoResampler.hh"
-#include "../src/modules/videoEncoder/VideoEncoderX264.hh"
-#include "../src/AudioFrame.hh"
-#include "../src/Controller.hh"
-#include "../src/Utils.hh"
+/**********
+This library is free software; you can redistribute it and/or modify it under
+the terms of the GNU Lesser General Public License as published by the
+Free Software Foundation; either version 2.1 of the License, or (at your
+option) any later version. (See <http://www.gnu.org/copyleft/lesser.html>.)
 
-#include <csignal>
-#include <vector>
+This library is distributed in the hope that it will be useful, but WITHOUT
+ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for
+more details.
+
+You should have received a copy of the GNU Lesser General Public License
+along with this library; if not, write to the Free Software Foundation, Inc.,
+51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
+**********/
+// Copyright (c) 1996-2014, Live Networks, Inc.  All rights reserved
+// A program that converts a H.264 (Elementary Stream) video file into a Transport Stream file.
+// main program
+
 #include <liveMedia/liveMedia.hh>
-#include <string>
+#include <BasicUsageEnvironment/BasicUsageEnvironment.hh>
+#include "../src/modules/liveMediaOutput/DashSegmenterVideoSource.hh"
 
-#define V_MEDIUM "video"
-#define PROTOCOL "RTP"
-#define V_PAYLOAD 96
-#define V_CODEC "H264"
-#define V_BANDWITH 1200
-#define V_TIME_STMP_FREQ 90000
-#define FRAME_RATE 25
+//#define MAX_DAT 10*1024*1024 
 
-#define A_MEDIUM "audio"
-#define A_PAYLOAD 97
-#define A_CODEC "OPUS"
-#define A_BANDWITH 128
-#define A_TIME_STMP_FREQ 48000
-#define A_CHANNELS 2
+char const* inputFileName = "salida.h264";
+char const* outputFileName = "./segments/out.m4v";
 
-bool run = true;
+void afterPlaying(void* clientData); // forward
 
-void signalHandler( int signum )
-{
-    utils::infoMsg("Interruption signal received");
-    
-    PipelineManager *pipe = Controller::getInstance()->pipelineManager();
-    pipe->stop();
-    run = false;
-    
-    utils::infoMsg("Workers Stopped");
-}
+UsageEnvironment* env;
 
-void addAudioSource(unsigned port, std::string codec = A_CODEC, 
-                    unsigned channels = A_CHANNELS, unsigned freq = A_TIME_STMP_FREQ)
-{
-    int aDecId = rand();
-    int aEncId = rand();
-    int decId = rand();
-    int encId = rand();
-    std::vector<int> ids({decId, encId});
-    std::string sessionId;
-    std::string sdp;
-    
-    AudioDecoderLibav *decoder;
-    AudioEncoderLibav *encoder;
-    
-    BestEffortMaster* aDec;
-    BestEffortMaster* aEnc;
-    
-    Session *session;
-    Path *path;
-    
-    PipelineManager *pipe = Controller::getInstance()->pipelineManager();
-    SourceManager *receiver = pipe->getReceiver();
-       
-    sessionId = utils::randomIdGenerator(ID_LENGTH);
-    sdp = SourceManager::makeSessionSDP(sessionId, "this is an audio stream");    
-    sdp += SourceManager::makeSubsessionSDP(A_MEDIUM, PROTOCOL, A_PAYLOAD, codec, 
-                                            A_BANDWITH, freq, port, channels);
-    utils::infoMsg(sdp);
-    
-    session = Session::createNew(*(receiver->envir()), sdp, sessionId);
-    if (!receiver->addSession(session)){
-        utils::errorMsg("Could not add audio session");
-        return;
-    }
-    if (!session->initiateSession()){
-        utils::errorMsg("Could not initiate audio session");
-        return;
-    }
-    
-    //NOTE: Adding decoder to pipeManager and handle worker
-    decoder = new AudioDecoderLibav();
-    pipe->addFilter(decId, decoder);
-    aDec = new BestEffortMaster();
-    aDec->addProcessor(decId, decoder);
-    decoder->setWorkerId(aDecId);
-    pipe->addWorker(aDecId, aDec);
-    
-    //NOTE: Adding encoder to pipeManager and handle worker
-    encoder = new AudioEncoderLibav();
-    pipe->addFilter(encId, encoder);
-    aEnc = new BestEffortMaster();
-    aEnc->addProcessor(encId, encoder);
-    encoder->setWorkerId(aEncId);
-    pipe->addWorker(aEncId, aEnc);
-   
-    //NOTE: add filter to path
-    path = pipe->createPath(pipe->getReceiverID(), pipe->getTransmitterID(), port, -1, ids);
-    pipe->addPath(port, path);       
-    pipe->connectPath(path);
-        
-    pipe->startWorkers();
-}
+int main(int argc, char** argv) {
+  // Begin by setting up our usage environment:
+  TaskScheduler* scheduler = BasicTaskScheduler::createNew();
+  env = BasicUsageEnvironment::createNew(*scheduler);
 
-void addVideoSource(unsigned port, unsigned fps = FRAME_RATE, std::string codec = V_CODEC, 
-                    unsigned width = 0, unsigned height = 0)
-{
-    int wResId = rand();
-    int wEncId = rand();
-    int wDecId = rand();
-    int decId = rand();
-    int resId = rand();
-    int encId = rand();
-    std::vector<int> ids({decId, resId, encId});
-    std::string sessionId;
-    std::string sdp;
-    
-    VideoResampler *resampler;
-    VideoEncoderX264 *encoder;
-    VideoDecoderLibav *decoder;
-    
-    BestEffortMaster* wDec;
-    BestEffortMaster* wRes;
-    ConstantFramerateMaster* wEnc;
-    
-    Session *session;
-    Path *path;
-    
-    PipelineManager *pipe = Controller::getInstance()->pipelineManager();
-    SourceManager *receiver = pipe->getReceiver();
-    
-    sessionId = utils::randomIdGenerator(ID_LENGTH);
-    sdp = SourceManager::makeSessionSDP(sessionId, "this is a video stream");    
-    sdp += SourceManager::makeSubsessionSDP(V_MEDIUM, PROTOCOL, V_PAYLOAD, codec, 
-                                            V_BANDWITH, V_TIME_STMP_FREQ, port);
-    utils::infoMsg(sdp);
-    
-    session = Session::createNew(*(receiver->envir()), sdp, sessionId);
-    if (!receiver->addSession(session)){
-        utils::errorMsg("Could not add video session");
-        return;
-    }
-    if (!session->initiateSession()){
-        utils::errorMsg("Could not initiate video session");
-        return;
-    }
-       
-    //NOTE: Adding decoder to pipeManager and handle worker
-    decoder = new VideoDecoderLibav();
-    pipe->addFilter(decId, decoder);
-    wDec = new BestEffortMaster();
-    wDec->addProcessor(decId, decoder);
-    decoder->setWorkerId(wDecId);
-    pipe->addWorker(wDecId, wDec);
-    
-    //NOTE: Adding resampler to pipeManager and handle worker
-    resampler = new VideoResampler();
-    pipe->addFilter(resId, resampler);
-    wRes = new BestEffortMaster();
-    wRes->addProcessor(resId, resampler);
-    resampler->setWorkerId(wResId);
-    resampler->configure(width, height, 0, YUV420P);
-    pipe->addWorker(wResId, wRes);
-    
-    //NOTE: Adding encoder to pipeManager and handle worker
-    encoder = new VideoEncoderX264(true);
-    encoder->configure(DEFAULT_GOP, DEFAULT_BITRATE, DEFAULT_ENCODER_THREADS, true);
-    pipe->addFilter(encId, encoder);
-    wEnc = new ConstantFramerateMaster();
-    wEnc->addProcessor(encId, encoder);
-    encoder->setWorkerId(wEncId);
-    wEnc->setFps(fps*1001.0/1000);
-    pipe->addWorker(wEncId, wEnc);
-    
-    //NOTE: add filter to path
-    path = pipe->createPath(pipe->getReceiverID(), pipe->getTransmitterID(), port, -1, ids);
-    pipe->addPath(port, path);       
-    pipe->connectPath(path);
-    
-    pipe->startWorkers();
-}
+  // Open the input file as a 'byte-stream file source':
+  FramedSource* inputSource = ByteStreamFileSource::createNew(*env, inputFileName);
+  if (inputSource == NULL) {
+    *env << "Unable to open file \"" << inputFileName
+	 << "\" as a byte-stream file source\n";
+    exit(1);
+  }
 
-void addConnections(std::vector<int> readers, std::string ip, unsigned port)
-{
-    PipelineManager *pipe = Controller::getInstance()->pipelineManager();
-    SinkManager *transmitter = pipe->getTransmitter();
-    for(auto reader : readers){
-        if (transmitter->addConnection(reader, rand(), ip, port)) {
-            utils::infoMsg("added connection for " + ip + ":" + std::to_string(port));
-            port+=2;
-        }
-    }
-}
+  // Create a 'framer' filter for this file source, to generate presentation times for each NAL unit:
+  H264VideoStreamFramer* framer = H264VideoStreamFramer::createNew(*env, inputSource);
 
-void addDashConnections(std::vector<int> readers, std::string fileName, bool reInit, uint32_t fps, uint32_t segmentTime)
-{
-    PipelineManager *pipe = Controller::getInstance()->pipelineManager();
-    SinkManager *transmitter = pipe->getTransmitter();
-    for(auto reader : readers){
-        if (transmitter->addDashConnection(reader, rand(), fileName, reInit, fps, segmentTime)) {
-            utils::infoMsg("added connection for " + fileName);
-        }
-    }
-}
-
-int main(int argc, char* argv[]) 
-{   
-    std::vector<int> readers;
-    
-    unsigned vPort = 0;
-    unsigned aPort = 0;
-    unsigned port = 0;
-    unsigned fps = FRAME_RATE;
-	unsigned segmentTime = SEGMENT_TIME;
-	bool reInit = false;
-    std::string ip;
-    std::string sessionId;
-    std::string rtspUri;
-	std::string fileName;
-
-    utils::setLogLevel(INFO);
-    
-    for (int i = 1; i < argc; i++) {     
-        if (strcmp(argv[i],"-v")==0) {
-            vPort = std::stoi(argv[i+1]);
-            utils::infoMsg("video input port: " + std::to_string(vPort));
-        } else if (strcmp(argv[i],"-a")==0) {
-            aPort = std::stoi(argv[i+1]);
-            utils::infoMsg("audio input port: " + std::to_string(aPort));
-        } else if (strcmp(argv[i],"-d")==0) {
-            ip = argv[i + 1];
-            utils::infoMsg("destination IP: " + ip);
-        } else if (strcmp(argv[i],"-P")==0) {
-            port = std::stoi(argv[i+1]);
-            utils::infoMsg("destination port: " + std::to_string(port));
-        } else if (strcmp(argv[i],"-f")==0) {
-            fps = std::stoi(argv[i+1]);
-            utils::infoMsg("output frame rate: " + std::to_string(fps));
-        } else if (strcmp(argv[i],"-D")==0) {
-            fileName = argv[i+1];
-            utils::infoMsg("destination IP: " + fileName);
-        }
-    }
-    
-    if (vPort == 0 && aPort == 0){
-        utils::errorMsg("invalid parameters");
-        return 1;
-    }
-
-    PipelineManager *pipe = Controller::getInstance()->pipelineManager();
-    pipe->start();
-    SinkManager *transmitter = pipe->getTransmitter();
-
-    signal(SIGINT, signalHandler); 
-    
-    if (vPort != 0){
-        addVideoSource(vPort, fps);
-    }
-    
-    if (aPort != 0){
-        addAudioSource(aPort);
-    }
-       
-    for (auto it : pipe->getPaths()){
-        readers.push_back(it.second->getDstReaderID());    
-    }
-    
-    sessionId = utils::randomIdGenerator(ID_LENGTH);
-    if (! transmitter->addSession(sessionId, readers)){
-        return 1;
-    }
-    transmitter->publishSession(sessionId);
-    
-    sessionId = utils::randomIdGenerator(ID_LENGTH);
-    if (! transmitter->addSession(sessionId, readers)){
-        return 1;
-    }
-    transmitter->publishSession(sessionId);
-    
-    if (port != 0 && !ip.empty()){
-        addConnections(readers, ip, port);
-    }
-
-    if (!fileName.empty()){
-        addDashConnections(readers, fileName, reInit, fps, segmentTime);
-    }
-    
-    while (run) {
-        sleep(1);
-    }
  
-    return 0;
+
+
+ // Then create a filter that packs the H.264 video data into a Transport Stream:
+/*   MPEG2TransportStreamFromESSource* tsFrames = MPEG2TransportStreamFromESSource::createNew(*env);
+  tsFrames->addNewVideoSource(framer, 5);
+  
+  // Open the output file as a 'file sink':
+ MediaSink* outputSink = FileSink::createNew(*env, outputFileName);
+  if (outputSink == NULL) {
+    *env << "Unable to open file \"" << outputFileName << "\" as a file sink\n";
+    exit(1);
+  }
+
+  // Finally, start playing:
+  *env << "Beginning to read...\n";
+  outputSink->startPlaying(*tsFrames, afterPlaying, NULL);*/
+
+
+
+
+  DashSegmenterVideoSource* isoff = DashSegmenterVideoSource::createNew(*env, framer);
+  //tsFrames->addNewVideoSource(framer, 5);
+
+  MediaSink* outputSink = FileSink::createNew(*env, outputFileName, MAX_DAT, True);
+  if (outputSink == NULL) {
+    *env << "Unable to open file \"" << outputFileName << "\" as a file sink\n";
+    exit(1);
+  }
+
+  // Finally, start playing:
+  *env << "Beginning to read...\n";
+  outputSink->startPlaying(*isoff, afterPlaying, NULL);
+
+
+
+
+  env->taskScheduler().doEventLoop(); // does not return
+
+  return 0; // only to prevent compiler warning
+}
+
+void afterPlaying(void* /*clientData*/) {
+  *env << "Done reading.\n";
+  *env << "Wrote output file: \"" << outputFileName << "\"\n";
+  exit(0);
 }

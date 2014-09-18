@@ -224,7 +224,7 @@ bool VideoEncoderX264::reconfigure(VideoFrame* orgFrame, X264VideoFrame* x264Fra
 
 void VideoEncoderX264::updatePresentationTime(Frame* dst)
 {
-	frameTimestamp +=  std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now().time_since_epoch());;
+	frameTimestamp = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now().time_since_epoch());;
     dst->setPresentationTime(frameTimestamp);
 }
 

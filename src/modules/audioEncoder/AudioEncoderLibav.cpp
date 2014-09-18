@@ -140,7 +140,7 @@ void AudioEncoderLibav::configure(ACodecType codec, int internalChannels, int in
             internalLibavSampleFormat = AV_SAMPLE_FMT_S16;
             internalSampleFmt = S16;
             break; 
-        case AAC:
+        case MPEG4_GENERIC:
             codecID = AV_CODEC_ID_AAC;
             internalLibavSampleFormat = AV_SAMPLE_FMT_S16;
             internalSampleFmt = S16;

@@ -5,13 +5,15 @@
 #include <MediaSink.hh>
 #endif
 #include "DashSegmenterVideoSource.hh"
-
+#define ONLY_VIDEO 0
+#define ONLY_AUDIO 1
+#define VIDEO_AUDIO 2
 
 class DashFileSink: public MediaSink {
 public:
   static DashFileSink* createNew(UsageEnvironment& env, char const* fileName,
 			     unsigned bufferSize = 20000,
-			     Boolean oneFilePerFrame = False);
+			     Boolean oneFilePerFrame = False, char const* quality = NULL, unsigned segmentNumber = 0, char const* extension = NULL, unsigned streamType = 0, bool eraseFiles = false);
   // "bufferSize" should be at least as large as the largest expected
   //   input frame.
   // "oneFilePerFrame" - if True - specifies that each input frame will
@@ -25,7 +27,7 @@ public:
 
 protected:
   DashFileSink(UsageEnvironment& env, FILE* fid, unsigned bufferSize,
-	   char const* perFrameFileNamePrefix);
+	   char const* perFrameFileNamePrefix, char const* quality = NULL, unsigned segmentNumber = 0, char const* extension = NULL, unsigned streamType = 0, bool eraseFiles = false);
       // called only by createNew()
   virtual ~DashFileSink();
 
@@ -48,7 +50,11 @@ protected:
   char* fPerFrameFileNameBuffer; // used if "oneFilePerFrame" is True
   struct timeval fPrevPresentationTime;
   unsigned fSamePresentationTimeCounter;
+  char* fQuality;
   unsigned fSegmentNumber;
+  char* fExtension;
+  unsigned fStreamType;
+  bool fEraseFiles;
 };
 
 #endif

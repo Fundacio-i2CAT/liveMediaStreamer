@@ -8,8 +8,8 @@
 
 
 DashFileSink::DashFileSink(UsageEnvironment& env, FILE* fid, unsigned bufferSize,
-		   char const* perFrameFileNamePrefix)
-  : MediaSink(env), fOutFid(fid), fBufferSize(bufferSize), fSamePresentationTimeCounter(0), fSegmentNumber(0) {
+		   char const* perFrameFileNamePrefix, char const* quality, unsigned segmentNumber, char const* extension, unsigned streamType, bool eraseFiles)
+  : MediaSink(env), fOutFid(fid), fBufferSize(bufferSize), fSamePresentationTimeCounter(0), fSegmentNumber(segmentNumber), fStreamType(streamType), fEraseFiles(eraseFiles) {
   fBuffer = new unsigned char[bufferSize];
   if (perFrameFileNamePrefix != NULL) {
     fPerFrameFileNamePrefix = strDup(perFrameFileNamePrefix);
@@ -18,6 +18,17 @@ DashFileSink::DashFileSink(UsageEnvironment& env, FILE* fid, unsigned bufferSize
     fPerFrameFileNamePrefix = NULL;
     fPerFrameFileNameBuffer = NULL;
   }
+  if (quality != NULL) {
+    fQuality = strDup(quality);
+  } else {
+    fQuality = NULL;
+  }
+  if (extension != NULL) {
+    fExtension = strDup(extension);
+  } else {
+    fExtension = NULL;
+  }
+
   fPrevPresentationTime.tv_sec = ~0; fPrevPresentationTime.tv_usec = 0;
 }
 
@@ -25,11 +36,13 @@ DashFileSink::~DashFileSink() {
   delete[] fPerFrameFileNameBuffer;
   delete[] fPerFrameFileNamePrefix;
   delete[] fBuffer;
+  delete[] fQuality;
+  delete[] fExtension;
   if (fOutFid != NULL) fclose(fOutFid);
 }
 
 DashFileSink* DashFileSink::createNew(UsageEnvironment& env, char const* fileName,
-			      unsigned bufferSize, Boolean oneFilePerFrame) {
+			      unsigned bufferSize, Boolean oneFilePerFrame, char const* quality, unsigned segmentNumber, char const* extension, unsigned streamType, bool eraseFiles) {
   do {
     FILE* fid;
     char const* perFrameFileNamePrefix;
@@ -44,7 +57,7 @@ DashFileSink* DashFileSink::createNew(UsageEnvironment& env, char const* fileNam
       perFrameFileNamePrefix = NULL;
     }
 
-    return new DashFileSink(env, fid, bufferSize, perFrameFileNamePrefix);
+    return new DashFileSink(env, fid, bufferSize, perFrameFileNamePrefix, quality, segmentNumber, extension, streamType, eraseFiles);
   } while (0);
 
   return NULL;
@@ -73,25 +86,33 @@ void DashFileSink::addData(unsigned char const* data, unsigned dataSize,
   if (fPerFrameFileNameBuffer != NULL && fOutFid == NULL) {
 	 DashSegmenterVideoSource* dashSource = dynamic_cast<DashSegmenterVideoSource*> (fSource);
 	if (dashSource->isInit()) {
-		 sprintf(fPerFrameFileNameBuffer, "%s_init.m4v", fPerFrameFileNamePrefix);
+		switch (fStreamType) {
+		case ONLY_VIDEO:			
+			sprintf(fPerFrameFileNameBuffer, "%s_%s_%s_init.%s", fPerFrameFileNamePrefix, fQuality, "video", fExtension);
+			break;
+		case ONLY_AUDIO:
+			sprintf(fPerFrameFileNameBuffer, "%s_%s_%s_init.%s", fPerFrameFileNamePrefix, fQuality, "audio", fExtension);
+			break;
+		case VIDEO_AUDIO:
+			sprintf(fPerFrameFileNameBuffer, "%s_%s_%s_init.%s", fPerFrameFileNamePrefix, fQuality, "video_audio", fExtension);
+			break;
+		}
 	}
 	else {
-		 sprintf(fPerFrameFileNameBuffer, "%s_%u.m4v", fPerFrameFileNamePrefix, fSegmentNumber++);
+		switch (fStreamType) {
+		case ONLY_VIDEO:			
+			sprintf(fPerFrameFileNameBuffer, "%s_%s_%s_%u.%s", fPerFrameFileNamePrefix, fQuality, "video", fSegmentNumber++, fExtension);
+			break;
+		case ONLY_AUDIO:
+			sprintf(fPerFrameFileNameBuffer, "%s_%s_%s_%u.%s", fPerFrameFileNamePrefix, fQuality, "audio", fSegmentNumber++, fExtension);
+			break;
+		case VIDEO_AUDIO:
+			sprintf(fPerFrameFileNameBuffer, "%s_%s_%s_%u.%s", fPerFrameFileNamePrefix, fQuality, "video_audio", fSegmentNumber++, fExtension);
+			break;
+		}
 	}
-    // Special case: Open a new file on-the-fly for this frame
-    /*if (presentationTime.tv_usec == fPrevPresentationTime.tv_usec &&
-	presentationTime.tv_sec == fPrevPresentationTime.tv_sec) {
-      // The presentation time is unchanged from the previous frame, so we add a 'counter'
-      // suffix to the file name, to distinguish them:
-      sprintf(fPerFrameFileNameBuffer, "%s-%lu.%06lu-%u", fPerFrameFileNamePrefix,
-	      presentationTime.tv_sec, presentationTime.tv_usec, ++fSamePresentationTimeCounter);
-    } else {
-      sprintf(fPerFrameFileNameBuffer, "%s-%lu.%06lu", fPerFrameFileNamePrefix,
-	      presentationTime.tv_sec, presentationTime.tv_usec);
-      fPrevPresentationTime = presentationTime; // for next time
-      fSamePresentationTimeCounter = 0; // for next time
-    }*/
     fOutFid = OpenOutputFile(envir(), fPerFrameFileNameBuffer);
+	//TODO eraseFiles
   }
 
   // Write to our file:

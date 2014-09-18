@@ -236,7 +236,8 @@ void SinkManager::createAudioQueueSource(ACodecType codec, Reader *reader, int r
 {
     QueueSource *source;
     switch(codec){
-        case AAC:
+        case MPEG4_GENERIC:
+			printf("QUE ES ESTO!!!!!!!!!!!!!!!!!!!!\n");
             //TODO
             break;
         default:
@@ -268,8 +269,9 @@ ServerMediaSubsession *SinkManager::createAudioMediaSubsession(ACodecType codec,
                                                                int readerId)
 {
     switch(codec){
-        case AAC:
+        case MPEG4_GENERIC:
             //TODO
+			printf("QUE ES OTRO ESTO!!!!!!!!!!!!!!!!!!!!\n");
             break;
         default:
             return AudioQueueServerMediaSubsession::createNew(*(envir()), replicas[readerId], 
@@ -577,7 +579,7 @@ DashVideoConnection::DashVideoConnection(UsageEnvironment* env,
 {
     switch(fCodec){
         case H264:
-            outputVideoFile = DashFileSink::createNew(*env, fileName.c_str(), MAX_DAT, True);
+            outputVideoFile = DashFileSink::createNew(*env, fileName.c_str(), MAX_DAT, True, "720", 0, "m4v", 0, false);
             fSource = DashSegmenterVideoSource::createNew(*fEnv, source, fReInit, fFps, fSegmentTime);
             break;
         case VP8:

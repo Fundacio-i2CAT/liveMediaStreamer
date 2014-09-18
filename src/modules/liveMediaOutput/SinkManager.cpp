@@ -236,10 +236,10 @@ void SinkManager::createAudioQueueSource(ACodecType codec, Reader *reader, int r
 {
     QueueSource *source;
     switch(codec){
-        case MPEG4_GENERIC:
-			printf("QUE ES ESTO!!!!!!!!!!!!!!!!!!!!\n");
+       // case MPEG4_GENERIC:
+			//printf("TODO createAudioQueueSource\n");
             //TODO
-            break;
+            //break;
         default:
             source = QueueSource::createNew(*(envir()), reader, readerId);
             replicas[readerId] = StreamReplicator::createNew(*(envir()), source, False);
@@ -269,10 +269,10 @@ ServerMediaSubsession *SinkManager::createAudioMediaSubsession(ACodecType codec,
                                                                int readerId)
 {
     switch(codec){
-        case MPEG4_GENERIC:
+        //case MPEG4_GENERIC:
             //TODO
-			printf("QUE ES OTRO ESTO!!!!!!!!!!!!!!!!!!!!\n");
-            break;
+			//printf("TODO createAudioMediaSubsession\n");
+            //break;
         default:
             return AudioQueueServerMediaSubsession::createNew(*(envir()), replicas[readerId], 
                                                               readerId, codec, channels,

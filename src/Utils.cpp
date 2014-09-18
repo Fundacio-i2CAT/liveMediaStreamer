@@ -69,7 +69,6 @@ namespace utils
     ACodecType getCodecFromString(std::string stringCodec)
     {
         ACodecType codec;
-        
         if (stringCodec.compare("g711") == 0) {
             codec = G711;
         } else if (stringCodec.compare("pcmu") == 0) {

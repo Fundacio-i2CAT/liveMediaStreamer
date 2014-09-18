@@ -21,9 +21,9 @@
 
 #define A_MEDIUM "audio"
 #define A_PAYLOAD 97
-#define A_CODEC "OPUS"
-#define A_BANDWITH 128
-#define A_TIME_STMP_FREQ 48000
+#define A_CODEC "MPEG4_GENERIC"
+#define A_BANDWITH 32
+#define A_TIME_STMP_FREQ 44100
 #define A_CHANNELS 2
 
 bool run = true;
@@ -42,19 +42,9 @@ void signalHandler( int signum )
 void addAudioSource(unsigned port, std::string codec = A_CODEC, 
                     unsigned channels = A_CHANNELS, unsigned freq = A_TIME_STMP_FREQ)
 {
-    int aDecId = rand();
-    int aEncId = rand();
-    int decId = rand();
-    int encId = rand();
-    std::vector<int> ids({decId, encId});
+	std::vector<int> ids;
     std::string sessionId;
     std::string sdp;
-    
-    AudioDecoderLibav *decoder;
-    AudioEncoderLibav *encoder;
-    
-    BestEffortMaster* aDec;
-    BestEffortMaster* aEnc;
     
     Session *session;
     Path *path;
@@ -64,8 +54,9 @@ void addAudioSource(unsigned port, std::string codec = A_CODEC,
        
     sessionId = utils::randomIdGenerator(ID_LENGTH);
     sdp = SourceManager::makeSessionSDP(sessionId, "this is an audio stream");    
-    sdp += SourceManager::makeSubsessionSDP(A_MEDIUM, PROTOCOL, A_PAYLOAD, codec, 
+    sdp += SourceManager::makeSubsessionSDP(A_MEDIUM, PROTOCOL, A_PAYLOAD, "MPEG4-GENERIC", 
                                             A_BANDWITH, freq, port, channels);
+	sdp += "a=fmtp:97 profile-level-id=1;mode=aac-hbr;sizelength=13;indexlength=3;indexdeltalength=3; config=EB8A0800\n";
     utils::infoMsg(sdp);
     
     session = Session::createNew(*(receiver->envir()), sdp, sessionId);
@@ -78,28 +69,14 @@ void addAudioSource(unsigned port, std::string codec = A_CODEC,
         return;
     }
     
-    //NOTE: Adding decoder to pipeManager and handle worker
-    decoder = new AudioDecoderLibav();
-    pipe->addFilter(decId, decoder);
-    aDec = new BestEffortMaster();
-    aDec->addProcessor(decId, decoder);
-    decoder->setWorkerId(aDecId);
-    pipe->addWorker(aDecId, aDec);
-    
-    //NOTE: Adding encoder to pipeManager and handle worker
-    encoder = new AudioEncoderLibav();
-    pipe->addFilter(encId, encoder);
-    aEnc = new BestEffortMaster();
-    aEnc->addProcessor(encId, encoder);
-    encoder->setWorkerId(aEncId);
-    pipe->addWorker(aEncId, aEnc);
-   
     //NOTE: add filter to path
     path = pipe->createPath(pipe->getReceiverID(), pipe->getTransmitterID(), port, -1, ids);
     pipe->addPath(port, path);       
     pipe->connectPath(path);
         
     pipe->startWorkers();
+
+
 }
 
 void addVideoSource(unsigned port, unsigned fps = FRAME_RATE, std::string codec = V_CODEC, 
@@ -130,7 +107,7 @@ void addVideoSource(unsigned port, unsigned fps = FRAME_RATE, std::string codec 
     SourceManager *receiver = pipe->getReceiver();
     
     sessionId = utils::randomIdGenerator(ID_LENGTH);
-    sdp = SourceManager::makeSessionSDP(sessionId, "this is a video stream");    
+    sdp = SourceManager::makeSessionSDP(sessionId, "this is a video stream");
     sdp += SourceManager::makeSubsessionSDP(V_MEDIUM, PROTOCOL, V_PAYLOAD, codec, 
                                             V_BANDWITH, V_TIME_STMP_FREQ, port);
     utils::infoMsg(sdp);
@@ -291,3 +268,4 @@ int main(int argc, char* argv[])
  
     return 0;
 }
+

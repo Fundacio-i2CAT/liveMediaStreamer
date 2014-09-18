@@ -366,6 +366,9 @@ bool AudioDecoderLibav::reconfigureDecoder(AudioFrame* frame)
         case OPUS:
             codecID = AV_CODEC_ID_OPUS;
             break;
+        case MPEG4_GENERIC:
+            codecID = AV_CODEC_ID_AAC;
+            break;
         case MP3:
             codecID = AV_CODEC_ID_MP3;
             break;

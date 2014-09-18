@@ -187,7 +187,6 @@ bool BaseFilter::connect(BaseFilter *R, int writerID, int readerID, bool slaveQu
     FrameQueue *queue;
 
     utils::debugMsg("slaveQueue Value: " + std::to_string(slaveQueue));
-    
     if (writers.size() < getMaxWriters() && writers.count(writerID) <= 0) {
         writers[writerID] = new Writer();
         utils::debugMsg("New writer created " + std::to_string(writerID));
@@ -225,7 +224,7 @@ bool BaseFilter::connect(BaseFilter *R, int writerID, int readerID, bool slaveQu
     	writers[writerID]->setQueue(queue);
 	}
 
-    return writers[writerID]->connect(r);
+	return writers[writerID]->connect(r);
 }
 
 bool BaseFilter::connectOneToOne(BaseFilter *R, bool slaveQueue)

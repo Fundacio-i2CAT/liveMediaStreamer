@@ -45,7 +45,7 @@ AudioEncoderLibav::AudioEncoderLibav()  : OneToOneFilter()
 
     internalChannels = DEFAULT_CHANNELS;
     internalSampleRate = DEFAULT_SAMPLE_RATE;
-    fCodec = OPUS;
+    fCodec = MP3;
     channels = DEFAULT_CHANNELS;
     sampleRate = DEFAULT_SAMPLE_RATE;
     sampleFmt = S16P;

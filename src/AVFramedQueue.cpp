@@ -184,8 +184,8 @@ bool AudioFrameQueue::config()
                 frames[i] = InterleavedAudioFrame::createNew(channels, sampleRate, AudioFrame::getMaxSamples(sampleRate), codec, sampleFormat);
             }
             break;
-        case AAC:
-            max = FRAMES_OPUS;
+        case MPEG4_GENERIC:
+            max = FRAMES_OPUS;//??
             sampleFormat = S16;
             for (int i=0; i<max; i++) {
                 frames[i] = InterleavedAudioFrame::createNew(channels, sampleRate, AudioFrame::getMaxSamples(sampleRate), codec, sampleFormat);

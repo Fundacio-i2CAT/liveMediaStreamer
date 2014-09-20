@@ -45,13 +45,14 @@ AudioEncoderLibav::AudioEncoderLibav()  : OneToOneFilter()
 
     internalChannels = DEFAULT_CHANNELS;
     internalSampleRate = DEFAULT_SAMPLE_RATE;
-    fCodec = OPUS;
+    fCodec = MP3;
     channels = DEFAULT_CHANNELS;
     sampleRate = DEFAULT_SAMPLE_RATE;
     sampleFmt = S16P;
     libavSampleFmt = AV_SAMPLE_FMT_S16P;
     initializeEventMap();
 
+    currentTime = std::chrono::microseconds(0);
     configure(fCodec);
     config();
 }
@@ -140,7 +141,7 @@ void AudioEncoderLibav::configure(ACodecType codec, int internalChannels, int in
             internalLibavSampleFormat = AV_SAMPLE_FMT_S16;
             internalSampleFmt = S16;
             break; 
-        case AAC:
+        case MPEG4_GENERIC:
             codecID = AV_CODEC_ID_AAC;
             internalLibavSampleFormat = AV_SAMPLE_FMT_S16;
             internalSampleFmt = S16;
@@ -272,9 +273,6 @@ bool AudioEncoderLibav::config()
 
     needsConfig = false;
     
-    std::chrono::system_clock::time_point tp = std::chrono::system_clock::now();
-    currentTime = std::chrono::duration_cast<std::chrono::microseconds>(tp.time_since_epoch());
-
     return true;
 }
 
@@ -351,6 +349,10 @@ bool AudioEncoderLibav::reconfigure(AudioFrame* frame)
 
 void AudioEncoderLibav::setPresentationTime(Frame* dst) 
 {
+    if (currentTime.count() == 0) {
+        currentTime = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now().time_since_epoch());
+    }
+
     std::chrono::microseconds frameDuration(1000000*libavFrame->nb_samples/internalSampleRate);
     currentTime += frameDuration;
     dst->setPresentationTime(currentTime);

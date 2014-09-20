@@ -19,6 +19,7 @@ liblivemediastreamer_la_SOURCES = modules/audioDecoder/AudioDecoderLibav.cpp \
                                   modules/liveMediaOutput/JPEGQueueServerMediaSubsession.cpp \
                                   modules/liveMediaOutput/QueueServerMediaSubsession.cpp \
                                   modules/liveMediaOutput/QueueSource.cpp \
+                                  modules/liveMediaOutput/DashFileSink.cpp \
                                   modules/liveMediaOutput/DashSegmenterVideoSource.cpp \
                                   modules/liveMediaOutput/SinkManager.cpp \
                                   modules/liveMediaOutput/VP8QueueServerMediaSubsession.cpp \

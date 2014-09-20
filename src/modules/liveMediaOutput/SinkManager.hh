@@ -26,6 +26,8 @@
 #include "QueueSource.hh"
 #include "../../Filter.hh"
 #include "../../IOInterface.hh"
+#include "DashSegmenterVideoSource.hh"
+#include "DashFileSink.hh"
 
 #include <BasicUsageEnvironment.hh>
 #include <liveMedia.hh>
@@ -55,6 +57,7 @@ public:
     bool addSession(std::string id, std::vector<int> readers, 
                     std::string info = "", std::string desc = "");
     bool addConnection(int reader, unsigned id, std::string ip, unsigned int port);
+	bool addDashConnection(int reader, unsigned id, std::string fileName, bool reInit = false, uint32_t fps = FRAME_RATE, uint32_t segmentTime = SEGMENT_TIME);
     
     ServerMediaSession* getSession(std::string id); 
     bool publishSession(std::string id);
@@ -103,17 +106,20 @@ public:
 protected:
     Connection(UsageEnvironment* env, std::string ip, 
                unsigned port, FramedSource *source);
+    Connection(UsageEnvironment* env, std::string fileName, FramedSource *source);
     static void afterPlaying(void* clientData);
     
     
     UsageEnvironment* fEnv;
     std::string fIp;
     unsigned fPort;
+	std::string fFileName;
     FramedSource *fSource;
-    
     
     struct in_addr destinationAddress;
     RTPSink *sink;
+	DashFileSink *outputVideoFile;
+	FileSink *outputAudioFile;
     RTCPInstance* rtcp;
     Groupsock *rtpGroupsock;
     Groupsock *rtcpGroupsock;
@@ -129,6 +135,19 @@ private:
     VCodecType fCodec;
 };
 
+class DashVideoConnection : public Connection {   
+public:
+    DashVideoConnection(UsageEnvironment* env, 
+                    std::string fileName, 
+                    FramedSource *source, VCodecType codec, bool reInit = false, uint32_t fps = FRAME_RATE, uint32_t segmentTime = SEGMENT_TIME);
+
+private:
+    VCodecType fCodec;
+	bool fReInit;
+	uint32_t fFps;
+	uint32_t fSegmentTime;
+};
+
 class AudioConnection : public Connection {
 public:
     AudioConnection(UsageEnvironment* env, std::string ip, unsigned port, 
@@ -141,6 +160,22 @@ private:
     unsigned fChannels;
     unsigned fSampleRate;
     SampleFmt fSampleFormat;
+};
+
+class DashAudioConnection : public Connection {
+public:
+    DashAudioConnection(UsageEnvironment* env, std::string fileName, 
+                    FramedSource *source, ACodecType codec,
+                    unsigned channels, unsigned sampleRate,
+                    SampleFmt sampleFormat,  bool reInit = false, uint32_t segmentTime = SEGMENT_TIME);
+    
+private:
+    ACodecType fCodec;
+    unsigned fChannels;
+    unsigned fSampleRate;
+    SampleFmt fSampleFormat;
+	bool fReInit;
+	uint32_t fSegmentTime;
 };
 
 #endif

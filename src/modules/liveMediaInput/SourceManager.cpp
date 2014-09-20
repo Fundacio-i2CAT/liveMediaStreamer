@@ -324,7 +324,6 @@ FrameQueue* createVideoQueue(char const* codecName)
 FrameQueue* createAudioQueue(unsigned char rtpPayloadFormat, char const* codecName, unsigned channels, unsigned sampleRate)
 {
     ACodecType codec;
-
     //is this one neeeded? in should be implicit in PCMU case
     if (rtpPayloadFormat == 0) {
         codec = G711;
@@ -333,6 +332,11 @@ FrameQueue* createAudioQueue(unsigned char rtpPayloadFormat, char const* codecNa
     
     if (strcmp(codecName, "OPUS") == 0) {
         codec = OPUS;
+        return AudioFrameQueue::createNew(codec, sampleRate);
+    }
+
+    if (strcmp(codecName, "MPEG4-GENERIC") == 0) {
+        codec = MPEG4_GENERIC;
         return AudioFrameQueue::createNew(codec, sampleRate);
     }
     

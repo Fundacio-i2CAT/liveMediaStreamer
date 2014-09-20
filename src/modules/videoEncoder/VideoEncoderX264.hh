@@ -91,7 +91,7 @@ class VideoEncoderX264: public OneToOneFilter {
 		void forceIntraEvent(Jzon::Node* params);
         void configEvent(Jzon::Node* params, Jzon::Object &outputNode);
 		void doGetState(Jzon::Object &filterNode);
-		void updatePresentationTime(Frame* org, Frame* dst);
+		void updatePresentationTime(Frame* dst);
 };
 
 #endif

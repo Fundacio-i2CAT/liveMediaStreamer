@@ -69,7 +69,6 @@ namespace utils
     ACodecType getCodecFromString(std::string stringCodec)
     {
         ACodecType codec;
-        
         if (stringCodec.compare("g711") == 0) {
             codec = G711;
         } else if (stringCodec.compare("pcmu") == 0) {
@@ -78,8 +77,8 @@ namespace utils
             codec = OPUS;
         }  else if (stringCodec.compare("pcm") == 0) {
             codec = PCM;
-        }  else if (stringCodec.compare("aac") == 0) {
-            codec = AAC;
+        }  else if (stringCodec.compare("mpeg4-generic") == 0) {
+            codec = MPEG4_GENERIC;
         }  else if (stringCodec.compare("mp3") == 0) {
             codec = MP3;
         }  else {
@@ -106,8 +105,8 @@ namespace utils
             case PCM:
                 stringCodec = "pcm";
                 break;
-            case AAC:
-                stringCodec = "aac";
+            case MPEG4_GENERIC:
+                stringCodec = "mpeg4-generic";
                 break;
             case MP3:
                 stringCodec = "mp3";
@@ -269,8 +268,9 @@ namespace utils
         int payload;
 
         if (codec.compare("pcmu") == 0 ||
-              codec.compare("opus") == 0 ||
-                codec.compare("pcm") == 0) {
+            codec.compare("opus") == 0 ||
+            codec.compare("pcm") == 0 ||
+            codec.compare("mpeg4-generic") == 0) {
             payload = 97;
         } else if (codec.compare("mp3") == 0) {
             payload = 14;

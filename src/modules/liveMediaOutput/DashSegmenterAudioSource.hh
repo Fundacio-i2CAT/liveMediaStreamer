@@ -1,5 +1,5 @@
-#ifndef _DASH_SEGMENTER_VIDEO_SOURCE_HH
-#define _DASH_SEGMENTER_VIDEO_SOURCE_HH
+#ifndef _DASH_SEGMENTER_AUDIO_SOURCE_HH
+#define _DASH_SEGMENTER_AUDIO_SOURCE_HH
 
 #include <liveMedia/FramedSource.hh>
 #include <i2libdash.h>
@@ -15,18 +15,18 @@
 #define SEGMENT_TIME 5 //seconds
 #define MAX_H264_SAMPLE 1024*1024 //1MB
 
-class DashSegmenterVideoSource: public FramedSource {
+class DashSegmenterAudioSource: public FramedSource {
 
 public:
-   	static DashSegmenterVideoSource* createNew(UsageEnvironment& env, FramedSource* source, bool reInit = false, uint32_t frameRate = FRAME_RATE, uint32_t segmentTime = SEGMENT_TIME);
+   	static DashSegmenterAudioSource* createNew(UsageEnvironment& env, FramedSource* source, bool reInit = false, uint32_t frameRate = FRAME_RATE, uint32_t segmentTime = SEGMENT_TIME);
 	virtual void doGetNextFrame();
 	bool isInit(){return init;};
 
 protected:
-    DashSegmenterVideoSource(UsageEnvironment& env, FramedSource* source, bool reInit = false, uint32_t frameRate = FRAME_RATE, uint32_t segmentTime = SEGMENT_TIME);
+    DashSegmenterAudioSource(UsageEnvironment& env, FramedSource* source, bool reInit = false, uint32_t frameRate = FRAME_RATE, uint32_t segmentTime = SEGMENT_TIME);
 	void checkStatus();
 	static void staticDoGetNextFrame(FramedSource* source);
-	virtual ~DashSegmenterVideoSource();
+	virtual ~DashSegmenterAudioSource();
 private:
 	static void afterGettingFrame(void* clientData, unsigned frameSize, unsigned numTruncatedBytes, struct timeval presentationTime, unsigned durationInMicroseconds);
 	void afterGettingFrame1(unsigned frameSize, unsigned numTruncatedBytes, struct timeval presentationTime, unsigned durationInMicroseconds);

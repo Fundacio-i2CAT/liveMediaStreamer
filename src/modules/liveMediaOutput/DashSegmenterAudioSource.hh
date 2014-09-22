@@ -39,7 +39,6 @@ private:
 	unsigned char* sampleData;
 	uint32_t fSampleRate;
 	float sampleDurationFloat;
-	float decodeTimeFloat;
 	uint32_t decodeTime;
 	uint32_t totalSegmentDuration;
 	struct timeval segmentTime;

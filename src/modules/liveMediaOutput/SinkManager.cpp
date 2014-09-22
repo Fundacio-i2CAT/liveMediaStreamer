@@ -168,7 +168,7 @@ bool SinkManager::addConnection(int reader, unsigned id, std::string ip, unsigne
     return false;
 }
 
-bool SinkManager::addDashConnection(int reader, unsigned id, std::string fileName, bool reInit, uint32_t segmentTime, uint32_t fps)
+bool SinkManager::addDashConnection(int reader, unsigned id, std::string fileName, bool reInit, uint32_t segmentTime, uint32_t initSegment, uint32_t fps)
 {
     VideoFrameQueue *vQueue;
     AudioFrameQueue *aQueue;
@@ -180,14 +180,14 @@ bool SinkManager::addDashConnection(int reader, unsigned id, std::string fileNam
     if ((vQueue = dynamic_cast<VideoFrameQueue*>(getReader(reader)->getQueue())) != NULL){
         connections[id] = new DashVideoConnection(envir(), fileName, 
                                               replicas[reader]->createStreamReplica(), 
-                                              vQueue->getCodec(), reInit, segmentTime, fps);
+                                              vQueue->getCodec(), fps, reInit, segmentTime, initSegment);
         return true;
     }
     if ((aQueue = dynamic_cast<AudioFrameQueue*>(getReader(reader)->getQueue())) != NULL){ 
         connections[id] = new DashAudioConnection(envir(), fileName, 
                                               replicas[reader]->createStreamReplica(), 
                                               aQueue->getCodec(), aQueue->getChannels(),
-                                              aQueue->getSampleRate(), aQueue->getSampleFmt(), reInit, segmentTime);
+                                              aQueue->getSampleRate(), aQueue->getSampleFmt(), reInit, segmentTime, initSegment);
         return true;
     }
     return false;
@@ -574,13 +574,13 @@ VideoConnection::VideoConnection(UsageEnvironment* env,
 
 DashVideoConnection::DashVideoConnection(UsageEnvironment* env, 
                                  std::string fileName, 
-                                 FramedSource *source, VCodecType codec, uint32_t fps, bool reInit, uint32_t segmentTime) : 
-                                 Connection(env, fileName, source), fCodec(codec), fReInit(reInit), fFps(fps), fSegmentTime(segmentTime)
+                                 FramedSource *source, VCodecType codec, uint32_t fps, bool reInit, uint32_t segmentTime, uint32_t initSegment) : 
+                                 Connection(env, fileName, source), fCodec(codec), fReInit(reInit), fFps(fps), fSegmentTime(segmentTime), fInitSegment(initSegment)
 {
     switch(fCodec){
         case H264:
-            outputVideoFile = DashFileSink::createNew(*env, fileName.c_str(), MAX_DAT, True, "720", 0, "m4v", ONLY_VIDEO, false);
-            fSource = DashSegmenterVideoSource::createNew(*fEnv, source, fReInit, fSegmentTime, fFps);
+            outputVideoFile = DashFileSink::createNew(*env, fileName.c_str(), MAX_DAT, True, "720", fInitSegment, "m4v", ONLY_VIDEO, false);
+            fSource = DashSegmenterVideoSource::createNew(*fEnv, source, fReInit, fFps, fSegmentTime);
             break;
         default:
             sink = NULL;
@@ -648,13 +648,13 @@ DashAudioConnection::DashAudioConnection(UsageEnvironment* env,
                                  std::string fileName, 
                                  FramedSource *source, ACodecType codec, 
                                  unsigned channels, unsigned sampleRate, 
-                                 SampleFmt sampleFormat, bool reInit, uint32_t segmentTime) : Connection(env, fileName, source), 
+                                 SampleFmt sampleFormat, bool reInit, uint32_t segmentTime, uint32_t initSegment) : Connection(env, fileName, source), 
                                  fCodec(codec), fChannels(channels), fSampleRate(sampleRate), 
-                                 fSampleFormat(sampleFormat), fReInit(reInit), fSegmentTime(segmentTime)
+                                 fSampleFormat(sampleFormat), fReInit(reInit), fSegmentTime(segmentTime), fInitSegment(initSegment)
 {
 	switch (fCodec) {
 		case MPEG4_GENERIC:
-            outputVideoFile = DashFileSink::createNew(*env, fileName.c_str(), MAX_DAT, True, "192", 0, "m4a", ONLY_AUDIO, false);
+            outputVideoFile = DashFileSink::createNew(*env, fileName.c_str(), MAX_DAT, True, "192", fInitSegment, "m4a", ONLY_AUDIO, false);
             fSource = DashSegmenterAudioSource::createNew(*fEnv, source, fReInit, fSegmentTime, fSampleRate);
             break;
         default:

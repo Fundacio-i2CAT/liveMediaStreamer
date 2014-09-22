@@ -174,7 +174,7 @@ void addDashConnections(std::vector<int> readers, std::string fileName, bool reI
     PipelineManager *pipe = Controller::getInstance()->pipelineManager();
     SinkManager *transmitter = pipe->getTransmitter();
     for(auto reader : readers){
-        if (transmitter->addDashConnection(reader, rand(), fileName, reInit, segmentTime, fps)) {
+        if (transmitter->addDashConnection(reader, rand(), fileName, reInit, segmentTime, 0, fps)) {
             utils::infoMsg("added connection for " + fileName);
         }
     }

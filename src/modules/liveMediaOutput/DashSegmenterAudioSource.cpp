@@ -10,7 +10,7 @@ DashSegmenterAudioSource* DashSegmenterAudioSource::createNew(UsageEnvironment& 
 DashSegmenterAudioSource::DashSegmenterAudioSource(UsageEnvironment& env, FramedSource* source, bool reInit, uint32_t segmentTime, uint32_t sampleRate): FramedSource(env), fInputSource(source), fSampleRate(sampleRate)
 {
 	uint8_t i2error;
-	printf ("AUDIO TYPE %u\n", sampleRate);
+
 	i2error= context_initializer(&avContext, AUDIO_TYPE);
 	if (i2error == I2ERROR_MEDIA_TYPE) {
 		printf ("Media type incorrect\n");
@@ -22,7 +22,6 @@ DashSegmenterAudioSource::DashSegmenterAudioSource(UsageEnvironment& env, Framed
 	this->previousTime.tv_sec = 0;
 	this->previousTime.tv_usec = 0;
 	this->sampleDurationFloat = 0.00;
-	this->decodeTimeFloat = 0.00;
 	this->decodeTime = 0;
 	this->totalSegmentDuration = 0;
 	this->aacData = new unsigned char[MAX_AAC_SAMPLE];
@@ -62,7 +61,6 @@ void DashSegmenterAudioSource::afterGettingFrame1(unsigned frameSize, unsigned n
 	}
 	else {
 		sampleDurationFloat = 0.00;
-		decodeTimeFloat = 0.00;
 		fFrameSize = audioSample;
 		fNumTruncatedBytes = 0;
 		fPresentationTime = segmentTime;

@@ -122,13 +122,14 @@ FrameQueue* VideoEncoderX264::allocQueue(int wId) {
 	return X264VideoCircularBuffer::createNew();
 }
 
-bool VideoEncoderX264::configure(int gop_, int bitrate_, int threads_, bool annexB_)
+bool VideoEncoderX264::configure(int gop_, int bitrate_, int threads_, int fps_, bool annexB_)
 {
 	//TODO: validate inputs
 	gop = gop_;
 	bitrate = bitrate_;
     threads = threads_;
     annexB = annexB_;
+	fps = fps_;
     
 	needsConfig = true;
 	return true;

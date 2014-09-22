@@ -17,7 +17,7 @@
 #define V_CODEC "H264"
 #define V_BANDWITH 1200
 #define V_TIME_STMP_FREQ 90000
-#define FRAME_RATE 25
+//#define FRAME_RATE 20
 
 #define A_MEDIUM "audio"
 #define A_PAYLOAD 97
@@ -164,7 +164,7 @@ void addVideoSource(unsigned port, unsigned fps = FRAME_RATE, std::string codec 
     
     //NOTE: Adding encoder to pipeManager and handle worker
     encoder = new VideoEncoderX264(true);
-    encoder->configure(DEFAULT_GOP, DEFAULT_BITRATE, DEFAULT_ENCODER_THREADS, true);
+    encoder->configure(DEFAULT_GOP, DEFAULT_BITRATE, DEFAULT_ENCODER_THREADS, fps, true);
     pipe->addFilter(encId, encoder);
     wEnc = new ConstantFramerateMaster();
     wEnc->addProcessor(encId, encoder);
@@ -178,6 +178,7 @@ void addVideoSource(unsigned port, unsigned fps = FRAME_RATE, std::string codec 
     pipe->connectPath(path);
     
     pipe->startWorkers();
+
 }
 
 void addConnections(std::vector<int> readers, std::string ip, unsigned port)
@@ -192,12 +193,12 @@ void addConnections(std::vector<int> readers, std::string ip, unsigned port)
     }
 }
 
-void addDashConnections(std::vector<int> readers, std::string fileName, bool reInit, uint32_t fps, uint32_t segmentTime)
+void addDashConnections(std::vector<int> readers, std::string fileName, bool reInit, uint32_t segmentTime, uint32_t fps = FRAME_RATE)
 {
     PipelineManager *pipe = Controller::getInstance()->pipelineManager();
     SinkManager *transmitter = pipe->getTransmitter();
     for(auto reader : readers){
-        if (transmitter->addDashConnection(reader, rand(), fileName, reInit, fps, segmentTime)) {
+        if (transmitter->addDashConnection(reader, rand(), fileName, reInit, segmentTime, 0, fps)) {
             utils::infoMsg("added connection for " + fileName);
         }
     }
@@ -210,7 +211,7 @@ int main(int argc, char* argv[])
     unsigned vPort = 0;
     unsigned aPort = 0;
     unsigned port = 0;
-    unsigned fps = FRAME_RATE;
+    unsigned fps = 20;//FRAME_RATE;
 	unsigned segmentTime = 2;//SEGMENT_TIME;
 	bool reInit = false;
     std::string ip;
@@ -282,7 +283,7 @@ int main(int argc, char* argv[])
     }
 
     if (!fileName.empty()){
-        addDashConnections(readers, fileName, reInit, fps, segmentTime);
+        addDashConnections(readers, fileName, reInit, segmentTime, fps);
     }
     
     while (run) {

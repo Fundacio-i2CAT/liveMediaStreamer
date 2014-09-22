@@ -144,9 +144,9 @@ void AudioMixer::sumValues(std::vector<float> fSamples, std::vector<float> &mixe
     }
 }
 
-Reader* AudioMixer::setReader(int readerID, FrameQueue* queue)
+Reader* AudioMixer::setReader(int readerID, FrameQueue* queue, bool sharedQueue)
 {
-    
+    std::cout << "Setting reader" << std::endl; 
     if (readers.count(readerID) > 0) {
         return NULL;
     }
@@ -155,6 +155,7 @@ Reader* AudioMixer::setReader(int readerID, FrameQueue* queue)
     readers[readerID] = r;
 
     gains[readerID] = DEFAULT_CHANNEL_GAIN;
+    std::cout << "Gain for id " << readerID << " is: " << gains[readerID] << std::endl; 
 
     return r;
 }

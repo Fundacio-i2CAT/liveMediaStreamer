@@ -28,7 +28,6 @@ DashSegmenterVideoSource::DashSegmenterVideoSource(UsageEnvironment& env, Framed
 	this->nalData = new unsigned char[MAX_H264_SAMPLE];
 	this->sampleData = new unsigned char[MAX_H264_SAMPLE];
 	this->offset = 0;
-	this->offset = 0;
 }
 
 DashSegmenterVideoSource::~DashSegmenterVideoSource() {

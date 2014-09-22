@@ -23,7 +23,7 @@
 #define A_PAYLOAD 97
 #define A_CODEC "MPEG4_GENERIC"
 #define A_BANDWITH 32
-#define A_TIME_STMP_FREQ 44100
+#define A_TIME_STMP_FREQ 48000
 #define A_CHANNELS 2
 
 bool run = true;
@@ -169,12 +169,12 @@ void addConnections(std::vector<int> readers, std::string ip, unsigned port)
     }
 }
 
-void addDashConnections(std::vector<int> readers, std::string fileName, bool reInit, uint32_t fps, uint32_t segmentTime)
+void addDashConnections(std::vector<int> readers, std::string fileName, bool reInit, uint32_t segmentTime, uint32_t fps = FRAME_RATE)
 {
     PipelineManager *pipe = Controller::getInstance()->pipelineManager();
     SinkManager *transmitter = pipe->getTransmitter();
     for(auto reader : readers){
-        if (transmitter->addDashConnection(reader, rand(), fileName, reInit, fps, segmentTime)) {
+        if (transmitter->addDashConnection(reader, rand(), fileName, reInit, segmentTime, fps)) {
             utils::infoMsg("added connection for " + fileName);
         }
     }
@@ -188,12 +188,13 @@ int main(int argc, char* argv[])
     unsigned aPort = 0;
     unsigned port = 0;
     unsigned fps = FRAME_RATE;
-	unsigned segmentTime = 2;//SEGMENT_TIME;
+	unsigned segmentTime = 2;
 	bool reInit = false;
     std::string ip;
     std::string sessionId;
     std::string rtspUri;
 	std::string fileName;
+	std::string fileNameAudio;
 
     utils::setLogLevel(INFO);
     
@@ -215,7 +216,10 @@ int main(int argc, char* argv[])
             utils::infoMsg("output frame rate: " + std::to_string(fps));
         } else if (strcmp(argv[i],"-D")==0) {
             fileName = argv[i+1];
-            utils::infoMsg("destination IP: " + fileName);
+            utils::infoMsg("fileName " + fileName);
+        } else if (strcmp(argv[i],"-A")==0) {
+            fileNameAudio = argv[i+1];
+            utils::infoMsg("fileName " + fileNameAudio);
         }
     }
     
@@ -259,9 +263,13 @@ int main(int argc, char* argv[])
     }
 
     if (!fileName.empty()){
-        addDashConnections(readers, fileName, reInit, fps, segmentTime);
+        addDashConnections(readers, fileName, reInit, segmentTime, fps);
     }
-    
+
+    if (!fileNameAudio.empty()){
+        addDashConnections(readers, fileNameAudio, reInit, segmentTime);
+    }   
+ 
     while (run) {
         sleep(1);
     }

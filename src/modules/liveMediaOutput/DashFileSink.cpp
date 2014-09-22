@@ -84,33 +84,35 @@ void DashFileSink::afterGettingFrame(void* clientData, unsigned frameSize,
 void DashFileSink::addData(unsigned char const* data, unsigned dataSize,
 		       struct timeval presentationTime) {
   if (fPerFrameFileNameBuffer != NULL && fOutFid == NULL) {
-	 DashSegmenterVideoSource* dashSource = dynamic_cast<DashSegmenterVideoSource*> (fSource);
-	if (dashSource->isInit()) {
 		switch (fStreamType) {
-		case ONLY_VIDEO:			
-			sprintf(fPerFrameFileNameBuffer, "%s_%s_%s_init.%s", fPerFrameFileNamePrefix, fQuality, "video", fExtension);
+		case ONLY_VIDEO:
+			{
+			DashSegmenterVideoSource* dashSource = dynamic_cast<DashSegmenterVideoSource*> (fSource);
+			if (dashSource->isInit())		
+				sprintf(fPerFrameFileNameBuffer, "%s_%s_%s_init.%s", fPerFrameFileNamePrefix, fQuality, "video", fExtension);
+			else
+				sprintf(fPerFrameFileNameBuffer, "%s_%s_%s_%u.%s", fPerFrameFileNamePrefix, fQuality, "video", fSegmentNumber++, fExtension);
+			}
 			break;
 		case ONLY_AUDIO:
-			sprintf(fPerFrameFileNameBuffer, "%s_%s_%s_init.%s", fPerFrameFileNamePrefix, fQuality, "audio", fExtension);
+			{
+			DashSegmenterAudioSource* dashSource = dynamic_cast<DashSegmenterAudioSource*> (fSource);
+			if (dashSource->isInit())
+				sprintf(fPerFrameFileNameBuffer, "%s_%s_%s_init.%s", fPerFrameFileNamePrefix, fQuality, "audio", fExtension);
+			else
+				sprintf(fPerFrameFileNameBuffer, "%s_%s_%s_%u.%s", fPerFrameFileNamePrefix, fQuality, "audio", fSegmentNumber++, fExtension);
+			}
 			break;
 		case VIDEO_AUDIO:
-			sprintf(fPerFrameFileNameBuffer, "%s_%s_%s_init.%s", fPerFrameFileNamePrefix, fQuality, "video_audio", fExtension);
+			{
+			DashSegmenterVideoSource* dashSource = dynamic_cast<DashSegmenterVideoSource*> (fSource);
+			if (dashSource->isInit())
+				sprintf(fPerFrameFileNameBuffer, "%s_%s_%s_init.%s", fPerFrameFileNamePrefix, fQuality, "video_audio", fExtension);
+			else
+				sprintf(fPerFrameFileNameBuffer, "%s_%s_%s_%u.%s", fPerFrameFileNamePrefix, fQuality, "video_audio", fSegmentNumber++, fExtension);
+			}
 			break;
 		}
-	}
-	else {
-		switch (fStreamType) {
-		case ONLY_VIDEO:			
-			sprintf(fPerFrameFileNameBuffer, "%s_%s_%s_%u.%s", fPerFrameFileNamePrefix, fQuality, "video", fSegmentNumber++, fExtension);
-			break;
-		case ONLY_AUDIO:
-			sprintf(fPerFrameFileNameBuffer, "%s_%s_%s_%u.%s", fPerFrameFileNamePrefix, fQuality, "audio", fSegmentNumber++, fExtension);
-			break;
-		case VIDEO_AUDIO:
-			sprintf(fPerFrameFileNameBuffer, "%s_%s_%s_%u.%s", fPerFrameFileNamePrefix, fQuality, "video_audio", fSegmentNumber++, fExtension);
-			break;
-		}
-	}
     fOutFid = OpenOutputFile(envir(), fPerFrameFileNameBuffer);
 	//TODO eraseFiles
   }

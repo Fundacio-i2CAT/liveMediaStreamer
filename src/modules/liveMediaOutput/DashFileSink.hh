@@ -5,6 +5,7 @@
 #include <MediaSink.hh>
 #endif
 #include "DashSegmenterVideoSource.hh"
+#include "DashSegmenterAudioSource.hh"
 #define ONLY_VIDEO 0
 #define ONLY_AUDIO 1
 #define VIDEO_AUDIO 2

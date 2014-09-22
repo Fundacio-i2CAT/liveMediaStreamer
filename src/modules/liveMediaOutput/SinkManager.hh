@@ -27,6 +27,7 @@
 #include "../../Filter.hh"
 #include "../../IOInterface.hh"
 #include "DashSegmenterVideoSource.hh"
+#include "DashSegmenterAudioSource.hh"
 #include "DashFileSink.hh"
 
 #include <BasicUsageEnvironment.hh>
@@ -57,7 +58,7 @@ public:
     bool addSession(std::string id, std::vector<int> readers, 
                     std::string info = "", std::string desc = "");
     bool addConnection(int reader, unsigned id, std::string ip, unsigned int port);
-	bool addDashConnection(int reader, unsigned id, std::string fileName, bool reInit = false, uint32_t fps = FRAME_RATE, uint32_t segmentTime = SEGMENT_TIME);
+	bool addDashConnection(int reader, unsigned id, std::string fileName, bool reInit = false, uint32_t segmentTime = SEGMENT_TIME, uint32_t fps = FRAME_RATE);
     
     ServerMediaSession* getSession(std::string id); 
     bool publishSession(std::string id);
@@ -139,7 +140,7 @@ class DashVideoConnection : public Connection {
 public:
     DashVideoConnection(UsageEnvironment* env, 
                     std::string fileName, 
-                    FramedSource *source, VCodecType codec, bool reInit = false, uint32_t fps = FRAME_RATE, uint32_t segmentTime = SEGMENT_TIME);
+                    FramedSource *source, VCodecType codec, uint32_t fps = FRAME_RATE, bool reInit = false, uint32_t segmentTime = SEGMENT_TIME);
 
 private:
     VCodecType fCodec;

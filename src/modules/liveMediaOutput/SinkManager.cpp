@@ -168,7 +168,7 @@ bool SinkManager::addConnection(int reader, unsigned id, std::string ip, unsigne
     return false;
 }
 
-bool SinkManager::addDashConnection(int reader, unsigned id, std::string fileName, bool reInit, uint32_t fps, uint32_t segmentTime)
+bool SinkManager::addDashConnection(int reader, unsigned id, std::string fileName, bool reInit, uint32_t segmentTime, uint32_t fps)
 {
     VideoFrameQueue *vQueue;
     AudioFrameQueue *aQueue;
@@ -180,7 +180,7 @@ bool SinkManager::addDashConnection(int reader, unsigned id, std::string fileNam
     if ((vQueue = dynamic_cast<VideoFrameQueue*>(getReader(reader)->getQueue())) != NULL){
         connections[id] = new DashVideoConnection(envir(), fileName, 
                                               replicas[reader]->createStreamReplica(), 
-                                              vQueue->getCodec(), reInit, fps, segmentTime);
+                                              vQueue->getCodec(), reInit, segmentTime, fps);
         return true;
     }
     if ((aQueue = dynamic_cast<AudioFrameQueue*>(getReader(reader)->getQueue())) != NULL){ 
@@ -574,16 +574,13 @@ VideoConnection::VideoConnection(UsageEnvironment* env,
 
 DashVideoConnection::DashVideoConnection(UsageEnvironment* env, 
                                  std::string fileName, 
-                                 FramedSource *source, VCodecType codec, bool reInit, uint32_t fps, uint32_t segmentTime) : 
+                                 FramedSource *source, VCodecType codec, uint32_t fps, bool reInit, uint32_t segmentTime) : 
                                  Connection(env, fileName, source), fCodec(codec), fReInit(reInit), fFps(fps), fSegmentTime(segmentTime)
 {
     switch(fCodec){
         case H264:
-            outputVideoFile = DashFileSink::createNew(*env, fileName.c_str(), MAX_DAT, True, "720", 0, "m4v", 0, false);
-            fSource = DashSegmenterVideoSource::createNew(*fEnv, source, fReInit, fFps, fSegmentTime);
-            break;
-        case VP8:
-            //sink = VP8VideoRTPSink::createNew(*fEnv, rtpGroupsock, 96);
+            outputVideoFile = DashFileSink::createNew(*env, fileName.c_str(), MAX_DAT, True, "720", 0, "m4v", ONLY_VIDEO, false);
+            fSource = DashSegmenterVideoSource::createNew(*fEnv, source, fReInit, fSegmentTime, fFps);
             break;
         default:
             sink = NULL;
@@ -655,45 +652,20 @@ DashAudioConnection::DashAudioConnection(UsageEnvironment* env,
                                  fCodec(codec), fChannels(channels), fSampleRate(sampleRate), 
                                  fSampleFormat(sampleFormat), fReInit(reInit), fSegmentTime(segmentTime)
 {
-  /*  unsigned char payloadType = 97;
-    std::string codecStr = utils::getAudioCodecAsString(fCodec);
-    
-    if (fCodec == PCM && 
-        fSampleFormat == S16) {
-        codecStr = "L16";
-        if (fSampleRate == 44100) {
-            if (fChannels == 2){
-                payloadType = 10;
-            } else if (fChannels == 1) {
-                payloadType = 11;
-            }
-        }
-    } else if ((fCodec == PCMU || fCodec == G711) && 
-                fSampleRate == 8000 &&
-                fChannels == 1){
-        payloadType = 0;
+	switch (fCodec) {
+		case MPEG4_GENERIC:
+            outputVideoFile = DashFileSink::createNew(*env, fileName.c_str(), MAX_DAT, True, "192", 0, "m4a", ONLY_AUDIO, false);
+            fSource = DashSegmenterAudioSource::createNew(*fEnv, source, fReInit, fSegmentTime, fSampleRate);
+            break;
+        default:
+            sink = NULL;
+            break;
     }
-    
-    if (fCodec == MP3){
-        sink =  MPEG1or2AudioRTPSink::createNew(*fEnv, rtpGroupsock);
-    } else {
-        sink =  SimpleRTPSink
-            ::createNew(*fEnv, rtpGroupsock, payloadType,
-                        fSampleRate, "audio", 
-                        codecStr.c_str(),
-                        fChannels, False);
-    }
-    
-    if (sink != NULL){
-        const unsigned maxCNAMElen = 100;
-        unsigned char CNAME[maxCNAMElen+1];
-        gethostname((char*)CNAME, maxCNAMElen);
-        CNAME[maxCNAMElen] = '\0';
-        rtcp = RTCPInstance::createNew(*fEnv, rtcpGroupsock, 5000, CNAME,
-                                       sink, NULL, False);
+   if (outputVideoFile != NULL){
+		//TODO??
     } else {
         utils::errorMsg("AudioConnection could not be created");
     }
-    startPlaying();*/
+    startPlaying();    
 }
 

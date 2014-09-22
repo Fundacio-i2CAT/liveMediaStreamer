@@ -37,7 +37,6 @@ private:
 	FramedSource* fInputSource;
 	unsigned char* aacData;
 	unsigned char* sampleData;
-	uint32_t offset;
 	uint32_t fSampleRate;
 	float sampleDurationFloat;
 	float decodeTimeFloat;

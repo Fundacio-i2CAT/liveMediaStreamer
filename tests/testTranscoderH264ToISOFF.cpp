@@ -195,10 +195,11 @@ void addConnections(std::vector<int> readers, std::string ip, unsigned port)
 
 void addDashConnections(std::vector<int> readers, std::string fileName, bool reInit, uint32_t segmentTime, uint32_t fps = FRAME_RATE)
 {
+	std::string quality = "720";
     PipelineManager *pipe = Controller::getInstance()->pipelineManager();
     SinkManager *transmitter = pipe->getTransmitter();
     for(auto reader : readers){
-        if (transmitter->addDashConnection(reader, rand(), fileName, reInit, segmentTime, 0, fps)) {
+        if (transmitter->addDashConnection(reader, rand(), fileName, quality, reInit, segmentTime, 0, fps)) {
             utils::infoMsg("added connection for " + fileName);
         }
     }

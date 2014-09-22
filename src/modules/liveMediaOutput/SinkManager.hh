@@ -59,7 +59,7 @@ public:
     bool addSession(std::string id, std::vector<int> readers, 
                     std::string info = "", std::string desc = "");
     bool addConnection(int reader, unsigned id, std::string ip, unsigned int port);
-	bool addDashConnection(int reader, unsigned id, std::string fileName, bool reInit = false, uint32_t segmentTime = SEGMENT_TIME, uint32_t initSegment = INIT_SEGMENT, uint32_t fps = FRAME_RATE);
+	bool addDashConnection(int reader, unsigned id, std::string fileName, std::string quality, bool reInit = false, uint32_t segmentTime = SEGMENT_TIME, uint32_t initSegment = INIT_SEGMENT, uint32_t fps = FRAME_RATE);
     
     ServerMediaSession* getSession(std::string id); 
     bool publishSession(std::string id);
@@ -141,7 +141,7 @@ class DashVideoConnection : public Connection {
 public:
     DashVideoConnection(UsageEnvironment* env, 
                     std::string fileName, 
-                    FramedSource *source, VCodecType codec, uint32_t fps = FRAME_RATE, bool reInit = false, uint32_t segmentTime = SEGMENT_TIME, uint32_t initSegment = INIT_SEGMENT);
+                    FramedSource *source, VCodecType codec, std::string quality, uint32_t fps = FRAME_RATE, bool reInit = false, uint32_t segmentTime = SEGMENT_TIME, uint32_t initSegment = INIT_SEGMENT);
 
 private:
     VCodecType fCodec;
@@ -170,7 +170,7 @@ public:
     DashAudioConnection(UsageEnvironment* env, std::string fileName, 
                     FramedSource *source, ACodecType codec,
                     unsigned channels, unsigned sampleRate,
-                    SampleFmt sampleFormat,  bool reInit = false, uint32_t segmentTime = SEGMENT_TIME, uint32_t initSegment = INIT_SEGMENT);
+                    SampleFmt sampleFormat,  std::string quality, bool reInit = false, uint32_t segmentTime = SEGMENT_TIME, uint32_t initSegment = INIT_SEGMENT);
     
 private:
     ACodecType fCodec;

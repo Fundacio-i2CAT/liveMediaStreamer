@@ -21,6 +21,10 @@
  */
 
 #define BPS 2
+
+#ifndef A_RATE_THRSHLD
+#define A_RATE_THRSHLD 0.995 //adjusted empirically, trying which threshold achieved better performance
+#endif
  
 #include "AudioMixer.hh"
 #include "../../AudioCircularBuffer.hh"
@@ -68,12 +72,17 @@ FrameQueue *AudioMixer::allocQueue(int wId) {
     return AudioCircularBuffer::createNew(frameChannels, sampleRate, AudioFrame::getMaxSamples(sampleRate), sampleFormat);
 }
 
-bool AudioMixer::doProcessFrame(std::map<int, Frame*> orgFrames, Frame *dst) {
-    std::vector<int> filledFramesIds; 
+bool AudioMixer::doProcessFrame(std::map<int, Frame*> orgFrames, Frame *dst) 
+{   
+    std::vector<int> filledFramesIds;
+    int nOfSamples = 0; 
+
+    startPoint = std::chrono::system_clock::now();
 
     for (auto frame : orgFrames) {
         if (frame.second) {
             filledFramesIds.push_back(frame.first);
+            nOfSamples += dynamic_cast<AudioFrame*>(frame.second)->getSamples();
         }
     }
 
@@ -81,7 +90,18 @@ bool AudioMixer::doProcessFrame(std::map<int, Frame*> orgFrames, Frame *dst) {
         return false;
     }
 
+    nOfSamples = nOfSamples/filledFramesIds.size();
+    std::chrono::microseconds frameTime((nOfSamples*1000000)/sampleRate);
+
     mixNonEmptyFrames(orgFrames, filledFramesIds, dst);
+
+    enlapsedTime = std::chrono::duration_cast<std::chrono::microseconds>
+                            (std::chrono::system_clock::now() - startPoint);
+
+    if (enlapsedTime < frameTime) {
+        sleepTime = std::chrono::duration_cast<std::chrono::microseconds>((frameTime - enlapsedTime)*A_RATE_THRSHLD);
+        std::this_thread::sleep_for(std::chrono::microseconds(sleepTime));
+    } 
 
     return true;
 }
@@ -146,7 +166,6 @@ void AudioMixer::sumValues(std::vector<float> fSamples, std::vector<float> &mixe
 
 Reader* AudioMixer::setReader(int readerID, FrameQueue* queue, bool sharedQueue)
 {
-    std::cout << "Setting reader" << std::endl; 
     if (readers.count(readerID) > 0) {
         return NULL;
     }
@@ -155,7 +174,6 @@ Reader* AudioMixer::setReader(int readerID, FrameQueue* queue, bool sharedQueue)
     readers[readerID] = r;
 
     gains[readerID] = DEFAULT_CHANNEL_GAIN;
-    std::cout << "Gain for id " << readerID << " is: " << gains[readerID] << std::endl; 
 
     return r;
 }

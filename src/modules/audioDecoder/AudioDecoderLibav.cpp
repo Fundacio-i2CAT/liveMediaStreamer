@@ -26,6 +26,11 @@
 #include <functional>
 #include <fstream>
 
+std::chrono::system_clock::time_point previousPoint;
+std::chrono::system_clock::time_point now;
+std::chrono::microseconds enlapsedTime;
+
+
 AVSampleFormat getAVSampleFormatFromtIntCode(int id) 
 {
     AVSampleFormat sampleFmt = AV_SAMPLE_FMT_NONE;
@@ -94,7 +99,8 @@ bool AudioDecoderLibav::doProcessFrame(Frame *org, Frame *dst)
 
     pkt.size = org->getLength();
     pkt.data = org->getDataBuf();
-            
+
+
     while (pkt.size > 0) {
         len = avcodec_decode_audio4(codecCtx, inFrame, &gotFrame, &pkt);
 
@@ -104,6 +110,10 @@ bool AudioDecoderLibav::doProcessFrame(Frame *org, Frame *dst)
         }
 
         if (gotFrame) {
+            now = std::chrono::system_clock::now();
+            enlapsedTime = std::chrono::duration_cast<std::chrono::microseconds>(now - previousPoint);
+            previousPoint = now;
+
             checkInputParams(inFrame->format, inFrame->channels, inFrame->sample_rate);
 
             if (resample(inFrame, aDecodedFrame)) {

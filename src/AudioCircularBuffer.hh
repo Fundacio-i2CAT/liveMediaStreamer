@@ -52,9 +52,12 @@
     private:
         AudioCircularBuffer(int ch, int sRate, int maxSamples, SampleFmt sFmt);
 
+        enum State {BUFFERING, OK, FULL};
+
         bool pushBack(unsigned char **buffer, int samplesRequested);
-        bool popFront(unsigned char **buffer, int samplesRequested);
         bool forcePushBack(unsigned char **buffer, int samplesRequested);
+        bool popFront(unsigned char **buffer, int samplesRequested);
+        void fillOutputBuffers(unsigned char **buffer, int bytesRequested);
 
         int channels;
         int sampleRate;
@@ -65,6 +68,9 @@
         unsigned char *data[MAX_CHANNELS];
         SampleFmt sampleFormat;
         bool outputFrameAlreadyRead;
+
+        int samplesBufferingThreshold;
+        State state;
 
         PlanarAudioFrame* inputFrame;
         PlanarAudioFrame* outputFrame;

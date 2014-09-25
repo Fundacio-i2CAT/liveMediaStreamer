@@ -30,8 +30,9 @@
 #define DEFAULT_CHANNELS 2
 #define MAX_CHANNELS 2
 #define DEFAULT_SAMPLE_RATE 48000
-#define MAX_FRAME_TIME 100 //ms
-#define DEFAULT_FRAME_TIME 10 //ms
+#define MAX_FRAME_TIME 200 //ms
+#define DEFAULT_AUDIO_BUFFERING_TIME 20//ms
+#define DEFAULT_FRAME_TIME 20 //ms
 
 
 class AudioFrame : public Frame {

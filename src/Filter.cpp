@@ -28,7 +28,7 @@
 #include <thread>
 #include <chrono>
 
-#define RETRIES 8
+#define RETRIES 1
 #define TIMEOUT 2500 //us
 #define DISC_RETRIES 50
 #define DISC_TIMEOUT 1000 //us
@@ -109,38 +109,28 @@ int BaseFilter::generateWriterID()
 bool BaseFilter::demandOriginFrames()
 {
     bool newFrame = false;
-    bool missedOne = false;
-    for(int i = 0; i < RETRIES; i++){
-        for (auto it : readers) {
-            if (!it.second->isConnected()) {
-                it.second->disconnect();
-                //NOTE: think about readers as shared pointers
-                delete it.second;
-                readers.erase(it.first);
-                continue;
-            }
+    
+    for (auto it : readers) {
+        if (!it.second->isConnected()) {
+            it.second->disconnect();
+            //NOTE: think about readers as shared pointers
+            delete it.second;
+            readers.erase(it.first);
+            continue;
+        }
 
-            oFrames[it.first] = it.second->getFrame();
-            if (oFrames[it.first] == NULL) {
-                oFrames[it.first] = it.second->getFrame(force);
-                if (force && oFrames[it.first] != NULL) {
-                    newFrame = true;
-                }
-                rUpdates[it.first] = false;
-                missedOne = true;
-            } else {
-                rUpdates[it.first] = true;
+        oFrames[it.first] = it.second->getFrame();
+        if (oFrames[it.first] == NULL) {
+            oFrames[it.first] = it.second->getFrame(force);
+            if (force && oFrames[it.first] != NULL) {
                 newFrame = true;
             }
-        }
-
-        if (!force && missedOne && newFrame){
-            std::this_thread::sleep_for(std::chrono::microseconds(TIMEOUT));
+            rUpdates[it.first] = false;
         } else {
-            break;
+            rUpdates[it.first] = true;
+            newFrame = true;
         }
     }
-
 
     return newFrame;
 }

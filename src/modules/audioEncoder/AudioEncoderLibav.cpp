@@ -25,6 +25,10 @@
 #include "../../AudioCircularBuffer.hh"
 #include "../../Utils.hh"
 
+#ifndef A_RATE_THRSHLD
+#define A_RATE_THRSHLD 0.995 //adjusted empirically, trying which threshold achieved better performance
+#endif
+
 bool checkSampleFormat(AVCodec *codec, enum AVSampleFormat sampleFmt);
 bool checkSampleRateSupport(AVCodec *codec, int sampleRate);
 bool checkChannelLayoutSupport(AVCodec *codec, uint64_t channelLayout);
@@ -74,12 +78,18 @@ FrameQueue* AudioEncoderLibav::allocQueue(int wId)
 bool AudioEncoderLibav::doProcessFrame(Frame *org, Frame *dst)
 {     
     int ret, gotFrame;
+    std::chrono::system_clock::time_point startPoint;
+    std::chrono::microseconds enlapsedTime;
 
     AudioFrame* aRawFrame = dynamic_cast<AudioFrame*>(org);
 
     if(!reconfigure(aRawFrame)) {
         return false;
     }
+
+    std::chrono::microseconds frameTime((samplesPerFrame*1000000)/internalSampleRate);
+
+    startPoint = std::chrono::system_clock::now();
     
     //set up buffer and buffer length pointers
     pkt.data = dst->getDataBuf();
@@ -95,14 +105,21 @@ bool AudioEncoderLibav::doProcessFrame(Frame *org, Frame *dst)
         return false;
     }
 
-    if (gotFrame) {
-        setPresentationTime(dst);
-        dst->setLength(pkt.size);
-        return true;
+    if (!gotFrame) {
+        return false;
     }
 
-            
-    return false;
+    setPresentationTime(dst);
+    dst->setLength(pkt.size);
+
+    enlapsedTime = std::chrono::duration_cast<std::chrono::microseconds>
+                            (std::chrono::system_clock::now() - startPoint);
+
+    if (enlapsedTime < frameTime) {
+        std::this_thread::sleep_for(std::chrono::microseconds((frameTime - enlapsedTime))*A_RATE_THRSHLD);
+    } 
+
+    return true;
 }
 
 Reader* AudioEncoderLibav::setReader(int readerID, FrameQueue* queue, bool sharedQueue)

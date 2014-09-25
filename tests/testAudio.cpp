@@ -154,7 +154,7 @@ int main(int argc, char* argv[])
     
     int mixerId;
 
-    utils::setLogLevel(INFO);
+    utils::setLogLevel(ERROR);
     
     for (int i = 1; i < argc; i++) {
         ports.push_back(std::stoi(argv[i]));     

@@ -34,7 +34,7 @@
 #include <utility>
 #include <cmath>
 
-AudioMixer::AudioMixer(int inputChannels) : ManyToOneFilter(inputChannels) {
+AudioMixer::AudioMixer(int inputChannels) : ManyToOneFilter(inputChannels, true) {
     frameChannels = DEFAULT_CHANNELS;
     sampleRate = DEFAULT_SAMPLE_RATE;
     sampleFormat = S16P;
@@ -51,7 +51,7 @@ AudioMixer::AudioMixer(int inputChannels) : ManyToOneFilter(inputChannels) {
     mAlg = LDRC;
 }
 
-AudioMixer::AudioMixer(int inputChannels, int frameChannels, int sampleRate) : ManyToOneFilter(inputChannels) {
+AudioMixer::AudioMixer(int inputChannels, int frameChannels, int sampleRate) : ManyToOneFilter(inputChannels, true) {
     this->frameChannels = frameChannels;
     this->sampleRate = sampleRate;
     sampleFormat = S16P;

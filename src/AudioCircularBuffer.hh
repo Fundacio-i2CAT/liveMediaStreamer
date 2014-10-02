@@ -28,6 +28,10 @@
 #include "FrameQueue.hh"
 #include "AudioFrame.hh"
 
+#define BUFFERING_SIZE_TIME 500 //ms
+#define BUFFERING_THRESHOLD 100 //ms
+
+
  class AudioCircularBuffer : public FrameQueue {
 
     public:

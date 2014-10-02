@@ -29,7 +29,7 @@
 #include <chrono>
 
 #define RETRIES 1
-#define TIMEOUT 10 //ms
+#define TIMEOUT 2500 //us
 #define DISC_RETRIES 50
 #define DISC_TIMEOUT 1000 //us
 
@@ -109,7 +109,6 @@ int BaseFilter::generateWriterID()
 bool BaseFilter::demandOriginFrames()
 {
     bool newFrame = false;
-    std::chrono::milliseconds timeout(TIMEOUT);
     
     for (auto it : readers) {
         if (!it.second->isConnected()) {
@@ -122,18 +121,11 @@ bool BaseFilter::demandOriginFrames()
 
         oFrames[it.first] = it.second->getFrame();
         if (oFrames[it.first] == NULL) {
-            std::this_thread::sleep_for(timeout);
             oFrames[it.first] = it.second->getFrame(force);
-
-            if (oFrames[it.first] != NULL) {
+            if (force && oFrames[it.first] != NULL) {
                 newFrame = true;
-                if (force) {
-                    rUpdates[it.first] = false;
-                } else {
-                    rUpdates[it.first] = true;
-                }
             }
-
+            rUpdates[it.first] = false;
         } else {
             rUpdates[it.first] = true;
             newFrame = true;

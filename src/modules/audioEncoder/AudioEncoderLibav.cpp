@@ -370,6 +370,9 @@ void AudioEncoderLibav::setPresentationTime(Frame* dst)
         currentTime = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now().time_since_epoch());
     }
 
+    std::chrono::microseconds diffTime(std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now().time_since_epoch() - currentTime));
+    //std::cout << diffTime.count() << std::endl;
+
     std::chrono::microseconds frameDuration(1000000*libavFrame->nb_samples/internalSampleRate);
     currentTime += frameDuration;
     dst->setPresentationTime(currentTime);

@@ -355,8 +355,10 @@ ConstantFramerateMaster::ConstantFramerateMaster(double maxFps) : Master()
 
 void ConstantFramerateMaster::setFps(double maxFps)
 {
+    double maxFpsModified = maxFps*(1001/1000);
+
     if (maxFps != 0){
-        frameTime = std::round(1000000/maxFps);
+        frameTime = std::round(1000000/maxFpsModified);
     } else {
         frameTime = std::round(1000000/DEFAULT_FRAME_RATE);
     }

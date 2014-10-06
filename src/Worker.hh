@@ -97,14 +97,14 @@ protected:
 
 class Master : public Worker {
 public:
-	Master();
-	bool addSlave(int id, Slave *slave);
-	bool removeSlave(int id);
+    Master();
+    bool addSlave(int id, Slave *slave);
+    bool removeSlave(int id);
 
 protected:
-	virtual void process() = 0;
-	bool allFinished();
-	void processAll();
+    virtual void process() = 0;
+    bool allFinished();
+    void processAll();
 
 private:
     std::map<int, Slave*> slaves;
@@ -126,6 +126,9 @@ public:
 protected:
     void process();
     unsigned int frameTime; //microseconds
+
+    enum State {OK, SPEED_UP, SLOW_DOWN};
+    State state;
 };
 
 
@@ -136,9 +139,9 @@ public:
     ~Runnable(){};
     virtual bool processFrame(bool removeFrame = true) = 0;
     virtual void processEvent() = 0;
-	virtual void removeFrames() = 0;
+    virtual void removeFrames() = 0;
     virtual bool hasFrames() = 0;
-	virtual bool isEnabled() = 0;
+    virtual bool isEnabled() = 0;
     virtual void stop() = 0;
 };
 

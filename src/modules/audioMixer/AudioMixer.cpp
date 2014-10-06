@@ -22,10 +22,6 @@
 
 #define BPS 2
 
-#ifndef A_RATE_THRSHLD
-#define A_RATE_THRSHLD 0.995 //adjusted empirically, trying which threshold achieved better performance
-#endif
- 
 #include "AudioMixer.hh"
 #include "../../AudioCircularBuffer.hh"
 #include "../../AudioFrame.hh"
@@ -75,14 +71,10 @@ FrameQueue *AudioMixer::allocQueue(int wId) {
 bool AudioMixer::doProcessFrame(std::map<int, Frame*> orgFrames, Frame *dst) 
 {   
     std::vector<int> filledFramesIds;
-    int nOfSamples = 0; 
-
-    startPoint = std::chrono::system_clock::now();
 
     for (auto frame : orgFrames) {
         if (frame.second) {
             filledFramesIds.push_back(frame.first);
-            nOfSamples += dynamic_cast<AudioFrame*>(frame.second)->getSamples();
         }
     }
 
@@ -90,18 +82,7 @@ bool AudioMixer::doProcessFrame(std::map<int, Frame*> orgFrames, Frame *dst)
         return false;
     }
 
-    nOfSamples = nOfSamples/filledFramesIds.size();
-    std::chrono::microseconds frameTime((nOfSamples*1000000)/sampleRate);
-
     mixNonEmptyFrames(orgFrames, filledFramesIds, dst);
-
-    enlapsedTime = std::chrono::duration_cast<std::chrono::microseconds>
-                            (std::chrono::system_clock::now() - startPoint);
-
-    if (enlapsedTime < frameTime) {
-        sleepTime = std::chrono::duration_cast<std::chrono::microseconds>((frameTime - enlapsedTime)*A_RATE_THRSHLD);
-        std::this_thread::sleep_for(std::chrono::microseconds(sleepTime));
-    } 
 
     return true;
 }

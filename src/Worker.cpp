@@ -348,8 +348,9 @@ void Slave::process()
 
 ConstantFramerateMaster::ConstantFramerateMaster(double maxFps) : Master()
 {
-     setFps(maxFps);
-     type = C_FRAMERATE_MASTER;
+    setFps(maxFps);
+    type = C_FRAMERATE_MASTER;
+    state = OK;
 }
 
 void ConstantFramerateMaster::setFps(double maxFps)
@@ -365,12 +366,62 @@ void ConstantFramerateMaster::process()
 {
     std::chrono::microseconds enlapsedTime;
     std::chrono::system_clock::time_point startPoint;
-    std::chrono::microseconds chronoFrameTime;
+    std::chrono::microseconds chronoFrameTime(frameTime);
     std::chrono::microseconds active(ACTIVE);
+    std::chrono::microseconds theoricTime(std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now().time_since_epoch()));
+    std::chrono::microseconds diffTime;
+    std::chrono::microseconds lastDiffTime;
+    float framerateMod = 1;
     
     while(run) {
         startPoint = std::chrono::system_clock::now();
-        chronoFrameTime = std::chrono::microseconds(frameTime);
+
+        theoricTime += chronoFrameTime;
+        lastDiffTime = diffTime;
+        diffTime = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now().time_since_epoch() - theoricTime);
+        std::cout << diffTime.count() << std::endl;
+
+        if (diffTime.count() > 0 && lastDiffTime < diffTime) {
+            // delayed and incrementing delay. Need to speed up
+            state = SPEED_UP;
+        }
+
+        if (diffTime.count() > 0 && lastDiffTime > diffTime) {
+            // delayed and decrementing delay. Dont do nothing
+            //framerateMod = 1;
+            state = OK;
+        }
+
+        if (diffTime.count() < 0 && lastDiffTime < diffTime) {
+            // advanced and decrementing advance. Dont do nothing
+            //framerateMod = 1;
+            state = OK;
+        }
+
+        if (diffTime.count() < 0 && lastDiffTime > diffTime) {
+            // advanced and incremeting advance. Need to slow down
+            state = SLOW_DOWN;
+        }
+
+        switch(state) {
+            case SPEED_UP:
+                framerateMod -= 0.01;
+                break;
+            case SLOW_DOWN:
+                framerateMod += 0.01;
+                break;
+            // case OK:
+            //     if (framerateMod < 1) {
+            //         framerateMod += 0.01;
+            //     } else if (framerateMod > 1) {
+            //         framerateMod -= 0.01;
+            //     }
+            //     break;
+        }
+
+        if (framerateMod < 0) {
+            framerateMod = 0;
+        }
 
         checkPendingTasks();
         processAll();
@@ -397,7 +448,7 @@ void ConstantFramerateMaster::process()
             std::chrono::system_clock::now() - startPoint);
         
         if (enlapsedTime < chronoFrameTime) {
-            std::this_thread::sleep_for(std::chrono::microseconds(chronoFrameTime - enlapsedTime));
+            std::this_thread::sleep_for(std::chrono::microseconds((chronoFrameTime - enlapsedTime))*framerateMod);
         } else {
             utils::warningMsg("Your server may be to slow");
         }

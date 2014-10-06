@@ -54,8 +54,8 @@ int createOutputPathAndSessions()
     AudioMixer *mixer;
     AudioEncoderLibav *encoder;
 
-    BestEffortMaster *mixWorker;
-    BestEffortMaster *encWorker;
+    ConstantFramerateMaster *mixWorker;
+    ConstantFramerateMaster *encWorker;
 
     Path* path;
 
@@ -65,18 +65,20 @@ int createOutputPathAndSessions()
     //NOTE: Adding mixer to pipeManager and handle worker
     mixer = new AudioMixer();
     pipe->addFilter(mixId, mixer);
-    mixWorker = new BestEffortMaster();
+    mixWorker = new ConstantFramerateMaster();
     mixWorker->addProcessor(mixId, mixer);
     mixer->setWorkerId(mixWorkerId);
     pipe->addWorker(mixWorkerId, mixWorker);
-    
+    mixWorker->setFps(1/0.020);
+
     //NOTE: Adding encoder to pipeManager and handle worker
     encoder = new AudioEncoderLibav();
     pipe->addFilter(encId, encoder);
-    encWorker = new BestEffortMaster();
+    encWorker = new ConstantFramerateMaster();
     encWorker->addProcessor(encId, encoder);
     encoder->setWorkerId(encWorkerId);
     pipe->addWorker(encWorkerId, encWorker);
+    encWorker->setFps(1/0.024);
    
     //NOTE: add filter to path
     path = pipe->createPath(mixId, pipe->getTransmitterID(), -1, -1, ids);

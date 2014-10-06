@@ -77,10 +77,6 @@ class AudioMixer : public ManyToOneFilter {
         //Vectors as attributes in order to improve memory management
         std::vector<float> samples;
         std::vector<float> mixedSamples;
-
-        std::chrono::system_clock::time_point startPoint;
-        std::chrono::microseconds enlapsedTime;
-        std::chrono::microseconds sleepTime;
 };
 
 

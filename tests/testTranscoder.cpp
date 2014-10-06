@@ -54,7 +54,7 @@ void addAudioSource(unsigned port, std::string codec = A_CODEC,
     AudioEncoderLibav *encoder;
     
     BestEffortMaster* aDec;
-    BestEffortMaster* aEnc;
+    ConstantFramerateMaster* aEnc;
     
     Session *session;
     Path *path;
@@ -89,11 +89,13 @@ void addAudioSource(unsigned port, std::string codec = A_CODEC,
     //NOTE: Adding encoder to pipeManager and handle worker
     encoder = new AudioEncoderLibav();
     pipe->addFilter(encId, encoder);
-    aEnc = new BestEffortMaster();
+    aEnc = new ConstantFramerateMaster();
     aEnc->addProcessor(encId, encoder);
     encoder->setWorkerId(aEncId);
     pipe->addWorker(aEncId, aEnc);
+    aEnc->setFps(1/0.024);
    
+
     //NOTE: add filter to path
     path = pipe->createPath(pipe->getReceiverID(), pipe->getTransmitterID(), port, -1, ids);
     pipe->addPath(port, path);       

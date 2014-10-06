@@ -74,8 +74,6 @@ FrameQueue* AudioEncoderLibav::allocQueue(int wId)
 bool AudioEncoderLibav::doProcessFrame(Frame *org, Frame *dst)
 {     
     int ret, gotFrame;
-    std::chrono::system_clock::time_point startPoint;
-    std::chrono::microseconds enlapsedTime;
 
     AudioFrame* aRawFrame = dynamic_cast<AudioFrame*>(org);
 
@@ -83,8 +81,6 @@ bool AudioEncoderLibav::doProcessFrame(Frame *org, Frame *dst)
         return false;
     }
 
-    startPoint = std::chrono::system_clock::now();
-    
     //set up buffer and buffer length pointers
     pkt.data = dst->getDataBuf();
     pkt.size = dst->getMaxLength();
@@ -356,6 +352,9 @@ void AudioEncoderLibav::setPresentationTime(Frame* dst)
     if (currentTime.count() == 0) {
         currentTime = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now().time_since_epoch());
     }
+
+    std::chrono::microseconds diffTime(std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now().time_since_epoch() - currentTime));
+    std::cout << diffTime.count() << std::endl;
 
     std::chrono::microseconds frameDuration(1000000*libavFrame->nb_samples/internalSampleRate);
     currentTime += frameDuration;

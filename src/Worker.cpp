@@ -379,7 +379,6 @@ void ConstantFramerateMaster::process()
         theoricTime += chronoFrameTime;
         lastDiffTime = diffTime;
         diffTime = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now().time_since_epoch() - theoricTime);
-        std::cout << diffTime.count() << std::endl;
 
         if (diffTime.count() > 0 && lastDiffTime < diffTime) {
             // delayed and incrementing delay. Need to speed up

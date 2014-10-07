@@ -127,8 +127,16 @@ protected:
     void process();
     unsigned int frameTime; //microseconds
 
+private:
+    void manageFramerate();
     enum State {OK, SPEED_UP, SLOW_DOWN};
     State state;
+    float framerateMod;
+
+    std::chrono::microseconds diffTime;
+    std::chrono::microseconds lastDiffTime;
+    std::chrono::microseconds theoricTime;
+    std::chrono::microseconds chronoFrameTime;
 };
 
 

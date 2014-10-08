@@ -35,6 +35,8 @@ VideoEncoderX264::VideoEncoderX264(bool force_): OneToOneFilter(force_)
     x264_picture_init(&picIn);
     midFrame = av_frame_alloc();
     threshold = std::chrono::microseconds(FRAME_TIME_THRESHOLD);
+
+    framerate = DEFAULT_FRAME_RATE;
     
     configure();
     
@@ -43,6 +45,20 @@ VideoEncoderX264::VideoEncoderX264(bool force_): OneToOneFilter(force_)
 
 VideoEncoderX264::~VideoEncoderX264(){
 	//TODO: delete encoder;
+}
+
+std::chrono::microseconds VideoEncoderX264::getFrameTime()
+{
+    int frameTime;
+
+    if (framerate == 0) {
+        frameTime = 0;
+    } else {
+        frameTime = 1000000/framerate;
+    }
+
+    std::chrono::microseconds fTime(frameTime);
+    return fTime;
 }
 
 bool VideoEncoderX264::doProcessFrame(Frame *org, Frame *dst) {

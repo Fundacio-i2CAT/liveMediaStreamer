@@ -42,6 +42,7 @@ extern "C" {
 }
 
 #define FRAME_TIME_THRESHOLD 4000 //usec
+#define DEFAULT_FRAME_RATE 25 //fps
 
 class VideoEncoderX264: public OneToOneFilter {
 	public:
@@ -53,6 +54,9 @@ class VideoEncoderX264: public OneToOneFilter {
                        int threads_ = DEFAULT_ENCODER_THREADS, int fps_ = DEFAULT_FRAME_RATE, bool annexB_ = false);
 		void setIntra(){forceIntra = true;};
 		FrameQueue* allocQueue(int wId);
+
+    protected:
+        std::chrono::microseconds getFrameTime();
 
     private:
 		void initializeEventMap();		

@@ -350,20 +350,10 @@ ConstantFramerateMaster::ConstantFramerateMaster(double maxFps) : Master()
 {
     setFps(maxFps);
     type = C_FRAMERATE_MASTER;
-    state = OK;
 }
 
 void ConstantFramerateMaster::setFps(double maxFps)
 {
-    double maxFpsModified = maxFps*(1001/1000);
-
-    if (maxFps != 0){
-        frameTime = std::round(1000000/maxFpsModified);
-    } else {
-        frameTime = std::round(1000000/DEFAULT_FRAME_RATE);
-    }
-
-    chronoFrameTime = std::chrono::microseconds(frameTime);
 }
 
 void ConstantFramerateMaster::process()
@@ -371,20 +361,16 @@ void ConstantFramerateMaster::process()
     std::chrono::microseconds enlapsedTime;
     std::chrono::system_clock::time_point startPoint;
     std::chrono::microseconds active(ACTIVE);
-    theoricTime = duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now().time_since_epoch());
-    
-    framerateMod = 1;
     
     while(run) {
         startPoint = std::chrono::system_clock::now();
-
-        manageFramerate();
 
         checkPendingTasks();
         processAll();
         
         for (auto it : processors) {
             it.second->processEvent();
+            updateFrameTime(it.second);
 
             if (!it.second->isEnabled()) {
                 continue;
@@ -404,8 +390,8 @@ void ConstantFramerateMaster::process()
         enlapsedTime = std::chrono::duration_cast<std::chrono::microseconds>(
             std::chrono::system_clock::now() - startPoint);
         
-        if (enlapsedTime < chronoFrameTime) {
-            std::this_thread::sleep_for(std::chrono::microseconds((chronoFrameTime - enlapsedTime))*framerateMod);
+        if (enlapsedTime < frameTime) {
+            std::this_thread::sleep_for(std::chrono::microseconds(frameTime - enlapsedTime));
         } else {
             utils::warningMsg("Your server may be to slow");
         }
@@ -413,47 +399,7 @@ void ConstantFramerateMaster::process()
 }
 
 
-void ConstantFramerateMaster::manageFramerate()
+void ConstantFramerateMaster::updateFrameTime(Runnable* processor)
 {
-    theoricTime += chronoFrameTime;
-    lastDiffTime = diffTime;
-    diffTime = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now().time_since_epoch() - theoricTime);
-
-    if (diffTime.count() > 0 && lastDiffTime < diffTime) {
-        // delayed and incrementing delay. Need to speed up
-        state = SPEED_UP;
-    }
-
-    if (diffTime.count() > 0 && lastDiffTime > diffTime) {
-        // delayed and decrementing delay. Dont do nothing
-        //framerateMod = 1;
-        state = OK;
-    }
-
-    if (diffTime.count() < 0 && lastDiffTime < diffTime) {
-        // advanced and decrementing advance. Dont do nothing
-        //framerateMod = 1;
-        state = OK;
-    }
-
-    if (diffTime.count() < 0 && lastDiffTime > diffTime) {
-        // advanced and incremeting advance. Need to slow down
-        state = SLOW_DOWN;
-    }
-
-    switch(state) {
-        case SPEED_UP:
-            framerateMod -= 0.01;
-            break;
-        case SLOW_DOWN:
-            framerateMod += 0.01;
-            break;
-        default:
-            //do nothing
-            break;
-    }
-
-    if (framerateMod < 0) {
-        framerateMod = 0;
-    }
+    frameTime = processor->getFrameTime();
 }

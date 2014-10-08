@@ -81,7 +81,7 @@ Frame* AVFramedQueue::forceGetRear()
     return frame;
 }
 
-Frame* AVFramedQueue::forceGetFront()
+Frame* AVFramedQueue::forceGetFront(bool &newFrame)
 {
     if (!firstFrame) {
         return NULL;

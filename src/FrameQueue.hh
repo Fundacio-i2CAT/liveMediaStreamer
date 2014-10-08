@@ -48,7 +48,7 @@ public:
     virtual void removeFrame() = 0;
     virtual void flush() = 0;
     virtual Frame *forceGetRear() = 0;
-    virtual Frame *forceGetFront() = 0;
+    virtual Frame *forceGetFront(bool &newFrame) = 0;
     virtual bool frameToRead() = 0;
     bool isConnected() {return connected;};
     void setConnected(bool conn) {connected = conn;};

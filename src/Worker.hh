@@ -125,18 +125,9 @@ public:
     void setFps(double maxFps);
 protected:
     void process();
-    unsigned int frameTime; //microseconds
-
 private:
-    void manageFramerate();
-    enum State {OK, SPEED_UP, SLOW_DOWN};
-    State state;
-    float framerateMod;
-
-    std::chrono::microseconds diffTime;
-    std::chrono::microseconds lastDiffTime;
-    std::chrono::microseconds theoricTime;
-    std::chrono::microseconds chronoFrameTime;
+    void updateFrameTime(Runnable* processor);
+    std::chrono::microseconds frameTime;
 };
 
 
@@ -151,6 +142,7 @@ public:
     virtual bool hasFrames() = 0;
     virtual bool isEnabled() = 0;
     virtual void stop() = 0;
+    virtual std::chrono::microseconds getFrameTime() = 0;
 };
 
 #endif

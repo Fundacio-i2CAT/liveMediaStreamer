@@ -34,7 +34,7 @@
 #define DISC_TIMEOUT 1000 //us
 
 BaseFilter::BaseFilter(unsigned maxReaders_, unsigned maxWriters_, bool force_) : 
-    maxReaders(maxReaders_), maxWriters(maxWriters_), force(force_), enabled(true)
+    framerate(0), maxReaders(maxReaders_), maxWriters(maxWriters_), force(force_), enabled(true)
 {
 }
 
@@ -54,6 +54,13 @@ BaseFilter::~BaseFilter()
     dFrames.clear();
     rUpdates.clear();
 }
+
+std::chrono::microseconds BaseFilter::getFrameTime()
+{
+    std::chrono::microseconds frameTime(0);
+    return frameTime;
+}
+
 
 Reader* BaseFilter::getReader(int id) 
 {
@@ -109,6 +116,7 @@ int BaseFilter::generateWriterID()
 bool BaseFilter::demandOriginFrames()
 {
     bool newFrame = false;
+    bool someFrame = false;
     
     for (auto it : readers) {
         if (!it.second->isConnected()) {
@@ -119,20 +127,33 @@ bool BaseFilter::demandOriginFrames()
             continue;
         }
 
-        oFrames[it.first] = it.second->getFrame();
+        oFrames[it.first] = it.second->getFrame(newFrame);
         if (oFrames[it.first] == NULL) {
-            oFrames[it.first] = it.second->getFrame(force);
-            if (force && oFrames[it.first] != NULL) {
-                newFrame = true;
+
+            if (force) {
+                oFrames[it.first] = it.second->getFrame(newFrame, force);
+                someFrame = true;
+
+                if (newFrame) {
+                    rUpdates[it.first] = true;
+                } else {
+                    rUpdates[it.first] = false;
+                }
+                
+            } else {
+                rUpdates[it.first] = false;
             }
-            rUpdates[it.first] = false;
+
         } else {
             rUpdates[it.first] = true;
-            newFrame = true;
+        }
+
+        if (oFrames[it.first]) {
+            someFrame = true;
         }
     }
 
-    return newFrame;
+    return someFrame;
 }
 
 bool BaseFilter::demandDestinationFrames()

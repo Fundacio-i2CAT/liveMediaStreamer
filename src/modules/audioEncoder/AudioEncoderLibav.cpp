@@ -51,6 +51,7 @@ AudioEncoderLibav::AudioEncoderLibav()  : OneToOneFilter()
     sampleFmt = S16P;
     libavSampleFmt = AV_SAMPLE_FMT_S16P;
     initializeEventMap();
+    framerateMod = 1;
 
     currentTime = std::chrono::microseconds(0);
     configure(fCodec);
@@ -236,6 +237,9 @@ bool AudioEncoderLibav::config()
         libavFrame->nb_samples = AudioFrame::getDefaultSamples(sampleRate);
     }
 
+    frameDuration = std::chrono::microseconds(1000000*libavFrame->nb_samples/internalSampleRate);
+    framerate = (1000000/frameDuration.count());
+
     libavFrame->format = codecCtx->sample_fmt;
     libavFrame->channel_layout = codecCtx->channel_layout;
 
@@ -353,9 +357,45 @@ void AudioEncoderLibav::setPresentationTime(Frame* dst)
         currentTime = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now().time_since_epoch());
     }
 
-    std::chrono::microseconds frameDuration(1000000*libavFrame->nb_samples/internalSampleRate);
     currentTime += frameDuration;
+
+    manageFramerate();
+
     dst->setPresentationTime(currentTime);
+}
+
+void AudioEncoderLibav::manageFramerate()
+{
+    lastDiffTime = diffTime;
+    diffTime = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now().time_since_epoch() - currentTime);
+
+    if (diffTime.count() > 0 && lastDiffTime < diffTime) {
+        // delayed and incrementing delay. Need to speed up
+        framerateMod += 0.01;
+    }
+
+    if (diffTime.count() < 0 && lastDiffTime > diffTime) {
+        // advanced and incremeting advance. Need to slow down
+        framerateMod -= 0.01;
+    }
+
+    if (framerateMod < 0) {
+        framerateMod = 0;
+    }
+}
+
+std::chrono::microseconds AudioEncoderLibav::getFrameTime()
+{
+    int frameTime;
+
+    if (framerate == 0) {
+        frameTime = 0;
+    } else {
+        frameTime = 1000000/(framerate*framerateMod);
+    }
+
+    std::chrono::microseconds fTime(frameTime);
+    return fTime;
 }
 
 void AudioEncoderLibav::configEvent(Jzon::Node* params, Jzon::Object &outputNode) 

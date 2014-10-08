@@ -45,7 +45,7 @@
         void removeFrame();
         void flush();
         Frame *forceGetRear();
-        Frame *forceGetFront();
+        Frame *forceGetFront(bool &newFrame);
         bool frameToRead() {return false;};
         int getFreeSamples();
 

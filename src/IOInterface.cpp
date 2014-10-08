@@ -45,19 +45,29 @@ void Reader::setQueue(FrameQueue *queue)
     this->queue = queue;
 }
 
-Frame* Reader::getFrame(bool force)
+Frame* Reader::getFrame(bool &newFrame, bool force)
 {
     Frame* frame;
 
     if (!queue->isConnected()) {
         utils::errorMsg("The queue is not connected");
+        newFrame = false;
         return NULL;
     }
 
     frame = queue->getFront();
 
-    if (frame == NULL && force) {
-        frame = queue->forceGetFront();
+    if (frame) {
+        newFrame = true;
+        return frame;
+    }
+
+    if (force) {
+        frame = queue->forceGetFront(newFrame);
+
+        if (!frame) {
+            //TODO: sanitiy check, think about asserts
+        }
     }
 
     return frame;

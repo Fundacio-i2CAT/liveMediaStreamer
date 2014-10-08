@@ -53,6 +53,9 @@ public:
 
     Reader* setReader(int readerID, FrameQueue* queue, bool sharedQueue = false);
 
+protected:
+    std::chrono::microseconds getFrameTime();
+
 private:
     void initializeEventMap();
     int resample(AudioFrame* src, AVFrame* dst);
@@ -60,7 +63,9 @@ private:
     bool config();
     void configEvent(Jzon::Node* params, Jzon::Object &outputNode);
     void doGetState(Jzon::Object &filterNode);
-	void setPresentationTime(Frame* dst);
+    void setPresentationTime(Frame* dst);
+    void manageFramerate();
+
    
     AVCodec             *codec;
     AVCodecContext      *codecCtx;
@@ -85,7 +90,13 @@ private:
     int                 internalBufferSize;
     unsigned char       *internalBuffer;
     unsigned char       *auxBuff[1];
+
     std::chrono::microseconds currentTime;
+    std::chrono::microseconds frameDuration;
+    std::chrono::microseconds diffTime;
+    std::chrono::microseconds lastDiffTime;
+
+    float framerateMod;
 };
 
 #endif

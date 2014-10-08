@@ -30,7 +30,7 @@
 #include <utility>
 #include <cmath>
 
-AudioMixer::AudioMixer(int inputChannels) : ManyToOneFilter(inputChannels, true) {
+AudioMixer::AudioMixer(int inputChannels) : ManyToOneFilter(inputChannels) {
     frameChannels = DEFAULT_CHANNELS;
     sampleRate = DEFAULT_SAMPLE_RATE;
     sampleFormat = S16P;
@@ -40,6 +40,8 @@ AudioMixer::AudioMixer(int inputChannels) : ManyToOneFilter(inputChannels, true)
     samples.resize(AudioFrame::getMaxSamples(sampleRate));
     mixedSamples.resize(AudioFrame::getMaxSamples(sampleRate));
 
+    framerate = 1000/DEFAULT_FRAME_TIME;
+
     initializeEventMap();
 
     masterGain = DEFAULT_MASTER_GAIN;
@@ -47,13 +49,15 @@ AudioMixer::AudioMixer(int inputChannels) : ManyToOneFilter(inputChannels, true)
     mAlg = LDRC;
 }
 
-AudioMixer::AudioMixer(int inputChannels, int frameChannels, int sampleRate) : ManyToOneFilter(inputChannels, true) {
+AudioMixer::AudioMixer(int inputChannels, int frameChannels, int sampleRate) : ManyToOneFilter(inputChannels) {
     this->frameChannels = frameChannels;
     this->sampleRate = sampleRate;
     sampleFormat = S16P;
 
     samples.resize(AudioFrame::getMaxSamples(sampleRate));
     mixedSamples.resize(AudioFrame::getMaxSamples(sampleRate));
+
+    framerate = 1000/DEFAULT_FRAME_TIME;
 
     initializeEventMap();
 
@@ -66,6 +70,13 @@ AudioMixer::~AudioMixer() {}
 
 FrameQueue *AudioMixer::allocQueue(int wId) {
     return AudioCircularBuffer::createNew(frameChannels, sampleRate, AudioFrame::getMaxSamples(sampleRate), sampleFormat);
+}
+
+std::chrono::microseconds AudioMixer::getFrameTime()
+{
+    int frameTime = 1000000/framerate;
+    std::chrono::microseconds fTime(frameTime);
+    return fTime;
 }
 
 bool AudioMixer::doProcessFrame(std::map<int, Frame*> orgFrames, Frame *dst) 

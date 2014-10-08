@@ -50,6 +50,7 @@ class AudioMixer : public ManyToOneFilter {
     protected:
         Reader *setReader(int readerID, FrameQueue* queue, bool sharedQueue = false);
         void doGetState(Jzon::Object &filterNode);
+        std::chrono::microseconds getFrameTime();
 
     private:
         void initializeEventMap();

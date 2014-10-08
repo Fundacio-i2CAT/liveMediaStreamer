@@ -83,6 +83,7 @@ protected:
     virtual bool processFrame(bool removeFrame = true) = 0;
     virtual Reader *setReader(int readerID, FrameQueue* queue, bool sharedQueue = false);
     virtual void doGetState(Jzon::Object &filterNode) = 0;
+    virtual std::chrono::microseconds getFrameTime();
 
     Reader* getReader(int id);
     bool demandOriginFrames();
@@ -99,6 +100,7 @@ protected:
     std::map<int, Frame*> oFrames;
     std::map<int, Frame*> dFrames;
     FilterType fType;
+    double framerate;
       
 private:
     bool connect(BaseFilter *R, int writerID, int readerID, bool slaveQueue = false);

@@ -36,7 +36,7 @@ public:
     void removeFrame();
     void flush();
     virtual Frame *forceGetRear();
-    Frame *forceGetFront();
+    Frame *forceGetFront(bool &newFrame);
     const int getElements() {return elements;};
     bool frameToRead();
 

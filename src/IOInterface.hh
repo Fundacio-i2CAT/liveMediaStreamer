@@ -65,7 +65,7 @@ public:
     ~Reader();
     void setQueue(FrameQueue *queue);
     bool isConnected();
-    Frame* getFrame(bool force = false);
+    Frame* getFrame(bool &newFrame, bool force = false);
     void removeFrame();
     void setConnection(FrameQueue *queue);
     FrameQueue* getQueue() const {return queue;};

@@ -84,7 +84,7 @@ Frame* AudioCircularBuffer::forceGetRear()
     return getRear();
 }
 
-Frame* AudioCircularBuffer::forceGetFront()
+Frame* AudioCircularBuffer::forceGetFront(bool &newFrame)
 {
     state = OK;
     if (!popFront(outputFrame->getPlanarDataBuf(), outputFrame->getSamples())) {

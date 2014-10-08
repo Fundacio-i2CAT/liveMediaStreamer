@@ -31,7 +31,7 @@ int AudioFrame::getMaxSamples(int sampleRate)
 
 int AudioFrame::getDefaultSamples(int sampleRate)
 {
-    return (DEFAULT_FRAME_TIME*sampleRate)/1000;
+    return (DEFAULT_FRAME_TIME*sampleRate)/1000000;
 }
 
 

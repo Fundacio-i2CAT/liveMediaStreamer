@@ -55,9 +55,6 @@ class VideoEncoderX264: public OneToOneFilter {
 		void setIntra(){forceIntra = true;};
 		FrameQueue* allocQueue(int wId);
 
-    protected:
-        std::chrono::microseconds getFrameTime();
-
     private:
 		void initializeEventMap();		
         
@@ -82,20 +79,12 @@ class VideoEncoderX264: public OneToOneFilter {
 		int gop; //ms
         int threads;
         
-        std::chrono::microseconds frameDuration;
-        std::chrono::microseconds frameTimestamp;
-        std::chrono::microseconds enlapsedTime;
-        std::chrono::microseconds threshold;
-        std::chrono::system_clock::time_point currentTime;
-        std::chrono::system_clock::time_point previousTime;
-        
         bool reconfigure(VideoFrame *orgFrame, X264VideoFrame* x264Frame);
         bool encodeHeadersFrame(X264VideoFrame* x264Frame);
         bool fill_x264_picture(VideoFrame* videoFrame);
 		void forceIntraEvent(Jzon::Node* params);
         void configEvent(Jzon::Node* params, Jzon::Object &outputNode);
 		void doGetState(Jzon::Object &filterNode);
-		void updatePresentationTime(Frame* dst);
 };
 
 #endif

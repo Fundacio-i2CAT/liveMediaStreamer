@@ -28,13 +28,10 @@
 #include <thread>
 #include <chrono>
 
-#define RETRIES 1
-#define TIMEOUT 2500 //us
-#define DISC_RETRIES 50
-#define DISC_TIMEOUT 1000 //us
+#define WALL_CLOCK_THRESHOLD 300000 //us
 
 BaseFilter::BaseFilter(unsigned maxReaders_, unsigned maxWriters_, bool force_) : 
-    framerate(0), maxReaders(maxReaders_), maxWriters(maxWriters_), force(force_), enabled(true)
+    maxReaders(maxReaders_), maxWriters(maxWriters_), force(force_), enabled(true)
 {
 }
 
@@ -57,8 +54,7 @@ BaseFilter::~BaseFilter()
 
 std::chrono::microseconds BaseFilter::getFrameTime()
 {
-    std::chrono::microseconds frameTime(0);
-    return frameTime;
+    return std::chrono::duration_cast<std::chrono::microseconds>(frameTime*frameTimeMod);
 }
 
 
@@ -395,6 +391,38 @@ bool BaseFilter::deleteReader(int id)
     return true;
 }
 
+void BaseFilter::updateTimestamp()
+{
+    if (frameTime.count() == 0) {
+        timestamp = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now().time_since_epoch());
+        return;
+    }
+
+    timestamp += frameTime;
+
+    lastDiffTime = diffTime;
+    diffTime = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now().time_since_epoch() - timestamp);
+
+    if (diffTime.count() > WALL_CLOCK_THRESHOLD || diffTime.count() < (-WALL_CLOCK_THRESHOLD) ) {
+        // reset timestamp value in order to realign with the wall clock
+        timestamp = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now().time_since_epoch());
+        diffTime = std::chrono::microseconds(0);
+    }
+
+    if (diffTime.count() > 0 && lastDiffTime < diffTime) {
+        // delayed and incrementing delay. Need to speed up
+        frameTimeMod += 0.01;
+    }
+
+    if (diffTime.count() < 0 && lastDiffTime > diffTime) {
+        // advanced and incremeting advance. Need to slow down
+        frameTimeMod -= 0.01;
+    }
+
+    if (frameTimeMod < 0) {
+        frameTimeMod = 0;
+    }
+}
 
 OneToOneFilter::OneToOneFilter(bool force_) : 
 BaseFilter(1, 1, force_)
@@ -403,20 +431,23 @@ BaseFilter(1, 1, force_)
 
 bool OneToOneFilter::processFrame(bool removeFrame)
 {
-	if (!demandOriginFrames() || !demandDestinationFrames()) {
-        	return false;
-	}
+    if (!demandOriginFrames() || !demandDestinationFrames()) {
+            return false;
+    }
 
     if (doProcessFrame(oFrames.begin()->second, dFrames.begin()->second)) {
         addFrames();
+        updateTimestamp();
+        dFrames.begin()->second->setPresentationTime(timestamp);
     }
-
+    
     if (removeFrame) {
-    	removeFrames();
-	}
+        removeFrames();
+    }
 
     return true;
 }
+
 
 OneToManyFilter::OneToManyFilter(unsigned writersNum, bool force_) : 
 BaseFilter(1, writersNum, force_)
@@ -430,8 +461,13 @@ bool OneToManyFilter::processFrame(bool removeFrame)
     }
     if (doProcessFrame(oFrames.begin()->second, dFrames)) {
         addFrames();
+        updateTimestamp();
+
+        for (auto it : dFrames) {
+            it.second->setPresentationTime(timestamp);
+        }
     }
-	
+
 	if (removeFrame) {
     	removeFrames();
 	}
@@ -503,6 +539,8 @@ bool ManyToOneFilter::processFrame(bool removeFrame)
 
     if (doProcessFrame(oFrames, dFrames.begin()->second)) {
         addFrames();
+        updateTimestamp();
+        dFrames.begin()->second->setPresentationTime(timestamp);
     }
 
 	if (removeFrame) {

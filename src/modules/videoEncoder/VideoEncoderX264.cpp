@@ -29,15 +29,12 @@ VideoEncoderX264::VideoEncoderX264(bool force_): OneToOneFilter(force_)
     fType = VIDEO_ENCODER;
     
 	pts = 0;
-    fps  = DEFAULT_FRAME_RATE;
+    fps = DEFAULT_FRAME_RATE;
 	forceIntra = false;
 	encoder = NULL;
     x264_picture_init(&picIn);
     midFrame = av_frame_alloc();
-    threshold = std::chrono::microseconds(FRAME_TIME_THRESHOLD);
 
-    framerate = DEFAULT_FRAME_RATE;
-    
     configure();
     
     initializeEventMap();
@@ -45,20 +42,6 @@ VideoEncoderX264::VideoEncoderX264(bool force_): OneToOneFilter(force_)
 
 VideoEncoderX264::~VideoEncoderX264(){
 	//TODO: delete encoder;
-}
-
-std::chrono::microseconds VideoEncoderX264::getFrameTime()
-{
-    int frameTime;
-
-    if (framerate == 0) {
-        frameTime = 0;
-    } else {
-        frameTime = 1000000/framerate;
-    }
-
-    std::chrono::microseconds fTime(frameTime);
-    return fTime;
 }
 
 bool VideoEncoderX264::doProcessFrame(Frame *org, Frame *dst) {
@@ -91,7 +74,6 @@ bool VideoEncoderX264::doProcessFrame(Frame *org, Frame *dst) {
 		return false;
 	}
 
-	updatePresentationTime(dst);
 	x264Frame->setNals(&ppNal, piNal, frameLength);
     
     pts++;
@@ -146,6 +128,7 @@ bool VideoEncoderX264::configure(int gop_, int bitrate_, int threads_, int fps_,
     threads = threads_;
     annexB = annexB_;
 	fps = fps_;
+    frameTime = std::chrono::microseconds(1000000/fps);
     
 	needsConfig = true;
 	return true;
@@ -153,19 +136,6 @@ bool VideoEncoderX264::configure(int gop_, int bitrate_, int threads_, int fps_,
 
 bool VideoEncoderX264::reconfigure(VideoFrame* orgFrame, X264VideoFrame* x264Frame)
 {   
-    previousTime = currentTime;
-    currentTime = std::chrono::system_clock::now();
-    enlapsedTime = std::chrono::duration_cast<std::chrono::microseconds>(currentTime - previousTime);
-    
-    if (enlapsedTime > (frameDuration + threshold) || enlapsedTime < (frameDuration - threshold)){
-        fps = std::round(1000000.0/enlapsedTime.count());
-        if (fps == 0){
-            utils::warningMsg("Got zero value for fps, using default " + std::to_string(DEFAULT_FRAME_RATE));
-            fps = DEFAULT_FRAME_RATE;
-        }
-        needsConfig = true;
-    }
-    
     if (needsConfig || orgFrame->getWidth() != xparams.i_width ||
         orgFrame->getHeight() != xparams.i_height ||
         orgFrame->getPixelFormat() != inPixFmt)
@@ -192,15 +162,12 @@ bool VideoEncoderX264::reconfigure(VideoFrame* orgFrame, X264VideoFrame* x264Fra
                 break;
         }
 
-        frameDuration = std::chrono::microseconds(1000000/fps);
-        
-        
         x264_param_default_preset(&xparams, "ultrafast", "zerolatency");
         xparams.i_threads = threads;
         xparams.i_fps_num = fps;
         xparams.i_fps_den = 1;
         xparams.b_intra_refresh = 0;
-        xparams.i_keyint_max = std::round(1000.0*gop/frameDuration.count());
+        xparams.i_keyint_max = std::round(1000.0*gop/frameTime.count());
         xparams.rc.i_bitrate = bitrate;
         if (annexB){
             xparams.b_annexb = 1;
@@ -237,12 +204,6 @@ bool VideoEncoderX264::reconfigure(VideoFrame* orgFrame, X264VideoFrame* x264Fra
     }
     
     return true;
-}
-
-void VideoEncoderX264::updatePresentationTime(Frame* dst)
-{
-	frameTimestamp = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now().time_since_epoch());;
-    dst->setPresentationTime(frameTimestamp);
 }
 
 void VideoEncoderX264::configEvent(Jzon::Node* params, Jzon::Object &outputNode)

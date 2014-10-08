@@ -165,7 +165,7 @@ void addVideoSource(unsigned port, unsigned fps = FRAME_RATE, std::string codec 
     pipe->addWorker(wResId, wRes);
     
     //NOTE: Adding encoder to pipeManager and handle worker
-    encoder = new VideoEncoderX264(true);
+    encoder = new VideoEncoderX264();
     pipe->addFilter(encId, encoder);
     wEnc = new ConstantFramerateMaster();
     wEnc->addProcessor(encId, encoder);

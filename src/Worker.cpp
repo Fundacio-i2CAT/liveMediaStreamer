@@ -389,6 +389,11 @@ void ConstantFramerateMaster::process()
 
         enlapsedTime = std::chrono::duration_cast<std::chrono::microseconds>(
             std::chrono::system_clock::now() - startPoint);
+
+        if (frameTime.count() == 0) {
+            std::this_thread::sleep_for(active);
+            continue;
+        }
         
         if (enlapsedTime < frameTime) {
             std::this_thread::sleep_for(std::chrono::microseconds(frameTime - enlapsedTime));

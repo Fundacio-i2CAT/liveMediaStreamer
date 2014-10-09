@@ -34,6 +34,7 @@ BaseFilter::BaseFilter(unsigned maxReaders_, unsigned maxWriters_, bool force_) 
     maxReaders(maxReaders_), maxWriters(maxWriters_), force(force_), enabled(true)
 {
     frameTime = std::chrono::microseconds(0);
+    frameTimeMod = 1;
 }
 
 BaseFilter::~BaseFilter()
@@ -125,7 +126,7 @@ bool BaseFilter::demandOriginFrames()
             continue;
         }
 
-        qState = it.second->getFrame(oFrames[it.first], newFrame, force);
+        oFrames[it.first] = it.second->getFrame(qState, newFrame, force);
 
         if (oFrames[it.first] != NULL) {
             if (newFrame) {
@@ -395,12 +396,14 @@ void BaseFilter::updateTimestamp()
 
     lastDiffTime = diffTime;
     diffTime = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now().time_since_epoch() - timestamp);
+    std::cout << diffTime.count() << std::endl;
 
     if (diffTime.count() > WALL_CLOCK_THRESHOLD || diffTime.count() < (-WALL_CLOCK_THRESHOLD) ) {
         // reset timestamp value in order to realign with the wall clock
-        //TODO: warning message
+        utils::warningMsg("Wall clock deviations exceeded! Reseting values!");
         timestamp = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now().time_since_epoch());
         diffTime = std::chrono::microseconds(0);
+        frameTimeMod = 1;
     }
 
     if (diffTime.count() > 0 && lastDiffTime < diffTime) {
@@ -429,7 +432,6 @@ bool OneToOneFilter::processFrame(bool removeFrame)
             return false;
     }
 
-    std::cout << "process frame!!!" << std::endl;
     if (doProcessFrame(oFrames.begin()->second, dFrames.begin()->second)) {
         addFrames();
         updateTimestamp();

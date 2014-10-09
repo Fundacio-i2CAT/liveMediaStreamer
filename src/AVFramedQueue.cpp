@@ -48,7 +48,6 @@ Frame* AVFramedQueue::getFront(bool &newFrame)
         newFrame = true;
         return frames[front];
     }
-
     newFrame = false;
     return NULL;
 }

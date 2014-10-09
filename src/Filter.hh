@@ -101,6 +101,7 @@ protected:
     FilterType fType;
 
     float frameTimeMod;
+    float bufferStateFrameTimeMod;
     void updateTimestamp();
 
     std::chrono::microseconds frameTime;

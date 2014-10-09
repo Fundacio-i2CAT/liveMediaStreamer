@@ -29,12 +29,15 @@
 #include <chrono>
 
 #define WALL_CLOCK_THRESHOLD 300000 //us
+#define SLOW_MODIFIER 1.05 
+#define FAST_MODIFIER 0.95 
 
 BaseFilter::BaseFilter(unsigned maxReaders_, unsigned maxWriters_, bool force_) : 
     maxReaders(maxReaders_), maxWriters(maxWriters_), force(force_), enabled(true)
 {
     frameTime = std::chrono::microseconds(0);
     frameTimeMod = 1;
+    bufferStateFrameTimeMod = 1;
 }
 
 BaseFilter::~BaseFilter()
@@ -56,7 +59,7 @@ BaseFilter::~BaseFilter()
 
 std::chrono::microseconds BaseFilter::getFrameTime()
 {
-    return std::chrono::duration_cast<std::chrono::microseconds>(frameTime*frameTimeMod);
+    return std::chrono::duration_cast<std::chrono::microseconds>(frameTime*frameTimeMod*bufferStateFrameTimeMod);
 }
 
 
@@ -141,6 +144,12 @@ bool BaseFilter::demandOriginFrames()
             rUpdates[it.first] = false;
         }
 
+    }
+
+    if (qState == SLOW) {
+        bufferStateFrameTimeMod = SLOW_MODIFIER;
+    } else {
+        bufferStateFrameTimeMod = FAST_MODIFIER;
     }
 
     return someFrame;
@@ -396,7 +405,6 @@ void BaseFilter::updateTimestamp()
 
     lastDiffTime = diffTime;
     diffTime = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now().time_since_epoch() - timestamp);
-    std::cout << diffTime.count() << std::endl;
 
     if (diffTime.count() > WALL_CLOCK_THRESHOLD || diffTime.count() < (-WALL_CLOCK_THRESHOLD) ) {
         // reset timestamp value in order to realign with the wall clock

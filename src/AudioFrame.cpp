@@ -84,6 +84,12 @@ InterleavedAudioFrame::~InterleavedAudioFrame()
     delete[] frameBuff;
 }
 
+void InterleavedAudioFrame::setDummy()
+{
+    
+}
+
+
 
 /////////////////////////////////////////////
 //PLANAR AUDIO FRAME METHODS IMPLEMENTATION//
@@ -169,4 +175,9 @@ void PlanarAudioFrame::fillBufferWithFloatSamples(std::vector<float> samplesVec,
         b[i+1] = (value >> 8) & 0xFF;
         samplesIndex++;
     }
+}
+
+void PlanarAudioFrame::setDummy()
+{
+    
 } 

@@ -55,6 +55,7 @@ class AudioFrame : public Frame {
         int getBytesPerSample() {return bytesPerSample;};
         virtual int getChannelFloatSamples(std::vector<float> &samplesVec, int channel) = 0;
         virtual void fillBufferWithFloatSamples(std::vector<float> samples, int channel) = 0;
+        virtual void setDummy() = 0;
         static int getMaxSamples(int sampleRate);
         static int getDefaultSamples(int sampleRate);
         static SampleFmt getSampleFormatFromString(std::string stringSampleFmt);
@@ -78,7 +79,8 @@ class InterleavedAudioFrame : public AudioFrame {
         bool isPlanar() {return false;};
         void setLength(unsigned int length) {bufferLen = length;};
         int getChannelFloatSamples(std::vector<float> &samplesVec, int channel) {return 0;}; 
-        void fillBufferWithFloatSamples(std::vector<float> samples, int channel) {}; 
+        void fillBufferWithFloatSamples(std::vector<float> samples, int channel) {};
+        void setDummy();
 
     private:
         InterleavedAudioFrame(int ch, int sRate, int maxSamples, ACodecType codec, SampleFmt sFmt);
@@ -99,6 +101,7 @@ class PlanarAudioFrame : public AudioFrame {
         void setLength(unsigned int length) {bufferLen = length;};
         int getChannelFloatSamples(std::vector<float> &samplesVec, int channel); 
         void fillBufferWithFloatSamples(std::vector<float> samples, int channel); 
+        void setDummy();
 
     private:
         PlanarAudioFrame(int ch, int sRate, int maxSamples, ACodecType codec, SampleFmt sFmt);

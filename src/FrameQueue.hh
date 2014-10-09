@@ -34,8 +34,12 @@
 #include "Types.hh"
 
 #define MAX_FRAMES 2000000
+#define SLOW_THRESHOLD 0.4
+#define FAST_THRESHOLD 0.6
 
 using namespace std::chrono;
+
+enum QueueState{SLOW, FAST};
 
 class FrameQueue {
 
@@ -43,19 +47,22 @@ public:
     FrameQueue();
     virtual ~FrameQueue() {};
     virtual Frame *getRear() = 0;
-    virtual Frame *getFront() = 0;
+    virtual Frame *getFront(bool &newFrame) = 0;
     virtual void addFrame() = 0;
     virtual void removeFrame() = 0;
     virtual void flush() = 0;
     virtual Frame *forceGetRear() = 0;
     virtual Frame *forceGetFront(bool &newFrame) = 0;
     virtual bool frameToRead() = 0;
+    virtual QueueState getState() = 0;
+
     bool isConnected() {return connected;};
     void setConnected(bool conn) {connected = conn;};
 
 protected:
     virtual bool config() = 0;
 
+    QueueState state;
     std::atomic<int> rear;
     std::atomic<int> front;
     std::atomic<int> elements;

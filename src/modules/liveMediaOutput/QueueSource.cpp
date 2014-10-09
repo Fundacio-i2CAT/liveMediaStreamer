@@ -15,7 +15,7 @@ void QueueSource::doGetNextFrame()
     checkStatus();
     bool newFrame = false;
 
-    frame = fReader->getFrame(newFrame);
+    fReader->getFrame(frame, newFrame);
 
     if ((newFrame && frame == NULL) || (!newFrame && frame != NULL)) {
         //TODO: sanity check, think about assert

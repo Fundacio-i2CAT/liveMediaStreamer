@@ -31,7 +31,7 @@ class AVFramedQueue : public FrameQueue {
 
 public:
     virtual Frame *getRear();
-    Frame *getFront();
+    Frame *getFront(bool &newFrame);
     virtual void addFrame();
     void removeFrame();
     void flush();
@@ -39,6 +39,7 @@ public:
     Frame *forceGetFront(bool &newFrame);
     const int getElements() {return elements;};
     bool frameToRead();
+    QueueState getState();
 
     virtual ~AVFramedQueue();
 

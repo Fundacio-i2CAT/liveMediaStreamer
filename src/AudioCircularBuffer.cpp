@@ -47,18 +47,20 @@ Frame* AudioCircularBuffer::getRear()
     return inputFrame;
 }
 
-Frame* AudioCircularBuffer::getFront()
+Frame* AudioCircularBuffer::getFront(bool &newFrame)
 {
     if (outputFrameAlreadyRead == false) {
+        newFrame = true;
         return outputFrame;
     }
 
     if (!popFront(outputFrame->getPlanarDataBuf(), outputFrame->getSamples())) {
+        newFrame = false;
         utils::debugMsg("There is not enough data to fill a frame. Impossible to get new frame!");
         return NULL;
     }
 
-    outputFrameAlreadyRead = false;
+    newFrame = true;
     return outputFrame;
 }
 
@@ -86,11 +88,14 @@ Frame* AudioCircularBuffer::forceGetRear()
 
 Frame* AudioCircularBuffer::forceGetFront(bool &newFrame)
 {
-    state = OK;
+    bufferingState = OK;
+
     if (!popFront(outputFrame->getPlanarDataBuf(), outputFrame->getSamples())) {
-        utils::debugMsg("There is not enough data to fill a frame. Reusing previous frame!");
-        return NULL;
+        utils::debugMsg("There is not enough data to fill a frame. Outputing silence!");
+        //return dummy frame
     }
+
+    //updateState
 
     return outputFrame;
 }
@@ -105,7 +110,7 @@ AudioCircularBuffer::AudioCircularBuffer(int ch, int sRate, int maxSamples, Samp
     this->chMaxSamples = maxSamples;
     sampleFormat = sFmt;
     outputFrameAlreadyRead = true;
-    state = BUFFERING;
+    bufferingState = BUFFERING;
 
     config();
 }
@@ -195,13 +200,13 @@ bool AudioCircularBuffer::popFront(unsigned char **buffer, int samplesRequested)
 {
     int bytesRequested = samplesRequested * bytesPerSample;
     
-    if (((bytesRequested > elements) || bytesRequested == 0) && state == OK) {
-        state = BUFFERING;
+    if (((bytesRequested > elements) || bytesRequested == 0) && bufferingState == OK) {
+        bufferingState = BUFFERING;
     }
 
-    if (state == BUFFERING) {
+    if (bufferingState == BUFFERING) {
         if (elements > samplesBufferingThreshold * bytesPerSample) {
-            state = OK;
+            bufferingState = OK;
         }
 
         return false;
@@ -261,4 +266,20 @@ bool AudioCircularBuffer::forcePushBack(unsigned char **buffer, int samplesReque
 void AudioCircularBuffer::setOutputFrameSamples(int samples) {
     outputFrame->setSamples(samples);
     outputFrame->setLength(samples*bytesPerSample);
-} 
+}
+
+QueueState AudioCircularBuffer::getState()
+{
+    float occupancy = elements/channelMaxLength;
+
+    if (occupancy > FAST_THRESHOLD) {
+        state = FAST;
+    }
+
+    if (occupancy < SLOW_THRESHOLD) {
+        state = SLOW;
+    }
+
+    return state;
+}
+

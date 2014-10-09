@@ -51,7 +51,7 @@ Boolean H264QueueSink::continuePlaying()
     }
     
     memmove(frame->getDataBuf(), start_code, sizeof(start_code));
-    
+
     fSource->getNextFrame(frame->getDataBuf() + sizeof(start_code), 
                           frame->getMaxLength() - sizeof(start_code),
                           QueueSink::afterGettingFrame, this,

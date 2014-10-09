@@ -42,11 +42,14 @@ Frame* AVFramedQueue::getRear()
     return frames[rear];
 }
 
-Frame* AVFramedQueue::getFront() 
+Frame* AVFramedQueue::getFront(bool &newFrame) 
 {
     if(frameToRead()) {
+        newFrame = true;
         return frames[front];
     }
+
+    newFrame = false;
     return NULL;
 }
 
@@ -84,8 +87,11 @@ Frame* AVFramedQueue::forceGetRear()
 Frame* AVFramedQueue::forceGetFront(bool &newFrame)
 {
     if (!firstFrame) {
-        return NULL;
+        utils::errorMsg("Forcing front without any frame. Undefined behaviour");
+        //return dummy frame
+       // return NULL;
     }
+
     return frames[(front + (max - 1)) % max]; 
 }
 
@@ -97,6 +103,21 @@ bool AVFramedQueue::frameToRead()
     } else {
         return true;
     }
+}
+
+QueueState AVFramedQueue::getState()
+{
+    float occupancy = elements/max;
+
+    if (occupancy > FAST_THRESHOLD) {
+        state = FAST;
+    }
+
+    if (occupancy < SLOW_THRESHOLD) {
+        state = SLOW;
+    }
+
+    return state;
 }
 
 ////////////////////////////////////////////

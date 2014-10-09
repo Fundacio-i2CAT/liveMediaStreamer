@@ -40,7 +40,7 @@
         void setOutputFrameSamples(int samples); 
 
         Frame *getRear();
-        Frame *getFront();
+        Frame *getFront(bool &newFrame);
         void addFrame();
         void removeFrame();
         void flush();
@@ -48,10 +48,10 @@
         Frame *forceGetFront(bool &newFrame);
         bool frameToRead() {return false;};
         int getFreeSamples();
+        QueueState getState();
 
     protected:
         bool config();
-
 
     private:
         AudioCircularBuffer(int ch, int sRate, int maxSamples, SampleFmt sFmt);
@@ -74,7 +74,7 @@
         bool outputFrameAlreadyRead;
 
         int samplesBufferingThreshold;
-        State state;
+        State bufferingState;
 
         PlanarAudioFrame* inputFrame;
         PlanarAudioFrame* outputFrame;

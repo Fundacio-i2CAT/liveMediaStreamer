@@ -30,4 +30,5 @@ FrameQueue::FrameQueue()
     elements = 0;
     connected = false;
     firstFrame = false;
+    state = SLOW;
 }

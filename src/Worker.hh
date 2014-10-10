@@ -33,6 +33,7 @@
 #include "Types.hh"
 #include "Jzon.h"
 #include "Utils.hh"
+#include <mutex>
 
 #define MAX_SLAVE 16
 
@@ -56,7 +57,6 @@ public:
     WorkerType getType(){return type;};
     std::map<int, Runnable*> getProcessors(){return processors;};
     void getState(Jzon::Object &workerNode);
-
     
 protected:
     virtual void process() = 0;
@@ -72,6 +72,7 @@ protected:
     std::atomic<bool> canExecute;
 
     WorkerType type;
+    std::mutex mtx;
 };
 
 class LiveMediaWorker : public Worker {

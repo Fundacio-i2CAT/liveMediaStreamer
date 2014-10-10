@@ -24,7 +24,7 @@
 #define A_CODEC "OPUS"
 #define A_BANDWITH 128
 #define A_TIME_STMP_FREQ 48000
-#define A_CHANNELS 2
+#define A_CHANNELS 1
 
 bool run = true;
 

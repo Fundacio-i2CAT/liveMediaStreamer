@@ -199,19 +199,17 @@ bool AudioCircularBuffer::pushBack(unsigned char **buffer, int samplesRequested)
 bool AudioCircularBuffer::popFront(unsigned char **buffer, int samplesRequested)
 {
     int bytesRequested = samplesRequested * bytesPerSample;
-    
-    if (((bytesRequested > elements) || bytesRequested == 0) && bufferingState == OK) {
+
+    if (elements < samplesBufferingThreshold * bytesPerSample) {
         bufferingState = BUFFERING;
+    } else {
+	bufferingState = OK;
     }
 
     if (bufferingState == BUFFERING) {
-        if (elements > samplesBufferingThreshold * bytesPerSample) {
-            bufferingState = OK;
-        }
-
-        return false;
+	return false;
     }
-    
+
     fillOutputBuffers(buffer, bytesRequested);
 
     return true;
@@ -253,8 +251,7 @@ int AudioCircularBuffer::getFreeSamples()
 bool AudioCircularBuffer::forcePushBack(unsigned char **buffer, int samplesRequested)
 {
     if(!pushBack(inputFrame->getPlanarDataBuf(), inputFrame->getSamples())) {
-        utils::errorMsg("There is not enough free space in the buffer. Discarding samples");
-        std::cout << "Discarding queue: " << this << std::endl;
+        utils::debugMsg("There is not enough free space in the buffer. Discarding samples");
         if (getFreeSamples() != 0) {
             pushBack(inputFrame->getPlanarDataBuf(), getFreeSamples());
         }
@@ -270,7 +267,7 @@ void AudioCircularBuffer::setOutputFrameSamples(int samples) {
 
 QueueState AudioCircularBuffer::getState()
 {
-    float occupancy = elements/channelMaxLength;
+    float occupancy = (float)elements/(float)channelMaxLength;
 
     if (occupancy > FAST_THRESHOLD) {
         state = FAST;

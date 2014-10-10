@@ -28,10 +28,11 @@ VideoEncoderX264::VideoEncoderX264(bool force_): OneToOneFilter(force_)
 {
     fType = VIDEO_ENCODER;
     
-	pts = 0;
+    pts = 0;
     fps = DEFAULT_FRAME_RATE;
-	forceIntra = false;
-	encoder = NULL;
+    frameTime = std::chrono::microseconds(1000000/fps);
+    forceIntra = false;
+    encoder = NULL;
     x264_picture_init(&picIn);
     midFrame = av_frame_alloc();
 
@@ -122,16 +123,16 @@ FrameQueue* VideoEncoderX264::allocQueue(int wId) {
 
 bool VideoEncoderX264::configure(int gop_, int bitrate_, int threads_, int fps_, bool annexB_)
 {
-	//TODO: validate inputs
-	gop = gop_;
-	bitrate = bitrate_;
+    //TODO: validate inputs
+    gop = gop_;
+    bitrate = bitrate_;
     threads = threads_;
     annexB = annexB_;
-	fps = fps_;
+//	fps = fps_;
     frameTime = std::chrono::microseconds(1000000/fps);
-    
-	needsConfig = true;
-	return true;
+
+    needsConfig = true;
+    return true;
 }
 
 bool VideoEncoderX264::reconfigure(VideoFrame* orgFrame, X264VideoFrame* x264Frame)

@@ -28,9 +28,9 @@
 #include <thread>
 #include <chrono>
 
-#define WALL_CLOCK_THRESHOLD 300000 //us
-#define SLOW_MODIFIER 1.05 
-#define FAST_MODIFIER 0.95 
+#define WALL_CLOCK_THRESHOLD 100000 //us
+#define SLOW_MODIFIER 1.10 
+#define FAST_MODIFIER 0.90 
 
 BaseFilter::BaseFilter(unsigned maxReaders_, unsigned maxWriters_, bool force_) : 
     maxReaders(maxReaders_), maxWriters(maxWriters_), force(force_), enabled(true)
@@ -441,9 +441,9 @@ bool OneToOneFilter::processFrame(bool removeFrame)
     }
 
     if (doProcessFrame(oFrames.begin()->second, dFrames.begin()->second)) {
-        addFrames();
         updateTimestamp();
         dFrames.begin()->second->setPresentationTime(timestamp);
+        addFrames();
     }
     
     if (removeFrame) {
@@ -466,17 +466,18 @@ bool OneToManyFilter::processFrame(bool removeFrame)
     }
 
     if (doProcessFrame(oFrames.begin()->second, dFrames)) {
-        addFrames();
         updateTimestamp();
 
         for (auto it : dFrames) {
             it.second->setPresentationTime(timestamp);
         }
+ 
+        addFrames();
     }
 
-	if (removeFrame) {
+    if (removeFrame) {
     	removeFrames();
-	}
+    }
 
     return true;
 }
@@ -544,14 +545,14 @@ bool ManyToOneFilter::processFrame(bool removeFrame)
     }
 
     if (doProcessFrame(oFrames, dFrames.begin()->second)) {
-        addFrames();
         updateTimestamp();
         dFrames.begin()->second->setPresentationTime(timestamp);
+        addFrames();
     }
 
-	if (removeFrame) {
+    if (removeFrame) {
     	removeFrames();
-	}
+    }
     
     return true;
 }

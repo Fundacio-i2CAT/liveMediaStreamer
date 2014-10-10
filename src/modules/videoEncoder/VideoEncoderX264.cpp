@@ -24,12 +24,12 @@
 #include <cmath>
 #include "VideoEncoderX264.hh"
 
-VideoEncoderX264::VideoEncoderX264(bool force_): OneToOneFilter(force_)
+VideoEncoderX264::VideoEncoderX264(int framerate): OneToOneFilter(true)
 {
     fType = VIDEO_ENCODER;
     
     pts = 0;
-    fps = DEFAULT_FRAME_RATE;
+    fps = framerate;
     frameTime = std::chrono::microseconds(1000000/fps);
     forceIntra = false;
     encoder = NULL;
@@ -128,7 +128,13 @@ bool VideoEncoderX264::configure(int gop_, int bitrate_, int threads_, int fps_,
     bitrate = bitrate_;
     threads = threads_;
     annexB = annexB_;
-//	fps = fps_;
+
+    if (fps_ == 0) {
+        fps = VIDEO_DEFAULT_FRAMERATE;
+    } else {
+        fps = fps_;
+    }
+    
     frameTime = std::chrono::microseconds(1000000/fps);
 
     needsConfig = true;

@@ -30,7 +30,7 @@
 #include <iostream>
 #include "Worker.hh"
 
-Worker::Worker(): run(false), enabled(false), pendingTask(false), canExecute(false)
+Worker::Worker(): run(false), enabled(false)
 {
 }
 
@@ -328,15 +328,10 @@ void Slave::process()
 //        CONST FRAMERATE SLAVE CLASS            //
 ///////////////////////////////////////////////////
 
-ConstantFramerateMaster::ConstantFramerateMaster(double maxFps) : Master()
+ConstantFramerateMaster::ConstantFramerateMaster() : Master()
 {
-    setFps(maxFps);
     type = C_FRAMERATE_MASTER;
     frameTime = std::chrono::microseconds(0);
-}
-
-void ConstantFramerateMaster::setFps(double maxFps)
-{
 }
 
 void ConstantFramerateMaster::process()

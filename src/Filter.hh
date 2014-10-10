@@ -48,6 +48,8 @@
 #define DEFAULT_ID 1
 #define MAX_WRITERS 16
 #define MAX_READERS 16
+#define VIDEO_DEFAULT_FRAMERATE 25 //fps
+ 
 
 class BaseFilter : public Runnable {
     

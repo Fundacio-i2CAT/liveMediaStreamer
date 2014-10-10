@@ -24,7 +24,7 @@
 #define A_CODEC "OPUS"
 #define A_BANDWITH 128
 #define A_TIME_STMP_FREQ 48000
-#define A_CHANNELS 1
+#define A_CHANNELS 2
 
 bool run = true;
 
@@ -93,8 +93,6 @@ void addAudioSource(unsigned port, std::string codec = A_CODEC,
     aEnc->addProcessor(encId, encoder);
     encoder->setWorkerId(aEncId);
     pipe->addWorker(aEncId, aEnc);
-    aEnc->setFps(1/0.024);
-   
 
     //NOTE: add filter to path
     path = pipe->createPath(pipe->getReceiverID(), pipe->getTransmitterID(), port, -1, ids);
@@ -165,12 +163,11 @@ void addVideoSource(unsigned port, unsigned fps = FRAME_RATE, std::string codec 
     pipe->addWorker(wResId, wRes);
     
     //NOTE: Adding encoder to pipeManager and handle worker
-    encoder = new VideoEncoderX264(true);
+    encoder = new VideoEncoderX264();
     pipe->addFilter(encId, encoder);
     wEnc = new ConstantFramerateMaster();
     wEnc->addProcessor(encId, encoder);
     encoder->setWorkerId(wEncId);
-    wEnc->setFps(fps*1001.0/1000);
     pipe->addWorker(wEncId, wEnc);
     
     //NOTE: add filter to path

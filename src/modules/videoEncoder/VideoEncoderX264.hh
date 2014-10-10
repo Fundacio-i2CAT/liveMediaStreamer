@@ -41,12 +41,9 @@ extern "C" {
 #include <libavformat/avformat.h>
 }
 
-#define FRAME_TIME_THRESHOLD 4000 //usec
-#define DEFAULT_FRAME_RATE 25 //fps
-
 class VideoEncoderX264: public OneToOneFilter {
 	public:
-		VideoEncoderX264(bool force_ = false);
+		VideoEncoderX264(int framerate = VIDEO_DEFAULT_FRAMERATE);
 		~VideoEncoderX264();
 		bool doProcessFrame(Frame *org, Frame *dst);
         bool configure(int gop_ = DEFAULT_GOP,

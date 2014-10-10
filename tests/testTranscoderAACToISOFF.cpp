@@ -146,7 +146,6 @@ void addVideoSource(unsigned port, unsigned fps = FRAME_RATE, std::string codec 
     wEnc = new ConstantFramerateMaster();
     wEnc->addProcessor(encId, encoder);
     encoder->setWorkerId(wEncId);
-    wEnc->setFps(fps*1001.0/1000);
     pipe->addWorker(wEncId, wEnc);
     
     //NOTE: add filter to path

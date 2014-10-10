@@ -622,7 +622,6 @@ void PipelineManager::removeWorkerEvent(Jzon::Node* params, Jzon::Object &output
 void PipelineManager::addWorkerEvent(Jzon::Node* params, Jzon::Object &outputNode) 
 {
     int id;
-    double fps;
     std::string type;
     Worker* worker = NULL;
 
@@ -638,14 +637,13 @@ void PipelineManager::addWorkerEvent(Jzon::Node* params, Jzon::Object &outputNod
 
     id = params->Get("id").ToInt();
     type = params->Get("type").ToString();
-    fps = params->Get("fps").ToDouble();
 
     if (type.compare("bestEffortMaster") == 0) {
         worker = new BestEffortMaster();
     } else if (type.compare("slave") == 0) {
         worker = new Slave();
     } else if (type.compare("cFramerateMaster") == 0) {
-        worker = new ConstantFramerateMaster(fps);
+        worker = new ConstantFramerateMaster();
     } 
 
     if (!worker) {

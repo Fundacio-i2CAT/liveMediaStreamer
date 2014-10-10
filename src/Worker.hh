@@ -60,16 +60,11 @@ public:
     
 protected:
     virtual void process() = 0;
-    void checkPendingTasks();
-    void signalTask();
-    void commitTask();  
 
     std::map<int, Runnable*> processors;
     std::thread thread;
     std::atomic<bool> run;
     std::atomic<bool> enabled;
-    std::atomic<bool> pendingTask;
-    std::atomic<bool> canExecute;
 
     WorkerType type;
     std::mutex mtx;
@@ -122,8 +117,7 @@ protected:
 
 class ConstantFramerateMaster : public Master {
 public:
-    ConstantFramerateMaster(double maxFps = 0);
-    void setFps(double maxFps);
+    ConstantFramerateMaster();
 protected:
     void process();
 private:

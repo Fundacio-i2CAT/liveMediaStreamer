@@ -69,7 +69,6 @@ int createOutputPathAndSessions()
     mixWorker->addProcessor(mixId, mixer);
     mixer->setWorkerId(mixWorkerId);
     pipe->addWorker(mixWorkerId, mixWorker);
-    mixWorker->setFps(1/0.020);
 
     //NOTE: Adding encoder to pipeManager and handle worker
     encoder = new AudioEncoderLibav();
@@ -78,7 +77,6 @@ int createOutputPathAndSessions()
     encWorker->addProcessor(encId, encoder);
     encoder->setWorkerId(encWorkerId);
     pipe->addWorker(encWorkerId, encWorker);
-    encWorker->setFps(1/0.024);
    
     //NOTE: add filter to path
     path = pipe->createPath(mixId, pipe->getTransmitterID(), -1, -1, ids);

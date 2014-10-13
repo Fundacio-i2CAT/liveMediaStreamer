@@ -54,8 +54,8 @@ int createOutputPathAndSessions()
     AudioMixer *mixer;
     AudioEncoderLibav *encoder;
 
-    ConstantFramerateMaster *mixWorker;
-    ConstantFramerateMaster *encWorker;
+    Master *mixWorker;
+    Master *encWorker;
 
     Path* path;
 
@@ -65,7 +65,7 @@ int createOutputPathAndSessions()
     //NOTE: Adding mixer to pipeManager and handle worker
     mixer = new AudioMixer();
     pipe->addFilter(mixId, mixer);
-    mixWorker = new ConstantFramerateMaster();
+    mixWorker = new Master();
     mixWorker->addProcessor(mixId, mixer);
     mixer->setWorkerId(mixWorkerId);
     pipe->addWorker(mixWorkerId, mixWorker);
@@ -73,7 +73,7 @@ int createOutputPathAndSessions()
     //NOTE: Adding encoder to pipeManager and handle worker
     encoder = new AudioEncoderLibav();
     pipe->addFilter(encId, encoder);
-    encWorker = new ConstantFramerateMaster();
+    encWorker = new Master();
     encWorker->addProcessor(encId, encoder);
     encoder->setWorkerId(encWorkerId);
     pipe->addWorker(encWorkerId, encWorker);
@@ -107,7 +107,7 @@ void addAudioSource(unsigned port, int mixerId, std::string codec = A_CODEC,
     
     AudioDecoderLibav *decoder;
     
-    BestEffortMaster* aDec;
+    Master* aDec;
     
     Session *session;
     Path *path;
@@ -134,7 +134,7 @@ void addAudioSource(unsigned port, int mixerId, std::string codec = A_CODEC,
     //NOTE: Adding decoder to pipeManager and handle worker
     decoder = new AudioDecoderLibav();
     pipe->addFilter(decId, decoder);
-    aDec = new BestEffortMaster();
+    aDec = new Master();
     aDec->addProcessor(decId, decoder);
     decoder->setWorkerId(aDecId);
     pipe->addWorker(aDecId, aDec);

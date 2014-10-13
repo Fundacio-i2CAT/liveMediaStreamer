@@ -98,34 +98,16 @@ public:
     bool removeSlave(int id);
 
 protected:
-    virtual void process() = 0;
+    void process();
     bool allFinished();
     void processAll();
 
 private:
-    std::map<int, Slave*> slaves;
-
-};
-
-class BestEffortMaster : public Master {
-public:
-    BestEffortMaster();
-
-protected:
-    void process();
-};
-
-class ConstantFramerateMaster : public Master {
-public:
-    ConstantFramerateMaster();
-protected:
-    void process();
-private:
     void updateFrameTime(Runnable* processor);
+    std::map<int, Slave*> slaves;
     std::chrono::microseconds frameTime;
+
 };
-
-
 
 class Runnable {
     

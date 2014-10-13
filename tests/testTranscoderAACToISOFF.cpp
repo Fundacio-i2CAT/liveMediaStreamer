@@ -96,9 +96,9 @@ void addVideoSource(unsigned port, unsigned fps = FRAME_RATE, std::string codec 
     VideoEncoderX264 *encoder;
     VideoDecoderLibav *decoder;
     
-    BestEffortMaster* wDec;
-    BestEffortMaster* wRes;
-    ConstantFramerateMaster* wEnc;
+    Master* wDec;
+    Master* wRes;
+    Master* wEnc;
     
     Session *session;
     Path *path;
@@ -125,7 +125,7 @@ void addVideoSource(unsigned port, unsigned fps = FRAME_RATE, std::string codec 
     //NOTE: Adding decoder to pipeManager and handle worker
     decoder = new VideoDecoderLibav();
     pipe->addFilter(decId, decoder);
-    wDec = new BestEffortMaster();
+    wDec = new Master();
     wDec->addProcessor(decId, decoder);
     decoder->setWorkerId(wDecId);
     pipe->addWorker(wDecId, wDec);
@@ -133,7 +133,7 @@ void addVideoSource(unsigned port, unsigned fps = FRAME_RATE, std::string codec 
     //NOTE: Adding resampler to pipeManager and handle worker
     resampler = new VideoResampler();
     pipe->addFilter(resId, resampler);
-    wRes = new BestEffortMaster();
+    wRes = new Master();
     wRes->addProcessor(resId, resampler);
     resampler->setWorkerId(wResId);
     resampler->configure(width, height, 0, YUV420P);
@@ -143,7 +143,7 @@ void addVideoSource(unsigned port, unsigned fps = FRAME_RATE, std::string codec 
     encoder = new VideoEncoderX264(true);
     encoder->configure(DEFAULT_GOP, DEFAULT_BITRATE, DEFAULT_ENCODER_THREADS, true);
     pipe->addFilter(encId, encoder);
-    wEnc = new ConstantFramerateMaster();
+    wEnc = new Master();
     wEnc->addProcessor(encId, encoder);
     encoder->setWorkerId(wEncId);
     pipe->addWorker(wEncId, wEnc);

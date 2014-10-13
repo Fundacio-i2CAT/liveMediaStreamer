@@ -228,14 +228,11 @@ namespace utils
             case LIVEMEDIA:
                 stringWorker = "livemedia";
                 break;
-            case BEST_EFFORT_MASTER:
-                stringWorker = "bestEffortMaster";
+            case MASTER:
+                stringWorker = "master";
                 break;
             case SLAVE:
                 stringWorker = "slave";
-                break;
-            case C_FRAMERATE_MASTER:
-                stringWorker = "cFramerateMaster";
                 break;
             default:
                 stringWorker = "";

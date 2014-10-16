@@ -56,10 +56,11 @@ Frame* AudioCircularBuffer::getFront(bool &newFrame)
 
     if (!popFront(outputFrame->getPlanarDataBuf(), outputFrame->getSamples())) {
         newFrame = false;
-        utils::debugMsg("There is not enough data to fill a frame. Impossible to get new frame!");
+        utils::warningMsg("There is not enough data to fill a frame. Impossible to get new frame!");
         return NULL;
     }
 
+    outputFrameAlreadyRead = false;
     newFrame = true;
     return outputFrame;
 }
@@ -251,7 +252,7 @@ int AudioCircularBuffer::getFreeSamples()
 bool AudioCircularBuffer::forcePushBack(unsigned char **buffer, int samplesRequested)
 {
     if(!pushBack(inputFrame->getPlanarDataBuf(), inputFrame->getSamples())) {
-        utils::debugMsg("There is not enough free space in the buffer. Discarding samples");
+        utils::warningMsg("There is not enough free space in the buffer. Discarding samples");
         if (getFreeSamples() != 0) {
             pushBack(inputFrame->getPlanarDataBuf(), getFreeSamples());
         }

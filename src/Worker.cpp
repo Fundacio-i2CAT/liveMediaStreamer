@@ -208,6 +208,7 @@ void Master::process()
         if (enlapsedTime < frameTime) {
             std::this_thread::sleep_for(std::chrono::microseconds(frameTime - enlapsedTime));
         } else {
+            std::cout << "EnlapsedTime: " << enlapsedTime.count() << "   FrameTime:" << frameTime.count() << std::endl;
             utils::warningMsg("Your server may be to slow");
         }
     }

@@ -38,6 +38,7 @@ BaseFilter::BaseFilter(unsigned maxReaders_, unsigned maxWriters_, bool force_) 
     frameTime = std::chrono::microseconds(0);
     frameTimeMod = 1;
     bufferStateFrameTimeMod = 1;
+    timestamp = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now().time_since_epoch());
 }
 
 BaseFilter::~BaseFilter()

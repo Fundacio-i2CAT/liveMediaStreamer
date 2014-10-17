@@ -241,7 +241,7 @@ int AudioCircularBuffer::getFreeSamples()
 bool AudioCircularBuffer::forcePushBack(unsigned char **buffer, int samplesRequested)
 {
     if(!pushBack(inputFrame->getPlanarDataBuf(), inputFrame->getSamples())) {
-        utils::warningMsg("There is not enough free space in the buffer. Discarding samples");
+        utils::debugMsg("There is not enough free space in the buffer. Discarding samples");
         if (getFreeSamples() != 0) {
             pushBack(inputFrame->getPlanarDataBuf(), getFreeSamples());
         }
@@ -250,7 +250,8 @@ bool AudioCircularBuffer::forcePushBack(unsigned char **buffer, int samplesReque
     return true;
 }
 
-void AudioCircularBuffer::setOutputFrameSamples(int samples) {
+void AudioCircularBuffer::setOutputFrameSamples(int samples) 
+{
     outputFrame->setSamples(samples);
     outputFrame->setLength(samples*bytesPerSample);
 }

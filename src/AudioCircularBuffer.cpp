@@ -49,18 +49,6 @@ Frame* AudioCircularBuffer::getRear()
 
 Frame* AudioCircularBuffer::getFront(bool &newFrame)
 {
-    if (outputFrameAlreadyRead == false) {
-        newFrame = true;
-        return outputFrame;
-    }
-
-    if (!popFront(outputFrame->getPlanarDataBuf(), outputFrame->getSamples())) {
-        newFrame = false;
-        utils::warningMsg("There is not enough data to fill a frame. Impossible to get new frame!");
-        return NULL;
-    }
-
-    outputFrameAlreadyRead = false;
     newFrame = true;
     return outputFrame;
 }
@@ -72,8 +60,9 @@ void AudioCircularBuffer::addFrame()
 
 void AudioCircularBuffer::removeFrame()
 {
-    outputFrameAlreadyRead = true;
-    return;
+    if (!popFront(outputFrame->getPlanarDataBuf(), outputFrame->getSamples())) {
+        utils::debugMsg("There is not enough data to fill a frame. Impossible to get new frame!");
+    }
 }
 
 void AudioCircularBuffer::flush() 

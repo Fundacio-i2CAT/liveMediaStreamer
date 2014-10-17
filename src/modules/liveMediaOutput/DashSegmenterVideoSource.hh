@@ -12,7 +12,7 @@
 #define NAL_TYPE_MASK 0x1F
 #define NAL_LENGTH_SIZE 4
 #define FRAME_RATE 25
-#define SEGMENT_TIME 5 //seconds
+#define SEGMENT_TIME 2 //seconds
 #define MAX_H264_SAMPLE 1024*1024 //1MB
 
 class DashSegmenterVideoSource: public FramedSource {

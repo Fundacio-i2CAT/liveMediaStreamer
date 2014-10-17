@@ -41,16 +41,14 @@ extern "C" {
 #include <libavformat/avformat.h>
 }
 
-#define FRAME_TIME_THRESHOLD 4000 //usec
-
 class VideoEncoderX264: public OneToOneFilter {
 	public:
-		VideoEncoderX264(bool force_ = false);
+		VideoEncoderX264(int framerate = VIDEO_DEFAULT_FRAMERATE);
 		~VideoEncoderX264();
 		bool doProcessFrame(Frame *org, Frame *dst);
         bool configure(int gop_ = DEFAULT_GOP,
                        int bitrate_ = DEFAULT_BITRATE, 
-                       int threads_ = DEFAULT_ENCODER_THREADS, bool annexB_ = false);
+                       int threads_ = DEFAULT_ENCODER_THREADS, int fps_ = DEFAULT_FRAME_RATE, bool annexB_ = false);
 		void setIntra(){forceIntra = true;};
 		FrameQueue* allocQueue(int wId);
 
@@ -78,20 +76,12 @@ class VideoEncoderX264: public OneToOneFilter {
 		int gop; //ms
         int threads;
         
-        std::chrono::microseconds frameDuration;
-        std::chrono::microseconds frameTimestamp;
-        std::chrono::microseconds enlapsedTime;
-        std::chrono::microseconds threshold;
-        std::chrono::system_clock::time_point currentTime;
-        std::chrono::system_clock::time_point previousTime;
-        
         bool reconfigure(VideoFrame *orgFrame, X264VideoFrame* x264Frame);
         bool encodeHeadersFrame(X264VideoFrame* x264Frame);
         bool fill_x264_picture(VideoFrame* videoFrame);
 		void forceIntraEvent(Jzon::Node* params);
         void configEvent(Jzon::Node* params, Jzon::Object &outputNode);
 		void doGetState(Jzon::Object &filterNode);
-		void updatePresentationTime(Frame* dst);
 };
 
 #endif

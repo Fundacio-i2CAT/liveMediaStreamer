@@ -11,15 +11,23 @@ QueueSource::QueueSource(UsageEnvironment& env, Reader *reader, int readerId)
 }
 
 void QueueSource::doGetNextFrame() 
-{//TODO: fDurationInMicroseconds
+{
     checkStatus();
+    bool newFrame = false;
+    QueueState state;
 
-    if ((frame = fReader->getFrame()) == NULL) {
+    frame = fReader->getFrame(state, newFrame);
+
+    if ((newFrame && frame == NULL) || (!newFrame && frame != NULL)) {
+        //TODO: sanity check, think about assert
+    }
+
+    if (!newFrame) {
         nextTask() = envir().taskScheduler().scheduleDelayedTask(POLL_TIME,
             (TaskFunc*)QueueSource::staticDoGetNextFrame, this);
         return;
     }
-    
+
     fPresentationTime.tv_sec = frame->getPresentationTime().count()/1000000;
     fPresentationTime.tv_usec = frame->getPresentationTime().count()%1000000;
 

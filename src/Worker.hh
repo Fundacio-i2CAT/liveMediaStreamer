@@ -33,6 +33,7 @@
 #include "Types.hh"
 #include "Jzon.h"
 #include "Utils.hh"
+#include <mutex>
 
 #define MAX_SLAVE 16
 
@@ -56,22 +57,17 @@ public:
     WorkerType getType(){return type;};
     std::map<int, Runnable*> getProcessors(){return processors;};
     void getState(Jzon::Object &workerNode);
-
     
 protected:
     virtual void process() = 0;
-    void checkPendingTasks();
-    void signalTask();
-    void commitTask();  
 
     std::map<int, Runnable*> processors;
     std::thread thread;
     std::atomic<bool> run;
     std::atomic<bool> enabled;
-    std::atomic<bool> pendingTask;
-    std::atomic<bool> canExecute;
 
     WorkerType type;
+    std::mutex mtx;
 };
 
 class LiveMediaWorker : public Worker {
@@ -97,38 +93,21 @@ protected:
 
 class Master : public Worker {
 public:
-	Master();
-	bool addSlave(int id, Slave *slave);
-	bool removeSlave(int id);
+    Master();
+    bool addSlave(int id, Slave *slave);
+    bool removeSlave(int id);
 
 protected:
-	virtual void process() = 0;
-	bool allFinished();
-	void processAll();
+    void process();
+    bool allFinished();
+    void processAll();
 
 private:
+    void updateFrameTime(Runnable* processor);
     std::map<int, Slave*> slaves;
+    std::chrono::microseconds frameTime;
 
 };
-
-class BestEffortMaster : public Master {
-public:
-    BestEffortMaster();
-
-protected:
-    void process();
-};
-
-class ConstantFramerateMaster : public Master {
-public:
-    ConstantFramerateMaster(double maxFps = 0);
-    void setFps(double maxFps);
-protected:
-    void process();
-    unsigned int frameTime; //microseconds
-};
-
-
 
 class Runnable {
     
@@ -136,10 +115,11 @@ public:
     ~Runnable(){};
     virtual bool processFrame(bool removeFrame = true) = 0;
     virtual void processEvent() = 0;
-	virtual void removeFrames() = 0;
+    virtual void removeFrames() = 0;
     virtual bool hasFrames() = 0;
-	virtual bool isEnabled() = 0;
+    virtual bool isEnabled() = 0;
     virtual void stop() = 0;
+    virtual std::chrono::microseconds getFrameTime() = 0;
 };
 
 #endif

@@ -51,6 +51,7 @@ AudioEncoderLibav::AudioEncoderLibav()  : OneToOneFilter()
     sampleFmt = S16P;
     libavSampleFmt = AV_SAMPLE_FMT_S16P;
     initializeEventMap();
+    framerateMod = 1;
 
     currentTime = std::chrono::microseconds(0);
     configure(fCodec);
@@ -80,7 +81,7 @@ bool AudioEncoderLibav::doProcessFrame(Frame *org, Frame *dst)
     if(!reconfigure(aRawFrame)) {
         return false;
     }
-    
+
     //set up buffer and buffer length pointers
     pkt.data = dst->getDataBuf();
     pkt.size = dst->getMaxLength();
@@ -95,14 +96,13 @@ bool AudioEncoderLibav::doProcessFrame(Frame *org, Frame *dst)
         return false;
     }
 
-    if (gotFrame) {
-        setPresentationTime(dst);
-        dst->setLength(pkt.size);
-        return true;
+    if (!gotFrame) {
+        return false;
     }
 
-            
-    return false;
+    dst->setLength(pkt.size);
+
+    return true;
 }
 
 Reader* AudioEncoderLibav::setReader(int readerID, FrameQueue* queue, bool sharedQueue)
@@ -236,6 +236,8 @@ bool AudioEncoderLibav::config()
         libavFrame->nb_samples = AudioFrame::getDefaultSamples(sampleRate);
     }
 
+    frameTime = std::chrono::microseconds(1000000*libavFrame->nb_samples/internalSampleRate);
+
     libavFrame->format = codecCtx->sample_fmt;
     libavFrame->channel_layout = codecCtx->channel_layout;
 
@@ -345,17 +347,6 @@ bool AudioEncoderLibav::reconfigure(AudioFrame* frame)
     } 
 
     return true;
-}
-
-void AudioEncoderLibav::setPresentationTime(Frame* dst) 
-{
-    if (currentTime.count() == 0) {
-        currentTime = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now().time_since_epoch());
-    }
-
-    std::chrono::microseconds frameDuration(1000000*libavFrame->nb_samples/internalSampleRate);
-    currentTime += frameDuration;
-    dst->setPresentationTime(currentTime);
 }
 
 void AudioEncoderLibav::configEvent(Jzon::Node* params, Jzon::Object &outputNode) 

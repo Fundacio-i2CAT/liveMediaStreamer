@@ -11,6 +11,17 @@ bin
 .deps
 Makefile
 Makefile.in
+config.h
+config.h.in
+h264toisoff
+livemediastreamer
+segments/
+stamp-h1
+testtranscoder
+testtranscoderaactoisoff
+testtranscoderh264toisoff
+
+
 
 autom4te.cache/
 config.log

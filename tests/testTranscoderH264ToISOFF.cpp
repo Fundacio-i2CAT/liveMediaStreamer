@@ -17,7 +17,7 @@
 #define V_CODEC "H264"
 #define V_BANDWITH 1200
 #define V_TIME_STMP_FREQ 90000
-#define FRAME_RATE 25
+//#define FRAME_RATE 20
 
 #define A_MEDIUM "audio"
 #define A_PAYLOAD 97
@@ -53,8 +53,8 @@ void addAudioSource(unsigned port, std::string codec = A_CODEC,
     AudioDecoderLibav *decoder;
     AudioEncoderLibav *encoder;
     
-    BestEffortMaster* aDec;
-    BestEffortMaster* aEnc;
+    Master* aDec;
+    Master* aEnc;
     
     Session *session;
     Path *path;
@@ -81,7 +81,7 @@ void addAudioSource(unsigned port, std::string codec = A_CODEC,
     //NOTE: Adding decoder to pipeManager and handle worker
     decoder = new AudioDecoderLibav();
     pipe->addFilter(decId, decoder);
-    aDec = new BestEffortMaster();
+    aDec = new Master();
     aDec->addProcessor(decId, decoder);
     decoder->setWorkerId(aDecId);
     pipe->addWorker(aDecId, aDec);
@@ -89,7 +89,7 @@ void addAudioSource(unsigned port, std::string codec = A_CODEC,
     //NOTE: Adding encoder to pipeManager and handle worker
     encoder = new AudioEncoderLibav();
     pipe->addFilter(encId, encoder);
-    aEnc = new BestEffortMaster();
+    aEnc = new Master();
     aEnc->addProcessor(encId, encoder);
     encoder->setWorkerId(aEncId);
     pipe->addWorker(aEncId, aEnc);
@@ -119,9 +119,9 @@ void addVideoSource(unsigned port, unsigned fps = FRAME_RATE, std::string codec 
     VideoEncoderX264 *encoder;
     VideoDecoderLibav *decoder;
     
-    BestEffortMaster* wDec;
-    BestEffortMaster* wRes;
-    ConstantFramerateMaster* wEnc;
+    Master* wDec;
+    Master* wRes;
+    Master* wEnc;
     
     Session *session;
     Path *path;
@@ -148,7 +148,7 @@ void addVideoSource(unsigned port, unsigned fps = FRAME_RATE, std::string codec 
     //NOTE: Adding decoder to pipeManager and handle worker
     decoder = new VideoDecoderLibav();
     pipe->addFilter(decId, decoder);
-    wDec = new BestEffortMaster();
+    wDec = new Master();
     wDec->addProcessor(decId, decoder);
     decoder->setWorkerId(wDecId);
     pipe->addWorker(wDecId, wDec);
@@ -156,7 +156,7 @@ void addVideoSource(unsigned port, unsigned fps = FRAME_RATE, std::string codec 
     //NOTE: Adding resampler to pipeManager and handle worker
     resampler = new VideoResampler();
     pipe->addFilter(resId, resampler);
-    wRes = new BestEffortMaster();
+    wRes = new Master();
     wRes->addProcessor(resId, resampler);
     resampler->setWorkerId(wResId);
     resampler->configure(width, height, 0, YUV420P);
@@ -164,12 +164,11 @@ void addVideoSource(unsigned port, unsigned fps = FRAME_RATE, std::string codec 
     
     //NOTE: Adding encoder to pipeManager and handle worker
     encoder = new VideoEncoderX264(true);
-    encoder->configure(DEFAULT_GOP, DEFAULT_BITRATE, DEFAULT_ENCODER_THREADS, true);
+    encoder->configure(DEFAULT_GOP, DEFAULT_BITRATE, DEFAULT_ENCODER_THREADS, fps, true);
     pipe->addFilter(encId, encoder);
-    wEnc = new ConstantFramerateMaster();
+    wEnc = new Master();
     wEnc->addProcessor(encId, encoder);
     encoder->setWorkerId(wEncId);
-    wEnc->setFps(fps*1001.0/1000);
     pipe->addWorker(wEncId, wEnc);
     
     //NOTE: add filter to path
@@ -178,6 +177,7 @@ void addVideoSource(unsigned port, unsigned fps = FRAME_RATE, std::string codec 
     pipe->connectPath(path);
     
     pipe->startWorkers();
+
 }
 
 void addConnections(std::vector<int> readers, std::string ip, unsigned port)
@@ -192,12 +192,13 @@ void addConnections(std::vector<int> readers, std::string ip, unsigned port)
     }
 }
 
-void addDashConnections(std::vector<int> readers, std::string fileName, bool reInit, uint32_t fps, uint32_t segmentTime)
+void addDashConnections(std::vector<int> readers, std::string fileName, bool reInit, uint32_t segmentTime, uint32_t fps = FRAME_RATE)
 {
+	std::string quality = "720";
     PipelineManager *pipe = Controller::getInstance()->pipelineManager();
     SinkManager *transmitter = pipe->getTransmitter();
     for(auto reader : readers){
-        if (transmitter->addDashConnection(reader, rand(), fileName, reInit, fps, segmentTime)) {
+        if (transmitter->addDashConnection(reader, rand(), fileName, quality, reInit, segmentTime, 0, fps)) {
             utils::infoMsg("added connection for " + fileName);
         }
     }
@@ -210,7 +211,7 @@ int main(int argc, char* argv[])
     unsigned vPort = 0;
     unsigned aPort = 0;
     unsigned port = 0;
-    unsigned fps = FRAME_RATE;
+    unsigned fps = 20;//FRAME_RATE;
 	unsigned segmentTime = 2;//SEGMENT_TIME;
 	bool reInit = false;
     std::string ip;
@@ -282,7 +283,7 @@ int main(int argc, char* argv[])
     }
 
     if (!fileName.empty()){
-        addDashConnections(readers, fileName, reInit, fps, segmentTime);
+        addDashConnections(readers, fileName, reInit, segmentTime, fps);
     }
     
     while (run) {

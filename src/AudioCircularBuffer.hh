@@ -28,6 +28,10 @@
 #include "FrameQueue.hh"
 #include "AudioFrame.hh"
 
+#define BUFFERING_SIZE_TIME 500 //ms
+#define BUFFERING_THRESHOLD 40 //ms
+
+
  class AudioCircularBuffer : public FrameQueue {
 
     public:
@@ -36,25 +40,28 @@
         void setOutputFrameSamples(int samples); 
 
         Frame *getRear();
-        Frame *getFront();
+        Frame *getFront(bool &newFrame);
         void addFrame();
         void removeFrame();
         void flush();
         Frame *forceGetRear();
-        Frame *forceGetFront();
+        Frame *forceGetFront(bool &newFrame);
         bool frameToRead() {return false;};
         int getFreeSamples();
+        QueueState getState();
 
     protected:
         bool config();
 
-
     private:
         AudioCircularBuffer(int ch, int sRate, int maxSamples, SampleFmt sFmt);
 
+        enum State {BUFFERING, OK, FULL};
+
         bool pushBack(unsigned char **buffer, int samplesRequested);
-        bool popFront(unsigned char **buffer, int samplesRequested);
         bool forcePushBack(unsigned char **buffer, int samplesRequested);
+        bool popFront(unsigned char **buffer, int samplesRequested);
+        void fillOutputBuffers(unsigned char **buffer, int bytesRequested);
 
         int channels;
         int sampleRate;
@@ -65,6 +72,9 @@
         unsigned char *data[MAX_CHANNELS];
         SampleFmt sampleFormat;
         bool outputFrameAlreadyRead;
+
+        int samplesBufferingThreshold;
+        State bufferingState;
 
         PlanarAudioFrame* inputFrame;
         PlanarAudioFrame* outputFrame;

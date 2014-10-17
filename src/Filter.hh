@@ -48,6 +48,8 @@
 #define DEFAULT_ID 1
 #define MAX_WRITERS 16
 #define MAX_READERS 16
+#define VIDEO_DEFAULT_FRAMERATE 25 //fps
+ 
 
 class BaseFilter : public Runnable {
     
@@ -99,9 +101,19 @@ protected:
     std::map<int, Frame*> oFrames;
     std::map<int, Frame*> dFrames;
     FilterType fType;
+
+    float frameTimeMod;
+    float bufferStateFrameTimeMod;
+    void updateTimestamp();
+
+    std::chrono::microseconds frameTime;
+    std::chrono::microseconds timestamp;
+    std::chrono::microseconds lastDiffTime;
+    std::chrono::microseconds diffTime;
       
 private:
     bool connect(BaseFilter *R, int writerID, int readerID, bool slaveQueue = false);
+    std::chrono::microseconds getFrameTime();
 
     unsigned maxReaders;
     unsigned maxWriters;

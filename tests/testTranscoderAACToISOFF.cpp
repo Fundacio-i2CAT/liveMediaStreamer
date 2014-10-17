@@ -23,7 +23,7 @@
 #define A_PAYLOAD 97
 #define A_CODEC "MPEG4_GENERIC"
 #define A_BANDWITH 32
-#define A_TIME_STMP_FREQ 44100
+#define A_TIME_STMP_FREQ 48000
 #define A_CHANNELS 2
 
 bool run = true;
@@ -96,9 +96,9 @@ void addVideoSource(unsigned port, unsigned fps = FRAME_RATE, std::string codec 
     VideoEncoderX264 *encoder;
     VideoDecoderLibav *decoder;
     
-    BestEffortMaster* wDec;
-    BestEffortMaster* wRes;
-    ConstantFramerateMaster* wEnc;
+    Master* wDec;
+    Master* wRes;
+    Master* wEnc;
     
     Session *session;
     Path *path;
@@ -125,7 +125,7 @@ void addVideoSource(unsigned port, unsigned fps = FRAME_RATE, std::string codec 
     //NOTE: Adding decoder to pipeManager and handle worker
     decoder = new VideoDecoderLibav();
     pipe->addFilter(decId, decoder);
-    wDec = new BestEffortMaster();
+    wDec = new Master();
     wDec->addProcessor(decId, decoder);
     decoder->setWorkerId(wDecId);
     pipe->addWorker(wDecId, wDec);
@@ -133,7 +133,7 @@ void addVideoSource(unsigned port, unsigned fps = FRAME_RATE, std::string codec 
     //NOTE: Adding resampler to pipeManager and handle worker
     resampler = new VideoResampler();
     pipe->addFilter(resId, resampler);
-    wRes = new BestEffortMaster();
+    wRes = new Master();
     wRes->addProcessor(resId, resampler);
     resampler->setWorkerId(wResId);
     resampler->configure(width, height, 0, YUV420P);
@@ -143,10 +143,9 @@ void addVideoSource(unsigned port, unsigned fps = FRAME_RATE, std::string codec 
     encoder = new VideoEncoderX264(true);
     encoder->configure(DEFAULT_GOP, DEFAULT_BITRATE, DEFAULT_ENCODER_THREADS, true);
     pipe->addFilter(encId, encoder);
-    wEnc = new ConstantFramerateMaster();
+    wEnc = new Master();
     wEnc->addProcessor(encId, encoder);
     encoder->setWorkerId(wEncId);
-    wEnc->setFps(fps*1001.0/1000);
     pipe->addWorker(wEncId, wEnc);
     
     //NOTE: add filter to path
@@ -169,12 +168,13 @@ void addConnections(std::vector<int> readers, std::string ip, unsigned port)
     }
 }
 
-void addDashConnections(std::vector<int> readers, std::string fileName, bool reInit, uint32_t fps, uint32_t segmentTime)
+void addDashConnections(std::vector<int> readers, std::string fileName, bool reInit, uint32_t segmentTime, uint32_t fps = FRAME_RATE)
 {
+	std::string quality = "192";
     PipelineManager *pipe = Controller::getInstance()->pipelineManager();
     SinkManager *transmitter = pipe->getTransmitter();
     for(auto reader : readers){
-        if (transmitter->addDashConnection(reader, rand(), fileName, reInit, fps, segmentTime)) {
+        if (transmitter->addDashConnection(reader, rand(), fileName, quality, reInit, segmentTime, 0, fps)) {
             utils::infoMsg("added connection for " + fileName);
         }
     }
@@ -188,12 +188,13 @@ int main(int argc, char* argv[])
     unsigned aPort = 0;
     unsigned port = 0;
     unsigned fps = FRAME_RATE;
-	unsigned segmentTime = 2;//SEGMENT_TIME;
+	unsigned segmentTime = 2;
 	bool reInit = false;
     std::string ip;
     std::string sessionId;
     std::string rtspUri;
 	std::string fileName;
+	std::string fileNameAudio;
 
     utils::setLogLevel(INFO);
     
@@ -215,7 +216,10 @@ int main(int argc, char* argv[])
             utils::infoMsg("output frame rate: " + std::to_string(fps));
         } else if (strcmp(argv[i],"-D")==0) {
             fileName = argv[i+1];
-            utils::infoMsg("destination IP: " + fileName);
+            utils::infoMsg("fileName " + fileName);
+        } else if (strcmp(argv[i],"-A")==0) {
+            fileNameAudio = argv[i+1];
+            utils::infoMsg("fileName " + fileNameAudio);
         }
     }
     
@@ -259,9 +263,13 @@ int main(int argc, char* argv[])
     }
 
     if (!fileName.empty()){
-        addDashConnections(readers, fileName, reInit, fps, segmentTime);
+        addDashConnections(readers, fileName, reInit, segmentTime, fps);
     }
-    
+
+    if (!fileNameAudio.empty()){
+        addDashConnections(readers, fileNameAudio, reInit, segmentTime);
+    }   
+ 
     while (run) {
         sleep(1);
     }

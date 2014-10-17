@@ -28,14 +28,16 @@
 #include <thread>
 #include <chrono>
 
-#define RETRIES 8
-#define TIMEOUT 2500 //us
-#define DISC_RETRIES 50
-#define DISC_TIMEOUT 1000 //us
+#define WALL_CLOCK_THRESHOLD 100000 //us
+#define SLOW_MODIFIER 1.10 
+#define FAST_MODIFIER 0.90 
 
 BaseFilter::BaseFilter(unsigned maxReaders_, unsigned maxWriters_, bool force_) : 
     maxReaders(maxReaders_), maxWriters(maxWriters_), force(force_), enabled(true)
 {
+    frameTime = std::chrono::microseconds(0);
+    frameTimeMod = 1;
+    bufferStateFrameTimeMod = 1;
 }
 
 BaseFilter::~BaseFilter()
@@ -54,6 +56,12 @@ BaseFilter::~BaseFilter()
     dFrames.clear();
     rUpdates.clear();
 }
+
+std::chrono::microseconds BaseFilter::getFrameTime()
+{
+    return std::chrono::duration_cast<std::chrono::microseconds>(frameTime*frameTimeMod*bufferStateFrameTimeMod);
+}
+
 
 Reader* BaseFilter::getReader(int id) 
 {
@@ -108,41 +116,43 @@ int BaseFilter::generateWriterID()
 
 bool BaseFilter::demandOriginFrames()
 {
-    bool newFrame = false;
-    bool missedOne = false;
-    for(int i = 0; i < RETRIES; i++){
-        for (auto it : readers) {
-            if (!it.second->isConnected()) {
-                it.second->disconnect();
-                //NOTE: think about readers as shared pointers
-                delete it.second;
-                readers.erase(it.first);
-                continue;
-            }
+    bool newFrame;
+    bool someFrame = false;
+    QueueState qState;
+    
+    for (auto it : readers) {
+        if (!it.second->isConnected()) {
+            it.second->disconnect();
+            //NOTE: think about readers as shared pointers
+            delete it.second;
+            readers.erase(it.first);
+            continue;
+        }
 
-            oFrames[it.first] = it.second->getFrame();
-            if (oFrames[it.first] == NULL) {
-                oFrames[it.first] = it.second->getFrame(force);
-                if (force && oFrames[it.first] != NULL) {
-                    newFrame = true;
-                }
-                rUpdates[it.first] = false;
-                missedOne = true;
-            } else {
+        oFrames[it.first] = it.second->getFrame(qState, newFrame, force);
+
+        if (oFrames[it.first] != NULL) {
+            if (newFrame) {
                 rUpdates[it.first] = true;
-                newFrame = true;
+            } else {
+                rUpdates[it.first] = false;
             }
+
+            someFrame = true;
+        
+        } else {
+            rUpdates[it.first] = false;
         }
 
-        if (!force && missedOne && newFrame){
-            std::this_thread::sleep_for(std::chrono::microseconds(TIMEOUT));
-        } else {
-            break;
-        }
     }
 
+    if (qState == SLOW) {
+        bufferStateFrameTimeMod = SLOW_MODIFIER;
+    } else {
+        bufferStateFrameTimeMod = FAST_MODIFIER;
+    }
 
-    return newFrame;
+    return someFrame;
 }
 
 bool BaseFilter::demandDestinationFrames()
@@ -384,6 +394,40 @@ bool BaseFilter::deleteReader(int id)
     return true;
 }
 
+void BaseFilter::updateTimestamp()
+{
+    if (frameTime.count() == 0) {
+        timestamp = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now().time_since_epoch());
+        return;
+    }
+
+    timestamp += frameTime;
+
+    lastDiffTime = diffTime;
+    diffTime = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now().time_since_epoch() - timestamp);
+
+    if (diffTime.count() > WALL_CLOCK_THRESHOLD || diffTime.count() < (-WALL_CLOCK_THRESHOLD) ) {
+        // reset timestamp value in order to realign with the wall clock
+        utils::warningMsg("Wall clock deviations exceeded! Reseting values!");
+        timestamp = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now().time_since_epoch());
+        diffTime = std::chrono::microseconds(0);
+        frameTimeMod = 1;
+    }
+
+    if (diffTime.count() > 0 && lastDiffTime < diffTime) {
+        // delayed and incrementing delay. Need to speed up
+        frameTimeMod -= 0.01;
+    }
+
+    if (diffTime.count() < 0 && lastDiffTime > diffTime) {
+        // advanced and incremeting advance. Need to slow down
+        frameTimeMod += 0.01;
+    }
+
+    if (frameTimeMod < 0) {
+        frameTimeMod = 0;
+    }
+}
 
 OneToOneFilter::OneToOneFilter(bool force_) : 
 BaseFilter(1, 1, force_)
@@ -392,20 +436,23 @@ BaseFilter(1, 1, force_)
 
 bool OneToOneFilter::processFrame(bool removeFrame)
 {
-	if (!demandOriginFrames() || !demandDestinationFrames()) {
-        	return false;
-	}
-
-    if (doProcessFrame(oFrames.begin()->second, dFrames.begin()->second)) {
-        addFrames();
+    if (!demandOriginFrames() || !demandDestinationFrames()) {
+            return false;
     }
 
+    if (doProcessFrame(oFrames.begin()->second, dFrames.begin()->second)) {
+        updateTimestamp();
+        dFrames.begin()->second->setPresentationTime(timestamp);
+        addFrames();
+    }
+    
     if (removeFrame) {
-    	removeFrames();
-	}
+        removeFrames();
+    }
 
     return true;
 }
+
 
 OneToManyFilter::OneToManyFilter(unsigned writersNum, bool force_) : 
 BaseFilter(1, writersNum, force_)
@@ -417,13 +464,20 @@ bool OneToManyFilter::processFrame(bool removeFrame)
     if (!demandOriginFrames() || !demandDestinationFrames()){
         return false;
     }
+
     if (doProcessFrame(oFrames.begin()->second, dFrames)) {
+        updateTimestamp();
+
+        for (auto it : dFrames) {
+            it.second->setPresentationTime(timestamp);
+        }
+ 
         addFrames();
     }
-	
-	if (removeFrame) {
+
+    if (removeFrame) {
     	removeFrames();
-	}
+    }
 
     return true;
 }
@@ -491,12 +545,14 @@ bool ManyToOneFilter::processFrame(bool removeFrame)
     }
 
     if (doProcessFrame(oFrames, dFrames.begin()->second)) {
+        updateTimestamp();
+        dFrames.begin()->second->setPresentationTime(timestamp);
         addFrames();
     }
 
-	if (removeFrame) {
+    if (removeFrame) {
     	removeFrames();
-	}
+    }
     
     return true;
 }

@@ -31,7 +31,7 @@ int AudioFrame::getMaxSamples(int sampleRate)
 
 int AudioFrame::getDefaultSamples(int sampleRate)
 {
-    return (DEFAULT_FRAME_TIME*sampleRate)/1000;
+    return (DEFAULT_FRAME_TIME*sampleRate)/1000000;
 }
 
 
@@ -83,6 +83,12 @@ InterleavedAudioFrame::~InterleavedAudioFrame()
 {
     delete[] frameBuff;
 }
+
+void InterleavedAudioFrame::setDummy()
+{
+    
+}
+
 
 
 /////////////////////////////////////////////
@@ -169,4 +175,9 @@ void PlanarAudioFrame::fillBufferWithFloatSamples(std::vector<float> samplesVec,
         b[i+1] = (value >> 8) & 0xFF;
         samplesIndex++;
     }
+}
+
+void PlanarAudioFrame::setDummy()
+{
+    
 } 

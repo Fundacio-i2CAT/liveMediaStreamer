@@ -30,7 +30,7 @@
 #include <iostream>
 #include "Worker.hh"
 
-Worker::Worker(): run(false), enabled(false), pendingTask(false), canExecute(false)
+Worker::Worker(): run(false), enabled(false)
 {
 }
 
@@ -50,12 +50,12 @@ bool Worker::addProcessor(int id, Runnable *processor)
         return true;
     }
 
-    signalTask();
+    mtx.lock();
 
     processors[id] = processor;
     enabled = true;
 
-    commitTask();
+    mtx.unlock();
 
     return true;
 }
@@ -71,11 +71,9 @@ bool Worker::removeProcessor(int id)
         return true;
     }
 
-    signalTask();
-
+    mtx.lock();
     processors.erase(id);
-
-    commitTask();
+    mtx.unlock();
 
     return true;
 }
@@ -115,27 +113,6 @@ void Worker::disable()
 bool Worker::isEnabled()
 {
     return enabled;
-}
-
-void Worker::checkPendingTasks()
-{
-    if (pendingTask) {
-        canExecute = true;
-
-        while (pendingTask) {}
-        canExecute = false;
-    }
-}
-
-void Worker::signalTask()
-{
-    pendingTask = true;
-    while (!canExecute) {}
-}
-
-void Worker::commitTask()
-{
-    pendingTask = false;
 }
 
 void Worker::getState(Jzon::Object &workerNode)
@@ -182,6 +159,63 @@ void LiveMediaWorker::stop()
 Master::Master() : Worker() 
 {
     slaves.clear();
+    type = MASTER;
+    frameTime = std::chrono::microseconds(0);
+}
+
+void Master::process()
+{
+    std::chrono::microseconds enlapsedTime;
+    std::chrono::system_clock::time_point startPoint;
+    std::chrono::microseconds active(ACTIVE);
+    
+    while(run) {
+        startPoint = std::chrono::system_clock::now();
+
+        processAll();
+
+        mtx.lock();
+
+        for (auto it : processors) {   
+            it.second->processEvent();
+            updateFrameTime(it.second);
+
+            if (!it.second->isEnabled()) {
+                continue;
+            }
+            
+            it.second->processFrame(false);
+        }
+
+        while (!allFinished() && run) {
+            std::this_thread::sleep_for(active);
+        }
+
+        for (auto it : processors) {
+            it.second->removeFrames();
+        }
+
+        mtx.unlock();
+
+        enlapsedTime = std::chrono::duration_cast<std::chrono::microseconds>(
+            std::chrono::system_clock::now() - startPoint);
+
+        if (frameTime.count() == 0) {
+            std::this_thread::sleep_for(active);
+            continue;
+        }
+        
+        if (enlapsedTime < frameTime) {
+            std::this_thread::sleep_for(std::chrono::microseconds(frameTime - enlapsedTime));
+        } else {
+            utils::warningMsg("Your server may be to slow");
+        }
+    }
+}
+
+void Master::updateFrameTime(Runnable* processor)
+{
+    frameTime = processor->getFrameTime();
 }
 
 bool Master::addSlave(int id, Slave *slave) 
@@ -236,64 +270,9 @@ void Master::processAll()
 }
 
 
-///////////////////////////////////////////////////
-//           BEST EFFORT MASTER CLASS            //
-///////////////////////////////////////////////////
-
-BestEffortMaster::BestEffortMaster() : Master() 
-{
-    type = BEST_EFFORT_MASTER;
-}
-
-void BestEffortMaster::process() 
-{
-    int idleCount = 0;
-    bool idleFlag = true;
-    std::chrono::microseconds active(ACTIVE);
-    std::chrono::milliseconds idle(IDLE);
-
-    while(run) {
-        idleFlag = true;
-        checkPendingTasks();
-
-        processAll();
-
-        for (auto it : processors) {
-            it.second->processEvent();
-
-            if (!it.second->isEnabled()) {
-                continue;
-            }
-
-            if (it.second->processFrame(false)) {
-                idleFlag = false;
-                idleCount = 0;
-            }
-
-        }
-
-        while (!allFinished() && run) {
-            std::this_thread::sleep_for(active);
-        }
-
-        for (auto it : processors) {
-            it.second->removeFrames();
-        }
-
-        if (idleFlag) {
-            if (idleCount <= ACTIVE_TIMEOUT){
-                idleCount++;
-                std::this_thread::sleep_for(active);
-            } else {
-                std::this_thread::sleep_for(idle);
-            }
-        }
-    }
-}
-
-///////////////////////////////////////////////////
+///////////////////////////////////////
 //           SLAVE CLASS             //
-///////////////////////////////////////////////////
+///////////////////////////////////////
 
 Slave::Slave() : Worker() 
 {
@@ -313,7 +292,6 @@ void Slave::process()
     std::chrono::milliseconds idle(IDLE);
 
     while(run) {
-        checkPendingTasks();
 
         if (finished) {
             if (idleCount <= ACTIVE_TIMEOUT){
@@ -325,6 +303,8 @@ void Slave::process()
             continue;
         }
 
+        mtx.lock();
+    
         for (auto it : processors) {
             it.second->processEvent();
 
@@ -335,71 +315,11 @@ void Slave::process()
             it.second->processFrame(false);
 
         }
+
+ 	    mtx.unlock();
         
         idleCount = 0;
         finished = true;
 
-    }
-}
-
-///////////////////////////////////////////////////
-//        CONST FRAMERATE SLAVE CLASS            //
-///////////////////////////////////////////////////
-
-ConstantFramerateMaster::ConstantFramerateMaster(double maxFps) : Master()
-{
-     setFps(maxFps);
-     type = C_FRAMERATE_MASTER;
-}
-
-void ConstantFramerateMaster::setFps(double maxFps)
-{
-    if (maxFps != 0){
-        frameTime = std::round(1000000/maxFps);
-    } else {
-        frameTime = std::round(1000000/DEFAULT_FRAME_RATE);
-    }
-}
-
-void ConstantFramerateMaster::process()
-{
-    std::chrono::microseconds enlapsedTime;
-    std::chrono::system_clock::time_point startPoint;
-    std::chrono::microseconds chronoFrameTime;
-    std::chrono::microseconds active(ACTIVE);
-    
-    while(run) {
-        startPoint = std::chrono::system_clock::now();
-        chronoFrameTime = std::chrono::microseconds(frameTime);
-
-        checkPendingTasks();
-        processAll();
-        
-        for (auto it : processors) {
-            it.second->processEvent();
-
-            if (!it.second->isEnabled()) {
-                continue;
-            }
-            
-            it.second->processFrame(false);
-        }
-
-        while (!allFinished() && run) {
-            std::this_thread::sleep_for(active);
-        }
-
-        for (auto it : processors) {
-            it.second->removeFrames();
-        }
-
-        enlapsedTime = std::chrono::duration_cast<std::chrono::microseconds>(
-            std::chrono::system_clock::now() - startPoint);
-        
-        if (enlapsedTime < chronoFrameTime) {
-            std::this_thread::sleep_for(std::chrono::microseconds(chronoFrameTime - enlapsedTime));
-        } else {
-            utils::warningMsg("Your server may be to slow");
-        }
     }
 }

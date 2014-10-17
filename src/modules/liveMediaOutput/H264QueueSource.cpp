@@ -32,13 +32,22 @@ void H264QueueSource::doGetNextFrame() {
     unsigned char* buff;
     unsigned int size;
     uint8_t offset;
-    
-    if ((frame = fReader->getFrame()) == NULL) {
+
+    bool newFrame = false;
+    QueueState state;
+
+    frame = fReader->getFrame(state, newFrame);
+
+    if ((newFrame && frame == NULL) || (!newFrame && frame != NULL)) {
+        //TODO: sanity check, think about assert
+    }
+
+    if (!newFrame) {
         nextTask() = envir().taskScheduler().scheduleDelayedTask(POLL_TIME,
             (TaskFunc*)QueueSource::staticDoGetNextFrame, this);
         return;
-    }   
-
+    }
+    
     size = frame->getLength();
     buff = frame->getDataBuf();
     

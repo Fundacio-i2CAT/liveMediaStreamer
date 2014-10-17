@@ -21,7 +21,7 @@
  */
 
 #define BPS 2
- 
+
 #include "AudioMixer.hh"
 #include "../../AudioCircularBuffer.hh"
 #include "../../AudioFrame.hh"
@@ -40,6 +40,8 @@ AudioMixer::AudioMixer(int inputChannels) : ManyToOneFilter(inputChannels) {
     samples.resize(AudioFrame::getMaxSamples(sampleRate));
     mixedSamples.resize(AudioFrame::getMaxSamples(sampleRate));
 
+    frameTime = std::chrono::microseconds(DEFAULT_FRAME_TIME);
+
     initializeEventMap();
 
     masterGain = DEFAULT_MASTER_GAIN;
@@ -55,6 +57,8 @@ AudioMixer::AudioMixer(int inputChannels, int frameChannels, int sampleRate) : M
     samples.resize(AudioFrame::getMaxSamples(sampleRate));
     mixedSamples.resize(AudioFrame::getMaxSamples(sampleRate));
 
+    frameTime = std::chrono::microseconds(DEFAULT_FRAME_TIME);
+
     initializeEventMap();
 
     masterGain = DEFAULT_MASTER_GAIN;
@@ -68,8 +72,9 @@ FrameQueue *AudioMixer::allocQueue(int wId) {
     return AudioCircularBuffer::createNew(frameChannels, sampleRate, AudioFrame::getMaxSamples(sampleRate), sampleFormat);
 }
 
-bool AudioMixer::doProcessFrame(std::map<int, Frame*> orgFrames, Frame *dst) {
-    std::vector<int> filledFramesIds; 
+bool AudioMixer::doProcessFrame(std::map<int, Frame*> orgFrames, Frame *dst) 
+{   
+    std::vector<int> filledFramesIds;
 
     for (auto frame : orgFrames) {
         if (frame.second) {
@@ -144,9 +149,8 @@ void AudioMixer::sumValues(std::vector<float> fSamples, std::vector<float> &mixe
     }
 }
 
-Reader* AudioMixer::setReader(int readerID, FrameQueue* queue)
+Reader* AudioMixer::setReader(int readerID, FrameQueue* queue, bool sharedQueue)
 {
-    
     if (readers.count(readerID) > 0) {
         return NULL;
     }

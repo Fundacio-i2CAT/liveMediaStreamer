@@ -25,54 +25,105 @@
 #ifndef _CONNECTION_HH
 #define _CONNECTION_HH
 
+#include <string>
+#include <BasicUsageEnvironment.hh>
+#include <liveMedia.hh>
+#include <Groupsock.hh>
+#include "Types.hh"
+#include "DashFileSink.hh"
+
+#define TTL 255
+#define INITIAL_SERVER_PORT 6970
+
 class Connection {
     
 public:
     void startPlaying();
     void stopPlaying();
-    ~Connection();
+    virtual ~Connection();
+    bool setup();
     
 protected:
-    Connection(UsageEnvironment* env, std::string ip, 
-               unsigned port, FramedSource *source);
-    Connection(UsageEnvironment* env, std::string fileName, FramedSource *source);
+    Connection(UsageEnvironment* env, FramedSource *source);
+    
     static void afterPlaying(void* clientData);
-    
-    
+    virtual bool specificSetup() = 0;
+
     UsageEnvironment* fEnv;
+    FramedSource* fSource;
+    MediaSink* fSink;
+};
+
+////////////////////
+// RTP CONNECTION //
+////////////////////
+
+class RTPConnection {
+    
+public:
+    virtual ~RTPConnection();
+    virtual 
+    
+protected:
+    RTPConnection(UsageEnvironment* env, FramedSource* source, 
+                  std::string ip, unsigned port);
+    
+    bool specificSetup(); 
+    virtual bool additionalSetup() = 0;
+    
     std::string fIp;
     unsigned fPort;
-    std::string fFileName;
-    FramedSource *fSource;
-    
     struct in_addr destinationAddress;
-    RTPSink *sink;
-    DashFileSink *outputVideoFile;
-    FileSink *outputAudioFile;
     RTCPInstance* rtcp;
     Groupsock *rtpGroupsock;
     Groupsock *rtcpGroupsock;
+
+private:
+    bool firstStepSetup();
+    bool finalRTCPSetup();
 };
 
-//RAW RTP CONNECTIONS
+/////////////////////
+// DASH CONNECTION //
+/////////////////////
 
-class VideoConnection : public Connection {   
+class DASHConnection {
+    
 public:
-    VideoConnection(UsageEnvironment* env, 
-                    std::string ip, unsigned port, 
-                    FramedSource *source, VCodecType codec);
+    virtual ~DASHConnection();
+    
+protected:
+    DASHConnection(UsageEnvironment* env, FramedSource* source, std::string fileName);
+    
+    std::string fFileName;
+    bool fReInit;
+    uint32_t fSegmentTime;
+    uint32_t fInitSegment;
+};
+
+/////////////////////////
+// RAW RTP CONNECTIONS //
+/////////////////////////
+
+class VideoConnection : public RTPConnection {   
+public:
+    VideoConnection(UsageEnvironment* env, FramedSource *source 
+                    std::string ip, unsigned port, VCodecType codec);
+protected:
+    bool additionalSetup();
 
 private:
     VCodecType fCodec;
 };
 
 
-class AudioConnection : public Connection {
+class AudioConnection : public RTPConnection {
 public:
-    AudioConnection(UsageEnvironment* env, std::string ip, unsigned port, 
-                    FramedSource *source, ACodecType codec,
-                    unsigned channels, unsigned sampleRate,
-                    SampleFmt sampleFormat);
+    AudioConnection(UsageEnvironment* env, FramedSource *source, 
+                    std::string ip, unsigned port, ACodecType codec,
+                    unsigned channels, unsigned sampleRate, SampleFmt sampleFormat);
+protected:
+    bool additionalSetup();
     
 private:
     ACodecType fCodec;
@@ -81,59 +132,65 @@ private:
     SampleFmt fSampleFormat;
 };
 
-//ULTRAGRID RTP CONNECTIONS
+///////////////////////////////
+// ULTRAGRID RTP CONNECTIONS //
+///////////////////////////////
 
-class UltraGridVideoConnection : public Connection {   
+class UltraGridVideoConnection : public RTPConnection {   
 public:
-    UltraGridVideoConnection(UsageEnvironment* env, 
-                             std::string ip, unsigned port, 
-                             FramedSource *source);
+    static UltraGridVideoConnection* createNew(UsageEnvironment* env, 
+                                               FramedSource *source, 
+                                               std::string ip, unsigned port); 
+private:
+    UltraGridVideoConnection(UsageEnvironment* env,
+                             FramedSource *source, 
+                             std::string ip, unsigned port);
+    bool setup();
 
 };
 
 
-class UltraGridAudioConnection : public Connection {
+class UltraGridAudioConnection : public RTPConnection {
 public:
-    UltraGridAudioConnection(UsageEnvironment* env, 
-                             std::string ip, unsigned port, 
-                             FramedSource *source);
+    static UltraGridAudioConnection* createNew(UsageEnvironment* env,
+                                               FramedSource *source 
+                                               std::string ip, unsigned port); 
+private:
+    UltraGridAudioConnection(UsageEnvironment* env,
+                             FramedSource *source, 
+                             std::string ip, unsigned port);
+    bool setup();
 };
 
-//DASH RTP CONNECTIONS
+//////////////////////////
+// DASH CONNECTIONS //
+//////////////////////////
 
-class DashVideoConnection : public Connection {   
+class DashVideoConnection : public DASHConnection {   
 public:
-    DashVideoConnection(UsageEnvironment* env, std::string fileName, 
-                        FramedSource *source, VCodecType codec, 
-                        std::string quality, uint32_t fps = FRAME_RATE, 
-                        bool reInit = false, uint32_t segmentTime = SEGMENT_TIME, 
-                        uint32_t initSegment = INIT_SEGMENT);
+    DashVideoConnection(UsageEnvironment* env, FramedSource *source, 
+                        std::string fileName, VCodecType codec, 
+                        std::string quality, uint32_t fps, bool reInit, 
+                        uint32_t segmentTime, uint32_t initSegment);
 
 private:
     VCodecType fCodec;
-    bool fReInit;
     uint32_t fFps;
-    uint32_t fSegmentTime;
-    uint32_t fInitSegment;
 };
 
-class DashAudioConnection : public Connection {
+class DashAudioConnection : public DASHConnection {
 public:
-    DashAudioConnection(UsageEnvironment* env, std::string fileName, 
-                        FramedSource *source, ACodecType codec,
+    DashAudioConnection(UsageEnvironment* env, FramedSource *source, 
+                        std::string fileName, ACodecType codec,
                         unsigned channels, unsigned sampleRate,
                         SampleFmt sampleFormat, std::string quality, 
-                        bool reInit = false, uint32_t segmentTime = SEGMENT_TIME, 
-                        uint32_t initSegment = INIT_SEGMENT);
+                        bool reInit, uint32_t segmentTime, uint32_t initSegment);
     
 private:
     ACodecType fCodec;
     unsigned fChannels;
     unsigned fSampleRate;
     SampleFmt fSampleFormat;
-    bool fReInit;
-    uint32_t fSegmentTime;
-    uint32_t fInitSegment;
 };
 
 #endif

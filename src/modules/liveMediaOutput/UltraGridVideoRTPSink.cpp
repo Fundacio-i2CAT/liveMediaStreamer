@@ -22,8 +22,8 @@
  */
 
 #include "UltraGridVideoRTPSink.hh"
-#include "UltraGridVideoSource.hh"
-#include <string.h>
+#include <string>
+#include <cmath>
 
 #ifdef WORDS_BIGENDIAN
 #define to_fourcc(a,b,c,d)     (((uint32_t)(d)) | ((uint32_t)(c)<<8) | ((uint32_t)(b)<<16) | ((uint32_t)(a)<<24))
@@ -32,28 +32,19 @@
 #endif
 
 UltraGridVideoRTPSink
-::UltraGridVideoRTPSink(UsageEnvironment& env, Groupsock* RTPgs,
-		  unsigned int width = 0, unsigned int height = 0,
-		  double fps = 25, int interlacing = 0,
-		  int tileIDx = 0, int bufferIDx = 0, unsigned int pos = 0)
-  : VideoRTPSink(env, RTPgs, 20, 90000, "UltraGrid",
-		  fWidth(width), fHeight(height),
-		  fFPS(fps), fInterlacing(interlacing),
-		  fTileIDx(tileIDx),fBufferIDx(bufferIDx), fPos(pos)) {
+::UltraGridVideoRTPSink(UsageEnvironment& env, Groupsock* RTPgs)
+  : VideoRTPSink(env, RTPgs, 20, 90000, "UltraGrid"),
+		  fWidth(0), fHeight(0),
+		  fFPS(25), fInterlacing(0),
+		  fTileIDx(0),fBufferIDx(0), fPos(0)) {
 }
 
 UltraGridVideoRTPSink::~UltraGridVideoRTPSink() {
 }
 
 UltraGridVideoRTPSink*
-UltraGridVideoRTPSink::createNew(UsageEnvironment& env, Groupsock* RTPgs,
-		  unsigned int width, unsigned int height,
-		  double fps, int interlacing,
-		  int tileIDx, int bufferIDx, unsigned int pos) {
-  return new UltraGridVideoRTPSink(env, RTPgs,
-		  width, height,
-		  fps, interlacing,
-		  tileIDx, bufferIDx, pos);
+UltraGridVideoRTPSink::createNew(UsageEnvironment& env, Groupsock* RTPgs) {
+  return new UltraGridVideoRTPSink(env, RTPgs);
 }
 
 //TODO Possible check to assure proper MediaSource to UltraGridRTPSink
@@ -121,7 +112,8 @@ void UltraGridVideoRTPSink
 
 
   // setting the UltraGrid RTP payload header into liveMedia
-  setSpecialHeaderBytes(mainUltraGridHeader, sizeof mainUltraGridHeader);
+  //  NOTE: compiler error (bad type parameters)
+  //setSpecialHeaderBytes(mainUltraGridHeader, sizeof mainUltraGridHeader);
 
   if (framerSource != NULL && framerSource->pictureEndMarker() && numRemainingBytes == 0) {
 	    // This packet contains the last (or only) fragment of the frame.

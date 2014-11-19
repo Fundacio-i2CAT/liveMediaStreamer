@@ -32,6 +32,8 @@
 #include "AudioQueueServerMediaSubsession.hh"
 #include "QueueSource.hh"
 #include "H264QueueSource.hh"
+#include "Types.hh"
+#include "Connection.hh"
 
 
 SinkManager *SinkManager::mngrInstance = NULL;
@@ -153,11 +155,11 @@ bool SinkManager::addConnection(int reader, unsigned id, std::string ip, unsigne
     }
 
     switch(txFmt) {
-        case RAW:
+        case TX_RAW:
             success = addRawConnection(reader, id, ip, port);
         break;
         case ULTRAGRID:
-            success = addUltraGridConnection(reader, id , ip ,port)
+            success = addUltraGridConnection(reader, id , ip ,port);
         break;
         case MPEGTS:
             // NOTE: in this case more than one reader can be attached to MPEGTS because it muxes the data.
@@ -167,6 +169,8 @@ bool SinkManager::addConnection(int reader, unsigned id, std::string ip, unsigne
             utils::errorMsg("Error creating connections. Transport format not supported");
         break;
     }
+
+    return success;
 }
 
 bool SinkManager::addRawConnection(int reader, unsigned id, std::string ip, unsigned int port)
@@ -197,10 +201,36 @@ bool SinkManager::addRawConnection(int reader, unsigned id, std::string ip, unsi
 
 bool SinkManager::addUltraGridConnection(int reader, unsigned id, std::string ip, unsigned int port)
 {
-    
+    VideoFrameQueue *vQueue = NULL;
+    AudioFrameQueue *aQueue = NULL;
+    Connection* connection = NULL;
+
+    if (connections.count(id) > 0){
+        utils::errorMsg("Connection id must be unique");
+        return false;
+    }
+
+    if ((vQueue = dynamic_cast<VideoFrameQueue*>(getReader(reader)->getQueue())) != NULL) {
+        connection = UltraGridVideoConnection::createNew(envir(), ip, port, 
+                                                         replicas[reader]->createStreamReplica());
+    }
+
+    if ((aQueue = dynamic_cast<AudioFrameQueue*>(getReader(reader)->getQueue())) != NULL) {
+        connection = UltraGridAudioConnection::createNew(envir(), ip, port, 
+                                                         replicas[reader]->createStreamReplica()); 
+    }
+
+    if (connection) {
+        connections[id] = connection;
+        return true;
+    }
+
+    return false;
 }
 
-bool SinkManager::addDashConnection(int reader, unsigned id, std::string fileName, std::string quality, bool reInit, uint32_t segmentTime, uint32_t initSegment, uint32_t fps)
+bool SinkManager::addDashConnection(int reader, unsigned id, std::string fileName, 
+                                    std::string quality, bool reInit, uint32_t segmentTime, 
+                                    uint32_t initSegment, uint32_t fps)
 {
     VideoFrameQueue *vQueue;
     AudioFrameQueue *aQueue;
@@ -209,17 +239,21 @@ bool SinkManager::addDashConnection(int reader, unsigned id, std::string fileNam
         utils::errorMsg("Connection id must be unique");
         return false;
     }
+
     if ((vQueue = dynamic_cast<VideoFrameQueue*>(getReader(reader)->getQueue())) != NULL){
         connections[id] = new DashVideoConnection(envir(), fileName, 
-                                              replicas[reader]->createStreamReplica(), 
-                                              vQueue->getCodec(), quality, fps, reInit, segmentTime, initSegment);
+                                                  replicas[reader]->createStreamReplica(), 
+                                                  vQueue->getCodec(), quality, fps, 
+                                                  reInit, segmentTime, initSegment);
         return true;
     }
+
     if ((aQueue = dynamic_cast<AudioFrameQueue*>(getReader(reader)->getQueue())) != NULL){ 
         connections[id] = new DashAudioConnection(envir(), fileName, 
-                                              replicas[reader]->createStreamReplica(), 
-                                              aQueue->getCodec(), aQueue->getChannels(),
-                                              aQueue->getSampleRate(), aQueue->getSampleFmt(), quality, reInit, segmentTime, initSegment);
+                                                  replicas[reader]->createStreamReplica(), 
+                                                  aQueue->getCodec(), aQueue->getChannels(),
+                                                  aQueue->getSampleRate(), aQueue->getSampleFmt(), 
+                                                  quality, reInit, segmentTime, initSegment);
         return true;
     }
     return false;

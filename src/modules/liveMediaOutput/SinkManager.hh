@@ -20,6 +20,7 @@
  *  Authors:  David Cassany <david.cassany@i2cat.net>,
  *            
  */
+ 
 #ifndef _SINK_MANAGER_HH
 #define _SINK_MANAGER_HH
 
@@ -28,20 +29,14 @@
 #include "../../IOInterface.hh"
 #include "DashSegmenterVideoSource.hh"
 #include "DashSegmenterAudioSource.hh"
-#include "DashFileSink.hh"
 #include "Connection.hh"
 
-#include <BasicUsageEnvironment.hh>
-#include <liveMedia.hh>
-#include <Groupsock.hh>
 #include <map>
 #include <string>
 
 #define RTSP_PORT 8554
 #define MAX_VIDEO_FRAME_SIZE 256*1024
 #define MANUAL_CLIENT_SESSION_ID 1
-#define TTL 255
-#define INITIAL_SERVER_PORT 6970
 #define INIT_SEGMENT 0
 
 class SinkManager : public TailFilter {
@@ -53,13 +48,10 @@ public:
     static SinkManager* getInstance();
     static void destroyInstance();
     
-    
-
     bool addSession(std::string id, std::vector<int> readers, 
                     std::string info = "", std::string desc = "");
-    bool addConnection(int reader, unsigned id, std::string ip, unsigned int port);
-	bool addDashConnection(int reader, unsigned id, std::string fileName, std::string quality, bool reInit = false, uint32_t segmentTime = SEGMENT_TIME, uint32_t initSegment = INIT_SEGMENT, uint32_t fps = FRAME_RATE);
-    
+    bool addConnection(int reader, unsigned id, std::string ip, unsigned int port, TxFormat txFmt);
+
     ServerMediaSession* getSession(std::string id); 
     bool publishSession(std::string id);
     bool removeSession(std::string id);
@@ -76,6 +68,14 @@ private:
     Reader *setReader(int readerID, FrameQueue* queue, bool sharedQueue = false);
     
     bool processFrame(bool removeFrame = false);
+
+    bool addRawConnection(int reader, unsigned id, std::string ip, unsigned int port);
+    bool addUltraGridConnection(int reader, unsigned id, std::string ip, unsigned int port);
+    bool addDashConnection(int reader, unsigned id, std::string fileName, std::string quality, 
+                           bool reInit = false, uint32_t segmentTime = SEGMENT_TIME, 
+                           uint32_t initSegment = INIT_SEGMENT, uint32_t fps = FRAME_RATE);
+
+
     
     ServerMediaSubsession *createSubsessionByReader(int readerId);
     ServerMediaSubsession *createVideoMediaSubsession(VCodecType codec, int readerId);

@@ -30,24 +30,18 @@
 
 class UltraGridVideoRTPSink: public VideoRTPSink {
 public:
-  static UltraGridVideoRTPSink* createNew(UsageEnvironment& env, Groupsock* RTPgs,
-		  unsigned int width = 0, unsigned int height = 0,
-		  double fps = 25, int interlacing = 0,
-		  int tileIDx = 0, int bufferIDx = 0, unsigned int pos = 0);
+  static UltraGridVideoRTPSink* createNew(UsageEnvironment& env, Groupsock* RTPgs);
 
 protected:
-  UltraGridVideoRTPSink(UsageEnvironment& env, Groupsock* RTPgs,
-		  unsigned int width, unsigned int height,
-		  double fps, int interlacing,
-		  int tileIDx, int bufferIDx, unsigned int pos);
+  UltraGridVideoRTPSink(UsageEnvironment& env, Groupsock* RTPgs);
 	// called only by createNew()
 
   virtual ~UltraGridVideoRTPSink();
 
   //internal variables for payload header info
-  double fFPS;
   unsigned int fWidth;
   unsigned int fHeight;
+  double fFPS;
   int fInterlacing; /*	PROGRESSIVE       = 0, ///< progressive frame
         				UPPER_FIELD_FIRST = 1, ///< First stored field is top, followed by bottom
         				LOWER_FIELD_FIRST = 2, ///< First stored field is bottom, followed by top

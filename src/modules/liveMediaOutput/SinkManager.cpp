@@ -143,7 +143,33 @@ bool SinkManager::addSession(std::string id, std::vector<int> readers, std::stri
     return true;
 }
 
-bool SinkManager::addConnection(int reader, unsigned id, std::string ip, unsigned int port)
+bool SinkManager::addConnection(int reader, unsigned id, std::string ip, unsigned int port, TxFormat txFmt)
+{
+    bool success = false;
+
+    if (connections.count(id) > 0){
+        utils::errorMsg("Connection id must be unique");
+        return success;
+    }
+
+    switch(txFmt) {
+        case RAW:
+            success = addRawConnection(reader, id, ip, port);
+        break;
+        case ULTRAGRID:
+            success = addUltraGridConnection(reader, id , ip ,port)
+        break;
+        case MPEGTS:
+            // NOTE: in this case more than one reader can be attached to MPEGTS because it muxes the data.
+            // Think about this
+        break;
+        default:
+            utils::errorMsg("Error creating connections. Transport format not supported");
+        break;
+    }
+}
+
+bool SinkManager::addRawConnection(int reader, unsigned id, std::string ip, unsigned int port)
 {
     VideoFrameQueue *vQueue;
     AudioFrameQueue *aQueue;
@@ -152,6 +178,7 @@ bool SinkManager::addConnection(int reader, unsigned id, std::string ip, unsigne
         utils::errorMsg("Connection id must be unique");
         return false;
     }
+
     if ((vQueue = dynamic_cast<VideoFrameQueue*>(getReader(reader)->getQueue())) != NULL){
         connections[id] = new VideoConnection(envir(), ip, port, 
                                               replicas[reader]->createStreamReplica(), 
@@ -166,6 +193,11 @@ bool SinkManager::addConnection(int reader, unsigned id, std::string ip, unsigne
         return true;
     }
     return false;
+}
+
+bool SinkManager::addUltraGridConnection(int reader, unsigned id, std::string ip, unsigned int port)
+{
+    
 }
 
 bool SinkManager::addDashConnection(int reader, unsigned id, std::string fileName, std::string quality, bool reInit, uint32_t segmentTime, uint32_t initSegment, uint32_t fps)

@@ -22,6 +22,11 @@
 
  #include "H264VideoStreamSampler.hh"
 
+H264VideoStreamSampler* H264VideoStreamSampler::createNew(UsageEnvironment& env, FramedSource* inputSource, bool annexB)
+{
+    return new H264VideoStreamSampler(env, inputSource, annexB);
+}
+
  H264VideoStreamSampler
 ::H264VideoStreamSampler(UsageEnvironment& env, FramedSource* inputSource, bool annexB)
   : H264or5VideoStreamFramer(264, env, inputSource, False/*don't create a parser*/, False),

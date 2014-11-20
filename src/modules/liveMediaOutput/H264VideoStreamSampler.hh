@@ -27,6 +27,9 @@
 #define NAL_START_SIZE 4
 
 class H264VideoStreamSampler: public H264or5VideoStreamFramer {
+public:
+    static H264VideoStreamSampler* createNew(UsageEnvironment& env, FramedSource* inputSource, bool annexB);
+
 protected:
     H264VideoStreamSampler(UsageEnvironment& env, FramedSource* inputSource, bool annexB);
     virtual ~H264VideoStreamSampler();

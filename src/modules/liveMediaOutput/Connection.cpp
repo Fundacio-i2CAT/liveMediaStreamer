@@ -23,7 +23,8 @@
 
 #include "Connection.hh"
 #include "Utils.hh"
-//#include "UltraGridVideoRTPSink.hh"
+#include "UltraGridVideoRTPSink.hh"
+#include "H264VideoStreamSampler.hh"
 #include <GroupsockHelper.hh>
 
 Connection::Connection(UsageEnvironment* env, FramedSource *source) : 
@@ -286,7 +287,7 @@ UltraGridVideoConnection::UltraGridVideoConnection(UsageEnvironment* env, Framed
 bool UltraGridVideoConnection::additionalSetup()
 {
     fSink = UltraGridVideoRTPSink::createNew(*fEnv, rtpGroupsock);
-    fSource = H264VideoStreamSampler::createNew(*fEnv, fSource);
+    fSource = H264VideoStreamSampler::createNew(*fEnv, fSource, true);
 
     if (!fSink) {
         utils::errorMsg("UltraGridVideoConnection could not be created");
@@ -305,7 +306,7 @@ UltraGridAudioConnection::UltraGridAudioConnection(UsageEnvironment* env, Framed
 
 bool UltraGridAudioConnection::additionalSetup()
 {
-	fSink =  UltraGridAudioRTPSink::createNew(*fEnv, rtpGroupsock);
+	//fSink =  UltraGridAudioRTPSink::createNew(*fEnv, rtpGroupsock);
 
 	if (!fSink) {
         utils::errorMsg("UltraGridAudioConnection could not be created");

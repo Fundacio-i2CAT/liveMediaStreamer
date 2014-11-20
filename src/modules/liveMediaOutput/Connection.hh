@@ -29,7 +29,7 @@
 #include <BasicUsageEnvironment.hh>
 #include <liveMedia.hh>
 #include <Groupsock.hh>
-#include "Types.hh"
+#include "../../Types.hh"
 #include "DashFileSink.hh"
 
 #define TTL 255

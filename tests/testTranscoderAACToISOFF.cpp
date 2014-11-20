@@ -161,7 +161,7 @@ void addConnections(std::vector<int> readers, std::string ip, unsigned port)
     PipelineManager *pipe = Controller::getInstance()->pipelineManager();
     SinkManager *transmitter = pipe->getTransmitter();
     for(auto reader : readers){
-        if (transmitter->addConnection(reader, rand(), ip, port)) {
+        if (transmitter->addRTPConnection(reader, rand(), ip, port, STD_RTP)) {
             utils::infoMsg("added connection for " + ip + ":" + std::to_string(port));
             port+=2;
         }
@@ -174,7 +174,7 @@ void addDashConnections(std::vector<int> readers, std::string fileName, bool reI
     PipelineManager *pipe = Controller::getInstance()->pipelineManager();
     SinkManager *transmitter = pipe->getTransmitter();
     for(auto reader : readers){
-        if (transmitter->addDashConnection(reader, rand(), fileName, quality, reInit, segmentTime, 0, fps)) {
+        if (transmitter->addDASHConnection(reader, rand(), fileName, quality, reInit, segmentTime, 0, fps)) {
             utils::infoMsg("added connection for " + fileName);
         }
     }

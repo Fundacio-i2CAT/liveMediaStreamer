@@ -145,7 +145,7 @@ bool SinkManager::addSession(std::string id, std::vector<int> readers, std::stri
     return true;
 }
 
-bool SinkManager::addConnection(int reader, unsigned id, std::string ip, unsigned int port, TxFormat txFmt)
+bool SinkManager::addRTPConnection(int reader, unsigned id, std::string ip, unsigned int port, TxFormat txFmt)
 {
     bool success = false;
 
@@ -160,8 +160,8 @@ bool SinkManager::addConnection(int reader, unsigned id, std::string ip, unsigne
     }
 
     switch(txFmt) {
-        case TX_RAW:
-            success = addRawRTPConnection(reader, id, ip, port);
+        case STD_RTP:
+            success = addStdRTPConnection(reader, id, ip, port);
         break;
         case ULTRAGRID:
             success = addUltraGridRTPConnection(reader, id , ip ,port);
@@ -179,7 +179,44 @@ bool SinkManager::addConnection(int reader, unsigned id, std::string ip, unsigne
     return success;
 }
 
-bool SinkManager::addRawRTPConnection(int reader, unsigned id, std::string ip, unsigned int port)
+bool SinkManager::addDASHConnection(int reader, unsigned id, std::string fileName, 
+                                    std::string quality, bool reInit, uint32_t segmentTime, 
+                                    uint32_t initSegment, uint32_t fps)
+{
+    VideoFrameQueue *vQueue;
+    AudioFrameQueue *aQueue;
+    Connection* conn = NULL;
+
+    if ((vQueue = dynamic_cast<VideoFrameQueue*>(getReader(reader)->getQueue())) != NULL) {
+        conn = new DashVideoConnection(envir(), replicators[reader]->createStreamReplica(), 
+                                       fileName, quality, reInit, segmentTime, initSegment,
+                                       vQueue->getCodec(), fps);
+
+    }
+
+    if ((aQueue = dynamic_cast<AudioFrameQueue*>(getReader(reader)->getQueue())) != NULL) {
+        conn = new DashAudioConnection(envir(), replicators[reader]->createStreamReplica(), 
+                                       fileName, quality, reInit, segmentTime, initSegment,
+                                       aQueue->getCodec(), aQueue->getChannels(),
+                                       aQueue->getSampleRate(), aQueue->getSampleFmt());
+    }
+
+    if (!conn) {
+        utils::errorMsg("Error creating RawRTPConnection");
+        return false;
+    }
+
+    if (!conn->setup()) {
+        utils::errorMsg("Error in connection setup");
+        delete conn;
+        return false;
+    }
+
+    connections[id] = conn;
+    return true;
+}
+
+bool SinkManager::addStdRTPConnection(int reader, unsigned id, std::string ip, unsigned int port)
 {
     VideoFrameQueue *vQueue;
     AudioFrameQueue *aQueue;
@@ -240,42 +277,6 @@ bool SinkManager::addUltraGridRTPConnection(int reader, unsigned id, std::string
     return true;
 }
 
-bool SinkManager::addDashConnection(int reader, unsigned id, std::string fileName, 
-                                    std::string quality, bool reInit, uint32_t segmentTime, 
-                                    uint32_t initSegment, uint32_t fps)
-{
-    VideoFrameQueue *vQueue;
-    AudioFrameQueue *aQueue;
-    Connection* conn = NULL;
-
-    if ((vQueue = dynamic_cast<VideoFrameQueue*>(getReader(reader)->getQueue())) != NULL) {
-        conn = new DashVideoConnection(envir(), replicators[reader]->createStreamReplica(), 
-                                       fileName, quality, reInit, segmentTime, initSegment,
-                                       vQueue->getCodec(), fps);
-
-    }
-
-    if ((aQueue = dynamic_cast<AudioFrameQueue*>(getReader(reader)->getQueue())) != NULL) {
-        conn = new DashAudioConnection(envir(), replicators[reader]->createStreamReplica(), 
-                                       fileName, quality, reInit, segmentTime, initSegment,
-                                       aQueue->getCodec(), aQueue->getChannels(),
-                                       aQueue->getSampleRate(), aQueue->getSampleFmt());
-    }
-
-    if (!conn) {
-        utils::errorMsg("Error creating RawRTPConnection");
-        return false;
-    }
-
-    if (!conn->setup()) {
-        utils::errorMsg("Error in connection setup");
-        delete conn;
-        return false;
-    }
-
-    connections[id] = conn;
-    return true;
-}
 
 Reader *SinkManager::setReader(int readerId, FrameQueue* queue, bool sharedQueue)
 {

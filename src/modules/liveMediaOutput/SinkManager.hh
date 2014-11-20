@@ -50,7 +50,10 @@ public:
     
     bool addSession(std::string id, std::vector<int> readers, 
                     std::string info = "", std::string desc = "");
-    bool addConnection(int reader, unsigned id, std::string ip, unsigned int port, TxFormat txFmt);
+    bool addRTPConnection(int reader, unsigned id, std::string ip, unsigned int port, TxFormat txFmt);
+    bool addDASHConnection(int reader, unsigned id, std::string fileName, std::string quality, 
+                           bool reInit = false, uint32_t segmentTime = SEGMENT_TIME, 
+                           uint32_t initSegment = INIT_SEGMENT, uint32_t fps = FRAME_RATE);
 
     ServerMediaSession* getSession(std::string id); 
     bool publishSession(std::string id);
@@ -69,11 +72,8 @@ private:
     
     bool processFrame(bool removeFrame = false);
 
-    bool addRawRTPConnection(int reader, unsigned id, std::string ip, unsigned int port);
+    bool addStdRTPConnection(int reader, unsigned id, std::string ip, unsigned int port);
     bool addUltraGridRTPConnection(int reader, unsigned id, std::string ip, unsigned int port);
-    bool addDashConnection(int reader, unsigned id, std::string fileName, std::string quality, 
-                           bool reInit = false, uint32_t segmentTime = SEGMENT_TIME, 
-                           uint32_t initSegment = INIT_SEGMENT, uint32_t fps = FRAME_RATE);
 
 
     

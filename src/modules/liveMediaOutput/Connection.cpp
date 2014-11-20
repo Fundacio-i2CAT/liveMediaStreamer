@@ -285,7 +285,7 @@ UltraGridVideoConnection::UltraGridVideoConnection(UsageEnvironment* env, Framed
 bool UltraGridVideoConnection::additionalSetup()
 {
     fSink = UltraGridVideoRTPSink::createNew(*fEnv, rtpGroupsock);
-    fSource = H264VideoStreamDiscreteFramer::createNew(*fEnv, fSource);
+    fSource = H264VideoStreamSampler::createNew(*fEnv, fSource);
 
     if (!fSink) {
         utils::errorMsg("UltraGridVideoConnection could not be created");
@@ -302,7 +302,13 @@ UltraGridAudioConnection::UltraGridAudioConnection(UsageEnvironment* env, Framed
 
 bool UltraGridAudioConnection::additionalSetup()
 {
-    //TODO: implement
+	fSink =  UltraGridAudioRTPSink::createNew(*fEnv, rtpGroupsock);
+
+	if (!fSink) {
+        utils::errorMsg("UltraGridAudioConnection could not be created");
+		return false;
+	}
+
     return true;
 }
 

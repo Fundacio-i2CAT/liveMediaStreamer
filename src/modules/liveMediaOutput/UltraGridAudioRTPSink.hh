@@ -1,5 +1,5 @@
 /*
- *  UltraGridVideoRTPSink.hh - It consumes video frames from the frame queue on demand
+ *  UltraGridAudioRTPSink.hh - It consumes audio frames from the frame queue on demand
  *  Copyright (C) 2014  Fundació i2CAT, Internet i Innovació digital a Catalunya
  *
  *  This file is part of liveMediaStreamer.
@@ -21,40 +21,24 @@
  *
  */
 
-#ifndef _UltraGrid_VIDEO_RTP_SINK_HH
-#define _UltraGrid_VIDEO_RTP_SINK_HH
+#ifndef _UltraGrid_AUDIO_RTP_SINK_HH
+#define _UltraGrid_AUDIO_RTP_SINK_HH
 
-#ifndef _VIDEO_RTP_SINK_HH
-#include "VideoRTPSink.hh"
-#endif
-#ifndef _FRAMED_FILTER_HH
-#include "FramedFilter.hh"
+#ifndef _AUDIO_RTP_SINK_HH
+#include "AudioRTPSink.hh"
 #endif
 
-class UltraGridVideoRTPSink: public VideoRTPSink {
+class UltraGridAudioRTPSink: public AudioRTPSink {
 public:
-  static UltraGridVideoRTPSink* createNew(UsageEnvironment& env, Groupsock* RTPgs);
+  static UltraGridAudioRTPSink* createNew(UsageEnvironment& env, Groupsock* RTPgs);
 
 protected:
-  UltraGridVideoRTPSink(UsageEnvironment& env, Groupsock* RTPgs);
+  UltraGridAudioRTPSink(UsageEnvironment& env, Groupsock* RTPgs);
 	// called only by createNew()
 
-  virtual ~UltraGridVideoRTPSink();
+  virtual ~UltraGridAudioRTPSink();
 
-private: // redefined virtual functions:
-  virtual Boolean continuePlaying();
-  virtual void doSpecialFrameHandling(unsigned fragmentationOffset,
-                                      unsigned char* frameStart,
-                                      unsigned numBytesInFrame,
-                                      struct timeval framePresentationTime,
-                                      unsigned numRemainingBytes);
-  virtual
-  Boolean frameCanAppearAfterPacketStart(unsigned char const* frameStart,
-					 unsigned numBytesInFrame) const;
-
-protected:
   //internal variables for payload header info
-  FramedFilter* fOurFragmenter;
   unsigned int fWidth;
   unsigned int fHeight;
   double fFPS;
@@ -63,6 +47,24 @@ protected:
         				LOWER_FIELD_FIRST = 2, ///< First stored field is bottom, followed by top
         				INTERLACED_MERGED = 3, ///< Columngs of both fields are interlaced together
         				SEGMENTED_FRAME   = 4,  ///< Segmented frame. Contains the same data as progressive frame.*/
+  int fTileIDx;
+  int fBufferIDx;
+  unsigned int fPos;
+//  int fHdrs_len = 40 + 8 + 12; // IPv6 hdr size + UDP hdr size + RTP hdr size
+//  int fData_len = /*MTU*/ fOurMaxPacketSize - fHdrs_len;
+
+private: // redefined virtual functions:
+  virtual Boolean sourceIsCompatibleWithUs(MediaSource& source);
+
+  virtual void doSpecialFrameHandling(unsigned fragmentationOffset,
+                                      unsigned char* frameStart,
+                                      unsigned numBytesInFrame,
+                                      struct timeval framePresentationTime,
+                                      unsigned numRemainingBytes);
+  virtual
+  Boolean frameCanAppearAfterPacketStart(unsigned char const* frameStart,
+					 unsigned numBytesInFrame) const;
+  virtual unsigned specialHeaderSize() const;
 };
 
 #endif

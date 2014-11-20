@@ -21,10 +21,10 @@
  *            Marc Palau <marc.palau@i2cat.net>
  */
 
-#include <GroupsockHelper.hh>
 #include "Connection.hh"
 #include "Utils.hh"
 #include "UltraGridVideoRTPSink.hh"
+#include <GroupsockHelper.hh>
 
 Connection::Connection(UsageEnvironment* env, FramedSource *source) : 
                        fEnv(env), fSource(source), fSink(NULL)
@@ -35,28 +35,28 @@ Connection::~Connection()
 {
     Medium::close(fSource);
 
-    if (sink) {
-        sink->stopPlaying();
-        Medium::close(sink);
+    if (fSink) {
+        fSink->stopPlaying();
+        Medium::close(fSink);
     }
 }
 
 void Connection::afterPlaying(void* clientData) {
-    MediaSink *clientSink = (MediaSInk*) clientData;
+    MediaSink *clientSink = (MediaSink*) clientData;
     clientSink->stopPlaying();
 }
 
 void Connection::startPlaying()
 {
-    if (sink){
-        sink->startPlaying(*fSource, &Connection::afterPlaying, sink);
+    if (fSink){
+        fSink->startPlaying(*fSource, &Connection::afterPlaying, fSink);
     }
 }
 
 void Connection::stopPlaying()
 {
-    if (sink){
-        sink->stopPlaying();
+    if (fSink){
+        fSink->stopPlaying();
     }
 }
 
@@ -66,7 +66,7 @@ bool Connection::setup()
         return false;
     }
 
-    startPlaying()
+    startPlaying();
 }
 
 ////////////////////
@@ -82,7 +82,7 @@ RTPConnection::RTPConnection(UsageEnvironment* env, FramedSource* source,
 
 RTPConnection::~RTPConnection()
 {
-    if (sink) {
+    if (fSink) {
         Medium::close(rtcp);
     }
 
@@ -117,13 +117,13 @@ bool RTPConnection::firstStepSetup()
     unsigned serverPort = INITIAL_SERVER_PORT;
     destinationAddress.s_addr = our_inet_addr(fIp.c_str());
     
-    if ((port%2) != 0){
+    if ((fPort%2) != 0) {
         utils::errorMsg("Port MUST be an even number");
         return false;
     }
     
-    const Port rtpPort(port);
-    const Port rtcpPort(port+1);
+    const Port rtpPort(fPort);
+    const Port rtcpPort(fPort+1);
     
     for (;;serverPort+=2){
         rtpGroupsock = new Groupsock(*fEnv, destinationAddress, Port(serverPort), TTL);
@@ -146,12 +146,12 @@ bool RTPConnection::finalRTCPSetup()
 {
     RTPSink *rtpSink = NULL;
 
-    if (!sink) {
+    if (!fSink) {
         utils::errorMsg("Error in finalRTCPSetup. Sink is NULL");
         return false;
     }
 
-    rtpSink = dynamic_cast<RTPSink*>(sink);
+    rtpSink = dynamic_cast<RTPSink*>(fSink);
 
     if (!rtpSink) {
         utils::errorMsg("Error in finalRTCPSetup. Sink MUST be a RTPSink");
@@ -172,10 +172,11 @@ bool RTPConnection::finalRTCPSetup()
 // DASH CONNECTION //
 /////////////////////
 
-DASHConnection::DASHConnection(UsageEnvironment* env, FramedSource* source, std::string fileName) :
-                               Connection(env, source), fFileName(fileName)
+DASHConnection::DASHConnection(UsageEnvironment* env, FramedSource* source, std::string fileName,
+                               std::string quality, bool reInit, uint32_t segmentTime, uint32_t initSegment) :
+                               Connection(env, source), fFileName(fileName), fReInit(reInit),
+                               fSegmentTime(segmentTime), fInitSegment(initSegment)
 {
-
 
 }
 
@@ -185,7 +186,7 @@ DASHConnection::~DASHConnection()
 
 bool DASHConnection::specificSetup()
 {
-
+    return true;
 } 
 
 
@@ -204,18 +205,18 @@ bool VideoConnection::additionalSetup()
 {
     switch(fCodec){
         case H264:
-            sink = H264VideoRTPSink::createNew(*fEnv, rtpGroupsock, 96);
+            fSink = H264VideoRTPSink::createNew(*fEnv, rtpGroupsock, 96);
             fSource = H264VideoStreamDiscreteFramer::createNew(*fEnv, fSource);
             break;
         case VP8:
-            sink = VP8VideoRTPSink::createNew(*fEnv, rtpGroupsock, 96);
+            fSink = VP8VideoRTPSink::createNew(*fEnv, rtpGroupsock, 96);
             break;
         default:
-            sink = NULL;
+            fSink = NULL;
             break;
     }
 
-    if (!sink) {
+    if (!fSink) {
         return false;
     }
 
@@ -223,7 +224,7 @@ bool VideoConnection::additionalSetup()
 }
 
 
-AudioConnection::AudioConnection(UsageEnvironment* env, FramedSource *source
+AudioConnection::AudioConnection(UsageEnvironment* env, FramedSource *source,
                                  std::string ip, unsigned port, ACodecType codec, 
                                  unsigned channels, unsigned sampleRate, SampleFmt sampleFormat) : 
                                  RTPConnection(env, source, ip, port), fCodec(codec), 
@@ -255,15 +256,15 @@ bool AudioConnection::additionalSetup()
     }
     
     if (fCodec == MP3){
-        sink =  MPEG1or2AudioRTPSink::createNew(*fEnv, rtpGroupsock);
+        fSink =  MPEG1or2AudioRTPSink::createNew(*fEnv, rtpGroupsock);
     } else {
-        sink =  SimpleRTPSink::createNew(*fEnv, rtpGroupsock, payloadType,
+        fSink =  SimpleRTPSink::createNew(*fEnv, rtpGroupsock, payloadType,
                                          fSampleRate, "audio", 
                                          codecStr.c_str(),
                                          fChannels, False);
     }
 
-    if (!sink) {
+    if (!fSink) {
         return false;
     }
 
@@ -274,68 +275,32 @@ bool AudioConnection::additionalSetup()
 // ULTRAGRID RTP CONNECTIONS //
 ///////////////////////////////
 
-UltraGridVideoConnection* UltraGridVideoConnection::createNew(UsageEnvironment* env, 
-                                                              std::string ip, unsigned port, 
-                                                              FramedSource *source) 
-{
-    UltraGridVideoConnection* conn = new UltraGridVideoConnection(env, ip, port, source);
-
-    if (!conn->setup()) {
-        delete conn;
-        return NULL;
-    }
-
-    return conn;
-}
-
-UltraGridVideoConnection::UltraGridVideoConnection(UsageEnvironment* env, 
-                                                   std::string ip, unsigned port, 
-                                                   FramedSource *source) : 
-                                                   Connection(env, ip, port, source)
+UltraGridVideoConnection::UltraGridVideoConnection(UsageEnvironment* env, FramedSource *source, 
+                                                   std::string ip, unsigned port) : 
+                                                   RTPConnection(env, source, ip, port)
 {
 
 }
 
-bool UltraGridVideoConnection::setup()
+bool UltraGridVideoConnection::additionalSetup()
 {
-    sink = UltraGridVideoRTPSink::createNew(*fEnv, rtpGroupsock);
+    fSink = UltraGridVideoRTPSink::createNew(*fEnv, rtpGroupsock);
     fSource = H264VideoStreamDiscreteFramer::createNew(*fEnv, fSource);
 
-    if (!sink) {
+    if (!fSink) {
         utils::errorMsg("UltraGridVideoConnection could not be created");
         return false;
     }
-
-    const unsigned maxCNAMElen = 100;
-    unsigned char CNAME[maxCNAMElen+1];
-    gethostname((char*)CNAME, maxCNAMElen);
-    CNAME[maxCNAMElen] = '\0';
-    rtcp = RTCPInstance::createNew(*fEnv, rtcpGroupsock, 5000, CNAME,
-                                   sink, NULL, False);
-
-    startPlaying();
-    return true;
 }
 
-
-
-UltraGridAudioConnection* UltraGridAudioConnection::createNew(UsageEnvironment* env, 
-                                                              std::string ip, unsigned port, 
-                                                              FramedSource *source) 
-{
-    UltraGridAudioConnection* conn = new UltraGridAudioConnection(env, ip, port, source);
-    return conn;
-}
-
-UltraGridAudioConnection::UltraGridAudioConnection(UsageEnvironment* env, 
-                                                   std::string ip, unsigned port, 
-                                                   FramedSource *source) : 
-                                                   Connection(env, ip, port, source)
+UltraGridAudioConnection::UltraGridAudioConnection(UsageEnvironment* env, FramedSource *source,
+                                                   std::string ip, unsigned port) : 
+                                                   RTPConnection(env, source, ip, port)
 {
 
 }
 
-bool UltraGridAudioConnection::setup()
+bool UltraGridAudioConnection::additionalSetup()
 {
     //TODO: implement
     return true;
@@ -346,52 +311,67 @@ bool UltraGridAudioConnection::setup()
 // DASH CONNECTIONS //
 //////////////////////
 
-DashVideoConnection::DashVideoConnection(UsageEnvironment* env, std::string fileName, 
-                                         FramedSource *source, VCodecType codec, 
-                                         std::string quality, uint32_t fps, bool reInit, 
-                                         uint32_t segmentTime, uint32_t initSegment) : 
-                                         Connection(env, fileName, source), fCodec(codec), 
-                                         fReInit(reInit), fFps(fps), fSegmentTime(segmentTime), 
-                                         fInitSegment(initSegment)
+DashVideoConnection::DashVideoConnection(UsageEnvironment* env, FramedSource *source, 
+                                         std::string fileName, std::string quality, 
+                                         bool reInit, uint32_t segmentTime, uint32_t initSegment, 
+                                         VCodecType codec, uint32_t fps) : 
+                                         DASHConnection(env, source, fileName, quality, 
+                                            reInit, segmentTime, initSegment), 
+                                         fCodec(codec), fFps(fps)
+{
+
+}
+
+bool DashVideoConnection::additionalSetup()
 {
     switch(fCodec){
         case H264:
-            outputVideoFile = DashFileSink::createNew(*env, fileName.c_str(), MAX_DAT, True, quality.c_str(), fInitSegment, "m4v", ONLY_VIDEO, false);
-            fSource = DashSegmenterVideoSource::createNew(*fEnv, source, fReInit, fFps, fSegmentTime);
+            fSink = DashFileSink::createNew(*fEnv, fFileName.c_str(), MAX_DAT, True, quality.c_str(), fInitSegment, "m4v", ONLY_VIDEO, false);
+            fSource = DashSegmenterVideoSource::createNew(*fEnv, fSource, fReInit, fFps, fSegmentTime);
             break;
         default:
-            sink = NULL;
+            fSink = NULL;
             break;
     }
-   if (outputVideoFile != NULL){
-        //TODO??
-    } else {
-        utils::errorMsg("VideoConnection could not be created");
+    
+    if (!fSink) {
+        utils::errorMsg("DashVideoConnection could not be created");
+        return false;
     }
-    startPlaying();
+
+    return true;
 }
 
-DashAudioConnection::DashAudioConnection(UsageEnvironment* env, 
-                                 std::string fileName, 
-                                 FramedSource *source, ACodecType codec, 
-                                 unsigned channels, unsigned sampleRate, 
-                                 SampleFmt sampleFormat, std::string quality, bool reInit, uint32_t segmentTime, uint32_t initSegment) : Connection(env, fileName, source), 
-                                 fCodec(codec), fChannels(channels), fSampleRate(sampleRate), 
-                                 fSampleFormat(sampleFormat), fReInit(reInit), fSegmentTime(segmentTime), fInitSegment(initSegment)
+
+DashAudioConnection::DashAudioConnection(UsageEnvironment* env, FramedSource *source, 
+                                         std::string fileName, std::string quality, 
+                                         bool reInit, uint32_t segmentTime, uint32_t initSegment, 
+                                         ACodecType codec, unsigned channels, 
+                                         unsigned sampleRate, SampleFmt sampleFormat) : 
+                                         DASHConnection(env, source, fileName, quality,
+                                            reInit, segmentTime, initSegment), 
+                                        fCodec(codec), fChannels(channels), 
+                                        fSampleRate(sampleRate), fSampleFormat(sampleFormat)
+{
+
+}
+
+bool DashAudioConnection::additionalSetup() 
 {
     switch (fCodec) {
         case MPEG4_GENERIC:
-            outputVideoFile = DashFileSink::createNew(*env, fileName.c_str(), MAX_DAT, True, quality.c_str(), fInitSegment, "m4a", ONLY_AUDIO, false);
-            fSource = DashSegmenterAudioSource::createNew(*fEnv, source, fReInit, fSegmentTime, fSampleRate);
+            fSink = DashFileSink::createNew(*fEnv, fFileName.c_str(), MAX_DAT, True, quality.c_str(), fInitSegment, "m4a", ONLY_AUDIO, false);
+            fSource = DashSegmenterAudioSource::createNew(*fEnv, fSource, fReInit, fSegmentTime, fSampleRate);
             break;
         default:
-            sink = NULL;
+            fSink = NULL;
             break;
     }
-   if (outputVideoFile != NULL){
-        //TODO??
-    } else {
-        utils::errorMsg("AudioConnection could not be created");
+
+    if (!fSink) {
+        utils::errorMsg("DashAudioConnection could not be created");
+        return false;
     }
-    startPlaying();    
+
+    return true;   
 }

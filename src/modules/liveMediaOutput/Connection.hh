@@ -58,11 +58,10 @@ protected:
 // RTP CONNECTION //
 ////////////////////
 
-class RTPConnection {
+class RTPConnection : public Connection {
     
 public:
     virtual ~RTPConnection();
-    virtual 
     
 protected:
     RTPConnection(UsageEnvironment* env, FramedSource* source, 
@@ -87,15 +86,19 @@ private:
 // DASH CONNECTION //
 /////////////////////
 
-class DASHConnection {
+class DASHConnection : public Connection {
     
 public:
     virtual ~DASHConnection();
     
 protected:
-    DASHConnection(UsageEnvironment* env, FramedSource* source, std::string fileName);
+    DASHConnection(UsageEnvironment* env, FramedSource* source, std::string fileName,
+                   std::string quality, bool reInit, uint32_t segmentTime, uint32_t initSegment);
+    bool specificSetup();
+    virtual bool additionalSetup() = 0; 
     
     std::string fFileName;
+    std::string quality;
     bool fReInit;
     uint32_t fSegmentTime;
     uint32_t fInitSegment;
@@ -107,7 +110,7 @@ protected:
 
 class VideoConnection : public RTPConnection {   
 public:
-    VideoConnection(UsageEnvironment* env, FramedSource *source 
+    VideoConnection(UsageEnvironment* env, FramedSource *source, 
                     std::string ip, unsigned port, VCodecType codec);
 protected:
     bool additionalSetup();
@@ -138,28 +141,23 @@ private:
 
 class UltraGridVideoConnection : public RTPConnection {   
 public:
-    static UltraGridVideoConnection* createNew(UsageEnvironment* env, 
-                                               FramedSource *source, 
-                                               std::string ip, unsigned port); 
-private:
     UltraGridVideoConnection(UsageEnvironment* env,
                              FramedSource *source, 
                              std::string ip, unsigned port);
-    bool setup();
+    
+protected:
+    bool additionalSetup();
 
 };
 
 
 class UltraGridAudioConnection : public RTPConnection {
 public:
-    static UltraGridAudioConnection* createNew(UsageEnvironment* env,
-                                               FramedSource *source 
-                                               std::string ip, unsigned port); 
-private:
     UltraGridAudioConnection(UsageEnvironment* env,
                              FramedSource *source, 
                              std::string ip, unsigned port);
-    bool setup();
+protected:
+    bool additionalSetup();
 };
 
 //////////////////////////
@@ -169,9 +167,11 @@ private:
 class DashVideoConnection : public DASHConnection {   
 public:
     DashVideoConnection(UsageEnvironment* env, FramedSource *source, 
-                        std::string fileName, VCodecType codec, 
-                        std::string quality, uint32_t fps, bool reInit, 
-                        uint32_t segmentTime, uint32_t initSegment);
+                        std::string fileName, std::string quality, 
+                        bool reInit, uint32_t segmentTime, uint32_t initSegment, 
+                        VCodecType codec, uint32_t fps);
+protected:
+    bool additionalSetup();
 
 private:
     VCodecType fCodec;
@@ -181,10 +181,12 @@ private:
 class DashAudioConnection : public DASHConnection {
 public:
     DashAudioConnection(UsageEnvironment* env, FramedSource *source, 
-                        std::string fileName, ACodecType codec,
-                        unsigned channels, unsigned sampleRate,
-                        SampleFmt sampleFormat, std::string quality, 
-                        bool reInit, uint32_t segmentTime, uint32_t initSegment);
+                        std::string fileName, std::string quality, 
+                        bool reInit, uint32_t segmentTime, uint32_t initSegment, 
+                        ACodecType codec, unsigned channels, 
+                        unsigned sampleRate, SampleFmt sampleFormat);
+protected:
+    bool additionalSetup();
     
 private:
     ACodecType fCodec;

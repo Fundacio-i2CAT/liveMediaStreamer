@@ -69,8 +69,8 @@ private:
     
     bool processFrame(bool removeFrame = false);
 
-    bool addRawConnection(int reader, unsigned id, std::string ip, unsigned int port);
-    bool addUltraGridConnection(int reader, unsigned id, std::string ip, unsigned int port);
+    bool addRawRTPConnection(int reader, unsigned id, std::string ip, unsigned int port);
+    bool addUltraGridRTPConnection(int reader, unsigned id, std::string ip, unsigned int port);
     bool addDashConnection(int reader, unsigned id, std::string fileName, std::string quality, 
                            bool reInit = false, uint32_t segmentTime = SEGMENT_TIME, 
                            uint32_t initSegment = INIT_SEGMENT, uint32_t fps = FRAME_RATE);
@@ -89,7 +89,7 @@ private:
    
     static SinkManager* mngrInstance;
     std::map<std::string, ServerMediaSession*> sessionList;
-    std::map<int, StreamReplicator*> replicas;
+    std::map<int, StreamReplicator*> replicators;
     std::map<int, Connection*> connections;
     UsageEnvironment* env;
     uint8_t watch;

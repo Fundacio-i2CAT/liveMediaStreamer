@@ -23,7 +23,7 @@
 
 #include "Connection.hh"
 #include "Utils.hh"
-#include "UltraGridVideoRTPSink.hh"
+//#include "UltraGridVideoRTPSink.hh"
 #include <GroupsockHelper.hh>
 
 Connection::Connection(UsageEnvironment* env, FramedSource *source) : 
@@ -67,6 +67,7 @@ bool Connection::setup()
     }
 
     startPlaying();
+    return true;
 }
 
 ////////////////////
@@ -284,13 +285,15 @@ UltraGridVideoConnection::UltraGridVideoConnection(UsageEnvironment* env, Framed
 
 bool UltraGridVideoConnection::additionalSetup()
 {
-    fSink = UltraGridVideoRTPSink::createNew(*fEnv, rtpGroupsock);
+    //fSink = UltraGridVideoRTPSink::createNew(*fEnv, rtpGroupsock);
     fSource = H264VideoStreamDiscreteFramer::createNew(*fEnv, fSource);
 
     if (!fSink) {
         utils::errorMsg("UltraGridVideoConnection could not be created");
         return false;
     }
+
+    return true;
 }
 
 UltraGridAudioConnection::UltraGridAudioConnection(UsageEnvironment* env, FramedSource *source,

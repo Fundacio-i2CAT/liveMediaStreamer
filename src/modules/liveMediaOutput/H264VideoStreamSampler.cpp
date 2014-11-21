@@ -112,3 +112,16 @@ void H264VideoStreamSampler::updateVideoSize(unsigned char* NALstartPtr, unsigne
 {
 
 }
+
+int H264VideoStreamSampler::getWidth(){
+	return fWidth;
+}
+void H264VideoStreamSampler::setWidth(int width){
+
+}
+int H264VideoStreamSampler::getHeight(){
+	return fHeight;
+}
+void H264VideoStreamSampler::setHeight(int height){
+
+}

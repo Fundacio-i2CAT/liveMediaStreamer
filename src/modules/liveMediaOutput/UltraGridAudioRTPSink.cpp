@@ -33,10 +33,8 @@
 
 UltraGridAudioRTPSink
 ::UltraGridAudioRTPSink(UsageEnvironment& env, Groupsock* RTPgs)
-  : AudioRTPSink(env, RTPgs, 21, 90000, "UltraGrid"),
-		  fWidth(0), fHeight(0),
-		  fFPS(25), fInterlacing(0),
-		  fTileIDx(0),fBufferIDx(0), fPos(0)) {
+  : AudioRTPSink(env, RTPgs, 21, 48000, "UltraGridA"),
+    fchannelIDx(1), fBufferIDx(0), fBPS(16), fSample_rate(48000){
 }
 
 UltraGridAudioRTPSink::~UltraGridAudioRTPSink() {
@@ -46,11 +44,6 @@ UltraGridAudioRTPSink*
 UltraGridAudioRTPSink::createNew(UsageEnvironment& env, Groupsock* RTPgs) {
   return new UltraGridAudioRTPSink(env, RTPgs);
 }
-
-//TODO Possible check to assure proper MediaSource to UltraGridRTPSink
-//Boolean UltraGridAudioRTPSink::sourceIsCompatibleWithUs(MediaSource& source) {
-//  return source.isUltraGridAudioSource();
-//}
 
 Boolean UltraGridAudioRTPSink
 ::frameCanAppearAfterPacketStart(unsigned char const* /*frameStart*/,
@@ -66,92 +59,73 @@ void UltraGridAudioRTPSink
 			 struct timeval framePresentationTime,
 			 unsigned numRemainingBytes) {
 
-  // the UltraGrid RTP payload header (6 words)
-  u_int32_t mainUltraGridHeader[6];
-  u_int32_t tmp;
-  unsigned int fpsd, fd, fps, fi;
+//	uint32_t tmp;
+//	tmp = channel << 22; /* bits 0-9 */
+//	tmp |= tx->buffer; /* bits 10-31 */
+//	audio_hdr[0] = htonl(tmp);
+//
+//	audio_hdr[2] = htonl(buffer->get_data_len(channel));
+//
+//	/* fourth word */
+//	tmp = (buffer->get_bps() * 8) << 26;
+//	tmp |= buffer->get_sample_rate();
+//	audio_hdr[3] = htonl(tmp);
+//
+//	/* fifth word */
+//	audio_hdr[4] = htonl(get_audio_tag(buffer->get_codec()));
+	/*word 5*/ //AUDIO TAG = 0x7375704F ->	{AC_OPUS, { "OPUS", 0x7375704F }}, // == Opus, the TwoCC isn't defined
+//    data = chan_data + pos;
+//    data_len = tx->mtu - 40 - sizeof(audio_payload_hdr_t);
+//    if(pos + data_len >= (unsigned int) buffer->get_data_len(channel)) {
+//            data_len = buffer->get_data_len(channel) - pos;
+//            if(channel == buffer->get_channel_count() - 1)
+//                    m = 1;
+//    }
+//    audio_hdr[1] = htonl(pos);
+//    pos += data_len;
 
-  /* word 4 */
-  mainUltraGridHeader[3] = htonl(fWidth << 16 | fHeight);
-  /* word 5 */
-  mainUltraGridHeader[4] = to_fourcc('A','V','C','1'); //forcing H264 only //get_fourcc(frame->color_spec);
-  /* word 3 */
-  mainUltraGridHeader[2] = htonl(numBytesInFrame); //frame->tiles[tile_idx].data_len
-  tmp = fTileIDx << 22;
-  tmp |= 0x3fffff & fBufferIDx;
-  /* word 1 */
-  mainUltraGridHeader[0] = htonl(tmp);
 
-  /* word 6 */
-  tmp = fInterlacing << 29;
-  fps = round(fFPS);
-  fpsd = 1;
-  if(fabs(fFPS - round(fFPS) / 1.001) < 0.005){
-		 fd = 1;
-  }
-  else{
-		 fd = 0;
-  }
-  fi = 0;
+	// Set the 2-byte "payload header", as defined in RFC 4184.
+	unsigned char headers[20];
 
-  tmp |= fps << 19;
-  tmp |= fpsd << 15;
-  tmp |= fd << 14;
-  tmp |= fi << 13;
-  mainUltraGridHeader[5] = htonl(tmp); //format_interl_fps_hdr_row(frame->interlacing, frame->fps);
+	Boolean isFragment = numRemainingBytes > 0 || fragmentationOffset > 0;
+	if (!isFragment) {
+		headers[0] = 0; // One or more complete frames
+		headers[1] = 1; // because we (for now) allow at most 1 frame per packet
+	} else {
+		if (fragmentationOffset > 0) {
+			headers[0] = 3; // Fragment of frame other than initial fragment
+		} else {
+	// An initial fragment of the frame
+			unsigned const totalFrameSize = fragmentationOffset
+					+ numBytesInFrame + numRemainingBytes;
+			unsigned const fiveEighthsPoint = totalFrameSize / 2
+					+ totalFrameSize / 8;
+			headers[0] = numBytesInFrame >= fiveEighthsPoint ? 1 : 2;
 
-  /* word 2 */
-  if(fPos >= numBytesInFrame){
-	  fPos += numRemainingBytes;
-  } else {
-	  fPos += OutPacketBuffer::maxSize;
-  }
-  int offset = fPos; // + fragment_offset = 0
-  mainUltraGridHeader[1] = htonl(offset);
+	// Because this outgoing packet will be full (because it's an initial fragment), we can compute how many total
+	// fragments (and thus packets) will make up the complete AC-3 frame:
+			fTotNumFragmentsUsed = (totalFrameSize + (numBytesInFrame - 1))
+					/ numBytesInFrame;
+		}
 
-  //u_int32_t to u_int8_t alignment
-  u_int8_t byteAlignedHeader[32];
-  for(u_int8_t i=0; i < 6; i++){
-	  for(u_int8_t j=0; j < 4; j++){
-		  byteAlignedHeader[(i << 2)+j] = (u_int8_t) mainUltraGridHeader[i] >> (24 - (j << 3));
-	  }
-  }
-  // setting the UltraGrid RTP payload header into liveMedia
-  setSpecialHeaderBytes(byteAlignedHeader, sizeof byteAlignedHeader);
+		headers[1] = fTotNumFragmentsUsed;
+	}
 
-  if (framerSource != NULL && framerSource->pictureEndMarker() && numRemainingBytes == 0) {
-	    // This packet contains the last (or only) fragment of the frame.
-	    // Set the RTP 'M' ('marker') bit:
-	    setMarkerBit();
-        framerSource->pictureEndMarker() = False;
-    	fPos = 0;
-    	fBufferIDx++;
-  }
+	setSpecialHeaderBytes(headers, sizeof headers);
 
-  // Also set the RTP timestamp:
-  setTimestamp(framePresentationTime);
+	if (numRemainingBytes == 0) {
+	// This packet contains the last (or only) fragment of the frame.
+	// Set the RTP 'M' ('marker') bit:
+		setMarkerBit();
+	}
+
+	// Important: Also call our base class's doSpecialFrameHandling(),
+	// to set the packet's timestamp:
+	MultiFramedRTPSink::doSpecialFrameHandling(fragmentationOffset, frameStart,
+			numBytesInFrame, framePresentationTime, numRemainingBytes);
 }
 
-
 unsigned UltraGridAudioRTPSink::specialHeaderSize() const {
-
-  unsigned headerSize = 6; // by default 6 words without FEC payload header
-
-  //TODO for FEC implementations
-//  u_int8_t const type = source->type();
-//  if (type >= 64 && type <= 127) {
-//    // There is also a Restart Marker Header:
-//    headerSize += 4;
-//  }
-//
-//  if (curFragmentationOffset() == 0 && source->qFactor() >= 128) {
-//    // There is also a Quantization Header:
-//    u_int8_t dummy;
-//    u_int16_t quantizationTablesSize;
-//    (void)(source->quantizationTables(dummy, quantizationTablesSize));
-//
-//    headerSize += 4 + quantizationTablesSize;
-//  }
-
-  return headerSize;
+	return 20;
 }

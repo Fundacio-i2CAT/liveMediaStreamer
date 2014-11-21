@@ -39,19 +39,10 @@ protected:
   virtual ~UltraGridAudioRTPSink();
 
   //internal variables for payload header info
-  unsigned int fWidth;
-  unsigned int fHeight;
-  double fFPS;
-  int fInterlacing; /*	PROGRESSIVE       = 0, ///< progressive frame
-        				UPPER_FIELD_FIRST = 1, ///< First stored field is top, followed by bottom
-        				LOWER_FIELD_FIRST = 2, ///< First stored field is bottom, followed by top
-        				INTERLACED_MERGED = 3, ///< Columngs of both fields are interlaced together
-        				SEGMENTED_FRAME   = 4,  ///< Segmented frame. Contains the same data as progressive frame.*/
-  int fTileIDx;
+  int fchannelIDx;
   int fBufferIDx;
-  unsigned int fPos;
-//  int fHdrs_len = 40 + 8 + 12; // IPv6 hdr size + UDP hdr size + RTP hdr size
-//  int fData_len = /*MTU*/ fOurMaxPacketSize - fHdrs_len;
+  int fBPS;
+  int fSample_rate;
 
 private: // redefined virtual functions:
   virtual Boolean sourceIsCompatibleWithUs(MediaSource& source);

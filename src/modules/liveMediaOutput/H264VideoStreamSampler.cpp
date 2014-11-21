@@ -154,11 +154,13 @@ int H264VideoStreamSampler::getWidth(){
 	return fWidth;
 }
 void H264VideoStreamSampler::setWidth(int width){
+	printf("setWidth = %d", width);
 	fWidth = width;
 }
 int H264VideoStreamSampler::getHeight(){
 	return fHeight;
 }
 void H264VideoStreamSampler::setHeight(int height){
+	printf("setHeight = %d", height);
 	fHeight = height;
 }

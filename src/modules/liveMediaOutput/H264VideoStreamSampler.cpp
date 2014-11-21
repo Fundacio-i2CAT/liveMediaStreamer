@@ -21,7 +21,7 @@
  */
 
  #include "H264VideoStreamSampler.hh"
- #include <iostream>
+ #include "SPSparser/h264_stream.h"
 
 H264VideoStreamSampler* H264VideoStreamSampler::createNew(UsageEnvironment& env, FramedSource* inputSource, bool annexB)
 {
@@ -102,7 +102,6 @@ void H264VideoStreamSampler
     } else {
         doGetNextFrame();
     }
-
 }
 
 void H264VideoStreamSampler::resetInternalValues()
@@ -111,7 +110,55 @@ void H264VideoStreamSampler::resetInternalValues()
     totalFrameSize = 0;
 }
 
-void H264VideoStreamSampler::updateVideoSize(unsigned char* NALstartPtr, unsigned frameSize)
+void H264VideoStreamSampler::updateVideoSize(unsigned char* NALstartPtr, int frameSize)
 {
+    uint32_t width, height;
+    sps_t* sps = (sps_t*)malloc(sizeof(sps_t));
+    uint8_t* rbsp_buf = (uint8_t*)malloc(frameSize);
+    if (nal_to_rbsp(NALstartPtr, &frameSize, rbsp_buf, &frameSize) < 0){
+        free(rbsp_buf);
+        free(sps);
+    	envir() << "H264VideoStreamSampler::updateVideoSize error: nal to rbsp failed!\n";
+        return;
+    }
+    bs_t* b = bs_new(rbsp_buf, frameSize);
+    if(read_seq_parameter_set_rbsp(sps,b) < 0){
+        bs_free(b);
+        free(rbsp_buf);
+        free(sps);
+    	envir() << "H264VideoStreamSampler::updateVideoSize error: read sequence parameter and set rbsp failed!\n";
+        return;
+    }
+    width = (sps->pic_width_in_mbs_minus1 + 1) * 16;
+    height = (2 - sps->frame_mbs_only_flag) * (sps->pic_height_in_map_units_minus1 + 1) * 16;
+    //NOTE: frame_mbs_only_flag = 1 --> only progressive frames
+    //      frame_mbs_only_flag = 0 --> some type of interlacing (there are 3 types contemplated in the standard)
+    if (sps->frame_cropping_flag){
+        width -= (sps->frame_crop_left_offset*2 + sps->frame_crop_right_offset*2);
+        height -= (sps->frame_crop_top_offset*2 + sps->frame_crop_bottom_offset*2);
+    }
 
+    if(width > 0){
+    	setWidth(width);
+    }
+    if(height > 0){
+    	setHeight(height);
+    }
+
+    bs_free(b);
+    free(rbsp_buf);
+    free(sps);
+}
+
+int H264VideoStreamSampler::getWidth(){
+	return fWidth;
+}
+void H264VideoStreamSampler::setWidth(int width){
+	fWidth = width;
+}
+int H264VideoStreamSampler::getHeight(){
+	return fHeight;
+}
+void H264VideoStreamSampler::setHeight(int height){
+	fHeight = height;
 }

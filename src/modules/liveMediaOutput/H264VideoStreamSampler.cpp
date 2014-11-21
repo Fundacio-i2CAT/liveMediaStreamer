@@ -21,6 +21,7 @@
  */
 
  #include "H264VideoStreamSampler.hh"
+ #include <iostream>
 
 H264VideoStreamSampler* H264VideoStreamSampler::createNew(UsageEnvironment& env, FramedSource* inputSource, bool annexB)
 {
@@ -86,6 +87,9 @@ void H264VideoStreamSampler
         saveCopyOfPPS(NALstartPtr, frameSize);
     }
 
+    offset += frameSize + NAL_START_SIZE;
+    totalFrameSize += offset;
+
     if (isVCL(nal_unit_type)) {
         fPictureEndMarker = True;
         fFrameSize = totalFrameSize;
@@ -95,11 +99,10 @@ void H264VideoStreamSampler
 
         resetInternalValues();
         afterGetting(this);
+    } else {
+        doGetNextFrame();
     }
 
-    offset += frameSize + NAL_START_SIZE;
-    totalFrameSize += offset;
-    doGetNextFrame();
 }
 
 void H264VideoStreamSampler::resetInternalValues()

@@ -52,7 +52,7 @@ protected:
                             unsigned durationInMicroseconds);
 
 private:
-    void updateVideoSize(unsigned char* NALstartPtr, unsigned frameSize);
+    void updateVideoSize(unsigned char* NALstartPtr, int frameSize);
     void resetInternalValues();
 
     unsigned offset;

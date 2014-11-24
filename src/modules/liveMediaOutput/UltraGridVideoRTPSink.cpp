@@ -87,8 +87,8 @@ protected:
 
 UltraGridVideoRTPSink::UltraGridVideoRTPSink(UsageEnvironment& env, Groupsock* RTPgs)
   : VideoRTPSink(env, RTPgs, 20, 90000, "UltraGridV"),
-		  fWidth(1920), fHeight(1080),
-		  fFPS(25), fInterlacing(0) {
+		  fWidth(0), fHeight(0),
+		  fFPS(0), fInterlacing(0), validVideoSize(False) {
 }
 
 UltraGridVideoRTPSink::~UltraGridVideoRTPSink() {
@@ -106,51 +106,57 @@ UltraGridVideoRTPSink::createNew(UsageEnvironment& env, Groupsock* RTPgs) {
 }
 
 Boolean UltraGridVideoRTPSink::continuePlaying() {
-  // First, check whether we have a 'fragmenter' class set up yet.
-  // If not, create it now:
-  uint32_t fHeaderTmp;
-  unsigned int fpsd, fd, fps, fi;
-  if (fOurFragmenter == NULL) {
-	fOurFragmenter = new UltraGridVideoFragmenter(envir(), fSource, OutPacketBuffer::maxSize,
-					   ourMaxPacketSize() - 12/*RTP hdr size*/);
-	H264VideoStreamSampler* framerSource = (H264VideoStreamSampler*)(fOurFragmenter->inputSource());
+    uint32_t fHeaderTmp;  
+    unsigned int fpsd, fd, fps, fi;
+    
+    if (!validVideoSize){
+        return continuePlayingDummy();
+    }
+  
+    if (fOurFragmenter == NULL) {
+        fOurFragmenter = new UltraGridVideoFragmenter(envir(), fSource, OutPacketBuffer::maxSize,
+                                                        ourMaxPacketSize() - 12/*RTP hdr size*/);
+    } else {
+        fOurFragmenter->reassignInputSource(fSource);
+    }
+  
+    fSource = fOurFragmenter;
+  
+    framerSource = (H264VideoStreamSampler*)(fOurFragmenter->inputSource());
+    if (framerSource->getWidth() <= 0 || framerSource->getHeight() <= 0){
+        return continuePlayingDummy();
+    } else {
+        return MultiFramedRTPSink::continuePlaying();
+    }
+}
 
-    //init UltraGrid video RTP payload header (6 words) and parameters
-    ((UltraGridVideoFragmenter*)fOurFragmenter)->setTileIDx(0);
-    ((UltraGridVideoFragmenter*)fOurFragmenter)->setBufferIDx(0);
+Boolean UltraGridVideoRTPSink::continuePlayingDummy(){
+    fSource->getNextFrame(fDummyBuf, OutPacketBuffer::maxSize,
+                          afterGettingFrameDummy, this, ourHandleClosure, this);
+    return True;
+}
 
-	/* word 4 */
-    fWidth = 1280;//framerSource->getWidth();
-    fHeight = 720;//framerSource->getHeight();
-	((UltraGridVideoFragmenter*)fOurFragmenter)->setMainUltraGridHeader(3, fWidth << 16 | fHeight);
+void UltraGridVideoRTPSink
+::afterGettingFrameDummy(void* clientData, unsigned numBytesRead,
+                    unsigned numTruncatedBytes,
+                    struct timeval presentationTime,
+                    unsigned durationInMicroseconds) {
+  UltraGridVideoRTPSink* sink = (UltraGridVideoRTPSink*)clientData;
+  sink->afterGettingFrame1(numBytesRead, numTruncatedBytes,
+                           presentationTime, durationInMicroseconds);
+}
 
-	/* word 5 */
-	((UltraGridVideoFragmenter*)fOurFragmenter)->setMainUltraGridHeader(4, htonl(to_fourcc('A', 'V', 'C', '1')));
-
-	/* word 6 */
-	fHeaderTmp = fInterlacing << 29;
-	fps = round(fFPS);
-	fpsd = 1;
-	if (fabs(fFPS - round(fFPS) / 1.001) < 0.005) {
-		fd = 1;
-	} else {
-		fd = 0;
-	}
-	fi = 0;
-
-	fHeaderTmp |= fps << 19;
-	fHeaderTmp |= fpsd << 15;
-	fHeaderTmp |= fd << 14;
-	fHeaderTmp |= fi << 13;
-	((UltraGridVideoFragmenter*)fOurFragmenter)->setMainUltraGridHeader(5, fHeaderTmp);
-
-  } else {
-    fOurFragmenter->reassignInputSource(fSource);
-  }
-  fSource = fOurFragmenter;
-
-  // Then call the parent class's implementation:
-  return MultiFramedRTPSink::continuePlaying();
+void UltraGridVideoRTPSink
+::afterGettingFrameDummy1(unsigned frameSize, unsigned numTruncatedBytes,
+                     struct timeval presentationTime,
+                     unsigned durationInMicroseconds) {
+    H264VideoStreamSampler* sampler = (H264VideoStreamSampler*) fSource;
+    if (sampler->getWidth() <= 0 || sampler->getHeight() <= 0){
+        fSource->getNextFrame(fDummyBuf, OutPacketBuffer::maxSize,
+                          afterGettingFrameDummy, this, ourHandleClosure, this);
+    } else {
+        validVideoSize = True;
+    }
 }
 
 void UltraGridVideoRTPSink

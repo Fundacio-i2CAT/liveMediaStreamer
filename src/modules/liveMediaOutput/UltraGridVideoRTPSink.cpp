@@ -49,6 +49,9 @@ public:
 
   Boolean lastFragmentCompletedFrameUnit() const { return fLastFragmentCompletedFrameUnit; }
 
+  void setWidth(int width);
+  void setHeight(int height);
+
 private: // redefined virtual functions:
   virtual void doGetNextFrame();
 
@@ -61,6 +64,7 @@ private:
                           unsigned numTruncatedBytes,
                           struct timeval presentationTime,
                           unsigned durationInMicroseconds);
+
 private:
   unsigned fInputBufferSize;
   unsigned fMaxOutputPacketSize;
@@ -106,7 +110,8 @@ UltraGridVideoRTPSink::createNew(UsageEnvironment& env, Groupsock* RTPgs) {
   return new UltraGridVideoRTPSink(env, RTPgs);
 }
 
-Boolean UltraGridVideoRTPSink::continuePlaying() {
+Boolean UltraGridVideoRTPSink::continuePlaying()
+{
     uint32_t fHeaderTmp;  
     unsigned int fpsd, fd, fps, fi;
     
@@ -117,24 +122,23 @@ Boolean UltraGridVideoRTPSink::continuePlaying() {
     if (fOurFragmenter == NULL) {
         fOurFragmenter = new UltraGridVideoFragmenter(envir(), fSource, OutPacketBuffer::maxSize,
                                                         ourMaxPacketSize() - 12/*RTP hdr size*/);
+
+        ((UltraGridVideoFragmenter*)fOurFragmenter)->setWidth(((H264VideoStreamSampler*) fSource)->getWidth());
+        ((UltraGridVideoFragmenter*)fOurFragmenter)->setHeight(((H264VideoStreamSampler*) fSource)->getHeight());
     } else {
         fOurFragmenter->reassignInputSource(fSource);
     }
   
     fSource = fOurFragmenter;
   
-    H264VideoStreamSampler* framerSource = (H264VideoStreamSampler*)(fOurFragmenter->inputSource());
-    if (framerSource->getWidth() <= 0 || framerSource->getHeight() <= 0){
-        return continuePlayingDummy();
-    } else {
-        return MultiFramedRTPSink::continuePlaying();
-    }
+    return MultiFramedRTPSink::continuePlaying();
 }
 
-Boolean UltraGridVideoRTPSink::continuePlayingDummy(){
-    fSource->getNextFrame(fDummyBuf, OutPacketBuffer::maxSize,
+Boolean UltraGridVideoRTPSink::continuePlayingDummy()
+{
+	fSource->getNextFrame(fDummyBuf, OutPacketBuffer::maxSize,
                           afterGettingFrameDummy, this, FramedSource::handleClosure, this);
-    return True;
+	return True;
 }
 
 void UltraGridVideoRTPSink
@@ -150,13 +154,16 @@ void UltraGridVideoRTPSink
 void UltraGridVideoRTPSink
 ::afterGettingFrameDummy1(unsigned frameSize, unsigned numTruncatedBytes,
                      struct timeval presentationTime,
-                     unsigned durationInMicroseconds) {
+                     unsigned durationInMicroseconds)
+{
     H264VideoStreamSampler* sampler = (H264VideoStreamSampler*) fSource;
+
     if (sampler->getWidth() <= 0 || sampler->getHeight() <= 0){
         fSource->getNextFrame(fDummyBuf, OutPacketBuffer::maxSize,
                           afterGettingFrameDummy, this, FramedSource::handleClosure, this);
     } else {
         validVideoSize = True;
+        continuePlaying();
     }
 }
 
@@ -207,7 +214,7 @@ UltraGridVideoFragmenter::UltraGridVideoFragmenter(UsageEnvironment& env,
     fInputBufferSize(inputBufferMax), fMaxOutputPacketSize(maxOutputPacketSize),
     fNumValidDataBytes(0), fCurDataOffset(0), fSaveNumTruncatedBytes(0),
     fLastFragmentCompletedFrameUnit(True), fTileIDx(0), fBufferIDx(0),
-    fWidth(1280), fHeight(720), fFPS(25), fInterlacing(0) {
+    fWidth(0), fHeight(0), fFPS(25), fInterlacing(0) {
   fInputBuffer = new unsigned char[fInputBufferSize];
 }
 
@@ -276,11 +283,9 @@ void UltraGridVideoFragmenter::doGetNextFrame() {
 		fHeaderTmp = 0;
 
 		if (fNumValidDataBytes + UG_PAYLOAD_HEADER_SIZE <= fMaxSize) { // case 1
-	  	  printf("\n\n\nCASE1\n");
 		  numBytesToSend = fNumValidDataBytes + UG_PAYLOAD_HEADER_SIZE;
 		}
 		else {
-		  printf("\n\n\nCASE2\n");
 	  	  numBytesToSend = fMaxSize;
 		  fLastFragmentCompletedFrameUnit = False;
 		}
@@ -310,7 +315,6 @@ void UltraGridVideoFragmenter::doGetNextFrame() {
 		fCurDataOffset += numBytesToSend -UG_PAYLOAD_HEADER_SIZE;
     }
     else { // case 3
-  		printf("\n\n\nCASE3\n");
 		// We've already sent the first packet (fragment).  Now, send the next fragment.
 		// Set fLastFragmentCompletedFrameUnit = False if there are more packets to deliver yet.
 		numBytesToSend = UG_PAYLOAD_HEADER_SIZE
@@ -372,4 +376,12 @@ void UltraGridVideoFragmenter::afterGettingFrame1(unsigned frameSize,
 
   // Deliver data to the client:
   doGetNextFrame();
+}
+
+void UltraGridVideoFragmenter::setWidth(int width){
+	fWidth = width;
+}
+
+void UltraGridVideoFragmenter::setHeight(int height){
+	fHeight = height;
 }

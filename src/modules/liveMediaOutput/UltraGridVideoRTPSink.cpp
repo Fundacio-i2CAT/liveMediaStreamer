@@ -31,6 +31,7 @@
 #define to_fourcc(a,b,c,d)     (((uint32_t)(a)) | ((uint32_t)(b)<<8) | ((uint32_t)(c)<<16) | ((uint32_t)(d)<<24))
 #endif
 
+#define UG_PAYLOAD_HEADER_SIZE 24
 ////////// UltraGridVideoFragmenter definition //////////
 
 // Because of the ideosyncracies of the UltraGrid video RTP payload format, we implement
@@ -81,7 +82,6 @@ protected:
         				LOWER_FIELD_FIRST = 2, ///< First stored field is bottom, followed by top
         				INTERLACED_MERGED = 3, ///< Columngs of both fields are interlaced together
         				SEGMENTED_FRAME   = 4,  ///< Segmented frame. Contains the same data as progressive frame.*/
-
 };
 
 ////////// UltraGridVideoRTPSink implementation //////////
@@ -155,8 +155,8 @@ UltraGridVideoFragmenter::UltraGridVideoFragmenter(UsageEnvironment& env,
 						FramedSource* inputSource, unsigned inputBufferMax,
 						unsigned maxOutputPacketSize)
   : FramedFilter(env, inputSource),
-    fInputBufferSize(inputBufferMax+1), fMaxOutputPacketSize(maxOutputPacketSize),
-    fNumValidDataBytes(1), fCurDataOffset(1), fSaveNumTruncatedBytes(0),
+    fInputBufferSize(inputBufferMax), fMaxOutputPacketSize(maxOutputPacketSize),
+    fNumValidDataBytes(0), fCurDataOffset(0), fSaveNumTruncatedBytes(0),
     fLastFragmentCompletedFrameUnit(True), fTileIDx(0), fBufferIDx(0),
     fWidth(1280), fHeight(720), fFPS(25), fInterlacing(0) {
   fInputBuffer = new unsigned char[fInputBufferSize];
@@ -170,10 +170,11 @@ UltraGridVideoFragmenter::~UltraGridVideoFragmenter() {
 void UltraGridVideoFragmenter::doGetNextFrame() {
   uint32_t fHeaderTmp;
   unsigned int fpsd, fd, fps, fi;
+  unsigned numBytesToSend = 0;
 
-  if (fNumValidDataBytes == 1) {
+  if (fNumValidDataBytes == 0) {
     // We have no Frame unit data currently in the buffer.  Read a new one:
-    fInputSource->getNextFrame(&fInputBuffer[24], fInputBufferSize - 24,
+    fInputSource->getNextFrame(fInputBuffer, fInputBufferSize,
 			       afterGettingFrame, this,
 			       FramedSource::handleClosure, this);
   } else {
@@ -192,14 +193,16 @@ void UltraGridVideoFragmenter::doGetNextFrame() {
     }
 
     fLastFragmentCompletedFrameUnit = True; // by default
-    if (fCurDataOffset == 1) { // case 1 or 2
+    if (fCurDataOffset == 0) { // case 1 or 2
 
-//		H264VideoStreamSampler* framerSource = (H264VideoStreamSampler*)(fOurFragmenter->inputSource());
-//
-//		//UltraGrid video RTP payload header (6 words) and parameters
-//		/* word 4 */
-//		fWidth = framerSource->getWidth();
-//		fHeight = framerSource->getHeight();
+		//TODO dynamic get width, height and FPS from frameSource
+		//		H264VideoStreamSampler* framerSource = (H264VideoStreamSampler*)(fOurFragmenter->inputSource());
+		//
+		//		//UltraGrid video RTP payload header (6 words) and parameters
+		//		/* word 4 */
+		//		fWidth = framerSource->getWidth();
+		//		fHeight = framerSource->getHeight();
+		//		fFPS = framerSource->getFPS();
 		fMainUltraGridHeader[3] = (fWidth << 16 | fHeight);
 
 		/* word 5 */
@@ -223,12 +226,19 @@ void UltraGridVideoFragmenter::doGetNextFrame() {
 		fMainUltraGridHeader[5] = fHeaderTmp;
 		fHeaderTmp = 0;
 
-      if (fNumValidDataBytes + 24 <= fMaxSize) { // case 1
-  		printf("\n\n\nCASE1\n");
+		if (fNumValidDataBytes + UG_PAYLOAD_HEADER_SIZE <= fMaxSize) { // case 1
+	  	  printf("\n\n\nCASE1\n");
+		  numBytesToSend = fNumValidDataBytes + UG_PAYLOAD_HEADER_SIZE;
+		}
+		else {
+		  printf("\n\n\nCASE2\n");
+	  	  numBytesToSend = fMaxSize;
+		  fLastFragmentCompletedFrameUnit = False;
+		}
 
 		//set UltraGrid video RTP payload header (6 words)
     	/* word 3 */
-		fMainUltraGridHeader[2] = htonl(fNumValidDataBytes);
+		fMainUltraGridHeader[2] = fNumValidDataBytes;
 
 		/* word 1 */
 		fHeaderTmp = fTileIDx << 22;
@@ -236,66 +246,25 @@ void UltraGridVideoFragmenter::doGetNextFrame() {
 		fMainUltraGridHeader[0] = fHeaderTmp;
 
 		/* word 2 */
-		int offset = 0;
-		fMainUltraGridHeader[1] = htonl(offset);
+		fMainUltraGridHeader[1] = 0;
 
 		//uint32_t to uint8_t alignment
 		for (int i = 0; i < 6; i++) {
 			for (int j = 0; j < 4; j++) {
-				fInputBuffer[(i << 2) + j] = (unsigned char) (fMainUltraGridHeader[i] >> (24 - (j << 3)));
+				fTo[(i << 2) + j] = (unsigned char) (fMainUltraGridHeader[i] >> (UG_PAYLOAD_HEADER_SIZE - (j << 3)));
 			}
 		}
 
-		memmove(fTo, fInputBuffer, fNumValidDataBytes + 24);
+		memmove(fTo + UG_PAYLOAD_HEADER_SIZE, fInputBuffer, fNumValidDataBytes + UG_PAYLOAD_HEADER_SIZE);
 
-        printf("RTP HDR: tiles(%d), buffID(%d), bufferSize(%d), payloadPos(%d)\n",
-        		fTileIDx,fBufferIDx,fNumValidDataBytes,offset);
-
-		fFrameSize = fNumValidDataBytes + 24;
-		fCurDataOffset = fNumValidDataBytes;
-      }
-
-      else { // case 2
-    	printf("\n\n\nCASE2\n");
-		// Deliver the first packet now.
-  		//set UltraGrid video RTP payload header (6 words)
-      	/* word 3 */
-  		fMainUltraGridHeader[2] = htonl(fNumValidDataBytes);
-
-  		/* word 1 */
-  		fHeaderTmp = fTileIDx << 22;
-  		fHeaderTmp |= 0x3fffff & fBufferIDx;
-  		fMainUltraGridHeader[0] = fHeaderTmp;
-
-  		/* word 2 */
-  		int offset = 0;
-  		fMainUltraGridHeader[1] = htonl(offset);
-
-  		//uint32_t to uint8_t alignment
-  		for (int i = 0; i < 6; i++) {
-  			for (int j = 0; j < 4; j++) {
-  				fInputBuffer[(i << 2) + j] = (unsigned char) (fMainUltraGridHeader[i] >> (24 - (j << 3)));
- 			}
-  		}
-
-		memmove(fTo, fInputBuffer, fMaxSize);
-
-        printf("RTP HDR: tiles(%d), buffID(%d), bufferSize(%d), payloadPos(%d)\n",
-        		fTileIDx,fBufferIDx,fNumValidDataBytes,offset);
-
-
-		fFrameSize = fMaxSize;
-		fCurDataOffset += fMaxSize - 24;
-		fLastFragmentCompletedFrameUnit = False;
-      }
+		fFrameSize = numBytesToSend;
+		fCurDataOffset += numBytesToSend -UG_PAYLOAD_HEADER_SIZE;
     }
     else { // case 3
   		printf("\n\n\nCASE3\n");
 		// We've already sent the first packet (fragment).  Now, send the next fragment.
 		// Set fLastFragmentCompletedFrameUnit = False if there are more packets to deliver yet.
-		unsigned numExtraHeaderBytes = 24;
-
-		unsigned numBytesToSend = numExtraHeaderBytes
+		numBytesToSend = UG_PAYLOAD_HEADER_SIZE
 				+ (fNumValidDataBytes - fCurDataOffset);
 		if (numBytesToSend > fMaxSize) {
 			// We can't send all of the remaining data this time:
@@ -303,33 +272,29 @@ void UltraGridVideoFragmenter::doGetNextFrame() {
 			fLastFragmentCompletedFrameUnit = False;
 		} else {
 			// This is the last fragment
-			//fNumTruncatedBytes = fSaveNumTruncatedBytes;
+			fNumTruncatedBytes = fSaveNumTruncatedBytes;
 		}
 
-  		//set UltraGrid video RTP payload header (6 words)
+        //set UltraGrid video RTP payload header (6 words)
   		/* word 2 */
-  		int offset = fCurDataOffset;
-  		fMainUltraGridHeader[1] = htonl(offset);
-
+  		fMainUltraGridHeader[1] = fCurDataOffset;
   		//uint32_t to uint8_t alignment
  		for (int i = 0; i < 6; i++) {
   			for (int j = 0; j < 4; j++) {
-  				fInputBuffer[fCurDataOffset - numExtraHeaderBytes + (i << 2) + j] = (unsigned char) (fMainUltraGridHeader[i] >> (24 - (j << 3)));
+  				fTo[(i << 2) + j] = (unsigned char) (fMainUltraGridHeader[i] >> (UG_PAYLOAD_HEADER_SIZE - (j << 3)));
 			}
   		}
 
-		memmove(fTo, &fInputBuffer[fCurDataOffset - numExtraHeaderBytes], numBytesToSend);
-
-        printf("RTP HDR: tiles(%d), buffID(%d), bufferSize(%d), payloadPos(%d)\n",
-        		fTileIDx,fBufferIDx,fNumValidDataBytes,fCurDataOffset);
+		memmove(fTo + UG_PAYLOAD_HEADER_SIZE, &fInputBuffer[fCurDataOffset], numBytesToSend - UG_PAYLOAD_HEADER_SIZE);
 
 		fFrameSize = numBytesToSend;
-		fCurDataOffset += numBytesToSend - numExtraHeaderBytes;
+		fCurDataOffset += numBytesToSend - UG_PAYLOAD_HEADER_SIZE;
 	}
 
-	if (fCurDataOffset >= fNumValidDataBytes) {
+	if (fCurDataOffset == fNumValidDataBytes) {
 		// We're done with this data.  Reset the pointers for receiving new data:
-		fNumValidDataBytes = fCurDataOffset = 1;
+		fNumValidDataBytes = 0;
+		fCurDataOffset = 0;
 		fBufferIDx++;
 	}
 

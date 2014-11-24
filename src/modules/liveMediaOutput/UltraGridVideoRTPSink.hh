@@ -55,14 +55,6 @@ private: // redefined virtual functions:
 protected:
   //internal variables for payload header info
   FramedFilter* fOurFragmenter;
-  unsigned int fWidth;
-  unsigned int fHeight;
-  double fFPS;
-  int fInterlacing; /*	PROGRESSIVE       = 0, ///< progressive frame
-        				UPPER_FIELD_FIRST = 1, ///< First stored field is top, followed by bottom
-        				LOWER_FIELD_FIRST = 2, ///< First stored field is bottom, followed by top
-        				INTERLACED_MERGED = 3, ///< Columngs of both fields are interlaced together
-        				SEGMENTED_FRAME   = 4,  ///< Segmented frame. Contains the same data as progressive frame.*/
 };
 
 #endif

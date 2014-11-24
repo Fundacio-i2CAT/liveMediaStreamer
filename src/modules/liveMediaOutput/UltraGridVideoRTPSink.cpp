@@ -112,9 +112,6 @@ UltraGridVideoRTPSink::createNew(UsageEnvironment& env, Groupsock* RTPgs) {
 
 Boolean UltraGridVideoRTPSink::continuePlaying()
 {
-    uint32_t fHeaderTmp;  
-    unsigned int fpsd, fd, fps, fi;
-    
     if (!validVideoSize){
         return continuePlayingDummy();
     }

@@ -287,7 +287,7 @@ UltraGridVideoConnection::UltraGridVideoConnection(UsageEnvironment* env, Framed
 
 bool UltraGridVideoConnection::additionalSetup()
 {
-    //fSink = UltraGridVideoRTPSink::createNew(*fEnv, rtpGroupsock);
+    fSink = UltraGridVideoRTPSink::createNew(*fEnv, rtpGroupsock);
     fSource = H264VideoStreamSampler::createNew(*fEnv, fSource, true);
 
     if (!fSink) {

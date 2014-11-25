@@ -48,9 +48,7 @@ static void afterPlayingDummy(void* clientData) {
 }
 
 void H264QueueServerMediaSubsession::afterPlayingDummy1() {
-  // Unschedule any pending 'checking' task:
   envir().taskScheduler().unscheduleDelayedTask(nextTask());
-  // Signal the event loop that we're done:
   setDoneFlag();
 }
 
@@ -63,24 +61,24 @@ void H264QueueServerMediaSubsession::checkForAuxSDPLine1() {
   char const* dasl;
 
   if (fAuxSDPLine != NULL) {
-    // Signal the event loop that we're done:
+    
     setDoneFlag();
   } else if (fDummyRTPSink != NULL && (dasl = fDummyRTPSink->auxSDPLine()) != NULL) {
     fAuxSDPLine = strDup(dasl);
     fDummyRTPSink = NULL;
 
-    // Signal the event loop that we're done:
+    
     setDoneFlag();
   } else {
-    // try again after a brief delay:
-    int uSecsToDelay = 100000; // 100 ms
+    
+    int uSecsToDelay = 100000; 
     nextTask() = envir().taskScheduler().scheduleDelayedTask(uSecsToDelay,
                   (TaskFunc*)checkForAuxSDPLine, this);
   }
 }
 
 char const* H264QueueServerMediaSubsession::getAuxSDPLine(RTPSink* rtpSink, FramedSource* inputSource) {
-    if (fAuxSDPLine != NULL) return fAuxSDPLine; // it's already been set up (for a previous client)
+    if (fAuxSDPLine != NULL) return fAuxSDPLine; 
 
     if (fDummyRTPSink == NULL) {
         fDummyRTPSink = rtpSink;

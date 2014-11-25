@@ -24,6 +24,7 @@
 #include "Connection.hh"
 #include "Utils.hh"
 #include "UltraGridVideoRTPSink.hh"
+//#include "UltraGridAudioRTPSink.hh"
 #include "H264VideoStreamSampler.hh"
 #include <GroupsockHelper.hh>
 
@@ -286,7 +287,7 @@ UltraGridVideoConnection::UltraGridVideoConnection(UsageEnvironment* env, Framed
 
 bool UltraGridVideoConnection::additionalSetup()
 {
-    //fSink = UltraGridVideoRTPSink::createNew(*fEnv, rtpGroupsock);
+    fSink = UltraGridVideoRTPSink::createNew(*fEnv, rtpGroupsock);
     fSource = H264VideoStreamSampler::createNew(*fEnv, fSource, true);
 
     if (!fSink) {

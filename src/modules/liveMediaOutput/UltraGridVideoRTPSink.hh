@@ -51,18 +51,25 @@ private: // redefined virtual functions:
   virtual
   Boolean frameCanAppearAfterPacketStart(unsigned char const* frameStart,
 					 unsigned numBytesInFrame) const;
+                                         
+    Boolean continuePlayingDummy();
+    
+    static void afterGettingFrameDummy(void* clientData, unsigned numBytesRead,
+                                unsigned numTruncatedBytes,
+                                struct timeval presentationTime,
+                                unsigned durationInMicroseconds);
+    
+    void afterGettingFrameDummy1(unsigned frameSize, unsigned numTruncatedBytes,
+                                struct timeval presentationTime,
+                                unsigned durationInMicroseconds);
+    
+    //void ourHandleClosure(void* clientData);
 
 protected:
   //internal variables for payload header info
   FramedFilter* fOurFragmenter;
-  unsigned int fWidth;
-  unsigned int fHeight;
-  double fFPS;
-  int fInterlacing; /*	PROGRESSIVE       = 0, ///< progressive frame
-        				UPPER_FIELD_FIRST = 1, ///< First stored field is top, followed by bottom
-        				LOWER_FIELD_FIRST = 2, ///< First stored field is bottom, followed by top
-        				INTERLACED_MERGED = 3, ///< Columngs of both fields are interlaced together
-        				SEGMENTED_FRAME   = 4,  ///< Segmented frame. Contains the same data as progressive frame.*/
+  Boolean validVideoSize;
+  unsigned char* fDummyBuf;
 };
 
 #endif

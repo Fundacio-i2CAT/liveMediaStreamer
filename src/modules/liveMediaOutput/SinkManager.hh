@@ -50,7 +50,7 @@ public:
     
     bool addSession(std::string id, std::vector<int> readers, 
                     std::string info = "", std::string desc = "");
-    bool addRTPConnection(int reader, unsigned id, std::string ip, unsigned int port, TxFormat txFmt);
+    bool addRTPConnection(std::vector<int> readersId, int id, std::string ip, int port, TxFormat txFmt);
     bool addDASHConnection(int reader, unsigned id, std::string fileName, std::string quality, 
                            bool reInit = false, uint32_t segmentTime = SEGMENT_TIME, 
                            uint32_t initSegment = INIT_SEGMENT, uint32_t fps = FRAME_RATE);
@@ -68,12 +68,13 @@ public:
 private: 
     void initializeEventMap();
     void addSessionEvent(Jzon::Node* params, Jzon::Object &outputNode);
+    void addRTPConnectionEvent(Jzon::Node* params, Jzon::Object &outputNode);
     Reader *setReader(int readerID, FrameQueue* queue, bool sharedQueue = false);
     
     bool processFrame(bool removeFrame = false);
 
-    bool addStdRTPConnection(int reader, unsigned id, std::string ip, unsigned int port);
-    bool addUltraGridRTPConnection(int reader, unsigned id, std::string ip, unsigned int port);
+    bool addStdRTPConnection(int reader, int id, std::string ip, int port);
+    bool addUltraGridRTPConnection(int reader, int id, std::string ip, int port);
 
 
     

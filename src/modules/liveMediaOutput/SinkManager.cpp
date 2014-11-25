@@ -34,6 +34,8 @@
 #include "H264QueueSource.hh"
 #include "Types.hh"
 #include "Connection.hh"
+#include "../../Types.hh"
+#include "../../Utils.hh"
 
 
 SinkManager *SinkManager::mngrInstance = NULL;
@@ -145,13 +147,15 @@ bool SinkManager::addSession(std::string id, std::vector<int> readers, std::stri
     return true;
 }
 
-bool SinkManager::addRTPConnection(int reader, unsigned id, std::string ip, unsigned int port, TxFormat txFmt)
+bool SinkManager::addRTPConnection(std::vector<int> readersId, int id, std::string ip,  int port, TxFormat txFmt)
 {
     bool success = false;
 
-    if (readers.count(reader) < 1){
-        utils::errorMsg("Invalid reader Id");
-        return success;
+    for (auto r : readersId) {
+        if (readers.count(r) < 1){
+            utils::errorMsg("Invalid reader Id");
+            return success;
+        }
     }
 
     if (connections.count(id) > 0){
@@ -161,14 +165,14 @@ bool SinkManager::addRTPConnection(int reader, unsigned id, std::string ip, unsi
 
     switch(txFmt) {
         case STD_RTP:
-            success = addStdRTPConnection(reader, id, ip, port);
+            success = addStdRTPConnection(readersId.front(), id, ip, port);
         break;
         case ULTRAGRID:
-            success = addUltraGridRTPConnection(reader, id , ip ,port);
+            success = addUltraGridRTPConnection(readersId.front(), id , ip ,port);
         break;
         case MPEGTS:
             // NOTE: in this case more than one reader can be attached to MPEGTS because it muxes the data.
-            // Think about this
+            // This is the reason why readersId is a vector<int>, not an int
             utils::errorMsg("Error creating connections. MPEGTS Transport format still not supported");
         break;
         default:
@@ -216,7 +220,7 @@ bool SinkManager::addDASHConnection(int reader, unsigned id, std::string fileNam
     return true;
 }
 
-bool SinkManager::addStdRTPConnection(int reader, unsigned id, std::string ip, unsigned int port)
+bool SinkManager::addStdRTPConnection(int reader, int id, std::string ip, int port)
 {
     VideoFrameQueue *vQueue;
     AudioFrameQueue *aQueue;
@@ -248,7 +252,7 @@ bool SinkManager::addStdRTPConnection(int reader, unsigned id, std::string ip, u
     return true;
 }
 
-bool SinkManager::addUltraGridRTPConnection(int reader, unsigned id, std::string ip, unsigned int port)
+bool SinkManager::addUltraGridRTPConnection(int reader, int id, std::string ip, int port)
 {
     VideoFrameQueue *vQueue = NULL;
     AudioFrameQueue *aQueue = NULL;
@@ -475,8 +479,11 @@ ServerMediaSession* SinkManager::getSession(std::string id)
 
 void SinkManager::initializeEventMap() 
 {
-     eventMap["addSession"] = std::bind(&SinkManager::addSessionEvent, this, 
+    eventMap["addSession"] = std::bind(&SinkManager::addSessionEvent, this, 
                                         std::placeholders::_1,  std::placeholders::_2);
+    eventMap["addRTPConnection"] = std::bind(&SinkManager::addRTPConnectionEvent, this, 
+                                        std::placeholders::_1,  std::placeholders::_2);
+
 }
 
 void SinkManager::addSessionEvent(Jzon::Node* params, Jzon::Object &outputNode)
@@ -522,7 +529,56 @@ void SinkManager::addSessionEvent(Jzon::Node* params, Jzon::Object &outputNode)
     }
 
     outputNode.Add("sessionID", sessionId);
-} 
+}
+
+void SinkManager::addRTPConnectionEvent(Jzon::Node* params, Jzon::Object &outputNode)
+{
+    std::vector<int> readers;
+    int connectionId;
+    std::string ip;
+    int port;
+    std::string stringTxFormat;
+    TxFormat txFormat;
+
+    if (!params) {
+        outputNode.Add("error", "Error adding session. No parameters!");
+        return;
+    }
+
+    if (!params->Has("id") || !params->Has("port") || !params->Has("ip") || !params->Has("txFormat")) {
+        outputNode.Add("error", "Error adding connection. Wrong parameters!");
+        return;
+    }
+
+    if (!params->Has("readers") || !params->Get("readers").IsArray()) {
+        outputNode.Add("error", "Error adding connection. Readers does not exist or is not an array!");
+        return;
+    }
+
+    connectionId = params->Get("id").ToInt();
+    port = params->Get("port").ToInt();
+    ip = params->Get("ip").ToString();
+    stringTxFormat = params->Get("txFormat").ToString();
+    txFormat = utils::getTxFormatFromString(stringTxFormat);
+
+    Jzon::Array jsonReaders = params->Get("readers").AsArray();
+    
+    for (Jzon::Array::iterator it = jsonReaders.begin(); it != jsonReaders.end(); ++it) {
+        readers.push_back((*it).ToInt());
+    }
+    
+    if (readers.empty()) {
+        outputNode.Add("error", "Error adding session. Readers array is empty!");
+        return;
+    }
+
+    if(!addRTPConnection(readers, connectionId, ip, port, txFormat)) {
+        outputNode.Add("error", "Error adding session. Internal error!");
+        return;
+    }
+
+    outputNode.Add("error", Jzon::null);
+}  
 
 void SinkManager::doGetState(Jzon::Object &filterNode)
 {

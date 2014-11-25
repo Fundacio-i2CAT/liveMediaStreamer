@@ -52,6 +52,6 @@ enum FilterType {F_NONE = -1, RECEIVER, TRANSMITTER, VIDEO_DECODER, VIDEO_ENCODE
 
 enum WorkerType {W_NONE = -1, LIVEMEDIA, MASTER, SLAVE};
 
-enum TxFormat {STD_RTP, ULTRAGRID, MPEGTS};
+enum TxFormat {TX_NONE = -1, STD_RTP, ULTRAGRID, MPEGTS};
 
 #endif

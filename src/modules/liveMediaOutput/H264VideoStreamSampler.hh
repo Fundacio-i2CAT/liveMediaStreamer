@@ -51,9 +51,12 @@ protected:
                             struct timeval presentationTime,
                             unsigned durationInMicroseconds);
 
+    
+
 private:
     void updateVideoSize(unsigned char* NALstartPtr, int frameSize);
     void resetInternalValues();
+    bool isAUD(u_int8_t nal_unit_type);
 
     unsigned offset;
     unsigned totalFrameSize;

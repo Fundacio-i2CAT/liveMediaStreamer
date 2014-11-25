@@ -174,6 +174,7 @@ bool VideoEncoderX264::reconfigure(VideoFrame* orgFrame, X264VideoFrame* x264Fra
         xparams.i_fps_num = fps;
         xparams.i_fps_den = 1;
         xparams.b_intra_refresh = 0;
+        xparams.b_aud = 1;
         xparams.i_keyint_max = std::round(1000.0*gop/frameTime.count());
         xparams.rc.i_bitrate = bitrate;
         if (annexB){

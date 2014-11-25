@@ -22,6 +22,7 @@
 
  #include "H264VideoStreamSampler.hh"
  #include "SPSparser/h264_stream.h"
+ #include <iostream>
 
 H264VideoStreamSampler* H264VideoStreamSampler::createNew(UsageEnvironment& env, FramedSource* inputSource, bool annexB)
 {
@@ -31,14 +32,14 @@ H264VideoStreamSampler* H264VideoStreamSampler::createNew(UsageEnvironment& env,
  H264VideoStreamSampler
 ::H264VideoStreamSampler(UsageEnvironment& env, FramedSource* inputSource, bool annexB)
   : H264or5VideoStreamFramer(264, env, inputSource, False/*don't create a parser*/, False),
-  offset(0), totalFrameSize(0), fAnnexB(annexB) {
+  offset(0), totalFrameSize(0), fAnnexB(annexB), fWidth(0), fHeight(0) {
 }
 
 H264VideoStreamSampler::~H264VideoStreamSampler() {
 }
 
 void H264VideoStreamSampler::doGetNextFrame() {
-    fInputSource->getNextFrame(fTo + offset + NAL_START_SIZE, fMaxSize,
+    fInputSource->getNextFrame(fTo + offset + NAL_START_SIZE, fMaxSize - offset - NAL_START_SIZE,
                                afterGettingFrame, this, FramedSource::handleClosure, this);
 }
 
@@ -78,6 +79,8 @@ void H264VideoStreamSampler
         nal_unit_type = 0xFF;
     }
 
+
+
     if (frameSize >= 4 && NALstartPtr[0] == 0 && NALstartPtr[1] == 0 && ((NALstartPtr[2] == 0 && NALstartPtr[3] == 1) || NALstartPtr[2] == 1)) {
         envir() << "H264VideoStreamSampler error: MPEG 'start code' seen in the input\n";
     } else if (isSPS(nal_unit_type)) { // Sequence parameter set (SPS)
@@ -88,11 +91,16 @@ void H264VideoStreamSampler
     }
 
     offset += frameSize + NAL_START_SIZE;
-    totalFrameSize += offset;
+    totalFrameSize = offset;
+   // std::cout << (int)nal_unit_type << ": " << frameSize << std::endl;
+   // std::cout << "Offset: " << offset << std::endl;
+   // if (isAUD(nal_unit_type)) {
+   //     std::cout << "AUD: " << totalFrameSize << std::endl;
+   // }
 
-    if (isVCL(nal_unit_type)) {
+    if (isAUD(nal_unit_type) || numTruncatedBytes > 0) {
         fPictureEndMarker = True;
-        fFrameSize = totalFrameSize;
+        fFrameSize = offset - frameSize - NAL_START_SIZE;
         fNumTruncatedBytes = numTruncatedBytes;
         fPresentationTime = presentationTime;
         fDurationInMicroseconds = durationInMicroseconds;
@@ -112,7 +120,8 @@ void H264VideoStreamSampler::resetInternalValues()
 
 void H264VideoStreamSampler::updateVideoSize(unsigned char* NALstartPtr, int frameSize)
 {
-    uint32_t width, height;
+    uint32_t width = 0;
+    uint32_t height = 0;
     sps_t* sps = (sps_t*)malloc(sizeof(sps_t));
     uint8_t* rbsp_buf = (uint8_t*)malloc(frameSize);
     if (nal_to_rbsp(NALstartPtr, &frameSize, rbsp_buf, &frameSize) < 0){
@@ -150,15 +159,26 @@ void H264VideoStreamSampler::updateVideoSize(unsigned char* NALstartPtr, int fra
     free(sps);
 }
 
-int H264VideoStreamSampler::getWidth(){
+bool H264VideoStreamSampler::isAUD(u_int8_t nal_unit_type)
+{
+    return nal_unit_type == 9;
+}
+
+int H264VideoStreamSampler::getWidth()
+{
 	return fWidth;
 }
-void H264VideoStreamSampler::setWidth(int width){
+
+void H264VideoStreamSampler::setWidth(int width)
+{
 	fWidth = width;
 }
-int H264VideoStreamSampler::getHeight(){
-	return fHeight;
+
+int H264VideoStreamSampler::getHeight()
+{
+    return fHeight;
 }
-void H264VideoStreamSampler::setHeight(int height){
-	fHeight = height;
+void H264VideoStreamSampler::setHeight(int height)
+{
+    fHeight = height;
 }

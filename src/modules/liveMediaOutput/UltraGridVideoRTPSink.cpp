@@ -24,6 +24,7 @@
 #include "UltraGridVideoRTPSink.hh"
 #include "H264VideoStreamSampler.hh"
 #include <cmath>
+#include <iostream>
 
 #ifdef WORDS_BIGENDIAN
 #define to_fourcc(a,b,c,d)     (((uint32_t)(d)) | ((uint32_t)(c)<<8) | ((uint32_t)(b)<<16) | ((uint32_t)(a)<<24))
@@ -49,8 +50,7 @@ public:
 
   Boolean lastFragmentCompletedFrameUnit() const { return fLastFragmentCompletedFrameUnit; }
 
-  void setWidth(int width);
-  void setHeight(int height);
+  void setSize(unsigned int width, unsigned int height);
 
 private: // redefined virtual functions:
   virtual void doGetNextFrame();
@@ -119,9 +119,6 @@ Boolean UltraGridVideoRTPSink::continuePlaying()
     if (fOurFragmenter == NULL) {
         fOurFragmenter = new UltraGridVideoFragmenter(envir(), fSource, OutPacketBuffer::maxSize,
                                                         ourMaxPacketSize() - 12/*RTP hdr size*/);
-
-        ((UltraGridVideoFragmenter*)fOurFragmenter)->setWidth(((H264VideoStreamSampler*) fSource)->getWidth());
-        ((UltraGridVideoFragmenter*)fOurFragmenter)->setHeight(((H264VideoStreamSampler*) fSource)->getHeight());
     } else {
         fOurFragmenter->reassignInputSource(fSource);
     }
@@ -164,29 +161,17 @@ void UltraGridVideoRTPSink
     }
 }
 
-// void UltraGridVideoRTPSink::ourHandleClosure(void* clientData) {
-//   UltraGridVideoRTPSink* sink = (UltraGridVideoRTPSink*)clientData;
-//   // There are no frames left, but we may have a partially built packet
-//   //  to send
-//   sink->fNoFramesLeft = True;
-//   sink->sendPacketIfNecessary();
-// }
-
 void UltraGridVideoRTPSink
 ::doSpecialFrameHandling(unsigned fragmentationOffset,
 			 unsigned char* frameStart,
 			 unsigned numBytesInFrame,
 			 struct timeval framePresentationTime,
 			 unsigned numRemainingBytes) {
-  // Set the RTP 'M' (marker) bit iff
-  // 1/ The most recently delivered fragment was the end of (or the only fragment of) an Frame unit, and
-  // 2/ This Frame unit was the last Frame unit of an 'access unit' (i.e. video frame).
   if (fOurFragmenter != NULL) {
 	  H264VideoStreamSampler* framerSource
       = (H264VideoStreamSampler*)(fOurFragmenter->inputSource());
-    // This relies on our fragmenter's source being a "H264VideoStreamSampler".
     if (((UltraGridVideoFragmenter*)fOurFragmenter)->lastFragmentCompletedFrameUnit()
-	&& framerSource != NULL && framerSource->pictureEndMarker()) {
+	       && framerSource != NULL && framerSource->pictureEndMarker()) {
       setMarkerBit();
       framerSource->pictureEndMarker() = False;
     }
@@ -225,28 +210,25 @@ void UltraGridVideoFragmenter::doGetNextFrame() {
   unsigned int fpsd, fd, fps, fi;
   unsigned numBytesToSend = 0;
 
+  H264VideoStreamSampler* src = (H264VideoStreamSampler*) fInputSource;
+  setSize(src->getWidth(), src->getHeight());
+
   if (fNumValidDataBytes == 0) {
     // We have no Frame unit data currently in the buffer.  Read a new one:
     fInputSource->getNextFrame(fInputBuffer, fInputBufferSize,
 			       afterGettingFrame, this,
 			       FramedSource::handleClosure, this);
+
   } else {
-    // We have Frame unit data in the buffer.  There are three cases to consider:
-    // 1. There is a new Frame unit in the buffer, and it's small enough to deliver
-    //    to the RTP sink (as is).
-    // 2. There is a new Frame unit in the buffer, but it's too large to deliver to
-    //    the RTP sink in its entirety.  Deliver the first fragment of this data.
-    // 3. There is a Frame unit in the buffer, and we've already delivered some
-    //    fragment(s) of this.  Deliver the next fragment of this data.
-    if (fMaxSize < fMaxOutputPacketSize) { // shouldn't happen
+    if (fMaxSize < fMaxOutputPacketSize) { 
       envir() << "UltraGridVideoFragmenter::doGetNextFrame(): fMaxSize ("
 	      << fMaxSize << ") is smaller than expected\n";
     } else {
       fMaxSize = fMaxOutputPacketSize;
     }
 
-    fLastFragmentCompletedFrameUnit = True; // by default
-    if (fCurDataOffset == 0) { // case 1 or 2
+    fLastFragmentCompletedFrameUnit = True; 
+    if (fCurDataOffset == 0) { 
 
 		//TODO dynamic get width, height and FPS from frameSource
 		//		H264VideoStreamSampler* framerSource = (H264VideoStreamSampler*)(fOurFragmenter->inputSource());
@@ -256,6 +238,7 @@ void UltraGridVideoFragmenter::doGetNextFrame() {
 		//		fWidth = framerSource->getWidth();
 		//		fHeight = framerSource->getHeight();
 		//		fFPS = framerSource->getFPS();
+
 		fMainUltraGridHeader[3] = (fWidth << 16 | fHeight);
 
 		/* word 5 */
@@ -325,7 +308,7 @@ void UltraGridVideoFragmenter::doGetNextFrame() {
 			fNumTruncatedBytes = fSaveNumTruncatedBytes;
 		}
 
-        //set UltraGrid video RTP payload header (6 words)
+      //set UltraGrid video RTP payload header (6 words)
   		/* word 2 */
   		fMainUltraGridHeader[1] = fCurDataOffset;
   		//uint32_t to uint8_t alignment
@@ -342,13 +325,11 @@ void UltraGridVideoFragmenter::doGetNextFrame() {
 	}
 
 	if (fCurDataOffset == fNumValidDataBytes) {
-		// We're done with this data.  Reset the pointers for receiving new data:
 		fNumValidDataBytes = 0;
 		fCurDataOffset = 0;
 		fBufferIDx++;
 	}
 
-    // Complete delivery to the client:
     FramedSource::afterGetting(this);
   }
 }
@@ -370,15 +351,13 @@ void UltraGridVideoFragmenter::afterGettingFrame1(unsigned frameSize,
   fSaveNumTruncatedBytes = numTruncatedBytes;
   fPresentationTime = presentationTime;
   fDurationInMicroseconds = durationInMicroseconds;
-
-  // Deliver data to the client:
+  
   doGetNextFrame();
 }
 
-void UltraGridVideoFragmenter::setWidth(int width){
-	fWidth = width;
-}
-
-void UltraGridVideoFragmenter::setHeight(int height){
-	fHeight = height;
+void UltraGridVideoFragmenter::setSize(unsigned int width, unsigned int height){
+  if (fWidth != width || fHeight != height){
+      fWidth = width;
+      fHeight = height;
+  }
 }

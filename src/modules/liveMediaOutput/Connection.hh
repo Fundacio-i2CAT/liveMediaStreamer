@@ -155,9 +155,16 @@ class UltraGridAudioConnection : public RTPConnection {
 public:
     UltraGridAudioConnection(UsageEnvironment* env,
                              FramedSource *source, 
-                             std::string ip, unsigned port);
+                             std::string ip, unsigned port, ACodecType codec,
+                             unsigned channels, unsigned sampleRate, SampleFmt sampleFormat);
 protected:
     bool additionalSetup();
+
+private:
+    ACodecType fCodec;
+    unsigned fChannels;
+    unsigned fSampleRate;
+    SampleFmt fSampleFormat;
 };
 
 //////////////////////////

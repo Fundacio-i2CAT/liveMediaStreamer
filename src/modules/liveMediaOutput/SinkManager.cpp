@@ -263,7 +263,8 @@ bool SinkManager::addUltraGridRTPConnection(int reader, int id, std::string ip, 
     }
 
     if ((aQueue = dynamic_cast<AudioFrameQueue*>(getReader(reader)->getQueue())) != NULL) {
-        conn = new UltraGridAudioConnection(envir(), replicators[reader]->createStreamReplica(), ip, port); 
+        conn = new UltraGridAudioConnection(envir(), replicators[reader]->createStreamReplica(), ip, port,
+                        aQueue->getCodec(), aQueue->getChannels(), aQueue->getSampleRate(), aQueue->getSampleFmt());
     }
 
     if (!conn) {

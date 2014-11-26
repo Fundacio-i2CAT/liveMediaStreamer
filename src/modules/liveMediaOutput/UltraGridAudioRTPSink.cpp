@@ -22,6 +22,8 @@
  */
 
 #include "UltraGridAudioRTPSink.hh"
+#include <assert.h>
+#include <iostream>
 #include <string>
 #include <cmath>
 
@@ -31,18 +33,45 @@
 #define to_fourcc(a,b,c,d)     (((uint32_t)(a)) | ((uint32_t)(b)<<8) | ((uint32_t)(c)<<16) | ((uint32_t)(d)<<24))
 #endif
 
+#include <unordered_map>
+static std::unordered_map<ACodecType, uint32_t, std::hash<int>> LMS_to_UG_mapping = {
+        { PCM, 0x0001 },
+        { PCMU, 0x0007},
+        { OPUS, 0x7375704F },
+};
+
 UltraGridAudioRTPSink
-::UltraGridAudioRTPSink(UsageEnvironment& env, Groupsock* RTPgs)
-  : AudioRTPSink(env, RTPgs, 21, 48000, "UltraGridA"),
-    fchannelIDx(1), fBufferIDx(0), fBPS(16), fSample_rate(48000){
+::UltraGridAudioRTPSink(UsageEnvironment& env, Groupsock* RTPgs, ACodecType codec,
+                unsigned channels, unsigned sampleRate, SampleFmt sampleFormat)
+  : AudioRTPSink(env, RTPgs, 21, 90000, "UltraGridA"), fChannels(1),
+    fchannelIDx(0), fBufferIDx(0), fSample_rate(sampleRate) {
+        switch (sampleFormat) {
+        case U8:
+        case U8P:
+                fBPS = 8;
+                break;
+        case S16:
+        case S16P:
+                fBPS = 16;
+                break;
+        default:
+                fBPS = 0;
+        }
+        auto it = LMS_to_UG_mapping.find(codec);
+        if (it != LMS_to_UG_mapping.end()) {
+                fAudio_tag = it->second;
+        } else {
+                fAudio_tag = 0;
+        }
 }
 
 UltraGridAudioRTPSink::~UltraGridAudioRTPSink() {
 }
 
 UltraGridAudioRTPSink*
-UltraGridAudioRTPSink::createNew(UsageEnvironment& env, Groupsock* RTPgs) {
-  return new UltraGridAudioRTPSink(env, RTPgs);
+UltraGridAudioRTPSink::createNew(UsageEnvironment& env, Groupsock* RTPgs, ACodecType codec,
+                unsigned channels, unsigned sampleRate, SampleFmt sampleFormat) {
+  return new UltraGridAudioRTPSink(env, RTPgs, codec, channels, sampleRate, sampleFormat);
 }
 
 Boolean UltraGridAudioRTPSink
@@ -58,74 +87,62 @@ void UltraGridAudioRTPSink
 			 unsigned numBytesInFrame,
 			 struct timeval framePresentationTime,
 			 unsigned numRemainingBytes) {
+        uint32_t audio_hdr[5];
+        uint32_t tmp;
 
-//	uint32_t tmp;
-//	tmp = channel << 22; /* bits 0-9 */
-//	tmp |= tx->buffer; /* bits 10-31 */
-//	audio_hdr[0] = htonl(tmp);
-//
-//	audio_hdr[2] = htonl(buffer->get_data_len(channel));
-//
-//	/* fourth word */
-//	tmp = (buffer->get_bps() * 8) << 26;
-//	tmp |= buffer->get_sample_rate();
-//	audio_hdr[3] = htonl(tmp);
-//
-//	/* fifth word */
-//	audio_hdr[4] = htonl(get_audio_tag(buffer->get_codec()));
+        tmp = fchannelIDx << 22; /* bits 0-9 */
+        tmp |= fBufferIDx; /* bits 10-31 */
+        audio_hdr[0] = htonl(tmp);
+
+        audio_hdr[2] = htonl(numBytesInFrame);
+        //std::cout << numBytesInFrame << std::endl;
+
+        /* fourth word */
+        tmp = fBPS << 26;
+        tmp |= fSample_rate;
+        audio_hdr[3] = htonl(tmp);
+
+        /* fifth word */
+        audio_hdr[4] = htonl(fAudio_tag);
 	/*word 5*/ //AUDIO TAG = 0x7375704F ->	{AC_OPUS, { "OPUS", 0x7375704F }}, // == Opus, the TwoCC isn't defined
-//    data = chan_data + pos;
-//    data_len = tx->mtu - 40 - sizeof(audio_payload_hdr_t);
-//    if(pos + data_len >= (unsigned int) buffer->get_data_len(channel)) {
-//            data_len = buffer->get_data_len(channel) - pos;
-//            if(channel == buffer->get_channel_count() - 1)
-//                    m = 1;
-//    }
-//    audio_hdr[1] = htonl(pos);
-//    pos += data_len;
+        audio_hdr[1] = htonl(fragmentationOffset);
+        assert(fragmentationOffset == 0); // not tested
 
-
-	// Set the 2-byte "payload header", as defined in RFC 4184.
-	unsigned char headers[20];
-
-	Boolean isFragment = numRemainingBytes > 0 || fragmentationOffset > 0;
-	if (!isFragment) {
-		headers[0] = 0; // One or more complete frames
-		headers[1] = 1; // because we (for now) allow at most 1 frame per packet
-	} else {
-		if (fragmentationOffset > 0) {
-			headers[0] = 3; // Fragment of frame other than initial fragment
-		} else {
-	// An initial fragment of the frame
-			unsigned const totalFrameSize = fragmentationOffset
-					+ numBytesInFrame + numRemainingBytes;
-			unsigned const fiveEighthsPoint = totalFrameSize / 2
-					+ totalFrameSize / 8;
-			headers[0] = numBytesInFrame >= fiveEighthsPoint ? 1 : 2;
-
-	// Because this outgoing packet will be full (because it's an initial fragment), we can compute how many total
-	// fragments (and thus packets) will make up the complete AC-3 frame:
-			fTotNumFragmentsUsed = (totalFrameSize + (numBytesInFrame - 1))
-					/ numBytesInFrame;
-		}
-
-		headers[1] = fTotNumFragmentsUsed;
-	}
-
-	setSpecialHeaderBytes(headers, sizeof headers);
+        setSpecialHeaderBytes((unsigned char *) audio_hdr, sizeof audio_hdr);
 
 	if (numRemainingBytes == 0) {
 	// This packet contains the last (or only) fragment of the frame.
 	// Set the RTP 'M' ('marker') bit:
 		setMarkerBit();
+                fBufferIDx = (fBufferIDx + 1) & 0x3fffff;
 	}
+
+        if (fAudio_tag == 0x1) {
+                for (int i = 0; i < numBytesInFrame; i+=2) {
+                        unsigned char sample1 = frameStart[0];
+                        unsigned char sample2 = frameStart[1];
+                        frameStart[0] = sample2;
+                        frameStart[1] = sample1;
+                        frameStart += 2;
+                }
+        }
 
 	// Important: Also call our base class's doSpecialFrameHandling(),
 	// to set the packet's timestamp:
-	MultiFramedRTPSink::doSpecialFrameHandling(fragmentationOffset, frameStart,
+        MultiFramedRTPSink::doSpecialFrameHandling(fragmentationOffset, frameStart,
 			numBytesInFrame, framePresentationTime, numRemainingBytes);
 }
 
 unsigned UltraGridAudioRTPSink::specialHeaderSize() const {
 	return 20;
 }
+
+Boolean UltraGridAudioRTPSink::sourceIsCompatibleWithUs(MediaSource& source)
+{
+        // TODO: should here be something else?
+        if (fAudio_tag != 0 && fChannels == 1)
+                return True;
+        else
+                return False;
+}
+

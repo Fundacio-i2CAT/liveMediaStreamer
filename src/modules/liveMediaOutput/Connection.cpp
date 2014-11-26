@@ -23,8 +23,8 @@
 
 #include "Connection.hh"
 #include "Utils.hh"
+#include "UltraGridAudioRTPSink.hh"
 #include "UltraGridVideoRTPSink.hh"
-//#include "UltraGridAudioRTPSink.hh"
 #include "H264VideoStreamSampler.hh"
 #include <GroupsockHelper.hh>
 
@@ -228,10 +228,10 @@ bool VideoConnection::additionalSetup()
 
 
 AudioConnection::AudioConnection(UsageEnvironment* env, FramedSource *source,
-                                 std::string ip, unsigned port, ACodecType codec, 
-                                 unsigned channels, unsigned sampleRate, SampleFmt sampleFormat) : 
-                                 RTPConnection(env, source, ip, port), fCodec(codec), 
-                                 fChannels(channels), fSampleRate(sampleRate), 
+                                 std::string ip, unsigned port, ACodecType codec,
+                                 unsigned channels, unsigned sampleRate, SampleFmt sampleFormat) :
+                                 RTPConnection(env, source, ip, port), fCodec(codec),
+                                 fChannels(channels), fSampleRate(sampleRate),
                                  fSampleFormat(sampleFormat)
 {
     
@@ -299,18 +299,23 @@ bool UltraGridVideoConnection::additionalSetup()
 }
 
 UltraGridAudioConnection::UltraGridAudioConnection(UsageEnvironment* env, FramedSource *source,
-                                                   std::string ip, unsigned port) : 
-                                                   RTPConnection(env, source, ip, port)
+                                                   std::string ip, unsigned port, ACodecType codec,
+                                                   unsigned channels, unsigned sampleRate,
+                                                   SampleFmt sampleFormat) :
+				RTPConnection(env, source, ip, port), fCodec(codec),
+				fChannels(channels), fSampleRate(sampleRate),
+				fSampleFormat(sampleFormat)
 {
 
 }
 
 bool UltraGridAudioConnection::additionalSetup()
 {
-	//fSink =  UltraGridAudioRTPSink::createNew(*fEnv, rtpGroupsock);
+	fSink =  UltraGridAudioRTPSink::createNew(*fEnv, rtpGroupsock, fCodec,
+                        fChannels, fSampleRate, fSampleFormat);
 
 	if (!fSink) {
-        utils::errorMsg("UltraGridAudioConnection could not be created");
+		utils::errorMsg("UltraGridAudioConnection could not be created");
 		return false;
 	}
 

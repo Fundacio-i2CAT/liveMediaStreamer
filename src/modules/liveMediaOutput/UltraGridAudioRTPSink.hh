@@ -27,18 +27,23 @@
 #ifndef _AUDIO_RTP_SINK_HH
 #include "AudioRTPSink.hh"
 #endif
+#include "Types.hh"
 
 class UltraGridAudioRTPSink: public AudioRTPSink {
 public:
-  static UltraGridAudioRTPSink* createNew(UsageEnvironment& env, Groupsock* RTPgs);
+  static UltraGridAudioRTPSink* createNew(UsageEnvironment& env, Groupsock* RTPgs, ACodecType codec,
+                  unsigned channels, unsigned sampleRate, SampleFmt sampleFormat);
 
 protected:
-  UltraGridAudioRTPSink(UsageEnvironment& env, Groupsock* RTPgs);
+  UltraGridAudioRTPSink(UsageEnvironment& env, Groupsock* RTPgs, ACodecType codec,
+                  unsigned channels, unsigned sampleRate, SampleFmt sampleFormat);
 	// called only by createNew()
 
   virtual ~UltraGridAudioRTPSink();
 
   //internal variables for payload header info
+  uint32_t fAudio_tag;
+  int fChannels;
   int fchannelIDx;
   int fBufferIDx;
   int fBPS;

@@ -26,6 +26,7 @@ liblivemediastreamer_la_SOURCES = modules/audioDecoder/AudioDecoderLibav.cpp \
                                   modules/liveMediaOutput/VP8QueueServerMediaSubsession.cpp \
                                   modules/liveMediaOutput/Connection.cpp \
                                   modules/liveMediaOutput/H264VideoStreamSampler.cpp \
+                                  modules/liveMediaOutput/UltraGridAudioRTPSink.cpp \
                                   modules/liveMediaOutput/UltraGridVideoRTPSink.cpp \
                                   AVFramedQueue.cpp \
                                   AudioCircularBuffer.cpp \

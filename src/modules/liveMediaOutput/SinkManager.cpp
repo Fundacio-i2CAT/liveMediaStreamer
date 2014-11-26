@@ -259,7 +259,7 @@ bool SinkManager::addUltraGridRTPConnection(int reader, int id, std::string ip, 
     Connection* conn = NULL;
 
     if ((vQueue = dynamic_cast<VideoFrameQueue*>(getReader(reader)->getQueue())) != NULL) {
-        conn = new UltraGridVideoConnection(envir(), replicators[reader]->createStreamReplica(), ip, port);
+        conn = new UltraGridVideoConnection(envir(), replicators[reader]->createStreamReplica(), ip, port, vQueue->getCodec());
     }
 
     if ((aQueue = dynamic_cast<AudioFrameQueue*>(getReader(reader)->getQueue())) != NULL) {

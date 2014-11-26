@@ -143,11 +143,13 @@ class UltraGridVideoConnection : public RTPConnection {
 public:
     UltraGridVideoConnection(UsageEnvironment* env,
                              FramedSource *source, 
-                             std::string ip, unsigned port);
+                             std::string ip, unsigned port, VCodecType codec);
     
 protected:
     bool additionalSetup();
 
+private:
+    VCodecType fCodec;
 };
 
 

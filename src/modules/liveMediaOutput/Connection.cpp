@@ -276,16 +276,24 @@ bool AudioConnection::additionalSetup()
 ///////////////////////////////
 
 UltraGridVideoConnection::UltraGridVideoConnection(UsageEnvironment* env, FramedSource *source, 
-                                                   std::string ip, unsigned port) : 
-                                                   RTPConnection(env, source, ip, port)
+                                                   std::string ip, unsigned port, VCodecType codec) :
+                                                   RTPConnection(env, source, ip, port), fCodec(codec)
 {
 
 }
 
 bool UltraGridVideoConnection::additionalSetup()
 {
-    fSource = H264VideoStreamSampler::createNew(*fEnv, fSource, true);
-    fSink = UltraGridVideoRTPSink::createNew(*fEnv, rtpGroupsock);
+
+    switch(fCodec){
+        case H264:
+            fSource = H264VideoStreamSampler::createNew(*fEnv, fSource, true);
+            fSink = UltraGridVideoRTPSink::createNew(*fEnv, rtpGroupsock);
+            break;
+        default:
+            fSink = NULL;
+            break;
+    }
 
     if (!fSink) {
         utils::errorMsg("UltraGridVideoConnection could not be created");
@@ -308,8 +316,16 @@ UltraGridAudioConnection::UltraGridAudioConnection(UsageEnvironment* env, Framed
 
 bool UltraGridAudioConnection::additionalSetup()
 {
-	fSink =  UltraGridAudioRTPSink::createNew(*fEnv, rtpGroupsock, fCodec,
-                        fChannels, fSampleRate, fSampleFormat);
+
+    switch(fCodec){
+        case MP3:
+        	fSink =  UltraGridAudioRTPSink::createNew(*fEnv, rtpGroupsock, fCodec,
+        			                        fChannels, fSampleRate, fSampleFormat);
+            break;
+        default:
+            fSink = NULL;
+            break;
+    }
 
 	if (!fSink) {
 		utils::errorMsg("UltraGridAudioConnection could not be created");

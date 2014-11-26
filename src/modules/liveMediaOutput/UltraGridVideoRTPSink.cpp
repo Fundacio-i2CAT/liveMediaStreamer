@@ -50,12 +50,9 @@ public:
 
   Boolean lastFragmentCompletedFrameUnit() const { return fLastFragmentCompletedFrameUnit; }
 
-
-
 private: // redefined virtual functions:
   virtual void doGetNextFrame();
-
-private:
+  void loadPayloadHeader(unsigned char* payload, uint32_t* header, int header_size);
   static void afterGettingFrame(void* clientData, unsigned frameSize,
         unsigned numTruncatedBytes,
                                 struct timeval presentationTime,
@@ -234,7 +231,8 @@ void UltraGridVideoFragmenter::doGetNextFrame() {
 
     fLastFragmentCompletedFrameUnit = True; 
     if (fCurDataOffset == 0) { 
-
+    	//set UltraGrid video RTP payload header (6 words)
+    	/* word 4 */
 		fMainUltraGridHeader[3] = (fWidth << 16 | fHeight);
 
 		/* word 5 */
@@ -278,12 +276,7 @@ void UltraGridVideoFragmenter::doGetNextFrame() {
 		/* word 2 */
 		fMainUltraGridHeader[1] = 0;
 
-		//uint32_t to uint8_t alignment
-		for (int i = 0; i < 6; i++) {
-			for (int j = 0; j < 4; j++) {
-				fTo[(i << 2) + j] = (unsigned char) (fMainUltraGridHeader[i] >> (UG_PAYLOAD_HEADER_SIZE - (j << 3)));
-			}
-		}
+		loadPayloadHeader(fTo, fMainUltraGridHeader, UG_PAYLOAD_HEADER_SIZE);
 
 		memmove(fTo + UG_PAYLOAD_HEADER_SIZE, fInputBuffer, fNumValidDataBytes + UG_PAYLOAD_HEADER_SIZE);
 
@@ -304,15 +297,11 @@ void UltraGridVideoFragmenter::doGetNextFrame() {
 			fNumTruncatedBytes = fSaveNumTruncatedBytes;
 		}
 
-      //set UltraGrid video RTP payload header (6 words)
+		//set UltraGrid video RTP payload header (6 words)
   		/* word 2 */
   		fMainUltraGridHeader[1] = fCurDataOffset;
-  		//uint32_t to uint8_t alignment
- 		for (int i = 0; i < 6; i++) {
-  			for (int j = 0; j < 4; j++) {
-  				fTo[(i << 2) + j] = (unsigned char) (fMainUltraGridHeader[i] >> (UG_PAYLOAD_HEADER_SIZE - (j << 3)));
-			}
-  		}
+
+  		loadPayloadHeader(fTo, fMainUltraGridHeader, UG_PAYLOAD_HEADER_SIZE);
 
 		memmove(fTo + UG_PAYLOAD_HEADER_SIZE, &fInputBuffer[fCurDataOffset], numBytesToSend - UG_PAYLOAD_HEADER_SIZE);
 
@@ -328,6 +317,15 @@ void UltraGridVideoFragmenter::doGetNextFrame() {
 
     FramedSource::afterGetting(this);
   }
+}
+
+void UltraGridVideoFragmenter::loadPayloadHeader(unsigned char* payload, uint32_t* header, int header_size){
+	//uint32_t to uint8_t alignment
+	for (int i = 0; i < 6; i++) {
+		for (int j = 0; j < 4; j++) {
+			payload[(i << 2) + j] = (unsigned char) (header[i] >> (header_size - (j << 3)));
+		}
+	}
 }
 
 void UltraGridVideoFragmenter::afterGettingFrame(void* clientData, unsigned frameSize,

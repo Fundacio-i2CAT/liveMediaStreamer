@@ -92,11 +92,6 @@ void H264VideoStreamSampler
 
     offset += frameSize + NAL_START_SIZE;
     totalFrameSize = offset;
-   // std::cout << (int)nal_unit_type << ": " << frameSize << std::endl;
-   // std::cout << "Offset: " << offset << std::endl;
-   // if (isAUD(nal_unit_type)) {
-   //     std::cout << "AUD: " << totalFrameSize << std::endl;
-   // }
 
     if (isAUD(nal_unit_type) || numTruncatedBytes > 0) {
         fPictureEndMarker = True;
@@ -104,6 +99,10 @@ void H264VideoStreamSampler
         fNumTruncatedBytes = numTruncatedBytes;
         fPresentationTime = presentationTime;
         fDurationInMicroseconds = durationInMicroseconds;
+
+        if (numTruncatedBytes > 0) {
+            envir() << "H264VideoStreamSampler error: Frame buffer too small\n";
+        }
 
         resetInternalValues();
         afterGetting(this);

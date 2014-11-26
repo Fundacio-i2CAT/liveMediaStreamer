@@ -31,6 +31,9 @@
 #include "FramedFilter.hh"
 #endif
 
+#define UG_PAYLOAD_HEADER_SIZE 24
+#define UG_FRAME_MAX_SIZE 1920*1080*3
+
 class UltraGridVideoRTPSink: public VideoRTPSink {
 public:
   static UltraGridVideoRTPSink* createNew(UsageEnvironment& env, Groupsock* RTPgs);

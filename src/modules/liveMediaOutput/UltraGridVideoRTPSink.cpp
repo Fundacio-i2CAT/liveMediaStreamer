@@ -32,7 +32,6 @@
 #define to_fourcc(a,b,c,d)     (((uint32_t)(a)) | ((uint32_t)(b)<<8) | ((uint32_t)(c)<<16) | ((uint32_t)(d)<<24))
 #endif
 
-#define UG_PAYLOAD_HEADER_SIZE 24
 ////////// UltraGridVideoFragmenter definition //////////
 
 // Because of the ideosyncracies of the UltraGrid video RTP payload format, we implement
@@ -92,7 +91,7 @@ protected:
 
 UltraGridVideoRTPSink::UltraGridVideoRTPSink(UsageEnvironment& env, Groupsock* RTPgs)
   : VideoRTPSink(env, RTPgs, 20, 90000, "UltraGridV"), validVideoSize(False) {
-    fDummyBuf = new unsigned char[OutPacketBuffer::maxSize];
+    fDummyBuf = new unsigned char[UG_FRAME_MAX_SIZE];
     fOurFragmenter = NULL;
 }
 
@@ -118,7 +117,7 @@ Boolean UltraGridVideoRTPSink::continuePlaying()
     }
 
     if (fOurFragmenter == NULL) {
-        fOurFragmenter = new UltraGridVideoFragmenter(envir(), fSource, OutPacketBuffer::maxSize,
+        fOurFragmenter = new UltraGridVideoFragmenter(envir(), fSource, UG_FRAME_MAX_SIZE,
                                                         ourMaxPacketSize() - 12/*RTP hdr size*/);
     } else {
         fOurFragmenter->reassignInputSource(fSource);
@@ -131,7 +130,7 @@ Boolean UltraGridVideoRTPSink::continuePlaying()
 
 Boolean UltraGridVideoRTPSink::continuePlayingDummy()
 {
-	fSource->getNextFrame(fDummyBuf, OutPacketBuffer::maxSize,
+	fSource->getNextFrame(fDummyBuf, UG_FRAME_MAX_SIZE,
                           afterGettingFrameDummy, this, FramedSource::handleClosure, this);
 	return True;
 }
@@ -154,7 +153,7 @@ void UltraGridVideoRTPSink
     H264VideoStreamSampler* sampler = (H264VideoStreamSampler*) fSource;
 
     if (sampler->getWidth() <= 0 || sampler->getHeight() <= 0){
-        fSource->getNextFrame(fDummyBuf, OutPacketBuffer::maxSize,
+        fSource->getNextFrame(fDummyBuf, UG_FRAME_MAX_SIZE,
                           afterGettingFrameDummy, this, FramedSource::handleClosure, this);
     } else {
         validVideoSize = True;

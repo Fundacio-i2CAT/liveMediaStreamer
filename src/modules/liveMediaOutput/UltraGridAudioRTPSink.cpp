@@ -118,7 +118,7 @@ void UltraGridAudioRTPSink
 	}
 
         if (fAudio_tag == 0x1) {
-                for (int i = 0; i < numBytesInFrame; i+=2) {
+                for (unsigned int i = 0; i < numBytesInFrame; i+=2) {
                         unsigned char sample1 = frameStart[0];
                         unsigned char sample2 = frameStart[1];
                         frameStart[0] = sample2;

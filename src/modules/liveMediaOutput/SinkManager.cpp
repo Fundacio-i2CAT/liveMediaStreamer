@@ -577,7 +577,6 @@ void SinkManager::addRTPConnectionEvent(Jzon::Node* params, Jzon::Object &output
         outputNode.Add("error", "Error adding session. Internal error!");
         return;
     }
-
     outputNode.Add("error", Jzon::null);
 }  
 

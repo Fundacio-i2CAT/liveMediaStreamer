@@ -68,7 +68,7 @@ private:
 private:
   void setSize(unsigned int width, unsigned int height);
   void setFrameRate(double frameRate);
-  
+
   unsigned fInputBufferSize;
   unsigned fMaxOutputPacketSize;
   unsigned char* fInputBuffer;
@@ -96,6 +96,7 @@ protected:
 UltraGridVideoRTPSink::UltraGridVideoRTPSink(UsageEnvironment& env, Groupsock* RTPgs)
   : VideoRTPSink(env, RTPgs, 20, 90000, "UltraGridV"), validVideoSize(False) {
     fDummyBuf = new unsigned char[OutPacketBuffer::maxSize];
+    fOurFragmenter = NULL;
 }
 
 UltraGridVideoRTPSink::~UltraGridVideoRTPSink() {
@@ -118,7 +119,7 @@ Boolean UltraGridVideoRTPSink::continuePlaying()
     if (!validVideoSize){
         return continuePlayingDummy();
     }
-  
+
     if (fOurFragmenter == NULL) {
         fOurFragmenter = new UltraGridVideoFragmenter(envir(), fSource, OutPacketBuffer::maxSize,
                                                         ourMaxPacketSize() - 12/*RTP hdr size*/);

@@ -242,6 +242,44 @@ namespace utils
         return stringWorker;
     }
 
+    TxFormat getTxFormatFromString(std::string stringTxFormat)
+    {
+        TxFormat format;
+        
+        if (stringTxFormat.compare("std") == 0) {
+           format = STD_RTP;
+        } else if (stringTxFormat.compare("ultragrid") == 0) {
+           format = ULTRAGRID;
+        }  else if (stringTxFormat.compare("mpegts") == 0) {
+           format = MPEGTS;
+        }  else {
+           format = TX_NONE;
+        }
+
+        return format;
+    }
+
+    std::string getTxFormatAsString(TxFormat format)
+    {
+        std::string stringFormat;
+
+        switch(format) {
+            case STD_RTP:
+                stringFormat = "std";
+                break;
+            case ULTRAGRID:
+                stringFormat = "ultragrid";
+                break;
+            case MPEGTS:
+                stringFormat = "mpegts";
+                break;
+            default:
+                stringFormat = "";
+                break;
+        }
+
+        return stringFormat;
+    }
     
     char randAlphaNum()
     {

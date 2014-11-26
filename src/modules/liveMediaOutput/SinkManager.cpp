@@ -77,16 +77,16 @@ SinkManager::getInstance(){
 
 void SinkManager::stop()
 {
+    for (auto it : connections) {
+       delete it.second;
+    }
+    
     for (auto it : sessionList ) {
         rtspServer->deleteServerMediaSession(it.second);
     }
     
     for (auto it : replicators) {
        Medium::close(it.second);
-    }
-    
-    for (auto it : connections) {
-       delete it.second;
     }
 
     Medium::close(rtspServer);

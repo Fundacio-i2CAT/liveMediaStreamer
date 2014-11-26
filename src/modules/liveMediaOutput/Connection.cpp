@@ -35,11 +35,8 @@ Connection::Connection(UsageEnvironment* env, FramedSource *source) :
 
 Connection::~Connection()
 {
-    Medium::close(fSource);
-
     if (fSink) {
         fSink->stopPlaying();
-        Medium::close(fSink);
     }
 }
 

@@ -30,9 +30,8 @@ class H264VideoStreamSampler: public H264or5VideoStreamFramer {
 public:
     static H264VideoStreamSampler* createNew(UsageEnvironment& env, FramedSource* inputSource, bool annexB);
     int getWidth();
-    void setWidth(int width);
     int getHeight();
-    void setHeight(int height);
+    double getFrameRate();
 
 protected:
     H264VideoStreamSampler(UsageEnvironment& env, FramedSource* inputSource, bool annexB);
@@ -54,7 +53,7 @@ protected:
     
 
 private:
-    void updateVideoSize(unsigned char* NALstartPtr, int frameSize);
+    void updateSPSInfo(unsigned char* NALstartPtr, int frameSize);
     void resetInternalValues();
     bool isAUD(u_int8_t nal_unit_type);
 
@@ -63,6 +62,7 @@ private:
     bool fAnnexB;
     unsigned int fWidth;
     unsigned int fHeight;
+    double fFrameRate;
 };
 
 #endif

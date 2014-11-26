@@ -85,7 +85,7 @@ void H264VideoStreamSampler
         envir() << "H264VideoStreamSampler error: MPEG 'start code' seen in the input\n";
     } else if (isSPS(nal_unit_type)) { // Sequence parameter set (SPS)
         saveCopyOfSPS(NALstartPtr, frameSize);
-        updateVideoSize(NALstartPtr, frameSize);
+        updateSPSInfo(NALstartPtr, frameSize);
     } else if (isPPS(nal_unit_type)) { // Picture parameter set (PPS)
         saveCopyOfPPS(NALstartPtr, frameSize);
     }
@@ -118,10 +118,13 @@ void H264VideoStreamSampler::resetInternalValues()
     totalFrameSize = 0;
 }
 
-void H264VideoStreamSampler::updateVideoSize(unsigned char* NALstartPtr, int frameSize)
+void H264VideoStreamSampler::updateSPSInfo(unsigned char* NALstartPtr, int frameSize)
 {
     uint32_t width = 0;
     uint32_t height = 0;
+    int timeScale = 0;
+    int num_units_in_tick = 0;
+
     sps_t* sps = (sps_t*)malloc(sizeof(sps_t));
     uint8_t* rbsp_buf = (uint8_t*)malloc(frameSize);
     if (nal_to_rbsp(NALstartPtr, &frameSize, rbsp_buf, &frameSize) < 0){
@@ -130,6 +133,7 @@ void H264VideoStreamSampler::updateVideoSize(unsigned char* NALstartPtr, int fra
     	envir() << "H264VideoStreamSampler::updateVideoSize error: nal to rbsp failed!\n";
         return;
     }
+
     bs_t* b = bs_new(rbsp_buf, frameSize);
     if(read_seq_parameter_set_rbsp(sps,b) < 0){
         bs_free(b);
@@ -138,6 +142,10 @@ void H264VideoStreamSampler::updateVideoSize(unsigned char* NALstartPtr, int fra
     	envir() << "H264VideoStreamSampler::updateVideoSize error: read sequence parameter and set rbsp failed!\n";
         return;
     }
+
+    timeScale = sps->vui.time_scale;
+    num_units_in_tick = sps->vui.num_units_in_tick;
+
     width = (sps->pic_width_in_mbs_minus1 + 1) * 16;
     height = (2 - sps->frame_mbs_only_flag) * (sps->pic_height_in_map_units_minus1 + 1) * 16;
     //NOTE: frame_mbs_only_flag = 1 --> only progressive frames
@@ -148,10 +156,15 @@ void H264VideoStreamSampler::updateVideoSize(unsigned char* NALstartPtr, int fra
     }
 
     if(width > 0){
-    	setWidth(width);
+        fWidth = width;
     }
+
     if(height > 0){
-    	setHeight(height);
+    	fHeight = height;
+    }
+
+    if (num_units_in_tick > 0) {
+        fFrameRate = timeScale/(2*num_units_in_tick);
     }
 
     bs_free(b);
@@ -169,16 +182,12 @@ int H264VideoStreamSampler::getWidth()
 	return fWidth;
 }
 
-void H264VideoStreamSampler::setWidth(int width)
-{
-	fWidth = width;
-}
-
 int H264VideoStreamSampler::getHeight()
 {
     return fHeight;
 }
-void H264VideoStreamSampler::setHeight(int height)
+
+double H264VideoStreamSampler::getFrameRate()
 {
-    fHeight = height;
+    return fFrameRate;
 }

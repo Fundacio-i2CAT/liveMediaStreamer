@@ -50,14 +50,14 @@ public:
 
   Boolean lastFragmentCompletedFrameUnit() const { return fLastFragmentCompletedFrameUnit; }
 
-  void setSize(unsigned int width, unsigned int height);
+
 
 private: // redefined virtual functions:
   virtual void doGetNextFrame();
 
 private:
   static void afterGettingFrame(void* clientData, unsigned frameSize,
-				unsigned numTruncatedBytes,
+        unsigned numTruncatedBytes,
                                 struct timeval presentationTime,
                                 unsigned durationInMicroseconds);
   void afterGettingFrame1(unsigned frameSize,
@@ -66,6 +66,9 @@ private:
                           unsigned durationInMicroseconds);
 
 private:
+  void setSize(unsigned int width, unsigned int height);
+  void setFrameRate(double frameRate);
+  
   unsigned fInputBufferSize;
   unsigned fMaxOutputPacketSize;
   unsigned char* fInputBuffer;
@@ -212,6 +215,7 @@ void UltraGridVideoFragmenter::doGetNextFrame() {
 
   H264VideoStreamSampler* src = (H264VideoStreamSampler*) fInputSource;
   setSize(src->getWidth(), src->getHeight());
+  setFrameRate(src->getFrameRate());
 
   if (fNumValidDataBytes == 0) {
     // We have no Frame unit data currently in the buffer.  Read a new one:
@@ -229,15 +233,6 @@ void UltraGridVideoFragmenter::doGetNextFrame() {
 
     fLastFragmentCompletedFrameUnit = True; 
     if (fCurDataOffset == 0) { 
-
-		//TODO dynamic get width, height and FPS from frameSource
-		//		H264VideoStreamSampler* framerSource = (H264VideoStreamSampler*)(fOurFragmenter->inputSource());
-		//
-		//		//UltraGrid video RTP payload header (6 words) and parameters
-		//		/* word 4 */
-		//		fWidth = framerSource->getWidth();
-		//		fHeight = framerSource->getHeight();
-		//		fFPS = framerSource->getFPS();
 
 		fMainUltraGridHeader[3] = (fWidth << 16 | fHeight);
 
@@ -359,5 +354,12 @@ void UltraGridVideoFragmenter::setSize(unsigned int width, unsigned int height){
   if (fWidth != width || fHeight != height){
       fWidth = width;
       fHeight = height;
+  }
+}
+
+void UltraGridVideoFragmenter::setFrameRate(double frameRate)
+{
+  if (frameRate > 0 && frameRate != fFPS) {
+      fFPS = frameRate;
   }
 }

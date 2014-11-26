@@ -30,6 +30,7 @@ VideoEncoderX264::VideoEncoderX264(int framerate): OneToOneFilter(true)
     
     pts = 0;
     fps = framerate;
+
     frameTime = std::chrono::microseconds(1000000/fps);
     forceIntra = false;
     encoder = NULL;

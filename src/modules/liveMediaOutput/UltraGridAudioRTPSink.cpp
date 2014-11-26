@@ -35,6 +35,7 @@
 
 #include <unordered_map>
 static std::unordered_map<ACodecType, uint32_t, std::hash<int>> LMS_to_UG_mapping = {
+        { MP3, 0x0055 },
         { PCM, 0x0001 },
         { PCMU, 0x0007},
         { OPUS, 0x7375704F },
@@ -117,7 +118,7 @@ void UltraGridAudioRTPSink
                 fBufferIDx = (fBufferIDx + 1) & 0x3fffff;
 	}
 
-        if (fAudio_tag == 0x1) {
+        if (fAudio_tag == 0x1 && fBPS == 16) {
                 for (int i = 0; i < numBytesInFrame; i+=2) {
                         unsigned char sample1 = frameStart[0];
                         unsigned char sample2 = frameStart[1];
@@ -139,8 +140,7 @@ unsigned UltraGridAudioRTPSink::specialHeaderSize() const {
 
 Boolean UltraGridAudioRTPSink::sourceIsCompatibleWithUs(MediaSource& source)
 {
-        // TODO: should here be something else?
-        if (fAudio_tag != 0 && fChannels == 1)
+        if (fAudio_tag != 0 && fChannels == 1 && fBPS != 0)
                 return True;
         else
                 return False;

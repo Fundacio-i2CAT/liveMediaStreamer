@@ -30,6 +30,7 @@ VideoEncoderX264::VideoEncoderX264(int framerate): OneToOneFilter(true)
     
     pts = 0;
     fps = framerate;
+
     frameTime = std::chrono::microseconds(1000000/fps);
     forceIntra = false;
     encoder = NULL;
@@ -162,7 +163,7 @@ bool VideoEncoderX264::reconfigure(VideoFrame* orgFrame, X264VideoFrame* x264Fra
                 colorspace = X264_CSP_I444;
                 break;
             default:
-                utils::warningMsg("Uncompatibe input pixel format");
+                utils::debugMsg("Uncompatibe input pixel format");
                 libavInPixFmt = AV_PIX_FMT_NONE;
                 colorspace = X264_CSP_NONE;
                 return false;
@@ -174,6 +175,7 @@ bool VideoEncoderX264::reconfigure(VideoFrame* orgFrame, X264VideoFrame* x264Fra
         xparams.i_fps_num = fps;
         xparams.i_fps_den = 1;
         xparams.b_intra_refresh = 0;
+        xparams.b_aud = 1;
         xparams.i_keyint_max = std::round(1000.0*gop/frameTime.count());
         xparams.rc.i_bitrate = bitrate;
         if (annexB){

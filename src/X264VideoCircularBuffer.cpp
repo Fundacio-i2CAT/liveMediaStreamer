@@ -76,8 +76,6 @@ bool X264VideoCircularBuffer::pushBack()
     unsigned char** hNals;
     int* hNalSize;
     
-    //TODO: add update time
-    
     if ((nalsNum = inputFrame->getHeaderNalsNum()) > 0){       
         hNals = inputFrame->getHeaderNals();
         hNalSize = inputFrame->getHeaderNalsSize();

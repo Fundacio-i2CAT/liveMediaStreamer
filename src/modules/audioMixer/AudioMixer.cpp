@@ -34,7 +34,7 @@ AudioMixer::AudioMixer(int inputChannels) : ManyToOneFilter(inputChannels) {
     frameChannels = DEFAULT_CHANNELS;
     sampleRate = DEFAULT_SAMPLE_RATE;
     sampleFormat = S16P;
-
+    maxChannels = inputChannels;
     fType = AUDIO_MIXER;
 
     samples.resize(AudioFrame::getMaxSamples(sampleRate));
@@ -310,7 +310,7 @@ void AudioMixer::doGetState(Jzon::Object &filterNode)
     filterNode.Add("channels", frameChannels);
     filterNode.Add("sampleFormat", utils::getSampleFormatAsString(sampleFormat));
     filterNode.Add("masterGain", masterGain);
-    filterNode.Add("masterDelay", 0);
+    filterNode.Add("maxChannels", maxChannels);
 
     for (auto it : gains) {
         Jzon::Object gain;

@@ -51,7 +51,9 @@ X264VideoFrame::X264VideoFrame(VCodecType codec, unsigned int width, unsigned he
 X264VideoFrame::~X264VideoFrame()
 {
     clearNals();
-    delete[] headerNals;
+    for(int i = 0; i < MAX_HEADER_NALS; i++){
+    	delete[] headerNals[i];
+    }
 }
 
 void X264VideoFrame::setNals(x264_nal_t **nals, int num, int frameSize)

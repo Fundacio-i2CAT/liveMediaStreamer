@@ -73,6 +73,7 @@ class AudioMixer : public ManyToOneFilter {
         float masterGain;
         float th;  //Dynamic Range Compression algorithms threshold
         mixingAlgorithm mAlg;
+        int maxChannels;
 
         //Vectors as attributes in order to improve memory management
         std::vector<float> samples;

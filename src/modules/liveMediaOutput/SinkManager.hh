@@ -35,7 +35,7 @@
 #include <string>
 
 #define RTSP_PORT 8554
-#define MAX_VIDEO_FRAME_SIZE 256*1024
+#define MAX_VIDEO_FRAME_SIZE 1024*1024
 #define MANUAL_CLIENT_SESSION_ID 1
 #define INIT_SEGMENT 0
 

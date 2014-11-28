@@ -2,21 +2,14 @@
 liveMediaStreamer - 0.0.1
 ---------------------------------------------------------------------
 
-What is liveMediaStreamer? Brief description
+Live Media Streamer (LMS) is a real-time streaming multimedia framework. 
 
-Who is the owner of the liveMediaStreamer?
-Fundació provada i2CAT with a little brief
+It has been developed by i2CAT Audiovisual Unit. i2CAT is a non-profit technology centre which promotes R+D+i activities in the field of Information and Communication Technologies and Future Internet. The centre invests in a new model of innovation based on collaboration between companies, public administration, the academic world and end-users, through an open innovation environment that is characteristic of the Internet culture.
 
-Which license is used to share the source code?
-Name the license/s used and applied like GPL, LGPL, Apache, etc.
+LMS is licensed under GPL
 
-Are there any restrictions and / or requirements?
-Name any requirements like OS, libs, devices, network constraints...
-Name any restrictions usage like codecs, resolutions, av sources...
+Information about setup, deployment, usage and features can be checked in our Wiki (github.com/ua-i2cat/liveMediaStreamerWebGUI/wiki0)
 
-How can It be used?
-Indicate where is the installation guide
-
-Final thanks to download and use the product
+Thank you for downloading Live Media Streamer. For any doubt, question or suggestion please can contact to: xavier.carol@i2cat.net
 
 

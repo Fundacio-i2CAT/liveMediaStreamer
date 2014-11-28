@@ -6,7 +6,7 @@ It has been developed by i2CAT Audiovisual Unit. i2CAT is a non-profit technolog
 
 LMS is licensed under GPL
 
-Information about setup, deployment, usage and features can be checked in our [Wiki](http://github.com/ua-i2cat/liveMediaStreamerWebGUI/wiki)
+Information about setup, deployment, usage and features can be checked in our [Wiki](http://github.com/ua-i2cat/liveMediaStreamer/wiki)
 
 Thank you for downloading Live Media Streamer. For any doubt, question or suggestion please can contact to: xavier(dot)carol(at)i2cat(dot)net
 

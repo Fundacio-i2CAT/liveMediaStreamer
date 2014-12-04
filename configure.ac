@@ -8,7 +8,7 @@ AC_INIT([liveMediaStreamer], [0.1])
 AM_SILENT_RULES([yes])
 
 LT_INIT
-AM_INIT_AUTOMAKE([subdir-objects])
+AM_INIT_AUTOMAKE([foreign subdir-objects])
 
 AC_CONFIG_MACRO_DIR([m4])
 

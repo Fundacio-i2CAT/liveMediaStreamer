@@ -22,14 +22,7 @@
  *			  Martin German <martin.german@i2cat.net>
  */
 
-#include <iostream>
 #include "Path.hh"
-#include "Controller.hh"
-#include "modules/videoDecoder/VideoDecoderLibav.hh"
-#include "modules/videoResampler/VideoResampler.hh"
-#include "modules/videoEncoder/VideoEncoderX264.hh"
-#include "modules/audioDecoder/AudioDecoderLibav.hh"
-#include "modules/audioEncoder/AudioEncoderLibav.hh"
 
 Path::Path(int originFilterID, int orgWriterID, bool sharedQueue) 
 {

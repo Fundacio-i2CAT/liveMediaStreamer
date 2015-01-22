@@ -35,10 +35,12 @@ namespace utils
     SampleFmt getSampleFormatFromString(std::string stringSampleFmt);
     ACodecType getCodecFromString(std::string stringCodec);
     FilterType getFilterTypeFromString(std::string stringFilterType);
+    TxFormat getTxFormatFromString(std::string stringTxFormat);
+    std::string getSampleFormatAsString(SampleFmt sFormat);
     std::string getAudioCodecAsString(ACodecType codec);
     std::string getFilterTypeAsString(FilterType type);
-    std::string getSampleFormatAsString(SampleFmt sFormat);
     std::string getWorkerTypeAsString(WorkerType type);
+    std::string getTxFormatAsString(TxFormat format);
 	std::string randomIdGenerator(unsigned int length);
     int getPayloadFromCodec(std::string codec); 
 

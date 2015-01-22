@@ -32,6 +32,10 @@
 #include "AudioQueueServerMediaSubsession.hh"
 #include "QueueSource.hh"
 #include "H264QueueSource.hh"
+#include "Types.hh"
+#include "Connection.hh"
+#include "../../Types.hh"
+#include "../../Utils.hh"
 
 
 SinkManager *SinkManager::mngrInstance = NULL;
@@ -73,16 +77,16 @@ SinkManager::getInstance(){
 
 void SinkManager::stop()
 {
+    for (auto it : connections) {
+       delete it.second;
+    }
+    
     for (auto it : sessionList ) {
         rtspServer->deleteServerMediaSession(it.second);
     }
     
-    for (auto it : replicas) {
+    for (auto it : replicators) {
        Medium::close(it.second);
-    }
-    
-    for (auto it : connections) {
-       delete it.second;
     }
 
     Medium::close(rtspServer);
@@ -143,55 +147,141 @@ bool SinkManager::addSession(std::string id, std::vector<int> readers, std::stri
     return true;
 }
 
-bool SinkManager::addConnection(int reader, unsigned id, std::string ip, unsigned int port)
+bool SinkManager::addRTPConnection(std::vector<int> readersId, int id, std::string ip,  int port, TxFormat txFmt)
 {
-    VideoFrameQueue *vQueue;
-    AudioFrameQueue *aQueue;
+    bool success = false;
+
+    for (auto r : readersId) {
+        if (readers.count(r) < 1){
+            utils::errorMsg("Invalid reader Id");
+            return success;
+        }
+    }
 
     if (connections.count(id) > 0){
         utils::errorMsg("Connection id must be unique");
-        return false;
+        return success;
     }
-    if ((vQueue = dynamic_cast<VideoFrameQueue*>(getReader(reader)->getQueue())) != NULL){
-        connections[id] = new VideoConnection(envir(), ip, port, 
-                                              replicas[reader]->createStreamReplica(), 
-                                              vQueue->getCodec());
-        return true;
+
+    switch(txFmt) {
+        case STD_RTP:
+            success = addStdRTPConnection(readersId.front(), id, ip, port);
+        break;
+        case ULTRAGRID:
+            success = addUltraGridRTPConnection(readersId.front(), id , ip ,port);
+        break;
+        case MPEGTS:
+            // NOTE: in this case more than one reader can be attached to MPEGTS because it muxes the data.
+            // This is the reason why readersId is a vector<int>, not an int
+            utils::errorMsg("Error creating connections. MPEGTS Transport format still not supported");
+        break;
+        default:
+            utils::errorMsg("Error creating connections. Transport format not supported");
+        break;
     }
-    if ((aQueue = dynamic_cast<AudioFrameQueue*>(getReader(reader)->getQueue())) != NULL){ 
-        connections[id] = new AudioConnection(envir(), ip, port, 
-                                              replicas[reader]->createStreamReplica(), 
-                                              aQueue->getCodec(), aQueue->getChannels(),
-                                              aQueue->getSampleRate(), aQueue->getSampleFmt());
-        return true;
-    }
-    return false;
+
+    return success;
 }
 
-bool SinkManager::addDashConnection(int reader, unsigned id, std::string fileName, std::string quality, bool reInit, uint32_t segmentTime, uint32_t initSegment, uint32_t fps)
+bool SinkManager::addDASHConnection(int reader, unsigned id, std::string fileName, 
+                                    std::string quality, bool reInit, uint32_t segmentTime, 
+                                    uint32_t initSegment, uint32_t fps)
 {
     VideoFrameQueue *vQueue;
     AudioFrameQueue *aQueue;
+    Connection* conn = NULL;
 
-    if (connections.count(id) > 0){
-        utils::errorMsg("Connection id must be unique");
+    if ((vQueue = dynamic_cast<VideoFrameQueue*>(getReader(reader)->getQueue())) != NULL) {
+        conn = new DashVideoConnection(envir(), replicators[reader]->createStreamReplica(), 
+                                       fileName, quality, reInit, segmentTime, initSegment,
+                                       vQueue->getCodec(), fps);
+
+    }
+
+    if ((aQueue = dynamic_cast<AudioFrameQueue*>(getReader(reader)->getQueue())) != NULL) {
+        conn = new DashAudioConnection(envir(), replicators[reader]->createStreamReplica(), 
+                                       fileName, quality, reInit, segmentTime, initSegment,
+                                       aQueue->getCodec(), aQueue->getChannels(),
+                                       aQueue->getSampleRate(), aQueue->getSampleFmt());
+    }
+
+    if (!conn) {
+        utils::errorMsg("Error creating RawRTPConnection");
         return false;
     }
-    if ((vQueue = dynamic_cast<VideoFrameQueue*>(getReader(reader)->getQueue())) != NULL){
-        connections[id] = new DashVideoConnection(envir(), fileName, 
-                                              replicas[reader]->createStreamReplica(), 
-                                              vQueue->getCodec(), quality, fps, reInit, segmentTime, initSegment);
-        return true;
+
+    if (!conn->setup()) {
+        utils::errorMsg("Error in connection setup");
+        delete conn;
+        return false;
     }
-    if ((aQueue = dynamic_cast<AudioFrameQueue*>(getReader(reader)->getQueue())) != NULL){ 
-        connections[id] = new DashAudioConnection(envir(), fileName, 
-                                              replicas[reader]->createStreamReplica(), 
-                                              aQueue->getCodec(), aQueue->getChannels(),
-                                              aQueue->getSampleRate(), aQueue->getSampleFmt(), quality, reInit, segmentTime, initSegment);
-        return true;
-    }
-    return false;
+
+    connections[id] = conn;
+    return true;
 }
+
+bool SinkManager::addStdRTPConnection(int reader, int id, std::string ip, int port)
+{
+    VideoFrameQueue *vQueue;
+    AudioFrameQueue *aQueue;
+    Connection *conn = NULL;
+
+    if ((vQueue = dynamic_cast<VideoFrameQueue*>(getReader(reader)->getQueue())) != NULL) {
+        conn = new VideoConnection(envir(), replicators[reader]->createStreamReplica(), 
+                                   ip, port, vQueue->getCodec());
+    }
+
+    if ((aQueue = dynamic_cast<AudioFrameQueue*>(getReader(reader)->getQueue())) != NULL){ 
+        conn = new AudioConnection(envir(), replicators[reader]->createStreamReplica(), 
+                                   ip, port, aQueue->getCodec(), aQueue->getChannels(),
+                                   aQueue->getSampleRate(), aQueue->getSampleFmt());
+    }
+
+    if (!conn) {
+        utils::errorMsg("Error creating RawRTPConnection");
+        return false;
+    }
+
+    if (!conn->setup()) {
+        utils::errorMsg("Error in connection setup");
+        delete conn;
+        return false;
+    }
+
+    connections[id] = conn;
+    return true;
+}
+
+bool SinkManager::addUltraGridRTPConnection(int reader, int id, std::string ip, int port)
+{
+    VideoFrameQueue *vQueue = NULL;
+    AudioFrameQueue *aQueue = NULL;
+    Connection* conn = NULL;
+
+    if ((vQueue = dynamic_cast<VideoFrameQueue*>(getReader(reader)->getQueue())) != NULL) {
+        conn = new UltraGridVideoConnection(envir(), replicators[reader]->createStreamReplica(), ip, port, vQueue->getCodec());
+    }
+
+    if ((aQueue = dynamic_cast<AudioFrameQueue*>(getReader(reader)->getQueue())) != NULL) {
+        conn = new UltraGridAudioConnection(envir(), replicators[reader]->createStreamReplica(), ip, port,
+                        aQueue->getCodec(), aQueue->getChannels(), aQueue->getSampleRate(), aQueue->getSampleFmt());
+    }
+
+    if (!conn) {
+        utils::errorMsg("Error creating RawRTPConnection");
+        return false;
+    }
+
+    if (!conn->setup()) {
+        utils::errorMsg("Error in connection setup");
+        delete conn;
+        return false;
+    }
+
+    connections[id] = conn;
+    return true;
+}
+
 
 Reader *SinkManager::setReader(int readerId, FrameQueue* queue, bool sharedQueue)
 {
@@ -222,12 +312,12 @@ void SinkManager::createVideoQueueSource(VCodecType codec, Reader *reader, int r
     switch(codec){
         case H264:
             source = H264QueueSource::createNew(*(envir()), reader, readerId);
-            replicas[readerId] = StreamReplicator::createNew(*(envir()), source, False);
+            replicators[readerId] = StreamReplicator::createNew(*(envir()), source, False);
             break;
         case VP8:
         default:
             source = QueueSource::createNew(*(envir()), reader, readerId);
-            replicas[readerId] =  StreamReplicator::createNew(*(envir()), source, False);
+            replicators[readerId] =  StreamReplicator::createNew(*(envir()), source, False);
             break;
     }
 }
@@ -242,7 +332,7 @@ void SinkManager::createAudioQueueSource(ACodecType codec, Reader *reader, int r
             //break;
         default:
             source = QueueSource::createNew(*(envir()), reader, readerId);
-            replicas[readerId] = StreamReplicator::createNew(*(envir()), source, False);
+            replicators[readerId] = StreamReplicator::createNew(*(envir()), source, False);
             break;
     }
 }
@@ -251,10 +341,10 @@ ServerMediaSubsession *SinkManager::createVideoMediaSubsession(VCodecType codec,
 {
     switch(codec){
         case H264:
-            return H264QueueServerMediaSubsession::createNew(*(envir()), replicas[readerId], readerId, False);
+            return H264QueueServerMediaSubsession::createNew(*(envir()), replicators[readerId], readerId, False);
             break;
         case VP8:
-            return VP8QueueServerMediaSubsession::createNew(*(envir()), replicas[readerId], readerId, False);
+            return VP8QueueServerMediaSubsession::createNew(*(envir()), replicators[readerId], readerId, False);
             break;
         default:
             break;
@@ -274,7 +364,7 @@ ServerMediaSubsession *SinkManager::createAudioMediaSubsession(ACodecType codec,
 			//printf("TODO createAudioMediaSubsession\n");
             //break;
         default:
-            return AudioQueueServerMediaSubsession::createNew(*(envir()), replicas[readerId], 
+            return AudioQueueServerMediaSubsession::createNew(*(envir()), replicators[readerId], 
                                                               readerId, codec, channels,
                                                               sampleRate, sampleFormat, False);
             break;
@@ -390,8 +480,11 @@ ServerMediaSession* SinkManager::getSession(std::string id)
 
 void SinkManager::initializeEventMap() 
 {
-     eventMap["addSession"] = std::bind(&SinkManager::addSessionEvent, this, 
+    eventMap["addSession"] = std::bind(&SinkManager::addSessionEvent, this, 
                                         std::placeholders::_1,  std::placeholders::_2);
+    eventMap["addRTPConnection"] = std::bind(&SinkManager::addRTPConnectionEvent, this, 
+                                        std::placeholders::_1,  std::placeholders::_2);
+
 }
 
 void SinkManager::addSessionEvent(Jzon::Node* params, Jzon::Object &outputNode)
@@ -437,7 +530,55 @@ void SinkManager::addSessionEvent(Jzon::Node* params, Jzon::Object &outputNode)
     }
 
     outputNode.Add("sessionID", sessionId);
-} 
+}
+
+void SinkManager::addRTPConnectionEvent(Jzon::Node* params, Jzon::Object &outputNode)
+{
+    std::vector<int> readers;
+    int connectionId;
+    std::string ip;
+    int port;
+    std::string stringTxFormat;
+    TxFormat txFormat;
+
+    if (!params) {
+        outputNode.Add("error", "Error adding session. No parameters!");
+        return;
+    }
+
+    if (!params->Has("id") || !params->Has("port") || !params->Has("ip") || !params->Has("txFormat")) {
+        outputNode.Add("error", "Error adding connection. Wrong parameters!");
+        return;
+    }
+
+    if (!params->Has("readers") || !params->Get("readers").IsArray()) {
+        outputNode.Add("error", "Error adding connection. Readers does not exist or is not an array!");
+        return;
+    }
+
+    connectionId = params->Get("id").ToInt();
+    port = params->Get("port").ToInt();
+    ip = params->Get("ip").ToString();
+    stringTxFormat = params->Get("txFormat").ToString();
+    txFormat = utils::getTxFormatFromString(stringTxFormat);
+
+    Jzon::Array jsonReaders = params->Get("readers").AsArray();
+    
+    for (Jzon::Array::iterator it = jsonReaders.begin(); it != jsonReaders.end(); ++it) {
+        readers.push_back((*it).ToInt());
+    }
+    
+    if (readers.empty()) {
+        outputNode.Add("error", "Error adding session. Readers array is empty!");
+        return;
+    }
+
+    if(!addRTPConnection(readers, connectionId, ip, port, txFormat)) {
+        outputNode.Add("error", "Error adding session. Internal error!");
+        return;
+    }
+    outputNode.Add("error", Jzon::null);
+}  
 
 void SinkManager::doGetState(Jzon::Object &filterNode)
 {
@@ -468,204 +609,3 @@ void SinkManager::doGetState(Jzon::Object &filterNode)
 
     filterNode.Add("sessions", sessionArray);
 }
-
-Connection::Connection(UsageEnvironment* env, 
-                       std::string ip, unsigned port, FramedSource *source) : 
-                       fEnv(env), fIp(ip), fPort(port), fSource(source)
-{
-    unsigned serverPort = INITIAL_SERVER_PORT;
-    destinationAddress.s_addr = our_inet_addr(fIp.c_str());
-    if ((port%2) != 0){
-        utils::warningMsg("Port should be an even number");
-    }
-    const Port rtpPort(port);
-    const Port rtcpPort(port+1);
-    
-    for (;;serverPort+=2){
-        rtpGroupsock = new Groupsock(*fEnv, destinationAddress, Port(serverPort), TTL);
-        rtcpGroupsock = new Groupsock(*fEnv, destinationAddress, Port(serverPort+1), TTL);
-        if (rtpGroupsock->socketNum() < 0 || rtcpGroupsock->socketNum() < 0) {
-            delete rtpGroupsock;
-            delete rtcpGroupsock;
-            continue; // try again
-        }
-        break;
-    }
-    
-    rtpGroupsock->changeDestinationParameters(destinationAddress, rtpPort, TTL);
-    rtcpGroupsock->changeDestinationParameters(destinationAddress, rtcpPort, TTL);
-}
-
-Connection::Connection(UsageEnvironment* env, 
-                       std::string fileName, FramedSource *source) : 
-                       fEnv(env), fFileName(fileName), fSource(source)
-{
-	
-}
-
-Connection::~Connection()
-{
-    Medium::close(fSource);
-    if (sink) {
-        sink->stopPlaying();
-        Medium::close(sink);
-        Medium::close(rtcp);
-    }
-    delete rtpGroupsock;
-    delete rtcpGroupsock;
-}
-
-void Connection::afterPlaying(void* clientData) {
-    RTPSink *clientSink = (RTPSink*) clientData;
-    clientSink->stopPlaying();
-}
-
-void Connection::startPlaying()
-{
-    if (sink != NULL){
-        
-        sink->startPlaying(*fSource, &Connection::afterPlaying, sink);
-    }
-    if (outputVideoFile != NULL){
-        
-        outputVideoFile->startPlaying(*fSource, &Connection::afterPlaying, NULL);
-    }
-}
-
-void Connection::stopPlaying()
-{
-    if (sink != NULL){
-        sink->stopPlaying();
-    }
-    if (outputVideoFile != NULL){
-        outputVideoFile->stopPlaying();
-    }
-}
-
-VideoConnection::VideoConnection(UsageEnvironment* env, 
-                                 std::string ip, unsigned port, 
-                                 FramedSource *source, VCodecType codec) : 
-                                 Connection(env, ip, port, source), fCodec(codec)
-{
-    switch(fCodec){
-        case H264:
-            sink = H264VideoRTPSink::createNew(*fEnv, rtpGroupsock, 96);
-            fSource = H264VideoStreamDiscreteFramer::createNew(*fEnv, fSource);
-            break;
-        case VP8:
-            sink = VP8VideoRTPSink::createNew(*fEnv, rtpGroupsock, 96);
-            break;
-        default:
-            sink = NULL;
-            break;
-    }
-    if (sink != NULL){
-        const unsigned maxCNAMElen = 100;
-        unsigned char CNAME[maxCNAMElen+1];
-        gethostname((char*)CNAME, maxCNAMElen);
-        CNAME[maxCNAMElen] = '\0';
-        rtcp = RTCPInstance::createNew(*fEnv, rtcpGroupsock, 5000, CNAME,
-                                       sink, NULL, False);
-    } else {
-        utils::errorMsg("VideoConnection could not be created");
-    }
-    startPlaying();
-}
-
-DashVideoConnection::DashVideoConnection(UsageEnvironment* env, 
-                                 std::string fileName, 
-                                 FramedSource *source, VCodecType codec, std::string quality, uint32_t fps, bool reInit, uint32_t segmentTime, uint32_t initSegment) : 
-                                 Connection(env, fileName, source), fCodec(codec), fReInit(reInit), fFps(fps), fSegmentTime(segmentTime), fInitSegment(initSegment)
-{
-    switch(fCodec){
-        case H264:
-            outputVideoFile = DashFileSink::createNew(*env, fileName.c_str(), MAX_DAT, True, quality.c_str(), fInitSegment, "m4v", ONLY_VIDEO, false);
-            fSource = DashSegmenterVideoSource::createNew(*fEnv, source, fReInit, fFps, fSegmentTime);
-            break;
-        default:
-            sink = NULL;
-            break;
-    }
-   if (outputVideoFile != NULL){
-		//TODO??
-    } else {
-        utils::errorMsg("VideoConnection could not be created");
-    }
-    startPlaying();
-}
-
-AudioConnection::AudioConnection(UsageEnvironment* env, 
-                                 std::string ip, unsigned port, 
-                                 FramedSource *source, ACodecType codec, 
-                                 unsigned channels, unsigned sampleRate, 
-                                 SampleFmt sampleFormat) : Connection(env, ip, port, source), 
-                                 fCodec(codec), fChannels(channels), fSampleRate(sampleRate), 
-                                 fSampleFormat(sampleFormat)
-{
-    unsigned char payloadType = 97;
-    std::string codecStr = utils::getAudioCodecAsString(fCodec);
-    
-    if (fCodec == PCM && 
-        fSampleFormat == S16) {
-        codecStr = "L16";
-        if (fSampleRate == 44100) {
-            if (fChannels == 2){
-                payloadType = 10;
-            } else if (fChannels == 1) {
-                payloadType = 11;
-            }
-        }
-    } else if ((fCodec == PCMU || fCodec == G711) && 
-                fSampleRate == 8000 &&
-                fChannels == 1){
-        payloadType = 0;
-    }
-    
-    if (fCodec == MP3){
-        sink =  MPEG1or2AudioRTPSink::createNew(*fEnv, rtpGroupsock);
-    } else {
-        sink =  SimpleRTPSink
-            ::createNew(*fEnv, rtpGroupsock, payloadType,
-                        fSampleRate, "audio", 
-                        codecStr.c_str(),
-                        fChannels, False);
-    }
-    
-    if (sink != NULL){
-        const unsigned maxCNAMElen = 100;
-        unsigned char CNAME[maxCNAMElen+1];
-        gethostname((char*)CNAME, maxCNAMElen);
-        CNAME[maxCNAMElen] = '\0';
-        rtcp = RTCPInstance::createNew(*fEnv, rtcpGroupsock, 5000, CNAME,
-                                       sink, NULL, False);
-    } else {
-        utils::errorMsg("AudioConnection could not be created");
-    }
-    startPlaying();
-}
-
-DashAudioConnection::DashAudioConnection(UsageEnvironment* env, 
-                                 std::string fileName, 
-                                 FramedSource *source, ACodecType codec, 
-                                 unsigned channels, unsigned sampleRate, 
-                                 SampleFmt sampleFormat, std::string quality, bool reInit, uint32_t segmentTime, uint32_t initSegment) : Connection(env, fileName, source), 
-                                 fCodec(codec), fChannels(channels), fSampleRate(sampleRate), 
-                                 fSampleFormat(sampleFormat), fReInit(reInit), fSegmentTime(segmentTime), fInitSegment(initSegment)
-{
-	switch (fCodec) {
-		case MPEG4_GENERIC:
-            outputVideoFile = DashFileSink::createNew(*env, fileName.c_str(), MAX_DAT, True, quality.c_str(), fInitSegment, "m4a", ONLY_AUDIO, false);
-            fSource = DashSegmenterAudioSource::createNew(*fEnv, source, fReInit, fSegmentTime, fSampleRate);
-            break;
-        default:
-            sink = NULL;
-            break;
-    }
-   if (outputVideoFile != NULL){
-		//TODO??
-    } else {
-        utils::errorMsg("AudioConnection could not be created");
-    }
-    startPlaying();    
-}
-

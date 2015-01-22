@@ -182,11 +182,8 @@ void addConnections(std::vector<int> readers, std::string ip, unsigned port)
 {
     PipelineManager *pipe = Controller::getInstance()->pipelineManager();
     SinkManager *transmitter = pipe->getTransmitter();
-    for(auto reader : readers){
-        if (transmitter->addConnection(reader, rand(), ip, port)) {
-            utils::infoMsg("added connection for " + ip + ":" + std::to_string(port));
-            port+=2;
-        }
+    if (transmitter->addRTPConnection(readers, rand(), ip, port, ULTRAGRID)) {
+        utils::infoMsg("added connection for " + ip + ":" + std::to_string(port));
     }
 }
 

@@ -147,37 +147,26 @@ bool SinkManager::addSession(std::string id, std::vector<int> readers, std::stri
     return true;
 }
 
-bool SinkManager::addRTPConnection(std::vector<int> readersId, int id, std::string ip,  int port, TxFormat txFmt)
-{
+bool SinkManager::addMpegTsRTPConnection(int vReaderId, int aReaderId, int id, std::string ip, int port)
+{ 
     bool success = false;
 
-    for (auto r : readersId) {
-        if (readers.count(r) < 1){
-            utils::errorMsg("Invalid reader Id");
-            return success;
-        }
-    }
-
-    if (connections.count(id) > 0){
-        utils::errorMsg("Connection id must be unique");
+    if (vReaderId >= 0 && readers.count(vReaderId) < 1) {
+        utils::errorMsg("Audio and video muxing only available for MPEG-TS");
         return success;
     }
 
-    switch(txFmt) {
-        case STD_RTP:
-            success = addStdRTPConnection(readersId.front(), id, ip, port);
-        break;
-        case ULTRAGRID:
-            success = addUltraGridRTPConnection(readersId.front(), id , ip ,port);
-        break;
-        case MPEGTS:
-            // NOTE: in this case more than one reader can be attached to MPEGTS because it muxes the data.
-            // This is the reason why readersId is a vector<int>, not an int
-            utils::errorMsg("Error creating connections. MPEGTS Transport format still not supported");
-        break;
-        default:
-            utils::errorMsg("Error creating connections. Transport format not supported");
-        break;
+    if (aReaderId >= 0 && readers.count(aReaderId) < 1) {
+        utils::errorMsg("Audio and video muxing only available for MPEG-TS");
+        return success;
+    }
+
+    if (vReaderId >= 0) {
+        //TODO: create the new MPEGTS connection
+    }
+
+    if (aReaderId >= 0) {
+        //TODO: create the new MPEGTS connection
     }
 
     return success;
@@ -225,13 +214,21 @@ bool SinkManager::addStdRTPConnection(int reader, int id, std::string ip, int po
     VideoFrameQueue *vQueue;
     AudioFrameQueue *aQueue;
     Connection *conn = NULL;
+    Reader *r;
 
-    if ((vQueue = dynamic_cast<VideoFrameQueue*>(getReader(reader)->getQueue())) != NULL) {
+    r = getReader(reader);
+
+    if (!r) {
+        utils::errorMsg("Error in connection setup. Reader does not exist");
+        return false;
+    }
+
+    if ((vQueue = dynamic_cast<VideoFrameQueue*>(r->getQueue())) != NULL) {
         conn = new VideoConnection(envir(), replicators[reader]->createStreamReplica(), 
                                    ip, port, vQueue->getCodec());
     }
 
-    if ((aQueue = dynamic_cast<AudioFrameQueue*>(getReader(reader)->getQueue())) != NULL){ 
+    if ((aQueue = dynamic_cast<AudioFrameQueue*>(r->getQueue())) != NULL){ 
         conn = new AudioConnection(envir(), replicators[reader]->createStreamReplica(), 
                                    ip, port, aQueue->getCodec(), aQueue->getChannels(),
                                    aQueue->getSampleRate(), aQueue->getSampleFmt());
@@ -257,12 +254,20 @@ bool SinkManager::addUltraGridRTPConnection(int reader, int id, std::string ip, 
     VideoFrameQueue *vQueue = NULL;
     AudioFrameQueue *aQueue = NULL;
     Connection* conn = NULL;
+    Reader *r;
 
-    if ((vQueue = dynamic_cast<VideoFrameQueue*>(getReader(reader)->getQueue())) != NULL) {
+    r = getReader(reader);
+
+    if (!r) {
+        utils::errorMsg("Error in connection setup. Reader does not exist");
+        return false;
+    }
+
+    if ((vQueue = dynamic_cast<VideoFrameQueue*>(r->getQueue())) != NULL) {
         conn = new UltraGridVideoConnection(envir(), replicators[reader]->createStreamReplica(), ip, port, vQueue->getCodec());
     }
 
-    if ((aQueue = dynamic_cast<AudioFrameQueue*>(getReader(reader)->getQueue())) != NULL) {
+    if ((aQueue = dynamic_cast<AudioFrameQueue*>(r->getQueue())) != NULL) {
         conn = new UltraGridAudioConnection(envir(), replicators[reader]->createStreamReplica(), ip, port,
                         aQueue->getCodec(), aQueue->getChannels(), aQueue->getSampleRate(), aQueue->getSampleFmt());
     }
@@ -573,11 +578,13 @@ void SinkManager::addRTPConnectionEvent(Jzon::Node* params, Jzon::Object &output
         return;
     }
 
-    if(!addRTPConnection(readers, connectionId, ip, port, txFormat)) {
-        outputNode.Add("error", "Error adding session. Internal error!");
-        return;
-    }
-    outputNode.Add("error", Jzon::null);
+    //TODO: switch between txFormat
+
+    // if(!addRTPConnection(readers, connectionId, ip, port, txFormat)) {
+    //     outputNode.Add("error", "Error adding session. Internal error!");
+    //     return;
+    // }
+    outputNode.Add("error", "Method is not implemented properly");
 }  
 
 void SinkManager::doGetState(Jzon::Object &filterNode)

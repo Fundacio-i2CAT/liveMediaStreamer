@@ -50,7 +50,9 @@ public:
     
     bool addSession(std::string id, std::vector<int> readers, 
                     std::string info = "", std::string desc = "");
-    bool addRTPConnection(std::vector<int> readersId, int id, std::string ip, int port, TxFormat txFmt);
+    bool addStdRTPConnection(int reader, int id, std::string ip, int port);
+    bool addUltraGridRTPConnection(int reader, int id, std::string ip, int port);
+    bool addMpegTsRTPConnection(int vReaderId, int aReaderId, int id, std::string ip, int port);
     bool addDASHConnection(int reader, unsigned id, std::string fileName, std::string quality, 
                            bool reInit = false, uint32_t segmentTime = SEGMENT_TIME, 
                            uint32_t initSegment = INIT_SEGMENT, uint32_t fps = FRAME_RATE);
@@ -73,8 +75,6 @@ private:
     
     bool processFrame(bool removeFrame = false);
 
-    bool addStdRTPConnection(int reader, int id, std::string ip, int port);
-    bool addUltraGridRTPConnection(int reader, int id, std::string ip, int port);
 
 
     

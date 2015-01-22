@@ -182,7 +182,7 @@ void addConnections(std::vector<int> readers, std::string ip, unsigned port)
 {
     PipelineManager *pipe = Controller::getInstance()->pipelineManager();
     SinkManager *transmitter = pipe->getTransmitter();
-    if (transmitter->addRTPConnection(readers, rand(), ip, port, ULTRAGRID)) {
+    if (transmitter->addStdRTPConnection(readers.front(), rand(), ip, port)) {
         utils::infoMsg("added connection for " + ip + ":" + std::to_string(port));
     }
 }
@@ -244,13 +244,13 @@ int main(int argc, char* argv[])
     }
     
     sessionId = utils::randomIdGenerator(ID_LENGTH);
-    if (! transmitter->addSession(sessionId, readers)){
+    if (!transmitter->addSession(sessionId, readers)){
         return 1;
     }
     transmitter->publishSession(sessionId);
     
     sessionId = utils::randomIdGenerator(ID_LENGTH);
-    if (! transmitter->addSession(sessionId, readers)){
+    if (!transmitter->addSession(sessionId, readers)){
         return 1;
     }
     transmitter->publishSession(sessionId);

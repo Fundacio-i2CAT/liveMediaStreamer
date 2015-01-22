@@ -182,7 +182,7 @@ void addConnections(std::vector<int> readers, std::string ip, unsigned port)
 {
     PipelineManager *pipe = Controller::getInstance()->pipelineManager();
     SinkManager *transmitter = pipe->getTransmitter();
-    if (transmitter->addStdRTPConnection(readers.front(), rand(), ip, port)) {
+    if (transmitter->addMpegTsRTPConnection(readers.front(), -1, rand(), ip, port)) {
         utils::infoMsg("added connection for " + ip + ":" + std::to_string(port));
     }
 }

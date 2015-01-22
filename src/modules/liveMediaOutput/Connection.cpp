@@ -26,6 +26,7 @@
 #include "UltraGridAudioRTPSink.hh"
 #include "UltraGridVideoRTPSink.hh"
 #include "H264VideoStreamSampler.hh"
+#include "H264StartCodeInjector.hh"
 #include <GroupsockHelper.hh>
 
 Connection::Connection(UsageEnvironment* env, FramedSource *source) : 
@@ -279,7 +280,6 @@ UltraGridVideoConnection::UltraGridVideoConnection(UsageEnvironment* env, Framed
                                                    std::string ip, unsigned port, VCodecType codec) :
                                                    RTPConnection(env, source, ip, port), fCodec(codec)
 {
-
 }
 
 bool UltraGridVideoConnection::additionalSetup()
@@ -331,6 +331,72 @@ bool UltraGridAudioConnection::additionalSetup()
 		utils::errorMsg("UltraGridAudioConnection could not be created");
 		return false;
 	}
+
+    return true;
+}
+
+////////////////////////
+// MPEG-TS CONNECTION //
+////////////////////////
+
+MpegTsConnection::MpegTsConnection(UsageEnvironment* env, std::string ip, unsigned port) 
+: RTPConnection(env, NULL, ip, port)
+{
+    tsFramer = MPEG2TransportStreamFromESSource::createNew(*env);
+}
+
+bool MpegTsConnection::addVideoSource(FramedSource* source, VCodecType codec)
+{
+    FramedSource* startCodeInjector;
+
+    if (codec != H264) {
+        utils::errorMsg("Error creating MPEG-TS Connection. Only H264 video codec is valid");
+        return false;
+    }
+
+    if (!tsFramer) {
+        utils::errorMsg("Error creating MPEG-TS Connection. MPEG2TransportStreamFromESSource is NULL");
+        return false;
+    }
+
+    startCodeInjector = H264StartCodeInjector::createNew(*fEnv, source);
+    tsFramer->addNewVideoSource(startCodeInjector, 5/*mpegVersion: H.264*/);
+
+    return true;
+}
+
+bool MpegTsConnection::addAudioSource(FramedSource* source, ACodecType codec)
+{
+    //TODO:implement ADTS header injector in order to properly implement this method
+    // FramedSource* adtsHeaderInjector;
+
+    // if (codec != AAC) {
+    //     utils::errorMsg("Error creating MPEG-TS Connection. Only AAC audio codec is valid");
+    //     return false;
+    // }
+
+    // if (!tsFramer) {
+    //     utils::errorMsg("Error creating MPEG-TS Connection. MPEG2TransportStreamFromESSource is NULL");
+    //     return false;
+    // }
+
+    // adtsHeaderInjector = AacAdtsHeaderInjector::createNew(*fEnv, source);
+    // tsFramer->addNewAudioSource(adtsHeaderInjector, 4/*mpegVersion: AAC*/);
+    utils::errorMsg("Adding audio sources to MPEG-TS is not support for the moment");
+    return false;
+}
+    
+bool MpegTsConnection::additionalSetup()
+{
+    fSource = tsFramer;
+
+    fSink = SimpleRTPSink::createNew(*fEnv, rtpGroupsock, 33, 90000, "video", 
+                                     "MP2T", 1, True, False /*no 'M' bit*/);
+
+    if (!fSink) {
+        utils::errorMsg("Error setting up MpegTsConnection. Sink could not be created");
+        return false;
+    }
 
     return true;
 }

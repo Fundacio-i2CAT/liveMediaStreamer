@@ -149,27 +149,72 @@ bool SinkManager::addSession(std::string id, std::vector<int> readers, std::stri
 
 bool SinkManager::addMpegTsRTPConnection(int vReaderId, int aReaderId, int id, std::string ip, int port)
 { 
+    VideoFrameQueue *vQueue;
+    AudioFrameQueue *aQueue;
+    MpegTsConnection* conn = NULL;
     bool success = false;
 
-    if (vReaderId >= 0 && readers.count(vReaderId) < 1) {
-        utils::errorMsg("Audio and video muxing only available for MPEG-TS");
-        return success;
+    if (vReaderId >= 0 && readers.count(vReaderId) >= 1) {
+
+        if (!conn) {
+            conn = new MpegTsConnection(envir(), ip, port);
+        }
+
+        vQueue = dynamic_cast<VideoFrameQueue*>(getReader(vReaderId)->getQueue());
+
+        if (!vQueue) {
+            utils::errorMsg("Error adding MpegTSRTPConnection. Reader's type is not actually video");
+            return false;
+        }
+
+        if (!conn->addVideoSource(replicators[vReaderId]->createStreamReplica(), vQueue->getCodec())) {
+            utils::errorMsg("Error adding MpegTSRTPConnection. Error adding the video source");
+            return false;
+        }
+
+        success = true;
     }
 
-    if (aReaderId >= 0 && readers.count(aReaderId) < 1) {
-        utils::errorMsg("Audio and video muxing only available for MPEG-TS");
-        return success;
+
+    if (aReaderId >= 0 && readers.count(aReaderId) >= 1) {
+
+        if (!conn) {
+            conn = new MpegTsConnection(envir(), ip, port);
+        }
+
+        aQueue = dynamic_cast<AudioFrameQueue*>(getReader(aReaderId)->getQueue());
+
+        if (!aQueue) {
+            utils::errorMsg("Error adding MpegTSRTPConnection. Reader's type is not actually video");
+            return false;
+        }
+
+        if (!conn->addAudioSource(replicators[aReaderId]->createStreamReplica(), aQueue->getCodec())) {
+            utils::errorMsg("Error adding MpegTSRTPConnection. Error adding the video source");
+            return false;
+        }
+
+        success = true;
     }
 
-    if (vReaderId >= 0) {
-        //TODO: create the new MPEGTS connection
+    if (!success) {
+         utils::errorMsg("Error creating MpegTSRTPConnection. Readers not valid");
+        return false;
     }
 
-    if (aReaderId >= 0) {
-        //TODO: create the new MPEGTS connection
+    if (!conn) {
+        utils::errorMsg("Error creating MpegTSRTPConnection");
+        return false;
     }
 
-    return success;
+    if (!conn->setup()) {
+        utils::errorMsg("Error in MpegTSRTPConnection setup");
+        delete conn;
+        return false;
+    }
+
+    connections[id] = conn;
+    return true;
 }
 
 bool SinkManager::addDASHConnection(int reader, unsigned id, std::string fileName, 

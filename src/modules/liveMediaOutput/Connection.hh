@@ -169,6 +169,24 @@ private:
     SampleFmt fSampleFormat;
 };
 
+////////////////////////
+// MPEG-TS CONNECTION //
+////////////////////////
+
+class MpegTsConnection : public RTPConnection {   
+public:
+    MpegTsConnection(UsageEnvironment* env,
+                     std::string ip, unsigned port);
+    bool addVideoSource(FramedSource* source, VCodecType codec);
+    bool addAudioSource(FramedSource* source, ACodecType codec);
+    
+protected:
+    bool additionalSetup();
+
+private:
+    MPEG2TransportStreamFromESSource* tsFramer;
+};
+
 //////////////////////////
 // DASH CONNECTIONS //
 //////////////////////////

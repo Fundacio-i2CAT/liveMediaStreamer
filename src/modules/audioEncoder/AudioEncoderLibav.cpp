@@ -45,11 +45,11 @@ AudioEncoderLibav::AudioEncoderLibav()  : OneToOneFilter()
 
     internalChannels = DEFAULT_CHANNELS;
     internalSampleRate = DEFAULT_SAMPLE_RATE;
-    fCodec = MP3;
+    fCodec = AAC;
     channels = DEFAULT_CHANNELS;
     sampleRate = DEFAULT_SAMPLE_RATE;
-    sampleFmt = S16P;
-    libavSampleFmt = AV_SAMPLE_FMT_S16P;
+    sampleFmt = S16;
+    libavSampleFmt = AV_SAMPLE_FMT_S16;
     initializeEventMap();
     framerateMod = 1;
 

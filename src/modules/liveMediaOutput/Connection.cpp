@@ -367,23 +367,18 @@ bool MpegTsConnection::addVideoSource(FramedSource* source, VCodecType codec)
 
 bool MpegTsConnection::addAudioSource(FramedSource* source, ACodecType codec)
 {
-    //TODO:implement ADTS header injector in order to properly implement this method
-    // FramedSource* adtsHeaderInjector;
+    if (codec != AAC) {
+        utils::errorMsg("Error creating MPEG-TS Connection. Only AAC audio codec is valid");
+        return false;
+    }
 
-    // if (codec != AAC) {
-    //     utils::errorMsg("Error creating MPEG-TS Connection. Only AAC audio codec is valid");
-    //     return false;
-    // }
+    if (!tsFramer) {
+        utils::errorMsg("Error creating MPEG-TS Connection. MPEG2TransportStreamFromESSource is NULL");
+        return false;
+    }
 
-    // if (!tsFramer) {
-    //     utils::errorMsg("Error creating MPEG-TS Connection. MPEG2TransportStreamFromESSource is NULL");
-    //     return false;
-    // }
-
-    // adtsHeaderInjector = AacAdtsHeaderInjector::createNew(*fEnv, source);
-    // tsFramer->addNewAudioSource(adtsHeaderInjector, 4/*mpegVersion: AAC*/);
-    utils::errorMsg("Adding audio sources to MPEG-TS is not support for the moment");
-    return false;
+    tsFramer->addNewAudioSource(source, 4/*mpegVersion: AAC*/);
+    return true;
 }
     
 bool MpegTsConnection::additionalSetup()

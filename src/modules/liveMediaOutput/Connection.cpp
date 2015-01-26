@@ -454,7 +454,7 @@ DashAudioConnection::DashAudioConnection(UsageEnvironment* env, FramedSource *so
 bool DashAudioConnection::additionalSetup() 
 {
     switch (fCodec) {
-        case MPEG4_GENERIC:
+        case AAC:
             fSink = DashFileSink::createNew(*fEnv, fFileName.c_str(), MAX_DAT, True, quality.c_str(), fInitSegment, "m4a", ONLY_AUDIO, false);
             fSource = DashSegmenterAudioSource::createNew(*fEnv, fSource, fReInit, fSegmentTime, fSampleRate);
             break;

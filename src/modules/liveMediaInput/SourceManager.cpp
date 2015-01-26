@@ -336,7 +336,7 @@ FrameQueue* createAudioQueue(unsigned char rtpPayloadFormat, char const* codecNa
     }
 
     if (strcmp(codecName, "MPEG4-GENERIC") == 0) {
-        codec = MPEG4_GENERIC;
+        codec = AAC;
         return AudioFrameQueue::createNew(codec, sampleRate);
     }
     

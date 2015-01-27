@@ -42,6 +42,6 @@ liblivemediastreamer_la_SOURCES = modules/audioDecoder/AudioDecoderLibav.cpp \
                                   X264VideoCircularBuffer.cpp \
                                   X264VideoFrame.cpp 
 
-liblivemediastreamer_la_CPPFLAGS = -std=c++11 -g -D__STDC_CONSTANT_MACROS -I/usr/local/include/opencv -I/usr/local/include/groupsock -I/usr/local/include/liveMedia -I/usr/local/include/BasicUsageEnvironment -I/usr/local/include/UsageEnvironment -Wall
+liblivemediastreamer_la_CPPFLAGS = -std=c++11 -g -D__STDC_CONSTANT_MACROS -Wall
 
 liblivemediastreamer_la_LDFLAGS = -shared -fPIC -pthread -lBasicUsageEnvironment -lUsageEnvironment -lliveMedia -lgroupsock -lavcodec -lswresample -lswscale -llog4cplus -lopencv_core -lopencv_imgproc -lx264 -li2dash

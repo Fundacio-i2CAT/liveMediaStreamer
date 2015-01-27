@@ -1,4 +1,4 @@
-#include <liveMedia/liveMedia.hh>
+#include <liveMedia.hh>
 #include <BasicUsageEnvironment/BasicUsageEnvironment.hh>
 #include "../src/modules/liveMediaOutput/DashSegmenterVideoSource.hh"
 

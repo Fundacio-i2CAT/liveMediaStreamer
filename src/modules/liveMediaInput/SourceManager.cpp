@@ -420,7 +420,7 @@ bool Session::initiateSession()
         return true;
     } else if (client != NULL){
         unsigned ret = client->sendDescribeCommand(handlers::continueAfterDESCRIBE);
-        std::cout << "SNED DESCRIBE COMMAND RETURN: " << ret << std::endl;
+        std::cout << "SEND DESCRIBE COMMAND RETURN: " << ret << std::endl;
         return true;
     }
     

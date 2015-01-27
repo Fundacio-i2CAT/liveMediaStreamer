@@ -282,6 +282,11 @@ void SourceManager::doGetState(Jzon::Object &filterNode)
     for (auto it : sessionMap) {
         Jzon::Array subsessionArray;
         Jzon::Object jsonSession;
+
+        if (!it.second->getScs()->session) {
+            continue;
+        }
+
         MediaSubsessionIterator iter(*(it.second->getScs()->session));
 
         while ((subsession = iter.next()) != NULL) {

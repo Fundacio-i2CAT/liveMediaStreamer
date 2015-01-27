@@ -280,7 +280,7 @@ bool SinkManager::addStdRTPConnection(int reader, int id, std::string ip, int po
     }
 
     if (!conn) {
-        utils::errorMsg("Error creating RawRTPConnection");
+        utils::errorMsg("Error creating StdRTPConnection");
         return false;
     }
 

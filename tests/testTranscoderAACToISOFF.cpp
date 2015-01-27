@@ -8,7 +8,7 @@
 
 #include <csignal>
 #include <vector>
-#include <liveMedia/liveMedia.hh>
+#include <liveMedia.hh>
 #include <string>
 
 #define V_MEDIUM "video"

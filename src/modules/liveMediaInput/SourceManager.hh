@@ -30,7 +30,7 @@
 #include <list>
 #include <functional>
 #include <string>
-#include <liveMedia/liveMedia.hh>
+#include <liveMedia.hh>
 #include <BasicUsageEnvironment.hh>
 
 #define PROTOCOL "RTP"

@@ -242,10 +242,10 @@ int main(int argc, char* argv[])
     }
        
     for (auto it : pipe->getPaths()) {
-        // if (it.first == vPort) {
-        //     vReader = it.second->getDstReaderID();
-        //     std::cout << "Video reader origin port: " << vPort << std::endl;
-        // }
+        if (it.first == vPort) {
+            vReader = it.second->getDstReaderID();
+            std::cout << "Video reader origin port: " << vPort << std::endl;
+        }
 
         if (it.first == aPort) {
             aReader = it.second->getDstReaderID();

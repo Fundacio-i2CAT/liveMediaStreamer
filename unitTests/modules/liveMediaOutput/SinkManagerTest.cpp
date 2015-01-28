@@ -27,13 +27,26 @@
 #include <cppunit/TestResultCollector.h>
 #include <cppunit/XmlOutputter.h>
 
+#include <GroupsockHelper.hh>
+
+#include "SinkManager.hh"
+#include "../../AVFramedQueue.hh"
+#include "../../AudioCircularBuffer.hh"
+#include "H264QueueServerMediaSubsession.hh"
+#include "VP8QueueServerMediaSubsession.hh"
+#include "AudioQueueServerMediaSubsession.hh"
+#include "QueueSource.hh"
+#include "H264QueueSource.hh"
+#include "Types.hh"
+#include "Connection.hh"
+#include "../../Types.hh"
+#include "../../Utils.hh"
+
 class SinkManagerTest : public CppUnit::TestFixture
 {
     CPPUNIT_TEST_SUITE(SinkManagerTest);
-    CPPUNIT_TEST(openCloseInput);
-    CPPUNIT_TEST(dumpFormat);
-    CPPUNIT_TEST(findStreams);
-    CPPUNIT_TEST(readFrame);
+    CPPUNIT_TEST(addRTPConnection);
+    CPPUNIT_TEST(addMpegTsRTPConnection);
     CPPUNIT_TEST_SUITE_END();
 
 public:
@@ -41,14 +54,41 @@ public:
     void tearDown();
 
 protected:
-    void openCloseInput();
-    void dumpFormat();
-    void findStreams();
-    void readFrame();
+    void addRTPConnection();
+    void addMpegTsRTPConnection();
 
 protected:
-    uint64_t startTime;
-    Demuxer* demux = NULL;
-    std::string filePath = "testData/DemuxerTest_input_data.mp4";
+    SinkManager* sinkManager = NULL;
     std::stringstream voidstream;
 };
+
+void SinkManagerTest::setUp()
+{
+	sinkManager = sinkManager->getInstance();
+    std::cerr.rdbuf(voidstream.rdbuf());
+}
+
+void SinkManagerTest::tearDown()
+{
+    delete sinkManager;
+}
+
+void SinkManagerTest::addMpegTsRTPConnection()
+{
+    CPPUNIT_ASSERT(sinkManager != NULL);
+}
+
+CPPUNIT_TEST_SUITE_REGISTRATION( SinkManagerTest );
+
+int main(int argc, char* argv[])
+{
+    std::ofstream xmlout("SinkManagerTest.xml");
+    CPPUNIT_NS::TextTestRunner runner;
+    CPPUNIT_NS::XmlOutputter *outputter = new CPPUNIT_NS::XmlOutputter(&runner.result(), xmlout);
+
+    runner.addTest( CppUnit::TestFactoryRegistry::getRegistry().makeTest() );
+    runner.run( "", false );
+    outputter->write();
+
+    return runner.result().wasSuccessful() ? 0 : 1;
+}

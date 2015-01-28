@@ -371,6 +371,11 @@ bool MpegTsConnection::addVideoSource(FramedSource* source, VCodecType codec)
         return false;
     }
 
+    if (!source) {
+        utils::errorMsg("Error adding video source to MPEG-TS Connection. Provided source is NULL");
+        return false;
+    }
+
     startCodeInjector = H264StartCodeInjector::createNew(*fEnv, source);
     tsFramer->addNewVideoSource(startCodeInjector, 5/*mpegVersion: H.264*/);
 
@@ -386,6 +391,11 @@ bool MpegTsConnection::addAudioSource(FramedSource* source, ACodecType codec)
 
     if (!tsFramer) {
         utils::errorMsg("Error creating MPEG-TS Connection. MPEG2TransportStreamFromESSource is NULL");
+        return false;
+    }
+
+    if (!source) {
+        utils::errorMsg("Error adding audio source to MPEG-TS Connection. Provided source is NULL");
         return false;
     }
 

@@ -26,9 +26,6 @@
 #include "QueueSource.hh"
 #include "../../Filter.hh"
 #include "../../IOInterface.hh"
-#include "DashSegmenterVideoSource.hh"
-#include "DashSegmenterAudioSource.hh"
-#include "DashFileSink.hh"
 
 #include <BasicUsageEnvironment.hh>
 #include <liveMedia.hh>
@@ -59,7 +56,6 @@ public:
     bool addSession(std::string id, std::vector<int> readers, 
                     std::string info = "", std::string desc = "");
     bool addConnection(int reader, unsigned id, std::string ip, unsigned int port);
-	bool addDashConnection(int reader, unsigned id, std::string fileName, std::string quality, bool reInit = false, uint32_t segmentTime = SEGMENT_TIME, uint32_t initSegment = INIT_SEGMENT, uint32_t fps = FRAME_RATE);
     
     ServerMediaSession* getSession(std::string id); 
     bool publishSession(std::string id);
@@ -120,7 +116,6 @@ protected:
     
     struct in_addr destinationAddress;
     RTPSink *sink;
-	DashFileSink *outputVideoFile;
 	FileSink *outputAudioFile;
     RTCPInstance* rtcp;
     Groupsock *rtpGroupsock;
@@ -137,20 +132,6 @@ private:
     VCodecType fCodec;
 };
 
-class DashVideoConnection : public Connection {   
-public:
-    DashVideoConnection(UsageEnvironment* env, 
-                    std::string fileName, 
-                    FramedSource *source, VCodecType codec, std::string quality, uint32_t fps = FRAME_RATE, bool reInit = false, uint32_t segmentTime = SEGMENT_TIME, uint32_t initSegment = INIT_SEGMENT);
-
-private:
-    VCodecType fCodec;
-	bool fReInit;
-	uint32_t fFps;
-	uint32_t fSegmentTime;
-	uint32_t fInitSegment;
-};
-
 class AudioConnection : public Connection {
 public:
     AudioConnection(UsageEnvironment* env, std::string ip, unsigned port, 
@@ -163,23 +144,6 @@ private:
     unsigned fChannels;
     unsigned fSampleRate;
     SampleFmt fSampleFormat;
-};
-
-class DashAudioConnection : public Connection {
-public:
-    DashAudioConnection(UsageEnvironment* env, std::string fileName, 
-                    FramedSource *source, ACodecType codec,
-                    unsigned channels, unsigned sampleRate,
-                    SampleFmt sampleFormat,  std::string quality, bool reInit = false, uint32_t segmentTime = SEGMENT_TIME, uint32_t initSegment = INIT_SEGMENT);
-    
-private:
-    ACodecType fCodec;
-    unsigned fChannels;
-    unsigned fSampleRate;
-    SampleFmt fSampleFormat;
-	bool fReInit;
-	uint32_t fSegmentTime;
-	uint32_t fInitSegment;
 };
 
 #endif

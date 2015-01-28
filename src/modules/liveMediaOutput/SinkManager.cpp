@@ -202,7 +202,7 @@ bool SinkManager::addMpegTsRTPConnection(std::vector<int> readers, int id, std::
             success = conn->addAudioSource(replicators[r]->createStreamReplica(), aQueue->getCodec());
             hasAudio = true;
         } else {
-            utils::errorMsg("Error creating MpegTSRTPConnection. Only one video stream at the same time is supported");
+            utils::errorMsg("Error creating MpegTSRTPConnection. Only one video and/or one audio is supported");
             success = false;
         }
     }

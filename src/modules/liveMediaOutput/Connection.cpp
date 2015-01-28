@@ -258,6 +258,11 @@ bool AudioConnection::additionalSetup()
     
     if (fCodec == MP3){
         fSink =  MPEG1or2AudioRTPSink::createNew(*fEnv, rtpGroupsock);
+    // } else if (fCodec == AAC) {
+    //     //NOTE: check ADTS File source to check how to construct the configuration string
+    //     fSink = MPEG4GenericRTPSink::createNew(*fEnv, rtpGroupsock, payloadType, 
+    //                                            fSampleRate, "audio", "AAC-hbr", 
+    //                                            adtsSource->configStr(), fChannels);
     } else {
         fSink =  SimpleRTPSink::createNew(*fEnv, rtpGroupsock, payloadType,
                                          fSampleRate, "audio", 

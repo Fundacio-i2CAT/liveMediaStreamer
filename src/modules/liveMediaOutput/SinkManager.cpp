@@ -147,54 +147,64 @@ bool SinkManager::addSession(std::string id, std::vector<int> readers, std::stri
     return true;
 }
 
-bool SinkManager::addMpegTsRTPConnection(int vReaderId, int aReaderId, int id, std::string ip, int port)
+bool SinkManager::addRTPConnection(std::vector<int> readers, int id, std::string ip, int port, TxFormat txFormat)
+{
+    bool ret;
+
+    switch (txFormat) {
+        case STD_RTP:
+            ret = addStdRTPConnection(readers, id, ip, port);
+            break;
+        case ULTRAGRID:
+            ret = addUltraGridRTPConnection(readers, id, ip, port);
+            break;
+        case MPEGTS:
+            ret = addMpegTsRTPConnection(readers, id, ip, port);
+            break;
+        default:
+            ret = false;
+            break;
+    }
+
+    return ret;
+}
+
+bool SinkManager::addMpegTsRTPConnection(std::vector<int> readers, int id, std::string ip, int port)
 { 
     VideoFrameQueue *vQueue;
     AudioFrameQueue *aQueue;
     MpegTsConnection* conn = NULL;
     bool success = false;
+    bool hasVideo = false;
+    bool hasAudio = false;
 
-    if (vReaderId >= 0 && readers.count(vReaderId) >= 1) {
-
-        if (!conn) {
-            conn = new MpegTsConnection(envir(), ip, port);
-        }
-
-        vQueue = dynamic_cast<VideoFrameQueue*>(getReader(vReaderId)->getQueue());
-
-        if (!vQueue) {
-            utils::errorMsg("Error adding MpegTSRTPConnection. Reader's type is not actually video");
-            return false;
-        }
-
-        if (!conn->addVideoSource(replicators[vReaderId]->createStreamReplica(), vQueue->getCodec())) {
-            utils::errorMsg("Error adding MpegTSRTPConnection. Error adding the video source");
-            return false;
-        }
-
-        success = true;
+    if (readers.size() <= 0 || readers.size() > 2) {
+        utils::errorMsg("Error in MPET-TS RTP connection setup. Only 1 or 2 readers are supported");
+        return false;
     }
 
+    conn = new MpegTsConnection(envir(), ip, port);
 
-    if (aReaderId >= 0 && readers.count(aReaderId) >= 1) {
+    if (!conn) {
+        utils::errorMsg("Error creating MpegTSRTPConnection");
+        return false;
+    }
 
-        if (!conn) {
-            conn = new MpegTsConnection(envir(), ip, port);
+    for (auto r : readers) {
+
+        vQueue = dynamic_cast<VideoFrameQueue*>(getReader(r)->getQueue());
+        aQueue = dynamic_cast<AudioFrameQueue*>(getReader(r)->getQueue());
+
+        if (vQueue && !hasVideo) {
+            success = conn->addVideoSource(replicators[r]->createStreamReplica(), vQueue->getCodec());
+            hasVideo = true;
+        } else if (aQueue && !hasAudio) {
+            success = conn->addAudioSource(replicators[r]->createStreamReplica(), aQueue->getCodec());
+            hasAudio = true;
+        } else {
+            utils::errorMsg("Error creating MpegTSRTPConnection. Only one video and/or one audio is supported");
+            success = false;
         }
-
-        aQueue = dynamic_cast<AudioFrameQueue*>(getReader(aReaderId)->getQueue());
-
-        if (!aQueue) {
-            utils::errorMsg("Error adding MpegTSRTPConnection. Reader's type is not actually video");
-            return false;
-        }
-
-        if (!conn->addAudioSource(replicators[aReaderId]->createStreamReplica(), aQueue->getCodec())) {
-            utils::errorMsg("Error adding MpegTSRTPConnection. Error adding the video source");
-            return false;
-        }
-
-        success = true;
     }
 
     if (!success) {
@@ -254,14 +264,19 @@ bool SinkManager::addDASHConnection(int reader, unsigned id, std::string fileNam
     return true;
 }
 
-bool SinkManager::addStdRTPConnection(int reader, int id, std::string ip, int port)
+bool SinkManager::addStdRTPConnection(std::vector<int> readers, int id, std::string ip, int port)
 {
     VideoFrameQueue *vQueue;
     AudioFrameQueue *aQueue;
     Connection *conn = NULL;
     Reader *r;
 
-    r = getReader(reader);
+    if (readers.size() != 1) {
+        utils::errorMsg("Error in standard RTP connection setup. Multiple readers do not make sense in this type");
+        return false;
+    }
+
+    r = getReader(readers.front());
 
     if (!r) {
         utils::errorMsg("Error in connection setup. Reader does not exist");
@@ -269,18 +284,18 @@ bool SinkManager::addStdRTPConnection(int reader, int id, std::string ip, int po
     }
 
     if ((vQueue = dynamic_cast<VideoFrameQueue*>(r->getQueue())) != NULL) {
-        conn = new VideoConnection(envir(), replicators[reader]->createStreamReplica(), 
+        conn = new VideoConnection(envir(), replicators[readers.front()]->createStreamReplica(), 
                                    ip, port, vQueue->getCodec());
     }
 
     if ((aQueue = dynamic_cast<AudioFrameQueue*>(r->getQueue())) != NULL){ 
-        conn = new AudioConnection(envir(), replicators[reader]->createStreamReplica(), 
+        conn = new AudioConnection(envir(), replicators[readers.front()]->createStreamReplica(), 
                                    ip, port, aQueue->getCodec(), aQueue->getChannels(),
                                    aQueue->getSampleRate(), aQueue->getSampleFmt());
     }
 
     if (!conn) {
-        utils::errorMsg("Error creating RawRTPConnection");
+        utils::errorMsg("Error creating StdRTPConnection");
         return false;
     }
 
@@ -294,14 +309,19 @@ bool SinkManager::addStdRTPConnection(int reader, int id, std::string ip, int po
     return true;
 }
 
-bool SinkManager::addUltraGridRTPConnection(int reader, int id, std::string ip, int port)
+bool SinkManager::addUltraGridRTPConnection(std::vector<int> readers, int id, std::string ip, int port)
 {
     VideoFrameQueue *vQueue = NULL;
     AudioFrameQueue *aQueue = NULL;
     Connection* conn = NULL;
     Reader *r;
 
-    r = getReader(reader);
+    if (readers.size() != 1) {
+        utils::errorMsg("Error in standard Ultragrid connection setup. Multiple readers do not make sense in this type");
+        return false;
+    }
+
+    r = getReader(readers.front());
 
     if (!r) {
         utils::errorMsg("Error in connection setup. Reader does not exist");
@@ -309,11 +329,11 @@ bool SinkManager::addUltraGridRTPConnection(int reader, int id, std::string ip, 
     }
 
     if ((vQueue = dynamic_cast<VideoFrameQueue*>(r->getQueue())) != NULL) {
-        conn = new UltraGridVideoConnection(envir(), replicators[reader]->createStreamReplica(), ip, port, vQueue->getCodec());
+        conn = new UltraGridVideoConnection(envir(), replicators[readers.front()]->createStreamReplica(), ip, port, vQueue->getCodec());
     }
 
     if ((aQueue = dynamic_cast<AudioFrameQueue*>(r->getQueue())) != NULL) {
-        conn = new UltraGridAudioConnection(envir(), replicators[reader]->createStreamReplica(), ip, port,
+        conn = new UltraGridAudioConnection(envir(), replicators[readers.front()]->createStreamReplica(), ip, port,
                         aQueue->getCodec(), aQueue->getChannels(), aQueue->getSampleRate(), aQueue->getSampleFmt());
     }
 
@@ -623,12 +643,11 @@ void SinkManager::addRTPConnectionEvent(Jzon::Node* params, Jzon::Object &output
         return;
     }
 
-    //TODO: switch between txFormat
+    if(!addRTPConnection(readers, connectionId, ip, port, txFormat)) {
+        outputNode.Add("error", "Error adding session. Internal error!");
+        return;
+    }
 
-    // if(!addRTPConnection(readers, connectionId, ip, port, txFormat)) {
-    //     outputNode.Add("error", "Error adding session. Internal error!");
-    //     return;
-    // }
     outputNode.Add("error", "Method is not implemented properly");
 }  
 

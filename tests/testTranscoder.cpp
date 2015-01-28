@@ -178,11 +178,11 @@ void addVideoSource(unsigned port, unsigned fps = FRAME_RATE, std::string codec 
     pipe->startWorkers();
 }
 
-void addConnections(int vReader, int aReader, std::string ip, unsigned port)
+void addConnections(std::vector<int> readers, std::string ip, unsigned port)
 {
     PipelineManager *pipe = Controller::getInstance()->pipelineManager();
     SinkManager *transmitter = pipe->getTransmitter();
-    if (transmitter->addMpegTsRTPConnection(vReader, aReader, rand(), ip, port)) {
+    if (transmitter->addRTPConnection(readers, rand(), ip, port, MPEGTS)) {
         utils::infoMsg("added connection for " + ip + ":" + std::to_string(port));
     }
 }
@@ -190,9 +190,7 @@ void addConnections(int vReader, int aReader, std::string ip, unsigned port)
 int main(int argc, char* argv[]) 
 {   
     std::vector<int> readers;
-    int vReader = -1;
-    int aReader = -1;
-    
+
     int vPort = 0;
     int aPort = 0;
     int port = 0;
@@ -242,16 +240,6 @@ int main(int argc, char* argv[])
     }
        
     for (auto it : pipe->getPaths()) {
-        if (it.first == vPort) {
-            vReader = it.second->getDstReaderID();
-            std::cout << "Video reader origin port: " << vPort << std::endl;
-        }
-
-        if (it.first == aPort) {
-            aReader = it.second->getDstReaderID();
-            std::cout << "Audio reader origin port: " << aPort << std::endl;
-        }
-
         readers.push_back(it.second->getDstReaderID());    
     }
     
@@ -268,7 +256,7 @@ int main(int argc, char* argv[])
     transmitter->publishSession(sessionId);
     
     if (port != 0 && !ip.empty()){
-        addConnections(vReader, aReader, ip, port);
+        addConnections(readers, ip, port);
     }
     
     while (run) {

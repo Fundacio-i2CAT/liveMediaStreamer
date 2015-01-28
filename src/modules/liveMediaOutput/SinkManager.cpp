@@ -168,31 +168,6 @@ bool SinkManager::addConnection(int reader, unsigned id, std::string ip, unsigne
     return false;
 }
 
-bool SinkManager::addDashConnection(int reader, unsigned id, std::string fileName, std::string quality, bool reInit, uint32_t segmentTime, uint32_t initSegment, uint32_t fps)
-{
-    VideoFrameQueue *vQueue;
-    AudioFrameQueue *aQueue;
-
-    if (connections.count(id) > 0){
-        utils::errorMsg("Connection id must be unique");
-        return false;
-    }
-    if ((vQueue = dynamic_cast<VideoFrameQueue*>(getReader(reader)->getQueue())) != NULL){
-        connections[id] = new DashVideoConnection(envir(), fileName, 
-                                              replicas[reader]->createStreamReplica(), 
-                                              vQueue->getCodec(), quality, fps, reInit, segmentTime, initSegment);
-        return true;
-    }
-    if ((aQueue = dynamic_cast<AudioFrameQueue*>(getReader(reader)->getQueue())) != NULL){ 
-        connections[id] = new DashAudioConnection(envir(), fileName, 
-                                              replicas[reader]->createStreamReplica(), 
-                                              aQueue->getCodec(), aQueue->getChannels(),
-                                              aQueue->getSampleRate(), aQueue->getSampleFmt(), quality, reInit, segmentTime, initSegment);
-        return true;
-    }
-    return false;
-}
-
 Reader *SinkManager::setReader(int readerId, FrameQueue* queue, bool sharedQueue)
 {
     VideoFrameQueue *vQueue;
@@ -526,10 +501,10 @@ void Connection::startPlaying()
         
         sink->startPlaying(*fSource, &Connection::afterPlaying, sink);
     }
-    if (outputVideoFile != NULL){
-        
-        outputVideoFile->startPlaying(*fSource, &Connection::afterPlaying, NULL);
-    }
+    //TODO: next lines are commented due to removal from this .hh of "DashFileSink *outputVideoFile"  (dash clean up done 28/01/2015))
+	//    if (outputVideoFile != NULL){
+	//        outputVideoFile->startPlaying(*fSource, &Connection::afterPlaying, NULL);
+	//    }
 }
 
 void Connection::stopPlaying()
@@ -537,9 +512,10 @@ void Connection::stopPlaying()
     if (sink != NULL){
         sink->stopPlaying();
     }
-    if (outputVideoFile != NULL){
-        outputVideoFile->stopPlaying();
-    }
+    //TODO: next lines are commented due to removal from this .hh of "DashFileSink *outputVideoFile"  (dash clean up done 28/01/2015))
+	//    if (outputVideoFile != NULL){
+	//        outputVideoFile->stopPlaying();
+	//    }
 }
 
 VideoConnection::VideoConnection(UsageEnvironment* env, 
@@ -566,28 +542,6 @@ VideoConnection::VideoConnection(UsageEnvironment* env,
         CNAME[maxCNAMElen] = '\0';
         rtcp = RTCPInstance::createNew(*fEnv, rtcpGroupsock, 5000, CNAME,
                                        sink, NULL, False);
-    } else {
-        utils::errorMsg("VideoConnection could not be created");
-    }
-    startPlaying();
-}
-
-DashVideoConnection::DashVideoConnection(UsageEnvironment* env, 
-                                 std::string fileName, 
-                                 FramedSource *source, VCodecType codec, std::string quality, uint32_t fps, bool reInit, uint32_t segmentTime, uint32_t initSegment) : 
-                                 Connection(env, fileName, source), fCodec(codec), fReInit(reInit), fFps(fps), fSegmentTime(segmentTime), fInitSegment(initSegment)
-{
-    switch(fCodec){
-        case H264:
-            outputVideoFile = DashFileSink::createNew(*env, fileName.c_str(), MAX_DAT, True, quality.c_str(), fInitSegment, "m4v", ONLY_VIDEO, false);
-            fSource = DashSegmenterVideoSource::createNew(*fEnv, source, fReInit, fFps, fSegmentTime);
-            break;
-        default:
-            sink = NULL;
-            break;
-    }
-   if (outputVideoFile != NULL){
-		//TODO??
     } else {
         utils::errorMsg("VideoConnection could not be created");
     }
@@ -643,29 +597,3 @@ AudioConnection::AudioConnection(UsageEnvironment* env,
     }
     startPlaying();
 }
-
-DashAudioConnection::DashAudioConnection(UsageEnvironment* env, 
-                                 std::string fileName, 
-                                 FramedSource *source, ACodecType codec, 
-                                 unsigned channels, unsigned sampleRate, 
-                                 SampleFmt sampleFormat, std::string quality, bool reInit, uint32_t segmentTime, uint32_t initSegment) : Connection(env, fileName, source), 
-                                 fCodec(codec), fChannels(channels), fSampleRate(sampleRate), 
-                                 fSampleFormat(sampleFormat), fReInit(reInit), fSegmentTime(segmentTime), fInitSegment(initSegment)
-{
-	switch (fCodec) {
-		case MPEG4_GENERIC:
-            outputVideoFile = DashFileSink::createNew(*env, fileName.c_str(), MAX_DAT, True, quality.c_str(), fInitSegment, "m4a", ONLY_AUDIO, false);
-            fSource = DashSegmenterAudioSource::createNew(*fEnv, source, fReInit, fSegmentTime, fSampleRate);
-            break;
-        default:
-            sink = NULL;
-            break;
-    }
-   if (outputVideoFile != NULL){
-		//TODO??
-    } else {
-        utils::errorMsg("AudioConnection could not be created");
-    }
-    startPlaying();    
-}
-

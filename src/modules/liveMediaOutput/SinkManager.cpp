@@ -18,7 +18,7 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  *  Authors:  David Cassany <david.cassany@i2cat.net>,
- *            
+ *            Marc Palau <marc.palau@i2cat.net>
  */
 
 
@@ -151,6 +151,11 @@ bool SinkManager::addRTPConnection(std::vector<int> readers, int id, std::string
 {
     bool ret;
 
+    if (connections.count(id) > 0) {
+        utils::errorMsg("Error creating RTP connection. Specified ID already in use");
+        return false;
+    }
+
     switch (txFormat) {
         case STD_RTP:
             ret = addStdRTPConnection(readers, id, ip, port);
@@ -169,17 +174,18 @@ bool SinkManager::addRTPConnection(std::vector<int> readers, int id, std::string
     return ret;
 }
 
-bool SinkManager::addMpegTsRTPConnection(std::vector<int> readers, int id, std::string ip, int port)
+bool SinkManager::addMpegTsRTPConnection(std::vector<int> inputReaders, int id, std::string ip, int port)
 { 
-    VideoFrameQueue *vQueue;
-    AudioFrameQueue *aQueue;
+    VideoFrameQueue *vQueue = NULL;
+    AudioFrameQueue *aQueue = NULL;
     MpegTsConnection* conn = NULL;
+    Reader* r = NULL;
     bool success = false;
     bool hasVideo = false;
     bool hasAudio = false;
 
-    if (readers.size() <= 0 || readers.size() > 2) {
-        utils::errorMsg("Error in MPET-TS RTP connection setup. Only 1 or 2 readers are supported");
+    if (inputReaders.size() <= 0 || inputReaders.size() > 2) {
+        utils::errorMsg("Error in MPEG-TS RTP connection setup. Only 1 or 2 readers are supported");
         return false;
     }
 
@@ -190,16 +196,23 @@ bool SinkManager::addMpegTsRTPConnection(std::vector<int> readers, int id, std::
         return false;
     }
 
-    for (auto r : readers) {
+    for (auto inReader : inputReaders) {
 
-        vQueue = dynamic_cast<VideoFrameQueue*>(getReader(r)->getQueue());
-        aQueue = dynamic_cast<AudioFrameQueue*>(getReader(r)->getQueue());
+        r = getReader(inReader);
+
+        if (!r) {
+            utils::errorMsg("Error in MPEG-TS RTP connection setup. Reader does not exist");
+            return false;
+        }
+
+        vQueue = dynamic_cast<VideoFrameQueue*>(r->getQueue());
+        aQueue = dynamic_cast<AudioFrameQueue*>(r->getQueue());
 
         if (vQueue && !hasVideo) {
-            success = conn->addVideoSource(replicators[r]->createStreamReplica(), vQueue->getCodec());
+            success = conn->addVideoSource(replicators[inReader]->createStreamReplica(), vQueue->getCodec());
             hasVideo = true;
         } else if (aQueue && !hasAudio) {
-            success = conn->addAudioSource(replicators[r]->createStreamReplica(), aQueue->getCodec());
+            success = conn->addAudioSource(replicators[inReader]->createStreamReplica(), aQueue->getCodec());
             hasAudio = true;
         } else {
             utils::errorMsg("Error creating MpegTSRTPConnection. Only one video and/or one audio is supported");
@@ -208,12 +221,7 @@ bool SinkManager::addMpegTsRTPConnection(std::vector<int> readers, int id, std::
     }
 
     if (!success) {
-         utils::errorMsg("Error creating MpegTSRTPConnection. Readers not valid");
-        return false;
-    }
-
-    if (!conn) {
-        utils::errorMsg("Error creating MpegTSRTPConnection");
+        utils::errorMsg("Error creating MpegTSRTPConnection. Readers not valid");
         return false;
     }
 
@@ -648,7 +656,7 @@ void SinkManager::addRTPConnectionEvent(Jzon::Node* params, Jzon::Object &output
         return;
     }
 
-    outputNode.Add("error", "Method is not implemented properly");
+    outputNode.Add("error", Jzon::null);
 }  
 
 void SinkManager::doGetState(Jzon::Object &filterNode)

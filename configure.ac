@@ -46,7 +46,6 @@ AC_CHECK_FILE(/usr/local/include/UsageEnvironment/UsageEnvironment.hh, [CPPFLAGS
     
 AC_CHECK_FILE(/usr/local/include/groupsock/Groupsock.hh, [CPPFLAGS="$CPPFLAGS -I/usr/local/include/groupsock"; break;],[
     AC_CHECK_FILE(/usr/include/groupsock/Groupsock.hh, [CPPFLAGS="$CPPFLAGS -I/usr/include/groupsock"; break;],[])])
->>>>>>> Stashed changes
 
 # Checks for header files.
 AC_CHECK_HEADERS([stdint.h string.h sys/time.h])

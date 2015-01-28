@@ -38,7 +38,7 @@
 class Connection {
     
 public:
-    void startPlaying();
+    bool startPlaying();
     void stopPlaying();
     virtual ~Connection();
     bool setup();

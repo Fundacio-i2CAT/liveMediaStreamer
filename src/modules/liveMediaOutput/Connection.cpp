@@ -46,11 +46,15 @@ void Connection::afterPlaying(void* clientData) {
     clientSink->stopPlaying();
 }
 
-void Connection::startPlaying()
+bool Connection::startPlaying()
 {
-    if (fSink){
-        fSink->startPlaying(*fSource, &Connection::afterPlaying, fSink);
+    if (!fSink || !fSource) {
+        utils::errorMsg("Cannot start playing, sink and/or source does not exist.");
+        return false;
     }
+
+    fSink->startPlaying(*fSource, &Connection::afterPlaying, fSink);
+    return true;
 }
 
 void Connection::stopPlaying()
@@ -66,7 +70,10 @@ bool Connection::setup()
         return false;
     }
 
-    startPlaying();
+    if (!startPlaying()) {
+        return false;
+    }
+
     return true;
 }
 
@@ -388,6 +395,11 @@ bool MpegTsConnection::addAudioSource(FramedSource* source, ACodecType codec)
     
 bool MpegTsConnection::additionalSetup()
 {
+    if (!tsFramer) {
+        utils::errorMsg("Error creating MPEG-TS Connection. MPEG2TransportStreamFromESSource is NULL");
+        return false;
+    }
+    
     fSource = tsFramer;
 
     fSink = SimpleRTPSink::createNew(*fEnv, rtpGroupsock, 33, 90000, "video", 

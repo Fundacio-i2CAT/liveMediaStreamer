@@ -71,7 +71,8 @@ AC_CHECK_LIB([swscale], [sws_scale])
 AC_CHECK_LIB([opencv_core], main)
 AC_CHECK_LIB([opencv_imgproc], main)
 AC_CHECK_LIB([x264], [x264_encoder_encode])
-
+AC_CHECK_LIB([log4cplus], [main])
+ 
 AC_CHECK_FILE(/usr/local/include/opencv/cv.h, [CPPFLAGS="$CPPFLAGS -I/usr/local/include/opencv"; break;],[
     AC_CHECK_FILE(/usr/include/opencv/cv.h, [CPPFLAGS="$CPPFLAGS -I/usr/include/opencv"; break;],[])])
     

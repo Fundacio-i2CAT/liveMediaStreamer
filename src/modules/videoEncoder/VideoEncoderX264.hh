@@ -41,6 +41,10 @@ extern "C" {
 #include <libavformat/avformat.h>
 }
 
+#define DEFAULT_ENCODER_THREADS 4
+#define DEFAULT_GOP 2000 //ms
+#define DEFAULT_BITRATE 2000
+
 class VideoEncoderX264: public OneToOneFilter {
 	public:
 		VideoEncoderX264(int framerate = VIDEO_DEFAULT_FRAMERATE);
@@ -48,7 +52,7 @@ class VideoEncoderX264: public OneToOneFilter {
 		bool doProcessFrame(Frame *org, Frame *dst);
         bool configure(int gop_ = DEFAULT_GOP,
                        int bitrate_ = DEFAULT_BITRATE, 
-                       int threads_ = DEFAULT_ENCODER_THREADS, int fps_ = DEFAULT_FRAME_RATE, bool annexB_ = false);
+                       int threads_ = DEFAULT_ENCODER_THREADS, int fps_ = VIDEO_DEFAULT_FRAMERATE, bool annexB_ = false);
 		void setIntra(){forceIntra = true;};
 		FrameQueue* allocQueue(int wId);
 

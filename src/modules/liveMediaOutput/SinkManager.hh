@@ -20,27 +20,23 @@
  *  Authors:  David Cassany <david.cassany@i2cat.net>,
  *            
  */
+ 
 #ifndef _SINK_MANAGER_HH
 #define _SINK_MANAGER_HH
 
 #include "QueueSource.hh"
 #include "../../Filter.hh"
 #include "../../IOInterface.hh"
+#include "Connection.hh"
 
-#include <BasicUsageEnvironment.hh>
-#include <liveMedia.hh>
-#include <Groupsock.hh>
 #include <map>
 #include <string>
 
 #define RTSP_PORT 8554
 #define MAX_VIDEO_FRAME_SIZE 1024*1024
 #define MANUAL_CLIENT_SESSION_ID 1
-#define TTL 255
-#define INITIAL_SERVER_PORT 6970
 #define INIT_SEGMENT 0
 
-class Connection;
 
 class SinkManager : public TailFilter {
 private:
@@ -51,12 +47,23 @@ public:
     static SinkManager* getInstance();
     static void destroyInstance();
     
-    
-
     bool addSession(std::string id, std::vector<int> readers, 
                     std::string info = "", std::string desc = "");
-    bool addConnection(int reader, unsigned id, std::string ip, unsigned int port);
     
+    /**
+    * Adds an RTP connection
+    * @param readers Readers associated to the connection (some connection support multiple readers)
+    * @param id Connection Id, which must be unique for each one
+    * @param ip Destination IP
+    * @param port Destination port
+    * @param txFormat Transmission format which can be STD_RTP (no container), MPEGTS, Destination port
+    * @return True if succeded and false if not
+    */ 
+    bool addRTPConnection(std::vector<int> readers, int id, std::string ip, int port, TxFormat txFormat);
+    bool addDASHConnection(int reader, unsigned id, std::string fileName, std::string quality,
+                           bool reInit, uint32_t segmentTime,
+                           uint32_t initSegment, uint32_t fps);
+
     ServerMediaSession* getSession(std::string id); 
     bool publishSession(std::string id);
     bool removeSession(std::string id);
@@ -68,8 +75,12 @@ public:
     UsageEnvironment* envir() {return env;}
       
 private: 
+    bool addStdRTPConnection(std::vector<int> readers, int id, std::string ip, int port);
+    bool addUltraGridRTPConnection(std::vector<int> readers, int id, std::string ip, int port);
+    bool addMpegTsRTPConnection(std::vector<int> readers, int id, std::string ip, int port);
     void initializeEventMap();
     void addSessionEvent(Jzon::Node* params, Jzon::Object &outputNode);
+    void addRTPConnectionEvent(Jzon::Node* params, Jzon::Object &outputNode);
     Reader *setReader(int readerID, FrameQueue* queue, bool sharedQueue = false);
     
     bool processFrame(bool removeFrame = false);
@@ -86,64 +97,12 @@ private:
    
     static SinkManager* mngrInstance;
     std::map<std::string, ServerMediaSession*> sessionList;
-    std::map<int, StreamReplicator*> replicas;
+    std::map<int, StreamReplicator*> replicators;
     std::map<int, Connection*> connections;
     UsageEnvironment* env;
     uint8_t watch;
     
     RTSPServer* rtspServer;
-};
-
-class Connection {
-    
-public:
-    void startPlaying();
-    void stopPlaying();
-    ~Connection();
-    
-protected:
-    Connection(UsageEnvironment* env, std::string ip, 
-               unsigned port, FramedSource *source);
-    Connection(UsageEnvironment* env, std::string fileName, FramedSource *source);
-    static void afterPlaying(void* clientData);
-    
-    
-    UsageEnvironment* fEnv;
-    std::string fIp;
-    unsigned fPort;
-	std::string fFileName;
-    FramedSource *fSource;
-    
-    struct in_addr destinationAddress;
-    RTPSink *sink;
-	FileSink *outputAudioFile;
-    RTCPInstance* rtcp;
-    Groupsock *rtpGroupsock;
-    Groupsock *rtcpGroupsock;
-};
-
-class VideoConnection : public Connection {   
-public:
-    VideoConnection(UsageEnvironment* env, 
-                    std::string ip, unsigned port, 
-                    FramedSource *source, VCodecType codec);
-
-private:
-    VCodecType fCodec;
-};
-
-class AudioConnection : public Connection {
-public:
-    AudioConnection(UsageEnvironment* env, std::string ip, unsigned port, 
-                    FramedSource *source, ACodecType codec,
-                    unsigned channels, unsigned sampleRate,
-                    SampleFmt sampleFormat);
-    
-private:
-    ACodecType fCodec;
-    unsigned fChannels;
-    unsigned fSampleRate;
-    SampleFmt fSampleFormat;
 };
 
 #endif

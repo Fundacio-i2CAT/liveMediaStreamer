@@ -39,13 +39,12 @@ AudioEncoderLibav::AudioEncoderLibav()  : OneToOneFilter()
     libavFrame = av_frame_alloc();
     av_init_packet(&pkt);
     pkt.data = NULL;
-    internalBuffer = NULL;
     pkt.size = 0;
     fType = AUDIO_ENCODER;
 
     internalChannels = DEFAULT_CHANNELS;
     internalSampleRate = DEFAULT_SAMPLE_RATE;
-    fCodec = MP3;
+    fCodec = AAC;
     channels = DEFAULT_CHANNELS;
     sampleRate = DEFAULT_SAMPLE_RATE;
     sampleFmt = S16P;
@@ -77,7 +76,6 @@ bool AudioEncoderLibav::doProcessFrame(Frame *org, Frame *dst)
     int ret, gotFrame;
 
     AudioFrame* aRawFrame = dynamic_cast<AudioFrame*>(org);
-
     if(!reconfigure(aRawFrame)) {
         return false;
     }
@@ -141,7 +139,7 @@ void AudioEncoderLibav::configure(ACodecType codec, int internalChannels, int in
             internalLibavSampleFormat = AV_SAMPLE_FMT_S16;
             internalSampleFmt = S16;
             break; 
-        case MPEG4_GENERIC:
+        case AAC:
             codecID = AV_CODEC_ID_AAC;
             internalLibavSampleFormat = AV_SAMPLE_FMT_S16;
             internalSampleFmt = S16;
@@ -200,6 +198,7 @@ bool AudioEncoderLibav::config()
     codecCtx->sample_rate = internalSampleRate;
     codecCtx->sample_fmt = internalLibavSampleFormat;
 
+
     if (avcodec_open2(codecCtx, codec, NULL) < 0) {
         utils::errorMsg("Could not open codec context");
         return false;
@@ -236,39 +235,15 @@ bool AudioEncoderLibav::config()
         libavFrame->nb_samples = AudioFrame::getDefaultSamples(sampleRate);
     }
 
-    frameTime = std::chrono::microseconds(1000000*libavFrame->nb_samples/internalSampleRate);
-
     libavFrame->format = codecCtx->sample_fmt;
     libavFrame->channel_layout = codecCtx->channel_layout;
+    libavFrame->channels = internalChannels;
+
+    frameTime = std::chrono::microseconds(1000000*libavFrame->nb_samples/internalSampleRate);
 
     samplesPerFrame = libavFrame->nb_samples;
 
-    /* the codec gives us the frame size, in samples,
-    * we calculate the size of the samples buffer in bytes */
-    internalBufferSize = av_samples_get_buffer_size(NULL, codecCtx->channels, 
-                                                      libavFrame->nb_samples, codecCtx->sample_fmt, 0);
-
-    if (internalBufferSize < 0) {
-        utils::errorMsg("Could not get sample buffer size");
-       return false;
-    }
-
-    if (internalBuffer) {
-        delete[] internalBuffer;
-    } 
-
-    internalBuffer = new unsigned char[internalBufferSize]();
-    if (!internalBuffer) {
-        utils::errorMsg("Could not allocate " + 
-            std::to_string(internalBufferSize) + 
-            " bytes for samples buffer");
-        return false;
-    }
-
-    /* setup the data pointers in the AVFrame */
-    int ret = avcodec_fill_audio_frame(libavFrame, codecCtx->channels, codecCtx->sample_fmt,
-                                        (const uint8_t*)internalBuffer, internalBufferSize, 0);
-    if (ret < 0) {
+    if (av_frame_get_buffer(libavFrame, 0) < 0) {
         utils::errorMsg("Could not setup audio frame");
         return false;
     }
@@ -281,6 +256,7 @@ bool AudioEncoderLibav::config()
 int AudioEncoderLibav::resample(AudioFrame* src, AVFrame* dst)
 {
     int samples;
+    unsigned char *auxBuff;
 
     if (src->isPlanar()) {
         samples = swr_convert(
@@ -292,7 +268,7 @@ int AudioEncoderLibav::resample(AudioFrame* src, AVFrame* dst)
                   );
 
     } else {
-        auxBuff[0] = src->getDataBuf();
+        auxBuff = src->getDataBuf();
 
         samples = swr_convert(
                     resampleCtx, 

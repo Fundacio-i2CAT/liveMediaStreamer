@@ -28,8 +28,8 @@
 #include <opencv/cv.hpp>
  
 
-#define MAX_LAYERS 8
-#define VMIXER_MAX_CHANNELS 8
+#define MAX_LAYERS 16
+#define VMIXER_MAX_CHANNELS 16
 
 class ChannelConfig {
 

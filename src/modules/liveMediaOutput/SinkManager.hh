@@ -51,13 +51,14 @@ public:
     
     bool addSession(std::string id, std::vector<int> readers, 
                     std::string info = "", std::string desc = "");
+    
     /**
     * Adds an RTP connection
     * @param readers Readers associated to the connection (some connection support multiple readers)
-    * @param id Destination IP
-    * @param ip Destination port
+    * @param id Connection Id, which must be unique for each one
+    * @param ip Destination IP
     * @param port Destination port
-    * @param txFormat Destination port
+    * @param txFormat Transmission format which can be STD_RTP (no container), MPEGTS, Destination port
     * @return True if succeded and false if not
     */ 
     bool addRTPConnection(std::vector<int> readers, int id, std::string ip, int port, TxFormat txFormat);

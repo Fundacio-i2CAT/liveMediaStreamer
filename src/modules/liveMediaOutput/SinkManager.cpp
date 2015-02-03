@@ -156,7 +156,7 @@ bool SinkManager::addRTPConnection(std::vector<int> inputReaders, int id, std::s
         return false;
     }
 
-    for (iReader : inputReaders) {
+    for (auto iReader : inputReaders) {
         if (getReader(iReader) == NULL) {
             utils::errorMsg("Error creating RTP connection. Specified ID already in use");
             return false;
@@ -165,13 +165,13 @@ bool SinkManager::addRTPConnection(std::vector<int> inputReaders, int id, std::s
 
     switch (txFormat) {
         case STD_RTP:
-            ret = addStdRTPConnection(readers, id, ip, port);
+            ret = addStdRTPConnection(inputReaders, id, ip, port);
             break;
         case ULTRAGRID:
-            ret = addUltraGridRTPConnection(readers, id, ip, port);
+            ret = addUltraGridRTPConnection(inputReaders, id, ip, port);
             break;
         case MPEGTS:
-            ret = addMpegTsRTPConnection(readers, id, ip, port);
+            ret = addMpegTsRTPConnection(inputReaders, id, ip, port);
             break;
         default:
             ret = false;
@@ -186,7 +186,6 @@ bool SinkManager::addMpegTsRTPConnection(std::vector<int> inputReaders, int id, 
     VideoFrameQueue *vQueue = NULL;
     AudioFrameQueue *aQueue = NULL;
     MpegTsConnection* conn = NULL;
-    Reader* r = NULL;
     bool success = false;
     bool hasVideo = false;
     bool hasAudio = false;

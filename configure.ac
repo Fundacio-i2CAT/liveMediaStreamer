@@ -58,4 +58,4 @@ AC_FUNC_MALLOC
 AC_FUNC_REALLOC
 AC_CHECK_FUNCS([floor gettimeofday])
 
-AC_OUTPUT([Makefile src/Makefile])
+AC_OUTPUT([Makefile src/Makefile unitTests/Makefile])

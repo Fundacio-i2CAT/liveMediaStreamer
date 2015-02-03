@@ -1,5 +1,5 @@
 ACLOCAL_AMFLAGS = -I m4
-SUBDIRS = src 
+SUBDIRS = src unitTests
 
 bin_PROGRAMS = livemediastreamer
 bin_PROGRAMS += testtranscoder testtranscoderh264toisoff testtranscoderaactoisoff testaudio h264toisoff

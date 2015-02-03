@@ -75,7 +75,6 @@ void MpegTsConnectionTest::setUp()
 
 void MpegTsConnectionTest::tearDown()
 {
-    conn->stopPlaying();
     delete conn;
 }
 

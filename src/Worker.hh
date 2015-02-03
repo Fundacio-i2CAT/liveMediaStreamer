@@ -103,18 +103,15 @@ protected:
     void processAll();
 
 private:
-    void updateFrameTime(Runnable* processor);
     std::map<int, Slave*> slaves;
     //std::chrono::microseconds frameTime;
-    std::chrono::microseconds teaTime;
-
 };
 
 class Runnable {
     
 public:
     ~Runnable(){};
-    virtual std::chrono::microseconds processFrame(bool removeFrame = true) = 0;
+    virtual uint64_t processFrame(bool removeFrame = true) = 0;
     virtual void processEvent() = 0;
     virtual void removeFrames() = 0;
     virtual bool hasFrames() = 0;

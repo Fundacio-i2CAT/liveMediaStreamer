@@ -28,6 +28,7 @@
 
 #include <cmath>
 #include <iostream>
+#include <algorithm>
 #include "Worker.hh"
 
 Worker::Worker(): run(false), enabled(false)
@@ -165,8 +166,7 @@ Master::Master() : Worker()
 
 void Master::process()
 {
-    std::chrono::microseconds enlapsedTime;
-    std::chrono::system_clock::time_point startPoint;
+    uint64_t teaTime = 0;
     std::chrono::microseconds active(ACTIVE);
     
     while(run) {
@@ -178,13 +178,12 @@ void Master::process()
 
         for (auto it : processors) {   
             it.second->processEvent();
-            updateFrameTime(it.second);
 
             if (!it.second->isEnabled()) {
                 continue;
             }
             
-            it.second->processFrame(false);
+            teaTime = std::min(teaTime, it.second->processFrame(false));
         }
 
         while (!allFinished() && run) {
@@ -213,10 +212,6 @@ void Master::process()
     }
 }
 
-void Master::updateFrameTime(Runnable* processor)
-{
-    frameTime = processor->getFrameTime();
-}
 
 bool Master::addSlave(int id, Slave *slave) 
 {

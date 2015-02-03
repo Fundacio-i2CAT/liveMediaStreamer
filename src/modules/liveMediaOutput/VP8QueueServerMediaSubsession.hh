@@ -24,7 +24,7 @@
 #ifndef _VP8_SERVER_MEDIA_SUBSESSION_HH
 #define _VP8_SERVER_MEDIA_SUBSESSION_HH
 
-#include <liveMedia/liveMedia.hh>
+#include <liveMedia.hh>
 #include "QueueServerMediaSubsession.hh"
 
 class VP8QueueServerMediaSubsession: public QueueServerMediaSubsession {

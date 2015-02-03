@@ -19,9 +19,6 @@ liblivemediastreamer_la_SOURCES = modules/audioDecoder/AudioDecoderLibav.cpp \
                                   modules/liveMediaOutput/JPEGQueueServerMediaSubsession.cpp \
                                   modules/liveMediaOutput/QueueServerMediaSubsession.cpp \
                                   modules/liveMediaOutput/QueueSource.cpp \
-                                  modules/liveMediaOutput/DashFileSink.cpp \
-                                  modules/liveMediaOutput/DashSegmenterVideoSource.cpp \
-                                  modules/liveMediaOutput/DashSegmenterAudioSource.cpp \
                                   modules/liveMediaOutput/SinkManager.cpp \
                                   modules/liveMediaOutput/VP8QueueServerMediaSubsession.cpp \
                                   modules/liveMediaOutput/Connection.cpp \
@@ -29,6 +26,7 @@ liblivemediastreamer_la_SOURCES = modules/audioDecoder/AudioDecoderLibav.cpp \
                                   modules/liveMediaOutput/H264StartCodeInjector.cpp \
                                   modules/liveMediaOutput/UltraGridAudioRTPSink.cpp \
                                   modules/liveMediaOutput/UltraGridVideoRTPSink.cpp \
+                                  modules/liveMediaOutput/SPSparser/h264_stream.c \
                                   AVFramedQueue.cpp \
                                   AudioCircularBuffer.cpp \
                                   AudioFrame.cpp \
@@ -47,6 +45,8 @@ liblivemediastreamer_la_SOURCES = modules/audioDecoder/AudioDecoderLibav.cpp \
                                   X264VideoCircularBuffer.cpp \
                                   X264VideoFrame.cpp 
 
-liblivemediastreamer_la_CPPFLAGS = -std=c++11 -g -D__STDC_CONSTANT_MACROS -I/usr/local/include/opencv -I/usr/local/include/groupsock -I/usr/local/include/liveMedia -I/usr/local/include/BasicUsageEnvironment -I/usr/local/include/UsageEnvironment -Wall
+liblivemediastreamer_la_CPPFLAGS = -std=c++11 -g -D__STDC_CONSTANT_MACROS -Wall
 
-liblivemediastreamer_la_LDFLAGS = -shared -fPIC -pthread -lBasicUsageEnvironment -lUsageEnvironment -lliveMedia -lgroupsock -lavcodec -lswresample -lswscale -llog4cplus -lopencv_core -lopencv_imgproc -lx264 -li2dash
+liblivemediastreamer_la_CFLAGS = -g -D__STDC_CONSTANT_MACROS -Wall
+
+liblivemediastreamer_la_LDFLAGS = -shared -fPIC -pthread -lBasicUsageEnvironment -lUsageEnvironment -lliveMedia -lgroupsock -lavcodec -lswresample -lswscale -llog4cplus -lopencv_core -lopencv_imgproc -lx264

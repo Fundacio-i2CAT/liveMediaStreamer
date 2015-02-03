@@ -24,7 +24,7 @@
 #ifndef _AUDIO_SERVER_MEDIA_SUBSESSION_HH
 #define _AUDIO_SERVER_MEDIA_SUBSESSION_HH
 
-#include <liveMedia/liveMedia.hh>
+#include <liveMedia.hh>
 #include "QueueServerMediaSubsession.hh"
 #include "../../Utils.hh"
 

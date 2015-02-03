@@ -282,6 +282,11 @@ void SourceManager::doGetState(Jzon::Object &filterNode)
     for (auto it : sessionMap) {
         Jzon::Array subsessionArray;
         Jzon::Object jsonSession;
+
+        if (!it.second->getScs()->session) {
+            continue;
+        }
+
         MediaSubsessionIterator iter(*(it.second->getScs()->session));
 
         while ((subsession = iter.next()) != NULL) {
@@ -420,7 +425,7 @@ bool Session::initiateSession()
         return true;
     } else if (client != NULL){
         unsigned ret = client->sendDescribeCommand(handlers::continueAfterDESCRIBE);
-        std::cout << "SNED DESCRIBE COMMAND RETURN: " << ret << std::endl;
+        std::cout << "SEND DESCRIBE COMMAND RETURN: " << ret << std::endl;
         return true;
     }
     

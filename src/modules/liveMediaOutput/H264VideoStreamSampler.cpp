@@ -20,9 +20,10 @@
  *  Authors:  Marc Palau <marc.palau@i2cat.net>
  */
 
- #include "H264VideoStreamSampler.hh"
- #include "SPSparser/h264_stream.h"
- #include <iostream>
+#include "H264VideoStreamSampler.hh"
+extern "C" { 
+    #include "SPSparser/h264_stream.h"
+}
 
 H264VideoStreamSampler* H264VideoStreamSampler::createNew(UsageEnvironment& env, FramedSource* inputSource, bool annexB)
 {

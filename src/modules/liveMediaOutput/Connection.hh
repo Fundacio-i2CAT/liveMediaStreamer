@@ -30,7 +30,6 @@
 #include <liveMedia.hh>
 #include <Groupsock.hh>
 #include "../../Types.hh"
-#include "DashFileSink.hh"
 
 #define TTL 255
 #define INITIAL_SERVER_PORT 6970

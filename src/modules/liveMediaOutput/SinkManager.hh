@@ -27,8 +27,6 @@
 #include "QueueSource.hh"
 #include "../../Filter.hh"
 #include "../../IOInterface.hh"
-#include "DashSegmenterVideoSource.hh"
-#include "DashSegmenterAudioSource.hh"
 #include "Connection.hh"
 
 #include <map>
@@ -62,9 +60,9 @@ public:
     * @return True if succeded and false if not
     */ 
     bool addRTPConnection(std::vector<int> readers, int id, std::string ip, int port, TxFormat txFormat);
-    bool addDASHConnection(int reader, unsigned id, std::string fileName, std::string quality, 
-                           bool reInit = false, uint32_t segmentTime = SEGMENT_TIME, 
-                           uint32_t initSegment = INIT_SEGMENT, uint32_t fps = FRAME_RATE);
+    bool addDASHConnection(int reader, unsigned id, std::string fileName, std::string quality,
+                           bool reInit, uint32_t segmentTime,
+                           uint32_t initSegment, uint32_t fps);
 
     ServerMediaSession* getSession(std::string id); 
     bool publishSession(std::string id);
@@ -86,9 +84,6 @@ private:
     Reader *setReader(int readerID, FrameQueue* queue, bool sharedQueue = false);
     
     bool processFrame(bool removeFrame = false);
-
-
-
     
     ServerMediaSubsession *createSubsessionByReader(int readerId);
     ServerMediaSubsession *createVideoMediaSubsession(VCodecType codec, int readerId);

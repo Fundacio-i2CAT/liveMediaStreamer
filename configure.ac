@@ -36,7 +36,7 @@ if test -n "${with_livemedia}"; then
     fi
     if test -f "${custom_livemedia}/lib/libliveMedia.so"; then
         AC_MSG_RESULT(${custom_livemedia}/lib/libliveMedia.so)
-        LDFLAGS="-L${custom_livemedia}/lib -lBasicUsageEnvironment -lUsageEnvironment -lliveMedia -lgroupsock $LDFLAGS"
+        LDFLAGS="-L${custom_livemedia}/lib $LDFLAGS"
         AC_CHECK_FILE(${custom_livemedia}/include/liveMedia/liveMedia.hh,
                 [CPPFLAGS="$CPPFLAGS -I${custom_livemedia}/include/liveMedia";break;])
         AC_CHECK_FILE(${custom_livemedia}/include/BasicUsageEnvironment/BasicUsageEnvironment.hh,
@@ -80,7 +80,7 @@ if test -n "${with_ffmpeg}"; then
     fi
     if test -f "${custom_ffmpeg}/lib/libavcodec.so"; then
         AC_MSG_RESULT(${custom_ffmpeg}/lib/libavcodec.so)
-        LDFLAGS="-L${custom_ffmpeg}/lib -lavcodec -lavformat -lavutil -lswresample -lswscale $LDFLAGS"
+        LDFLAGS="-L${custom_ffmpeg}/lib $LDFLAGS"
         AC_CHECK_FILE(${custom_ffmpeg}/include/libavcodec/avcodec.h, 
                 [CPPFLAGS="$CPPFLAGS -I${custom_ffmpeg}/include"; break;])
         AC_CHECK_FILE(${custom_ffmpeg}/include/libavformat/avformat.h,

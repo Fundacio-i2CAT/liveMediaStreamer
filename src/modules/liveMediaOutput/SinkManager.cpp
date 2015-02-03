@@ -37,9 +37,6 @@
 #include "../../Types.hh"
 #include "../../Utils.hh"
 
-
-SinkManager *SinkManager::mngrInstance = NULL;
-
 SinkManager::SinkManager(int readersNum): TailFilter(readersNum), watch(0)
 {
     TaskScheduler* scheduler = BasicTaskScheduler::createNew();
@@ -63,16 +60,6 @@ SinkManager::~SinkManager()
     delete &envir()->taskScheduler();
     envir()->reclaim();
     env = NULL;
-
-    mngrInstance = NULL;
-}
-
-SinkManager*
-SinkManager::getInstance(){
-    if (mngrInstance != NULL){
-        return mngrInstance;
-    }
-    return new SinkManager();
 }
 
 void SinkManager::stop()
@@ -92,11 +79,6 @@ void SinkManager::stop()
     Medium::close(rtspServer);
 
     watch = 1;
-}
-
-void SinkManager::destroyInstance()
-{
-    //TODO:
 }
 
 size_t SinkManager::processFrame(bool removeFrame)

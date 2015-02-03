@@ -55,7 +55,7 @@ protected:
 
 void SinkManagerTest::setUp()
 {
-	sinkManager = sinkManager->getInstance();
+	sinkManager = new SinkManager();
     vFilter = new VideoFilterMockup(H264);
     aFilter = new AudioFilterMockup(AAC);
     vFilter->connectOneToMany(sinkManager, vReaderId);
@@ -64,7 +64,9 @@ void SinkManagerTest::setUp()
 
 void SinkManagerTest::tearDown()
 {
-    sinkManager->destroyInstance();
+    delete vFilter;
+    delete aFilter;
+    delete sinkManager;
 }
 
 void SinkManagerTest::addMpegTsRTPConnection()

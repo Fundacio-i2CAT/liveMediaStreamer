@@ -27,6 +27,8 @@
 #include "QueueSource.hh"
 #include "../../Filter.hh"
 #include "../../IOInterface.hh"
+#include "DashSegmenterVideoSource.hh"
+#include "DashSegmenterAudioSource.hh"
 #include "Connection.hh"
 
 #include <map>
@@ -39,15 +41,11 @@
 
 
 class SinkManager : public TailFilter {
-private:
+public:
+
     SinkManager(int readersNum = MAX_READERS);
     ~SinkManager();
-
-public:
-    static SinkManager* getInstance();
-    static void destroyInstance();
-
-    bool addSession(std::string id, std::vector<int> readers,
+    bool addSession(std::string id, std::vector<int> readers, 
                     std::string info = "", std::string desc = "");
 
     /**
@@ -60,9 +58,9 @@ public:
     * @return True if succeded and false if not
     */
     bool addRTPConnection(std::vector<int> readers, int id, std::string ip, int port, TxFormat txFormat);
-    bool addDASHConnection(int reader, unsigned id, std::string fileName, std::string quality,
-                           bool reInit, uint32_t segmentTime,
-                           uint32_t initSegment, uint32_t fps);
+    bool addDASHConnection(int reader, unsigned id, std::string fileName, std::string quality, 
+                           bool reInit = false, uint32_t segmentTime = SEGMENT_TIME, 
+                           uint32_t initSegment = INIT_SEGMENT, uint32_t fps = FRAME_RATE);
 
     ServerMediaSession* getSession(std::string id);
     bool publishSession(std::string id);
@@ -94,8 +92,7 @@ private:
     void createVideoQueueSource(VCodecType codec, Reader *reader, int readerId);
     void createAudioQueueSource(ACodecType codec, Reader *reader, int readerId);
     void doGetState(Jzon::Object &filterNode);
-
-    static SinkManager* mngrInstance;
+   
     std::map<std::string, ServerMediaSession*> sessionList;
     std::map<int, StreamReplicator*> replicators;
     std::map<int, Connection*> connections;

@@ -17,7 +17,6 @@
  *
  *  Authors:  Marc Palau <marc.palau@i2cat.net>
  *            
- *            
  */
 
 #include <string>

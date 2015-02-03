@@ -482,57 +482,6 @@ bool OneToManyFilter::processFrame(bool removeFrame)
     return true;
 }
 
-HeadFilter::HeadFilter(unsigned writersNum) : 
-BaseFilter(0, writersNum, false)
-{
-    
-}
-
-void HeadFilter::pushEvent(Event e)
-{
-    std::string action = e.getAction();
-    Jzon::Node* params = e.getParams();
-    Jzon::Object outputNode;
-
-    if (action.empty()) {
-        return;
-    }
-
-    if (eventMap.count(action) <= 0) {
-        return;
-    }
-    
-    eventMap[action](params, outputNode);
-    e.sendAndClose(outputNode);
-}
-
-
-
-TailFilter::TailFilter(unsigned readersNum) : 
-BaseFilter(readersNum, 0, false)
-{
-
-}
-
-void TailFilter::pushEvent(Event e)
-{
-    std::string action = e.getAction();
-    Jzon::Node* params = e.getParams();
-    Jzon::Object outputNode;
-
-    if (action.empty()) {
-        return;
-    }
-
-    if (eventMap.count(action) <= 0) {
-        return;
-    }
-    
-    eventMap[action](params, outputNode);
-    e.sendAndClose(outputNode);
-}
-
-
 ManyToOneFilter::ManyToOneFilter(unsigned readersNum, bool force_) : 
 BaseFilter(readersNum, 1, force_)
 {
@@ -551,8 +500,81 @@ bool ManyToOneFilter::processFrame(bool removeFrame)
     }
 
     if (removeFrame) {
-    	removeFrames();
+        removeFrames();
     }
     
+    return true;
+}
+
+HeadFilter::HeadFilter(unsigned writersNum) : 
+BaseFilter(0, writersNum, false)
+{
+    
+}
+
+bool HeadFilter::processFrame(bool removeFrame)
+{
+    //TODO: implement
+    return false;
+}
+
+
+
+TailFilter::TailFilter(unsigned readersNum) : 
+BaseFilter(readersNum, 0, false)
+{
+
+}
+
+bool TailFilter::processFrame(bool removeFrame)
+{
+    if (!demandOriginFrames()) {
+        return false;
+    }
+
+    if (doProcessFrame(oFrames) {
+        //TODO: evaluate return
+    }
+
+    if (removeFrame) {
+        removeFrames();
+    }
+    
+    return true;
+}
+
+LiveMediaFilter::LiveMediaFilter(unsigned readersNum, unsigned writersNum) :
+BaseFilter(readersNum, writersNum, false), watch(0)
+{
+    TaskScheduler* scheduler = BasicTaskScheduler::createNew();
+    env = BasicUsageEnvironment::createNew(*scheduler);
+}
+
+void LiveMediaFilter::pushEvent(Event e)
+{
+    std::string action = e.getAction();
+    Jzon::Node* params = e.getParams();
+    Jzon::Object outputNode;
+
+    if (action.empty()) {
+        return;
+    }
+
+    if (eventMap.count(action) <= 0) {
+        return;
+    }
+    
+    eventMap[action](params, outputNode);
+    e.sendAndClose(outputNode);
+}
+
+bool LiveMediaFilter::processFrame(bool removeFrame)
+{   
+    if (envir() == NULL){
+        return false;
+    }
+    
+    envir()->taskScheduler().doEventLoop((char*) &watch);
+
     return true;
 }

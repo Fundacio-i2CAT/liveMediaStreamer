@@ -37,11 +37,9 @@
 #include "../../Types.hh"
 #include "../../Utils.hh"
 
-SinkManager::SinkManager(int readersNum): TailFilter(readersNum), watch(0)
+SinkManager::SinkManager(int readersNum) : 
+LiveMediaFilter(readersNum, 0)
 {    
-    TaskScheduler* scheduler = BasicTaskScheduler::createNew();
-    this->env = BasicUsageEnvironment::createNew(*scheduler);
-    
     //TODO: Add authentication security
     rtspServer = RTSPServer::createNew(*env, RTSP_PORT, NULL);
     if (rtspServer == NULL) {
@@ -78,17 +76,6 @@ void SinkManager::stop()
     Medium::close(rtspServer);
 
     watch = 1;
-}
-
-bool SinkManager::processFrame(bool removeFrame)
-{   
-    if (envir() == NULL){
-        return false;
-    }
-    
-    envir()->taskScheduler().doEventLoop((char*) &watch);
-
-    return true;
 }
 
 bool SinkManager::addSession(std::string id, std::vector<int> readers, std::string info, std::string desc)

@@ -39,11 +39,9 @@ FrameQueue* createAudioQueue(unsigned char rtpPayloadFormat,
                              char const* codecName, unsigned channels, 
                              unsigned sampleRate);
 
-SourceManager::SourceManager(int writersNum): HeadFilter(writersNum), watch(0)
+SourceManager::SourceManager(int writersNum): 
+LiveMediaFilter(0, writersNum)
 {    
-    TaskScheduler* scheduler = BasicTaskScheduler::createNew();
-    this->env = BasicUsageEnvironment::createNew(*scheduler);
-    
     mngrInstance = this;
     fType = RECEIVER;
     initializeEventMap();
@@ -98,17 +96,6 @@ bool SourceManager::hasCallback()
     }
 
     return false;
-}
-
-bool SourceManager::processFrame(bool removeFrame)
-{   
-    if (envir() == NULL){
-        return false;
-    }
-
-    envir()->taskScheduler().doEventLoop((char*) &watch); 
-    
-    return true;
 }
 
 bool SourceManager::addSession(Session* session)

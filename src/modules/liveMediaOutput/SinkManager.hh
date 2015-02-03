@@ -40,7 +40,7 @@
 #define INIT_SEGMENT 0
 
 
-class SinkManager : public TailFilter {
+class SinkManager : public LiveMediaFilter {
 public:
 
     SinkManager(int readersNum = MAX_READERS);
@@ -70,8 +70,6 @@ public:
     
     void stop();
     
-    UsageEnvironment* envir() {return env;}
-      
 private: 
     bool addStdRTPConnection(std::vector<int> readers, int id, std::string ip, int port);
     bool addUltraGridRTPConnection(std::vector<int> readers, int id, std::string ip, int port);
@@ -80,10 +78,7 @@ private:
     void addSessionEvent(Jzon::Node* params, Jzon::Object &outputNode);
     void addRTPConnectionEvent(Jzon::Node* params, Jzon::Object &outputNode);
     Reader *setReader(int readerID, FrameQueue* queue, bool sharedQueue = false);
-    
-    bool processFrame(bool removeFrame = false);
-
-
+    FrameQueue *allocQueue(int wId) {return NULL;};
 
     
     ServerMediaSubsession *createSubsessionByReader(int readerId);
@@ -99,8 +94,6 @@ private:
     std::map<std::string, ServerMediaSession*> sessionList;
     std::map<int, StreamReplicator*> replicators;
     std::map<int, Connection*> connections;
-    UsageEnvironment* env;
-    uint8_t watch;
     
     RTSPServer* rtspServer;
 };

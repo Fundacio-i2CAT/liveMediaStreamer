@@ -30,21 +30,13 @@
 #include <queue>
 #include <mutex>
 
-#ifndef _FRAME_QUEUE_HH
 #include "FrameQueue.hh"
-#endif
-
-#ifndef _IO_INTERFACE_HH
 #include "IOInterface.hh"
-#endif
-
-#ifndef _WORKER_HH
 #include "Worker.hh"
-#endif
-
-#include <iostream>
-
 #include "Event.hh"
+#include <liveMedia/liveMedia.hh>
+#include <BasicUsageEnvironment.hh>
+
 #define DEFAULT_ID 1
 #define MAX_WRITERS 16
 #define MAX_READERS 16
@@ -171,7 +163,6 @@ public:
 
 protected:
     HeadFilter(unsigned writersNum = MAX_WRITERS);
-    int getNullWriterID();
     
 private:
     using BaseFilter::demandOriginFrames;
@@ -181,6 +172,7 @@ private:
     using BaseFilter::readers;
     using BaseFilter::oFrames;
     using BaseFilter::dFrames;
+    void stop() {};
 };
 
 class TailFilter : public BaseFilter {
@@ -189,7 +181,8 @@ public:
 
 protected:
     TailFilter(unsigned readersNum = MAX_READERS);
-    
+    virtual bool doProcessFrame(std::map<int, Frame *> orgFrames) = 0;
+
 private:
     FrameQueue *allocQueue(int wId) {return NULL;};
     using BaseFilter::demandOriginFrames;
@@ -198,6 +191,7 @@ private:
     using BaseFilter::removeFrames;
     using BaseFilter::oFrames;
     using BaseFilter::dFrames;
+    void stop() {};
 };
 
 class ManyToOneFilter : public BaseFilter {
@@ -216,6 +210,20 @@ private:
     using BaseFilter::oFrames;
     using BaseFilter::dFrames;
     void stop() {};
+};
+
+class LiveMediaFilter : public BaseFilter 
+{
+public:
+    void pushEvent(Event e);
+    UsageEnvironment* envir() {return env;}
+
+protected:
+    LiveMediaFilter(unsigned readersNum = MAX_READERS, unsigned writersNum = MAX_WRITERS);
+    bool processFrame(bool removeFrame = true);
+
+    UsageEnvironment* env;
+    uint8_t watch;
 };
 
 #endif

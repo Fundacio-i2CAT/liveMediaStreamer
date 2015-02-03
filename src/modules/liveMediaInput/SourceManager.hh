@@ -30,8 +30,7 @@
 #include <list>
 #include <functional>
 #include <string>
-#include <liveMedia/liveMedia.hh>
-#include <BasicUsageEnvironment.hh>
+
 
 #define PROTOCOL "RTP"
  
@@ -56,7 +55,7 @@ private:
     std::string id;
 };
 
-class SourceManager : public HeadFilter {
+class SourceManager : public LiveMediaFilter {
 private:
     SourceManager(int writersNum = MAX_WRITERS);
     ~SourceManager();
@@ -83,15 +82,12 @@ public:
     void setCallback(std::function<void(char const*, unsigned short)> callbackFunction);
     bool hasCallback();
     
-    UsageEnvironment* envir() {return env;};
-    
 private:
     void initializeEventMap();
     friend bool handlers::addSubsessionSink(UsageEnvironment& env, MediaSubsession *subsession);
     void doGetState(Jzon::Object &filterNode);
     void addSessionEvent(Jzon::Node* params, Jzon::Object &outputNode);
 
-    bool processFrame(bool removeFrame = false);
     void addConnection(int wId, MediaSubsession* subsession);
     
     static void* startServer(void *args);
@@ -99,8 +95,6 @@ private:
     
     static SourceManager* mngrInstance;
     std::map<std::string, Session*> sessionMap;
-    UsageEnvironment* env;
-    uint8_t watch;
     std::function<void(char const*, unsigned short)> callback;
     
 };

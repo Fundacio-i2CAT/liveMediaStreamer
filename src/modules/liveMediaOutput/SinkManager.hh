@@ -41,14 +41,10 @@
 
 
 class SinkManager : public TailFilter {
-private:
+public:
+
     SinkManager(int readersNum = MAX_READERS);
     ~SinkManager();
-    
-public:
-    static SinkManager* getInstance();
-    static void destroyInstance();
-    
     bool addSession(std::string id, std::vector<int> readers, 
                     std::string info = "", std::string desc = "");
     
@@ -100,7 +96,6 @@ private:
     void createAudioQueueSource(ACodecType codec, Reader *reader, int readerId);
     void doGetState(Jzon::Object &filterNode);
    
-    static SinkManager* mngrInstance;
     std::map<std::string, ServerMediaSession*> sessionList;
     std::map<int, StreamReplicator*> replicators;
     std::map<int, Connection*> connections;

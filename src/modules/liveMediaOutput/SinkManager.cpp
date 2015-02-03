@@ -37,9 +37,6 @@
 #include "../../Types.hh"
 #include "../../Utils.hh"
 
-
-SinkManager *SinkManager::mngrInstance = NULL;
-
 SinkManager::SinkManager(int readersNum): TailFilter(readersNum), watch(0)
 {    
     TaskScheduler* scheduler = BasicTaskScheduler::createNew();
@@ -53,7 +50,6 @@ SinkManager::SinkManager(int readersNum): TailFilter(readersNum), watch(0)
     
     OutPacketBuffer::increaseMaxSizeTo(MAX_VIDEO_FRAME_SIZE);
     
-    mngrInstance = this;
     fType = TRANSMITTER;
     initializeEventMap();
 }
@@ -63,16 +59,6 @@ SinkManager::~SinkManager()
     delete &envir()->taskScheduler();
     envir()->reclaim();
     env = NULL;
-    
-    mngrInstance = NULL;
-}
-
-SinkManager* 
-SinkManager::getInstance(){
-    if (mngrInstance != NULL){
-        return mngrInstance;
-    }
-    return new SinkManager();
 }
 
 void SinkManager::stop()
@@ -92,11 +78,6 @@ void SinkManager::stop()
     Medium::close(rtspServer);
 
     watch = 1;
-}
-
-void SinkManager::destroyInstance()
-{
-    //TODO:
 }
 
 bool SinkManager::processFrame(bool removeFrame)

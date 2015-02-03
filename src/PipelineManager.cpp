@@ -54,12 +54,13 @@ bool PipelineManager::start()
     int receiverWorkerId = rand();
     transmitterID = rand();
     int transmitterWorkerId = rand();
+    SinkManager* transmitter = new SinkManager();
 
     if (!addFilter(receiverID, SourceManager::getInstance())) {
         return false;
     }
 
-    if (!addFilter(transmitterID, SinkManager::getInstance())) {
+    if (!addFilter(transmitterID, transmitter)) {
         return false;
     }
 
@@ -80,11 +81,11 @@ bool PipelineManager::start()
 
     SourceManager::getInstance()->setWorkerId(receiverWorkerId);
 
-    if (!transmitterWorker->addProcessor(transmitterID, SinkManager::getInstance())) {
+    if (!transmitterWorker->addProcessor(transmitterID, transmitter)) {
         return false;
     }
 
-    SinkManager::getInstance()->setWorkerId(transmitterWorkerId);
+    transmitter->setWorkerId(transmitterWorkerId);
 
     receiverWorker->start();
     transmitterWorker->start();
@@ -112,11 +113,9 @@ bool PipelineManager::stop()
 
     paths.clear();
 
-
     for (auto it : filters) {
         delete it.second;
     }
-
 
     filters.clear();
 

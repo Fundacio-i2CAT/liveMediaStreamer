@@ -39,6 +39,7 @@
 #define MANUAL_CLIENT_SESSION_ID 1
 #define INIT_SEGMENT 0
 
+
 class SinkManager : public TailFilter {
 private:
     SinkManager(int readersNum = MAX_READERS);
@@ -50,6 +51,15 @@ public:
     
     bool addSession(std::string id, std::vector<int> readers, 
                     std::string info = "", std::string desc = "");
+    /**
+    * Adds an RTP connection
+    * @param readers Readers associated to the connection (some connection support multiple readers)
+    * @param id Destination IP
+    * @param ip Destination port
+    * @param port Destination port
+    * @param txFormat Destination port
+    * @return True if succeded and false if not
+    */ 
     bool addRTPConnection(std::vector<int> readers, int id, std::string ip, int port, TxFormat txFormat);
     bool addDASHConnection(int reader, unsigned id, std::string fileName, std::string quality, 
                            bool reInit = false, uint32_t segmentTime = SEGMENT_TIME, 

@@ -147,13 +147,20 @@ bool SinkManager::addSession(std::string id, std::vector<int> readers, std::stri
     return true;
 }
 
-bool SinkManager::addRTPConnection(std::vector<int> readers, int id, std::string ip, int port, TxFormat txFormat)
+bool SinkManager::addRTPConnection(std::vector<int> inputReaders, int id, std::string ip, int port, TxFormat txFormat)
 {
     bool ret;
 
     if (connections.count(id) > 0) {
         utils::errorMsg("Error creating RTP connection. Specified ID already in use");
         return false;
+    }
+
+    for (iReader : inputReaders) {
+        if (getReader(iReader) == NULL) {
+            utils::errorMsg("Error creating RTP connection. Specified ID already in use");
+            return false;
+        }
     }
 
     switch (txFormat) {
@@ -198,15 +205,8 @@ bool SinkManager::addMpegTsRTPConnection(std::vector<int> inputReaders, int id, 
 
     for (auto inReader : inputReaders) {
 
-        r = getReader(inReader);
-
-        if (!r) {
-            utils::errorMsg("Error in MPEG-TS RTP connection setup. Reader does not exist");
-            return false;
-        }
-
-        vQueue = dynamic_cast<VideoFrameQueue*>(r->getQueue());
-        aQueue = dynamic_cast<AudioFrameQueue*>(r->getQueue());
+        vQueue = dynamic_cast<VideoFrameQueue*>(getReader(inReader)->getQueue());
+        aQueue = dynamic_cast<AudioFrameQueue*>(getReader(inReader)->getQueue());
 
         if (vQueue && !hasVideo) {
             success = conn->addVideoSource(replicators[inReader]->createStreamReplica(), vQueue->getCodec());

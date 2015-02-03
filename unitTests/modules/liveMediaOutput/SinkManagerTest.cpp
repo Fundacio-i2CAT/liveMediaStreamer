@@ -15,8 +15,8 @@
  *  You should have received a copy of the GNU General Public License
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- *  Authors:  Gerard Castillo <gerard.castillo@i2cat.net>
- *
+ *  Authors:  Gerard Castillo <gerard.castillo@i2cat.net>,
+ *            Marc Palau <marc.palau@i2cat.net>
  *
  */
 
@@ -27,25 +27,12 @@
 #include <cppunit/TestResultCollector.h>
 #include <cppunit/XmlOutputter.h>
 
-#include <GroupsockHelper.hh>
-
-#include "SinkManager.hh"
-#include "../../AVFramedQueue.hh"
-#include "../../AudioCircularBuffer.hh"
-#include "H264QueueServerMediaSubsession.hh"
-#include "VP8QueueServerMediaSubsession.hh"
-#include "AudioQueueServerMediaSubsession.hh"
-#include "QueueSource.hh"
-#include "H264QueueSource.hh"
-#include "Types.hh"
-#include "Connection.hh"
-#include "../../Types.hh"
-#include "../../Utils.hh"
+#include "modules/liveMediaOutput/SinkManager.hh"
+#include "../../FilterMockup.hh"
 
 class SinkManagerTest : public CppUnit::TestFixture
 {
     CPPUNIT_TEST_SUITE(SinkManagerTest);
-    CPPUNIT_TEST(addRTPConnection);
     CPPUNIT_TEST(addMpegTsRTPConnection);
     CPPUNIT_TEST_SUITE_END();
 
@@ -54,28 +41,57 @@ public:
     void tearDown();
 
 protected:
-    void addRTPConnection();
     void addMpegTsRTPConnection();
 
 protected:
     SinkManager* sinkManager = NULL;
-    std::stringstream voidstream;
+    VideoFilterMockup* vFilter = NULL;
+    AudioFilterMockup* aFilter = NULL;
+    int vReaderId = 234;
+    int aReaderId = 236;
+    int fakevReaderId = vReaderId + 1;;
+    int fakeaReaderId = aReaderId + 1;;
 };
 
 void SinkManagerTest::setUp()
 {
 	sinkManager = sinkManager->getInstance();
-    std::cerr.rdbuf(voidstream.rdbuf());
+    vFilter = new VideoFilterMockup(H264);
+    aFilter = new AudioFilterMockup(AAC);
+    vFilter->connectOneToMany(sinkManager, vReaderId);
+    aFilter->connectOneToMany(sinkManager, aReaderId);
 }
 
 void SinkManagerTest::tearDown()
 {
-    delete sinkManager;
+    sinkManager->destroyInstance();
 }
 
 void SinkManagerTest::addMpegTsRTPConnection()
 {
+    std::vector<int> readers;
+    int id = 1234;
+    std::string ip = "127.0.0.1";
+    int port = 6004;
+    TxFormat txFormat = MPEGTS;
+
     CPPUNIT_ASSERT(sinkManager != NULL);
+    CPPUNIT_ASSERT(vFilter != NULL);
+
+    readers.push_back(fakevReaderId);
+    CPPUNIT_ASSERT(!sinkManager->addRTPConnection(readers, id, ip, port, txFormat));
+    readers.clear();
+
+    readers.push_back(vReaderId);
+    readers.push_back(vReaderId);
+    CPPUNIT_ASSERT(!sinkManager->addRTPConnection(readers, id, ip, port, txFormat));
+    readers.clear();
+
+    readers.push_back(vReaderId);
+    readers.push_back(aReaderId);
+    CPPUNIT_ASSERT(sinkManager->addRTPConnection(readers, id, ip, port, txFormat));
+
+    CPPUNIT_ASSERT(!sinkManager->addRTPConnection(readers, id, ip, port, txFormat));
 }
 
 CPPUNIT_TEST_SUITE_REGISTRATION( SinkManagerTest );

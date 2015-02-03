@@ -35,17 +35,28 @@
 #define TTL 255
 #define INITIAL_SERVER_PORT 6970
 
+/*! Each connection represents a RTP/RTSP transmission. It is an interface to different specific connections
+    so it cannot be instantiated */ 
+
 class Connection {
     
 public:
-    bool startPlaying();
-    void stopPlaying();
+    /**
+    * Class destructor. It stops the transmission if still playing
+    */ 
     virtual ~Connection();
+
+    /**
+    * It configures the connection and start the transmission
+    * @return true if succeeded and false if not
+    */ 
     bool setup();
     
 protected:
     Connection(UsageEnvironment* env, FramedSource *source);
     
+    bool startPlaying();
+    void stopPlaying();
     static void afterPlaying(void* clientData);
     virtual bool specificSetup() = 0;
 
@@ -58,9 +69,15 @@ protected:
 // RTP CONNECTION //
 ////////////////////
 
+/*! It represents an RTP connection, which is defined by a destination IP and port. It is an interface so it
+    cannot be instantiated */ 
+
 class RTPConnection : public Connection {
     
 public:
+    /**
+    * Class destructor
+    */ 
     virtual ~RTPConnection();
     
 protected:
@@ -173,11 +190,35 @@ private:
 // MPEG-TS CONNECTION //
 ////////////////////////
 
+/*! It represents an RTP connection using MPEGTS container to mux the streams. 
+*   It is limited to one video stream and/or one audio stream. 
+*   Only H264 (for video) and AAC (for audio) codecs are supported 
+*/ 
+
 class MpegTsConnection : public RTPConnection {   
 public:
-    MpegTsConnection(UsageEnvironment* env,
-                     std::string ip, unsigned port);
+    /**
+    * Class constructor
+    * @param env Live555 UsageEnvironement 
+    * @param ip Destination IP
+    * @param port Destination port
+    */ 
+    MpegTsConnection(UsageEnvironment* env, std::string ip, unsigned port);
+
+    /**
+    * Adds a video source to the connection, which will be muxed in MPEGTS packets
+    * @param source Stream source, which must be a children of Live555 FramedSource class 
+    * @param codec Video stream codec. Only H264 is supported
+    * @return True if succeeded and false if not
+    */ 
     bool addVideoSource(FramedSource* source, VCodecType codec);
+    
+    /**
+    * Adds an audio source to the connection, which will be muxed in MPEGTS packets
+    * @param source Stream source, which must be a children of Live555 FramedSource class 
+    * @param codec Audio stream codec. Only AAC is supported
+    * @return True if succeeded and false if not
+    */ 
     bool addAudioSource(FramedSource* source, ACodecType codec);
     
 protected:

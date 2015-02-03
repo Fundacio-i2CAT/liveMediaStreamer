@@ -40,12 +40,12 @@
 #define INIT_SEGMENT 0
 
 
-class SinkManager : public TailFilter {
+class SinkManager : public LiveMediaFilter {
 public:
 
-    SinkManager(int readersNum = MAX_READERS);
+    SinkManager(unsigned readersNum = MAX_READERS, size_t fTime = 0, FilterRole fRole_ = MASTER);
     ~SinkManager();
-    bool addSession(std::string id, std::vector<int> readers, 
+    bool addSession(std::string id, std::vector<int> readers,
                     std::string info = "", std::string desc = "");
 
     /**
@@ -58,8 +58,8 @@ public:
     * @return True if succeded and false if not
     */
     bool addRTPConnection(std::vector<int> readers, int id, std::string ip, int port, TxFormat txFormat);
-    bool addDASHConnection(int reader, unsigned id, std::string fileName, std::string quality, 
-                           bool reInit = false, uint32_t segmentTime = SEGMENT_TIME, 
+    bool addDASHConnection(int reader, unsigned id, std::string fileName, std::string quality,
+                           bool reInit = false, uint32_t segmentTime = SEGMENT_TIME,
                            uint32_t initSegment = INIT_SEGMENT, uint32_t fps = FRAME_RATE);
 
     ServerMediaSession* getSession(std::string id);
@@ -70,8 +70,6 @@ public:
 
     void stop();
 
-    UsageEnvironment* envir() {return env;}
-
 private:
     bool addStdRTPConnection(std::vector<int> readers, int id, std::string ip, int port);
     bool addUltraGridRTPConnection(std::vector<int> readers, int id, std::string ip, int port);
@@ -81,7 +79,9 @@ private:
     void addRTPConnectionEvent(Jzon::Node* params, Jzon::Object &outputNode);
     Reader *setReader(int readerID, FrameQueue* queue, bool sharedQueue = false);
 
-    size_t processFrame(bool removeFrame = false);
+    size_t processFrame();
+
+    FrameQueue *allocQueue(int wId) { return NULL;};
 
     ServerMediaSubsession *createSubsessionByReader(int readerId);
     ServerMediaSubsession *createVideoMediaSubsession(VCodecType codec, int readerId);
@@ -92,12 +92,10 @@ private:
     void createVideoQueueSource(VCodecType codec, Reader *reader, int readerId);
     void createAudioQueueSource(ACodecType codec, Reader *reader, int readerId);
     void doGetState(Jzon::Object &filterNode);
-   
+
     std::map<std::string, ServerMediaSession*> sessionList;
     std::map<int, StreamReplicator*> replicators;
     std::map<int, Connection*> connections;
-    UsageEnvironment* env;
-    uint8_t watch;
 
     RTSPServer* rtspServer;
 };

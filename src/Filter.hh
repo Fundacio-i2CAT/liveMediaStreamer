@@ -29,6 +29,9 @@
 #include <vector>
 #include <queue>
 #include <mutex>
+#include <iostream>
+#include <liveMedia/liveMedia.hh>
+#include <BasicUsageEnvironment.hh>
 
 #ifndef _FRAME_QUEUE_HH
 #include "FrameQueue.hh"
@@ -42,9 +45,8 @@
 #include "Worker.hh"
 #endif
 
-#include <iostream>
-
 #include "Event.hh"
+
 #define DEFAULT_ID 1
 #define MAX_WRITERS 16
 #define MAX_READERS 16
@@ -80,11 +82,11 @@ public:
     void setWorkerId(int id){workerId = id;};
     bool isEnabled(){return enabled;};
     virtual ~BaseFilter();
-    
+
     //NOTE: these are public just for testing purposes
     virtual size_t processFrame() = 0;
     void setFrameTime(size_t fTime);
-    
+
 protected:
     BaseFilter();
 
@@ -94,7 +96,7 @@ protected:
     virtual FrameQueue *allocQueue(int wId) = 0;
 
     std::chrono::microseconds getFrameTime() {return frameTime;};
-    
+
     virtual Reader *setReader(int readerID, FrameQueue* queue, bool sharedQueue = false);
     Reader* getReader(int id);
 
@@ -106,8 +108,8 @@ protected:
     virtual void doGetState(Jzon::Object &filterNode) = 0;
 
     void updateTimestamp();
-    std::map<std::string, std::function<void(Jzon::Node* params, Jzon::Object &outputNode)> > eventMap; 
-    
+    std::map<std::string, std::function<void(Jzon::Node* params, Jzon::Object &outputNode)> > eventMap;
+
 protected:
     std::map<int, Reader*> readers;
     std::map<int, const Writer*> writers;
@@ -123,15 +125,15 @@ protected:
     std::chrono::microseconds lastDiffTime;
     std::chrono::microseconds diffTime;
     std::chrono::microseconds wallClock;
-    
+
     unsigned maxReaders;
     unsigned maxWriters;
     FilterRole fRole;
     bool force;
-      
+
 private:
     bool connect(BaseFilter *R, int writerID, int readerID, bool slaveQueue = false);
-    
+
 private:
     std::priority_queue<Event> eventQueue;
     std::mutex eventQueueMutex;
@@ -148,11 +150,11 @@ public:
 protected:
     bool addSlave(int id, SlaveFilter *slave);
     bool removeSlave(int id);
-    
+
     virtual bool runDoProcessFrame() = 0;
 
     std::map<int, SlaveFilter*> slaves;
-    
+
 private:
     size_t processFrame();
     void processAll();
@@ -170,7 +172,7 @@ public:
 protected:
 
     void process();
-    
+
 private:
     std::atomic<bool> run;
 };
@@ -189,6 +191,7 @@ private:
     using BaseFilter::demandDestinationFrames;
     using BaseFilter::addFrames;
     using BaseFilter::removeFrames;
+    //using BaseFilter::readers;
     using BaseFilter::writers;
     using BaseFilter::oFrames;
     using BaseFilter::dFrames;
@@ -200,12 +203,12 @@ private:
     using BaseFilter::lastDiffTime;
     using BaseFilter::diffTime;
     using BaseFilter::wallClock;
-    
+
     using BaseFilter::maxReaders;
     using BaseFilter::maxWriters;
     using BaseFilter::fRole;
     using BaseFilter::force;
-    
+
     void stop() {};
 };
 
@@ -229,18 +232,18 @@ private:
     using BaseFilter::dFrames;
     using BaseFilter::processEvent;
     using BaseFilter::updateTimestamp;
-    
+
     using BaseFilter::frameTime;
     using BaseFilter::timestamp;
     using BaseFilter::lastDiffTime;
     using BaseFilter::diffTime;
     using BaseFilter::wallClock;
-    
+
     using BaseFilter::maxReaders;
     using BaseFilter::maxWriters;
     using BaseFilter::fRole;
     using BaseFilter::force;
-    
+
     void stop() {};
 };
 
@@ -265,13 +268,13 @@ private:
     using BaseFilter::dFrames;
     using BaseFilter::processEvent;
     using BaseFilter::updateTimestamp;
-    
+
     using BaseFilter::frameTime;
     using BaseFilter::timestamp;
     using BaseFilter::lastDiffTime;
     using BaseFilter::diffTime;
     using BaseFilter::wallClock;
-    
+
     using BaseFilter::maxReaders;
     using BaseFilter::maxWriters;
     using BaseFilter::fRole;
@@ -297,13 +300,13 @@ private:
     using BaseFilter::dFrames;
     using BaseFilter::processEvent;
     using BaseFilter::updateTimestamp;
-    
+
     using BaseFilter::frameTime;
     using BaseFilter::timestamp;
     using BaseFilter::lastDiffTime;
     using BaseFilter::diffTime;
     using BaseFilter::wallClock;
-    
+
     using BaseFilter::maxReaders;
     using BaseFilter::maxWriters;
     using BaseFilter::fRole;
@@ -329,19 +332,33 @@ private:
     using BaseFilter::dFrames;
     using BaseFilter::processEvent;
     using BaseFilter::updateTimestamp;
-    
+
     using BaseFilter::frameTime;
     using BaseFilter::timestamp;
     using BaseFilter::lastDiffTime;
     using BaseFilter::diffTime;
     using BaseFilter::wallClock;
-    
+
     using BaseFilter::maxReaders;
     using BaseFilter::maxWriters;
     using BaseFilter::fRole;
     using BaseFilter::force;
-    
+
     void stop() {};
+};
+
+class LiveMediaFilter : public BaseFilter
+{
+public:
+    void pushEvent(Event e);
+    UsageEnvironment* envir() {return env;}
+
+protected:
+    LiveMediaFilter(unsigned readersNum = MAX_READERS, unsigned writersNum = MAX_WRITERS, size_t fTime = 0, FilterRole fRole_ = NETWORK);
+    size_t processFrame();
+
+    UsageEnvironment* env;
+    uint8_t watch;
 };
 
 #endif

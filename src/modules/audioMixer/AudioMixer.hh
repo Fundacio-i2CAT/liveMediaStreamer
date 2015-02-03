@@ -19,7 +19,7 @@
  *
  *  Authors:  Marc Palau <marc.palau@i2cat.net>
  */
- 
+
 #ifndef _AUDIO_MIXER_HH
 #define _AUDIO_MIXER_HH
 
@@ -36,10 +36,10 @@ enum mixingAlgorithm
 {
     LA,      //Linear Attenuation
     LDRC     //Linear Dynamic Range Compression
-}; 
+};
 
 class AudioMixer : public ManyToOneFilter {
-    
+
     public:
         AudioMixer(int inputChannels = AMIXER_MAX_CHANNELS);
         AudioMixer(int inputChannels, int frameChannels, int sampleRate);
@@ -53,18 +53,20 @@ class AudioMixer : public ManyToOneFilter {
 
     private:
         void initializeEventMap();
-        void mixNonEmptyFrames(std::map<int, Frame*> orgFrames, std::vector<int> filledFramesIds, Frame *dst); 
+        void mixNonEmptyFrames(std::map<int, Frame*> orgFrames, std::vector<int> filledFramesIds, Frame *dst);
         void applyMixAlgorithm(std::vector<float> &fSamples, int frameNumber, int realFrameNumber);
         void applyGainToChannel(std::vector<float> &fSamples, float gain);
-        void sumValues(std::vector<float> fSamples, std::vector<float> &mixedSamples); 
-        void LAMixAlgorithm(std::vector<float> &fSamples, int frameNumber); 
-        void LDRCMixAlgorithm(std::vector<float> &fSamples, int frameNumber); 
-        
-        void changeChannelVolumeEvent(Jzon::Node* params, Jzon::Object &outputNode); 
-        void muteChannelEvent(Jzon::Node* params, Jzon::Object &outputNode); 
+        void sumValues(std::vector<float> fSamples, std::vector<float> &mixedSamples);
+        void LAMixAlgorithm(std::vector<float> &fSamples, int frameNumber);
+        void LDRCMixAlgorithm(std::vector<float> &fSamples, int frameNumber);
+
+        void changeChannelVolumeEvent(Jzon::Node* params, Jzon::Object &outputNode);
+        void muteChannelEvent(Jzon::Node* params, Jzon::Object &outputNode);
         void soloChannelEvent(Jzon::Node* params, Jzon::Object &outputNode);
         void changeMasterVolumeEvent(Jzon::Node* params, Jzon::Object &outputNode);
         void muteMasterEvent(Jzon::Node* params, Jzon::Object &outputNode);
+
+        bool runDoProcessFrame();
 
         int frameChannels;
         int sampleRate;

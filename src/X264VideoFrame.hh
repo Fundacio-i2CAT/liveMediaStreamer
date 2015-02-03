@@ -45,20 +45,28 @@ class X264VideoFrame : public VideoFrame {
         unsigned char** getHeaderNals() {return headerNals;};
         int getHeaderNalsNum() {return hNalsNum;};
         int* getHeaderNalsSize() {return hNalSize;};
-        
+
         void clearNals();
-		
+
 	protected:
 		x264_nal_t **ppNals;
 		int nalsNum;
 		int frameLength;
-        
+
         int hNalsNum;
         unsigned char *headerNals[MAX_HEADER_NALS];
         int hNalSize[MAX_HEADER_NALS];
         int headerLength;
 	private:
 		X264VideoFrame(VCodecType codec, unsigned int width, unsigned height, PixType pixelFormat);
+
+		unsigned char *getDataBuf();
+		unsigned char **getPlanarDataBuf();
+		unsigned int getLength();
+		unsigned int getMaxLength();
+		void setLength(unsigned int length);
+		bool isPlanar();
+
 };
 
 #endif

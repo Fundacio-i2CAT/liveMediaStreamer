@@ -36,11 +36,8 @@ FrameQueue* createAudioQueue(unsigned char rtpPayloadFormat,
                              char const* codecName, unsigned channels,
                              unsigned sampleRate);
 
-SourceManager::SourceManager(int writersNum, size_t fTime, FilterRole fRole): HeadFilter(writersNum, fTime, fRole), watch(0)
+SourceManager::SourceManager(unsigned writersNum, size_t fTime, FilterRole fRole): LiveMediaFilter(0, writersNum, fTime, fRole), watch(0)
 {
-    TaskScheduler* scheduler = BasicTaskScheduler::createNew();
-    this->env = BasicUsageEnvironment::createNew(*scheduler);
-
     fType = RECEIVER;
     initializeEventMap();
 }

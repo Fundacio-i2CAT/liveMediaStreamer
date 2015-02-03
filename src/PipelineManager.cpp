@@ -55,8 +55,9 @@ bool PipelineManager::start()
     transmitterID = rand();
     int transmitterWorkerId = rand();
     SinkManager* transmitter = new SinkManager();
+    SourceManager* receiver = new SourceManager();
 
-    if (!addFilter(receiverID, SourceManager::getInstance())) {
+    if (!addFilter(receiverID, receiver)) {
         return false;
     }
 
@@ -75,11 +76,11 @@ bool PipelineManager::start()
         return false;
     }
 
-    if (!receiverWorker->addProcessor(receiverID, SourceManager::getInstance())) {
+    if (!receiverWorker->addProcessor(receiverID, receiver)) {
         return false;
     }
 
-    SourceManager::getInstance()->setWorkerId(receiverWorkerId);
+    receiver->setWorkerId(receiverWorkerId);
 
     if (!transmitterWorker->addProcessor(transmitterID, transmitter)) {
         return false;

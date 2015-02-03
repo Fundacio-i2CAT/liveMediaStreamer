@@ -37,6 +37,7 @@
 #define PROTOCOL "RTP"
 
 
+
 class SourceManager;
 
 class StreamClientState {
@@ -77,9 +78,9 @@ protected:
     StreamClientState *scs;
 };
 
-class SourceManager : public HeadFilter {
-private:
-    SourceManager(int writersNum = MAX_WRITERS, size_t fTime = 0, FilterRole fRole_ = MASTER);
+class SourceManager : public LiveMediaFilter {
+public:
+    SourceManager(unsigned writersNum = MAX_WRITERS, size_t fTime = 0, FilterRole fRole_ = MASTER);
     ~SourceManager();
 
 public:
@@ -100,8 +101,6 @@ public:
     int getWriterID(unsigned int port);
     void setCallback(std::function<void(char const*, unsigned short)> callbackFunction);
     bool hasCallback();
-
-    UsageEnvironment* envir() {return env;};
 
 private:
     void initializeEventMap();

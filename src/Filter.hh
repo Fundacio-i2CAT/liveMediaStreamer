@@ -110,10 +110,10 @@ protected:
     std::chrono::microseconds timestamp;
     std::chrono::microseconds lastDiffTime;
     std::chrono::microseconds diffTime;
+    std::chrono::microseconds getFrameTime();
       
 private:
     bool connect(BaseFilter *R, int writerID, int readerID, bool slaveQueue = false);
-    std::chrono::microseconds getFrameTime();
 
     unsigned maxReaders;
     unsigned maxWriters;

@@ -182,22 +182,19 @@ void addConnections(std::vector<int> readers, std::string ip, unsigned port)
 {
     PipelineManager *pipe = Controller::getInstance()->pipelineManager();
     SinkManager *transmitter = pipe->getTransmitter();
-    for(auto reader : readers){
-        if (transmitter->addConnection(reader, rand(), ip, port)) {
-            utils::infoMsg("added connection for " + ip + ":" + std::to_string(port));
-            port+=2;
-        }
+    if (transmitter->addRTPConnection(readers, rand(), ip, port, MPEGTS)) {
+        utils::infoMsg("added connection for " + ip + ":" + std::to_string(port));
     }
 }
 
 int main(int argc, char* argv[]) 
 {   
     std::vector<int> readers;
-    
-    unsigned vPort = 0;
-    unsigned aPort = 0;
-    unsigned port = 0;
-    unsigned fps = FRAME_RATE;
+
+    int vPort = 0;
+    int aPort = 0;
+    int port = 0;
+    int fps = FRAME_RATE;
     std::string ip;
     std::string sessionId;
     std::string rtspUri;
@@ -242,18 +239,18 @@ int main(int argc, char* argv[])
         addAudioSource(aPort);
     }
        
-    for (auto it : pipe->getPaths()){
+    for (auto it : pipe->getPaths()) {
         readers.push_back(it.second->getDstReaderID());    
     }
     
     sessionId = utils::randomIdGenerator(ID_LENGTH);
-    if (! transmitter->addSession(sessionId, readers)){
+    if (!transmitter->addSession(sessionId, readers)){
         return 1;
     }
     transmitter->publishSession(sessionId);
     
     sessionId = utils::randomIdGenerator(ID_LENGTH);
-    if (! transmitter->addSession(sessionId, readers)){
+    if (!transmitter->addSession(sessionId, readers)){
         return 1;
     }
     transmitter->publishSession(sessionId);

@@ -81,9 +81,9 @@ private:
     int                 sampleRate;
     int                 internalSampleRate;
     int                 samplesPerFrame;
-    int                 internalBufferSize;
-    unsigned char       *internalBuffer;
-    unsigned char       *auxBuff[1];
+
+    unsigned char **dst_data;
+    int linesize;
 
     std::chrono::microseconds currentTime;
     std::chrono::microseconds frameDuration;

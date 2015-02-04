@@ -21,6 +21,12 @@ liblivemediastreamer_la_SOURCES = modules/audioDecoder/AudioDecoderLibav.cpp \
                                   modules/liveMediaOutput/QueueSource.cpp \
                                   modules/liveMediaOutput/SinkManager.cpp \
                                   modules/liveMediaOutput/VP8QueueServerMediaSubsession.cpp \
+                                  modules/liveMediaOutput/Connection.cpp \
+                                  modules/liveMediaOutput/H264VideoStreamSampler.cpp \
+                                  modules/liveMediaOutput/H264StartCodeInjector.cpp \
+                                  modules/liveMediaOutput/UltraGridAudioRTPSink.cpp \
+                                  modules/liveMediaOutput/UltraGridVideoRTPSink.cpp \
+                                  modules/liveMediaOutput/SPSparser/h264_stream.c \
                                   AVFramedQueue.cpp \
                                   AudioCircularBuffer.cpp \
                                   AudioFrame.cpp \
@@ -41,4 +47,6 @@ liblivemediastreamer_la_SOURCES = modules/audioDecoder/AudioDecoderLibav.cpp \
 
 liblivemediastreamer_la_CPPFLAGS = -std=c++11 -g -D__STDC_CONSTANT_MACROS -Wall
 
-liblivemediastreamer_la_LDFLAGS = -shared -fPIC -pthread -lBasicUsageEnvironment -lUsageEnvironment -lliveMedia -lgroupsock -lavcodec -lswresample -lswscale -llog4cplus -lopencv_core -lopencv_imgproc -lx264
+liblivemediastreamer_la_CFLAGS = -g -D__STDC_CONSTANT_MACROS -Wall
+
+liblivemediastreamer_la_LDFLAGS = -shared -fPIC -pthread -lBasicUsageEnvironment -lUsageEnvironment -lliveMedia -lgroupsock -lavcodec -lavformat -lavutil -lswresample -lswscale -llog4cplus -lopencv_core -lopencv_imgproc -lx264

@@ -23,6 +23,9 @@ AC_LANG_PUSH([C++])
 
 LDFLAGS="$LDFLAGS -L/usr/local/lib"
 
+###############
+#Live555 staff#
+###############
 AC_ARG_WITH(livemedia,  [  --with-livemedia=PATH   liveMedia path for static linking])
 if test -n "${with_livemedia}"; then
     AC_MSG_CHECKING(for liveMedia libraries in ${with_livemedia})
@@ -33,7 +36,7 @@ if test -n "${with_livemedia}"; then
     fi
     if test -f "${custom_livemedia}/lib/libliveMedia.so"; then
         AC_MSG_RESULT(${custom_livemedia}/lib/libliveMedia.so)
-        LDFLAGS="-L${custom_livemedia}/lib -lBasicUsageEnvironment -lUsageEnvironment -lliveMedia -lgroupsock $LDFLAGS"
+        LDFLAGS="-L${custom_livemedia}/lib $LDFLAGS"
         AC_CHECK_FILE(${custom_livemedia}/include/liveMedia/liveMedia.hh,
                 [CPPFLAGS="$CPPFLAGS -I${custom_livemedia}/include/liveMedia";break;])
         AC_CHECK_FILE(${custom_livemedia}/include/BasicUsageEnvironment/BasicUsageEnvironment.hh,
@@ -64,14 +67,49 @@ else
    AC_CHECK_HEADERS([liveMedia.hh  BasicUsageEnvironment.hh UsageEnvironment.hh Groupsock.hh])
 fi
 
+##############
+#ffmpeg staff#
+##############
+AC_ARG_WITH(ffmpeg,  [  --with-ffmpeg=PATH   ffmpeg path for static linking])
+if test -n "${with_ffmpeg}"; then
+    AC_MSG_CHECKING(for ffmpeg libraries in ${with_ffmpeg})
+    custom_ffmpeg="`cd ${with_ffmpeg} 2>/dev/null && pwd`"
+    if test -z "${custom_ffmpeg}"; then
+        AC_MSG_RESULT(no)
+        AC_MSG_ERROR([cannot cd to ${with_ffmpeg}])
+    fi
+    if test -f "${custom_ffmpeg}/lib/libavcodec.so"; then
+        AC_MSG_RESULT(${custom_ffmpeg}/lib/libavcodec.so)
+        LDFLAGS="-L${custom_ffmpeg}/lib $LDFLAGS"
+        AC_CHECK_FILE(${custom_ffmpeg}/include/libavcodec/avcodec.h, 
+                [CPPFLAGS="$CPPFLAGS -I${custom_ffmpeg}/include"; break;])
+        AC_CHECK_FILE(${custom_ffmpeg}/include/libavformat/avformat.h,
+                [CPPFLAGS="$CPPFLAGS -I${custom_ffmpeg}/include"; break;])
+        AC_CHECK_FILE(${custom_ffmpeg}/include/libavutil/avutil.h, 
+                [CPPFLAGS="$CPPFLAGS -I${custom_ffmpeg}/include"; break;])
+        AC_CHECK_FILE(${custom_ffmpeg}/include/libswresample/swresample.h,
+                [CPPFLAGS="$CPPFLAGS -I${custom_ffmpeg}/include"; break;])
+        AC_CHECK_FILE(${custom_ffmpeg}/include/libswscale/swscale.h,
+                [CPPFLAGS="$CPPFLAGS -I${custom_ffmpeg}/include"; break;])
+        AC_CHECK_HEADERS([libavcodec/avcodec.h libavformat/avformat.h libavutil/avutil.h libswresample/swresample.h libswscale/swscale.h])
+    else
+        AC_MSG_RESULT(no)
+        AC_MSG_ERROR([cannot find ${custom_ffmpeg}/lib/libavcodec.so, make sure you
+                compiled ffmpeg in ${with_ffmpeg}])
+    fi
+else
+    AC_CHECK_LIB([avcodec], [avcodec_find_encoder], [], AC_MSG_ERROR([cannot find avcodec]))
+    AC_CHECK_LIB([avformat], [avformat_new_stream], [], AC_MSG_ERROR([cannot find avformat]))
+    AC_CHECK_LIB([swscale], [sws_scale], [], AC_MSG_ERROR([cannot find swscale]))
+    AC_CHECK_LIB([avutil], [av_gettime], [], AC_MSG_ERROR([cannot find avutil]))
+    AC_CHECK_LIB([swresample], [swr_convert], [], AC_MSG_ERROR([cannot find swresample]))
+fi
+
 # Checks for libraries.
-AC_CHECK_LIB([avcodec], [avcodec_decode_video2])
-AC_CHECK_LIB([avformat], [avformat_version])
-AC_CHECK_LIB([swscale], [sws_scale])
-AC_CHECK_LIB([opencv_core], main)
-AC_CHECK_LIB([opencv_imgproc], main)
-AC_CHECK_LIB([x264], [x264_encoder_encode])
-AC_CHECK_LIB([log4cplus], [main])
+AC_CHECK_LIB([opencv_core], [main], [], AC_MSG_ERROR([cannot find opencv_core]))
+AC_CHECK_LIB([opencv_imgproc], [main], [], AC_MSG_ERROR([cannot find opencv_imgproc]))
+AC_CHECK_LIB([x264], [x264_encoder_encode], [], AC_MSG_ERROR([cannot find x264]))
+AC_CHECK_LIB([log4cplus], [main], [], AC_MSG_ERROR([cannot find log4cplus]))
  
 AC_CHECK_FILE(/usr/local/include/opencv/cv.h, [CPPFLAGS="$CPPFLAGS -I/usr/local/include/opencv"; break;],[
     AC_CHECK_FILE(/usr/include/opencv/cv.h, [CPPFLAGS="$CPPFLAGS -I/usr/include/opencv"; break;],[])])
@@ -87,4 +125,4 @@ AC_FUNC_MALLOC
 AC_FUNC_REALLOC
 AC_CHECK_FUNCS([floor gettimeofday])
 
-AC_OUTPUT([Makefile src/Makefile])
+AC_OUTPUT([Makefile src/Makefile unitTests/Makefile])

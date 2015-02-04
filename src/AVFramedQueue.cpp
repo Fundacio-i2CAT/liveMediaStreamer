@@ -87,6 +87,7 @@ Frame* AVFramedQueue::forceGetFront(bool &newFrame)
 {
     if (!firstFrame) {
         utils::debugMsg("Forcing front without any frame. Undefined behaviour");
+        //TODO: WHY ??
         //return dummy frame
        // return NULL;
     }
@@ -204,7 +205,7 @@ bool AudioFrameQueue::config()
                 frames[i] = InterleavedAudioFrame::createNew(channels, sampleRate, AudioFrame::getMaxSamples(sampleRate), codec, sampleFormat);
             }
             break;
-        case MPEG4_GENERIC:
+        case AAC:
             max = FRAMES_OPUS;//??
             sampleFormat = S16;
             for (int i=0; i<max; i++) {

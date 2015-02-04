@@ -33,6 +33,7 @@
 
 Worker::Worker(): run(false), enabled(false)
 {
+    type = MASTER;
 }
 
 Worker::~Worker()
@@ -49,8 +50,8 @@ bool Worker::addProcessor(int id, Runnable *processor)
     mtx.lock();
     
     while (!processors.empty()){
-        current = processors.pop();
-        
+        current = processors.top();
+        processors.pop();
         runnables[current->getId()] = current;
     }
     
@@ -78,7 +79,8 @@ bool Worker::removeProcessor(int id)
     mtx.lock();
     
     while (!processors.empty()){
-        current = processors.pop();
+        current = processors.top();
+        processors.pop();
         runnables[current->getId()] = current;
     }
     
@@ -134,6 +136,33 @@ bool Worker::isEnabled()
     return enabled;
 }
 
+void Worker::process()
+{
+    Runnable* currentJob;
+    
+    while(run) {
+        mtx.lock();        
+        
+        while (!processors.empty() && processors.top()->ready()){
+            currentJob = processors.top();
+            processors.pop();
+            
+            //TODO: remove/rethink enable feature from filters
+            currentJob->processEvent();           
+            currentJob->processFrame();
+            currentJob->removeFrames();
+            
+            processors.push(currentJob);
+        }
+        
+        currentJob = processors.top();
+        
+        mtx.unlock();
+        
+        currentJob->sleepUntilReady();
+    }
+}
+
 //TODO: avoid void functions
 void Worker::getState(Jzon::Object &workerNode)
 {
@@ -144,7 +173,8 @@ void Worker::getState(Jzon::Object &workerNode)
     mtx.lock();
     
     while (!processors.empty()){
-        current = processors.pop();
+        current = processors.top();
+        processors.pop();
         runnables[current->getId()] = current;
     }
     
@@ -177,55 +207,15 @@ LiveMediaWorker::LiveMediaWorker() : Worker()
 void LiveMediaWorker::process()
 {
     enabled = true;
-    processors.begin()->second->processFrame();
+    processors.top()->processFrame();
     enabled = false;
 }
 
 void LiveMediaWorker::stop()
 {   
-    processors.begin()->second->stop();
+    processors.top()->stop();
     if (isRunning()){
         thread.join();
-    }
-}
-
-///////////////////////////////////////////////////
-//                MASTER CLASS                   //
-///////////////////////////////////////////////////
-
-Master::Master() : Worker() 
-{
-    slaves.clear();
-    type = MASTER;
-    frameTime = std::chrono::microseconds(0);
-}
-
-void Master::process()
-{
-    uint64_t teaTime = 0;
-    std::chrono::microseconds active(ACTIVE);
-    Runnable* currentJob;
-    
-    while(run) {
-        startPoint = std::chrono::system_clock::now();
-
-        mtx.lock();        
-        while (!processors.empty() && processors.top()->ready()){
-            currentJob = processors.pop();
-            
-            //TODO: remove/rethink enable feature from filters
-            currentJob->processEvent();           
-            currentJob->processFrame();
-            currentJob->removeFrames();
-            
-            processors->push(currentJob);
-        }
-        
-        currentJob = processors.top();
-        
-        mtx.unlock();
-        
-        currentJob->sleepUntilReady();
     }
 }
 
@@ -236,7 +226,7 @@ bool Runnable::ready()
 
 void Runnable::sleepUntilReady()
 {
-    std::system_clock::time_point now;
+    std::chrono::system_clock::time_point now;
     if (!ready()){
         std::this_thread::sleep_for(
             std::chrono::duration_cast<std::chrono::microseconds>(time - now));
@@ -247,7 +237,7 @@ bool Runnable::processFrame()
 {
     int64_t ret;
     
-    ret = doProcessframe();
+    ret = doProcessFrame();
     if (ret < 0){
         return false;
     } 
@@ -257,7 +247,7 @@ bool Runnable::processFrame()
     return true;
 }
 
-bool Runnable::operator()(const Runnable* lhs, const Runnable* rhs)
-{
-    return lhs->time < rhs->time;
-}
+// bool Runnable::operator()(const Runnable* lhs, const Runnable* rhs)
+// {
+//     return lhs->time < rhs->time;
+// }

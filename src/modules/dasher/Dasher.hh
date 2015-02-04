@@ -77,7 +77,7 @@ public:
     virtual bool manageFrame(Frame* frame) = 0;
 
 protected:
-    VideoFrame* internalVideoFrame; 
+    std::vector<unsigned char> frameData;
     // i2ctx* dashContext;
 
 };
@@ -96,6 +96,8 @@ private:
     void savePPS(unsigned char* data, int dataLength);
     bool updateMetadata();
     void createMetadata();
+    bool appendNalToFrame(unsigned char* nalData, unsigned nalDataLength);
+
 
     std::vector<unsigned char> lastSPS;
     std::vector<unsigned char> lastPPS;

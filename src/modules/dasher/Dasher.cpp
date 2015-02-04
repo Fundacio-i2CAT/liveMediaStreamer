@@ -108,7 +108,7 @@ DashSegmenter::DashSegmenter()// : dashContext(NULL)
 
 DashVideoSegmenter::DashVideoSegmenter() : updatedSPS(false), updatedPPS(false)
 {
-    internalVideoFrame = InterleavedVideoFrame::createNew(H264, 2000000);
+
 }
 
 bool DashVideoSegmenter::manageFrame(Frame* frame)
@@ -137,8 +137,30 @@ bool DashVideoSegmenter::parseNal(VideoFrame* nal)
     int startCodeOffset = detectStartCode(nal->getDataBuf());
     unsigned char* nalData = nal->getDataBuf() + startCodeOffset;
     int nalDataLength = nal->getLength() - startCodeOffset;
+    bool newFrame;
 
-    unsigned char nalType = nalData[0] & H264_NALU_TYPE_MASK;
+    
+    newFrame = appendNalToFrame(nalData, nalDataLength);
+
+    if (newFrame) {
+        
+        frameData.clear();
+    }
+
+    if (updateMetadata()) {
+        //generateInit()
+    }
+
+
+    return true;
+}
+
+bool DashVideoSegmenter::appendNalToFrame(unsigned char* nalData, unsigned nalDataLength)
+{
+    unsigned char nalType; 
+    bool completeFrame = false;
+
+    nalType = nalData[0] & H264_NALU_TYPE_MASK;
 
     switch(nalType) {
         case SPS:
@@ -150,6 +172,7 @@ bool DashVideoSegmenter::parseNal(VideoFrame* nal)
         case SEI:
             break;
         case AUD:
+            completeFrame = true;
             break;
         case IDR:
             break;
@@ -157,9 +180,14 @@ bool DashVideoSegmenter::parseNal(VideoFrame* nal)
             break;
     }
 
-    updateMetadata();
+    frameData.insert(frameData.end(), (nalDataLength >> 24) & 0xFF);
+    frameData.insert(frameData.end(), (nalDataLength >> 16) & 0xFF);
+    frameData.insert(frameData.end(), (nalDataLength >> 8) & 0xFF);
+    frameData.insert(frameData.end(), nalDataLength & 0xFF);
 
-    return true;
+    frameData.insert(frameData.end(), nalData, nalData + nalDataLength);
+
+    return completeFrame;
 }
 
 void DashVideoSegmenter::saveSPS(unsigned char* data, int dataLength)
@@ -199,12 +227,12 @@ void DashVideoSegmenter::createMetadata()
     metadata.insert(metadata.end(), lastSPS.begin(), lastSPS.begin() + 3);
     metadata.insert(metadata.end(), METADATA_RESERVED_BYTES1 + AVCC_HEADER_BYTES_MINUS_ONE);
     metadata.insert(metadata.end(), METADATA_RESERVED_BYTES2 + NUMBER_OF_SPS);
-    metadata.insert(metadata.end(), spsLength & 0xFF00);
-    metadata.insert(metadata.end(), spsLength & 0x00FF);
+    metadata.insert(metadata.end(), (spsLength >> 8) & 0xFF);
+    metadata.insert(metadata.end(), spsLength & 0xFF);
     metadata.insert(metadata.end(), lastSPS.begin(), lastSPS.end());
     metadata.insert(metadata.end(), NUMBER_OF_PPS);
-    metadata.insert(metadata.end(), ppsLength & 0xFF00);
-    metadata.insert(metadata.end(), ppsLength & 0x00FF);
+    metadata.insert(metadata.end(), (ppsLength >> 8) & 0xFF);
+    metadata.insert(metadata.end(), ppsLength & 0xFF);
     metadata.insert(metadata.end(), lastPPS.begin(), lastPPS.end());
 }
 

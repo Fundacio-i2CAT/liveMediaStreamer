@@ -28,7 +28,10 @@
 
 X264VideoFrame* X264VideoFrame::createNew(VCodecType codec, unsigned int width, unsigned height, PixType pixelFormat)
 {
-	if(codec != H264) return NULL;
+	if (codec != H264) {
+        return NULL;
+    }
+        
     return new X264VideoFrame(codec, width, height, pixelFormat);
 }
 
@@ -42,7 +45,7 @@ X264VideoFrame::X264VideoFrame(VCodecType codec, unsigned int width, unsigned he
     this->hNalsNum = 0;
     this->headerLength = 0;
     
-    for(int i = 0; i < MAX_HEADER_NALS; i++){
+    for(int i = 0; i < MAX_HEADER_NALS; i++) {
         headerNals[i] = (unsigned char *) malloc(sizeof(unsigned char)*MAX_HEADER_NAL_SIZE);
     }
     

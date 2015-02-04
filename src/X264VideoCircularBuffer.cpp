@@ -70,6 +70,7 @@ bool X264VideoCircularBuffer::config()
 
 bool X264VideoCircularBuffer::pushBack() 
 {
+    Frame* frame;
     VideoFrame* vFrame;
     int nalsNum;
     x264_nal_t** nals;
@@ -81,13 +82,16 @@ bool X264VideoCircularBuffer::pushBack()
         hNalSize = inputFrame->getHeaderNalsSize();
         
         for (int i=0; i<nalsNum; i++) {
-            if ((vFrame = innerGetRear()) == NULL){
-                vFrame = innerForceGetRear();
+            if ((frame = innerGetRear()) == NULL){
+                frame = innerForceGetRear();
             }
             
+            vFrame = dynamic_cast<VideoFrame*>(frame);
+
             memcpy(vFrame->getDataBuf(), hNals[i], hNalSize[i]);
             vFrame->setLength(hNalSize[i]);
             vFrame->setPresentationTime(inputFrame->getPresentationTime());
+            vFrame->setSize(inputFrame->getWidth(), inputFrame->getHeight());
             innerAddFrame();
         }
     }
@@ -96,13 +100,16 @@ bool X264VideoCircularBuffer::pushBack()
     nals = inputFrame->getNals();
 
     for (int i=0; i<nalsNum; i++) {
-        if ((vFrame = innerGetRear()) == NULL){
-            vFrame = innerForceGetRear();
+        if ((frame = innerGetRear()) == NULL){
+            frame = innerForceGetRear();
         }
+
+        vFrame = dynamic_cast<VideoFrame*>(frame);
 
         memcpy(vFrame->getDataBuf(), (*nals)[i].p_payload, (*nals)[i].i_payload);
         vFrame->setLength((*nals)[i].i_payload);
-		vFrame->setPresentationTime(inputFrame->getPresentationTime());
+        vFrame->setPresentationTime(inputFrame->getPresentationTime());
+        vFrame->setSize(inputFrame->getWidth(), inputFrame->getHeight());
 		innerAddFrame();
 	}
 	

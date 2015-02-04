@@ -42,10 +42,9 @@ Worker::~Worker()
 
 bool Worker::addProcessor(int id, Runnable *processor) 
 {
+    bool ret = false;
     std::map<int, Runnable*> runnables;
     Runnable* current;
-    
-    processor->setId(id);
     
     mtx.lock();
     
@@ -55,24 +54,25 @@ bool Worker::addProcessor(int id, Runnable *processor)
         runnables[current->getId()] = current;
     }
     
-    if (runnables.count(id) > 0) {
-        mtx.unlock();
-        return false;
-    }  
-
-    runnables[id] = processor;
-    enabled = true;
+    if (runnables.count(id) == 0) {
+        processor->setId(id);
+        runnables[id] = processor;
+        enabled = true; 
+        ret = true;
+        
+    } 
     
     for (auto it : runnables){
         processors.push(it.second);
     }
-
+    
     mtx.unlock();
-    return true;
+    return ret;
 }
 
 bool Worker::removeProcessor(int id)
 {
+    bool ret = false;
     std::map<int, Runnable*> runnables;
     Runnable* current;
     
@@ -84,19 +84,17 @@ bool Worker::removeProcessor(int id)
         runnables[current->getId()] = current;
     }
     
-    if (runnables.count(id) <= 0) {
-        mtx.unlock();
-        return false;
+    while (runnables.count(id) > 0) {
+        runnables.erase(id);
+        ret = true;
     }
-
-    runnables.erase(id);
     
     for (auto it : runnables){
         processors.push(it.second);
     }
     
     mtx.unlock();
-    return true;
+    return ret;
 }
 
 bool Worker::start()
@@ -146,12 +144,10 @@ void Worker::process()
         while (!processors.empty() && processors.top()->ready()){
             currentJob = processors.top();
             processors.pop();
-            
             //TODO: remove/rethink enable feature from filters
-            currentJob->processEvent();           
+            currentJob->processEvent(); 
             currentJob->processFrame();
             currentJob->removeFrames();
-            
             processors.push(currentJob);
         }
         
@@ -226,16 +222,19 @@ bool Runnable::ready()
 
 void Runnable::sleepUntilReady()
 {
-    std::chrono::system_clock::time_point now;
+    std::chrono::system_clock::time_point now = std::chrono::system_clock::now();
+    std::chrono::microseconds teaTime;
+    
     if (!ready()){
-        std::this_thread::sleep_for(
-            std::chrono::duration_cast<std::chrono::microseconds>(time - now));
+        teaTime = std::chrono::duration_cast<std::chrono::microseconds>(time - now);
+        
+        std::this_thread::sleep_for(teaTime);
     }
 }
 
 bool Runnable::processFrame()
 {
-    int64_t ret;
+    size_t ret;
     
     ret = doProcessFrame();
     if (ret < 0){
@@ -243,11 +242,6 @@ bool Runnable::processFrame()
     } 
     
     time = std::chrono::system_clock::now() + std::chrono::microseconds(ret);
-    
+       
     return true;
 }
-
-// bool Runnable::operator()(const Runnable* lhs, const Runnable* rhs)
-// {
-//     return lhs->time < rhs->time;
-// }

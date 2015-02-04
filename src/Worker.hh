@@ -42,11 +42,10 @@
 class Runnable {
     
 public:
-    ~Runnable(){};
+    virtual ~Runnable(){};
     bool processFrame();
     virtual void processEvent() = 0;
     virtual void removeFrames() = 0;
-    virtual bool hasFrames() = 0;
     virtual bool isEnabled() = 0;
     virtual void stop() = 0;
     bool ready();
@@ -57,7 +56,7 @@ public:
     std::chrono::system_clock::time_point getTime() const {return time;};
     
 protected:
-    virtual int64_t doProcessFrame(bool removeFrame = true) = 0;
+    virtual size_t doProcessFrame(bool removeFrame = true) = 0;
     std::chrono::system_clock::time_point time;
     
 private:
@@ -68,14 +67,13 @@ struct RunnableLess : public std::binary_function<Runnable*, Runnable*, bool>
 {
   bool operator()(const Runnable* lhs, const Runnable* rhs) const
   {
-    return lhs->getTime() < rhs->getTime();
+    return lhs->getTime() > rhs->getTime();
   }
 };
 
 class Worker {
     
 public:
-    Worker(Runnable *processor_);
     Worker();
     virtual ~Worker();
     
@@ -88,11 +86,11 @@ public:
     bool addProcessor(int id, Runnable *processor);
     bool removeProcessor(int id);
     WorkerType getType(){return type;};
-    std::priority_queue<Runnable*, std::vector<Runnable*>, RunnableLess> getProcessors(){return processors;};
+    size_t getProcessorsSize(){return processors.size();};
     void getState(Jzon::Object &workerNode);
     
 protected:
-    virtual void process() = 0;
+    virtual void process();
 
     std::priority_queue<Runnable*, std::vector<Runnable*>, RunnableLess> processors;
     std::thread thread;

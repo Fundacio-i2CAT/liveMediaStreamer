@@ -70,10 +70,22 @@ Reader* Dasher::setReader(int readerID, FrameQueue* queue, bool sharedQueue = fa
     readers[readerId] = r;
     
     if ((vQueue = dynamic_cast<VideoFrameQueue*>(queue)) != NULL) {
+
+        if (vQueue->getCodec() != H264) {
+            utils::errorMsg("Error setting dasher reader: only H264 codec is supported for video");
+            return NULL;
+        }
+
         segmenters[readerId] = new DashVideoSegmenter();
     }
     
-    if ((aQueue = dynamic_cast<AudioFrameQueue*>(queue)) != NULL){
+    if ((aQueue = dynamic_cast<AudioFrameQueue*>(queue)) != NULL) {
+
+        if (aQueue->getCodec() != AAC) {
+            utils::errorMsg("Error setting Dasher reader: only AAC codec is supported for audio");
+            return NULL;
+        }
+
         segmenters[readerId] = new DashAudioSegmenter();
     }
     
@@ -107,6 +119,8 @@ bool DashVideoSegmenter::manageFrame(Frame* frame)
         utils::errorMsg("Error while setupping DashVideoSegmenter");
         return false;
     }
+
+    
 }
 
 bool DashVideoSegmenter::setup(size_t segmentDuration, size_t timeBase, size_t sampleDuration, size_t width, size_t height, size_t framerate)

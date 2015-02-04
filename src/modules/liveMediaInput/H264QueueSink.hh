@@ -1,7 +1,7 @@
 #ifndef _H264_QUEUE_SINK_HH
 #define _H264_QUEUE_SINK_HH
 
-#include <liveMedia/liveMedia.hh>
+#include <liveMedia.hh>
 
 #include "QueueSink.hh"
 

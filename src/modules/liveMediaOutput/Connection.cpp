@@ -441,22 +441,23 @@ DashVideoConnection::DashVideoConnection(UsageEnvironment* env, FramedSource *so
 
 bool DashVideoConnection::additionalSetup()
 {
-    switch(fCodec){
-        case H264:
-            fSink = DashFileSink::createNew(*fEnv, fFileName.c_str(), MAX_DAT, True, quality.c_str(), fInitSegment, "m4v", ONLY_VIDEO, false);
-            fSource = DashSegmenterVideoSource::createNew(*fEnv, fSource, fReInit, fFps, fSegmentTime);
-            break;
-        default:
-            fSink = NULL;
-            break;
-    }
-    
-    if (!fSink) {
-        utils::errorMsg("DashVideoConnection could not be created");
-        return false;
-    }
-
-    return true;
+//    switch(fCodec){
+//        case H264:
+//            fSink = DashFileSink::createNew(*fEnv, fFileName.c_str(), MAX_DAT, True, quality.c_str(), fInitSegment, "m4v", ONLY_VIDEO, false);
+//            fSource = DashSegmenterVideoSource::createNew(*fEnv, fSource, fReInit, fFps, fSegmentTime);
+//            break;
+//        default:
+//            fSink = NULL;
+//            break;
+//    }
+//
+//    if (!fSink) {
+//        utils::errorMsg("DashVideoConnection could not be created");
+//        return false;
+//    }
+//
+//    return true;
+	return false;
 }
 
 
@@ -475,20 +476,21 @@ DashAudioConnection::DashAudioConnection(UsageEnvironment* env, FramedSource *so
 
 bool DashAudioConnection::additionalSetup() 
 {
-    switch (fCodec) {
-        case AAC:
-            fSink = DashFileSink::createNew(*fEnv, fFileName.c_str(), MAX_DAT, True, quality.c_str(), fInitSegment, "m4a", ONLY_AUDIO, false);
-            fSource = DashSegmenterAudioSource::createNew(*fEnv, fSource, fReInit, fSegmentTime, fSampleRate);
-            break;
-        default:
-            fSink = NULL;
-            break;
-    }
-
-    if (!fSink) {
-        utils::errorMsg("DashAudioConnection could not be created");
-        return false;
-    }
-
-    return true;   
+//    switch (fCodec) {
+//        case AAC:
+//            fSink = DashFileSink::createNew(*fEnv, fFileName.c_str(), MAX_DAT, True, quality.c_str(), fInitSegment, "m4a", ONLY_AUDIO, false);
+//            fSource = DashSegmenterAudioSource::createNew(*fEnv, fSource, fReInit, fSegmentTime, fSampleRate);
+//            break;
+//        default:
+//            fSink = NULL;
+//            break;
+//    }
+//
+//    if (!fSink) {
+//        utils::errorMsg("DashAudioConnection could not be created");
+//        return false;
+//    }
+//
+//    return true;
+	return false;
 }

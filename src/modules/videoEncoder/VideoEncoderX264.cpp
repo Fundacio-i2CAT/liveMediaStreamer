@@ -77,6 +77,7 @@ bool VideoEncoderX264::doProcessFrame(Frame *org, Frame *dst) {
 	}
 
 	x264Frame->setNals(&ppNal, piNal, frameLength);
+    x264Frame->setSize(videoFrame->getWidth(), videoFrame->getHeight());
     
     pts++;
 	return true;

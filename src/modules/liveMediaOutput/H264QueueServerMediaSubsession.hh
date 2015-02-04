@@ -24,7 +24,7 @@
 #ifndef _H264_SERVER_MEDIA_SUBSESSION_HH
 #define _H264_SERVER_MEDIA_SUBSESSION_HH
 
-#include <liveMedia/liveMedia.hh>
+#include <liveMedia.hh>
 #include "QueueServerMediaSubsession.hh"
 
 class H264QueueServerMediaSubsession: public QueueServerMediaSubsession {

@@ -2,7 +2,7 @@
 #ifndef _H264_QUEUE_SOURCE_HH
 #define _H264_QUEUE_SOURCE_HH
 
-#include <liveMedia/liveMedia.hh>
+#include <liveMedia.hh>
 #include "QueueSource.hh"
 
 

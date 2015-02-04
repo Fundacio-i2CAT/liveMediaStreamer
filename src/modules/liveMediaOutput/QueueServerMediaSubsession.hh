@@ -25,7 +25,7 @@
 #ifndef _QUEUE_SERVER_MEDIA_SUBSESSION_HH
 #define _QUEUE_SERVER_MEDIA_SUBSESSION_HH
 
-#include <liveMedia/liveMedia.hh>
+#include <liveMedia.hh>
 #include "../../IOInterface.hh"
 
 

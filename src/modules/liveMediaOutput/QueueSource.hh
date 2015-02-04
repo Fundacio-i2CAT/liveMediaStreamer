@@ -1,7 +1,7 @@
 #ifndef _QUEUE_SOURCE_HH
 #define _QUEUE_SOURCE_HH
 
-#include <liveMedia/liveMedia.hh>
+#include <liveMedia.hh>
 
 #include "../../FrameQueue.hh"
 #include "../../IOInterface.hh"

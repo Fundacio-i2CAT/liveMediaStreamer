@@ -8,6 +8,7 @@ liblivemediastreamer_la_SOURCES = modules/audioDecoder/AudioDecoderLibav.cpp \
                                   modules/videoEncoder/VideoEncoderX264.cpp \
                                   modules/videoMixer/VideoMixer.cpp \
                                   modules/videoResampler/VideoResampler.cpp \
+                                  modules/dasher/Dasher.cpp \
                                   modules/liveMediaInput/ExtendedRTSPClient.cpp \
                                   modules/liveMediaInput/H264QueueSink.cpp \
                                   modules/liveMediaInput/Handlers.cpp \

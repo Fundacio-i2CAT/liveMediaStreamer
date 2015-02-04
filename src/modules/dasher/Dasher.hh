@@ -24,15 +24,33 @@
 #ifndef _DASHER_HH
 #define _DASHER_HH
 
-#include "QueueSource.hh"
 #include "../../Filter.hh"
-#include "../../IOInterface.hh"
-#include "DashSegmenterVideoSource.hh"
-#include "DashSegmenterAudioSource.hh"
-#include "Connection.hh"
+#include "../../VideoFrame.hh"
 
 #include <map>
 #include <string>
+
+#define H264_NALU_START_CODE 0x00000001
+#define SHORT_START_CODE_LENGTH 3
+#define LONG_START_CODE_LENGTH 4
+#define H264_NALU_TYPE_MASK 0x1F
+
+#define H264_METADATA_VERSION_FLAG 0x01
+#define METADATA_RESERVED_BYTES1 0xFC
+#define AVCC_HEADER_BYTES_MINUS_ONE 0x03
+#define METADATA_RESERVED_BYTES2 0xE0
+#define NUMBER_OF_SPS 0x01
+#define NUMBER_OF_PPS 0x01
+
+#define IDR 5
+#define SEI 6
+#define SPS 7
+#define PPS 8
+#define AUD 9
+
+class DashSegmenter;
+class DashVideoSegmenter;
+class DashAudioSegmenter;
 
 class Dasher : public TailFilter {
 
@@ -41,12 +59,13 @@ public:
     ~Dasher();
 
     bool deleteReader(int id);
-    void stop();
-    bool doProcessFrame(std::map<int, Frame*> orgFrames);
+    void doGetState(Jzon::Object &filterNode);
       
 private: 
+    bool doProcessFrame(std::map<int, Frame*> orgFrames);
     void initializeEventMap();
-    Reader *setReader(int readerID, FrameQueue* queue, bool sharedQueue = false);
+    Reader *setReader(int readerId, FrameQueue* queue, bool sharedQueue = false);
+
 
     std::map<int, DashSegmenter*> segmenters;
 };
@@ -58,7 +77,8 @@ public:
     virtual bool manageFrame(Frame* frame) = 0;
 
 protected:
-    i2ctx* dashContext;
+    VideoFrame* internalVideoFrame; 
+    // i2ctx* dashContext;
 
 };
 
@@ -68,6 +88,20 @@ public:
     DashVideoSegmenter();
     bool manageFrame(Frame* frame);
     bool setup(size_t segmentDuration, size_t timeBase, size_t sampleDuration, size_t width, size_t height, size_t framerate);
+
+private:
+    bool parseNal(VideoFrame* nal);
+    int detectStartCode(unsigned char const* ptr);
+    void saveSPS(unsigned char* data, int dataLength);
+    void savePPS(unsigned char* data, int dataLength);
+    bool updateMetadata();
+    void createMetadata();
+
+    std::vector<unsigned char> lastSPS;
+    std::vector<unsigned char> lastPPS;
+    std::vector<unsigned char> metadata;
+    bool updatedSPS;
+    bool updatedPPS;
 };
 
 class DashAudioSegmenter : public DashSegmenter {

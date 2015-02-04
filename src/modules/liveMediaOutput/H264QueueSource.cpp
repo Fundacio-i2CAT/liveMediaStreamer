@@ -72,10 +72,6 @@ void H264QueueSource::doGetNextFrame() {
         return;
     }
 
-    VideoFrame* vFrame = dynamic_cast<VideoFrame*>(frame);
-
-    std::cout << "Size: " << vFrame->getWidth() << "x" << vFrame->getHeight() << std::endl;
-    
     size = frame->getLength();
     buff = frame->getDataBuf();
     

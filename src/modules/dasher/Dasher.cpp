@@ -22,6 +22,9 @@
  */
  
 #include "Dasher.hh"
+#include "../../AVFramedQueue.hh"
+#include "../../VideoFrame.hh"
+#include "../../AudioFrame.hh"
 
 #include <map>
 #include <string>
@@ -57,7 +60,12 @@ void Dasher::initializeEventMap()
 
 }
 
-Reader* Dasher::setReader(int readerID, FrameQueue* queue, bool sharedQueue = false)
+void Dasher::doGetState(Jzon::Object &filterNode)
+{
+//TODO: implement    
+}
+
+Reader* Dasher::setReader(int readerId, FrameQueue* queue, bool sharedQueue)
 {
     VideoFrameQueue *vQueue;
     AudioFrameQueue *aQueue;
@@ -93,15 +101,14 @@ Reader* Dasher::setReader(int readerID, FrameQueue* queue, bool sharedQueue = fa
 
 }
 
-DashSegmenter::DashSegmenter() : dashContext(NULL)
+DashSegmenter::DashSegmenter()// : dashContext(NULL)
 {
 
 }
 
-DashVideoSegmenter::DashVideoSegmenter() : 
-DashSegmenter() 
+DashVideoSegmenter::DashVideoSegmenter() : updatedSPS(false), updatedPPS(false)
 {
-
+    internalVideoFrame = InterleavedVideoFrame::createNew(H264, 2000000);
 }
 
 bool DashVideoSegmenter::manageFrame(Frame* frame)
@@ -115,34 +122,126 @@ bool DashVideoSegmenter::manageFrame(Frame* frame)
         return false;
     }
 
-    if (!setup(size_t segmentDuration, size_t timeBase, size_t sampleDuration, vFrame->getWidth(), vFrame->getHeight(), size_t framerate)) {
-        utils::errorMsg("Error while setupping DashVideoSegmenter");
-        return false;
+    parseNal(vFrame);
+
+    // if (!setup(size_t segmentDuration, size_t timeBase, size_t sampleDuration, vFrame->getWidth(), vFrame->getHeight(), size_t framerate)) {
+    //     utils::errorMsg("Error while setupping DashVideoSegmenter");
+    //     return false;
+    // }
+    return true;
+    
+}
+
+bool DashVideoSegmenter::parseNal(VideoFrame* nal) 
+{
+    int startCodeOffset = detectStartCode(nal->getDataBuf());
+    unsigned char* nalData = nal->getDataBuf() + startCodeOffset;
+    int nalDataLength = nal->getLength() - startCodeOffset;
+
+    unsigned char nalType = nalData[0] & H264_NALU_TYPE_MASK;
+
+    switch(nalType) {
+        case SPS:
+            saveSPS(nalData, nalDataLength);
+            break;
+        case PPS:
+            savePPS(nalData, nalDataLength);
+            break;
+        case SEI:
+            break;
+        case AUD:
+            break;
+        case IDR:
+            break;
+        default:
+            break;
     }
 
-    
+    updateMetadata();
+
+    return true;
+}
+
+void DashVideoSegmenter::saveSPS(unsigned char* data, int dataLength)
+{
+    lastSPS.clear();
+    lastSPS.insert(lastSPS.begin(), data, data + dataLength);
+    updatedSPS = true;
+}
+
+void DashVideoSegmenter::savePPS(unsigned char* data, int dataLength)
+{
+    lastPPS.clear();
+    lastPPS.insert(lastPPS.begin(), data, data + dataLength);
+    updatedPPS = true;
+}
+
+bool DashVideoSegmenter::updateMetadata()
+{
+    if (updatedSPS && updatedPPS) {
+        createMetadata();
+        updatedSPS = false;
+        updatedPPS = false;
+        return true;
+    }
+
+    return false;
+}
+
+void DashVideoSegmenter::createMetadata()
+{
+    int spsLength = lastSPS.size();
+    int ppsLength = lastPPS.size();
+
+    metadata.clear();
+
+    metadata.insert(metadata.end(), H264_METADATA_VERSION_FLAG);
+    metadata.insert(metadata.end(), lastSPS.begin(), lastSPS.begin() + 3);
+    metadata.insert(metadata.end(), METADATA_RESERVED_BYTES1 + AVCC_HEADER_BYTES_MINUS_ONE);
+    metadata.insert(metadata.end(), METADATA_RESERVED_BYTES2 + NUMBER_OF_SPS);
+    metadata.insert(metadata.end(), spsLength & 0xFF00);
+    metadata.insert(metadata.end(), spsLength & 0x00FF);
+    metadata.insert(metadata.end(), lastSPS.begin(), lastSPS.end());
+    metadata.insert(metadata.end(), NUMBER_OF_PPS);
+    metadata.insert(metadata.end(), ppsLength & 0xFF00);
+    metadata.insert(metadata.end(), ppsLength & 0x00FF);
+    metadata.insert(metadata.end(), lastPPS.begin(), lastPPS.end());
 }
 
 bool DashVideoSegmenter::setup(size_t segmentDuration, size_t timeBase, size_t sampleDuration, size_t width, size_t height, size_t framerate)
 {
-    uint8_t i2error = I2OK;
+    // uint8_t i2error = I2OK;
 
-    if (!dashContext) {
-        i2error = generate_context(&dashContext, VIDEO_TYPE);
-    }
+    // if (!dashContext) {
+    //     i2error = generate_context(&dashContext, VIDEO_TYPE);
+    // }
 
-    if (i2error != I2OK || !dashContext) {
-        return false;
-    }
+    // if (i2error != I2OK || !dashContext) {
+    //     return false;
+    // }
 
-    i2error = fill_video_context(&dashContext, width, height, framerate, timeBase, sampleDuration);
+    // i2error = fill_video_context(&dashContext, width, height, framerate, timeBase, sampleDuration);
 
-    if (i2error != I2OK) {
-        return false;
-    }
+    // if (i2error != I2OK) {
+    //     return false;
+    // }
 
-    set_segment_duration(segmentDuration, &dashContext);
+    // set_segment_duration(segmentDuration, &dashContext);
     return true;
+}
+
+int DashVideoSegmenter::detectStartCode(unsigned char const* ptr) 
+{
+    u_int32_t bytes = 0|(ptr[0]<<16)|(ptr[1]<<8)|ptr[2];
+    if (bytes == H264_NALU_START_CODE) {
+        return SHORT_START_CODE_LENGTH;
+    }
+
+    bytes = (ptr[0]<<24)|(ptr[1]<<16)|(ptr[2]<<8)|ptr[3];
+    if (bytes == H264_NALU_START_CODE) {
+        return LONG_START_CODE_LENGTH;
+    }
+    return 0;
 }
 
 
@@ -162,27 +261,29 @@ bool DashAudioSegmenter::manageFrame(Frame* frame)
         utils::errorMsg("Error managing frame: it MUST be an audio frame");
         return false;
     }
+
+    return true;
 }
 
 bool DashAudioSegmenter::setup(size_t segmentDuration, size_t timeBase, size_t sampleDuration, size_t channels, size_t sampleRate, size_t bitsPerSample)
 {
-    uint8_t i2error = I2OK;
+    // uint8_t i2error = I2OK;
 
-    if (!dashContext) {
-        i2error = generate_context(&dashContext, AUDIO_TYPE);
-    }
+    // if (!dashContext) {
+    //     i2error = generate_context(&dashContext, AUDIO_TYPE);
+    // }
     
-    if (i2error != I2OK || !dashContext) {
-        return false;
-    }
+    // if (i2error != I2OK || !dashContext) {
+    //     return false;
+    // }
 
-    i2error = fill_audio_context(&dashContext, channels, sampleRate, sampleSize, timeBase, sampleDuration); 
+    // i2error = fill_audio_context(&dashContext, channels, sampleRate, sampleSize, timeBase, sampleDuration); 
 
-    if (i2error != I2OK) {
-        return false;
-    }
+    // if (i2error != I2OK) {
+    //     return false;
+    // }
 
-    set_segment_duration(segmentDuration, &dashContext);
+    // set_segment_duration(segmentDuration, &dashContext);
     return true;
 }
 

@@ -157,14 +157,12 @@ private:
 };
 
 class HeadFilter : public BaseFilter {
-public:
-    //TODO:implement this function
-    void pushEvent(Event e);
 
 protected:
     HeadFilter(unsigned writersNum = MAX_WRITERS);
     
 private:
+    bool processFrame(bool removeFrame = true);
     using BaseFilter::demandOriginFrames;
     using BaseFilter::demandDestinationFrames;
     using BaseFilter::addFrames;
@@ -176,14 +174,13 @@ private:
 };
 
 class TailFilter : public BaseFilter {
-public:
-    void pushEvent(Event e);
 
 protected:
     TailFilter(unsigned readersNum = MAX_READERS);
     virtual bool doProcessFrame(std::map<int, Frame *> orgFrames) = 0;
 
 private:
+    bool processFrame(bool removeFrame = true);
     FrameQueue *allocQueue(int wId) {return NULL;};
     using BaseFilter::demandOriginFrames;
     using BaseFilter::demandDestinationFrames;

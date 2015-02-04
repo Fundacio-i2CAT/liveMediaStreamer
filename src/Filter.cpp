@@ -532,7 +532,7 @@ bool TailFilter::processFrame(bool removeFrame)
         return false;
     }
 
-    if (doProcessFrame(oFrames) {
+    if (doProcessFrame(oFrames)) {
         //TODO: evaluate return
     }
 

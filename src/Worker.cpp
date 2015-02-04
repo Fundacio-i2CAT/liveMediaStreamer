@@ -41,41 +41,59 @@ Worker::~Worker()
 
 bool Worker::addProcessor(int id, Runnable *processor) 
 {
-    if (processors.count(id) > 0) {
-        return false;
-    }
-
-    if (!run) {
-        processors[id] = processor;
-        enabled = true;
-        return true;
-    }
-
+    std::map<int, Runnable*> runnables;
+    Runnable* current;
+    
+    processor->setId(id);
+    
     mtx.lock();
+    
+    while (!processors.empty()){
+        current = processors.pop();
+        
+        runnables[current->getId()] = current;
+    }
+    
+    if (runnables.count(id) > 0) {
+        mtx.unlock();
+        return false;
+    }  
 
-    processors[id] = processor;
+    runnables[id] = processor;
     enabled = true;
+    
+    for (auto it : runnables){
+        processors.push(it.second);
+    }
 
     mtx.unlock();
-
     return true;
 }
 
 bool Worker::removeProcessor(int id)
 {
-    if (processors.count(id) <= 0) {
+    std::map<int, Runnable*> runnables;
+    Runnable* current;
+    
+    mtx.lock();
+    
+    while (!processors.empty()){
+        current = processors.pop();
+        runnables[current->getId()] = current;
+    }
+    
+    if (runnables.count(id) <= 0) {
+        mtx.unlock();
         return false;
     }
 
-    if (!run) {
-        processors.erase(id);
-        return true;
+    runnables.erase(id);
+    
+    for (auto it : runnables){
+        processors.push(it.second);
     }
-
-    mtx.lock();
-    processors.erase(id);
+    
     mtx.unlock();
-
     return true;
 }
 
@@ -116,16 +134,34 @@ bool Worker::isEnabled()
     return enabled;
 }
 
+//TODO: avoid void functions
 void Worker::getState(Jzon::Object &workerNode)
 {
     Jzon::Array pList;
-    for (auto it : processors) {
+    std::map<int, Runnable*> runnables;
+    Runnable* current;
+    
+    mtx.lock();
+    
+    while (!processors.empty()){
+        current = processors.pop();
+        runnables[current->getId()] = current;
+    }
+    
+    for (auto it : runnables){
+        processors.push(it.second);
+    }
+    
+    mtx.unlock();
+    
+    for (auto it : runnables) {
         pList.Add(it.first);
     }
 
     workerNode.Add("type", utils::getWorkerTypeAsString(type));
     workerNode.Add("processors", pList);
 }
+
 
 
 ///////////////////////////////////////////////////
@@ -168,153 +204,60 @@ void Master::process()
 {
     uint64_t teaTime = 0;
     std::chrono::microseconds active(ACTIVE);
+    Runnable* currentJob;
     
     while(run) {
         startPoint = std::chrono::system_clock::now();
 
-        processAll();
-
-        mtx.lock();
-
-        for (auto it : processors) {   
-            it.second->processEvent();
-
-            if (!it.second->isEnabled()) {
-                continue;
-            }
+        mtx.lock();        
+        while (!processors.empty() && processors.top()->ready()){
+            currentJob = processors.pop();
             
-            teaTime = std::min(teaTime, it.second->processFrame(false));
-        }
-
-        while (!allFinished() && run) {
-            std::this_thread::sleep_for(active);
-        }
-
-        for (auto it : processors) {
-            it.second->removeFrames();
-        }
-
-        mtx.unlock();
-
-        enlapsedTime = std::chrono::duration_cast<std::chrono::microseconds>(
-            std::chrono::system_clock::now() - startPoint);
-
-        if (frameTime.count() == 0) {
-            std::this_thread::sleep_for(active);
-            continue;
+            //TODO: remove/rethink enable feature from filters
+            currentJob->processEvent();           
+            currentJob->processFrame();
+            currentJob->removeFrames();
+            
+            processors->push(currentJob);
         }
         
-        if (enlapsedTime < frameTime) {
-            std::this_thread::sleep_for(std::chrono::microseconds(frameTime - enlapsedTime));
-        } else {
-            utils::warningMsg("Your server may be to slow");
-        }
+        currentJob = processors.top();
+        
+        mtx.unlock();
+        
+        currentJob->sleepUntilReady();
     }
 }
 
-
-bool Master::addSlave(int id, Slave *slave) 
+bool Runnable::ready()
 {
-    if (slaves.size() == MAX_SLAVE) {
-        return false;
-    }
-
-    if (slaves.count(id) > 0) {
-        return false;
-    }
-
-    slaves[id] = slave;
-
-    return true;        
+    return time < std::chrono::system_clock::now();
 }
 
-bool Master::removeSlave(int id) 
-{   
-    if (slaves.count(id) <= 0) {
-        return false;
+void Runnable::sleepUntilReady()
+{
+    std::system_clock::time_point now;
+    if (!ready()){
+        std::this_thread::sleep_for(
+            std::chrono::duration_cast<std::chrono::microseconds>(time - now));
     }
+}
 
-    slaves.erase(id);
-
+bool Runnable::processFrame()
+{
+    int64_t ret;
+    
+    ret = doProcessframe();
+    if (ret < 0){
+        return false;
+    } 
+    
+    time = std::chrono::system_clock::now() + std::chrono::microseconds(ret);
+    
     return true;
 }
 
-bool Master::allFinished() 
+bool Runnable::operator()(const Runnable* lhs, const Runnable* rhs)
 {
-    bool end = true;
-
-    if (slaves.empty()) {
-        return end;
-    }
-
-    for (auto it : slaves) {
-        if (!it.second->getFinished()) {
-            end = false;
-            break;
-        }
-    }
-
-    return end;
-}
-
-void Master::processAll() 
-{
-    for (auto it : slaves) {
-        it.second->setFalse();
-    }
-}
-
-
-///////////////////////////////////////
-//           SLAVE CLASS             //
-///////////////////////////////////////
-
-Slave::Slave() : Worker() 
-{
-    finished = true;
-    type = SLAVE;
-}
-
-void Slave::setFalse() 
-{
-    finished = false;
-}
-
-void Slave::process() 
-{
-    int idleCount = 0;
-    std::chrono::microseconds active(ACTIVE);
-    std::chrono::milliseconds idle(IDLE);
-
-    while(run) {
-
-        if (finished) {
-            if (idleCount <= ACTIVE_TIMEOUT){
-                idleCount++;
-                std::this_thread::sleep_for(active);
-            } else {
-                std::this_thread::sleep_for(idle);
-            }
-            continue;
-        }
-
-        mtx.lock();
-    
-        for (auto it : processors) {
-            it.second->processEvent();
-
-            if (!it.second->isEnabled()) {
-                continue;
-            }
-
-            it.second->processFrame(false);
-
-        }
-
- 	    mtx.unlock();
-        
-        idleCount = 0;
-        finished = true;
-
-    }
+    return lhs->time < rhs->time;
 }

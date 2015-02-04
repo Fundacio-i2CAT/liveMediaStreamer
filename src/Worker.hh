@@ -29,11 +29,13 @@
 #include <thread>
 #include <map>
 #include <chrono>
+#include <mutex>
+#include <queue>
+
 #include "Frame.hh"
 #include "Types.hh"
 #include "Jzon.h"
 #include "Utils.hh"
-#include <mutex>
 
 #define MAX_SLAVE 16
 
@@ -55,13 +57,13 @@ public:
     bool addProcessor(int id, Runnable *processor);
     bool removeProcessor(int id);
     WorkerType getType(){return type;};
-    std::map<int, Runnable*> getProcessors(){return processors;};
+    std::priority_queue<Runnable*, std::vector<*Runnable>, Runnable> getProcessors(){return processors;};
     void getState(Jzon::Object &workerNode);
     
 protected:
     virtual void process() = 0;
 
-    std::map<int, Runnable*> processors;
+    std::priority_queue<Runnable*, std::vector<*Runnable>, Runnable> processors;
     std::thread thread;
     std::atomic<bool> run;
     std::atomic<bool> enabled;
@@ -111,13 +113,23 @@ class Runnable {
     
 public:
     ~Runnable(){};
-    virtual uint64_t processFrame(bool removeFrame = true) = 0;
+    bool processFrame();
     virtual void processEvent() = 0;
     virtual void removeFrames() = 0;
     virtual bool hasFrames() = 0;
     virtual bool isEnabled() = 0;
     virtual void stop() = 0;
-    //virtual std::chrono::microseconds getFrameTime() = 0;
+    bool ready();
+    int getId() {return id;};
+    void setId(int id_) {id = id_;};
+    bool operator()(const Runnable* lhs, const Runnable* rhs);
+    
+protected:
+    virtual int64_t doProcessFrame(bool removeFrame = true) = 0;
+    std::chrono::system_clock::time_point time;
+    
+private:
+    int id;
 };
 
 #endif

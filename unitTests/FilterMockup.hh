@@ -24,6 +24,9 @@
 #ifndef _FILTER_MOCKUP_HH
 #define _FILTER_MOCKUP_HH
 
+#include <thread>
+#include <chronos>
+
 #include "Filter.hh"
 #include "AVFramedQueue.hh"
 
@@ -37,7 +40,7 @@ public:
     
 protected:
     FrameQueue *allocQueue(int wId) {return VideoFrameQueue::createNew(codec);};
-    bool processFrame(bool removeFrame = true) {return true;};
+    size_t processFrame() {return 20;};
     Reader *setReader(int readerID, FrameQueue* queue, bool sharedQueue = false) {return NULL;};
     void doGetState(Jzon::Object &filterNode) {};
     void stop() {};
@@ -53,7 +56,7 @@ public:
     
 protected:
     FrameQueue *allocQueue(int wId) {return AudioFrameQueue::createNew(codec);};
-    bool processFrame(bool removeFrame = true) {return true;};
+    size_t processFrame() {return 8;};
     Reader *setReader(int readerID, FrameQueue* queue, bool sharedQueue = false) {return NULL;};
     void doGetState(Jzon::Object &filterNode) {};
     void stop() {};

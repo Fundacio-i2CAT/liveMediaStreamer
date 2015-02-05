@@ -78,20 +78,20 @@ public:
     virtual ~BaseFilter();
     
 protected:
-    BaseFilter(unsigned maxReaders_, unsigned maxWriters_, bool force_ = false);
-	void removeFrames();
+    BaseFilter(unsigned maxReaders_, unsigned maxWriters_, size_t fTime = 0, bool force_ = false);
+    void removeFrames();
     bool hasFrames();
     virtual FrameQueue *allocQueue(int wId) = 0;
-    virtual bool processFrame(bool removeFrame = true) = 0;
+    virtual size_t processFrame() = 0;
     virtual Reader *setReader(int readerID, FrameQueue* queue, bool sharedQueue = false);
     virtual void doGetState(Jzon::Object &filterNode) = 0;
 
     Reader* getReader(int id);
     bool demandOriginFrames();
     bool demandDestinationFrames();
-    void addFrames();
-    void processEvent(); 
+    void addFrames(); 
     bool newEvent();
+    void processEvent();
 
     std::map<std::string, std::function<void(Jzon::Node* params, Jzon::Object &outputNode)> > eventMap; 
     
@@ -110,7 +110,7 @@ protected:
     std::chrono::microseconds timestamp;
     std::chrono::microseconds lastDiffTime;
     std::chrono::microseconds diffTime;
-    std::chrono::microseconds getFrameTime();
+    std::chrono::microseconds wallClock;
       
 private:
     bool connect(BaseFilter *R, int writerID, int readerID, bool slaveQueue = false);
@@ -126,14 +126,15 @@ private:
     std::map<int, bool> rUpdates;
 };
 
+//TODO: convert updateTimestamp to private
 class OneToOneFilter : public BaseFilter {
     
 protected:
-    OneToOneFilter(bool force_ = false);
+    OneToOneFilter(size_t fTime = 0, bool force_ = false);
     virtual bool doProcessFrame(Frame *org, Frame *dst) = 0;
     
 private:
-    bool processFrame(bool removeFrame = true);
+    size_t processFrame();
     using BaseFilter::demandOriginFrames;
     using BaseFilter::demandDestinationFrames;
     using BaseFilter::addFrames;
@@ -142,17 +143,25 @@ private:
     using BaseFilter::writers;
     using BaseFilter::oFrames;
     using BaseFilter::dFrames;
+    using BaseFilter::processEvent;
+
+    using BaseFilter::frameTime;
+    using BaseFilter::timestamp;
+    using BaseFilter::lastDiffTime;
+    using BaseFilter::diffTime;
+    using BaseFilter::wallClock;
+    
     void stop() {};
 };
 
 class OneToManyFilter : public BaseFilter {
     
 protected:
-    OneToManyFilter(unsigned writersNum = MAX_WRITERS, bool force_ = false);
+    OneToManyFilter(unsigned writersNum = MAX_WRITERS, size_t fTime = 0, bool force_ = false);
     virtual bool doProcessFrame(Frame *org, std::map<int, Frame *> dstFrames) = 0;
     
 private:
-    bool processFrame(bool removeFrame = true);
+    size_t processFrame();
     using BaseFilter::demandOriginFrames;
     using BaseFilter::demandDestinationFrames;
     using BaseFilter::addFrames;
@@ -161,6 +170,14 @@ private:
     using BaseFilter::writers;
     using BaseFilter::oFrames;
     using BaseFilter::dFrames;
+    using BaseFilter::processEvent;
+    
+    using BaseFilter::frameTime;
+    using BaseFilter::timestamp;
+    using BaseFilter::lastDiffTime;
+    using BaseFilter::diffTime;
+    using BaseFilter::wallClock;
+    
     void stop() {};
 };
 
@@ -181,6 +198,13 @@ private:
     using BaseFilter::readers;
     using BaseFilter::oFrames;
     using BaseFilter::dFrames;
+    using BaseFilter::processEvent;
+    
+    using BaseFilter::frameTime;
+    using BaseFilter::timestamp;
+    using BaseFilter::lastDiffTime;
+    using BaseFilter::diffTime;
+    using BaseFilter::wallClock;
 };
 
 class TailFilter : public BaseFilter {
@@ -198,16 +222,23 @@ private:
     using BaseFilter::removeFrames;
     using BaseFilter::oFrames;
     using BaseFilter::dFrames;
+    using BaseFilter::processEvent;
+    
+    using BaseFilter::frameTime;
+    using BaseFilter::timestamp;
+    using BaseFilter::lastDiffTime;
+    using BaseFilter::diffTime;
+    using BaseFilter::wallClock;
 };
 
 class ManyToOneFilter : public BaseFilter {
     
 protected:
-    ManyToOneFilter(unsigned readersNum = MAX_READERS, bool force_ = false);
+    ManyToOneFilter(unsigned readersNum = MAX_READERS, size_t fTime = 0, bool force_ = false);
     virtual bool doProcessFrame(std::map<int, Frame *> orgFrames, Frame *dst) = 0;
 
 private:
-    bool processFrame(bool removeFrame = true);
+    size_t processFrame();
     using BaseFilter::demandOriginFrames;
     using BaseFilter::demandDestinationFrames;
     using BaseFilter::addFrames;
@@ -215,6 +246,14 @@ private:
     using BaseFilter::writers;
     using BaseFilter::oFrames;
     using BaseFilter::dFrames;
+    using BaseFilter::processEvent;
+    
+    using BaseFilter::frameTime;
+    using BaseFilter::timestamp;
+    using BaseFilter::lastDiffTime;
+    using BaseFilter::diffTime;
+    using BaseFilter::wallClock;
+    
     void stop() {};
 };
 

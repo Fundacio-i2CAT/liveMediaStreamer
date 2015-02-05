@@ -143,8 +143,8 @@ void Worker::process()
             currentJob = processors.top();
             processors.pop();
             //TODO: remove/rethink enable feature from filters
-            currentJob->processEvent();
-            currentJob->processFrame();
+            currentJob->processEvent(); 
+            currentJob->runProcessFrame();
             currentJob->removeFrames();
             processors.push(currentJob);
         }
@@ -200,7 +200,7 @@ LiveMediaWorker::LiveMediaWorker() : Worker()
 void LiveMediaWorker::process()
 {
     enabled = true;
-    processors.top()->processFrame();
+    processors.top()->runProcessFrame();
     enabled = false;
 }
 
@@ -229,11 +229,11 @@ void Runnable::sleepUntilReady()
     }
 }
 
-bool Runnable::processFrame()
+bool Runnable::runProcessFrame()
 {
     size_t ret;
-
-    ret = doProcessFrame();
+    
+    ret = processFrame();
     if (ret < 0){
         return false;
     }

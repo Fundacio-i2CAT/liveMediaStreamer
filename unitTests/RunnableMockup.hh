@@ -47,7 +47,7 @@ public:
     void stop() {};
     
 protected:
-    size_t doProcessFrame(bool removeFrame = true) {
+    size_t processFrame(bool removeFrame = true) {
         std::chrono::system_clock::time_point now = std::chrono::system_clock::now();
         auto duration = now.time_since_epoch();
         size_t millis = std::chrono::duration_cast<std::chrono::milliseconds>(duration).count();

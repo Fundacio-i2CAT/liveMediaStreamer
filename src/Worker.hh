@@ -43,7 +43,7 @@ class Runnable {
     
 public:
     virtual ~Runnable(){};
-    bool processFrame();
+    bool runProcessFrame();
     virtual void processEvent() = 0;
     virtual void removeFrames() = 0;
     virtual bool isEnabled() = 0;
@@ -56,7 +56,7 @@ public:
     std::chrono::system_clock::time_point getTime() const {return time;};
     
 protected:
-    virtual size_t doProcessFrame(bool removeFrame = true) = 0;
+    virtual size_t processFrame(bool removeFrame = true) = 0;
     std::chrono::system_clock::time_point time;
     
 private:

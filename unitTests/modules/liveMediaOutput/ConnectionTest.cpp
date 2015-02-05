@@ -31,8 +31,6 @@
 #include <cppunit/TestResultCollector.h>
 #include <cppunit/XmlOutputter.h>
 
-#define FILE_NAME "/tmp/mpdmanagertest.xml"
-
 #include "modules/liveMediaOutput/Connection.hh"
 
 class MpegTsConnectionTest : public CppUnit::TestFixture

@@ -25,27 +25,58 @@
 #ifndef _WORKER_HH
 #define _WORKER_HH
 
-#include <atomic>
 #include <thread>
 #include <map>
 #include <chrono>
+#include <mutex>
+#include <queue>
+#include <vector>
+
 #include "Frame.hh"
 #include "Types.hh"
 #include "Jzon.h"
 #include "Utils.hh"
-#include <mutex>
 
 #define MAX_SLAVE 16
 
-class Runnable;
+class Runnable {
+    
+public:
+    virtual ~Runnable(){};
+    bool processFrame();
+    virtual void processEvent() = 0;
+    virtual void removeFrames() = 0;
+    virtual bool isEnabled() = 0;
+    virtual void stop() = 0;
+    bool ready();
+    void sleepUntilReady();
+    int getId() {return id;};
+    void setId(int id_) {id = id_;};
+    bool operator()(const Runnable* lhs, const Runnable* rhs);
+    std::chrono::system_clock::time_point getTime() const {return time;};
+    
+protected:
+    virtual size_t doProcessFrame(bool removeFrame = true) = 0;
+    std::chrono::system_clock::time_point time;
+    
+private:
+    int id;
+};
+
+struct RunnableLess : public std::binary_function<Runnable*, Runnable*, bool>                                                                                     
+{
+  bool operator()(const Runnable* lhs, const Runnable* rhs) const
+  {
+    return lhs->getTime() > rhs->getTime();
+  }
+};
 
 class Worker {
-
+    
 public:
-    Worker(Runnable *processor_);
     Worker();
     virtual ~Worker();
-
+    
     bool start();
     bool isRunning();
     virtual void stop();
@@ -55,16 +86,16 @@ public:
     bool addProcessor(int id, Runnable *processor);
     bool removeProcessor(int id);
     WorkerType getType(){return type;};
-    std::map<int, Runnable*> getProcessors(){return processors;};
+    size_t getProcessorsSize(){return processors.size();};
     void getState(Jzon::Object &workerNode);
-
+    
 protected:
-    virtual void process() = 0;
+    virtual void process();
 
-    std::map<int, Runnable*> processors;
+    std::priority_queue<Runnable*, std::vector<Runnable*>, RunnableLess> processors;
     std::thread thread;
-    std::atomic<bool> run;
-    std::atomic<bool> enabled;
+    bool run;
+    bool enabled;
 
     WorkerType type;
     std::mutex mtx;
@@ -78,48 +109,6 @@ public:
     void stop();
 private:
     void process();
-};
-
-//class Slave : public Worker {
-//public:
-//    Slave();
-//    bool getFinished(){return finished;};
-//    void setFalse();
-//
-//protected:
-//    void process();
-//    std::atomic<bool> finished;
-//};
-
-class Master : public Worker {
-public:
-    Master();
-//    bool addSlave(int id, Slave *slave);
-//    bool removeSlave(int id);
-
-protected:
-    void process();
-//    bool allFinished();
-//    void processAll();
-
-private:
-    void updateFrameTime(Runnable* processor);
-//    std::map<int, Slave*> slaves;
-    std::chrono::microseconds frameTime;
-
-};
-
-class Runnable {
-
-public:
-    ~Runnable(){};
-    virtual bool processFrame(bool removeFrame = true) = 0;
-    virtual void processEvent() = 0;
-    virtual void removeFrames() = 0;
-    virtual bool hasFrames() = 0;
-    virtual bool isEnabled() = 0;
-    virtual void stop() = 0;
-    virtual std::chrono::microseconds getFrameTime() = 0;
 };
 
 #endif

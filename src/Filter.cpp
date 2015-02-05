@@ -33,7 +33,7 @@
 #define FAST_MODIFIER 0.90
 
 BaseFilter::BaseFilter(unsigned maxReaders_, unsigned maxWriters_, FilterRole fRole_, bool force_) :
-    maxReaders(maxReaders_), maxWriters(maxWriters_), force(force_), fRole(fRole_), enabled(true)
+    maxReaders(maxReaders_), maxWriters(maxWriters_), fRole(fRole_), force(force_), enabled(true)
 {
     frameTime = std::chrono::microseconds(0);
     frameTimeMod = 1;
@@ -446,10 +446,10 @@ BaseFilter(1, 1, fRole_, force_)
 {
 }
 
-bool OneToOneFilter::processFrame(bool removeFrame)
+size_t OneToOneFilter::processFrame(bool removeFrame)
 {
     if (!demandOriginFrames() || !demandDestinationFrames()) {
-            return false;
+            return 0;
     }
 
     if (doProcessFrame(oFrames.begin()->second, dFrames.begin()->second)) {
@@ -462,7 +462,7 @@ bool OneToOneFilter::processFrame(bool removeFrame)
         removeFrames();
     }
 
-    return true;
+    return 1;
 }
 
 
@@ -473,10 +473,10 @@ BaseFilter(1, writersNum, fRole_, force_)
 {
 }
 
-bool OneToManyFilter::processFrame(bool removeFrame)
+size_t OneToManyFilter::processFrame(bool removeFrame)
 {
     if (!demandOriginFrames() || !demandDestinationFrames()){
-        return false;
+        return 0;
     }
 
     if (doProcessFrame(oFrames.begin()->second, dFrames)) {
@@ -493,7 +493,7 @@ bool OneToManyFilter::processFrame(bool removeFrame)
     	removeFrames();
     }
 
-    return true;
+    return 1;
 }
 
 HeadFilter::HeadFilter(unsigned writersNum, FilterRole fRole_) :
@@ -558,10 +558,10 @@ BaseFilter(readersNum, 1, fRole_, force_)
 {
 }
 
-bool ManyToOneFilter::processFrame(bool removeFrame)
+size_t ManyToOneFilter::processFrame(bool removeFrame)
 {
     if (!demandOriginFrames() || !demandDestinationFrames()) {
-        return false;
+        return 0;
     }
 
     if (doProcessFrame(oFrames, dFrames.begin()->second)) {
@@ -574,5 +574,5 @@ bool ManyToOneFilter::processFrame(bool removeFrame)
     	removeFrames();
     }
 
-    return true;
+    return 1;
 }

@@ -24,10 +24,10 @@
 #include <cmath>
 #include "VideoEncoderX264.hh"
 
-VideoEncoderX264::VideoEncoderX264(int framerate): OneToOneFilter(true)
+VideoEncoderX264::VideoEncoderX264(int framerate, FilterRole fRole_): OneToOneFilter(fRole_ ,true)
 {
     fType = VIDEO_ENCODER;
-    
+
     pts = 0;
     fps = framerate;
 
@@ -38,7 +38,7 @@ VideoEncoderX264::VideoEncoderX264(int framerate): OneToOneFilter(true)
     midFrame = av_frame_alloc();
 
     configure();
-    
+
     initializeEventMap();
 }
 
@@ -49,7 +49,7 @@ VideoEncoderX264::~VideoEncoderX264(){
 bool VideoEncoderX264::doProcessFrame(Frame *org, Frame *dst) {
 	VideoFrame* videoFrame = dynamic_cast<VideoFrame*> (org);
 	X264VideoFrame* x264Frame = dynamic_cast<X264VideoFrame*> (dst);
-	int frameLength; 
+	int frameLength;
 	int piNal;
 	picIn.i_pts = pts;
 
@@ -77,35 +77,35 @@ bool VideoEncoderX264::doProcessFrame(Frame *org, Frame *dst) {
 	}
 
 	x264Frame->setNals(&ppNal, piNal, frameLength);
-    
+
     pts++;
 	return true;
 }
 
 bool VideoEncoderX264::fill_x264_picture(VideoFrame* videoFrame)
 {
-    if (avpicture_fill((AVPicture *) midFrame, videoFrame->getDataBuf(), 
-            (AVPixelFormat) libavInPixFmt, videoFrame->getWidth(), 
+    if (avpicture_fill((AVPicture *) midFrame, videoFrame->getDataBuf(),
+            (AVPixelFormat) libavInPixFmt, videoFrame->getWidth(),
             videoFrame->getHeight()) <= 0){
         utils::errorMsg("Could not feed AVFrame");
         return false;
     }
     picIn.img.i_csp = colorspace;
-    
+
     for(int i = 0; i < 4; i++){
         picIn.img.i_stride[i] = midFrame->linesize[i];
         picIn.img.plane[i] = midFrame->data[i];
     }
-    
+
     return true;
 }
 
-bool VideoEncoderX264::encodeHeadersFrame(X264VideoFrame* x264Frame) 
+bool VideoEncoderX264::encodeHeadersFrame(X264VideoFrame* x264Frame)
 {
 	int encodeSize;
     int piNal;
 	x264_nal_t *ppNal;
-	
+
 	encodeSize = x264_encoder_headers(encoder, &ppNal, &piNal);
 
 	if (encodeSize < 0) {
@@ -135,7 +135,7 @@ bool VideoEncoderX264::configure(int gop_, int bitrate_, int threads_, int fps_,
     } else {
         fps = fps_;
     }
-    
+
     frameTime = std::chrono::microseconds(1000000/fps);
 
     needsConfig = true;
@@ -143,7 +143,7 @@ bool VideoEncoderX264::configure(int gop_, int bitrate_, int threads_, int fps_,
 }
 
 bool VideoEncoderX264::reconfigure(VideoFrame* orgFrame, X264VideoFrame* x264Frame)
-{   
+{
     if (needsConfig || orgFrame->getWidth() != xparams.i_width ||
         orgFrame->getHeight() != xparams.i_height ||
         orgFrame->getPixelFormat() != inPixFmt)
@@ -182,8 +182,8 @@ bool VideoEncoderX264::reconfigure(VideoFrame* orgFrame, X264VideoFrame* x264Fra
             xparams.b_annexb = 1;
             xparams.b_repeat_headers = 1;
         }
-        
-        if (orgFrame->getWidth() != xparams.i_width || 
+
+        if (orgFrame->getWidth() != xparams.i_width ||
             orgFrame->getHeight() != xparams.i_height){
             xparams.i_width = orgFrame->getWidth();
             xparams.i_height = orgFrame->getHeight();
@@ -195,8 +195,8 @@ bool VideoEncoderX264::reconfigure(VideoFrame* orgFrame, X264VideoFrame* x264Fra
         }
         //TODO: set profile
         x264_param_apply_profile(&xparams, "baseline");
-        
-        
+
+
         if (encoder == NULL){
             encoder = x264_encoder_open(&xparams);
         } else if (needsConfig && x264_encoder_reconfig(encoder, &xparams) < 0){
@@ -206,12 +206,12 @@ bool VideoEncoderX264::reconfigure(VideoFrame* orgFrame, X264VideoFrame* x264Fra
         }
 
         needsConfig = false;
-        
+
         if (!annexB){
             return encodeHeadersFrame(x264Frame);
         }
     }
-    
+
     return true;
 }
 
@@ -219,7 +219,7 @@ void VideoEncoderX264::configEvent(Jzon::Node* params, Jzon::Object &outputNode)
 {
     int tmpGop, tmpBitrate, tmpThreads;
     bool tmpAnnexB;
-    
+
     if (!params) {
         return;
     }
@@ -228,23 +228,23 @@ void VideoEncoderX264::configEvent(Jzon::Node* params, Jzon::Object &outputNode)
     tmpBitrate = bitrate;
     tmpThreads = threads;
     tmpAnnexB = annexB;
-    
+
     if (params->Has("gop")){
         tmpGop = params->Get("gop").ToInt();
     }
-    
+
     if (params->Has("bitrate")){
         tmpBitrate = params->Get("bitrate").ToInt();
     }
-    
+
     if (params->Has("threads")){
         tmpThreads = params->Get("threads").ToInt();
     }
-    
+
     if (params->Has("annexb")){
         tmpAnnexB = params->Get("annexb").ToBool();
     }
-    
+
     if (!configure(tmpGop, tmpBitrate, tmpThreads, tmpAnnexB)){
         outputNode.Add("error", "Error configuring vide encoder");
     } else {

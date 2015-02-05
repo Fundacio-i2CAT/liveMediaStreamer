@@ -18,7 +18,7 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  *  Authors:  David Cassany <david.cassany@i2cat.net>,
- *            
+ *
  */
 
 #include "SourceManager.hh"
@@ -35,15 +35,15 @@ SourceManager *SourceManager::mngrInstance = NULL;
 
 
 FrameQueue* createVideoQueue(char const* codecName);
-FrameQueue* createAudioQueue(unsigned char rtpPayloadFormat, 
-                             char const* codecName, unsigned channels, 
+FrameQueue* createAudioQueue(unsigned char rtpPayloadFormat,
+                             char const* codecName, unsigned channels,
                              unsigned sampleRate);
 
 SourceManager::SourceManager(int writersNum): HeadFilter(writersNum), watch(0)
-{    
+{
     TaskScheduler* scheduler = BasicTaskScheduler::createNew();
     this->env = BasicUsageEnvironment::createNew(*scheduler);
-    
+
     mngrInstance = this;
     fType = RECEIVER;
     initializeEventMap();
@@ -100,19 +100,19 @@ bool SourceManager::hasCallback()
     return false;
 }
 
-bool SourceManager::processFrame(bool removeFrame)
-{   
+size_t SourceManager::processFrame(bool removeFrame)
+{
     if (envir() == NULL){
-        return false;
+        return 0;
     }
 
-    envir()->taskScheduler().doEventLoop((char*) &watch); 
-    
-    return true;
+    envir()->taskScheduler().doEventLoop((char*) &watch);
+
+    return 1;
 }
 
 bool SourceManager::addSession(Session* session)
-{   
+{
     if (session == NULL) {
         return false;
     }
@@ -122,7 +122,7 @@ bool SourceManager::addSession(Session* session)
     }
 
     sessionMap[session->getId()] = session;
-    
+
     return true;
 }
 
@@ -172,7 +172,7 @@ FrameQueue *SourceManager::allocQueue(int wId)
 
 void SourceManager::initializeEventMap()
 {
-    eventMap["addSession"] = std::bind(&SourceManager::addSessionEvent, this, 
+    eventMap["addSession"] = std::bind(&SourceManager::addSessionEvent, this,
                                         std::placeholders::_1,  std::placeholders::_2);
 }
 
@@ -189,17 +189,17 @@ void SourceManager::addSessionEvent(Jzon::Node* params, Jzon::Object &outputNode
     }
 
     if (params->Has("uri") && params->Has("progName") && params->Has("id")) {
-        
+
         std::string progName = params->Get("progName").ToString();
         std::string rtspURL = params->Get("uri").ToString();
         sessionId = params->Get("id").ToString();
         session = Session::createNewByURL(*env, progName, rtspURL, sessionId);
-    
+
     } else if (params->Has("subsessions") && params->Get("subsessions").IsArray()) {
-        
+
         Jzon::Array subsessions = params->Get("subsessions").AsArray();
         sdp = makeSessionSDP(sessionId, "this is a test");
-        
+
         for (Jzon::Array::iterator it = subsessions.begin(); it != subsessions.end(); ++it) {
             medium = (*it).Get("medium").ToString();
             codec = (*it).Get("codec").ToString();
@@ -215,12 +215,12 @@ void SourceManager::addSessionEvent(Jzon::Node* params, Jzon::Object &outputNode
                 return;
             }
 
-            sdp += makeSubsessionSDP(medium, PROTOCOL, payload, codec, bandwidth, 
+            sdp += makeSubsessionSDP(medium, PROTOCOL, payload, codec, bandwidth,
                                                 timeStampFrequency, port, channels);
         }
 
         session = Session::createNew(*env, sdp, sessionId);
-    
+
     } else {
         outputNode.Add("error", "Error adding session. Wrong parameters!");
         return;
@@ -230,7 +230,7 @@ void SourceManager::addSessionEvent(Jzon::Node* params, Jzon::Object &outputNode
     session->initiateSession();
 
     outputNode.Add("error", Jzon::null);
-} 
+}
 
 std::string SourceManager::makeSessionSDP(std::string sessionName, std::string sessionDescription)
 {
@@ -240,37 +240,37 @@ std::string SourceManager::makeSessionSDP(std::string sessionName, std::string s
     sdp << "s=" << sessionName << "\n";
     sdp << "i=" << sessionDescription << "\n";
     sdp << "t= 0 0\n";
-    
+
     return sdp.str();
 }
 
-std::string SourceManager::makeSubsessionSDP(std::string mediumName, std::string protocolName, 
-                              unsigned int RTPPayloadFormat, 
-                              std::string codecName, unsigned int bandwidth, 
-                              unsigned int RTPTimestampFrequency, 
+std::string SourceManager::makeSubsessionSDP(std::string mediumName, std::string protocolName,
+                              unsigned int RTPPayloadFormat,
+                              std::string codecName, unsigned int bandwidth,
+                              unsigned int RTPTimestampFrequency,
                               unsigned int clientPortNum,
-                              unsigned int channels) 
+                              unsigned int channels)
 {
     std::stringstream sdp;
     sdp << "m=" << mediumName << " " << clientPortNum;
     sdp << " RTP/AVP " << RTPPayloadFormat << "\n";
     sdp << "c=IN IP4 127.0.0.1\n";
     sdp << "b=AS:" << bandwidth << "\n";
-    
+
     if (RTPPayloadFormat < 96) {
         return sdp.str();
     }
-    
+
     sdp << "a=rtpmap:" << RTPPayloadFormat << " ";
     sdp << codecName << "/" << RTPTimestampFrequency;
     if (channels != 0) {
         sdp << "/" << channels;
-    } 
+    }
     sdp << "\n";
     if (codecName.compare("H264") == 0){
         sdp << "a=fmtp:" << RTPPayloadFormat << " packetization-mode=1\n";
     }
-    
+
     return sdp.str();
 }
 
@@ -312,7 +312,7 @@ void SourceManager::doGetState(Jzon::Object &filterNode)
 FrameQueue* createVideoQueue(char const* codecName)
 {
     VCodecType codec;
-    
+
     if (strcmp(codecName, "H264") == 0) {
         codec = H264;
     } else if (strcmp(codecName, "VP8") == 0) {
@@ -322,7 +322,7 @@ FrameQueue* createVideoQueue(char const* codecName)
     } else {
         return NULL;
     }
-    
+
     return VideoFrameQueue::createNew(codec);
 }
 
@@ -334,7 +334,7 @@ FrameQueue* createAudioQueue(unsigned char rtpPayloadFormat, char const* codecNa
         codec = G711;
         return AudioFrameQueue::createNew(codec);
     }
-    
+
     if (strcmp(codecName, "OPUS") == 0) {
         codec = OPUS;
         return AudioFrameQueue::createNew(codec, sampleRate);
@@ -344,22 +344,22 @@ FrameQueue* createAudioQueue(unsigned char rtpPayloadFormat, char const* codecNa
         codec = AAC;
         return AudioFrameQueue::createNew(codec, sampleRate);
     }
-    
+
     if (strcmp(codecName, "MPA") == 0) {
         codec = MP3;
         return AudioFrameQueue::createNew(codec, sampleRate);
     }
-    
+
     if (strcmp(codecName, "PCMU") == 0) {
         codec = PCMU;
          return AudioFrameQueue::createNew(codec, sampleRate, channels);
     }
-    
+
     if (strcmp(codecName, "PCM") == 0) {
         codec = PCM;
         return AudioFrameQueue::createNew(codec, sampleRate, channels);
     }
-    
+
     //TODO: error msg codec not supported
     return NULL;
 }
@@ -373,39 +373,39 @@ Session::Session(std::string id)
 }
 
 Session* Session::createNew(UsageEnvironment& env, std::string sdp, std::string id)
-{    
+{
     Session* newSession = new Session(id);
     MediaSession* mSession = MediaSession::createNew(env, sdp.c_str());
-    
+
     if (mSession == NULL){
         delete[] newSession;
         return NULL;
     }
-    
+
     newSession->scs->session = mSession;
-    
+
     return newSession;
 }
 
 Session* Session::createNewByURL(UsageEnvironment& env, std::string progName, std::string rtspURL, std::string id)
 {
     Session* session = new Session(id);
-    
+
     RTSPClient* rtspClient = ExtendedRTSPClient::createNew(env, rtspURL.c_str(), session->scs, RTSP_CLIENT_VERBOSITY_LEVEL, progName.c_str());
     if (rtspClient == NULL) {
         utils::errorMsg("Failed to create a RTSP client for URL " + rtspURL);
         return NULL;
     }
-    
+
     session->client = rtspClient;
-    
+
     return session;
 }
 
 bool Session::initiateSession()
 {
     MediaSubsession* subsession;
-    
+
     if (this->scs->session != NULL){
         UsageEnvironment& env = this->scs->session->envir();
         this->scs->iter = new MediaSubsessionIterator(*(this->scs->session));
@@ -417,7 +417,7 @@ bool Session::initiateSession()
                 utils::errorMsg("Failed to initiate subsession sink");
                 subsession->deInitiate();
             } else {
-                utils::infoMsg("Initiated subsession at port: " + 
+                utils::infoMsg("Initiated subsession at port: " +
                 std::to_string(subsession->clientPortNum()));
             }
             subsession = this->scs->iter->next();
@@ -428,7 +428,7 @@ bool Session::initiateSession()
         std::cout << "SEND DESCRIBE COMMAND RETURN: " << ret << std::endl;
         return true;
     }
-    
+
     return false;
 }
 
@@ -436,15 +436,15 @@ Session::~Session() {
     MediaSubsession* subsession;
     this->scs->iter = new MediaSubsessionIterator(*(this->scs->session));
     subsession = this->scs->iter->next();
-    
+
     while (subsession != NULL) {
         Medium::close(subsession->sink);
         subsession = this->scs->iter->next();
     }
-    
+
     Medium::close(this->scs->session);
     delete this->scs->iter;
-    
+
     if (client != NULL) {
         Medium::close(client);
     }
@@ -475,9 +475,9 @@ StreamClientState::StreamClientState(std::string id_)
 StreamClientState::~StreamClientState() {
     delete iter;
     if (session != NULL) {
-        
-        UsageEnvironment& env = session->envir(); 
-        
+
+        UsageEnvironment& env = session->envir();
+
         env.taskScheduler().unscheduleDelayedTask(streamTimerTask);
         Medium::close(session);
     }

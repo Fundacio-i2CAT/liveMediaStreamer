@@ -36,7 +36,7 @@ extern "C" {
 class AudioDecoderLibav : public OneToOneFilter {
 
 public:
-    AudioDecoderLibav();
+    AudioDecoderLibav(FilterRole fRole_ = MASTER);
     ~AudioDecoderLibav();
     bool doProcessFrame(Frame *org, Frame *dst);
     FrameQueue* allocQueue(int wId);

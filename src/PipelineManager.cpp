@@ -641,7 +641,7 @@ void PipelineManager::addWorkerEvent(Jzon::Node* params, Jzon::Object &outputNod
     type = params->Get("type").ToString();
 
     if (type.compare("master") == 0) {
-        worker = new Master();
+        worker = new Worker();
     }
 //    else if (type.compare("slave") == 0) {
 //        worker = new Slave();
@@ -664,7 +664,7 @@ void PipelineManager::addWorkerEvent(Jzon::Node* params, Jzon::Object &outputNod
 
 void PipelineManager::addSlavesToWorkerEvent(Jzon::Node* params, Jzon::Object &outputNode)
 {
-    Master* master = NULL;
+    Worker* master = NULL;
     std::vector<Worker*> slaves;
     int masterId;
 
@@ -686,7 +686,7 @@ void PipelineManager::addSlavesToWorkerEvent(Jzon::Node* params, Jzon::Object &o
     masterId = params->Get("master").ToInt();
     Jzon::Array& jsonSlavesIds = params->Get("slaves").AsArray();
 
-    master = dynamic_cast<Master*>(getWorker(masterId));
+    master = dynamic_cast<Worker*>(getWorker(masterId));
 
     if (!master) {
         outputNode.Add("error", "Error adding slaves to worker. Invalid Master ID...");

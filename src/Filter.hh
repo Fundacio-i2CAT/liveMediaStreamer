@@ -82,11 +82,11 @@ public:
     virtual ~BaseFilter();
 
 protected:
-    BaseFilter(unsigned maxReaders_, unsigned maxWriters_, FilterRole fRole_ = MASTER, bool force_ = false);
+    BaseFilter(unsigned maxReaders_ = MAX_READERS, unsigned maxWriters_ = MAX_WRITERS, FilterRole fRole_ = MASTER, bool force_ = false);
 	void removeFrames();
     bool hasFrames();
     virtual FrameQueue *allocQueue(int wId) = 0;
-    virtual bool processFrame(bool removeFrame = true) = 0;
+    virtual size_t processFrame(bool removeFrame = true) = 0;
     virtual Reader *setReader(int readerID, FrameQueue* queue, bool sharedQueue = false);
     virtual void doGetState(Jzon::Object &filterNode) = 0;
 
@@ -119,9 +119,9 @@ protected:
 private:
     bool connect(BaseFilter *R, int writerID, int readerID, bool slaveQueue = false);
 
-    FilterRole fRole;
     unsigned maxReaders;
     unsigned maxWriters;
+    FilterRole fRole;
     bool force;
     std::priority_queue<Event> eventQueue;
     std::mutex eventQueueMutex;
@@ -169,7 +169,7 @@ protected:
     virtual bool doProcessFrame(Frame *org, Frame *dst) = 0;
 
 private:
-    bool processFrame(bool removeFrame = true);
+    size_t processFrame(bool removeFrame = true);
     using BaseFilter::demandOriginFrames;
     using BaseFilter::demandDestinationFrames;
     using BaseFilter::addFrames;
@@ -188,7 +188,7 @@ protected:
     virtual bool doProcessFrame(Frame *org, std::map<int, Frame *> dstFrames) = 0;
 
 private:
-    bool processFrame(bool removeFrame = true);
+    size_t processFrame(bool removeFrame = true);
     using BaseFilter::demandOriginFrames;
     using BaseFilter::demandDestinationFrames;
     using BaseFilter::addFrames;
@@ -243,7 +243,7 @@ protected:
     virtual bool doProcessFrame(std::map<int, Frame *> orgFrames, Frame *dst) = 0;
 
 private:
-    bool processFrame(bool removeFrame = true);
+    size_t processFrame(bool removeFrame = true);
     using BaseFilter::demandOriginFrames;
     using BaseFilter::demandDestinationFrames;
     using BaseFilter::addFrames;

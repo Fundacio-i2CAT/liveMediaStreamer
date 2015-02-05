@@ -1,5 +1,5 @@
 /*
- *  FilterMockUp - A filter class mockup 
+ *  FilterMockUp - A filter class mockup
  *  Copyright (C) 2014  Fundació i2CAT, Internet i Innovació digital a Catalunya
  *
  *  This file is part of media-streamer.
@@ -18,7 +18,7 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  *  Authors:  Marc Palau <marc.palau@i2cat.net>
- *            
+ *
  */
 
 #ifndef _FILTER_MOCKUP_HH
@@ -30,14 +30,14 @@
 #define READERS 1
 #define WRITERS 1
 
-class VideoFilterMockup : public BaseFilter 
+class VideoFilterMockup : public BaseFilter
 {
 public:
     VideoFilterMockup(VCodecType c) : BaseFilter(READERS,WRITERS) {codec = c;};
-    
+
 protected:
     FrameQueue *allocQueue(int wId) {return VideoFrameQueue::createNew(codec);};
-    bool processFrame(bool removeFrame = true) {return true;};
+    size_t processFrame(bool removeFrame = true) {return 1;};
     Reader *setReader(int readerID, FrameQueue* queue, bool sharedQueue = false) {return NULL;};
     void doGetState(Jzon::Object &filterNode) {};
     void stop() {};
@@ -46,14 +46,14 @@ private:
     VCodecType codec;
 };
 
-class AudioFilterMockup : public BaseFilter 
+class AudioFilterMockup : public BaseFilter
 {
 public:
     AudioFilterMockup(ACodecType c) : BaseFilter(READERS,WRITERS) {codec = c;};
-    
+
 protected:
     FrameQueue *allocQueue(int wId) {return AudioFrameQueue::createNew(codec);};
-    bool processFrame(bool removeFrame = true) {return true;};
+    size_t processFrame(bool removeFrame = true) {return 1;};
     Reader *setReader(int readerID, FrameQueue* queue, bool sharedQueue = false) {return NULL;};
     void doGetState(Jzon::Object &filterNode) {};
     void stop() {};

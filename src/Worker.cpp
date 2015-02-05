@@ -26,7 +26,6 @@
 #define IDLE 100
 #define ACTIVE_TIMEOUT 500
 
-#include <cmath>
 #include <iostream>
 #include "Worker.hh"
 
@@ -44,27 +43,27 @@ bool Worker::addProcessor(int id, Runnable *processor)
     bool ret = false;
     std::map<int, Runnable*> runnables;
     Runnable* current;
-    
+
     mtx.lock();
-    
+
     while (!processors.empty()){
         current = processors.top();
         processors.pop();
         runnables[current->getId()] = current;
     }
-    
+
     if (runnables.count(id) == 0) {
         processor->setId(id);
         runnables[id] = processor;
-        enabled = true; 
+        enabled = true;
         ret = true;
-        
-    } 
-    
+
+    }
+
     for (auto it : runnables){
         processors.push(it.second);
     }
-    
+
     mtx.unlock();
     return ret;
 }
@@ -74,24 +73,24 @@ bool Worker::removeProcessor(int id)
     bool ret = false;
     std::map<int, Runnable*> runnables;
     Runnable* current;
-    
+
     mtx.lock();
-    
+
     while (!processors.empty()){
         current = processors.top();
         processors.pop();
         runnables[current->getId()] = current;
     }
-    
+
     while (runnables.count(id) > 0) {
         runnables.erase(id);
         ret = true;
     }
-    
+
     for (auto it : runnables){
         processors.push(it.second);
     }
-    
+
     mtx.unlock();
     return ret;
 }
@@ -136,24 +135,24 @@ bool Worker::isEnabled()
 void Worker::process()
 {
     Runnable* currentJob;
-    
+
     while(run) {
-        mtx.lock();        
-        
+        mtx.lock();
+
         while (!processors.empty() && processors.top()->ready()){
             currentJob = processors.top();
             processors.pop();
             //TODO: remove/rethink enable feature from filters
-            currentJob->processEvent(); 
+            currentJob->processEvent();
             currentJob->processFrame();
             currentJob->removeFrames();
             processors.push(currentJob);
         }
-        
+
         currentJob = processors.top();
-        
+
         mtx.unlock();
-        
+
         currentJob->sleepUntilReady();
     }
 }
@@ -164,21 +163,21 @@ void Worker::getState(Jzon::Object &workerNode)
     Jzon::Array pList;
     std::map<int, Runnable*> runnables;
     Runnable* current;
-    
+
     mtx.lock();
-    
+
     while (!processors.empty()){
         current = processors.top();
         processors.pop();
         runnables[current->getId()] = current;
     }
-    
+
     for (auto it : runnables){
         processors.push(it.second);
     }
-    
+
     mtx.unlock();
-    
+
     for (auto it : runnables) {
         pList.Add(it.first);
     }
@@ -206,7 +205,7 @@ void LiveMediaWorker::process()
 }
 
 void LiveMediaWorker::stop()
-{   
+{
     processors.top()->stop();
     if (isRunning()){
         thread.join();
@@ -222,10 +221,10 @@ void Runnable::sleepUntilReady()
 {
     std::chrono::system_clock::time_point now = std::chrono::system_clock::now();
     std::chrono::microseconds teaTime;
-    
+
     if (!ready()){
         teaTime = std::chrono::duration_cast<std::chrono::microseconds>(time - now);
-        
+
         std::this_thread::sleep_for(teaTime);
     }
 }
@@ -233,13 +232,13 @@ void Runnable::sleepUntilReady()
 bool Runnable::processFrame()
 {
     size_t ret;
-    
+
     ret = doProcessFrame();
     if (ret < 0){
         return false;
-    } 
-    
+    }
+
     time = std::chrono::system_clock::now() + std::chrono::microseconds(ret);
-       
+
     return true;
 }

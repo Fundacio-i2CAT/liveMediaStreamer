@@ -19,7 +19,7 @@
  *
  *  Authors:  David Cassany <david.cassany@i2cat.net>,
  *  		  Martin German <martin.german@i2cat.net>
- *            
+ *
  */
 
 #ifndef _WORKER_HH
@@ -40,12 +40,12 @@
 class Runnable;
 
 class Worker {
-    
+
 public:
     Worker(Runnable *processor_);
     Worker();
     virtual ~Worker();
-    
+
     bool start();
     bool isRunning();
     virtual void stop();
@@ -57,7 +57,7 @@ public:
     WorkerType getType(){return type;};
     std::map<int, Runnable*> getProcessors(){return processors;};
     void getState(Jzon::Object &workerNode);
-    
+
 protected:
     virtual void process() = 0;
 
@@ -80,37 +80,37 @@ private:
     void process();
 };
 
-class Slave : public Worker {
-public:
-    Slave();
-    bool getFinished(){return finished;};
-    void setFalse();
-    
-protected:
-    void process();
-    std::atomic<bool> finished; 
-};
+//class Slave : public Worker {
+//public:
+//    Slave();
+//    bool getFinished(){return finished;};
+//    void setFalse();
+//
+//protected:
+//    void process();
+//    std::atomic<bool> finished;
+//};
 
 class Master : public Worker {
 public:
     Master();
-    bool addSlave(int id, Slave *slave);
-    bool removeSlave(int id);
+//    bool addSlave(int id, Slave *slave);
+//    bool removeSlave(int id);
 
 protected:
     void process();
-    bool allFinished();
-    void processAll();
+//    bool allFinished();
+//    void processAll();
 
 private:
     void updateFrameTime(Runnable* processor);
-    std::map<int, Slave*> slaves;
+//    std::map<int, Slave*> slaves;
     std::chrono::microseconds frameTime;
 
 };
 
 class Runnable {
-    
+
 public:
     ~Runnable(){};
     virtual bool processFrame(bool removeFrame = true) = 0;

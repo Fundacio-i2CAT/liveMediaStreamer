@@ -41,7 +41,7 @@ public:
     bool doProcessFrame(Frame *org, Frame *dst);
     FrameQueue* allocQueue(int wId);
     bool configure(SampleFmt sampleFormat, int channels, int sampleRate);
-    
+
 private:
 
     void initializeEventMap();
@@ -64,7 +64,7 @@ private:
     AVCodecID           codecID;
     AVSampleFormat      inLibavSampleFmt;
     AVSampleFormat      outLibavSampleFmt;
-    
+
     ACodecType          fCodec;
     SampleFmt           inSampleFmt;
     SampleFmt           outSampleFmt;
@@ -78,4 +78,3 @@ private:
 };
 
 #endif
-

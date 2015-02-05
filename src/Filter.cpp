@@ -19,7 +19,7 @@
  *
  *  Authors:  David Cassany <david.cassany@i2cat.net>,
  *            Marc Palau <marc.palau@i2cat.net>
- *            
+ *
  */
 
 #include "Filter.hh"
@@ -29,11 +29,11 @@
 #include <chrono>
 
 #define WALL_CLOCK_THRESHOLD 100000 //us
-#define SLOW_MODIFIER 1.10 
-#define FAST_MODIFIER 0.90 
+#define SLOW_MODIFIER 1.10
+#define FAST_MODIFIER 0.90
 
-BaseFilter::BaseFilter(unsigned maxReaders_, unsigned maxWriters_, bool force_) : 
-    maxReaders(maxReaders_), maxWriters(maxWriters_), force(force_), enabled(true)
+BaseFilter::BaseFilter(unsigned maxReaders_, unsigned maxWriters_, FilterRole fRole_, bool force_) :
+    maxReaders(maxReaders_), maxWriters(maxWriters_), force(force_), fRole(fRole_), enabled(true)
 {
     frameTime = std::chrono::microseconds(0);
     frameTimeMod = 1;
@@ -63,7 +63,7 @@ std::chrono::microseconds BaseFilter::getFrameTime()
 }
 
 
-Reader* BaseFilter::getReader(int id) 
+Reader* BaseFilter::getReader(int id)
 {
     if (readers.count(id) <= 0) {
         return NULL;
@@ -119,7 +119,7 @@ bool BaseFilter::demandOriginFrames()
     bool newFrame;
     bool someFrame = false;
     QueueState qState;
-    
+
     for (auto it : readers) {
         if (!it.second->isConnected()) {
             it.second->disconnect();
@@ -139,7 +139,7 @@ bool BaseFilter::demandOriginFrames()
             }
 
             someFrame = true;
-        
+
         } else {
             rUpdates[it.first] = false;
         }
@@ -191,7 +191,7 @@ void BaseFilter::removeFrames()
     }
 }
 
-bool BaseFilter::connect(BaseFilter *R, int writerID, int readerID, bool slaveQueue) 
+bool BaseFilter::connect(BaseFilter *R, int writerID, int readerID, bool slaveQueue)
 {
     Reader* r;
     FrameQueue *queue;
@@ -201,7 +201,7 @@ bool BaseFilter::connect(BaseFilter *R, int writerID, int readerID, bool slaveQu
         writers[writerID] = new Writer();
         utils::debugMsg("New writer created " + std::to_string(writerID));
     }
-    
+
 	if (slaveQueue) {
 		if (writers.count(writerID) > 0 && !writers[writerID]->isConnected()) {
             utils::errorMsg("Writer " + std::to_string(writerID) + " null or not connected");
@@ -224,12 +224,12 @@ bool BaseFilter::connect(BaseFilter *R, int writerID, int readerID, bool slaveQu
     	queue = allocQueue(writerID);
         utils::debugMsg("New queue allocated for writer " + std::to_string(writerID));
 	}
-    
+
     if (!(r = R->setReader(readerID, queue, slaveQueue))) {
         utils::errorMsg("Could not set the queue to the reader");
         return false;
     }
-	
+
 	if (!slaveQueue) {
     	writers[writerID]->setQueue(queue);
 	}
@@ -311,7 +311,7 @@ bool BaseFilter::disconnect(BaseFilter *R, int writerId, int readerId)
     return true;
 }
 
-void BaseFilter::processEvent() 
+void BaseFilter::processEvent()
 {
     eventQueueMutex.lock();
 
@@ -338,7 +338,7 @@ void BaseFilter::processEvent()
     eventQueueMutex.unlock();
 }
 
-bool BaseFilter::newEvent() 
+bool BaseFilter::newEvent()
 {
     if (eventQueue.empty()) {
         return false;
@@ -369,7 +369,7 @@ void BaseFilter::getState(Jzon::Object &filterNode)
 }
 
 
-bool BaseFilter::hasFrames() 
+bool BaseFilter::hasFrames()
 {
 	if (!demandOriginFrames() || !demandDestinationFrames()) {
 		return false;
@@ -429,8 +429,20 @@ void BaseFilter::updateTimestamp()
     }
 }
 
-OneToOneFilter::OneToOneFilter(bool force_) : 
-BaseFilter(1, 1, force_)
+MasterFilter::MasterFilter(unsigned maxReaders_, unsigned maxWriters_, FilterRole fRole_, bool force_)
+: BaseFilter(maxReaders_, maxWriters_, fRole_, force_)
+{
+}
+
+SlaveFilter::SlaveFilter(unsigned maxReaders_, unsigned maxWriters_, FilterRole fRole_, bool force_)
+: BaseFilter(maxReaders_, maxWriters_, fRole_, force_)
+{
+}
+
+OneToOneFilter::OneToOneFilter(FilterRole fRole_, bool force_) :
+MasterFilter(1, 1, fRole_, force_),
+SlaveFilter(1, 1, fRole_, force_),
+BaseFilter(1, 1, fRole_, force_)
 {
 }
 
@@ -445,7 +457,7 @@ bool OneToOneFilter::processFrame(bool removeFrame)
         dFrames.begin()->second->setPresentationTime(timestamp);
         addFrames();
     }
-    
+
     if (removeFrame) {
         removeFrames();
     }
@@ -454,8 +466,10 @@ bool OneToOneFilter::processFrame(bool removeFrame)
 }
 
 
-OneToManyFilter::OneToManyFilter(unsigned writersNum, bool force_) : 
-BaseFilter(1, writersNum, force_)
+OneToManyFilter::OneToManyFilter(unsigned writersNum, FilterRole fRole_, bool force_) :
+MasterFilter(1, writersNum, fRole_, force_),
+SlaveFilter(1, writersNum, fRole_, force_),
+BaseFilter(1, writersNum, fRole_, force_)
 {
 }
 
@@ -471,7 +485,7 @@ bool OneToManyFilter::processFrame(bool removeFrame)
         for (auto it : dFrames) {
             it.second->setPresentationTime(timestamp);
         }
- 
+
         addFrames();
     }
 
@@ -482,10 +496,12 @@ bool OneToManyFilter::processFrame(bool removeFrame)
     return true;
 }
 
-HeadFilter::HeadFilter(unsigned writersNum) : 
-BaseFilter(0, writersNum, false)
+HeadFilter::HeadFilter(unsigned writersNum, FilterRole fRole_) :
+MasterFilter(0, writersNum, fRole_, false),
+SlaveFilter(0, writersNum, fRole_, false),
+BaseFilter(0, writersNum, fRole_, false)
 {
-    
+
 }
 
 void HeadFilter::pushEvent(Event e)
@@ -501,15 +517,17 @@ void HeadFilter::pushEvent(Event e)
     if (eventMap.count(action) <= 0) {
         return;
     }
-    
+
     eventMap[action](params, outputNode);
     e.sendAndClose(outputNode);
 }
 
 
 
-TailFilter::TailFilter(unsigned readersNum) : 
-BaseFilter(readersNum, 0, false)
+TailFilter::TailFilter(unsigned readersNum, FilterRole fRole_) :
+MasterFilter(readersNum, 0, fRole_, false),
+SlaveFilter(readersNum, 0, fRole_, false),
+BaseFilter(readersNum, 0, fRole_, false)
 {
 
 }
@@ -527,14 +545,16 @@ void TailFilter::pushEvent(Event e)
     if (eventMap.count(action) <= 0) {
         return;
     }
-    
+
     eventMap[action](params, outputNode);
     e.sendAndClose(outputNode);
 }
 
 
-ManyToOneFilter::ManyToOneFilter(unsigned readersNum, bool force_) : 
-BaseFilter(readersNum, 1, force_)
+ManyToOneFilter::ManyToOneFilter(unsigned readersNum, FilterRole fRole_, bool force_) :
+MasterFilter(readersNum, 1, fRole_, force_),
+SlaveFilter(readersNum, 1, fRole_, force_),
+BaseFilter(readersNum, 1, fRole_, force_)
 {
 }
 
@@ -553,6 +573,6 @@ bool ManyToOneFilter::processFrame(bool removeFrame)
     if (removeFrame) {
     	removeFrames();
     }
-    
+
     return true;
 }

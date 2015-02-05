@@ -19,7 +19,7 @@
  *
  *  Authors:  David Cassany <david.cassany@i2cat.net>,
  *  		  Martin German <martin.german@i2cat.net>
- *            
+ *
  */
 
 #define ACTIVE 400
@@ -38,7 +38,7 @@ Worker::~Worker()
 {
 }
 
-bool Worker::addProcessor(int id, Runnable *processor) 
+bool Worker::addProcessor(int id, Runnable *processor)
 {
     if (processors.count(id) > 0) {
         return false;
@@ -145,7 +145,7 @@ void LiveMediaWorker::process()
 }
 
 void LiveMediaWorker::stop()
-{   
+{
     processors.begin()->second->stop();
     if (isRunning()){
         thread.join();
@@ -156,10 +156,10 @@ void LiveMediaWorker::stop()
 //                MASTER CLASS                   //
 ///////////////////////////////////////////////////
 
-Master::Master() : Worker() 
+Master::Master() : Worker()
 {
-    slaves.clear();
-    type = MASTER;
+//    slaves.clear();
+    type = WORKER;
     frameTime = std::chrono::microseconds(0);
 }
 
@@ -168,28 +168,28 @@ void Master::process()
     std::chrono::microseconds enlapsedTime;
     std::chrono::system_clock::time_point startPoint;
     std::chrono::microseconds active(ACTIVE);
-    
+
     while(run) {
         startPoint = std::chrono::system_clock::now();
 
-        processAll();
+//        processAll();
 
         mtx.lock();
 
-        for (auto it : processors) {   
+        for (auto it : processors) {
             it.second->processEvent();
             updateFrameTime(it.second);
 
             if (!it.second->isEnabled()) {
                 continue;
             }
-            
+
             it.second->processFrame(false);
         }
 
-        while (!allFinished() && run) {
+//        while (!allFinished() && run) {
             std::this_thread::sleep_for(active);
-        }
+//        }
 
         for (auto it : processors) {
             it.second->removeFrames();
@@ -204,7 +204,7 @@ void Master::process()
             std::this_thread::sleep_for(active);
             continue;
         }
-        
+
         if (enlapsedTime < frameTime) {
             std::this_thread::sleep_for(std::chrono::microseconds(frameTime - enlapsedTime));
         } else {
@@ -218,108 +218,108 @@ void Master::updateFrameTime(Runnable* processor)
     frameTime = processor->getFrameTime();
 }
 
-bool Master::addSlave(int id, Slave *slave) 
-{
-    if (slaves.size() == MAX_SLAVE) {
-        return false;
-    }
-
-    if (slaves.count(id) > 0) {
-        return false;
-    }
-
-    slaves[id] = slave;
-
-    return true;        
-}
-
-bool Master::removeSlave(int id) 
-{   
-    if (slaves.count(id) <= 0) {
-        return false;
-    }
-
-    slaves.erase(id);
-
-    return true;
-}
-
-bool Master::allFinished() 
-{
-    bool end = true;
-
-    if (slaves.empty()) {
-        return end;
-    }
-
-    for (auto it : slaves) {
-        if (!it.second->getFinished()) {
-            end = false;
-            break;
-        }
-    }
-
-    return end;
-}
-
-void Master::processAll() 
-{
-    for (auto it : slaves) {
-        it.second->setFalse();
-    }
-}
+//bool Master::addSlave(int id, Slave *slave)
+//{
+//    if (slaves.size() == MAX_SLAVE) {
+//        return false;
+//    }
+//
+//    if (slaves.count(id) > 0) {
+//        return false;
+//    }
+//
+//    slaves[id] = slave;
+//
+//    return true;
+//}
+//
+//bool Master::removeSlave(int id)
+//{
+//    if (slaves.count(id) <= 0) {
+//        return false;
+//    }
+//
+//    slaves.erase(id);
+//
+//    return true;
+//}
+//
+//bool Master::allFinished()
+//{
+//    bool end = true;
+//
+//    if (slaves.empty()) {
+//        return end;
+//    }
+//
+//    for (auto it : slaves) {
+//        if (!it.second->getFinished()) {
+//            end = false;
+//            break;
+//        }
+//    }
+//
+//    return end;
+//}
+//
+//void Master::processAll()
+//{
+//    for (auto it : slaves) {
+//        it.second->setFalse();
+//    }
+//}
 
 
 ///////////////////////////////////////
 //           SLAVE CLASS             //
 ///////////////////////////////////////
-
-Slave::Slave() : Worker() 
-{
-    finished = true;
-    type = SLAVE;
-}
-
-void Slave::setFalse() 
-{
-    finished = false;
-}
-
-void Slave::process() 
-{
-    int idleCount = 0;
-    std::chrono::microseconds active(ACTIVE);
-    std::chrono::milliseconds idle(IDLE);
-
-    while(run) {
-
-        if (finished) {
-            if (idleCount <= ACTIVE_TIMEOUT){
-                idleCount++;
-                std::this_thread::sleep_for(active);
-            } else {
-                std::this_thread::sleep_for(idle);
-            }
-            continue;
-        }
-
-        mtx.lock();
-    
-        for (auto it : processors) {
-            it.second->processEvent();
-
-            if (!it.second->isEnabled()) {
-                continue;
-            }
-
-            it.second->processFrame(false);
-
-        }
-
- 	    mtx.unlock();
-        
-        idleCount = 0;
-        finished = true;
-
-    }
-}
+//
+//Slave::Slave() : Worker()
+//{
+//    finished = true;
+//    type = SLAVE;
+//}
+//
+//void Slave::setFalse()
+//{
+//    finished = false;
+//}
+//
+//void Slave::process()
+//{
+//    int idleCount = 0;
+//    std::chrono::microseconds active(ACTIVE);
+//    std::chrono::milliseconds idle(IDLE);
+//
+//    while(run) {
+//
+//        if (finished) {
+//            if (idleCount <= ACTIVE_TIMEOUT){
+//                idleCount++;
+//                std::this_thread::sleep_for(active);
+//            } else {
+//                std::this_thread::sleep_for(idle);
+//            }
+//            continue;
+//        }
+//
+//        mtx.lock();
+//
+//        for (auto it : processors) {
+//            it.second->processEvent();
+//
+//            if (!it.second->isEnabled()) {
+//                continue;
+//            }
+//
+//            it.second->processFrame(false);
+//
+//        }
+//
+// 	    mtx.unlock();
+//
+//        idleCount = 0;
+//        finished = true;
+//
+//    }
+//}

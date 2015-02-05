@@ -28,25 +28,25 @@
 #include <log4cplus/loggingmacros.h>
 #include <log4cplus/configurator.h>
 #include <sys/time.h>
-#include <random> 
+#include <random>
 
 using namespace log4cplus;
 
 static bool logConfigured = false;
 
-namespace utils 
+namespace utils
 {
     void configureLog(){
         BasicConfigurator config;
         config.configure();
-        
+
         logConfigured = true;
     }
-    
+
     SampleFmt getSampleFormatFromString(std::string stringSampleFmt)
     {
         SampleFmt sampleFormat;
-        
+
         if (stringSampleFmt.compare("u8") == 0) {
             sampleFormat = U8;
         } else if (stringSampleFmt.compare("u8p") == 0) {
@@ -119,7 +119,7 @@ namespace utils
         return stringCodec;
     }
 
-    std::string getFilterTypeAsString(FilterType type) 
+    std::string getFilterTypeAsString(FilterType type)
     {
         std::string stringType;
 
@@ -162,7 +162,7 @@ namespace utils
     FilterType getFilterTypeFromString(std::string stringFilterType)
     {
         FilterType fType;
-        
+
         if (stringFilterType.compare("videoDecoder") == 0) {
            fType = VIDEO_DECODER;
         } else if (stringFilterType.compare("videoEncoder") == 0) {
@@ -182,13 +182,13 @@ namespace utils
         }  else if (stringFilterType.compare("transmitter") == 0) {
            fType = TRANSMITTER;
         }  else {
-           fType = F_NONE;
+           fType = FT_NONE;
         }
 
         return fType;
     }
 
-    std::string getSampleFormatAsString(SampleFmt sFormat) 
+    std::string getSampleFormatAsString(SampleFmt sFormat)
     {
         std::string stringFormat;
 
@@ -228,12 +228,12 @@ namespace utils
             case LIVEMEDIA:
                 stringWorker = "livemedia";
                 break;
-            case MASTER:
+            case WORKER:
                 stringWorker = "master";
                 break;
-            case SLAVE:
-                stringWorker = "slave";
-                break;
+//            case SLAVE:
+//                stringWorker = "slave";
+//                break;
             default:
                 stringWorker = "";
                 break;
@@ -245,7 +245,7 @@ namespace utils
     TxFormat getTxFormatFromString(std::string stringTxFormat)
     {
         TxFormat format;
-        
+
         if (stringTxFormat.compare("std") == 0) {
            format = STD_RTP;
         } else if (stringTxFormat.compare("ultragrid") == 0) {
@@ -280,25 +280,25 @@ namespace utils
 
         return stringFormat;
     }
-    
+
     char randAlphaNum()
     {
         static const char alphanum[] =
         "0123456789"
         "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
         "abcdefghijklmnopqrstuvwxyz";
-        
+
         return alphanum[rand() % (sizeof(alphanum) - 1)];
     }
-    
-    std::string randomIdGenerator(unsigned int length) 
+
+    std::string randomIdGenerator(unsigned int length)
     {
         std::string id(length,0);
         std::generate_n(id.begin(), length, randAlphaNum);
         return id;
     }
 
-    int getPayloadFromCodec(std::string codec) 
+    int getPayloadFromCodec(std::string codec)
     {
         int payload;
 
@@ -317,15 +317,15 @@ namespace utils
 
         return payload;
     }
-    
+
     void setLogLevel(DefinedLogLevel level)
     {
         if (!logConfigured){
             configureLog();
         }
-        
+
         Logger logger = Logger::getInstance(LOG4CPLUS_TEXT("main"));
-        
+
         switch(level) {
             case ERROR:
                 logger.setLogLevel(ERROR_LOG_LEVEL);
@@ -341,59 +341,59 @@ namespace utils
                 break;
         }
     }
-    
+
     void warningMsg(std::string msg)
     {
         if (!logConfigured){
             configureLog();
         }
-        
+
         if (msg.empty()){
             return;
         }
-        
+
         Logger logger = Logger::getInstance(LOG4CPLUS_TEXT("main"));
         LOG4CPLUS_WARN(logger, msg);
     }
-    
+
     void debugMsg(std::string msg)
     {
         if (!logConfigured){
             configureLog();
         }
-        
+
         if (msg.empty()){
             return;
         }
-        
+
         Logger logger = Logger::getInstance(LOG4CPLUS_TEXT("main"));
         LOG4CPLUS_DEBUG(logger, msg);
     }
-    
+
     void errorMsg(std::string msg)
     {
         if (!logConfigured){
             configureLog();
         }
-        
+
         if (msg.empty()){
             return;
         }
-        
+
         Logger logger = Logger::getInstance(LOG4CPLUS_TEXT("main"));
         LOG4CPLUS_ERROR(logger, msg);
     }
-    
+
     void infoMsg(std::string msg)
     {
         if (!logConfigured){
             configureLog();
         }
-        
+
         if (msg.empty()){
             return;
         }
-        
+
         Logger logger = Logger::getInstance(LOG4CPLUS_TEXT("main"));
         LOG4CPLUS_INFO(logger, msg);
     }

@@ -11,7 +11,7 @@ livemediastreamer_DEPENDENCIES = src/liblivemediastreamer.la
 testtranscoder_SOURCES = tests/testTranscoder.cpp
 testtranscoder_CPPFLAGS = -std=c++11 -g -Wall -D__STDC_CONSTANT_MACROS
 testtranscoder_LDFLAGS = -Lsrc -llivemediastreamer -lBasicUsageEnvironment -lUsageEnvironment -lliveMedia -lgroupsock -lavcodec -lavformat -lavutil -lswresample -lswscale
-testtranscoder_DEPENDENCIES = src/liblivemediastreamer.la
+testtranscoder_DEPENDENCIES = src/liblivemediastreamer.la 
 
 testdash_SOURCES = tests/testDash.cpp
 testdash_CPPFLAGS = -std=c++11 -g -Wall -D__STDC_CONSTANT_MACROS

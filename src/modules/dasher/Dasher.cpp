@@ -28,9 +28,11 @@
 
 #include <map>
 #include <string>
+#include <chrono>
+#include <fstream>
 
-Dasher::Dasher(int readersNum) : 
-TailFilter(readersNum) 
+Dasher::Dasher(int segDur, int readersNum) : 
+TailFilter(readersNum), segmentDuration(segDur)
 {
 
 }
@@ -84,7 +86,7 @@ Reader* Dasher::setReader(int readerId, FrameQueue* queue, bool sharedQueue)
             return NULL;
         }
 
-        segmenters[readerId] = new DashVideoSegmenter();
+        segmenters[readerId] = new DashVideoSegmenter(segmentDuration);
     }
     
     if ((aQueue = dynamic_cast<AudioFrameQueue*>(queue)) != NULL) {
@@ -94,19 +96,23 @@ Reader* Dasher::setReader(int readerId, FrameQueue* queue, bool sharedQueue)
             return NULL;
         }
 
-        segmenters[readerId] = new DashAudioSegmenter();
+        segmenters[readerId] = new DashAudioSegmenter(segmentDuration);
     }
     
     return r;
 
 }
 
-DashSegmenter::DashSegmenter()// : dashContext(NULL)
+DashSegmenter::DashSegmenter(size_t segDur) : 
+dashContext(NULL), timeBase(MICROSECONDS_TIME_BASE), segmentDuration(segDur), frameDuration(0)
 {
-
+    segment = new DashSegment(MAX_DAT);
+    initSegment = new DashSegment(MAX_DAT);
+    initPath = "test_init.m4v";
 }
 
-DashVideoSegmenter::DashVideoSegmenter() : updatedSPS(false), updatedPPS(false)
+DashVideoSegmenter::DashVideoSegmenter(size_t segDur) : DashSegmenter(segDur),
+updatedSPS(false), updatedPPS(false), lastTs(0), frameRate(0), isIntra(false)
 {
 
 }
@@ -114,6 +120,8 @@ DashVideoSegmenter::DashVideoSegmenter() : updatedSPS(false), updatedPPS(false)
 bool DashVideoSegmenter::manageFrame(Frame* frame)
 {
     VideoFrame* vFrame;
+    bool newFrame;
+    bool newSegment;
 
     vFrame = dynamic_cast<VideoFrame*>(frame);
 
@@ -122,63 +130,131 @@ bool DashVideoSegmenter::manageFrame(Frame* frame)
         return false;
     }
 
-    parseNal(vFrame);
+    newFrame = parseNal(vFrame);
 
-    // if (!setup(size_t segmentDuration, size_t timeBase, size_t sampleDuration, vFrame->getWidth(), vFrame->getHeight(), size_t framerate)) {
-    //     utils::errorMsg("Error while setupping DashVideoSegmenter");
+    if (!newFrame) {
+        return true;
+    }
+
+    if (isIntra) {
+        std::cout << "New intra! Segment would have: " << frameCounter << std::endl;
+        frameCounter = 0;
+    }
+
+    frameCounter++;
+
+    // if (!updateTimeValues(vFrame->getPresentationTime().count())) {
+    //     frameData.clear();
+    //     return true;
+    // }
+
+    // if(!setup(segmentDuration, timeBase, frameDuration, vFrame->getWidth(), vFrame->getHeight(), frameRate)) {
+    //     utils::errorMsg("Error during Dash Video Segmenter setup");
+    //     frameData.clear();
     //     return false;
     // }
+
+    // if (updateMetadata() && generateInit()) {
+    //     initSegment->writeToDisk(initPath);
+    // }
+
+    // if (appendFrameToDashSegment()) {
+    //     segment->writeToDisk(getSegmentName(baseName));
+    // }
+
+    frameData.clear();
     return true;
     
 }
 
-bool DashVideoSegmenter::parseNal(VideoFrame* nal) 
+// std::string DashVideoSegmenter::getSegmentName(std::string baseName)
+// {
+
+
+// }
+
+bool DashVideoSegmenter::generateInit() 
 {
-    int startCodeOffset = detectStartCode(nal->getDataBuf());
-    unsigned char* nalData = nal->getDataBuf() + startCodeOffset;
-    int nalDataLength = nal->getLength() - startCodeOffset;
-    bool newFrame;
+    size_t initSize = 0;
+    unsigned char* data;
+    unsigned dataLength;
 
-    
-    newFrame = appendNalToFrame(nalData, nalDataLength);
-
-    if (newFrame) {
-        
-        frameData.clear();
+    if (!dashContext || metadata.empty()) {
+        return false;
     }
 
-    if (updateMetadata()) {
-        //generateInit()
+    data = reinterpret_cast<unsigned char*> (&metadata[0]);
+    dataLength = metadata.size();
+
+    if (!data) {
+        return false;
     }
 
+    initSize = new_init_video_handler(data, dataLength, initSegment->getDataBuffer(), &dashContext);
+
+    if (initSize == 0) {
+        return false;
+    }
+
+    initSegment->setDataLength(initSize);
 
     return true;
+}
+
+
+bool DashVideoSegmenter::updateTimeValues(size_t currentTimestamp) 
+{
+    if (lastTs <= 0 || timeBase <= 0) {
+        lastTs = currentTimestamp;
+        return false;
+    }
+
+    frameDuration = currentTimestamp - lastTs;
+    frameRate = timeBase/frameDuration;
+    lastTs = currentTimestamp;
+    return true;
+}
+
+bool DashVideoSegmenter::parseNal(VideoFrame* nal) 
+{
+    bool newFrame;
+    int startCodeOffset;
+    unsigned char* nalData;
+    int nalDataLength;
+
+    startCodeOffset = detectStartCode(nal->getDataBuf());
+    nalData = nal->getDataBuf() + startCodeOffset;
+    nalDataLength = nal->getLength() - startCodeOffset;
+    newFrame = appendNalToFrame(nalData, nalDataLength);
+
+    return newFrame;
 }
 
 bool DashVideoSegmenter::appendNalToFrame(unsigned char* nalData, unsigned nalDataLength)
 {
     unsigned char nalType; 
-    bool completeFrame = false;
 
     nalType = nalData[0] & H264_NALU_TYPE_MASK;
 
-    switch(nalType) {
-        case SPS:
-            saveSPS(nalData, nalDataLength);
-            break;
-        case PPS:
-            savePPS(nalData, nalDataLength);
-            break;
-        case SEI:
-            break;
-        case AUD:
-            completeFrame = true;
-            break;
-        case IDR:
-            break;
-        default:
-            break;
+    if (nalType == SPS) {
+        saveSPS(nalData, nalDataLength);
+        return false;
     }
+
+    if (nalType == PPS) {
+        savePPS(nalData, nalDataLength);
+        return false;
+    }
+
+    if (nalType == SEI) {
+        return false;
+    }
+
+    if (nalType == AUD) {
+        return true;
+    }
+
+    isIntra = (nalType == IDR);
 
     frameData.insert(frameData.end(), (nalDataLength >> 24) & 0xFF);
     frameData.insert(frameData.end(), (nalDataLength >> 16) & 0xFF);
@@ -187,7 +263,36 @@ bool DashVideoSegmenter::appendNalToFrame(unsigned char* nalData, unsigned nalDa
 
     frameData.insert(frameData.end(), nalData, nalData + nalDataLength);
 
-    return completeFrame;
+    return false;
+}
+
+bool DashVideoSegmenter::appendFrameToDashSegment(size_t pts, bool isIntra)
+{
+    size_t segmentSize = 0;
+    unsigned char* data;
+    unsigned dataLength;
+
+    if (frameData.empty()) {
+        return false;
+    }
+
+    data = reinterpret_cast<unsigned char*> (&frameData[0]);
+    dataLength = frameData.size();
+
+    if (!data) {
+        return false;
+    }
+
+    segmentSize = add_sample(data, dataLength, frameDuration, pts, pts, segment->getSeqNumber(), 
+                             VIDEO_TYPE, segment->getDataBuffer(), isIntra, &dashContext);
+
+    if (segmentSize <= I2ERROR_MAX) {
+        return false;
+    }
+
+    segment->setTimestamp(dashContext->ctxvideo->earliest_presentation_time);
+    segment->setDataLength(segmentSize);
+    return true;
 }
 
 void DashVideoSegmenter::saveSPS(unsigned char* data, int dataLength)
@@ -206,14 +311,14 @@ void DashVideoSegmenter::savePPS(unsigned char* data, int dataLength)
 
 bool DashVideoSegmenter::updateMetadata()
 {
-    if (updatedSPS && updatedPPS) {
-        createMetadata();
-        updatedSPS = false;
-        updatedPPS = false;
-        return true;
+    if (!updatedSPS || !updatedPPS) {
+        return false;
     }
 
-    return false;
+    createMetadata();
+    updatedSPS = false;
+    updatedPPS = false;
+    return true;
 }
 
 void DashVideoSegmenter::createMetadata()
@@ -238,23 +343,23 @@ void DashVideoSegmenter::createMetadata()
 
 bool DashVideoSegmenter::setup(size_t segmentDuration, size_t timeBase, size_t sampleDuration, size_t width, size_t height, size_t framerate)
 {
-    // uint8_t i2error = I2OK;
+    uint8_t i2error = I2OK;
 
-    // if (!dashContext) {
-    //     i2error = generate_context(&dashContext, VIDEO_TYPE);
-    // }
+    if (!dashContext) {
+        i2error = generate_context(&dashContext, VIDEO_TYPE);
+    }
 
-    // if (i2error != I2OK || !dashContext) {
-    //     return false;
-    // }
+    if (i2error != I2OK || !dashContext) {
+        return false;
+    }
 
-    // i2error = fill_video_context(&dashContext, width, height, framerate, timeBase, sampleDuration);
+    i2error = fill_video_context(&dashContext, width, height, framerate, timeBase, sampleDuration);
 
-    // if (i2error != I2OK) {
-    //     return false;
-    // }
+    if (i2error != I2OK) {
+        return false;
+    }
 
-    // set_segment_duration(segmentDuration, &dashContext);
+    set_segment_duration(segmentDuration, &dashContext);
     return true;
 }
 
@@ -273,8 +378,8 @@ int DashVideoSegmenter::detectStartCode(unsigned char const* ptr)
 }
 
 
-DashAudioSegmenter::DashAudioSegmenter() : 
-DashSegmenter()
+DashAudioSegmenter::DashAudioSegmenter(size_t segDur) : 
+DashSegmenter(segDur)
 {
 
 }
@@ -313,5 +418,48 @@ bool DashAudioSegmenter::setup(size_t segmentDuration, size_t timeBase, size_t s
 
     // set_segment_duration(segmentDuration, &dashContext);
     return true;
+}
+
+DashSegment::DashSegment(size_t maxSize)
+{
+    data = new unsigned char[maxSize];
+    timestamp = 0;
+    dataLength = 0;
+    seqNumber = 0;
+}
+
+DashSegment::~DashSegment()
+{
+    delete[] data;
+}
+
+void DashSegment::setSeqNumber(size_t seqNum)
+{
+    seqNumber = seqNum;
+}
+
+void DashSegment::setDataLength(size_t length)
+{
+    dataLength = length;
+}
+
+void DashSegment::writeToDisk(std::string path)
+{
+    const char* p = path.c_str();
+    std::ofstream file(p, std::ofstream::binary);
+    file.write((char*)data,dataLength);
+    file.close();
+}
+
+void DashSegment::setTimestamp(size_t ts)
+{
+    timestamp = ts;
+}
+
+void DashSegment::clear()
+{
+    timestamp = 0;
+    dataLength = 0;
+    seqNumber = 0;
 }
 

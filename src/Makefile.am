@@ -28,6 +28,8 @@ liblivemediastreamer_la_SOURCES = modules/audioDecoder/AudioDecoderLibav.cpp \
                                   modules/liveMediaOutput/UltraGridAudioRTPSink.cpp \
                                   modules/liveMediaOutput/UltraGridVideoRTPSink.cpp \
                                   modules/liveMediaOutput/SPSparser/h264_stream.c \
+                                  libi2dash/src/i2libdash.c \
+                                  libi2dash/src/i2libisoff.c \
                                   AVFramedQueue.cpp \
                                   AudioCircularBuffer.cpp \
                                   AudioFrame.cpp \

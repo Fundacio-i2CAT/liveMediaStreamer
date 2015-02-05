@@ -206,6 +206,11 @@ bool VideoEncoderX264::reconfigure(VideoFrame* orgFrame, X264VideoFrame* x264Fra
             encoder = x264_encoder_open(&xparams);
         }
 
+        std::cout << "i_keyint_max: " << xparams.i_keyint_max << std::endl;
+        std::cout << "i_keyint_min: " << xparams.i_keyint_min << std::endl;
+        std::cout << "i_scenecut_threshold: " << xparams.i_scenecut_threshold << std::endl;
+        std::cout << "b_intra_refresh: " << xparams.b_intra_refresh << std::endl;
+
         needsConfig = false;
         
         if (!annexB){

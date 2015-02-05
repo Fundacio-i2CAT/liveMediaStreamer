@@ -27,6 +27,8 @@
 #define A_TIME_STMP_FREQ 48000
 #define A_CHANNELS 2
 
+#define SEGMENT_DURATION 2000000 //us
+
 bool run = true;
 int dasherId = rand();
 
@@ -47,7 +49,7 @@ void setupDasher()
     Master* worker = NULL;
     PipelineManager *pipe = Controller::getInstance()->pipelineManager();
     
-    Dasher* dasher = new Dasher();
+    Dasher* dasher = new Dasher(SEGMENT_DURATION);
     pipe->addFilter(dasherId, dasher);
     worker = new Master();
     worker->addProcessor(dasherId, dasher);

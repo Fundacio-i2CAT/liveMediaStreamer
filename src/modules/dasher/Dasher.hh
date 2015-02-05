@@ -27,6 +27,10 @@
 #include "../../Filter.hh"
 #include "../../VideoFrame.hh"
 
+extern "C" {
+    #include "../../libi2dash/include/i2libdash.h"
+}
+
 #include <map>
 #include <string>
 
@@ -48,14 +52,17 @@
 #define PPS 8
 #define AUD 9
 
+#define MICROSECONDS_TIME_BASE 1000000
+
 class DashSegmenter;
 class DashVideoSegmenter;
 class DashAudioSegmenter;
+class DashSegment;
 
 class Dasher : public TailFilter {
 
 public:
-    Dasher(int readersNum = MAX_READERS);
+    Dasher(int segDur, int readersNum = MAX_READERS);
     ~Dasher();
 
     bool deleteReader(int id);
@@ -66,26 +73,30 @@ private:
     void initializeEventMap();
     Reader *setReader(int readerId, FrameQueue* queue, bool sharedQueue = false);
 
-
     std::map<int, DashSegmenter*> segmenters;
+    int segmentDuration;
 };
 
 class DashSegmenter {
 
 public:
-    DashSegmenter();
+    DashSegmenter(size_t segDur);
     virtual bool manageFrame(Frame* frame) = 0;
 
 protected:
-    std::vector<unsigned char> frameData;
-    // i2ctx* dashContext;
-
+    i2ctx* dashContext;
+    size_t timeBase;
+    size_t segmentDuration;
+    size_t frameDuration;
+    DashSegment* segment;
+    DashSegment* initSegment;
+    std::string initPath;
 };
 
 class DashVideoSegmenter : public DashSegmenter {
 
 public:
-    DashVideoSegmenter();
+    DashVideoSegmenter(size_t segDur);
     bool manageFrame(Frame* frame);
     bool setup(size_t segmentDuration, size_t timeBase, size_t sampleDuration, size_t width, size_t height, size_t framerate);
 
@@ -97,22 +108,113 @@ private:
     bool updateMetadata();
     void createMetadata();
     bool appendNalToFrame(unsigned char* nalData, unsigned nalDataLength);
+    bool appendFrameToDashSegment(size_t pts, bool isIntra);
+    bool updateTimeValues(size_t currentTimestamp);
+    bool generateInit();
 
-
+    std::vector<unsigned char> frameData;
     std::vector<unsigned char> lastSPS;
     std::vector<unsigned char> lastPPS;
     std::vector<unsigned char> metadata;
     bool updatedSPS;
     bool updatedPPS;
+    size_t lastTs;
+    size_t frameRate;
+    bool isIntra;
+
+    int frameCounter;
+
 };
 
 class DashAudioSegmenter : public DashSegmenter {
 
 public:
-    DashAudioSegmenter();
+    DashAudioSegmenter(size_t segDur);
     bool manageFrame(Frame* frame);
     bool setup(size_t segmentDuration, size_t timeBase, size_t sampleDuration, size_t channels, size_t sampleRate, size_t bitsPerSample);
 
+};
+
+/*! It represents a dash segment. It contains a buffer with the segment data (it allocates data) and its length. Moreover, it contains the
+    segment sequence number and the output file name (in order to write the segment to disk) */ 
+
+class DashSegment {
+    
+public:
+    /**
+    * Class constructor
+    * @param maxSize Segment data max length
+    */ 
+    DashSegment(size_t maxSize);
+
+    /**
+    * Class destructor
+    */ 
+    ~DashSegment();
+
+    /**
+    * @return Pointer to segment data
+    */ 
+    unsigned char* getDataBuffer() {return data;};
+
+    /**
+    * @return Segment data length in bytes
+    */ 
+    size_t getDataLength() {return dataLength;};
+
+    /**
+    * @params Segment data length in bytes
+    */ 
+    void setDataLength(size_t length);
+
+    /**
+    * It sets the sequence number of the segment
+    * @params seqNum is the sequence number to set
+    */ 
+    void setSeqNumber(size_t seqNum);
+    
+    /**
+    * @return Segment sequence number
+    */ 
+    size_t getSeqNumber(){return seqNumber;};
+
+    /**
+    * Increment by one the sequence number
+    */ 
+    void incrSeqNumber(){seqNumber++;};
+
+    /**
+    * @return Segment segment timestamp
+    */ 
+    size_t getTimestamp(){return timestamp;};
+
+    /**
+    * It sets the segment timestamp
+    * @params ts is the timestamp to set
+    */ 
+    void setTimestamp(size_t ts);
+
+    /**
+    * Writes segment to disk
+    * @params Path to write
+    */ 
+    void writeToDisk(std::string path);
+
+    /**
+    * Clears segment data
+    */ 
+    void clear();
+    
+    /**
+    * @return true if the segment has no data
+    */ 
+    bool isEmpty() {return (dataLength == 0 && seqNumber == 0 && timestamp == 0);};
+
+private:
+    unsigned char* data;
+    size_t dataLength;
+    size_t seqNumber;
+    size_t timestamp;
 };
 
 #endif

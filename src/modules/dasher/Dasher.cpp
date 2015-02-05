@@ -395,6 +395,11 @@ bool DashAudioSegmenter::manageFrame(Frame* frame)
         return false;
     }
 
+    for(int i = 0; i < aFrame->getLength(); i++) {
+        printf("%x ", aFrame->getDataBuf()[i]);
+    }
+    printf("\n\n");
+
     return true;
 }
 

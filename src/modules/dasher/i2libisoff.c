@@ -22,7 +22,7 @@
 
  */
 
-#include "../include/i2libisoff.h"
+#include "i2libisoff.h"
 
 #define INIT_TIMESCALE 1000 //ms
 

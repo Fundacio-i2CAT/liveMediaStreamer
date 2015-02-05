@@ -42,7 +42,7 @@ extern "C" {
 }
 
 #define DEFAULT_ENCODER_THREADS 4
-#define DEFAULT_GOP 10000 //ms
+#define DEFAULT_GOP 2000 //ms
 #define DEFAULT_BITRATE 2000
 
 class VideoEncoderX264: public OneToOneFilter {

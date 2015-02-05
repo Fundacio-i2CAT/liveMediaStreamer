@@ -9,6 +9,8 @@ liblivemediastreamer_la_SOURCES = modules/audioDecoder/AudioDecoderLibav.cpp \
                                   modules/videoMixer/VideoMixer.cpp \
                                   modules/videoResampler/VideoResampler.cpp \
                                   modules/dasher/Dasher.cpp \
+                                  modules/dasher/i2libdash.c \
+                                  modules/dasher/i2libisoff.c \
                                   modules/liveMediaInput/ExtendedRTSPClient.cpp \
                                   modules/liveMediaInput/H264QueueSink.cpp \
                                   modules/liveMediaInput/Handlers.cpp \
@@ -28,8 +30,6 @@ liblivemediastreamer_la_SOURCES = modules/audioDecoder/AudioDecoderLibav.cpp \
                                   modules/liveMediaOutput/UltraGridAudioRTPSink.cpp \
                                   modules/liveMediaOutput/UltraGridVideoRTPSink.cpp \
                                   modules/liveMediaOutput/SPSparser/h264_stream.c \
-                                  libi2dash/src/i2libdash.c \
-                                  libi2dash/src/i2libisoff.c \
                                   AVFramedQueue.cpp \
                                   AudioCircularBuffer.cpp \
                                   AudioFrame.cpp \

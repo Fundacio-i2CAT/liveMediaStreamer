@@ -28,7 +28,7 @@
 #include "../../VideoFrame.hh"
 
 extern "C" {
-    #include "../../libi2dash/include/i2libdash.h"
+    #include "i2libdash.h"
 }
 
 #include <map>

@@ -19,7 +19,7 @@
  *
  *  Authors:  David Cassany <david.cassany@i2cat.net>,
  *            Marc Palau <marc.palau@i2cat.net>
- *
+ *            Gerard Castillo <gerard.castillo@i2cat.net>
  */
 
 #include "Filter.hh"
@@ -29,13 +29,14 @@
 #include <chrono>
 
 #define WALL_CLOCK_THRESHOLD 100000 //us
-#define SLOW_MODIFIER 1.10
-#define FAST_MODIFIER 0.90
+#define SLOW_MODIFIER 1.10 
+#define FAST_MODIFIER 0.90 
+#define RETRY 500 //us
 
-BaseFilter::BaseFilter(unsigned maxReaders_, unsigned maxWriters_, FilterRole fRole_, bool force_) :
+BaseFilter::BaseFilter(unsigned maxReaders_, unsigned maxWriters_, size_t fTime, FilterRole fRole_, bool force_) :
     maxReaders(maxReaders_), maxWriters(maxWriters_), fRole(fRole_), force(force_), enabled(true)
 {
-    frameTime = std::chrono::microseconds(0);
+    frameTime = std::chrono::microseconds(fTime);
     frameTimeMod = 1;
     bufferStateFrameTimeMod = 1;
 }
@@ -57,13 +58,7 @@ BaseFilter::~BaseFilter()
     rUpdates.clear();
 }
 
-std::chrono::microseconds BaseFilter::getFrameTime()
-{
-    return std::chrono::duration_cast<std::chrono::microseconds>(frameTime*frameTimeMod*bufferStateFrameTimeMod);
-}
-
-
-Reader* BaseFilter::getReader(int id)
+Reader* BaseFilter::getReader(int id) 
 {
     if (readers.count(id) <= 0) {
         return NULL;
@@ -397,19 +392,19 @@ bool BaseFilter::deleteReader(int id)
 void BaseFilter::updateTimestamp()
 {
     if (frameTime.count() == 0) {
-        timestamp = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now().time_since_epoch());
+        timestamp = wallClock;
         return;
     }
 
     timestamp += frameTime;
 
     lastDiffTime = diffTime;
-    diffTime = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now().time_since_epoch() - timestamp);
+    diffTime = wallClock - timestamp;
 
     if (diffTime.count() > WALL_CLOCK_THRESHOLD || diffTime.count() < (-WALL_CLOCK_THRESHOLD) ) {
         // reset timestamp value in order to realign with the wall clock
         utils::warningMsg("Wall clock deviations exceeded! Reseting values!");
-        timestamp = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now().time_since_epoch());
+        timestamp = wallClock;
         diffTime = std::chrono::microseconds(0);
         frameTimeMod = 1;
     }
@@ -429,27 +424,27 @@ void BaseFilter::updateTimestamp()
     }
 }
 
-MasterFilter::MasterFilter(unsigned maxReaders_, unsigned maxWriters_, FilterRole fRole_, bool force_)
-: BaseFilter(maxReaders_, maxWriters_, fRole_, force_)
+MasterFilter::MasterFilter(unsigned maxReaders_, unsigned maxWriters_, size_t fTime, FilterRole fRole_, bool force_)
+: BaseFilter(maxReaders_, maxWriters_, fTime, fRole_, force_)
 {
 }
 
-SlaveFilter::SlaveFilter(unsigned maxReaders_, unsigned maxWriters_, FilterRole fRole_, bool force_)
-: BaseFilter(maxReaders_, maxWriters_, fRole_, force_)
+SlaveFilter::SlaveFilter(unsigned maxReaders_, unsigned maxWriters_, size_t fTime, FilterRole fRole_, bool force_)
+: BaseFilter(maxReaders_, maxWriters_, fTime, fRole_, force_)
 {
 }
 
-OneToOneFilter::OneToOneFilter(FilterRole fRole_, bool force_) :
-MasterFilter(1, 1, fRole_, force_),
-SlaveFilter(1, 1, fRole_, force_),
-BaseFilter(1, 1, fRole_, force_)
+OneToOneFilter::OneToOneFilter(size_t fTime, FilterRole fRole_, bool force_) :
+MasterFilter(1, 1, fTime, fRole_, force_),
+SlaveFilter(1, 1, fTime, fRole_, force_),
+BaseFilter(1, 1, fTime, fRole_, force_)
 {
 }
 
-size_t OneToOneFilter::processFrame(bool removeFrame)
+size_t OneToOneFilter::processFrame()
 {
     if (!demandOriginFrames() || !demandDestinationFrames()) {
-            return 0;
+            return RETRY;
     }
 
     if (doProcessFrame(oFrames.begin()->second, dFrames.begin()->second)) {
@@ -457,26 +452,41 @@ size_t OneToOneFilter::processFrame(bool removeFrame)
         dFrames.begin()->second->setPresentationTime(timestamp);
         addFrames();
     }
-
-    if (removeFrame) {
-        removeFrames();
+    
+    removeFrames();
+    
+    if (frameTime.count() == 0){
+        return RETRY;
     }
 
-    return 1;
-}
-
-
-OneToManyFilter::OneToManyFilter(unsigned writersNum, FilterRole fRole_, bool force_) :
-MasterFilter(1, writersNum, fRole_, force_),
-SlaveFilter(1, writersNum, fRole_, force_),
-BaseFilter(1, writersNum, fRole_, force_)
-{
-}
-
-size_t OneToManyFilter::processFrame(bool removeFrame)
-{
-    if (!demandOriginFrames() || !demandDestinationFrames()){
+    enlapsedTime = (std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now().time_since_epoch()) - wallClock).count();
+    frameTime_ = frameTime.count()*frameTimeMod*bufferStateFrameTimeMod;
+    
+    if (enlapsedTime > frameTime_){
         return 0;
+    }
+    
+    return frameTime_ - enlapsedTime;
+}
+
+
+OneToManyFilter::OneToManyFilter(unsigned writersNum, size_t fTime, FilterRole fRole_, bool force_) :
+MasterFilter(1, writersNum, fTime, fRole_, force_),
+SlaveFilter(1, writersNum, fTime, fRole_, force_),
+BaseFilter(1, writersNum, fTime, fRole_, force_)
+{
+}
+
+size_t OneToManyFilter::processFrame()
+{
+    size_t enlapsedTime;
+    size_t frameTime_;
+    
+    wallClock = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now().time_since_epoch());
+    processEvent();
+    
+    if (!demandOriginFrames() || !demandDestinationFrames()){
+        return RETRY;
     }
 
     if (doProcessFrame(oFrames.begin()->second, dFrames)) {
@@ -489,17 +499,22 @@ size_t OneToManyFilter::processFrame(bool removeFrame)
         addFrames();
     }
 
-    if (removeFrame) {
-    	removeFrames();
+    removeFrames();
+    
+    enlapsedTime = (std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now().time_since_epoch()) - wallClock).count();
+    frameTime_ = frameTime.count()*frameTimeMod*bufferStateFrameTimeMod;
+    
+    if (enlapsedTime > frameTime_){
+        return 0;
     }
-
-    return 1;
+    
+    return frameTime_ - enlapsedTime;
 }
 
 HeadFilter::HeadFilter(unsigned writersNum, FilterRole fRole_) :
-MasterFilter(0, writersNum, fRole_, false),
-SlaveFilter(0, writersNum, fRole_, false),
-BaseFilter(0, writersNum, fRole_, false)
+MasterFilter(0, writersNum, 0, fRole_, false),
+SlaveFilter(0, writersNum, 0, fRole_, false),
+BaseFilter(0, writersNum, 0, fRole_, false)
 {
 
 }
@@ -525,9 +540,9 @@ void HeadFilter::pushEvent(Event e)
 
 
 TailFilter::TailFilter(unsigned readersNum, FilterRole fRole_) :
-MasterFilter(readersNum, 0, fRole_, false),
-SlaveFilter(readersNum, 0, fRole_, false),
-BaseFilter(readersNum, 0, fRole_, false)
+MasterFilter(readersNum, 0, 0, fRole_, false),
+SlaveFilter(readersNum, 0, 0, fRole_, false),
+BaseFilter(readersNum, 0, 0, fRole_, false)
 {
 
 }
@@ -551,17 +566,23 @@ void TailFilter::pushEvent(Event e)
 }
 
 
-ManyToOneFilter::ManyToOneFilter(unsigned readersNum, FilterRole fRole_, bool force_) :
-MasterFilter(readersNum, 1, fRole_, force_),
-SlaveFilter(readersNum, 1, fRole_, force_),
-BaseFilter(readersNum, 1, fRole_, force_)
+ManyToOneFilter::ManyToOneFilter(unsigned readersNum, size_t fTime, FilterRole fRole_, bool force_) :
+MasterFilter(readersNum, 1, fTime, fRole_, force_),
+SlaveFilter(readersNum, 1, fTime, fRole_, force_),
+BaseFilter(readersNum, 1, fTime, fRole_, force_)
 {
 }
 
-size_t ManyToOneFilter::processFrame(bool removeFrame)
+size_t ManyToOneFilter::processFrame()
 {
+    size_t enlapsedTime;
+    size_t frameTime_;
+    
+    wallClock = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now().time_since_epoch());
+    processEvent();
+    
     if (!demandOriginFrames() || !demandDestinationFrames()) {
-        return 0;
+        return RETRY;
     }
 
     if (doProcessFrame(oFrames, dFrames.begin()->second)) {
@@ -570,9 +591,14 @@ size_t ManyToOneFilter::processFrame(bool removeFrame)
         addFrames();
     }
 
-    if (removeFrame) {
-    	removeFrames();
+    removeFrames();
+    
+    enlapsedTime = (std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now().time_since_epoch()) - wallClock).count();
+    frameTime_ = frameTime.count()*frameTimeMod*bufferStateFrameTimeMod;
+    
+    if (enlapsedTime > frameTime_){
+        return 0;
     }
-
-    return 1;
+    
+    return frameTime_ - enlapsedTime;
 }

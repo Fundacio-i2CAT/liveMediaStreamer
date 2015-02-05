@@ -143,9 +143,7 @@ void Worker::process()
             currentJob = processors.top();
             processors.pop();
             //TODO: remove/rethink enable feature from filters
-            currentJob->processEvent(); 
             currentJob->runProcessFrame();
-            currentJob->removeFrames();
             processors.push(currentJob);
         }
 

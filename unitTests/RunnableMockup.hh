@@ -38,16 +38,11 @@ public:
         time = std::chrono::system_clock::now();
     }
     
-    void processEvent() {
-        std::uniform_int_distribution<size_t> distribution(0, 3000);
-        std::this_thread::sleep_for(std::chrono::microseconds(distribution(generator)));
-    };
-    void removeFrames(){};
     bool isEnabled(){return true;};
     void stop() {};
     
 protected:
-    size_t processFrame(bool removeFrame = true) {
+    size_t processFrame() {
         std::chrono::system_clock::time_point now = std::chrono::system_clock::now();
         auto duration = now.time_since_epoch();
         size_t millis = std::chrono::duration_cast<std::chrono::milliseconds>(duration).count();

@@ -37,7 +37,7 @@ public:
 
 protected:
     FrameQueue *allocQueue(int wId) {return VideoFrameQueue::createNew(codec);};
-    size_t processFrame(bool removeFrame = true) {return 1;};
+    size_t processFrame() {return 20;};
     Reader *setReader(int readerID, FrameQueue* queue, bool sharedQueue = false) {return NULL;};
     void doGetState(Jzon::Object &filterNode) {};
     void stop() {};
@@ -53,7 +53,7 @@ public:
 
 protected:
     FrameQueue *allocQueue(int wId) {return AudioFrameQueue::createNew(codec);};
-    size_t processFrame(bool removeFrame = true) {return 1;};
+    size_t processFrame() {return 8;};
     Reader *setReader(int readerID, FrameQueue* queue, bool sharedQueue = false) {return NULL;};
     void doGetState(Jzon::Object &filterNode) {};
     void stop() {};

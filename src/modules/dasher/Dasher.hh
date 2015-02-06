@@ -90,7 +90,7 @@ protected:
     size_t frameDuration;
     DashSegment* segment;
     DashSegment* initSegment;
-    std::string initPath;
+    std::string baseName;
 };
 
 class DashVideoSegmenter : public DashSegmenter {
@@ -108,9 +108,11 @@ private:
     bool updateMetadata();
     void createMetadata();
     bool appendNalToFrame(unsigned char* nalData, unsigned nalDataLength);
-    bool appendFrameToDashSegment(size_t pts, bool isIntra);
+    bool appendFrameToDashSegment(size_t pts);
     bool updateTimeValues(size_t currentTimestamp);
     bool generateInit();
+    std::string getSegmentName();
+    std::string getInitSegmentName();
 
     std::vector<unsigned char> frameData;
     std::vector<unsigned char> lastSPS;
@@ -119,10 +121,9 @@ private:
     bool updatedSPS;
     bool updatedPPS;
     size_t lastTs;
+    size_t tsOffset;
     size_t frameRate;
     bool isIntra;
-
-    int frameCounter;
 
 };
 
@@ -179,7 +180,7 @@ public:
     size_t getSeqNumber(){return seqNumber;};
 
     /**
-    * Increment by one the sequence number
+    * Increase by one the sequence number
     */ 
     void incrSeqNumber(){seqNumber++;};
 
@@ -197,8 +198,9 @@ public:
     /**
     * Writes segment to disk
     * @params Path to write
+    * @retrun True if suceeded and False if not
     */ 
-    void writeToDisk(std::string path);
+    bool writeToDisk(std::string path);
 
     /**
     * Clears segment data

@@ -108,11 +108,11 @@ dashContext(NULL), timeBase(MICROSECONDS_TIME_BASE), segmentDuration(segDur), fr
 {
     segment = new DashSegment(MAX_DAT);
     initSegment = new DashSegment(MAX_DAT);
-    initPath = "test_init.m4v";
+    baseName = "/home/palau/nginx_root/dashLMS/test500";
 }
 
 DashVideoSegmenter::DashVideoSegmenter(size_t segDur) : DashSegmenter(segDur),
-updatedSPS(false), updatedPPS(false), lastTs(0), frameRate(0), isIntra(false)
+updatedSPS(false), updatedPPS(false), lastTs(0), tsOffset(0), frameRate(0), isIntra(false)
 {
 
 }
@@ -121,7 +121,7 @@ bool DashVideoSegmenter::manageFrame(Frame* frame)
 {
     VideoFrame* vFrame;
     bool newFrame;
-    bool newSegment;
+    unsigned int ptsMinusOffset;
 
     vFrame = dynamic_cast<VideoFrame*>(frame);
 
@@ -136,42 +136,61 @@ bool DashVideoSegmenter::manageFrame(Frame* frame)
         return true;
     }
 
-    if (isIntra) {
-        std::cout << "New intra! Segment would have: " << frameCounter << std::endl;
-        frameCounter = 0;
+    if (!updateTimeValues(vFrame->getPresentationTime().count())) {
+        frameData.clear();
+        return true;
     }
 
-    frameCounter++;
+    if(!setup(segmentDuration, timeBase, frameDuration, vFrame->getWidth(), vFrame->getHeight(), frameRate)) {
+        utils::errorMsg("Error during Dash Video Segmenter setup");
+        frameData.clear();
+        return false;
+    }
 
-    // if (!updateTimeValues(vFrame->getPresentationTime().count())) {
-    //     frameData.clear();
-    //     return true;
-    // }
+    if (updateMetadata() && generateInit()) {
+        
+        if(!initSegment->writeToDisk(getInitSegmentName())) {
+            utils::errorMsg("Error writing DASH init segment to disk: invalid path");
+            frameData.clear();
+            return false;
+        }
+    }
 
-    // if(!setup(segmentDuration, timeBase, frameDuration, vFrame->getWidth(), vFrame->getHeight(), frameRate)) {
-    //     utils::errorMsg("Error during Dash Video Segmenter setup");
-    //     frameData.clear();
-    //     return false;
-    // }
+    ptsMinusOffset = vFrame->getPresentationTime().count() - tsOffset;
 
-    // if (updateMetadata() && generateInit()) {
-    //     initSegment->writeToDisk(initPath);
-    // }
+    if (appendFrameToDashSegment(ptsMinusOffset)) {
 
-    // if (appendFrameToDashSegment()) {
-    //     segment->writeToDisk(getSegmentName(baseName));
-    // }
+        if(!segment->writeToDisk(getSegmentName())) {
+            utils::errorMsg("Error writing DASH segment to disk: invalid path");
+            frameData.clear();
+            return false;
+        }
+
+        segment->incrSeqNumber();
+    }
 
     frameData.clear();
     return true;
     
 }
 
-// std::string DashVideoSegmenter::getSegmentName(std::string baseName)
-// {
+std::string DashVideoSegmenter::getSegmentName()
+{
+    std::string fullName;
 
+    fullName = baseName + "_" + std::to_string(segment->getTimestamp()) + ".m4v";
+    
+    return fullName;
+}
 
-// }
+std::string DashVideoSegmenter::getInitSegmentName()
+{
+    std::string fullName;
+
+    fullName = baseName + "_init.m4v";
+    
+    return fullName;
+}
 
 bool DashVideoSegmenter::generateInit() 
 {
@@ -204,7 +223,8 @@ bool DashVideoSegmenter::generateInit()
 
 bool DashVideoSegmenter::updateTimeValues(size_t currentTimestamp) 
 {
-    if (lastTs <= 0 || timeBase <= 0) {
+    if (lastTs <= 0 || tsOffset <= 0 || timeBase <= 0) {
+        tsOffset = currentTimestamp;
         lastTs = currentTimestamp;
         return false;
     }
@@ -266,7 +286,7 @@ bool DashVideoSegmenter::appendNalToFrame(unsigned char* nalData, unsigned nalDa
     return false;
 }
 
-bool DashVideoSegmenter::appendFrameToDashSegment(size_t pts, bool isIntra)
+bool DashVideoSegmenter::appendFrameToDashSegment(size_t pts)
 {
     size_t segmentSize = 0;
     unsigned char* data;
@@ -448,12 +468,18 @@ void DashSegment::setDataLength(size_t length)
     dataLength = length;
 }
 
-void DashSegment::writeToDisk(std::string path)
+bool DashSegment::writeToDisk(std::string path)
 {
     const char* p = path.c_str();
     std::ofstream file(p, std::ofstream::binary);
-    file.write((char*)data,dataLength);
+
+    if (!file) {
+        return false;
+    }
+
+    file.write((char*)data, dataLength);
     file.close();
+    return true;
 }
 
 void DashSegment::setTimestamp(size_t ts)

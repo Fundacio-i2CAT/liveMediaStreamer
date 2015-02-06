@@ -197,7 +197,6 @@ bool VideoEncoderX264::reconfigure(VideoFrame* orgFrame, X264VideoFrame* x264Fra
         //TODO: set profile
         x264_param_apply_profile(&xparams, "baseline");
         
-        
         if (encoder == NULL){
             encoder = x264_encoder_open(&xparams);
         } else if (needsConfig && x264_encoder_reconfig(encoder, &xparams) < 0){
@@ -205,11 +204,6 @@ bool VideoEncoderX264::reconfigure(VideoFrame* orgFrame, X264VideoFrame* x264Fra
             x264_encoder_close(encoder);
             encoder = x264_encoder_open(&xparams);
         }
-
-        std::cout << "i_keyint_max: " << xparams.i_keyint_max << std::endl;
-        std::cout << "i_keyint_min: " << xparams.i_keyint_min << std::endl;
-        std::cout << "i_scenecut_threshold: " << xparams.i_scenecut_threshold << std::endl;
-        std::cout << "b_intra_refresh: " << xparams.b_intra_refresh << std::endl;
 
         needsConfig = false;
         

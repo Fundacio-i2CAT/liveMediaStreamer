@@ -46,7 +46,7 @@ public:
 protected:
 
     Frame* frames[MAX_FRAMES];
-    int max;
+    size_t max;
     
 };
 

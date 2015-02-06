@@ -31,11 +31,11 @@ class VideoFrame : public Frame {
     
     public:
         void setSize(int width, int height);
-		void setPixelFormat(PixType pixelFormat);
+        void setPixelFormat(PixType pixelFormat);
         VCodecType getCodec() {return codec;};
         int getWidth() {return width;};
         int getHeight() {return height;};
-		PixType getPixelFormat() {return pixelFormat;};
+        PixType getPixelFormat() {return pixelFormat;};
               
     protected:
         int width, height;

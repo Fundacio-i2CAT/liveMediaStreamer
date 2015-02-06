@@ -157,9 +157,7 @@ bool DashVideoSegmenter::manageFrame(Frame* frame)
     }
 
     ptsMinusOffset = vFrame->getPresentationTime().count() - tsOffset;
-
     if (appendFrameToDashSegment(ptsMinusOffset)) {
-
         if(!segment->writeToDisk(getSegmentName())) {
             utils::errorMsg("Error writing DASH segment to disk: invalid path");
             frameData.clear();
@@ -303,6 +301,7 @@ bool DashVideoSegmenter::appendFrameToDashSegment(size_t pts)
         return false;
     }
 
+    segment->setTimestamp(dashContext->ctxvideo->earliest_presentation_time);
     segmentSize = add_sample(data, dataLength, frameDuration, pts, pts, segment->getSeqNumber(), 
                              VIDEO_TYPE, segment->getDataBuffer(), isIntra, &dashContext);
 
@@ -310,7 +309,7 @@ bool DashVideoSegmenter::appendFrameToDashSegment(size_t pts)
         return false;
     }
 
-    segment->setTimestamp(dashContext->ctxvideo->earliest_presentation_time);
+    
     segment->setDataLength(segmentSize);
     return true;
 }

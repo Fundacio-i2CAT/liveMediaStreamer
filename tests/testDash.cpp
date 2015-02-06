@@ -27,7 +27,7 @@
 #define A_TIME_STMP_FREQ 48000
 #define A_CHANNELS 2
 
-#define SEGMENT_DURATION 8000000 //us
+#define SEGMENT_DURATION 4000000 //us
 
 bool run = true;
 int dasherId = rand();

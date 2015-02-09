@@ -49,6 +49,7 @@
 #define MAX_WRITERS 16
 #define MAX_READERS 16
 #define VIDEO_DEFAULT_FRAMERATE 25 //fps
+#define RETRY 500 //us
  
 
 class BaseFilter : public Runnable {
@@ -77,21 +78,27 @@ public:
     bool isEnabled(){return enabled;};
     virtual ~BaseFilter();
     
+    //NOTE: these are public just for testing purposes
+    virtual size_t processFrame() = 0;
+    void setFrameTime(size_t fTime);
+    
 protected:
     BaseFilter(unsigned maxReaders_, unsigned maxWriters_, size_t fTime = 0, bool force_ = false);
+    
+    void addFrames(); 
     void removeFrames();
     bool hasFrames();
     virtual FrameQueue *allocQueue(int wId) = 0;
-    virtual size_t processFrame() = 0;
+    
     virtual Reader *setReader(int readerID, FrameQueue* queue, bool sharedQueue = false);
-    virtual void doGetState(Jzon::Object &filterNode) = 0;
-
     Reader* getReader(int id);
+
     bool demandOriginFrames();
     bool demandDestinationFrames();
-    void addFrames(); 
+
     bool newEvent();
     void processEvent();
+    virtual void doGetState(Jzon::Object &filterNode) = 0;
 
     std::map<std::string, std::function<void(Jzon::Node* params, Jzon::Object &outputNode)> > eventMap; 
     
@@ -135,11 +142,11 @@ protected:
     
 private:
     size_t processFrame();
+    using BaseFilter::setFrameTime;
     using BaseFilter::demandOriginFrames;
     using BaseFilter::demandDestinationFrames;
     using BaseFilter::addFrames;
     using BaseFilter::removeFrames;
-    //using BaseFilter::readers;
     using BaseFilter::writers;
     using BaseFilter::oFrames;
     using BaseFilter::dFrames;
@@ -159,6 +166,7 @@ class OneToManyFilter : public BaseFilter {
 protected:
     OneToManyFilter(unsigned writersNum = MAX_WRITERS, size_t fTime = 0, bool force_ = false);
     virtual bool doProcessFrame(Frame *org, std::map<int, Frame *> dstFrames) = 0;
+    using BaseFilter::setFrameTime;
     
 private:
     size_t processFrame();
@@ -189,6 +197,7 @@ public:
 protected:
     HeadFilter(unsigned writersNum = MAX_WRITERS);
     int getNullWriterID();
+    using BaseFilter::setFrameTime;
     
 private:
     using BaseFilter::demandOriginFrames;
@@ -216,6 +225,7 @@ protected:
     
 private:
     FrameQueue *allocQueue(int wId) {return NULL;};
+    using BaseFilter::setFrameTime;
     using BaseFilter::demandOriginFrames;
     using BaseFilter::demandDestinationFrames;
     using BaseFilter::addFrames;
@@ -236,6 +246,7 @@ class ManyToOneFilter : public BaseFilter {
 protected:
     ManyToOneFilter(unsigned readersNum = MAX_READERS, size_t fTime = 0, bool force_ = false);
     virtual bool doProcessFrame(std::map<int, Frame *> orgFrames, Frame *dst) = 0;
+    using BaseFilter::setFrameTime;
 
 private:
     size_t processFrame();

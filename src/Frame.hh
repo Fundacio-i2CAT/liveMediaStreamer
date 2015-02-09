@@ -40,12 +40,6 @@ class Frame {
         
         std::chrono::microseconds getPresentationTime();
         std::chrono::system_clock::time_point getOriginTime();
-//         virtual unsigned char *getDataBuf() {return NULL;};
-//         virtual unsigned char **getPlanarDataBuf() {return NULL;};
-//         virtual unsigned int getLength() {return 0;}
-//         virtual unsigned int getMaxLength() {return 0;};
-//         virtual void setLength(unsigned int length) {};
-//         virtual bool isPlanar() {return false;};
         virtual unsigned char *getDataBuf() = 0;
         virtual unsigned char **getPlanarDataBuf() = 0;
         virtual unsigned int getLength() = 0;

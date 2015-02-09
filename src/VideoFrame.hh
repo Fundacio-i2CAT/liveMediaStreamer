@@ -31,11 +31,11 @@ class VideoFrame : public Frame {
     
     public:
         void setSize(int width, int height);
-		void setPixelFormat(PixType pixelFormat);
+        void setPixelFormat(PixType pixelFormat);
         VCodecType getCodec() {return codec;};
         int getWidth() {return width;};
         int getHeight() {return height;};
-		PixType getPixelFormat() {return pixelFormat;};
+        PixType getPixelFormat() {return pixelFormat;};
               
     protected:
         int width, height;
@@ -49,6 +49,7 @@ class InterleavedVideoFrame : public VideoFrame {
         static InterleavedVideoFrame* createNew(VCodecType codec, int width, int height, PixType pixelFormat);
         ~InterleavedVideoFrame();
 
+        unsigned char **getPlanarDataBuf() {return NULL;};
         unsigned char* getDataBuf() {return frameBuff;};
         unsigned int getLength() {return bufferLen;};
         unsigned int getMaxLength() {return bufferMaxLen;};

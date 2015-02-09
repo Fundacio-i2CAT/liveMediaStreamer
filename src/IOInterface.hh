@@ -45,13 +45,13 @@ public:
     Writer();
     ~Writer();
     bool connect(Reader *reader);
-    void disconnect(Reader *reader);
+    bool disconnect(Reader *reader);
     bool isConnected();
     void setQueue(FrameQueue *queue);
     Frame* getFrame(bool force = false);
     void addFrame();
 	FrameQueue* getQueue() const {return queue;};
-    void disconnect();
+    bool disconnect();
 
 protected:
     FrameQueue *queue;
@@ -69,7 +69,7 @@ public:
     void removeFrame();
     void setConnection(FrameQueue *queue);
     FrameQueue* getQueue() const {return queue;};
-    void disconnect();
+    bool disconnect();
 
 protected:
     FrameQueue *queue;

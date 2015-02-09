@@ -30,6 +30,7 @@
 class AVFramedQueue : public FrameQueue {
 
 public:
+    AVFramedQueue() : FrameQueue() {};
     virtual Frame *getRear();
     Frame *getFront(bool &newFrame);
     virtual void addFrame();
@@ -46,7 +47,7 @@ public:
 protected:
 
     Frame* frames[MAX_FRAMES];
-    int max;
+    unsigned max;
     
 };
 

@@ -77,15 +77,15 @@ void Reader::setConnection(FrameQueue *queue)
     this->queue = queue;
 }
 
-void Reader::disconnect()
+bool Reader::disconnect()
 {
     if (!queue) {
-        return;
+        return false;
     }
 
     if (sharedQueue) {
         queue = NULL;
-        return;
+        return true;
     }
 
     if (queue->isConnected()) {
@@ -95,6 +95,7 @@ void Reader::disconnect()
         delete queue;
         queue = NULL;
     }
+    return true;
 }
 
 bool Reader::isConnected()
@@ -134,10 +135,10 @@ bool Writer::connect(Reader *reader)
     return true;
 }
 
-void Writer::disconnect()
+bool Writer::disconnect()
 {
     if (!queue) {
-        return;
+        return false;
     }
 
     if (queue->isConnected()) {
@@ -147,12 +148,15 @@ void Writer::disconnect()
         delete queue;
         queue = NULL;
     }
+    return true;
 }
 
-void Writer::disconnect(Reader *reader)
+bool Writer::disconnect(Reader *reader)
 {
-    reader->disconnect();
-    disconnect();
+    if (reader->disconnect()){
+        return disconnect();
+    }
+    return false;
 }
 
 bool Writer::isConnected()

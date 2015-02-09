@@ -31,7 +31,6 @@
 #define WALL_CLOCK_THRESHOLD 100000 //us
 #define SLOW_MODIFIER 1.10 
 #define FAST_MODIFIER 0.90 
-#define RETRY 500 //us
 
 BaseFilter::BaseFilter(unsigned maxReaders_, unsigned maxWriters_, size_t fTime, FilterRole fRole_, bool force_) :
     maxReaders(maxReaders_), maxWriters(maxWriters_), fRole(fRole_), force(force_), enabled(true)
@@ -56,6 +55,11 @@ BaseFilter::~BaseFilter()
     oFrames.clear();
     dFrames.clear();
     rUpdates.clear();
+}
+
+void BaseFilter::setFrameTime(size_t fTime)
+{
+    frameTime = std::chrono::microseconds(fTime);
 }
 
 Reader* BaseFilter::getReader(int id) 
@@ -196,40 +200,40 @@ bool BaseFilter::connect(BaseFilter *R, int writerID, int readerID, bool slaveQu
         writers[writerID] = new Writer();
         utils::debugMsg("New writer created " + std::to_string(writerID));
     }
-
-	if (slaveQueue) {
-		if (writers.count(writerID) > 0 && !writers[writerID]->isConnected()) {
+    
+    if (slaveQueue) {
+        if (writers.count(writerID) > 0 && !writers[writerID]->isConnected()) {
             utils::errorMsg("Writer " + std::to_string(writerID) + " null or not connected");
-		    return false;
-		}
-	} else {
-		if (writers.count(writerID) > 0 && writers[writerID]->isConnected()) {
+            return false;
+        }
+    } else {
+        if (writers.count(writerID) > 0 && writers[writerID]->isConnected()) {
             utils::errorMsg("Writer " + std::to_string(writerID) + " null or already connected");
-		    return false;
-		}
-	}
+            return false;
+        }
+    }
 
     if (R->getReader(readerID) && R->getReader(readerID)->isConnected()){
         return false;
     }
 
-	if (slaveQueue) {
-		queue = writers[writerID]->getQueue();
-	} else {
-    	queue = allocQueue(writerID);
+    if (slaveQueue) {
+        queue = writers[writerID]->getQueue();
+    } else {
+        queue = allocQueue(writerID);
         utils::debugMsg("New queue allocated for writer " + std::to_string(writerID));
-	}
-
+    }
+    
     if (!(r = R->setReader(readerID, queue, slaveQueue))) {
         utils::errorMsg("Could not set the queue to the reader");
         return false;
     }
 
-	if (!slaveQueue) {
-    	writers[writerID]->setQueue(queue);
-	}
+    if (!slaveQueue) {
+        writers[writerID]->setQueue(queue);
+    }
 
-	return writers[writerID]->connect(r);
+    return writers[writerID]->connect(r);
 }
 
 bool BaseFilter::connectOneToOne(BaseFilter *R, bool slaveQueue)
@@ -258,22 +262,30 @@ bool BaseFilter::connectOneToMany(BaseFilter *R, int readerID, bool slaveQueue)
 
 bool BaseFilter::disconnectWriter(int writerId)
 {
+    bool ret;
     if (writers.count(writerId) <= 0) {
         return false;
     }
 
-    writers[writerId]->disconnect();
-    return true;
+    ret = writers[writerId]->disconnect();
+    if (ret){
+        writers.erase(writerId);
+    }
+    return ret;
 }
 
 bool BaseFilter::disconnectReader(int readerId)
 {
+    bool ret;
     if (readers.count(readerId) <= 0) {
         return false;
     }
-
-    readers[readerId]->disconnect();
-    return true;
+    
+    ret = readers[readerId]->disconnect();
+    if (ret){
+        readers.erase(readerId);
+    }
+    return ret;
 }
 
 void BaseFilter::disconnectAll()
@@ -443,6 +455,12 @@ BaseFilter(1, 1, fTime, fRole_, force_)
 
 size_t OneToOneFilter::processFrame()
 {
+    size_t enlapsedTime;
+    size_t frameTime_;
+    
+    wallClock = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now().time_since_epoch());
+    processEvent();
+    
     if (!demandOriginFrames() || !demandDestinationFrames()) {
             return RETRY;
     }
@@ -465,7 +483,7 @@ size_t OneToOneFilter::processFrame()
     if (enlapsedTime > frameTime_){
         return 0;
     }
-    
+
     return frameTime_ - enlapsedTime;
 }
 

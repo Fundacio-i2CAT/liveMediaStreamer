@@ -28,7 +28,7 @@
 
 AVFramedQueue::~AVFramedQueue()
 {
-    for (int i = 0; i<max; i++) {
+    for (unsigned i = 0; i<max; i++) {
         delete frames[i];
     }
 }
@@ -142,13 +142,13 @@ bool VideoFrameQueue::config()
     switch(codec) {
         case H264:
             max = DEFAULT_VIDEO_FRAMES;
-            for (int i=0; i<max; i++) {
+            for (unsigned i=0; i<max; i++) {
                 frames[i] = InterleavedVideoFrame::createNew(codec, LENGTH_H264);
             }
             break;
         case VP8:
             max = DEFAULT_VIDEO_FRAMES;
-            for (int i=0; i<max; i++) {
+            for (unsigned i=0; i<max; i++) {
                 frames[i] = InterleavedVideoFrame::createNew(codec, LENGTH_VP8);
             }
             break;
@@ -161,7 +161,7 @@ bool VideoFrameQueue::config()
                 break;
             }
             max = DEFAULT_RAW_FRAMES;
-            for (int i=0; i<max; i++) {
+            for (unsigned i=0; i<max; i++) {
                 frames[i] = InterleavedVideoFrame::createNew(codec, DEFAULT_WIDTH, DEFAULT_HEIGHT, pixelFormat);
             }
             break;
@@ -201,21 +201,21 @@ bool AudioFrameQueue::config()
         case OPUS:
             max = FRAMES_OPUS;
             sampleFormat = S16;
-            for (int i=0; i<max; i++) {
+            for (unsigned i=0; i<max; i++) {
                 frames[i] = InterleavedAudioFrame::createNew(channels, sampleRate, AudioFrame::getMaxSamples(sampleRate), codec, sampleFormat);
             }
             break;
         case AAC:
             max = FRAMES_OPUS;//??
             sampleFormat = S16;
-            for (int i=0; i<max; i++) {
+            for (unsigned i=0; i<max; i++) {
                 frames[i] = InterleavedAudioFrame::createNew(channels, sampleRate, AudioFrame::getMaxSamples(sampleRate), codec, sampleFormat);
             }
             break;
         case MP3:
             max = FRAMES_OPUS;
             sampleFormat = S16;
-            for (int i=0; i<max; i++) {
+            for (unsigned i=0; i<max; i++) {
                 frames[i] = InterleavedAudioFrame::createNew(channels, sampleRate, AudioFrame::getMaxSamples(sampleRate), codec, sampleFormat);
             }
             break;
@@ -223,11 +223,11 @@ bool AudioFrameQueue::config()
         case PCM:
             max = FRAMES_AUDIO_RAW;
             if (sampleFormat == U8 || sampleFormat == S16 || sampleFormat == FLT) {
-                for (int i=0; i<max; i++) {
+                for (unsigned i=0; i<max; i++) {
                     frames[i] = InterleavedAudioFrame::createNew(channels, sampleRate, AudioFrame::getMaxSamples(sampleRate), codec, sampleFormat);
                 }
             } else if (sampleFormat == U8P || sampleFormat == S16P || sampleFormat == FLTP) {
-                for (int i=0; i<max; i++) {
+                for (unsigned i=0; i<max; i++) {
                     frames[i] = PlanarAudioFrame::createNew(channels, sampleRate, AudioFrame::getMaxSamples(sampleRate), codec, sampleFormat);
                 }
             } else {
@@ -239,7 +239,7 @@ bool AudioFrameQueue::config()
             sampleRate = 8000;
             sampleFormat = U8;
             max = FRAMES_AUDIO_RAW;
-            for (int i=0; i<max; i++) {
+            for (unsigned i=0; i<max; i++) {
                 frames[i] = InterleavedAudioFrame::createNew(channels, sampleRate, AudioFrame::getMaxSamples(sampleRate), codec, sampleFormat);
             }
             break;

@@ -174,10 +174,10 @@ class OneToOneFilter : public MasterFilter, public SlaveFilter {
 protected:
     OneToOneFilter(size_t fTime = 0, FilterRole fRole_ = MASTER, bool force_ = false);
     virtual bool doProcessFrame(Frame *org, Frame *dst) = 0;
+    using BaseFilter::setFrameTime;
     
 private:
     size_t processFrame();
-    using BaseFilter::setFrameTime;
     using BaseFilter::demandOriginFrames;
     using BaseFilter::demandDestinationFrames;
     using BaseFilter::addFrames;
@@ -186,6 +186,7 @@ private:
     using BaseFilter::oFrames;
     using BaseFilter::dFrames;
     using BaseFilter::processEvent;
+    using BaseFilter::updateTimestamp;
 
     using BaseFilter::frameTime;
     using BaseFilter::timestamp;
@@ -214,6 +215,7 @@ private:
     using BaseFilter::oFrames;
     using BaseFilter::dFrames;
     using BaseFilter::processEvent;
+    using BaseFilter::updateTimestamp;
     
     using BaseFilter::frameTime;
     using BaseFilter::timestamp;
@@ -243,6 +245,7 @@ private:
     using BaseFilter::oFrames;
     using BaseFilter::dFrames;
     using BaseFilter::processEvent;
+    using BaseFilter::updateTimestamp;
     
     using BaseFilter::frameTime;
     using BaseFilter::timestamp;
@@ -268,6 +271,7 @@ private:
     using BaseFilter::oFrames;
     using BaseFilter::dFrames;
     using BaseFilter::processEvent;
+    using BaseFilter::updateTimestamp;
     
     using BaseFilter::frameTime;
     using BaseFilter::timestamp;
@@ -293,6 +297,7 @@ private:
     using BaseFilter::oFrames;
     using BaseFilter::dFrames;
     using BaseFilter::processEvent;
+    using BaseFilter::updateTimestamp;
     
     using BaseFilter::frameTime;
     using BaseFilter::timestamp;

@@ -447,9 +447,9 @@ SlaveFilter::SlaveFilter(unsigned maxReaders_, unsigned maxWriters_, size_t fTim
 }
 
 OneToOneFilter::OneToOneFilter(size_t fTime, FilterRole fRole_, bool force_) :
+BaseFilter(1, 1, fTime, fRole_, force_),
 MasterFilter(1, 1, fTime, fRole_, force_),
-SlaveFilter(1, 1, fTime, fRole_, force_),
-BaseFilter(1, 1, fTime, fRole_, force_)
+SlaveFilter(1, 1, fTime, fRole_, force_)
 {
 }
 
@@ -489,9 +489,9 @@ size_t OneToOneFilter::processFrame()
 
 
 OneToManyFilter::OneToManyFilter(unsigned writersNum, size_t fTime, FilterRole fRole_, bool force_) :
+BaseFilter(1, writersNum, fTime, fRole_, force_),
 MasterFilter(1, writersNum, fTime, fRole_, force_),
-SlaveFilter(1, writersNum, fTime, fRole_, force_),
-BaseFilter(1, writersNum, fTime, fRole_, force_)
+SlaveFilter(1, writersNum, fTime, fRole_, force_)
 {
 }
 
@@ -530,9 +530,9 @@ size_t OneToManyFilter::processFrame()
 }
 
 HeadFilter::HeadFilter(unsigned writersNum, FilterRole fRole_) :
+BaseFilter(0, writersNum, 0, fRole_, false),
 MasterFilter(0, writersNum, 0, fRole_, false),
-SlaveFilter(0, writersNum, 0, fRole_, false),
-BaseFilter(0, writersNum, 0, fRole_, false)
+SlaveFilter(0, writersNum, 0, fRole_, false)
 {
 
 }
@@ -558,9 +558,9 @@ void HeadFilter::pushEvent(Event e)
 
 
 TailFilter::TailFilter(unsigned readersNum, FilterRole fRole_) :
+BaseFilter(readersNum, 0, 0, fRole_, false),
 MasterFilter(readersNum, 0, 0, fRole_, false),
-SlaveFilter(readersNum, 0, 0, fRole_, false),
-BaseFilter(readersNum, 0, 0, fRole_, false)
+SlaveFilter(readersNum, 0, 0, fRole_, false)
 {
 
 }
@@ -585,9 +585,9 @@ void TailFilter::pushEvent(Event e)
 
 
 ManyToOneFilter::ManyToOneFilter(unsigned readersNum, size_t fTime, FilterRole fRole_, bool force_) :
+BaseFilter(readersNum, 1, fTime, fRole_, force_),
 MasterFilter(readersNum, 1, fTime, fRole_, force_),
-SlaveFilter(readersNum, 1, fTime, fRole_, force_),
-BaseFilter(readersNum, 1, fTime, fRole_, force_)
+SlaveFilter(readersNum, 1, fTime, fRole_, force_)
 {
 }
 

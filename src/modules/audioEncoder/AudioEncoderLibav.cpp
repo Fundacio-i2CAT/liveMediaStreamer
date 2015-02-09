@@ -72,7 +72,7 @@ FrameQueue* AudioEncoderLibav::allocQueue(int wId)
 }
 
 bool AudioEncoderLibav::doProcessFrame(Frame *org, Frame *dst)
-{     
+{
     int ret, gotFrame;
 
     AudioFrame* aRawFrame = dynamic_cast<AudioFrame*>(org);
@@ -125,7 +125,7 @@ void AudioEncoderLibav::configure(ACodecType codec, int internalChannels, int in
 
     switch(fCodec) {
         case PCM:
-            codecID = AV_CODEC_ID_PCM_S16BE; 
+            codecID = AV_CODEC_ID_PCM_S16BE;
             internalLibavSampleFormat = AV_SAMPLE_FMT_S16;
             internalSampleFmt = S16;
             break;
@@ -138,7 +138,7 @@ void AudioEncoderLibav::configure(ACodecType codec, int internalChannels, int in
             codecID = AV_CODEC_ID_OPUS;
             internalLibavSampleFormat = AV_SAMPLE_FMT_S16;
             internalSampleFmt = S16;
-            break; 
+            break;
         case AAC:
             codecID = AV_CODEC_ID_AAC;
             internalLibavSampleFormat = AV_SAMPLE_FMT_S16;
@@ -157,19 +157,19 @@ void AudioEncoderLibav::configure(ACodecType codec, int internalChannels, int in
     needsConfig = true;
 }
 
-bool AudioEncoderLibav::config() 
+bool AudioEncoderLibav::config()
 {
     if (codecCtx != NULL) {
         avcodec_close(codecCtx);
         av_free(codecCtx);
     }
-    
+
     codec = avcodec_find_encoder(codecID);
     if (!codec) {
         utils::errorMsg("Error finding encoder");
         return false;
     }
-    
+
     codecCtx = avcodec_alloc_context3(codec);
     if (codecCtx == NULL) {
         utils::errorMsg("Error allocating codec context");
@@ -206,15 +206,15 @@ bool AudioEncoderLibav::config()
 
     resampleCtx = swr_alloc_set_opts
                   (
-                    resampleCtx, 
+                    resampleCtx,
                     av_get_default_channel_layout(internalChannels),
-                    internalLibavSampleFormat, 
+                    internalLibavSampleFormat,
                     internalSampleRate,
                     av_get_default_channel_layout(channels),
                     libavSampleFmt,
                     sampleRate,
                     0,
-                    NULL 
+                    NULL
                   );
 
     if (resampleCtx == NULL) {
@@ -226,7 +226,7 @@ bool AudioEncoderLibav::config()
         if (swr_init(resampleCtx) < 0) {
             utils::errorMsg("Error initializing encoder resample context");
             return false;
-        } 
+        }
     }
 
     if (codecCtx->frame_size != 0) {
@@ -239,7 +239,8 @@ bool AudioEncoderLibav::config()
     libavFrame->channel_layout = codecCtx->channel_layout;
     libavFrame->channels = internalChannels;
 
-    frameTime = std::chrono::microseconds(1000000*libavFrame->nb_samples/internalSampleRate);
+    //TODO check frameTime processing...
+    //frameTime = std::chrono::microseconds(1000000*libavFrame->nb_samples/internalSampleRate);
 
     samplesPerFrame = libavFrame->nb_samples;
 
@@ -249,7 +250,7 @@ bool AudioEncoderLibav::config()
     }
 
     needsConfig = false;
-    
+
     return true;
 }
 
@@ -260,22 +261,22 @@ int AudioEncoderLibav::resample(AudioFrame* src, AVFrame* dst)
 
     if (src->isPlanar()) {
         samples = swr_convert(
-                    resampleCtx, 
-                    dst->data, 
+                    resampleCtx,
+                    dst->data,
                     dst->nb_samples,
-                    (const uint8_t**)src->getPlanarDataBuf(), 
-                    src->getSamples() 
+                    (const uint8_t**)src->getPlanarDataBuf(),
+                    src->getSamples()
                   );
 
     } else {
         auxBuff = src->getDataBuf();
 
         samples = swr_convert(
-                    resampleCtx, 
-                    dst->data, 
+                    resampleCtx,
+                    dst->data,
                     dst->nb_samples,
-                    (const uint8_t**)auxBuff, 
-                    src->getSamples() 
+                    (const uint8_t**)auxBuff,
+                    src->getSamples()
                   );
 
     }
@@ -284,9 +285,9 @@ int AudioEncoderLibav::resample(AudioFrame* src, AVFrame* dst)
 }
 
 bool AudioEncoderLibav::reconfigure(AudioFrame* frame)
-{    
-    if (sampleFmt != frame->getSampleFmt() || 
-        channels != frame->getChannels() || 
+{
+    if (sampleFmt != frame->getSampleFmt() ||
+        channels != frame->getChannels() ||
         sampleRate != frame->getSampleRate() ||
         needsConfig)
     {
@@ -320,12 +321,12 @@ bool AudioEncoderLibav::reconfigure(AudioFrame* frame)
 
         return config();
 
-    } 
+    }
 
     return true;
 }
 
-void AudioEncoderLibav::configEvent(Jzon::Node* params, Jzon::Object &outputNode) 
+void AudioEncoderLibav::configEvent(Jzon::Node* params, Jzon::Object &outputNode)
 {
     int newChannels = internalChannels;
     int newSampleRate = internalSampleRate;
@@ -364,7 +365,7 @@ void AudioEncoderLibav::doGetState(Jzon::Object &filterNode)
 bool checkSampleFormat(AVCodec *codec, enum AVSampleFormat sampleFmt)
 {
     const enum AVSampleFormat *p = codec->sample_fmts;
-    
+
     while (*p != AV_SAMPLE_FMT_NONE) {
         if (*p == sampleFmt) {
             return true;
@@ -382,7 +383,7 @@ bool checkSampleRateSupport(AVCodec *codec, int sampleRate)
     if (!codec->supported_samplerates) {
         return false;
     }
-    
+
     p = codec->supported_samplerates;
     while (*p) {
         if (*p == sampleRate) {
@@ -411,7 +412,3 @@ bool checkChannelLayoutSupport(AVCodec *codec, uint64_t channelLayout)
 
     return false;
 }
-
-
-
-

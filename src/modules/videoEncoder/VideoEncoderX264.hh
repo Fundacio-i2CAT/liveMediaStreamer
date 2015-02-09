@@ -47,7 +47,7 @@ extern "C" {
 
 class VideoEncoderX264: public OneToOneFilter {
 	public:
-		VideoEncoderX264(int framerate = VIDEO_DEFAULT_FRAMERATE, FilterRole fRole_ = MASTER);
+		VideoEncoderX264(int framerate = VIDEO_DEFAULT_FRAMERATE, size_t fTime = 0, FilterRole fRole_ = MASTER);
 		~VideoEncoderX264();
 		bool doProcessFrame(Frame *org, Frame *dst);
         bool configure(int gop_ = DEFAULT_GOP,

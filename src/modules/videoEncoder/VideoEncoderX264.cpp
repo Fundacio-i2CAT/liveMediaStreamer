@@ -24,7 +24,7 @@
 #include <cmath>
 #include "VideoEncoderX264.hh"
 
-VideoEncoderX264::VideoEncoderX264(int framerate, FilterRole fRole_): OneToOneFilter(fRole_ ,true)
+VideoEncoderX264::VideoEncoderX264(int framerate, size_t fTime, FilterRole fRole_): OneToOneFilter(fTime, fRole_ ,true)
 {
     fType = VIDEO_ENCODER;
 

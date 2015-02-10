@@ -73,7 +73,7 @@ void addAudioSource(unsigned port, std::string codec = A_CODEC,
         utils::errorMsg("Could not add audio session");
         return;
     }
-    if (!session->initiateSession()){
+    if (!session->initiateSession(receiver)){
         utils::errorMsg("Could not initiate audio session");
         return;
     }
@@ -140,7 +140,7 @@ void addVideoSource(unsigned port, unsigned fps = FRAME_RATE, std::string codec 
         utils::errorMsg("Could not add video session");
         return;
     }
-    if (!session->initiateSession()){
+    if (!session->initiateSession(receiver)){
         utils::errorMsg("Could not initiate video session");
         return;
     }

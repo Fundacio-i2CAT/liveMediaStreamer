@@ -18,7 +18,7 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  *  Authors:  David Cassany <david.cassany@i2cat.net>,
- *            
+ *
  */
 
 #include "Handlers.hh"
@@ -32,7 +32,7 @@
 #include <sstream>
 #include <algorithm>
 
-namespace handlers 
+namespace handlers
 {
     void continueAfterSETUP(RTSPClient* rtspClient, int resultCode, char* resultString);
     void continueAfterPLAY(RTSPClient* rtspClient, int resultCode, char* resultString);
@@ -40,11 +40,11 @@ namespace handlers
     void streamTimerHandler(void* clientData);
     void shutdownStream(RTSPClient* rtspClient);
     std::string modifySessionName(std::string sdp, std::string sessionName);
-    
-    void continueAfterDESCRIBE(RTSPClient* rtspClient, int resultCode, char* resultString) 
+
+    void continueAfterDESCRIBE(RTSPClient* rtspClient, int resultCode, char* resultString)
     {
         do {
-            UsageEnvironment& env = rtspClient->envir(); 
+            UsageEnvironment& env = rtspClient->envir();
             StreamClientState& scs = *(((ExtendedRTSPClient*)rtspClient)->getScs());
 
             if (resultCode != 0) {
@@ -57,7 +57,7 @@ namespace handlers
             env << "Got a SDP description:\n" << sdpDescription << "\n";
 
             scs.session = MediaSession::createNew(env, modifySessionName(std::string(sdpDescription), scs.getId()).c_str());
-            delete[] sdpDescription; 
+            delete[] sdpDescription;
             if (scs.session == NULL) {
                 env << "Failed to create a MediaSession object from the SDP description: " << env.getResultMsg() << "\n";
                 break;
@@ -73,8 +73,8 @@ namespace handlers
 
         shutdownStream(rtspClient);
     }
-    
-    void subsessionAfterPlaying(void* clientData) 
+
+    void subsessionAfterPlaying(void* clientData)
     {
         MediaSubsession* subsession = (MediaSubsession*)clientData;
 
@@ -84,20 +84,20 @@ namespace handlers
         MediaSession& session = subsession->parentSession();
         MediaSubsessionIterator iter(session);
         while ((subsession = iter.next()) != NULL) {
-            if (subsession->sink != NULL) return; 
+            if (subsession->sink != NULL) return;
         }
     }
-    
-    void subsessionByeHandler(void* clientData) 
+
+    void subsessionByeHandler(void* clientData)
     {
         MediaSubsession* subsession = (MediaSubsession*)clientData;
         subsessionAfterPlaying(subsession);
     }
 
-    void continueAfterSETUP(RTSPClient* rtspClient, int resultCode, char* resultString) 
+    void continueAfterSETUP(RTSPClient* rtspClient, int resultCode, char* resultString)
     {
         do {
-            UsageEnvironment& env = rtspClient->envir(); 
+            UsageEnvironment& env = rtspClient->envir();
             StreamClientState& scs = *(((ExtendedRTSPClient*)rtspClient)->getScs());
 
             if (resultCode != 0) {
@@ -105,10 +105,10 @@ namespace handlers
                 break;
             }
 
-            env << "Set up the subsession (client ports " << 
-                scs.subsession->clientPortNum() << "-" << 
+            env << "Set up the subsession (client ports " <<
+                scs.subsession->clientPortNum() << "-" <<
                 scs.subsession->clientPortNum()+1 << ")\n";
-            
+
             handlers::addSubsessionSink(env, scs.subsession);
 
         } while (0);
@@ -117,12 +117,12 @@ namespace handlers
         setupNextSubsession(rtspClient);
     }
 
-    void continueAfterPLAY(RTSPClient* rtspClient, int resultCode, char* resultString) 
+    void continueAfterPLAY(RTSPClient* rtspClient, int resultCode, char* resultString)
     {
         Boolean success = False;
 
         do {
-            UsageEnvironment& env = rtspClient->envir(); 
+            UsageEnvironment& env = rtspClient->envir();
             StreamClientState& scs = *(((ExtendedRTSPClient*)rtspClient)->getScs());
 
             if (resultCode != 0) {
@@ -152,16 +152,16 @@ namespace handlers
         }
     }
 
-    void setupNextSubsession(RTSPClient* rtspClient) 
+    void setupNextSubsession(RTSPClient* rtspClient)
     {
-        UsageEnvironment& env = rtspClient->envir(); 
+        UsageEnvironment& env = rtspClient->envir();
         StreamClientState& scs = *(((ExtendedRTSPClient*)rtspClient)->getScs());
-    
+
         scs.subsession = scs.iter->next();
         if (scs.subsession != NULL) {
             if (!scs.subsession->initiate()) {
                 env << "Failed to initiate the subsession: " << env.getResultMsg() << "\n";
-                setupNextSubsession(rtspClient); 
+                setupNextSubsession(rtspClient);
             } else {
                 env << "Initiated the subsession (client ports " << scs.subsession->clientPortNum() << "-" << scs.subsession->clientPortNum()+1 << ")\n";
 
@@ -183,7 +183,7 @@ namespace handlers
     void streamTimerHandler(void* clientData)
     {
         ExtendedRTSPClient* rtspClient = (ExtendedRTSPClient*)clientData;
-        StreamClientState& scs = *(((ExtendedRTSPClient*)rtspClient)->getScs()); 
+        StreamClientState& scs = *(((ExtendedRTSPClient*)rtspClient)->getScs());
 
         scs.streamTimerTask = NULL;
 
@@ -192,37 +192,37 @@ namespace handlers
 
     void shutdownStream(RTSPClient* rtspClient)
     {
-        UsageEnvironment& env = rtspClient->envir(); 
-        StreamClientState& scs = *(((ExtendedRTSPClient*)rtspClient)->getScs()); 
-        
-        
-        if (scs.session != NULL) { 
+        UsageEnvironment& env = rtspClient->envir();
+        StreamClientState& scs = *(((ExtendedRTSPClient*)rtspClient)->getScs());
+
+
+        if (scs.session != NULL) {
             Boolean someSubsessionsWereActive = False;
             MediaSubsessionIterator iter(*scs.session);
             MediaSubsession* subsession;
-            
+
             while ((subsession = iter.next()) != NULL) {
                 if (subsession->sink != NULL) {
                     Medium::close(subsession->sink);
                     subsession->sink = NULL;
-                    
+
                     if (subsession->rtcpInstance() != NULL) {
-                        subsession->rtcpInstance()->setByeHandler(NULL, NULL); 
+                        subsession->rtcpInstance()->setByeHandler(NULL, NULL);
                     }
-                    
+
                     someSubsessionsWereActive = True;
                 }
             }
-            
+
             if (someSubsessionsWereActive) {
                 rtspClient->sendTeardownCommand(*scs.session, NULL);
             }
         }
-        
+
         env << "Closing the stream.\n";
         Medium::close(rtspClient);
     }
-    
+
     //TODO: static method of SourceManager?
     std::string makeSessionSDP(std::string sessionName, std::string sessionDescription)
     {
@@ -232,16 +232,16 @@ namespace handlers
         sdp << "s=" << sessionName << "\n";
         sdp << "i=" << sessionDescription << "\n";
         sdp << "t= 0 0\n";
-        
+
         return sdp.str();
     }
-    
-    std::string makeSubsessionSDP(std::string mediumName, std::string protocolName, 
-                                  unsigned int RTPPayloadFormat, 
-                                  std::string codecName, unsigned int bandwidth, 
-                                  unsigned int RTPTimestampFrequency, 
+
+    std::string makeSubsessionSDP(std::string mediumName, std::string protocolName,
+                                  unsigned int RTPPayloadFormat,
+                                  std::string codecName, unsigned int bandwidth,
+                                  unsigned int RTPTimestampFrequency,
                                   unsigned int clientPortNum,
-                                  unsigned int channels) 
+                                  unsigned int channels)
     {
         std::stringstream sdp;
         sdp << "m=" << mediumName << " " << clientPortNum;
@@ -257,55 +257,49 @@ namespace handlers
         sdp << codecName << "/" << RTPTimestampFrequency;
         if (channels > 0) {
             sdp << "/" << channels;
-        } 
+        }
         sdp << "\n";
         if (codecName.compare("H264") == 0){
             sdp << "a=fmtp:" << RTPPayloadFormat << " packetization-mode=1\n";
         }
-        
+
         return sdp.str();
     }
-    
+
     //TODO: static method of SourceManager?
     bool addSubsessionSink(UsageEnvironment& env, MediaSubsession *subsession)
     {
         int wId;
         QueueSink *sink;
-        SourceManager* mngr = SourceManager::getInstance();
         Writer *writer;
-        
+
         writer = new Writer();
-        
+        wId = subsession->clientPortNum();
+
         if (strcmp(subsession->codecName(), "H264") == 0) {
-            sink = H264QueueSink::createNew(env, writer, subsession->fmtp_spropparametersets());
+            sink = H264QueueSink::createNew(env, writer, wId, subsession->fmtp_spropparametersets());
         } else {
-            sink = QueueSink::createNew(env, writer);
+            sink = QueueSink::createNew(env, writer, wId);
         }
-        
+
         if (sink == NULL){
             std::cerr << "Sink NULL!" << std::endl;
             delete writer;
             return false;
         }
-        
-        wId = subsession->clientPortNum();
-        subsession->sink = sink;
-        mngr->writers[wId] = writer;
 
-        if (mngr->hasCallback()) {
-            mngr->callback(subsession->mediumName(), subsession->clientPortNum());
-        }
-        
+        subsession->sink = sink;
+
         subsession->sink->startPlaying(*(subsession->readSource()),
                                        handlers::subsessionAfterPlaying, subsession);
 
         if (subsession->rtcpInstance() != NULL) {
             subsession->rtcpInstance()->setByeHandler(handlers::subsessionByeHandler, subsession);
         }
-        
+
         return true;
     }
-    
+
     std::string modifySessionName(std::string sdp, std::string sessionName)
     {
         std::string newSdp;
@@ -321,6 +315,5 @@ namespace handlers
         }
         return newSdp;
     }
-   
-};
 
+};

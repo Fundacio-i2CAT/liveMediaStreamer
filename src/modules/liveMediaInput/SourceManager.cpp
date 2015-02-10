@@ -31,20 +31,16 @@
 #define RTSP_CLIENT_VERBOSITY_LEVEL 1
 #define FILE_SINK_RECEIVE_BUFFER_SIZE 200000
 
-SourceManager *SourceManager::mngrInstance = NULL;
-
-
 FrameQueue* createVideoQueue(char const* codecName);
 FrameQueue* createAudioQueue(unsigned char rtpPayloadFormat,
                              char const* codecName, unsigned channels,
                              unsigned sampleRate);
 
-SourceManager::SourceManager(int writersNum): HeadFilter(writersNum), watch(0)
+SourceManager::SourceManager(int writersNum, size_t fTime, FilterRole fRole): HeadFilter(writersNum, fTime, fRole), watch(0)
 {
     TaskScheduler* scheduler = BasicTaskScheduler::createNew();
     this->env = BasicUsageEnvironment::createNew(*scheduler);
 
-    mngrInstance = this;
     fType = RECEIVER;
     initializeEventMap();
 }
@@ -58,30 +54,11 @@ SourceManager::~SourceManager()
     delete &envir()->taskScheduler();
     envir()->reclaim();
     env = NULL;
-    mngrInstance = NULL;
-}
-
-
-SourceManager* SourceManager::getInstance()
-{
-    if (mngrInstance != NULL){
-        return mngrInstance;
-    }
-    return new SourceManager();
 }
 
 void SourceManager::stop()
 {
     watch = 1;
-}
-
-void SourceManager::destroyInstance()
-{
-    SourceManager* mngrInstance = SourceManager::getInstance();
-    if (mngrInstance != NULL){
-        delete mngrInstance;
-        mngrInstance = NULL;
-    }
 }
 
 void SourceManager::setCallback(std::function<void(char const*, unsigned short)> callbackFunction)
@@ -145,6 +122,23 @@ Session* SourceManager::getSession(std::string id)
     }
 
     return sessionMap[id];
+}
+
+bool SourceManager::addWriter(unsigned port, const Writer *writer)
+{
+    if(writers.count(port) > 0){
+        return false;
+    }
+    writers[port] = writer;
+
+
+    //TODO check callback:
+    //if (mngr->hasCallback()) {
+    //    mngr->callback(subsession->mediumName(), subsession->clientPortNum());
+    //}
+
+
+    return true;
 }
 
 FrameQueue *SourceManager::allocQueue(int wId)
@@ -227,7 +221,7 @@ void SourceManager::addSessionEvent(Jzon::Node* params, Jzon::Object &outputNode
     }
 
     addSession(session);
-    session->initiateSession();
+    session->initiateSession(this);
 
     outputNode.Add("error", Jzon::null);
 }
@@ -402,9 +396,10 @@ Session* Session::createNewByURL(UsageEnvironment& env, std::string progName, st
     return session;
 }
 
-bool Session::initiateSession()
+bool Session::initiateSession(SourceManager *mngr)
 {
     MediaSubsession* subsession;
+    QueueSink *queueSink;
 
     if (this->scs->session != NULL){
         UsageEnvironment& env = this->scs->session->envir();
@@ -419,6 +414,16 @@ bool Session::initiateSession()
             } else {
                 utils::infoMsg("Initiated subsession at port: " +
                 std::to_string(subsession->clientPortNum()));
+                if(!(queueSink = dynamic_cast<QueueSink *>(subsession->sink))){
+                    utils::errorMsg("Failed to initiate subsession sink");
+                    subsession->deInitiate();
+                    return false;
+                }
+                if (!mngr->addWriter(queueSink->getPort(), queueSink->getWriter())){
+                    utils::errorMsg("Failed adding writer in SourceManager");
+                    subsession->deInitiate();
+                    return false;
+                }
             }
             subsession = this->scs->iter->next();
         }

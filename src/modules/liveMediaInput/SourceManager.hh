@@ -25,6 +25,7 @@
 
 #include "../../Filter.hh"
 #include "Handlers.hh"
+#include "QueueSink.hh"
 
 #include <map>
 #include <list>
@@ -36,7 +37,7 @@
 #define PROTOCOL "RTP"
 
 
-class Session;
+class SourceManager;
 
 class StreamClientState {
 public:
@@ -56,15 +57,32 @@ private:
     std::string id;
 };
 
+class Session {
+public:
+    static Session* createNewByURL(UsageEnvironment& env, std::string progName, std::string rtspURL, std::string id);
+    static Session* createNew(UsageEnvironment& env, std::string sdp, std::string id);
+
+    virtual ~Session();
+
+    std::string getId() {return scs->getId();};
+    MediaSubsession* getSubsessionByPort(int port);
+    StreamClientState* getScs() {return scs;};
+
+    bool initiateSession(SourceManager* mngr);
+
+protected:
+    Session(std::string id);
+
+    RTSPClient* client;
+    StreamClientState *scs;
+};
+
 class SourceManager : public HeadFilter {
 private:
-    SourceManager(int writersNum = MAX_WRITERS);
+    SourceManager(int writersNum = MAX_WRITERS, size_t fTime_ = 0, FilterRole fRole_ = MASTER);
     ~SourceManager();
 
 public:
-    static SourceManager* getInstance();
-    static void destroyInstance();
-
     static std::string makeSessionSDP(std::string sessionName, std::string sessionDescription);
     static std::string makeSubsessionSDP(std::string mediumName, std::string protocolName,
                                   unsigned int RTPPayloadFormat,
@@ -91,38 +109,20 @@ private:
     void doGetState(Jzon::Object &filterNode);
     void addSessionEvent(Jzon::Node* params, Jzon::Object &outputNode);
 
+    friend bool Session::initiateSession(SourceManager *mngr);
+    bool addWriter(unsigned port, const Writer *writer);
+
     size_t processFrame(bool removeFrame = false);
     void addConnection(int wId, MediaSubsession* subsession);
 
     static void* startServer(void *args);
     FrameQueue *allocQueue(int wId);
 
-    static SourceManager* mngrInstance;
     std::map<std::string, Session*> sessionMap;
     UsageEnvironment* env;
     uint8_t watch;
     std::function<void(char const*, unsigned short)> callback;
 
-};
-
-class Session {
-public:
-    static Session* createNewByURL(UsageEnvironment& env, std::string progName, std::string rtspURL, std::string id);
-    static Session* createNew(UsageEnvironment& env, std::string sdp, std::string id);
-
-    virtual ~Session();
-
-    std::string getId() {return scs->getId();};
-    MediaSubsession* getSubsessionByPort(int port);
-    StreamClientState* getScs() {return scs;};
-
-    bool initiateSession();
-
-protected:
-    Session(std::string id);
-
-    RTSPClient* client;
-    StreamClientState *scs;
 };
 
 #endif

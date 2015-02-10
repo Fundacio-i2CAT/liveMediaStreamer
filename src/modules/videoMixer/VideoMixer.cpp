@@ -55,14 +55,14 @@ void ChannelConfig::config(float width, float height, float x, float y, int laye
 //                VideoMixer Class               //
 ///////////////////////////////////////////////////
 
-VideoMixer::VideoMixer(int framerate, int inputChannels, int outputWidth, int outputHeight, FilterRole fRole_) :
-ManyToOneFilter(inputChannels, fRole_, true)
+VideoMixer::VideoMixer(int framerate, int inputChannels, int outputWidth, int outputHeight, size_t fTime, FilterRole fRole_) :
+ManyToOneFilter(inputChannels, fTime, fRole_, true)
 {
     this->outputWidth = outputWidth;
     this->outputHeight = outputHeight;
     fType = VIDEO_MIXER;
     maxChannels = inputChannels;
-    frameTime = std::chrono::microseconds(1000000/framerate);
+    setFrameTime(1000000/framerate);
 
     layoutImg = cv::Mat(outputHeight, outputWidth, CV_8UC3);
     initializeEventMap();

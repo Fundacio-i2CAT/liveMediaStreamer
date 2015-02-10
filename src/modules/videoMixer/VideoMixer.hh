@@ -62,6 +62,7 @@ class VideoMixer : public ManyToOneFilter {
                    int inputChannels = VMIXER_MAX_CHANNELS,
                    int outputWidth = DEFAULT_WIDTH,
                    int outputHeight = DEFAULT_HEIGHT,
+                   size_t fTime = 0,
                    FilterRole fRole_ = MASTER);
         ~VideoMixer();
         FrameQueue *allocQueue(int wId);

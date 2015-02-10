@@ -7,20 +7,20 @@
 
 
 class H264QueueSink: public QueueSink {
-    
+
 public:
     static H264QueueSink* createNew(UsageEnvironment& env, Writer *writer,
-                                    char const* sPropParameterSetsStr);
-    
+                                    unsigned port, char const* sPropParameterSetsStr);
+
 protected:
     H264QueueSink(UsageEnvironment& env, Writer *writer,
-                  char const* sPropParameterSetsStr);
-    
+                  unsigned port, char const* sPropParameterSetsStr);
+
     Boolean continuePlaying();
     void afterGettingFrame(unsigned frameSize, struct timeval presentationTime);
-    
+
 private:
-   
+
     char const* fSPropParameterSetsStr;
     Boolean fHaveWrittenFirstFrame;
 };

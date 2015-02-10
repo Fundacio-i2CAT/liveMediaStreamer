@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- *  Authors: David Cassany <david.cassany@i2cat.net> 
+ *  Authors: David Cassany <david.cassany@i2cat.net>
  *           Marc Palau <marc.palau@i2cat.net>
  */
 
@@ -26,8 +26,8 @@
 
 #include <sys/time.h>
 
-QueueSink::QueueSink(UsageEnvironment& env, Writer *writer)
-  : MediaSink(env), fWriter(writer)
+QueueSink::QueueSink(UsageEnvironment& env, Writer *writer, unsigned port)
+  : MediaSink(env), fWriter(writer), fPort(port)
 {
     frame = NULL;
     dummyBuffer = new unsigned char[DUMMY_RECEIVE_BUFFER_SIZE];
@@ -38,18 +38,18 @@ QueueSink::~QueueSink()
     delete[] dummyBuffer;
 }
 
-QueueSink* QueueSink::createNew(UsageEnvironment& env, Writer *writer) 
+QueueSink* QueueSink::createNew(UsageEnvironment& env, Writer *writer, unsigned port)
 {
-    return new QueueSink(env, writer);
+    return new QueueSink(env, writer, port);
 }
 
-Boolean QueueSink::continuePlaying() 
+Boolean QueueSink::continuePlaying()
 {
     if (fSource == NULL) {
         utils::errorMsg("Cannot play, fSource is null");
         return False;
     }
-    
+
     if (!fWriter->isConnected()){
         utils::debugMsg("Using dummy buffer, no writer connected yet");
         fSource->getNextFrame(dummyBuffer, DUMMY_RECEIVE_BUFFER_SIZE,
@@ -70,13 +70,13 @@ Boolean QueueSink::continuePlaying()
 void QueueSink::afterGettingFrame(void* clientData, unsigned frameSize,
                  unsigned numTruncatedBytes,
                  struct timeval presentationTime,
-                 unsigned /*durationInMicroseconds*/) 
+                 unsigned /*durationInMicroseconds*/)
 {
   QueueSink* sink = (QueueSink*)clientData;
   sink->afterGettingFrame(frameSize, presentationTime);
 }
 
-void QueueSink::afterGettingFrame(unsigned frameSize, struct timeval presentationTime) 
+void QueueSink::afterGettingFrame(unsigned frameSize, struct timeval presentationTime)
 {
     if (frame != NULL){
         frame->setLength(frameSize);

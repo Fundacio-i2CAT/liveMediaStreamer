@@ -54,7 +54,7 @@ public:
     bool disconnect() const;
 
 protected:
-    FrameQueue *queue;
+    mutable FrameQueue *queue;
 
 };
 
@@ -72,7 +72,7 @@ public:
     bool disconnect();
 
 protected:
-    FrameQueue *queue;
+    mutable FrameQueue *queue;
 
 private:
     friend class Writer;

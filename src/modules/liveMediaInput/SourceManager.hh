@@ -79,7 +79,7 @@ protected:
 
 class SourceManager : public HeadFilter {
 private:
-    SourceManager(int writersNum = MAX_WRITERS, size_t fTime_ = 0, FilterRole fRole_ = MASTER);
+    SourceManager(int writersNum = MAX_WRITERS, size_t fTime = 0, FilterRole fRole_ = MASTER);
     ~SourceManager();
 
 public:

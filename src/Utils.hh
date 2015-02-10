@@ -27,6 +27,7 @@
 #include <string>
 
 #define ID_LENGTH 4
+#define BYTE_TO_BIT 8
 
 enum DefinedLogLevel {ERROR, WARNING, DEBUG, INFO};
 

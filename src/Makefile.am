@@ -9,6 +9,8 @@ liblivemediastreamer_la_SOURCES = modules/audioDecoder/AudioDecoderLibav.cpp \
                                   modules/videoMixer/VideoMixer.cpp \
                                   modules/videoResampler/VideoResampler.cpp \
                                   modules/dasher/Dasher.cpp \
+                                  modules/dasher/DashVideoSegmenter.cpp \
+                                  modules/dasher/DashAudioSegmenter.cpp \
                                   modules/dasher/i2libdash.c \
                                   modules/dasher/i2libisoff.c \
                                   modules/liveMediaInput/ExtendedRTSPClient.cpp \

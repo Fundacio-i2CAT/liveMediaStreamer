@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- *  Authors:  David Cassany <david.cassany@i2cat.net>,
+ *  Authors:  Marc Palau <marc.palau@i2cat.net>
  *            
  */
  
@@ -26,6 +26,7 @@
 
 #include "../../Filter.hh"
 #include "../../VideoFrame.hh"
+#include "../../AudioFrame.hh"
 
 extern "C" {
     #include "i2libdash.h"
@@ -34,54 +35,43 @@ extern "C" {
 #include <map>
 #include <string>
 
-#define H264_NALU_START_CODE 0x00000001
-#define SHORT_START_CODE_LENGTH 3
-#define LONG_START_CODE_LENGTH 4
-#define H264_NALU_TYPE_MASK 0x1F
-
-#define H264_METADATA_VERSION_FLAG 0x01
-#define METADATA_RESERVED_BYTES1 0xFC
-#define AVCC_HEADER_BYTES_MINUS_ONE 0x03
-#define METADATA_RESERVED_BYTES2 0xE0
-#define NUMBER_OF_SPS 0x01
-#define NUMBER_OF_PPS 0x01
-
-#define IDR 5
-#define SEI 6
-#define SPS 7
-#define PPS 8
-#define AUD 9
+#define ADTS_FIRST_RESERVED_BYTE 0XFF
+#define ADTS_SECOND_RESERVED_BYTE 0XF1
+#define ADTS_HEADER_LENGTH 7
 
 #define MICROSECONDS_TIME_BASE 1000000
 
 class DashSegmenter;
-class DashVideoSegmenter;
 class DashAudioSegmenter;
 class DashSegment;
 
 class Dasher : public TailFilter {
 
 public:
-    Dasher(int segDur, int readersNum = MAX_READERS);
+    Dasher(int readersNum = MAX_READERS);
     ~Dasher();
 
     bool deleteReader(int id);
     void doGetState(Jzon::Object &filterNode);
+    bool addSegmenter(int readerId, std::string segBaseName, int segDurInMicroSeconds);
+    bool removeSegmenter(int readerId);
+
       
 private: 
     bool doProcessFrame(std::map<int, Frame*> orgFrames);
     void initializeEventMap();
-    Reader *setReader(int readerId, FrameQueue* queue, bool sharedQueue = false);
 
     std::map<int, DashSegmenter*> segmenters;
-    int segmentDuration;
 };
 
 class DashSegmenter {
 
 public:
-    DashSegmenter(size_t segDur);
+    DashSegmenter(size_t segDur, size_t tBase, std::string segBaseName);
+    virtual ~DashSegmenter();
     virtual bool manageFrame(Frame* frame) = 0;
+    virtual bool finishSegment() = 0;
+
 
 protected:
     i2ctx* dashContext;
@@ -91,49 +81,7 @@ protected:
     DashSegment* segment;
     DashSegment* initSegment;
     std::string baseName;
-};
-
-class DashVideoSegmenter : public DashSegmenter {
-
-public:
-    DashVideoSegmenter(size_t segDur);
-    bool manageFrame(Frame* frame);
-    bool setup(size_t segmentDuration, size_t timeBase, size_t sampleDuration, size_t width, size_t height, size_t framerate);
-
-private:
-    bool parseNal(VideoFrame* nal);
-    int detectStartCode(unsigned char const* ptr);
-    void saveSPS(unsigned char* data, int dataLength);
-    void savePPS(unsigned char* data, int dataLength);
-    bool updateMetadata();
-    void createMetadata();
-    bool appendNalToFrame(unsigned char* nalData, unsigned nalDataLength);
-    bool appendFrameToDashSegment(size_t pts);
-    bool updateTimeValues(size_t currentTimestamp);
-    bool generateInit();
-    std::string getSegmentName();
-    std::string getInitSegmentName();
-
-    std::vector<unsigned char> frameData;
-    std::vector<unsigned char> lastSPS;
-    std::vector<unsigned char> lastPPS;
     std::vector<unsigned char> metadata;
-    bool updatedSPS;
-    bool updatedPPS;
-    size_t lastTs;
-    size_t tsOffset;
-    size_t frameRate;
-    bool isIntra;
-
-};
-
-class DashAudioSegmenter : public DashSegmenter {
-
-public:
-    DashAudioSegmenter(size_t segDur);
-    bool manageFrame(Frame* frame);
-    bool setup(size_t segmentDuration, size_t timeBase, size_t sampleDuration, size_t channels, size_t sampleRate, size_t bitsPerSample);
-
 };
 
 /*! It represents a dash segment. It contains a buffer with the segment data (it allocates data) and its length. Moreover, it contains the

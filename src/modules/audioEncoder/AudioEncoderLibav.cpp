@@ -73,19 +73,33 @@ FrameQueue* AudioEncoderLibav::allocQueue(int wId)
 
 bool AudioEncoderLibav::doProcessFrame(Frame *org, Frame *dst)
 {     
-    int ret, gotFrame;
+    int ret, gotFrame, samples;
+    AudioFrame* rawFrame;
+    AudioFrame* codedFrame;
 
-    AudioFrame* aRawFrame = dynamic_cast<AudioFrame*>(org);
-    if(!reconfigure(aRawFrame)) {
+    rawFrame = dynamic_cast<AudioFrame*>(org);
+    codedFrame = dynamic_cast<AudioFrame*>(dst);
+
+    if (!rawFrame || !codedFrame) {
+        utils::errorMsg("Error encoding audio frame: org or dst frames are not valid");
+        return false;
+    }
+
+    if(!reconfigure(rawFrame)) {
         return false;
     }
 
     //set up buffer and buffer length pointers
-    pkt.data = dst->getDataBuf();
-    pkt.size = dst->getMaxLength();
+    pkt.data = codedFrame->getDataBuf();
+    pkt.size = codedFrame->getMaxLength();
 
     //resample in order to adapt to encoder constraints
-    resample(aRawFrame, libavFrame);
+    samples = resample(rawFrame, libavFrame);
+
+    if (samples <= 0) {
+        utils::errorMsg("Error encoding audio frame: resampling error");
+        return false;
+    }
 
     ret = avcodec_encode_audio2(codecCtx, &pkt, libavFrame, &gotFrame);
 
@@ -98,7 +112,8 @@ bool AudioEncoderLibav::doProcessFrame(Frame *org, Frame *dst)
         return false;
     }
 
-    dst->setLength(pkt.size);
+    codedFrame->setLength(pkt.size);
+    codedFrame->setSamples(samples);
 
     return true;
 }

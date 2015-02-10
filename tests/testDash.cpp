@@ -28,9 +28,11 @@
 #define A_CHANNELS 2
 
 #define SEGMENT_DURATION 4000000 //us
+#define SEG_BASE_NAME "/home/palau/nginx_root/dashLMS/test500"
 
 bool run = true;
 int dasherId = rand();
+Dasher* dasher = NULL;
 
 void signalHandler( int signum )
 {
@@ -49,7 +51,7 @@ void setupDasher()
     Master* worker = NULL;
     PipelineManager *pipe = Controller::getInstance()->pipelineManager();
     
-    Dasher* dasher = new Dasher(SEGMENT_DURATION);
+    dasher = new Dasher(SEGMENT_DURATION);
     pipe->addFilter(dasherId, dasher);
     worker = new Master();
     worker->addProcessor(dasherId, dasher);
@@ -64,9 +66,12 @@ void addAudioSource(unsigned port, std::string codec = A_CODEC,
     int aEncId = rand();
     int decId = rand();
     int encId = rand();
+    int dstReader = rand();
+
     std::vector<int> ids({decId, encId});
     std::string sessionId;
     std::string sdp;
+
     
     AudioDecoderLibav *decoder;
     AudioEncoderLibav *encoder;
@@ -113,10 +118,14 @@ void addAudioSource(unsigned port, std::string codec = A_CODEC,
     pipe->addWorker(aEncId, aEnc);
 
     //NOTE: add filter to path
-    path = pipe->createPath(pipe->getReceiverID(), dasherId, port, -1, ids);
+    path = pipe->createPath(pipe->getReceiverID(), dasherId, port, dstReader, ids);
     pipe->addPath(port, path);       
     pipe->connectPath(path);
-        
+
+    if (!dasher->addSegmenter(dstReader, SEG_BASE_NAME, SEGMENT_DURATION)) {
+        utils::errorMsg("Error adding segmenter");
+    }
+
     pipe->startWorkers();
 }
 
@@ -129,6 +138,8 @@ void addVideoSource(unsigned port, unsigned fps = FRAME_RATE, std::string codec 
     int decId = rand();
     int resId = rand();
     int encId = rand();
+    int dstReader = rand();
+
     std::vector<int> ids({decId, resId, encId});
     std::string sessionId;
     std::string sdp;
@@ -189,9 +200,11 @@ void addVideoSource(unsigned port, unsigned fps = FRAME_RATE, std::string codec 
     pipe->addWorker(wEncId, wEnc);
     
     //NOTE: add filter to path
-    path = pipe->createPath(pipe->getReceiverID(), dasherId, port, -1, ids);
+    path = pipe->createPath(pipe->getReceiverID(), dasherId, port, dstReader, ids);
     pipe->addPath(port, path);       
     pipe->connectPath(path);
+
+    dasher->addSegmenter(dstReader, SEG_BASE_NAME, SEGMENT_DURATION);
     
     pipe->startWorkers();
 }

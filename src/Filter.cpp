@@ -437,7 +437,7 @@ BaseFilter(1, 1, force_)
 bool OneToOneFilter::processFrame(bool removeFrame)
 {
     if (!demandOriginFrames() || !demandDestinationFrames()) {
-            return false;
+        return false;
     }
 
     if (doProcessFrame(oFrames.begin()->second, dFrames.begin()->second)) {

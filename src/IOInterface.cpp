@@ -19,7 +19,7 @@
  *
  *  Authors:  David Cassany <david.cassany@i2cat.net>,
  *            Marc Palau <marc.palau@i2cat.net>
- *            
+ *
  */
 
 #include "IOInterface.hh"
@@ -67,7 +67,7 @@ Frame* Reader::getFrame(QueueState &state, bool &newFrame, bool force)
     return frame;
 }
 
-void Reader::removeFrame() 
+void Reader::removeFrame()
 {
     queue->removeFrame();
 }
@@ -122,7 +122,7 @@ Writer::~Writer()
     disconnect();
 }
 
-bool Writer::connect(Reader *reader)
+bool Writer::connect(Reader *reader) const
 {
     if (!queue) {
         //TODO: error msg
@@ -135,7 +135,7 @@ bool Writer::connect(Reader *reader)
     return true;
 }
 
-bool Writer::disconnect()
+bool Writer::disconnect() const
 {
     if (!queue) {
         return false;
@@ -151,7 +151,7 @@ bool Writer::disconnect()
     return true;
 }
 
-bool Writer::disconnect(Reader *reader)
+bool Writer::disconnect(Reader *reader) const
 {
     if (reader->disconnect()){
         return disconnect();
@@ -159,7 +159,7 @@ bool Writer::disconnect(Reader *reader)
     return false;
 }
 
-bool Writer::isConnected()
+bool Writer::isConnected() const
 {
     if (!queue) {
         return false;
@@ -168,12 +168,12 @@ bool Writer::isConnected()
     return queue->isConnected();
 }
 
-void Writer::setQueue(FrameQueue *queue)
+void Writer::setQueue(FrameQueue *queue) const
 {
     this->queue = queue;
 }
 
-Frame* Writer::getFrame(bool force)
+Frame* Writer::getFrame(bool force) const
 {
     Frame* frame;
 
@@ -191,8 +191,7 @@ Frame* Writer::getFrame(bool force)
     return frame;
 }
 
-void Writer::addFrame()
+void Writer::addFrame() const
 {
     queue->addFrame();
 }
-

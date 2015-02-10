@@ -19,14 +19,14 @@
  *
  *  Authors:  David Cassany <david.cassany@i2cat.net>,
  *            Marc Palau <marc.palau@i2cat.net>
- *            
+ *
  */
 
 #ifndef _IO_INTERFACE_HH
 #define _IO_INTERFACE_HH
 
 #include <atomic>
-#include <utility> 
+#include <utility>
 #include <map>
 
 #ifndef _FRAME_HH
@@ -44,14 +44,14 @@ class Writer {
 public:
     Writer();
     ~Writer();
-    bool connect(Reader *reader);
-    bool disconnect(Reader *reader);
-    bool isConnected();
-    void setQueue(FrameQueue *queue);
-    Frame* getFrame(bool force = false);
-    void addFrame();
+    bool connect(Reader *reader) const;
+    bool disconnect(Reader *reader) const;
+    bool isConnected() const;
+    void setQueue(FrameQueue *queue) const;
+    Frame* getFrame(bool force = false) const;
+    void addFrame() const;
 	FrameQueue* getQueue() const {return queue;};
-    bool disconnect();
+    bool disconnect() const;
 
 protected:
     FrameQueue *queue;

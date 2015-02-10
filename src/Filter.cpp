@@ -32,10 +32,8 @@
 #define SLOW_MODIFIER 1.10 
 #define FAST_MODIFIER 0.90 
 
-BaseFilter::BaseFilter(unsigned maxReaders_, unsigned maxWriters_, size_t fTime, FilterRole fRole_, bool force_) :
-    maxReaders(maxReaders_), maxWriters(maxWriters_), fRole(fRole_), force(force_), enabled(true)
+BaseFilter::BaseFilter()
 {
-    frameTime = std::chrono::microseconds(fTime);
     frameTimeMod = 1;
     bufferStateFrameTimeMod = 1;
 }
@@ -299,24 +297,25 @@ void BaseFilter::disconnectAll()
     }
 }
 
-bool BaseFilter::disconnect(BaseFilter *R, int writerId, int readerId)
-{
-    if (writers.count(writerId) <= 0) {
-        return false;
-    }
-
-    Reader *r = R->getReader(readerId);
-
-    if (!r) {
-        return false;
-    }
-
-    writers[writerId]->disconnect(r);
-    dFrames.erase(writerId);
-    R->oFrames.erase(readerId);
-
-    return true;
-}
+//TODO: Delete
+// bool BaseFilter::disconnect(BaseFilter *R, int writerId, int readerId)
+// {
+//     if (writers.count(writerId) <= 0) {
+//         return false;
+//     }
+// 
+//     Reader *r = R->getReader(readerId);
+// 
+//     if (!r) {
+//         return false;
+//     }
+// 
+//     writers[writerId]->disconnect(r);
+//     dFrames.erase(writerId);
+//     R->oFrames.erase(readerId);
+// 
+//     return true;
+// }
 
 void BaseFilter::processEvent()
 {
@@ -385,21 +384,22 @@ bool BaseFilter::hasFrames()
 	return true;
 }
 
-bool BaseFilter::deleteReader(int id)
-{
-    if (readers.count(id) <= 0) {
-        return false;
-    }
-
-    if (readers[id]->isConnected()) {
-        return false;
-    }
-
-    delete readers[id];
-    readers.erase(id);
-
-    return true;
-}
+//TODO: delete it
+// bool BaseFilter::deleteReader(int id)
+// {
+//     if (readers.count(id) <= 0) {
+//         return false;
+//     }
+// 
+//     if (readers[id]->isConnected()) {
+//         return false;
+//     }
+// 
+//     delete readers[id];
+//     readers.erase(id);
+// 
+//     return true;
+// }
 
 void BaseFilter::updateTimestamp()
 {
@@ -436,39 +436,48 @@ void BaseFilter::updateTimestamp()
     }
 }
 
-MasterFilter::MasterFilter(unsigned maxReaders_, unsigned maxWriters_, size_t fTime, FilterRole fRole_, bool force_)
-: BaseFilter(maxReaders_, maxWriters_, fTime, fRole_, force_)
+MasterFilter::MasterFilter() :
+    BaseFilter()
 {
 }
 
-SlaveFilter::SlaveFilter(unsigned maxReaders_, unsigned maxWriters_, size_t fTime, FilterRole fRole_, bool force_)
-: BaseFilter(maxReaders_, maxWriters_, fTime, fRole_, force_)
-{
+void MasterFilter::processAll()
+{   
+    //TODO: update slaves frames
+    for (auto it : slaves){
+        it.second->execute();
+    }
 }
 
-OneToOneFilter::OneToOneFilter(size_t fTime, FilterRole fRole_, bool force_) :
-BaseFilter(1, 1, fTime, fRole_, force_),
-MasterFilter(1, 1, fTime, fRole_, force_),
-SlaveFilter(1, 1, fTime, fRole_, force_)
+bool MasterFilter::runningSlaves()
 {
+    bool running = false;
+    for (auto it : slaves){
+        running |= it.second->isRunning();
+    }
+    return running;
 }
 
-size_t OneToOneFilter::processFrame()
+size_t MasterFilter::processFrame()
 {
     size_t enlapsedTime;
     size_t frameTime_;
     
-    wallClock = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now().time_since_epoch());
+    wallClock = std::chrono::duration_cast<std::chrono::microseconds>
+        (std::chrono::system_clock::now().time_since_epoch());
+        
     processEvent();
     
     if (!demandOriginFrames() || !demandDestinationFrames()) {
             return RETRY;
     }
-
-    if (doProcessFrame(oFrames.begin()->second, dFrames.begin()->second)) {
-        updateTimestamp();
-        dFrames.begin()->second->setPresentationTime(timestamp);
-        addFrames();
+    
+    processAll();
+    
+    runDoProcessFrame();
+    
+    while (runningSlaves()){
+        std::this_thread::sleep_for(std::chrono::microseconds(RETRY));
     }
     
     removeFrames();
@@ -476,8 +485,10 @@ size_t OneToOneFilter::processFrame()
     if (frameTime.count() == 0){
         return RETRY;
     }
-
-    enlapsedTime = (std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now().time_since_epoch()) - wallClock).count();
+    
+    enlapsedTime = (std::chrono::duration_cast<std::chrono::microseconds>
+        (std::chrono::system_clock::now().time_since_epoch()) - wallClock).count();
+        
     frameTime_ = frameTime.count()*frameTimeMod*bufferStateFrameTimeMod;
     
     if (enlapsedTime > frameTime_){
@@ -487,26 +498,47 @@ size_t OneToOneFilter::processFrame()
     return frameTime_ - enlapsedTime;
 }
 
-
-OneToManyFilter::OneToManyFilter(unsigned writersNum, size_t fTime, FilterRole fRole_, bool force_) :
-BaseFilter(1, writersNum, fTime, fRole_, force_),
-MasterFilter(1, writersNum, fTime, fRole_, force_),
-SlaveFilter(1, writersNum, fTime, fRole_, force_)
+SlaveFilter::SlaveFilter() :
+    BaseFilter()
 {
 }
 
-size_t OneToManyFilter::processFrame()
+OneToOneFilter::OneToOneFilter(size_t fTime, FilterRole fRole_, bool force_) :
+    BaseFilter(), MasterFilter(), SlaveFilter()
 {
-    size_t enlapsedTime;
-    size_t frameTime_;
-    
-    wallClock = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now().time_since_epoch());
-    processEvent();
-    
-    if (!demandOriginFrames() || !demandDestinationFrames()){
-        return RETRY;
-    }
+    fRole = fRole_;
+    force = force_;
+    frameTime = std::chrono::microseconds(fTime);
+    maxReaders = maxWriters = 1;
+}
 
+
+
+bool OneToOneFilter::runDoProcessFrame()
+{   
+    if (doProcessFrame(oFrames.begin()->second, dFrames.begin()->second)) {
+        updateTimestamp();
+        dFrames.begin()->second->setPresentationTime(timestamp);
+        addFrames();
+        return true;
+    }
+    
+    return false;
+}
+
+
+OneToManyFilter::OneToManyFilter(unsigned writersNum, size_t fTime, FilterRole fRole_, bool force_) :
+    BaseFilter(), MasterFilter(), SlaveFilter()
+{
+    fRole = fRole_;
+    force = force_;
+    frameTime = std::chrono::microseconds(fTime);
+    maxReaders = 1;
+    maxWriters = writersNum;
+}
+
+size_t OneToManyFilter::processFrame()
+{   
     if (doProcessFrame(oFrames.begin()->second, dFrames)) {
         updateTimestamp();
 
@@ -515,26 +547,20 @@ size_t OneToManyFilter::processFrame()
         }
 
         addFrames();
+        return true;
     }
 
-    removeFrames();
-    
-    enlapsedTime = (std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now().time_since_epoch()) - wallClock).count();
-    frameTime_ = frameTime.count()*frameTimeMod*bufferStateFrameTimeMod;
-    
-    if (enlapsedTime > frameTime_){
-        return 0;
-    }
-    
-    return frameTime_ - enlapsedTime;
+    return false;
 }
 
 HeadFilter::HeadFilter(unsigned writersNum, FilterRole fRole_) :
-BaseFilter(0, writersNum, 0, fRole_, false),
-MasterFilter(0, writersNum, 0, fRole_, false),
-SlaveFilter(0, writersNum, 0, fRole_, false)
+    BaseFilter(), MasterFilter(), SlaveFilter()
 {
-
+    fRole = fRole_;
+    force = false;
+    frameTime = std::chrono::microseconds(0);
+    maxReaders = 0;
+    maxWriters = writersNum;
 }
 
 void HeadFilter::pushEvent(Event e)
@@ -558,11 +584,13 @@ void HeadFilter::pushEvent(Event e)
 
 
 TailFilter::TailFilter(unsigned readersNum, FilterRole fRole_) :
-BaseFilter(readersNum, 0, 0, fRole_, false),
-MasterFilter(readersNum, 0, 0, fRole_, false),
-SlaveFilter(readersNum, 0, 0, fRole_, false)
+    BaseFilter(), MasterFilter(), SlaveFilter()
 {
-
+    fRole = fRole_;
+    force = false;
+    frameTime = std::chrono::microseconds(0);
+    maxReaders = readersNum;
+    maxWriters = 0;
 }
 
 void TailFilter::pushEvent(Event e)
@@ -585,38 +613,23 @@ void TailFilter::pushEvent(Event e)
 
 
 ManyToOneFilter::ManyToOneFilter(unsigned readersNum, size_t fTime, FilterRole fRole_, bool force_) :
-BaseFilter(readersNum, 1, fTime, fRole_, force_),
-MasterFilter(readersNum, 1, fTime, fRole_, force_),
-SlaveFilter(readersNum, 1, fTime, fRole_, force_)
+    BaseFilter(), MasterFilter(), SlaveFilter()
 {
+    fRole = fRole_;
+    force = force_;
+    frameTime = std::chrono::microseconds(fTime);
+    maxReaders = readersNum;
+    maxWriters = 1;
 }
 
 size_t ManyToOneFilter::processFrame()
 {
-    size_t enlapsedTime;
-    size_t frameTime_;
-    
-    wallClock = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now().time_since_epoch());
-    processEvent();
-    
-    if (!demandOriginFrames() || !demandDestinationFrames()) {
-        return RETRY;
-    }
-
     if (doProcessFrame(oFrames, dFrames.begin()->second)) {
         updateTimestamp();
         dFrames.begin()->second->setPresentationTime(timestamp);
         addFrames();
+        return true;
     }
 
-    removeFrames();
-    
-    enlapsedTime = (std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now().time_since_epoch()) - wallClock).count();
-    frameTime_ = frameTime.count()*frameTimeMod*bufferStateFrameTimeMod;
-    
-    if (enlapsedTime > frameTime_){
-        return 0;
-    }
-    
-    return frameTime_ - enlapsedTime;
+    return false;
 }

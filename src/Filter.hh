@@ -54,7 +54,6 @@
 class MasterFilter;
 class SlaveFilter;
 
-
 class BaseFilter : public Runnable {
 
 public:
@@ -63,7 +62,7 @@ public:
     bool connectOneToMany(BaseFilter *R, int readerID, bool slaveQueue = false);
     bool connectManyToMany(BaseFilter *R, int readerID, int writerID, bool slaveQueue = false);
 
-    bool disconnect(BaseFilter *R, int writerID, int readerID);
+    //bool disconnect(BaseFilter *R, int writerID, int readerID);
     bool disconnectWriter(int writerId);
     bool disconnectReader(int readerId);
     void disconnectAll();
@@ -76,7 +75,7 @@ public:
     const unsigned getMaxReaders() const {return maxReaders;};
     virtual void pushEvent(Event e);
     void getState(Jzon::Object &filterNode);
-    bool deleteReader(int id);
+    //bool deleteReader(int id);
     int getWorkerId(){return workerId;};
     void setWorkerId(int id){workerId = id;};
     bool isEnabled(){return enabled;};
@@ -87,7 +86,7 @@ public:
     void setFrameTime(size_t fTime);
     
 protected:
-    BaseFilter(unsigned maxReaders_ = MAX_READERS, unsigned maxWriters_ = MAX_WRITERS, size_t fTime = 0, FilterRole fRole_ = MASTER, bool force_ = false);
+    BaseFilter();
 
     void addFrames(); 
     void removeFrames();
@@ -104,6 +103,7 @@ protected:
     void processEvent();
     virtual void doGetState(Jzon::Object &filterNode) = 0;
 
+    void updateTimestamp();
     std::map<std::string, std::function<void(Jzon::Node* params, Jzon::Object &outputNode)> > eventMap; 
     
 protected:
@@ -115,60 +115,63 @@ protected:
 
     float frameTimeMod;
     float bufferStateFrameTimeMod;
-    void updateTimestamp();
 
     std::chrono::microseconds frameTime;
     std::chrono::microseconds timestamp;
     std::chrono::microseconds lastDiffTime;
     std::chrono::microseconds diffTime;
     std::chrono::microseconds wallClock;
-      
-private:
-    bool connect(BaseFilter *R, int writerID, int readerID, bool slaveQueue = false);
-
+    
     unsigned maxReaders;
     unsigned maxWriters;
     FilterRole fRole;
     bool force;
+      
+private:
+    bool connect(BaseFilter *R, int writerID, int readerID, bool slaveQueue = false);
+    
+private:
     std::priority_queue<Event> eventQueue;
     std::mutex eventQueueMutex;
     int workerId;
     bool enabled;
-    
     std::map<int, bool> rUpdates;
 };
 
 class MasterFilter : virtual public BaseFilter {
 
 public:
-    MasterFilter(unsigned maxReaders_, unsigned maxWriters_, size_t fTime, FilterRole fRole_, bool force_);
+    MasterFilter();
 
 protected:
     bool addSlave(int id, SlaveFilter *slave);
     bool removeSlave(int id);
-
-    bool allFinished();
-    void processAll();
+    
+    virtual bool runDoProcessFrame() = 0;
 
     std::map<int, SlaveFilter*> slaves;
+    
+private:
+    size_t processFrame();
+    void processAll();
+    bool runningSlaves();
 };
 
 
 class SlaveFilter : virtual public BaseFilter {
 
 public:
-    SlaveFilter(unsigned maxReaders_, unsigned maxWriters_, size_t fTime, FilterRole fRole_, bool force_);
+    SlaveFilter();
+    void execute() {run = true;};
+    bool isRunning() {return run;};
 
 protected:
-    bool getFinished(){return finished;};
-    void setFalse();
-
     void process();
-    std::atomic<bool> finished;
-
+    
+private:
+    std::atomic<bool> run;
 };
 
-//TODO: convert updateTimestamp to private
 class OneToOneFilter : public MasterFilter, public SlaveFilter {
 
 protected:
@@ -177,7 +180,7 @@ protected:
     using BaseFilter::setFrameTime;
     
 private:
-    size_t processFrame();
+    bool runDoProcessFrame();
     using BaseFilter::demandOriginFrames;
     using BaseFilter::demandDestinationFrames;
     using BaseFilter::addFrames;
@@ -193,6 +196,11 @@ private:
     using BaseFilter::lastDiffTime;
     using BaseFilter::diffTime;
     using BaseFilter::wallClock;
+    
+    using BaseFilter::maxReaders;
+    using BaseFilter::maxWriters;
+    using BaseFilter::fRole;
+    using BaseFilter::force;
     
     void stop() {};
 };
@@ -223,6 +231,11 @@ private:
     using BaseFilter::diffTime;
     using BaseFilter::wallClock;
     
+    using BaseFilter::maxReaders;
+    using BaseFilter::maxWriters;
+    using BaseFilter::fRole;
+    using BaseFilter::force;
+    
     void stop() {};
 };
 
@@ -252,6 +265,11 @@ private:
     using BaseFilter::lastDiffTime;
     using BaseFilter::diffTime;
     using BaseFilter::wallClock;
+    
+    using BaseFilter::maxReaders;
+    using BaseFilter::maxWriters;
+    using BaseFilter::fRole;
+    using BaseFilter::force;
 };
 
 class TailFilter : public MasterFilter, public SlaveFilter {
@@ -278,6 +296,11 @@ private:
     using BaseFilter::lastDiffTime;
     using BaseFilter::diffTime;
     using BaseFilter::wallClock;
+    
+    using BaseFilter::maxReaders;
+    using BaseFilter::maxWriters;
+    using BaseFilter::fRole;
+    using BaseFilter::force;
 };
 
 class ManyToOneFilter : public MasterFilter, public SlaveFilter {
@@ -304,6 +327,11 @@ private:
     using BaseFilter::lastDiffTime;
     using BaseFilter::diffTime;
     using BaseFilter::wallClock;
+    
+    using BaseFilter::maxReaders;
+    using BaseFilter::maxWriters;
+    using BaseFilter::fRole;
+    using BaseFilter::force;
     
     void stop() {};
 };

@@ -78,7 +78,10 @@ protected:
 class BaseFilterMockup : public BaseFilter 
 {
 public:
-    BaseFilterMockup(unsigned readers, unsigned writers) : BaseFilter(readers,writers) {};
+    BaseFilterMockup(unsigned readers, unsigned writers) : BaseFilter() {
+        maxReaders = readers;
+        maxWriters = writers;
+    };
     
 protected:
     FrameQueue *allocQueue(int wId) {return new AVFramedQueueMock(4);};
@@ -94,7 +97,11 @@ private:
 class VideoFilterMockup : public BaseFilter 
 {
 public:
-    VideoFilterMockup(VCodecType c) : BaseFilter(READERS,WRITERS) {codec = c;};
+    VideoFilterMockup(VCodecType c) : BaseFilter() {
+        codec = c;
+        maxReaders = READERS;
+        maxWriters = WRITERS;
+    };
     
 protected:
     FrameQueue *allocQueue(int wId) {return VideoFrameQueue::createNew(codec);};
@@ -110,7 +117,11 @@ private:
 class AudioFilterMockup : public BaseFilter 
 {
 public:
-    AudioFilterMockup(ACodecType c) : BaseFilter(READERS,WRITERS) {codec = c;};
+    AudioFilterMockup(ACodecType c) : BaseFilter() {
+        codec = c;
+        maxReaders = READERS;
+        maxWriters = WRITERS;
+    };
     
 protected:
     FrameQueue *allocQueue(int wId) {return AudioFrameQueue::createNew(codec);};
@@ -123,7 +134,7 @@ private:
     ACodecType codec;
 };
 
-class OneToOneFilterMockup : public OneToOneFilter 
+class OneToOneFilterMockup : virtual public OneToOneFilter 
 {
 public:
     OneToOneFilterMockup(size_t processTime_, size_t queueSize_, bool gotFrame_) : 

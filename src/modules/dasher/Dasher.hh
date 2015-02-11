@@ -67,13 +67,21 @@ private:
 class DashSegmenter {
 
 public:
-    DashSegmenter(size_t segDur, size_t tBase, std::string segBaseName);
+    DashSegmenter(size_t segDur, size_t tBase, std::string segBaseName, std::string segExt);
     virtual ~DashSegmenter();
     virtual bool manageFrame(Frame* frame) = 0;
+    virtual bool updateConfig() = 0;
     virtual bool finishSegment() = 0;
-
+    bool generateInitSegment();
+    bool generateSegment();
 
 protected:
+    virtual bool updateMetadata() = 0;
+    virtual bool generateInitData() = 0;
+    virtual bool appendFrameToDashSegment() = 0;
+    std::string getInitSegmentName();
+    std::string getSegmentName();
+    
     i2ctx* dashContext;
     size_t timeBase;
     size_t segmentDuration;
@@ -81,6 +89,7 @@ protected:
     DashSegment* segment;
     DashSegment* initSegment;
     std::string baseName;
+    std::string segmentExt;
     std::vector<unsigned char> metadata;
 };
 

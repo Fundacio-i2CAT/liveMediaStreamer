@@ -42,13 +42,33 @@ Dasher::~Dasher()
 
 bool Dasher::doProcessFrame(std::map<int, Frame*> orgFrames)
 {
+    DashSegmenter* segmenter;
+    bool newFrame;
+
     for (auto fr : orgFrames) {
 
         if (!fr.second) {
             continue;
         }
 
-        segmenters[fr.first]->manageFrame(fr.second);
+        segmenter = segmenters[fr.first];
+        newFrame = segmenter->manageFrame(fr.second);
+
+        if (!newFrame) {
+            continue;
+        }
+
+        if (!segmenter->updateConfig()) {
+            continue;
+        }
+
+        if (segmenter->generateInitSegment()) {
+            utils::debugMsg("New DASH init segment generated");
+        }
+
+        if (segmenter->generateSegment()) {
+            utils::debugMsg("New DASH segment generated");
+        }
     }
 
     return true;
@@ -115,8 +135,8 @@ bool Dasher::removeSegmenter(int readerId)
     return true;
 }
 
-DashSegmenter::DashSegmenter(size_t segDur, size_t tBase, std::string segBaseName) : 
-dashContext(NULL), timeBase(tBase), segmentDuration(segDur), frameDuration(0), baseName(segBaseName)
+DashSegmenter::DashSegmenter(size_t segDur, size_t tBase, std::string segBaseName, std::string segExt) : 
+dashContext(NULL), timeBase(tBase), segmentDuration(segDur), frameDuration(0), baseName(segBaseName), segmentExt(segExt)
 {
     segment = new DashSegment(MAX_DAT);
     initSegment = new DashSegment(MAX_DAT);
@@ -127,6 +147,58 @@ DashSegmenter::~DashSegmenter()
     delete segment;
     delete initSegment;
 }
+
+bool DashSegmenter::generateInitSegment() 
+{
+    if (updateMetadata()) {
+
+        if (!generateInitData()) {
+            utils::errorMsg("Error generating audio init segment");
+            return false;
+        }
+
+        if(!initSegment->writeToDisk(getInitSegmentName())) {
+            utils::errorMsg("Error writing DASH init segment to disk: invalid path");
+            return false;
+        }
+    }
+
+    return true;
+}
+
+bool DashSegmenter::generateSegment()
+{
+    if (appendFrameToDashSegment()) {
+        
+        if(!segment->writeToDisk(getSegmentName())) {
+            utils::errorMsg("Error writing DASH segment to disk: invalid path");
+            return false;
+        }
+
+        segment->incrSeqNumber();
+    }
+
+    return true;
+}
+
+std::string DashSegmenter::getInitSegmentName()
+{
+    std::string fullName;
+
+    fullName = baseName + "_init" + segmentExt;
+    
+    return fullName;
+}
+
+std::string DashSegmenter::getSegmentName()
+{
+    std::string fullName;
+
+    fullName = baseName + "_" + std::to_string(segment->getTimestamp()) + segmentExt;
+    
+    return fullName;
+}
+
 
 DashSegment::DashSegment(size_t maxSize)
 {

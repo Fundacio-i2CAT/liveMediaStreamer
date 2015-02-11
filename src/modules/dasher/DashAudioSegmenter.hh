@@ -32,11 +32,15 @@ public:
     DashAudioSegmenter(size_t segDur, std::string segBasename);
     ~DashAudioSegmenter();
     bool manageFrame(Frame* frame);
+    bool updateConfig();
     bool finishSegment();
 
 private:
+    bool updateMetadata();
+    bool generateInitData();
+    bool appendFrameToDashSegment();
+
     bool setup(size_t segmentDuration, size_t timeBase, size_t sampleDuration, size_t channels, size_t sampleRate, size_t bitsPerSample);
-    bool parseADTSHeader(AudioFrame* frame);
     unsigned char getProfileFromADTSHeader(unsigned char* adtsHeader);
     unsigned char getSamplingFreqIdxFromADTSHeader(unsigned char* adtsHeader);
     unsigned char getChannelConfFromADTSHeader(unsigned char* adtsHeader);
@@ -44,11 +48,6 @@ private:
     unsigned char getMetadata2ndByte(unsigned char samplingFrequencyIndex, unsigned char channelConfiguration);
     bool updateTimeValues(size_t currentTimestamp, int sampleRate, int samples);
     size_t customTimestamp(size_t currentTimestamp);
-    bool generateInit();
-    std::string getSegmentName();
-    std::string getInitSegmentName();
-    bool appendFrameToDashSegment(unsigned char* data, unsigned dataLength, size_t pts);
-
 
     unsigned char profile;
     unsigned char audioObjectType;
@@ -56,6 +55,7 @@ private:
     unsigned char channelConfiguration;
     size_t tsOffset;
     size_t customSegmentDuration;
+    AudioFrame* aFrame;
 };
 
 #endif

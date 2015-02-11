@@ -50,23 +50,23 @@ public:
     DashVideoSegmenter(size_t segDur, std::string segBaseName);
     ~DashVideoSegmenter();
     bool manageFrame(Frame* frame);
+    bool updateConfig();
     bool finishSegment();
 
-
 private:
+    bool updateMetadata();
+    bool generateInitData();
+    bool appendFrameToDashSegment();
+
     bool setup(size_t segmentDuration, size_t timeBase, size_t sampleDuration, size_t width, size_t height, size_t framerate);
     bool parseNal(VideoFrame* nal);
     int detectStartCode(unsigned char const* ptr);
     void saveSPS(unsigned char* data, int dataLength);
     void savePPS(unsigned char* data, int dataLength);
-    bool updateMetadata();
     void createMetadata();
     bool appendNalToFrame(unsigned char* nalData, unsigned nalDataLength);
-    bool appendFrameToDashSegment(size_t pts);
-    bool updateTimeValues(size_t currentTimestamp);
-    bool generateInit();
-    std::string getSegmentName();
-    std::string getInitSegmentName();
+    void updateTimeValues();
+    size_t customTimestamp(size_t currentTimestamp);
 
     std::vector<unsigned char> frameData;
     std::vector<unsigned char> lastSPS;
@@ -77,6 +77,10 @@ private:
     size_t tsOffset;
     size_t frameRate;
     bool isIntra;
+    bool isVCL;
+    size_t currTimestamp;
+    size_t width;
+    size_t height;
 
 };
 

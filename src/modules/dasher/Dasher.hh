@@ -74,6 +74,8 @@ public:
     virtual bool finishSegment() = 0;
     bool generateInitSegment();
     bool generateSegment();
+    size_t getFrameDuration() {return frameDuration;};
+    size_t getTimeBase() {return timeBase;};
 
 protected:
     virtual bool updateMetadata() = 0;

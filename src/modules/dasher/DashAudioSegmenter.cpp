@@ -58,7 +58,10 @@ bool DashAudioSegmenter::updateConfig()
         return false;
     }
 
-    updateTimeValues(aFrame->getPresentationTime().count(), aFrame->getSampleRate(), aFrame->getSamples());
+    if (!updateTimeValues(aFrame->getPresentationTime().count(), aFrame->getSampleRate(), aFrame->getSamples())) {
+        utils::errorMsg("Error updating time valus of DashAudioSegmenter: timestamp not valid");
+        return false;
+    }
 
     if (!setup(customSegmentDuration, timeBase, frameDuration, aFrame->getChannels(), 
                         aFrame->getSampleRate(), aFrame->getBytesPerSample()*BYTE_TO_BIT)) {
@@ -135,6 +138,10 @@ bool DashAudioSegmenter::updateTimeValues(size_t currentTimestamp, int sampleRat
 {
     if (tsOffset <= 0) {
         tsOffset = currentTimestamp;
+    }
+
+    if (tsOffset > currentTimestamp) {
+        return false;
     }
 
     frameDuration = samples;

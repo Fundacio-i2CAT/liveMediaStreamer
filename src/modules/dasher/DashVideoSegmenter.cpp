@@ -22,6 +22,7 @@
  */
 
  #include "DashVideoSegmenter.hh"
+ #include <fstream>
 
 DashVideoSegmenter::DashVideoSegmenter(size_t segDur, std::string segBaseName) : 
 DashSegmenter(segDur, MICROSECONDS_TIME_BASE, segBaseName, ".m4v"), 
@@ -58,7 +59,10 @@ bool DashVideoSegmenter::manageFrame(Frame* frame)
 
 bool DashVideoSegmenter::updateConfig()
 {
-    updateTimeValues();
+    if (!updateTimeValues()) {
+        utils::errorMsg("Error updating time valus of DashAudioSegmenter: timestamp not valid");
+        return false;
+    }
 
     if (width <= 0 || height <= 0 || timeBase <= 0 || frameDuration <= 0 || frameRate <= 0) {
         utils::errorMsg("Error configuring DashVideoSegmenter: some config values are not valid");
@@ -95,8 +99,12 @@ bool DashVideoSegmenter::parseNal(VideoFrame* nal)
     return newFrame;
 }
 
-void DashVideoSegmenter::updateTimeValues() 
+bool DashVideoSegmenter::updateTimeValues() 
 {
+    if (currTimestamp < lastTs) {
+        return false;
+    }
+
     if (lastTs <= 0 || tsOffset <= 0 || frameRate <= 0) {
         tsOffset = currTimestamp;
         lastTs = currTimestamp;
@@ -107,6 +115,8 @@ void DashVideoSegmenter::updateTimeValues()
         frameRate = timeBase/frameDuration;
         lastTs = currTimestamp;
     }
+
+    return true;
 }
 
 bool DashVideoSegmenter::setup(size_t segmentDuration, size_t timeBase, size_t sampleDuration, size_t width, size_t height, size_t framerate)

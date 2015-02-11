@@ -52,6 +52,17 @@ public:
     bool manageFrame(Frame* frame);
     bool updateConfig();
     bool finishSegment();
+    bool isIntraFrame() {return isIntra;};
+    bool isVCLFrame() {return isVCL;};
+    bool getSPSsize() {return lastSPS.size();};
+    bool getPPSsize() {return lastPPS.size();};
+    bool getFrameDataSize() {return frameData.size();};
+    size_t getCurrentTimestamp() {return currTimestamp;};
+    size_t getWidth() {return width;};
+    size_t getHeight() {return height;};
+    size_t getLastTs() {return lastTs;};
+    size_t getTsOffset() {return tsOffset;};
+    size_t getFramerate() {return frameRate;};
 
 private:
     bool updateMetadata();
@@ -65,7 +76,7 @@ private:
     void savePPS(unsigned char* data, int dataLength);
     void createMetadata();
     bool appendNalToFrame(unsigned char* nalData, unsigned nalDataLength);
-    void updateTimeValues();
+    bool updateTimeValues();
     size_t customTimestamp(size_t currentTimestamp);
 
     std::vector<unsigned char> frameData;
@@ -81,7 +92,6 @@ private:
     size_t currTimestamp;
     size_t width;
     size_t height;
-
 };
 
 #endif

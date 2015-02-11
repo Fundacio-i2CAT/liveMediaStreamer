@@ -148,9 +148,10 @@ class MasterFilter : virtual public BaseFilter {
 
 public:
     MasterFilter();
+    bool addSlave(int id, SlaveFilter *slave);
 
 protected:
-    bool addSlave(int id, SlaveFilter *slave);
+    
     bool removeSlave(int id);
     
     virtual bool runDoProcessFrame() = 0;
@@ -178,11 +179,11 @@ private:
     
     void setSharedFrames(bool sharedFrames_) {sharedFrames = sharedFrames_;};
     size_t slaveProcessFrame();
-    void execute() {run = true;};
-    bool isRunning() {return run;};
+    void execute() {process = true;};
+    bool isProcessing() {return process;};
     void updateFrames(std::map<int, Frame*> oFrames_);
     
-    std::atomic<bool> run;
+    bool process;
 };
 
 class OneToOneFilter : public MasterFilter, public SlaveFilter {

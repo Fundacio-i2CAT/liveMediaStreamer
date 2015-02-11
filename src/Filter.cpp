@@ -193,10 +193,8 @@ bool BaseFilter::connect(BaseFilter *R, int writerID, int readerID, bool slaveQu
     Reader* r;
     FrameQueue *queue;
 
-    utils::debugMsg("slaveQueue Value: " + std::to_string(slaveQueue));
     if (writers.size() < getMaxWriters() && writers.count(writerID) <= 0) {
         writers[writerID] = new Writer();
-        utils::debugMsg("New writer created " + std::to_string(writerID));
     }
 
     if (slaveQueue) {
@@ -219,7 +217,6 @@ bool BaseFilter::connect(BaseFilter *R, int writerID, int readerID, bool slaveQu
         queue = writers[writerID]->getQueue();
     } else {
         queue = allocQueue(writerID);
-        utils::debugMsg("New queue allocated for writer " + std::to_string(writerID));
     }
 
     if (!(r = R->setReader(readerID, queue, slaveQueue))) {
@@ -463,7 +460,6 @@ MasterFilter::MasterFilter() :
 void MasterFilter::processAll()
 {   
     for (auto it : slaves){
-        it.second->setSharedFrames(sharedFrames);
         if (sharedFrames){
             it.second->updateFrames(oFrames);
         }
@@ -475,9 +471,26 @@ bool MasterFilter::runningSlaves()
 {
     bool running = false;
     for (auto it : slaves){
-        running |= it.second->isRunning();
+        running |= it.second->isProcessing();
     }
     return running;
+}
+
+bool MasterFilter::addSlave(int id, SlaveFilter *slave)
+{
+    if (slave->fRole != SLAVE){
+        return false;
+    }
+    
+    if (slaves.count(id) > 0){
+        return false;
+    }
+    
+    slave->sharedFrames = sharedFrames;
+    
+    slaves[id] = slave;
+    
+    return true;
 }
 
 size_t MasterFilter::masterProcessFrame()
@@ -527,19 +540,18 @@ SlaveFilter::SlaveFilter() :
 
 size_t SlaveFilter::slaveProcessFrame()
 {
-    if (!run){
+    if (!process){
         return RETRY;
     }
     
     processEvent();
     
-    
     //TODO: decide policy to set run to true/false if retry
-    if (sharedFrames || !demandOriginFrames()){
+    if (!demandDestinationFrames()){
         return RETRY;
-    }
+    } 
     
-    if (!demandDestinationFrames()) {
+    if (!sharedFrames && !demandOriginFrames()) {
         return RETRY;
     }
     
@@ -549,7 +561,7 @@ size_t SlaveFilter::slaveProcessFrame()
         removeFrames();
     }
     
-    run = false;
+    process = false;
     return RETRY;
 }
 

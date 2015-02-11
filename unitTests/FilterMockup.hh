@@ -83,6 +83,8 @@ public:
         maxWriters = writers;
     };
     
+    using BaseFilter::getReader;
+    
 protected:
     FrameQueue *allocQueue(int wId) {return new AVFramedQueueMock(4);};
     size_t masterProcessFrame() {return 20;};
@@ -148,6 +150,38 @@ public:
     
 protected:
     bool doProcessFrame(Frame *org, Frame *dst) {
+        size_t realProcessTime;
+        std::uniform_int_distribution<size_t> distribution(processTime/2, processTime*0.99);
+        realProcessTime = distribution(generator);
+        utils::debugMsg("Process time " + std::to_string(realProcessTime));
+        std::this_thread::sleep_for(std::chrono::microseconds(realProcessTime));
+        return gotFrame;
+    }
+    void doGetState(Jzon::Object &filterNode) {};
+    void stop() {};
+
+private:
+    FrameQueue *allocQueue(int wId) {return new AVFramedQueueMock(queueSize);};
+    
+    std::default_random_engine generator;
+    size_t processTime; //usec
+    size_t queueSize;
+    bool gotFrame;
+};
+
+class OneToManyFilterMockup : virtual public OneToManyFilter 
+{
+public:
+    OneToManyFilterMockup(unsigned maxWriters, size_t processTime_, size_t queueSize_, bool gotFrame_, 
+                         size_t frameTime, FilterRole role, bool sharedFrames) : 
+        OneToManyFilter(maxWriters, frameTime, role, false, sharedFrames), 
+        processTime(processTime_), queueSize(queueSize_), gotFrame(gotFrame_) {};
+    
+    void setGotFrame(bool gotFrame_) {gotFrame = gotFrame_;};
+    using BaseFilter::getReader;
+    
+protected:
+    bool doProcessFrame(Frame *org, std::map<int, Frame *> dstFrames) {
         size_t realProcessTime;
         std::uniform_int_distribution<size_t> distribution(processTime/2, processTime*0.99);
         realProcessTime = distribution(generator);

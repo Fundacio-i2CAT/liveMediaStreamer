@@ -436,6 +436,25 @@ void BaseFilter::updateTimestamp()
     }
 }
 
+size_t BaseFilter::processFrame()
+{
+    switch(fRole) {
+        case MASTER:
+            return masterProcessFrame();
+            break;
+        case SLAVE:
+            return slaveProcessFrame();
+            break;
+        case NETWORK:
+            //TODO: add network filters process frame method
+            break;
+        default:
+            return RETRY;
+            break;
+    }
+    return RETRY;
+}
+
 MasterFilter::MasterFilter() :
     BaseFilter()
 {
@@ -443,8 +462,11 @@ MasterFilter::MasterFilter() :
 
 void MasterFilter::processAll()
 {   
-    //TODO: update slaves frames
     for (auto it : slaves){
+        it.second->setSharedFrames(sharedFrames);
+        if (sharedFrames){
+            it.second->updateFrames(oFrames);
+        }
         it.second->execute();
     }
 }
@@ -458,7 +480,7 @@ bool MasterFilter::runningSlaves()
     return running;
 }
 
-size_t MasterFilter::processFrame()
+size_t MasterFilter::masterProcessFrame()
 {
     size_t enlapsedTime;
     size_t frameTime_;
@@ -503,11 +525,45 @@ SlaveFilter::SlaveFilter() :
 {
 }
 
-OneToOneFilter::OneToOneFilter(size_t fTime, FilterRole fRole_, bool force_) :
+size_t SlaveFilter::slaveProcessFrame()
+{
+    if (!run){
+        return RETRY;
+    }
+    
+    processEvent();
+    
+    
+    //TODO: decide policy to set run to true/false if retry
+    if (sharedFrames || !demandOriginFrames()){
+        return RETRY;
+    }
+    
+    if (!demandDestinationFrames()) {
+        return RETRY;
+    }
+    
+    runDoProcessFrame();
+    
+    if (!sharedFrames){
+        removeFrames();
+    }
+    
+    run = false;
+    return RETRY;
+}
+
+void SlaveFilter::updateFrames(std::map<int, Frame*> oFrames_)
+{
+    oFrames = oFrames_;
+}
+
+OneToOneFilter::OneToOneFilter(size_t fTime, FilterRole fRole_, bool force_, bool sharedFrames_) :
     BaseFilter(), MasterFilter(), SlaveFilter()
 {
+    sharedFrames = sharedFrames_;
     fRole = fRole_;
-    force = force_;
+    force = force_;   
     frameTime = std::chrono::microseconds(fTime);
     maxReaders = maxWriters = 1;
 }
@@ -527,9 +583,10 @@ bool OneToOneFilter::runDoProcessFrame()
 }
 
 
-OneToManyFilter::OneToManyFilter(unsigned writersNum, size_t fTime, FilterRole fRole_, bool force_) :
+OneToManyFilter::OneToManyFilter(unsigned writersNum, size_t fTime, FilterRole fRole_, bool force_, bool sharedFrames_) :
     BaseFilter(), MasterFilter(), SlaveFilter()
 {
+    sharedFrames = sharedFrames_;
     fRole = fRole_;
     force = force_;
     frameTime = std::chrono::microseconds(fTime);
@@ -537,7 +594,7 @@ OneToManyFilter::OneToManyFilter(unsigned writersNum, size_t fTime, FilterRole f
     maxWriters = writersNum;
 }
 
-size_t OneToManyFilter::processFrame()
+bool OneToManyFilter::runDoProcessFrame()
 {   
     if (doProcessFrame(oFrames.begin()->second, dFrames)) {
         updateTimestamp();
@@ -556,6 +613,7 @@ size_t OneToManyFilter::processFrame()
 HeadFilter::HeadFilter(unsigned writersNum, size_t fTime, FilterRole fRole_) :
     BaseFilter(), MasterFilter(), SlaveFilter()
 {
+    sharedFrames = false;
     fRole = fRole_;
     force = false;
     frameTime = std::chrono::microseconds(fTime);
@@ -583,9 +641,10 @@ void HeadFilter::pushEvent(Event e)
 
 
 
-TailFilter::TailFilter(unsigned readersNum, size_t fTime, FilterRole fRole_) :
+TailFilter::TailFilter(unsigned readersNum, size_t fTime, FilterRole fRole_, bool sharedFrames_) :
     BaseFilter(), MasterFilter(), SlaveFilter()
 {
+    sharedFrames = sharedFrames_;
     fRole = fRole_;
     force = false;
     frameTime = std::chrono::microseconds(fTime);
@@ -612,9 +671,10 @@ void TailFilter::pushEvent(Event e)
 }
 
 
-ManyToOneFilter::ManyToOneFilter(unsigned readersNum, size_t fTime, FilterRole fRole_, bool force_) :
+ManyToOneFilter::ManyToOneFilter(unsigned readersNum, size_t fTime, FilterRole fRole_, bool force_, bool sharedFrames_) :
     BaseFilter(), MasterFilter(), SlaveFilter()
 {
+    sharedFrames = sharedFrames_;
     fRole = fRole_;
     force = force_;
     frameTime = std::chrono::microseconds(fTime);
@@ -622,7 +682,7 @@ ManyToOneFilter::ManyToOneFilter(unsigned readersNum, size_t fTime, FilterRole f
     maxWriters = 1;
 }
 
-size_t ManyToOneFilter::processFrame()
+bool ManyToOneFilter::runDoProcessFrame()
 {
     if (doProcessFrame(oFrames, dFrames.begin()->second)) {
         updateTimestamp();

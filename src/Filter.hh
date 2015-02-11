@@ -82,7 +82,7 @@ public:
     virtual ~BaseFilter();
     
     //NOTE: these are public just for testing purposes
-    virtual size_t processFrame() = 0;
+    size_t processFrame();
     void setFrameTime(size_t fTime);
     
 protected:
@@ -94,6 +94,9 @@ protected:
     virtual FrameQueue *allocQueue(int wId) = 0;
 
     std::chrono::microseconds getFrameTime() {return frameTime;};
+    
+    virtual size_t slaveProcessFrame() = 0;
+    virtual size_t masterProcessFrame() = 0;
     
     virtual Reader *setReader(int readerID, FrameQueue* queue, bool sharedQueue = false);
     Reader* getReader(int id);
@@ -128,6 +131,7 @@ protected:
     unsigned maxWriters;
     FilterRole fRole;
     bool force;
+    bool sharedFrames;
       
 private:
     bool connect(BaseFilter *R, int writerID, int readerID, bool slaveQueue = false);
@@ -154,7 +158,7 @@ protected:
     std::map<int, SlaveFilter*> slaves;
     
 private:
-    size_t processFrame();
+    size_t masterProcessFrame();
     void processAll();
     bool runningSlaves();
 };
@@ -164,21 +168,27 @@ class SlaveFilter : virtual public BaseFilter {
 
 public:
     SlaveFilter();
-    void execute() {run = true;};
-    bool isRunning() {return run;};
 
 protected:
 
-    void process();
+    virtual bool runDoProcessFrame() = 0;
     
 private:
+    friend class MasterFilter;
+    
+    void setSharedFrames(bool sharedFrames_) {sharedFrames = sharedFrames_;};
+    size_t slaveProcessFrame();
+    void execute() {run = true;};
+    bool isRunning() {return run;};
+    void updateFrames(std::map<int, Frame*> oFrames_);
+    
     std::atomic<bool> run;
 };
 
 class OneToOneFilter : public MasterFilter, public SlaveFilter {
 
 protected:
-    OneToOneFilter(size_t fTime = 0, FilterRole fRole_ = MASTER, bool force_ = false);
+    OneToOneFilter(size_t fTime = 0, FilterRole fRole_ = MASTER, bool force_ = false, bool sharedFrames_ = true);
     virtual bool doProcessFrame(Frame *org, Frame *dst) = 0;
     using BaseFilter::setFrameTime;
     using BaseFilter::getFrameTime;
@@ -206,19 +216,21 @@ private:
     using BaseFilter::fRole;
     using BaseFilter::force;
     
+    using MasterFilter::sharedFrames;
+    
     void stop() {};
 };
 
 class OneToManyFilter : public MasterFilter, public SlaveFilter {
 
 protected:
-    OneToManyFilter(unsigned writersNum = MAX_WRITERS, size_t fTime = 0, FilterRole fRole_ = MASTER, bool force_ = false);
+    OneToManyFilter(unsigned writersNum = MAX_WRITERS, size_t fTime = 0, FilterRole fRole_ = MASTER, bool force_ = false, bool sharedFrames_ = true);
     virtual bool doProcessFrame(Frame *org, std::map<int, Frame *> dstFrames) = 0;
     using BaseFilter::setFrameTime;
     using BaseFilter::getFrameTime;
 
 private:
-    size_t processFrame();
+    bool runDoProcessFrame();
     using BaseFilter::demandOriginFrames;
     using BaseFilter::demandDestinationFrames;
     using BaseFilter::addFrames;
@@ -283,7 +295,7 @@ public:
     void pushEvent(Event e);
 
 protected:
-    TailFilter(unsigned readersNum = MAX_READERS, size_t fTime = 0, FilterRole fRole_ = MASTER);
+    TailFilter(unsigned readersNum = MAX_READERS, size_t fTime = 0, FilterRole fRole_ = MASTER, bool sharedFrames_ = true);
     using BaseFilter::setFrameTime;
     using BaseFilter::getFrameTime;
 
@@ -313,13 +325,13 @@ private:
 class ManyToOneFilter : public MasterFilter, public SlaveFilter {
 
 protected:
-    ManyToOneFilter(unsigned readersNum = MAX_READERS, size_t fTime = 0, FilterRole fRole_ = MASTER, bool force_ = false);
+    ManyToOneFilter(unsigned readersNum = MAX_READERS, size_t fTime = 0, FilterRole fRole_ = MASTER, bool force_ = false, bool sharedFrames_ = true);
     virtual bool doProcessFrame(std::map<int, Frame *> orgFrames, Frame *dst) = 0;
     using BaseFilter::setFrameTime;
     using BaseFilter::getFrameTime;
 
 private:
-    size_t processFrame();
+    bool runDoProcessFrame();
     using BaseFilter::demandOriginFrames;
     using BaseFilter::demandDestinationFrames;
     using BaseFilter::addFrames;

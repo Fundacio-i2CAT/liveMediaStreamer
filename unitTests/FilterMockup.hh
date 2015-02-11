@@ -85,7 +85,8 @@ public:
     
 protected:
     FrameQueue *allocQueue(int wId) {return new AVFramedQueueMock(4);};
-    size_t processFrame() {return 20;};
+    size_t masterProcessFrame() {return 20;};
+    size_t slaveProcessFrame() {return 20;};
     void doGetState(Jzon::Object &filterNode) {};
     void stop() {};
 
@@ -137,8 +138,10 @@ private:
 class OneToOneFilterMockup : virtual public OneToOneFilter 
 {
 public:
-    OneToOneFilterMockup(size_t processTime_, size_t queueSize_, bool gotFrame_) : 
-        OneToOneFilter(), processTime(processTime_), queueSize(queueSize_), gotFrame(gotFrame_) {};
+    OneToOneFilterMockup(size_t processTime_, size_t queueSize_, bool gotFrame_, 
+                         size_t frameTime, FilterRole role, bool sharedFrames) : 
+        OneToOneFilter(frameTime, role, false, sharedFrames), 
+        processTime(processTime_), queueSize(queueSize_), gotFrame(gotFrame_) {};
     
     void setGotFrame(bool gotFrame_) {gotFrame = gotFrame_;};
     using BaseFilter::getReader;

@@ -38,6 +38,7 @@
 #define NUMBER_OF_SPS 0x01
 #define NUMBER_OF_PPS 0x01
 
+#define NON_IDR 1
 #define IDR 5
 #define SEI 6
 #define SPS 7
@@ -49,9 +50,10 @@ class DashVideoSegmenter : public DashSegmenter {
 public:
     DashVideoSegmenter(size_t segDur, std::string segBaseName);
     ~DashVideoSegmenter();
-    bool manageFrame(Frame* frame);
+    bool manageFrame(Frame* frame, bool &newFrame);
     bool updateConfig();
     bool finishSegment();
+    
     bool isIntraFrame() {return isIntra;};
     bool isVCLFrame() {return isVCL;};
     bool getSPSsize() {return lastSPS.size();};
@@ -70,12 +72,12 @@ private:
     bool appendFrameToDashSegment();
 
     bool setup(size_t segmentDuration, size_t timeBase, size_t sampleDuration, size_t width, size_t height, size_t framerate);
-    bool parseNal(VideoFrame* nal);
+    bool parseNal(VideoFrame* nal, bool &newFrame);
     int detectStartCode(unsigned char const* ptr);
     void saveSPS(unsigned char* data, int dataLength);
     void savePPS(unsigned char* data, int dataLength);
     void createMetadata();
-    bool appendNalToFrame(unsigned char* nalData, unsigned nalDataLength);
+    bool appendNalToFrame(unsigned char* nalData, unsigned nalDataLength, bool &newFrame);
     bool updateTimeValues();
     size_t customTimestamp(size_t currentTimestamp);
 

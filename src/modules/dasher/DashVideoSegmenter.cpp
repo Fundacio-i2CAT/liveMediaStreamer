@@ -37,10 +37,9 @@ DashVideoSegmenter::~DashVideoSegmenter()
 
 }
 
-bool DashVideoSegmenter::manageFrame(Frame* frame)
+bool DashVideoSegmenter::manageFrame(Frame* frame, bool &newFrame)
 {
     VideoFrame* nal;
-    bool newFrame;
 
     nal = dynamic_cast<VideoFrame*>(frame);
 
@@ -49,18 +48,23 @@ bool DashVideoSegmenter::manageFrame(Frame* frame)
         return false;
     }
 
-    newFrame = parseNal(nal);
+    if (!parseNal(nal, newFrame)) {
+        utils::errorMsg("Error parsing NAL");
+        return false;
+    }
+
     currTimestamp = nal->getPresentationTime().count();
     width = nal->getWidth();
     height = nal->getHeight();
 
-    return newFrame;
+    return true;
 }
 
 bool DashVideoSegmenter::updateConfig()
 {
     if (!updateTimeValues()) {
-        utils::errorMsg("Error updating time valus of DashAudioSegmenter: timestamp not valid");
+        utils::errorMsg("Error updating time values of DashAudioSegmenter: timestamp not valid");
+        frameData.clear();
         return false;
     }
 
@@ -84,9 +88,8 @@ bool DashVideoSegmenter::finishSegment()
     return false;
 }
 
-bool DashVideoSegmenter::parseNal(VideoFrame* nal) 
+bool DashVideoSegmenter::parseNal(VideoFrame* nal, bool &newFrame) 
 {
-    bool newFrame;
     int startCodeOffset;
     unsigned char* nalData;
     int nalDataLength;
@@ -94,9 +97,18 @@ bool DashVideoSegmenter::parseNal(VideoFrame* nal)
     startCodeOffset = detectStartCode(nal->getDataBuf());
     nalData = nal->getDataBuf() + startCodeOffset;
     nalDataLength = nal->getLength() - startCodeOffset;
-    newFrame = appendNalToFrame(nalData, nalDataLength);
 
-    return newFrame;
+    if (!nalData || nalDataLength <= 0) {
+        utils::errorMsg("Error parsing NAL: invalid data pointer or length");
+        return false;
+    }
+
+    if (!appendNalToFrame(nalData, nalDataLength, newFrame)) {
+        utils::errorMsg("Error parsing NAL: invalid NALU type");
+        return false;
+    }
+
+    return true;
 }
 
 bool DashVideoSegmenter::updateTimeValues() 
@@ -215,44 +227,58 @@ bool DashVideoSegmenter::appendFrameToDashSegment()
     return true;
 }
 
-bool DashVideoSegmenter::appendNalToFrame(unsigned char* nalData, unsigned nalDataLength)
+bool DashVideoSegmenter::appendNalToFrame(unsigned char* nalData, unsigned nalDataLength, bool &newFrame)
 {
     unsigned char nalType; 
 
     nalType = nalData[0] & H264_NALU_TYPE_MASK;
 
-    if (nalType == SPS) {
-        saveSPS(nalData, nalDataLength);
-        isVCL = false;
-        return false;
+    switch (nalType) {
+        case SPS:
+            saveSPS(nalData, nalDataLength);
+            isVCL = false;
+            isIntra = false;
+            newFrame = false;
+            break;
+        case PPS:
+            savePPS(nalData, nalDataLength);
+            isVCL = false;
+            isIntra = false;
+            newFrame = false;
+            break;
+        case SEI:
+            isVCL = false;
+            isIntra = false;
+            newFrame = false;
+            break;
+        case AUD:
+            newFrame = isVCL;
+            break;
+        case IDR:
+            isVCL = true;
+            isIntra = true;
+            newFrame = false;
+            break;
+        case NON_IDR:
+            isVCL = true;
+            isIntra = false;
+            newFrame = false;
+            break;
+        default:
+            utils::errorMsg("Error parsing NAL: NalType " + std::to_string(nalType) + " not contemplated");
+            return false;
     }
 
-    if (nalType == PPS) {
-        savePPS(nalData, nalDataLength);
-        isVCL = false;
-        return false;
+    if (nalType == IDR || nalType == NON_IDR) {
+        frameData.insert(frameData.end(), (nalDataLength >> 24) & 0xFF);
+        frameData.insert(frameData.end(), (nalDataLength >> 16) & 0xFF);
+        frameData.insert(frameData.end(), (nalDataLength >> 8) & 0xFF);
+        frameData.insert(frameData.end(), nalDataLength & 0xFF);
+
+        frameData.insert(frameData.end(), nalData, nalData + nalDataLength);
     }
 
-    if (nalType == SEI) {
-        isVCL = false;
-        return false;
-    }
-
-    if (nalType == AUD) {
-        return isVCL;
-    }
-
-    isIntra = (nalType == IDR);
-    isVCL = true;
-
-    frameData.insert(frameData.end(), (nalDataLength >> 24) & 0xFF);
-    frameData.insert(frameData.end(), (nalDataLength >> 16) & 0xFF);
-    frameData.insert(frameData.end(), (nalDataLength >> 8) & 0xFF);
-    frameData.insert(frameData.end(), nalDataLength & 0xFF);
-
-    frameData.insert(frameData.end(), nalData, nalData + nalDataLength);
-
-    return false;
+    return true;
 }
 
 

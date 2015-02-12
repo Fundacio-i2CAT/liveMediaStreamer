@@ -34,7 +34,7 @@ DashAudioSegmenter::~DashAudioSegmenter()
 
 }
 
-bool DashAudioSegmenter::manageFrame(Frame* frame)
+bool DashAudioSegmenter::manageFrame(Frame* frame, bool &newFrame)
 {
     aFrame = dynamic_cast<AudioFrame*>(frame);
 

@@ -52,13 +52,17 @@ bool Dasher::doProcessFrame(std::map<int, Frame*> orgFrames)
         }
 
         segmenter = segmenters[fr.first];
-        newFrame = segmenter->manageFrame(fr.second);
+        if (!segmenter->manageFrame(fr.second, newFrame)) {
+            utils::errorMsg("Error managing frame");
+            continue;
+        }
 
-        if (!newFrame) {
+        if (!newFrame ) {
             continue;
         }
 
         if (!segmenter->updateConfig()) {
+            utils::errorMsg("[DashSegmenter] Error updating config");
             continue;
         }
 
@@ -150,17 +154,18 @@ DashSegmenter::~DashSegmenter()
 
 bool DashSegmenter::generateInitSegment() 
 {
-    if (updateMetadata()) {
+    if (!updateMetadata()) {
+        return false;
+    }
 
-        if (!generateInitData()) {
-            utils::errorMsg("Error generating audio init segment");
-            return false;
-        }
+    if (!generateInitData()) {
+        utils::errorMsg("Error generating video init segment");
+        return false;
+    }
 
-        if(!initSegment->writeToDisk(getInitSegmentName())) {
-            utils::errorMsg("Error writing DASH init segment to disk: invalid path");
-            return false;
-        }
+    if(!initSegment->writeToDisk(getInitSegmentName())) {
+        utils::errorMsg("Error writing DASH init segment to disk: invalid path");
+        return false;
     }
 
     return true;
@@ -168,15 +173,16 @@ bool DashSegmenter::generateInitSegment()
 
 bool DashSegmenter::generateSegment()
 {
-    if (appendFrameToDashSegment()) {
-        
-        if(!segment->writeToDisk(getSegmentName())) {
-            utils::errorMsg("Error writing DASH segment to disk: invalid path");
-            return false;
-        }
-
-        segment->incrSeqNumber();
+    if (!appendFrameToDashSegment()) {
+        return false;
     }
+        
+    if(!segment->writeToDisk(getSegmentName())) {
+        utils::errorMsg("Error writing DASH segment to disk: invalid path");
+        return false;
+    }
+
+    segment->incrSeqNumber();
 
     return true;
 }

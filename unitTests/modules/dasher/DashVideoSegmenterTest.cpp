@@ -32,8 +32,8 @@
 
 #include "modules/dasher/DashVideoSegmenter.hh"
 
-#define SEG_DURATION 4000000
-#define BASE_NAME "test"
+#define SEG_DURATION 2000000
+#define BASE_NAME "testsData/modules/dasher/dashVideoSegmenterTest/test"
 #define TIMEBASE 1000000
 #define SAMPLE_DURATION 40000
 #define WIDTH 1280
@@ -46,10 +46,12 @@ size_t readFile(char const* fileName, char* dstBuffer)
     std::ifstream inputDataFile(fileName, std::ios::in|std::ios::binary|std::ios::ate);
     
     if (!inputDataFile.is_open()) {
+        CPPUNIT_FAIL("Test data upload failed. Check test data file paths\n");
         return 0;
     }
 
     inputDataSize = inputDataFile.tellg();
+    // std::cout << fileName << "    " << inputDataSize << std::endl;
     inputDataFile.seekg (0, std::ios::beg);
     inputDataFile.read(dstBuffer, inputDataSize);
     return inputDataSize;
@@ -59,10 +61,13 @@ size_t readFile(char const* fileName, char* dstBuffer)
 class DashVideoSegmenterTest : public CppUnit::TestFixture
 {
     CPPUNIT_TEST_SUITE(DashVideoSegmenterTest);
+    CPPUNIT_TEST(manageInvalidFrames);
+    CPPUNIT_TEST(manageSetInternalValues);
     CPPUNIT_TEST(manageNonVCLNals);
     CPPUNIT_TEST(manageIDRNals);
     CPPUNIT_TEST(manageNonIDRNals);
     CPPUNIT_TEST(updateConfig);
+    CPPUNIT_TEST(generateSegmentAndInitSegment);
     CPPUNIT_TEST_SUITE_END();
 
 public:
@@ -70,18 +75,24 @@ public:
     void tearDown();
 
 protected:
+    void manageInvalidFrames();
+    void manageSetInternalValues();
     void manageNonVCLNals();
     void manageIDRNals();
     void manageNonIDRNals();
     void updateConfig();
-    void generateInitSegment();
-    void generateSegment();
+    void generateSegmentAndInitSegment();
 
+    bool newFrame;
     DashVideoSegmenter* segmenter;
     AudioFrame* aFrame;
-    VideoFrame *spsNal, *ppsNal, *seiNal, *audNal;
-    VideoFrame *idr0Nal, *idr1Nal, *idr2Nal, *idr3Nal;
-    VideoFrame *nonIdr0Nal, *nonIdr1Nal, *nonIdr2Nal, *nonIdr3Nal;
+    VideoFrame *spsNal;
+    VideoFrame *ppsNal;
+    VideoFrame *seiNal;
+    VideoFrame *audNal;
+    VideoFrame *idrNal;
+    VideoFrame *nonIdrNal;
+    VideoFrame *dummyNal;
 };
 
 void DashVideoSegmenterTest::setUp()
@@ -89,28 +100,14 @@ void DashVideoSegmenterTest::setUp()
     size_t dataLength;
 
     segmenter = new DashVideoSegmenter(SEG_DURATION, BASE_NAME);
+    dummyNal = InterleavedVideoFrame::createNew(H264, LENGTH_H264);
     
-    idr0Nal = InterleavedVideoFrame::createNew(H264, LENGTH_H264);
-    idr1Nal = InterleavedVideoFrame::createNew(H264, LENGTH_H264);
-    idr2Nal = InterleavedVideoFrame::createNew(H264, LENGTH_H264);
-    idr3Nal = InterleavedVideoFrame::createNew(H264, LENGTH_H264);
     spsNal = InterleavedVideoFrame::createNew(H264, LENGTH_H264);
     ppsNal = InterleavedVideoFrame::createNew(H264, LENGTH_H264);
     seiNal = InterleavedVideoFrame::createNew(H264, LENGTH_H264);
     audNal = InterleavedVideoFrame::createNew(H264, LENGTH_H264);
-    nonIdr0Nal = InterleavedVideoFrame::createNew(H264, LENGTH_H264);
-    nonIdr1Nal = InterleavedVideoFrame::createNew(H264, LENGTH_H264);
-    nonIdr2Nal = InterleavedVideoFrame::createNew(H264, LENGTH_H264);
-    nonIdr3Nal = InterleavedVideoFrame::createNew(H264, LENGTH_H264);
-
-    dataLength = readFile("testsData/modules/dasher/dashVideoSegmenterTest/nal_idr_0", (char*)idr0Nal->getDataBuf());
-    idr0Nal->setLength(dataLength);
-    dataLength = readFile("testsData/modules/dasher/dashVideoSegmenterTest/nal_idr_1", (char*)idr1Nal->getDataBuf());
-    idr1Nal->setLength(dataLength);
-    dataLength = readFile("testsData/modules/dasher/dashVideoSegmenterTest/nal_idr_2", (char*)idr2Nal->getDataBuf());
-    idr2Nal->setLength(dataLength);
-    dataLength = readFile("testsData/modules/dasher/dashVideoSegmenterTest/nal_idr_3", (char*)idr3Nal->getDataBuf());
-    idr3Nal->setLength(dataLength);
+    idrNal = InterleavedVideoFrame::createNew(H264, LENGTH_H264);
+    nonIdrNal = InterleavedVideoFrame::createNew(H264, LENGTH_H264);
 
     dataLength = readFile("testsData/modules/dasher/dashVideoSegmenterTest/nal_sps", (char*)spsNal->getDataBuf());
     spsNal->setLength(dataLength);
@@ -120,16 +117,10 @@ void DashVideoSegmenterTest::setUp()
     seiNal->setLength(dataLength);
     dataLength = readFile("testsData/modules/dasher/dashVideoSegmenterTest/nal_aud", (char*)audNal->getDataBuf());
     audNal->setLength(dataLength);
-
-    dataLength = readFile("testsData/modules/dasher/dashVideoSegmenterTest/nal_nonIdr0", (char*)nonIdr0Nal->getDataBuf());
-    nonIdr0Nal->setLength(dataLength);
-    dataLength = readFile("testsData/modules/dasher/dashVideoSegmenterTest/nal_nonIdr1", (char*)nonIdr1Nal->getDataBuf());
-    nonIdr1Nal->setLength(dataLength);
-    dataLength = readFile("testsData/modules/dasher/dashVideoSegmenterTest/nal_nonIdr2", (char*)nonIdr2Nal->getDataBuf());
-    nonIdr2Nal->setLength(dataLength);
-    dataLength = readFile("testsData/modules/dasher/dashVideoSegmenterTest/nal_nonIdr3", (char*)nonIdr3Nal->getDataBuf());
-    nonIdr3Nal->setLength(dataLength);
-    
+    dataLength = readFile("testsData/modules/dasher/dashVideoSegmenterTest/nal_idr_0", (char*)idrNal->getDataBuf());
+    idrNal->setLength(dataLength);
+    dataLength = readFile("testsData/modules/dasher/dashVideoSegmenterTest/nal_nonIdr0", (char*)nonIdrNal->getDataBuf());
+    nonIdrNal->setLength(dataLength);
 }
 
 void DashVideoSegmenterTest::tearDown()
@@ -139,39 +130,55 @@ void DashVideoSegmenterTest::tearDown()
     delete ppsNal;
     delete seiNal;
     delete audNal;
-    delete idr0Nal;
-    delete idr1Nal;
-    delete idr2Nal;
-    delete idr3Nal;
-    delete nonIdr0Nal;
-    delete nonIdr1Nal;
-    delete nonIdr2Nal;
-    delete nonIdr3Nal;
+    delete idrNal;
+    delete nonIdrNal;
+    delete dummyNal;
+}
+
+void DashVideoSegmenterTest::manageInvalidFrames()
+{
+    CPPUNIT_ASSERT(!segmenter->manageFrame(aFrame, newFrame));
+    CPPUNIT_ASSERT(!segmenter->manageFrame(dummyNal, newFrame));
+}
+
+void DashVideoSegmenterTest::manageSetInternalValues()
+{
+    size_t tsValue = 1000;
+    std::chrono::microseconds timestamp(tsValue);
+    idrNal->setPresentationTime(timestamp);
+    idrNal->setSize(WIDTH, HEIGHT);
+
+    CPPUNIT_ASSERT(segmenter->manageFrame(idrNal, newFrame));
+    CPPUNIT_ASSERT(segmenter->getCurrentTimestamp() == (size_t)timestamp.count());
+    CPPUNIT_ASSERT(segmenter->getWidth() == WIDTH);
+    CPPUNIT_ASSERT(segmenter->getHeight() == HEIGHT);
 }
 
 
 void DashVideoSegmenterTest::manageNonVCLNals()
 {
-    CPPUNIT_ASSERT(!segmenter->manageFrame(aFrame));
-
-    CPPUNIT_ASSERT(!segmenter->manageFrame(spsNal));
+    CPPUNIT_ASSERT(segmenter->manageFrame(spsNal, newFrame));
+    CPPUNIT_ASSERT(!newFrame);
     CPPUNIT_ASSERT(segmenter->getSPSsize() > 0);
     CPPUNIT_ASSERT(segmenter->getFrameDataSize() <= 0);
     CPPUNIT_ASSERT(!segmenter->isIntraFrame());
     CPPUNIT_ASSERT(!segmenter->isVCLFrame());
 
-    CPPUNIT_ASSERT(!segmenter->manageFrame(ppsNal));
+    CPPUNIT_ASSERT(segmenter->manageFrame(ppsNal, newFrame));
+    CPPUNIT_ASSERT(!newFrame);
     CPPUNIT_ASSERT(segmenter->getPPSsize() > 0);
     CPPUNIT_ASSERT(segmenter->getFrameDataSize() <= 0);
     CPPUNIT_ASSERT(!segmenter->isIntraFrame());
     CPPUNIT_ASSERT(!segmenter->isVCLFrame());
 
-    CPPUNIT_ASSERT(!segmenter->manageFrame(seiNal));
+    CPPUNIT_ASSERT(segmenter->manageFrame(seiNal, newFrame));
+    CPPUNIT_ASSERT(!newFrame);
     CPPUNIT_ASSERT(segmenter->getFrameDataSize() <= 0);
     CPPUNIT_ASSERT(!segmenter->isIntraFrame());
     CPPUNIT_ASSERT(!segmenter->isVCLFrame());
 
-    CPPUNIT_ASSERT(!segmenter->manageFrame(audNal));
+    CPPUNIT_ASSERT(segmenter->manageFrame(audNal, newFrame));
+    CPPUNIT_ASSERT(!newFrame);
     CPPUNIT_ASSERT(segmenter->getFrameDataSize() <= 0);
     CPPUNIT_ASSERT(!segmenter->isIntraFrame());
     CPPUNIT_ASSERT(!segmenter->isVCLFrame());
@@ -179,27 +186,14 @@ void DashVideoSegmenterTest::manageNonVCLNals()
 
 void DashVideoSegmenterTest::manageIDRNals()
 {
-    CPPUNIT_ASSERT(!segmenter->manageFrame(idr0Nal));
+    CPPUNIT_ASSERT(segmenter->manageFrame(idrNal, newFrame));
+    CPPUNIT_ASSERT(!newFrame);
     CPPUNIT_ASSERT(segmenter->getFrameDataSize() > 0);
     CPPUNIT_ASSERT(segmenter->isIntraFrame());
     CPPUNIT_ASSERT(segmenter->isVCLFrame());
 
-    CPPUNIT_ASSERT(!segmenter->manageFrame(idr1Nal));
-    CPPUNIT_ASSERT(segmenter->getFrameDataSize() > 0);
-    CPPUNIT_ASSERT(segmenter->isIntraFrame());
-    CPPUNIT_ASSERT(segmenter->isVCLFrame());
-
-    CPPUNIT_ASSERT(!segmenter->manageFrame(idr2Nal));
-    CPPUNIT_ASSERT(segmenter->getFrameDataSize() > 0);
-    CPPUNIT_ASSERT(segmenter->isIntraFrame());
-    CPPUNIT_ASSERT(segmenter->isVCLFrame());
-
-    CPPUNIT_ASSERT(!segmenter->manageFrame(idr3Nal));
-    CPPUNIT_ASSERT(segmenter->getFrameDataSize() > 0);
-    CPPUNIT_ASSERT(segmenter->isIntraFrame());
-    CPPUNIT_ASSERT(segmenter->isVCLFrame());
-
-    CPPUNIT_ASSERT(segmenter->manageFrame(audNal));
+    CPPUNIT_ASSERT(segmenter->manageFrame(audNal, newFrame));
+    CPPUNIT_ASSERT(newFrame);
     CPPUNIT_ASSERT(segmenter->getFrameDataSize() > 0);
     CPPUNIT_ASSERT(segmenter->isIntraFrame());
     CPPUNIT_ASSERT(segmenter->isVCLFrame());
@@ -207,27 +201,14 @@ void DashVideoSegmenterTest::manageIDRNals()
 
 void DashVideoSegmenterTest::manageNonIDRNals()
 {
-    CPPUNIT_ASSERT(!segmenter->manageFrame(nonIdr0Nal));
+    CPPUNIT_ASSERT(segmenter->manageFrame(nonIdrNal, newFrame));
+    CPPUNIT_ASSERT(!newFrame);
     CPPUNIT_ASSERT(segmenter->getFrameDataSize() > 0);
     CPPUNIT_ASSERT(!segmenter->isIntraFrame());
     CPPUNIT_ASSERT(segmenter->isVCLFrame());
 
-    CPPUNIT_ASSERT(!segmenter->manageFrame(nonIdr1Nal));
-    CPPUNIT_ASSERT(segmenter->getFrameDataSize() > 0);
-    CPPUNIT_ASSERT(!segmenter->isIntraFrame());
-    CPPUNIT_ASSERT(segmenter->isVCLFrame());
-
-    CPPUNIT_ASSERT(!segmenter->manageFrame(nonIdr2Nal));
-    CPPUNIT_ASSERT(segmenter->getFrameDataSize() > 0);
-    CPPUNIT_ASSERT(!segmenter->isIntraFrame());
-    CPPUNIT_ASSERT(segmenter->isVCLFrame());
-
-    CPPUNIT_ASSERT(!segmenter->manageFrame(nonIdr3Nal));
-    CPPUNIT_ASSERT(segmenter->getFrameDataSize() > 0);
-    CPPUNIT_ASSERT(!segmenter->isIntraFrame());
-    CPPUNIT_ASSERT(segmenter->isVCLFrame());
-
-    CPPUNIT_ASSERT(segmenter->manageFrame(audNal));
+    CPPUNIT_ASSERT(segmenter->manageFrame(audNal, newFrame));
+    CPPUNIT_ASSERT(newFrame);
     CPPUNIT_ASSERT(segmenter->getFrameDataSize() > 0);
     CPPUNIT_ASSERT(!segmenter->isIntraFrame());
     CPPUNIT_ASSERT(segmenter->isVCLFrame());
@@ -240,45 +221,13 @@ void DashVideoSegmenterTest::updateConfig()
     CPPUNIT_ASSERT(!segmenter->updateConfig());
 
     std::chrono::microseconds ts(std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now().time_since_epoch()));
-    idr0Nal->setPresentationTime(ts);
-    idr0Nal->setSize(WIDTH, HEIGHT);
-
-    idr1Nal->setPresentationTime(ts);
-    idr1Nal->setSize(WIDTH, HEIGHT);
-
-    idr2Nal->setPresentationTime(ts);
-    idr2Nal->setSize(WIDTH, HEIGHT);
-
-    idr3Nal->setPresentationTime(ts);
-    idr3Nal->setSize(WIDTH, HEIGHT);
-
+    idrNal->setPresentationTime(ts);
+    idrNal->setSize(WIDTH, HEIGHT);
     audNal->setPresentationTime(ts);
     audNal->setSize(WIDTH, HEIGHT);
 
-    CPPUNIT_ASSERT(!segmenter->manageFrame(idr0Nal));
-    CPPUNIT_ASSERT(segmenter->getCurrentTimestamp() == (size_t)ts.count());
-    CPPUNIT_ASSERT(segmenter->getWidth() == WIDTH);
-    CPPUNIT_ASSERT(segmenter->getHeight() == HEIGHT);
-
-    CPPUNIT_ASSERT(!segmenter->manageFrame(idr1Nal));
-    CPPUNIT_ASSERT(segmenter->getCurrentTimestamp() == (size_t)ts.count());
-    CPPUNIT_ASSERT(segmenter->getWidth() == WIDTH);
-    CPPUNIT_ASSERT(segmenter->getHeight() == HEIGHT);
-
-    CPPUNIT_ASSERT(!segmenter->manageFrame(idr2Nal));
-    CPPUNIT_ASSERT(segmenter->getCurrentTimestamp() == (size_t)ts.count());
-    CPPUNIT_ASSERT(segmenter->getWidth() == WIDTH);
-    CPPUNIT_ASSERT(segmenter->getHeight() == HEIGHT);
-
-    CPPUNIT_ASSERT(!segmenter->manageFrame(idr3Nal));
-    CPPUNIT_ASSERT(segmenter->getCurrentTimestamp() == (size_t)ts.count());
-    CPPUNIT_ASSERT(segmenter->getWidth() == WIDTH);
-    CPPUNIT_ASSERT(segmenter->getHeight() == HEIGHT);
-
-    CPPUNIT_ASSERT(segmenter->manageFrame(audNal));
-    CPPUNIT_ASSERT(segmenter->getCurrentTimestamp() == (size_t)ts.count());
-    CPPUNIT_ASSERT(segmenter->getWidth() == WIDTH);
-    CPPUNIT_ASSERT(segmenter->getHeight() == HEIGHT);
+    segmenter->manageFrame(idrNal, newFrame);
+    segmenter->manageFrame(audNal, newFrame);
 
     CPPUNIT_ASSERT(segmenter->updateConfig());
     CPPUNIT_ASSERT(segmenter->getLastTs() == (size_t)ts.count());
@@ -287,63 +236,81 @@ void DashVideoSegmenterTest::updateConfig()
     CPPUNIT_ASSERT(segmenter->getFrameDuration() == segmenter->getTimeBase()/VIDEO_DEFAULT_FRAMERATE);
 
     std::chrono::microseconds ts2(ts + frameTime);
-    nonIdr0Nal->setPresentationTime(ts2);
-    nonIdr0Nal->setSize(WIDTH, HEIGHT);
-
-    nonIdr1Nal->setPresentationTime(ts2);
-    nonIdr1Nal->setSize(WIDTH, HEIGHT);
-
-    nonIdr2Nal->setPresentationTime(ts2);
-    nonIdr2Nal->setSize(WIDTH, HEIGHT);
-
-    nonIdr3Nal->setPresentationTime(ts2);
-    nonIdr3Nal->setSize(WIDTH, HEIGHT);
-
+    nonIdrNal->setPresentationTime(ts2);
+    nonIdrNal->setSize(WIDTH, HEIGHT);
     audNal->setPresentationTime(ts2);
     audNal->setSize(WIDTH, HEIGHT);
 
-    CPPUNIT_ASSERT(!segmenter->manageFrame(nonIdr0Nal));
-    CPPUNIT_ASSERT(segmenter->getCurrentTimestamp() == (size_t)ts2.count());
-    CPPUNIT_ASSERT(segmenter->getWidth() == WIDTH);
-    CPPUNIT_ASSERT(segmenter->getHeight() == HEIGHT);
-
-    CPPUNIT_ASSERT(!segmenter->manageFrame(nonIdr1Nal));
-    CPPUNIT_ASSERT(segmenter->getCurrentTimestamp() == (size_t)ts2.count());
-    CPPUNIT_ASSERT(segmenter->getWidth() == WIDTH);
-    CPPUNIT_ASSERT(segmenter->getHeight() == HEIGHT);
-
-    CPPUNIT_ASSERT(!segmenter->manageFrame(nonIdr2Nal));
-    CPPUNIT_ASSERT(segmenter->getCurrentTimestamp() == (size_t)ts2.count());
-    CPPUNIT_ASSERT(segmenter->getWidth() == WIDTH);
-    CPPUNIT_ASSERT(segmenter->getHeight() == HEIGHT);
-
-    CPPUNIT_ASSERT(!segmenter->manageFrame(nonIdr3Nal));
-    CPPUNIT_ASSERT(segmenter->getCurrentTimestamp() == (size_t)ts2.count());
-    CPPUNIT_ASSERT(segmenter->getWidth() == WIDTH);
-    CPPUNIT_ASSERT(segmenter->getHeight() == HEIGHT);
-
-    CPPUNIT_ASSERT(segmenter->manageFrame(audNal));
-    CPPUNIT_ASSERT(segmenter->getCurrentTimestamp() == (size_t)ts2.count());
-    CPPUNIT_ASSERT(segmenter->getWidth() == WIDTH);
-    CPPUNIT_ASSERT(segmenter->getHeight() == HEIGHT);
+    segmenter->manageFrame(idrNal, newFrame);
+    segmenter->manageFrame(audNal,newFrame);
 
     CPPUNIT_ASSERT(segmenter->updateConfig());
     CPPUNIT_ASSERT(segmenter->getLastTs() == (size_t)ts2.count());
     CPPUNIT_ASSERT(segmenter->getTsOffset() == (size_t)ts.count());
     CPPUNIT_ASSERT(segmenter->getFrameDuration() == (size_t)(ts2.count() - ts.count()));
-    CPPUNIT_ASSERT(segmenter->getFramerate() == segmenter->getTimeBase()/segmenter->getFrameDuration());
+    CPPUNIT_ASSERT(segmenter->getFramerate() == segmenter->getTimeBase()/segmenter->getFrameDuration());    
 }
 
-void DashVideoSegmenterTest::generateInitSegment()
+void DashVideoSegmenterTest::generateSegmentAndInitSegment()
 {
+    char* initModel = new char[MAX_DAT];
+    char* init = new char[MAX_DAT];
+    size_t initModelLength;
+    size_t initLength;
+    char* segmentModel = new char[MAX_DAT];
+    char* segment = new char[MAX_DAT];
+    size_t segmentModelLength;
+    size_t segmentLength;
 
+    bool newFrame;
+    bool haveInit = false;
+    bool haveSegment = false;
+    std::chrono::microseconds frameTime(40000);
+    std::chrono::microseconds ts(0);
+    size_t nalCounter = 0;
+    size_t dataLength = 0;
+    std::string strName;
+
+    initModelLength = readFile("testsData/modules/dasher/dashVideoSegmenterTest/initModel.m4v", initModel);
+    segmentModelLength = readFile("testsData/modules/dasher/dashVideoSegmenterTest/segmentModel.m4v", segmentModel);
+
+    dummyNal->setSize(WIDTH, HEIGHT);
+    
+    while(!haveInit || !haveSegment) {
+        strName = "testsData/modules/dasher/dashVideoSegmenterTest/nal_" + std::to_string(nalCounter);
+        dataLength = readFile(strName.c_str(), (char*)dummyNal->getDataBuf());
+        dummyNal->setLength(dataLength);
+        dummyNal->setPresentationTime(ts);
+        segmenter->manageFrame(dummyNal, newFrame);
+        nalCounter++;
+
+        if(!newFrame) {
+            continue;
+        }
+
+        if(!segmenter->updateConfig()) {
+            CPPUNIT_FAIL("Segmenter updateConfig failed when testing general workflow\n");
+        }
+        ts += frameTime;
+
+        if (segmenter->generateInitSegment()) {
+            haveInit = true;
+        }
+
+        if (segmenter->generateSegment()) {
+            haveSegment = true;
+        }
+    }
+
+    initLength = readFile("testsData/modules/dasher/dashVideoSegmenterTest/test_init.m4v", init);
+    segmentLength = readFile("testsData/modules/dasher/dashVideoSegmenterTest/test_0.m4v", segment);
+
+    CPPUNIT_ASSERT(initModelLength == initLength);
+    CPPUNIT_ASSERT(segmentModelLength == segmentLength);
+    
+    CPPUNIT_ASSERT(memcmp(initModel, init, initModelLength) == 0);
+    CPPUNIT_ASSERT(memcmp(segmentModel, segment, segmentModelLength) == 0);
 }
-
-void DashVideoSegmenterTest::generateSegment()
-{
-
-}
-
 
 CPPUNIT_TEST_SUITE_REGISTRATION(DashVideoSegmenterTest);
 

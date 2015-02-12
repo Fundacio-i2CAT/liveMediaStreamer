@@ -69,7 +69,7 @@ class DashSegmenter {
 public:
     DashSegmenter(size_t segDur, size_t tBase, std::string segBaseName, std::string segExt);
     virtual ~DashSegmenter();
-    virtual bool manageFrame(Frame* frame) = 0;
+    virtual bool manageFrame(Frame* frame, bool &newFrame) = 0;
     virtual bool updateConfig() = 0;
     virtual bool finishSegment() = 0;
     bool generateInitSegment();

@@ -31,7 +31,7 @@ class DashAudioSegmenter : public DashSegmenter {
 public:
     DashAudioSegmenter(size_t segDur, std::string segBasename);
     ~DashAudioSegmenter();
-    bool manageFrame(Frame* frame);
+    bool manageFrame(Frame* frame, bool &newFrame);
     bool updateConfig();
     bool finishSegment();
 

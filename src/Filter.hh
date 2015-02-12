@@ -44,9 +44,8 @@
 #include "Worker.hh"
 #endif
 
-#include <iostream>
-
 #include "Event.hh"
+
 #define DEFAULT_ID 1
 #define MAX_WRITERS 16
 #define MAX_READERS 16
@@ -96,10 +95,10 @@ protected:
     virtual FrameQueue *allocQueue(int wId) = 0;
 
     std::chrono::microseconds getFrameTime() {return frameTime;};
-    
+
     virtual size_t slaveProcessFrame() = 0;
     virtual size_t masterProcessFrame() = 0;
-    
+
     virtual Reader *setReader(int readerID, FrameQueue* queue, bool sharedQueue = false);
     Reader* getReader(int id);
 
@@ -217,9 +216,9 @@ private:
     using BaseFilter::maxWriters;
     using BaseFilter::fRole;
     using BaseFilter::force;
-    
+
     using MasterFilter::sharedFrames;
-    
+
     void stop() {};
 };
 
@@ -370,6 +369,14 @@ protected:
 
     UsageEnvironment* env;
     uint8_t watch;
+
+private:
+
+    //TODO decide whether roleProcessFrame methods are basefilter pure vurtual
+    //methods or should be only defined at its respective role class
+    size_t slaveProcessFrame() {return 0;};
+    size_t masterProcessFrame() {return 0;};
+
 };
 
 #endif

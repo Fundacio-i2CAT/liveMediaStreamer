@@ -55,10 +55,12 @@ class InterleavedVideoFrame : public VideoFrame {
         unsigned int getMaxLength() {return bufferMaxLen;};
         void setLength(unsigned int length) {bufferLen = length;};
         bool isPlanar() {return false;};
-              
-    private:
+        
+    protected:
         InterleavedVideoFrame(VCodecType codec, unsigned int maxLength);
         InterleavedVideoFrame(VCodecType codec, int width, int height, PixType pixelFormat);
+              
+    private:
         unsigned char *frameBuff;
         unsigned int bufferLen;
         unsigned int bufferMaxLen;

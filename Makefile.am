@@ -1,6 +1,6 @@
 ACLOCAL_AMFLAGS = -I m4
-#SUBDIRS = src unitTests
-SUBDIRS = src
+SUBDIRS = src unitTests
+#SUBDIRS = src
 
 bin_PROGRAMS = livemediastreamer testtranscoder
 

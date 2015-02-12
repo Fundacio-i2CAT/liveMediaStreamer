@@ -96,47 +96,6 @@ private:
     VCodecType codec;
 };
 
-
-class VideoFilterMockup : public BaseFilter 
-{
-public:
-    VideoFilterMockup(VCodecType c) : BaseFilter() {
-        codec = c;
-        maxReaders = READERS;
-        maxWriters = WRITERS;
-    };
-    
-protected:
-    FrameQueue *allocQueue(int wId) {return VideoFrameQueue::createNew(codec);};
-    size_t processFrame() {return 20;};
-    //Reader *setReader(int readerID, FrameQueue* queue, bool sharedQueue = false) {return NULL;};
-    void doGetState(Jzon::Object &filterNode) {};
-    void stop() {};
-
-private:
-    VCodecType codec;
-};
-
-class AudioFilterMockup : public BaseFilter 
-{
-public:
-    AudioFilterMockup(ACodecType c) : BaseFilter() {
-        codec = c;
-        maxReaders = READERS;
-        maxWriters = WRITERS;
-    };
-    
-protected:
-    FrameQueue *allocQueue(int wId) {return AudioFrameQueue::createNew(codec);};
-    size_t processFrame() {return 8;};
-    //Reader *setReader(int readerID, FrameQueue* queue, bool sharedQueue = false) {return NULL;};
-    void doGetState(Jzon::Object &filterNode) {};
-    void stop() {};
-
-private:
-    ACodecType codec;
-};
-
 class OneToOneFilterMockup : virtual public OneToOneFilter 
 {
 public:
@@ -161,7 +120,7 @@ protected:
     void stop() {};
 
 private:
-    FrameQueue *allocQueue(int wId) {return new AVFramedQueueMock(queueSize);};
+    virtual FrameQueue *allocQueue(int wId) {return new AVFramedQueueMock(queueSize);};
     
     std::default_random_engine generator;
     size_t processTime; //usec
@@ -193,12 +152,43 @@ protected:
     void stop() {};
 
 private:
-    FrameQueue *allocQueue(int wId) {return new AVFramedQueueMock(queueSize);};
+    virtual FrameQueue *allocQueue(int wId) {return new AVFramedQueueMock(queueSize);};
     
     std::default_random_engine generator;
     size_t processTime; //usec
     size_t queueSize;
     bool gotFrame;
 };
+
+class VideoFilterMockup : public OneToOneFilterMockup 
+{
+public:
+    VideoFilterMockup(VCodecType c) : OneToOneFilterMockup(20000, 4, true, 
+                      40000, MASTER, false)  {
+        codec = c;
+    };
+    
+protected:
+    FrameQueue *allocQueue(int wId) {return VideoFrameQueue::createNew(codec);};
+
+private:
+    VCodecType codec;
+};
+
+class AudioFilterMockup : public OneToOneFilterMockup 
+{
+public:
+    AudioFilterMockup(ACodecType c) : OneToOneFilterMockup(20000, 4, true, 
+                      40000, MASTER, false)  {
+        codec = c;
+    };
+    
+protected:
+    FrameQueue *allocQueue(int wId) {return AudioFrameQueue::createNew(codec);};
+
+private:
+    ACodecType codec;
+};
+
 
 #endif

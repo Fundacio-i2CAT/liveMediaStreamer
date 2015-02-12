@@ -29,6 +29,8 @@
 #include <vector>
 #include <queue>
 #include <mutex>
+#include <liveMedia/liveMedia.hh>
+#include <BasicUsageEnvironment.hh>
 
 #ifndef _FRAME_QUEUE_HH
 #include "FrameQueue.hh"
@@ -80,11 +82,11 @@ public:
     void setWorkerId(int id){workerId = id;};
     bool isEnabled(){return enabled;};
     virtual ~BaseFilter();
-    
+
     //NOTE: these are public just for testing purposes
     size_t processFrame();
     void setFrameTime(size_t fTime);
-    
+
 protected:
     BaseFilter();
 
@@ -109,8 +111,8 @@ protected:
     virtual void doGetState(Jzon::Object &filterNode) = 0;
 
     void updateTimestamp();
-    std::map<std::string, std::function<void(Jzon::Node* params, Jzon::Object &outputNode)> > eventMap; 
-    
+    std::map<std::string, std::function<void(Jzon::Node* params, Jzon::Object &outputNode)> > eventMap;
+
 protected:
     std::map<int, Reader*> readers;
     std::map<int, const Writer*> writers;
@@ -126,16 +128,16 @@ protected:
     std::chrono::microseconds lastDiffTime;
     std::chrono::microseconds diffTime;
     std::chrono::microseconds wallClock;
-    
+
     unsigned maxReaders;
     unsigned maxWriters;
     FilterRole fRole;
     bool force;
     bool sharedFrames;
-      
+
 private:
     bool connect(BaseFilter *R, int writerID, int readerID, bool slaveQueue = false);
-    
+
 private:
     std::priority_queue<Event> eventQueue;
     std::mutex eventQueueMutex;
@@ -151,13 +153,12 @@ public:
     bool addSlave(int id, SlaveFilter *slave);
 
 protected:
-    
     bool removeSlave(int id);
-    
+
     virtual bool runDoProcessFrame() = 0;
 
     std::map<int, SlaveFilter*> slaves;
-    
+
 private:
     size_t masterProcessFrame();
     void processAll();
@@ -173,7 +174,7 @@ public:
 protected:
 
     virtual bool runDoProcessFrame() = 0;
-    
+
 private:
     friend class MasterFilter;
     
@@ -211,7 +212,7 @@ private:
     using BaseFilter::lastDiffTime;
     using BaseFilter::diffTime;
     using BaseFilter::wallClock;
-    
+
     using BaseFilter::maxReaders;
     using BaseFilter::maxWriters;
     using BaseFilter::fRole;
@@ -242,18 +243,18 @@ private:
     using BaseFilter::dFrames;
     using BaseFilter::processEvent;
     using BaseFilter::updateTimestamp;
-    
+
     using BaseFilter::frameTime;
     using BaseFilter::timestamp;
     using BaseFilter::lastDiffTime;
     using BaseFilter::diffTime;
     using BaseFilter::wallClock;
-    
+
     using BaseFilter::maxReaders;
     using BaseFilter::maxWriters;
     using BaseFilter::fRole;
     using BaseFilter::force;
-    
+
     void stop() {};
 };
 
@@ -278,13 +279,13 @@ private:
     using BaseFilter::dFrames;
     using BaseFilter::processEvent;
     using BaseFilter::updateTimestamp;
-    
+
     using BaseFilter::frameTime;
     using BaseFilter::timestamp;
     using BaseFilter::lastDiffTime;
     using BaseFilter::diffTime;
     using BaseFilter::wallClock;
-    
+
     using BaseFilter::maxReaders;
     using BaseFilter::maxWriters;
     using BaseFilter::fRole;
@@ -310,13 +311,13 @@ private:
     using BaseFilter::dFrames;
     using BaseFilter::processEvent;
     using BaseFilter::updateTimestamp;
-    
+
     using BaseFilter::frameTime;
     using BaseFilter::timestamp;
     using BaseFilter::lastDiffTime;
     using BaseFilter::diffTime;
     using BaseFilter::wallClock;
-    
+
     using BaseFilter::maxReaders;
     using BaseFilter::maxWriters;
     using BaseFilter::fRole;
@@ -342,19 +343,33 @@ private:
     using BaseFilter::dFrames;
     using BaseFilter::processEvent;
     using BaseFilter::updateTimestamp;
-    
+
     using BaseFilter::frameTime;
     using BaseFilter::timestamp;
     using BaseFilter::lastDiffTime;
     using BaseFilter::diffTime;
     using BaseFilter::wallClock;
-    
+
     using BaseFilter::maxReaders;
     using BaseFilter::maxWriters;
     using BaseFilter::fRole;
     using BaseFilter::force;
-    
+
     void stop() {};
+};
+
+class LiveMediaFilter : public BaseFilter
+{
+public:
+    void pushEvent(Event e);
+    UsageEnvironment* envir() {return env;}
+
+protected:
+    LiveMediaFilter(unsigned readersNum = MAX_READERS, unsigned writersNum = MAX_WRITERS, size_t fTime = 0, FilterRole fRole_ = NETWORK);
+    size_t processFrame();
+
+    UsageEnvironment* env;
+    uint8_t watch;
 };
 
 #endif

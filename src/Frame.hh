@@ -29,29 +29,27 @@
 #include "Types.hh"
 #include <iostream>
 
-using namespace std::chrono;
-
 class Frame {
     public:
         Frame();
         virtual ~Frame() {};
               
-        void setPresentationTime(microseconds pTime);
+        void setPresentationTime(std::chrono::microseconds pTime);
         void newOriginTime();
-        void setOriginTime(system_clock::time_point orgTime);
+        void setOriginTime(std::chrono::system_clock::time_point orgTime);
         
-        microseconds getPresentationTime();
-        system_clock::time_point getOriginTime();
-        virtual unsigned char *getDataBuf() {return NULL;};
-        virtual unsigned char **getPlanarDataBuf() {return NULL;};
-        virtual unsigned int getLength() {return 0;}
-        virtual unsigned int getMaxLength() {return 0;};
-        virtual void setLength(unsigned int length) {};
-        virtual bool isPlanar() {return false;};
+        std::chrono::microseconds getPresentationTime();
+        std::chrono::system_clock::time_point getOriginTime();
+        virtual unsigned char *getDataBuf() = 0;
+        virtual unsigned char **getPlanarDataBuf() = 0;
+        virtual unsigned int getLength() = 0;
+        virtual unsigned int getMaxLength() = 0;
+        virtual void setLength(unsigned int length) = 0;
+        virtual bool isPlanar() = 0;
         
     protected:
-        microseconds              	presentationTime;
-        system_clock::time_point    originTime;
+        std::chrono::microseconds presentationTime;
+        std::chrono::system_clock::time_point originTime;
 };
 
 #endif

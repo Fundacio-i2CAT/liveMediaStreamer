@@ -21,7 +21,7 @@
 
 #define A_MEDIUM "audio"
 #define A_PAYLOAD 97
-#define A_CODEC "OPUS"
+#define A_CODEC "PCMU"
 #define A_BANDWITH 128
 #define A_TIME_STMP_FREQ 48000
 #define A_CHANNELS 2
@@ -31,15 +31,15 @@ bool run = true;
 void signalHandler( int signum )
 {
     utils::infoMsg("Interruption signal received");
-    
+
     PipelineManager *pipe = Controller::getInstance()->pipelineManager();
     pipe->stop();
     run = false;
-    
+
     utils::infoMsg("Workers Stopped");
 }
 
-void addAudioSource(unsigned port, std::string codec = A_CODEC, 
+void addAudioSource(unsigned port, std::string codec = A_CODEC,
                     unsigned channels = A_CHANNELS, unsigned freq = A_TIME_STMP_FREQ)
 {
     int aDecId = rand();
@@ -49,60 +49,60 @@ void addAudioSource(unsigned port, std::string codec = A_CODEC,
     std::vector<int> ids({decId, encId});
     std::string sessionId;
     std::string sdp;
-    
+
     AudioDecoderLibav *decoder;
     AudioEncoderLibav *encoder;
-    
-    Master* aDec;
-    Master* aEnc;
-    
+
+    Worker* aDec;
+    Worker* aEnc;
+
     Session *session;
     Path *path;
-    
+
     PipelineManager *pipe = Controller::getInstance()->pipelineManager();
     SourceManager *receiver = pipe->getReceiver();
-       
+
     sessionId = utils::randomIdGenerator(ID_LENGTH);
-    sdp = SourceManager::makeSessionSDP(sessionId, "this is an audio stream");    
-    sdp += SourceManager::makeSubsessionSDP(A_MEDIUM, PROTOCOL, A_PAYLOAD, codec, 
+    sdp = SourceManager::makeSessionSDP(sessionId, "this is an audio stream");
+    sdp += SourceManager::makeSubsessionSDP(A_MEDIUM, PROTOCOL, A_PAYLOAD, codec,
                                             A_BANDWITH, freq, port, channels);
     utils::infoMsg(sdp);
-    
+
     session = Session::createNew(*(receiver->envir()), sdp, sessionId);
     if (!receiver->addSession(session)){
         utils::errorMsg("Could not add audio session");
         return;
     }
-    if (!session->initiateSession()){
+    if (!session->initiateSession(receiver)){
         utils::errorMsg("Could not initiate audio session");
         return;
     }
-    
+
     //NOTE: Adding decoder to pipeManager and handle worker
     decoder = new AudioDecoderLibav();
     pipe->addFilter(decId, decoder);
-    aDec = new Master();
+    aDec = new Worker();
     aDec->addProcessor(decId, decoder);
     decoder->setWorkerId(aDecId);
     pipe->addWorker(aDecId, aDec);
-    
+
     //NOTE: Adding encoder to pipeManager and handle worker
     encoder = new AudioEncoderLibav();
     pipe->addFilter(encId, encoder);
-    aEnc = new Master();
+    aEnc = new Worker();
     aEnc->addProcessor(encId, encoder);
     encoder->setWorkerId(aEncId);
     pipe->addWorker(aEncId, aEnc);
 
     //NOTE: add filter to path
     path = pipe->createPath(pipe->getReceiverID(), pipe->getTransmitterID(), port, -1, ids);
-    pipe->addPath(port, path);       
+    pipe->addPath(port, path);
     pipe->connectPath(path);
-        
+
     pipe->startWorkers();
 }
 
-void addVideoSource(unsigned port, unsigned fps = FRAME_RATE, std::string codec = V_CODEC, 
+void addVideoSource(unsigned port, unsigned fps = FRAME_RATE, std::string codec = V_CODEC,
                     unsigned width = 0, unsigned height = 0)
 {
     int wResId = rand();
@@ -114,67 +114,67 @@ void addVideoSource(unsigned port, unsigned fps = FRAME_RATE, std::string codec 
     std::vector<int> ids({decId, resId, encId});
     std::string sessionId;
     std::string sdp;
-    
+
     VideoResampler *resampler;
     VideoEncoderX264 *encoder;
     VideoDecoderLibav *decoder;
-    
-    Master* wDec;
-    Master* wRes;
-    Master* wEnc;
-    
+
+    Worker* wDec;
+    Worker* wRes;
+    Worker* wEnc;
+
     Session *session;
     Path *path;
-    
+
     PipelineManager *pipe = Controller::getInstance()->pipelineManager();
     SourceManager *receiver = pipe->getReceiver();
-    
+
     sessionId = utils::randomIdGenerator(ID_LENGTH);
-    sdp = SourceManager::makeSessionSDP(sessionId, "this is a video stream");    
-    sdp += SourceManager::makeSubsessionSDP(V_MEDIUM, PROTOCOL, V_PAYLOAD, codec, 
+    sdp = SourceManager::makeSessionSDP(sessionId, "this is a video stream");
+    sdp += SourceManager::makeSubsessionSDP(V_MEDIUM, PROTOCOL, V_PAYLOAD, codec,
                                             V_BANDWITH, V_TIME_STMP_FREQ, port);
     utils::infoMsg(sdp);
-    
+
     session = Session::createNew(*(receiver->envir()), sdp, sessionId);
     if (!receiver->addSession(session)){
         utils::errorMsg("Could not add video session");
         return;
     }
-    if (!session->initiateSession()){
+    if (!session->initiateSession(receiver)){
         utils::errorMsg("Could not initiate video session");
         return;
     }
-       
+
     //NOTE: Adding decoder to pipeManager and handle worker
     decoder = new VideoDecoderLibav();
     pipe->addFilter(decId, decoder);
-    wDec = new Master();
+    wDec = new Worker();
     wDec->addProcessor(decId, decoder);
     decoder->setWorkerId(wDecId);
     pipe->addWorker(wDecId, wDec);
-    
+
     //NOTE: Adding resampler to pipeManager and handle worker
     resampler = new VideoResampler();
     pipe->addFilter(resId, resampler);
-    wRes = new Master();
+    wRes = new Worker();
     wRes->addProcessor(resId, resampler);
     resampler->setWorkerId(wResId);
     resampler->configure(width, height, 0, YUV420P);
     pipe->addWorker(wResId, wRes);
-    
+
     //NOTE: Adding encoder to pipeManager and handle worker
     encoder = new VideoEncoderX264();
     pipe->addFilter(encId, encoder);
-    wEnc = new Master();
+    wEnc = new Worker();
     wEnc->addProcessor(encId, encoder);
     encoder->setWorkerId(wEncId);
     pipe->addWorker(wEncId, wEnc);
-    
+
     //NOTE: add filter to path
     path = pipe->createPath(pipe->getReceiverID(), pipe->getTransmitterID(), port, -1, ids);
-    pipe->addPath(port, path);       
+    pipe->addPath(port, path);
     pipe->connectPath(path);
-    
+
     pipe->startWorkers();
 }
 
@@ -187,8 +187,8 @@ void addConnections(std::vector<int> readers, std::string ip, unsigned port)
     }
 }
 
-int main(int argc, char* argv[]) 
-{   
+int main(int argc, char* argv[])
+{
     std::vector<int> readers;
 
     int vPort = 0;
@@ -200,8 +200,8 @@ int main(int argc, char* argv[])
     std::string rtspUri;
 
     utils::setLogLevel(INFO);
-    
-    for (int i = 1; i < argc; i++) {     
+
+    for (int i = 1; i < argc; i++) {
         if (strcmp(argv[i],"-v")==0) {
             vPort = std::stoi(argv[i+1]);
             utils::infoMsg("video input port: " + std::to_string(vPort));
@@ -219,7 +219,7 @@ int main(int argc, char* argv[])
             utils::infoMsg("output frame rate: " + std::to_string(fps));
         }
     }
-    
+
     if (vPort == 0 && aPort == 0){
         utils::errorMsg("invalid parameters");
         return 1;
@@ -229,40 +229,39 @@ int main(int argc, char* argv[])
     pipe->start();
     SinkManager *transmitter = pipe->getTransmitter();
 
-    signal(SIGINT, signalHandler); 
-    
+    signal(SIGINT, signalHandler);
+
     if (vPort != 0){
         addVideoSource(vPort, fps);
     }
-    
+
     if (aPort != 0){
         addAudioSource(aPort);
     }
-       
+
     for (auto it : pipe->getPaths()) {
-        readers.push_back(it.second->getDstReaderID());    
+        readers.push_back(it.second->getDstReaderID());
     }
-    
+
     sessionId = utils::randomIdGenerator(ID_LENGTH);
     if (!transmitter->addSession(sessionId, readers)){
         return 1;
     }
     transmitter->publishSession(sessionId);
-    
+
     sessionId = utils::randomIdGenerator(ID_LENGTH);
     if (!transmitter->addSession(sessionId, readers)){
         return 1;
     }
     transmitter->publishSession(sessionId);
-    
+
     if (port != 0 && !ip.empty()){
         addConnections(readers, ip, port);
     }
-    
+
     while (run) {
         sleep(1);
     }
- 
+
     return 0;
 }
-

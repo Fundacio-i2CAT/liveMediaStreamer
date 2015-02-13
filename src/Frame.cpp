@@ -25,30 +25,30 @@
 
 Frame::Frame()
 {
-	originTime = system_clock::now();
+	originTime = std::chrono::system_clock::now();
 }
 
-void Frame::setPresentationTime(microseconds pTime)
+void Frame::setPresentationTime(std::chrono::microseconds pTime)
 {
     presentationTime = pTime;
 }
 
 void Frame::newOriginTime()
 {
-	originTime = system_clock::now();
+	originTime = std::chrono::system_clock::now();
 }
 
-void Frame::setOriginTime(system_clock::time_point orgTime)
+void Frame::setOriginTime(std::chrono::system_clock::time_point orgTime)
 {
     originTime = orgTime;
 }
 
-microseconds Frame::getPresentationTime()
+std::chrono::microseconds Frame::getPresentationTime()
 {
     return presentationTime;
 }
 
-system_clock::time_point Frame::getOriginTime()
+std::chrono::system_clock::time_point Frame::getOriginTime()
 {
     return originTime;
 }

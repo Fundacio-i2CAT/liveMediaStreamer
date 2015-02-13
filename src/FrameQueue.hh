@@ -63,9 +63,9 @@ protected:
     virtual bool config() = 0;
 
     QueueState state;
-    std::atomic<int> rear;
-    std::atomic<int> front;
-    std::atomic<int> elements;
+    std::atomic<unsigned> rear;
+    std::atomic<unsigned> front;
+    std::atomic<unsigned> elements;
     std::atomic<bool> connected;
     std::atomic<bool> firstFrame;
     

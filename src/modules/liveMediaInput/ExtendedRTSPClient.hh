@@ -18,7 +18,7 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  *  Authors:  David Cassany <david.cassany@i2cat.net>,
- *            
+ *
  */
 
 
@@ -28,10 +28,7 @@
 
 #include <liveMedia.hh>
 #include <BasicUsageEnvironment.hh>
-
-#ifndef _SOURCE_MANAGER_HH
 #include "SourceManager.hh"
-#endif
 
 class ExtendedRTSPClient: public RTSPClient {
 public:
@@ -40,9 +37,9 @@ public:
                                          int verbosityLevel = 0,
                                          char const* applicationName = NULL,
                                          portNumBits tunnelOverHTTPPortNum = 0);
-    
+
     StreamClientState *getScs(){return scs;};
-    
+
 
 protected:
     ExtendedRTSPClient(UsageEnvironment& env, char const* rtspURL, StreamClientState *scs,

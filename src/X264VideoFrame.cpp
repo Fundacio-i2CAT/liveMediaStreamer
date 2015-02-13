@@ -26,29 +26,20 @@
 #include "Utils.hh"
 #include <cstring>
 
-X264VideoFrame* X264VideoFrame::createNew(VCodecType codec, unsigned int width, unsigned height, PixType pixelFormat)
+X264VideoFrame* X264VideoFrame::createNew(unsigned int width, unsigned height, PixType pixelFormat)
 {
-	if (codec != H264) {
-        return NULL;
-    }
-        
-    return new X264VideoFrame(codec, width, height, pixelFormat);
+    return new X264VideoFrame(width, height, pixelFormat);
 }
 
-X264VideoFrame::X264VideoFrame(VCodecType codec, unsigned int width, unsigned height, PixType pixelFormat)
-{
-    this->width = width;
-    this->height = height;
-    this->pixelFormat = pixelFormat;
-    this->codec = codec;
-    
+X264VideoFrame::X264VideoFrame(unsigned int width, unsigned height, PixType pixelFormat) :
+    InterleavedVideoFrame(H264, width, height, pixelFormat)
+{   
     this->hNalsNum = 0;
     this->headerLength = 0;
     
     for(int i = 0; i < MAX_HEADER_NALS; i++) {
         headerNals[i] = (unsigned char *) malloc(sizeof(unsigned char)*MAX_HEADER_NAL_SIZE);
     }
-    
 }
 
 X264VideoFrame::~X264VideoFrame()
@@ -61,9 +52,9 @@ X264VideoFrame::~X264VideoFrame()
 
 void X264VideoFrame::setNals(x264_nal_t **nals, int num, int frameSize)
 {
-	ppNals = nals;
+    ppNals = nals;
     nalsNum = num;
-	frameLength = frameSize;
+    frameLength = frameSize;
 }
 
 void X264VideoFrame::setHeaderNals(x264_nal_t **nals, int num, int headerSize)

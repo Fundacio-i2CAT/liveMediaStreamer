@@ -49,8 +49,8 @@ public:
     bool start();
     bool stop();
 
-    Path* createPath(int orgFilter, int dstFilter, int orgWriter, 
-                     int dstReader, std::vector<int> midFilters, 
+    Path* createPath(int orgFilter, int dstFilter, int orgWriter,
+                     int dstReader, std::vector<int> midFilters,
                      bool sharedQueue = false);
     int searchFilterIDByType(FilterType type);
     bool addWorker(int id, Worker* worker);
@@ -65,7 +65,7 @@ public:
 
     Path* getPath(int id);
     std::map<int, Path*> getPaths() {return paths;};
-    bool connectPath(Path* path);   
+    bool connectPath(Path* path);
     bool addWorkerToPath(Path *path, Worker* worker = NULL);
     void startWorkers();
     void stopWorkers();
@@ -86,9 +86,9 @@ private:
     PipelineManager();
     bool removePath(int id);
     bool deletePath(Path* path);
-    bool removeWorker(int id); 
+    bool removeWorker(int id);
     BaseFilter* createFilter(FilterType type);
-    
+
     static PipelineManager* pipeMngrInstance;
 
     std::map<int, Path*> paths;

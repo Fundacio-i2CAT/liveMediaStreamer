@@ -55,8 +55,9 @@ bool PipelineManager::start()
     transmitterID = rand();
     int transmitterWorkerId = rand();
     SinkManager* transmitter = new SinkManager();
+    SourceManager* receiver = new SourceManager();
 
-    if (!addFilter(receiverID, SourceManager::getInstance())) {
+    if (!addFilter(receiverID, receiver)) {
         return false;
     }
 
@@ -75,11 +76,11 @@ bool PipelineManager::start()
         return false;
     }
 
-    if (!receiverWorker->addProcessor(receiverID, SourceManager::getInstance())) {
+    if (!receiverWorker->addProcessor(receiverID, receiver)) {
         return false;
     }
 
-    SourceManager::getInstance()->setWorkerId(receiverWorkerId);
+    receiver->setWorkerId(receiverWorkerId);
 
     if (!transmitterWorker->addProcessor(transmitterID, transmitter)) {
         return false;
@@ -104,7 +105,7 @@ bool PipelineManager::stop()
     }
 
     workers.clear();
-    
+
     for (auto it : paths) {
         if (!deletePath(it.second)) {
             return false;
@@ -216,7 +217,7 @@ Worker* PipelineManager::getWorker(int id)
     if (workers.count(id) <= 0) {
         return NULL;
     }
-    
+
     return workers[id];
 }
 
@@ -235,7 +236,7 @@ bool PipelineManager::removeWorker(int id)
     workers.erase(id);
 
     return true;
-} 
+}
 
 
 bool PipelineManager::addFilterToWorker(int workerId, int filterId)
@@ -291,7 +292,7 @@ Path* PipelineManager::createPath(int orgFilter, int dstFilter, int orgWriter, i
         realDstReader = destinationFilter->generateReaderID();
     }
 
-    path = new Path(orgFilter, dstFilter, realOrgWriter, realDstReader, midFilters, sharedQueue); 
+    path = new Path(orgFilter, dstFilter, realOrgWriter, realDstReader, midFilters, sharedQueue);
 
     return path;
 }
@@ -301,15 +302,15 @@ bool PipelineManager::connectPath(Path* path)
 {
     int orgFilterId = path->getOriginFilterID();
     int dstFilterId = path->getDestinationFilterID();
-    
+
     std::vector<int> pathFilters = path->getFilters();
 
     if (pathFilters.empty()) {
-        if (filters[orgFilterId]->connectManyToMany(filters[dstFilterId], 
-                                                    path->getDstReaderID(), 
+        if (filters[orgFilterId]->connectManyToMany(filters[dstFilterId],
+                                                    path->getDstReaderID(),
                                                     path->getOrgWriterID(),
                                                     path->getShared()
-                                                    )) 
+                                                    ))
         {
             return true;
         } else {
@@ -358,7 +359,7 @@ bool PipelineManager::removePath(int id)
 }
 
 
-bool PipelineManager::deletePath(Path* path) 
+bool PipelineManager::deletePath(Path* path)
 {
     std::vector<int> pathFilters = path->getFilters();
     int orgFilterId = path->getOriginFilterID();
@@ -391,7 +392,7 @@ bool PipelineManager::deletePath(Path* path)
         if (worker) {
             worker->removeProcessor(it);
         }
-        
+
         delete filters[it];
         filters.erase(it);
     }
@@ -402,7 +403,7 @@ bool PipelineManager::deletePath(Path* path)
 }
 
 void PipelineManager::startWorkers()
-{   
+{
     for (auto it : workers) {
         if (!it.second->isRunning()) {
             it.second->start();
@@ -427,7 +428,7 @@ SourceManager* PipelineManager::getReceiver()
 }
 
 
-SinkManager* PipelineManager::getTransmitter() 
+SinkManager* PipelineManager::getTransmitter()
 {
     return dynamic_cast<SinkManager*>(filters[transmitterID]);
 }
@@ -467,7 +468,7 @@ void PipelineManager::getStateEvent(Jzon::Node* params, Jzon::Object &outputNode
     }
 
     outputNode.Add("paths", pathList);
-    
+
     for (auto it : workers) {
         Jzon::Object worker;
         worker.Add("id", it.first);
@@ -513,7 +514,7 @@ void PipelineManager::createFilterEvent(Jzon::Node* params, Jzon::Object &output
     outputNode.Add("error", Jzon::null);
 }
 
-void PipelineManager::createPathEvent(Jzon::Node* params, Jzon::Object &outputNode) 
+void PipelineManager::createPathEvent(Jzon::Node* params, Jzon::Object &outputNode)
 {
     std::vector<int> filtersIds;
     int id, orgFilterId, dstFilterId;
@@ -527,8 +528,8 @@ void PipelineManager::createPathEvent(Jzon::Node* params, Jzon::Object &outputNo
         return;
     }
 
-    if (!params->Has("id") || !params->Has("orgFilterId") || 
-          !params->Has("dstFilterId") || !params->Has("orgWriterId") || 
+    if (!params->Has("id") || !params->Has("orgFilterId") ||
+          !params->Has("dstFilterId") || !params->Has("orgWriterId") ||
             !params->Has("dstReaderId") || !params->Has("sharedQueue")) {
         outputNode.Add("error", "Error creating path. Invalid JSON format...");
         return;
@@ -538,7 +539,7 @@ void PipelineManager::createPathEvent(Jzon::Node* params, Jzon::Object &outputNo
       outputNode.Add("error", "Error creating path. Invalid JSON format...");
       return;
    }
-        
+
     Jzon::Array& jsonFiltersIds = params->Get("midFiltersIds").AsArray();
     id = params->Get("id").ToInt();
     orgFilterId = params->Get("orgFilterId").ToInt();
@@ -620,7 +621,7 @@ void PipelineManager::removeWorkerEvent(Jzon::Node* params, Jzon::Object &output
 }
 
 
-void PipelineManager::addWorkerEvent(Jzon::Node* params, Jzon::Object &outputNode) 
+void PipelineManager::addWorkerEvent(Jzon::Node* params, Jzon::Object &outputNode)
 {
     int id;
     std::string type;
@@ -640,10 +641,11 @@ void PipelineManager::addWorkerEvent(Jzon::Node* params, Jzon::Object &outputNod
     type = params->Get("type").ToString();
 
     if (type.compare("master") == 0) {
-        worker = new Master();
-    } else if (type.compare("slave") == 0) {
-        worker = new Slave();
+        worker = new Worker();
     }
+//    else if (type.compare("slave") == 0) {
+//        worker = new Slave();
+//    }
 
     if (!worker) {
         outputNode.Add("error", "Error creating worker. Check type...");
@@ -660,9 +662,11 @@ void PipelineManager::addWorkerEvent(Jzon::Node* params, Jzon::Object &outputNod
     outputNode.Add("error", Jzon::null);
 }
 
-void PipelineManager::addSlavesToWorkerEvent(Jzon::Node* params, Jzon::Object &outputNode) 
+
+//TODO: rethink this event
+void PipelineManager::addSlavesToWorkerEvent(Jzon::Node* params, Jzon::Object &outputNode)
 {
-    Master* master = NULL;
+    Worker* master = NULL;
     std::vector<Worker*> slaves;
     int masterId;
 
@@ -682,18 +686,18 @@ void PipelineManager::addSlavesToWorkerEvent(Jzon::Node* params, Jzon::Object &o
     }
 
     masterId = params->Get("master").ToInt();
-    Jzon::Array& jsonSlavesIds = params->Get("slaves").AsArray();
+//     Jzon::Array& jsonSlavesIds = params->Get("slaves").AsArray();
 
-    master = dynamic_cast<Master*>(getWorker(masterId));
+    master = dynamic_cast<Worker*>(getWorker(masterId));
 
     if (!master) {
         outputNode.Add("error", "Error adding slaves to worker. Invalid Master ID...");
         return;
     }
 
-    for (Jzon::Array::iterator it = jsonSlavesIds.begin(); it != jsonSlavesIds.end(); ++it) {
-        master->addSlave((*it).ToInt(), dynamic_cast<Slave*>(workers[(*it).ToInt()]));
-    }
+//    for (Jzon::Array::iterator it = jsonSlavesIds.begin(); it != jsonSlavesIds.end(); ++it) {
+//        master->addSlave((*it).ToInt(), dynamic_cast<Slave*>(workers[(*it).ToInt()]));
+//    }
 
     startWorkers();
 
@@ -769,4 +773,3 @@ void PipelineManager::resetEvent(Jzon::Node* params, Jzon::Object &outputNode)
 
     outputNode.Add("error", Jzon::null);
 }
-

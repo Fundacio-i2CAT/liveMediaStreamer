@@ -18,30 +18,33 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  *  Authors:  David Cassany <david.cassany@i2cat.net>,
- *            
+ *
  */
 #ifndef _SOURCE_MANAGER_HH
 #define _SOURCE_MANAGER_HH
 
 #include "../../Filter.hh"
 #include "Handlers.hh"
+#include "QueueSink.hh"
 
 #include <map>
 #include <list>
 #include <functional>
 #include <string>
-
+#include <liveMedia.hh>
+#include <BasicUsageEnvironment.hh>
 
 #define PROTOCOL "RTP"
- 
 
-class Session;
+
+
+class SourceManager;
 
 class StreamClientState {
 public:
     StreamClientState(std::string id_);
     virtual ~StreamClientState();
-    
+
     std::string getId(){return id;};
 
 public:
@@ -50,73 +53,75 @@ public:
     MediaSubsession* subsession;
     TaskToken streamTimerTask;
     double duration;
-    
+
 private:
     std::string id;
-};
-
-class SourceManager : public LiveMediaFilter {
-private:
-    SourceManager(int writersNum = MAX_WRITERS);
-    ~SourceManager();
-    
-public:
-    static SourceManager* getInstance();
-    static void destroyInstance();
-    
-    static std::string makeSessionSDP(std::string sessionName, std::string sessionDescription);
-    static std::string makeSubsessionSDP(std::string mediumName, std::string protocolName, 
-                                  unsigned int RTPPayloadFormat, 
-                                  std::string codecName, unsigned int bandwidth, 
-                                  unsigned int RTPTimestampFrequency, 
-                                  unsigned int clientPortNum = 0,
-                                  unsigned int channels = 0);
-    
-    void stop();
-
-    bool addSession(Session* session);
-    bool removeSession(std::string id);
-    
-    Session* getSession(std::string id);
-    int getWriterID(unsigned int port);
-    void setCallback(std::function<void(char const*, unsigned short)> callbackFunction);
-    bool hasCallback();
-    
-private:
-    void initializeEventMap();
-    friend bool handlers::addSubsessionSink(UsageEnvironment& env, MediaSubsession *subsession);
-    void doGetState(Jzon::Object &filterNode);
-    void addSessionEvent(Jzon::Node* params, Jzon::Object &outputNode);
-
-    void addConnection(int wId, MediaSubsession* subsession);
-    
-    static void* startServer(void *args);
-    FrameQueue *allocQueue(int wId);
-    
-    static SourceManager* mngrInstance;
-    std::map<std::string, Session*> sessionMap;
-    std::function<void(char const*, unsigned short)> callback;
-    
 };
 
 class Session {
 public:
     static Session* createNewByURL(UsageEnvironment& env, std::string progName, std::string rtspURL, std::string id);
     static Session* createNew(UsageEnvironment& env, std::string sdp, std::string id);
-    
+
     virtual ~Session();
-    
+
     std::string getId() {return scs->getId();};
     MediaSubsession* getSubsessionByPort(int port);
     StreamClientState* getScs() {return scs;};
-    
-    bool initiateSession();
-    
+
+    bool initiateSession(SourceManager* mngr);
+
 protected:
     Session(std::string id);
-    
+
     RTSPClient* client;
     StreamClientState *scs;
+};
+
+class SourceManager : public LiveMediaFilter {
+public:
+    SourceManager(unsigned writersNum = MAX_WRITERS, size_t fTime = 0, FilterRole fRole_ = MASTER);
+    ~SourceManager();
+
+public:
+    static std::string makeSessionSDP(std::string sessionName, std::string sessionDescription);
+    static std::string makeSubsessionSDP(std::string mediumName, std::string protocolName,
+                                  unsigned int RTPPayloadFormat,
+                                  std::string codecName, unsigned int bandwidth,
+                                  unsigned int RTPTimestampFrequency,
+                                  unsigned int clientPortNum = 0,
+                                  unsigned int channels = 0);
+
+    void stop();
+
+    bool addSession(Session* session);
+    bool removeSession(std::string id);
+
+    Session* getSession(std::string id);
+    int getWriterID(unsigned int port);
+    void setCallback(std::function<void(char const*, unsigned short)> callbackFunction);
+    bool hasCallback();
+
+private:
+    void initializeEventMap();
+    friend bool handlers::addSubsessionSink(UsageEnvironment& env, MediaSubsession *subsession);
+    void doGetState(Jzon::Object &filterNode);
+    void addSessionEvent(Jzon::Node* params, Jzon::Object &outputNode);
+
+    friend bool Session::initiateSession(SourceManager *mngr);
+    bool addWriter(unsigned port, const Writer *writer);
+
+    size_t processFrame(bool removeFrame = false);
+    void addConnection(int wId, MediaSubsession* subsession);
+
+    static void* startServer(void *args);
+    FrameQueue *allocQueue(int wId);
+
+    std::map<std::string, Session*> sessionMap;
+    UsageEnvironment* env;
+    uint8_t watch;
+    std::function<void(char const*, unsigned short)> callback;
+
 };
 
 #endif

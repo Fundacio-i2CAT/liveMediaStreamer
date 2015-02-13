@@ -47,27 +47,27 @@ extern "C" {
 
 class VideoEncoderX264: public OneToOneFilter {
 	public:
-		VideoEncoderX264(int framerate = VIDEO_DEFAULT_FRAMERATE);
+		VideoEncoderX264(int framerate = VIDEO_DEFAULT_FRAMERATE, size_t fTime = 0, FilterRole fRole_ = MASTER);
 		~VideoEncoderX264();
 		bool doProcessFrame(Frame *org, Frame *dst);
         bool configure(int gop_ = DEFAULT_GOP,
-                       int bitrate_ = DEFAULT_BITRATE, 
+                       int bitrate_ = DEFAULT_BITRATE,
                        int threads_ = DEFAULT_ENCODER_THREADS, int fps_ = VIDEO_DEFAULT_FRAMERATE, bool annexB_ = false);
 		void setIntra(){forceIntra = true;};
 		FrameQueue* allocQueue(int wId);
 
     private:
-		void initializeEventMap();		
-        
+		void initializeEventMap();
+
 		x264_picture_t picIn;
 		x264_picture_t picOut;
         x264_nal_t *ppNal;
         x264_param_t xparams;
         x264_t* encoder;
-        
+
         AVPixelFormat libavInPixFmt;
         AVFrame *midFrame;
-        
+
         PixType inPixFmt;
         bool annexB;
 		bool forceIntra;
@@ -79,7 +79,7 @@ class VideoEncoderX264: public OneToOneFilter {
 		int colorspace;
 		int gop; //ms
         int threads;
-        
+
         bool reconfigure(VideoFrame *orgFrame, X264VideoFrame* x264Frame);
         bool encodeHeadersFrame(X264VideoFrame* x264Frame);
         bool fill_x264_picture(VideoFrame* videoFrame);

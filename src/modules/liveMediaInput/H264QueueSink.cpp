@@ -3,25 +3,25 @@
 
 static unsigned char const start_code[4] = {0x00, 0x00, 0x00, 0x01};
 
-H264QueueSink::H264QueueSink(UsageEnvironment& env, Writer *writer, char const* sPropParameterSetsStr)
-: QueueSink(env, writer),  fHaveWrittenFirstFrame(False)
+H264QueueSink::H264QueueSink(UsageEnvironment& env, Writer *writer, unsigned port, char const* sPropParameterSetsStr)
+: QueueSink(env, writer, port),  fHaveWrittenFirstFrame(False)
 {
     fSPropParameterSetsStr = sPropParameterSetsStr;
 }
 
 H264QueueSink* H264QueueSink::createNew(UsageEnvironment& env, Writer *writer,
-                                        char const* sPropParameterSetsStr) 
+                                        unsigned port, char const* sPropParameterSetsStr)
 {
-    return new H264QueueSink(env, writer, sPropParameterSetsStr);
+    return new H264QueueSink(env, writer, port, sPropParameterSetsStr);
 }
 
-Boolean H264QueueSink::continuePlaying() 
+Boolean H264QueueSink::continuePlaying()
 {
     if (fSource == NULL) {
         utils::errorMsg("Cannot play, fSource is null");
         return False;
     }
-    
+
     if (!fWriter->isConnected()){
         utils::debugMsg("Using dummy buffer, no writer connected yet");
         fSource->getNextFrame(dummyBuffer, DUMMY_RECEIVE_BUFFER_SIZE,
@@ -29,9 +29,9 @@ Boolean H264QueueSink::continuePlaying()
                               QueueSink::onSourceClosure, this);
         return True;
     }
-    
+
     frame = fWriter->getFrame(true);
-    
+
     if (!fHaveWrittenFirstFrame) {
         utils::debugMsg("This is first frame, inject SPS and PPS from SDP if any");
         unsigned numSPropRecords;
@@ -49,18 +49,18 @@ Boolean H264QueueSink::continuePlaying()
         delete[] sPropRecords;
         fHaveWrittenFirstFrame = True;
     }
-    
+
     memmove(frame->getDataBuf(), start_code, sizeof(start_code));
 
-    fSource->getNextFrame(frame->getDataBuf() + sizeof(start_code), 
+    fSource->getNextFrame(frame->getDataBuf() + sizeof(start_code),
                           frame->getMaxLength() - sizeof(start_code),
                           QueueSink::afterGettingFrame, this,
                           QueueSink::onSourceClosure, this);
-    
+
     return True;
 }
 
-void H264QueueSink::afterGettingFrame(unsigned frameSize, struct timeval presentationTime) 
+void H264QueueSink::afterGettingFrame(unsigned frameSize, struct timeval presentationTime)
 {
     if (frame != NULL){
         frame->setLength(frameSize + sizeof(start_code));
@@ -70,6 +70,3 @@ void H264QueueSink::afterGettingFrame(unsigned frameSize, struct timeval present
     }
     continuePlaying();
 }
-
-
-

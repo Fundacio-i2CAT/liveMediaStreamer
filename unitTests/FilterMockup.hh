@@ -18,27 +18,77 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  *  Authors:  Marc Palau <marc.palau@i2cat.net>
+ *            David Cassany <david.cassany@i2cat.net>
  *            
  */
 
 #ifndef _FILTER_MOCKUP_HH
 #define _FILTER_MOCKUP_HH
 
+#include <thread>
+#include <chrono>
+#include <random>
+
 #include "Filter.hh"
 #include "AVFramedQueue.hh"
+#include "Frame.hh"
 
 #define READERS 1
 #define WRITERS 1
 
-class VideoFilterMockup : public BaseFilter 
-{
+
+class FrameMock : public Frame {
 public:
-    VideoFilterMockup(VCodecType c) : BaseFilter(READERS,WRITERS) {codec = c;};
+    ~FrameMock(){};
+    virtual unsigned char *getDataBuf() {
+        return buff;
+    };
+    
+    static FrameMock* createNew() {
+        return new FrameMock();
+    }
+    
+    virtual unsigned char **getPlanarDataBuf() {return NULL;};
+    virtual unsigned int getLength() {return 4;};
+    virtual unsigned int getMaxLength() {return 4;};
+    virtual void setLength(unsigned int length) {};
+    virtual bool isPlanar() {return false;};
     
 protected:
-    FrameQueue *allocQueue(int wId) {return VideoFrameQueue::createNew(codec);};
-    bool processFrame(bool removeFrame = true) {return true;};
-    Reader *setReader(int readerID, FrameQueue* queue, bool sharedQueue = false) {return NULL;};
+    unsigned char buff[4];
+};
+
+class AVFramedQueueMock : public AVFramedQueue 
+{
+public:
+    AVFramedQueueMock(unsigned max_) : AVFramedQueue() {
+        max = max_;
+        config();
+    };
+    
+protected:
+    virtual bool config() {
+        for (unsigned i=0; i<max; i++) {
+                frames[i] = FrameMock::createNew();
+        }
+        return true;
+    }
+};
+
+class BaseFilterMockup : public BaseFilter 
+{
+public:
+    BaseFilterMockup(unsigned readers, unsigned writers) : BaseFilter() {
+        maxReaders = readers;
+        maxWriters = writers;
+    };
+    
+    using BaseFilter::getReader;
+    
+protected:
+    FrameQueue *allocQueue(int wId) {return new AVFramedQueueMock(4);};
+    size_t masterProcessFrame() {return 20;};
+    size_t slaveProcessFrame() {return 20;};
     void doGetState(Jzon::Object &filterNode) {};
     void stop() {};
 
@@ -46,20 +96,99 @@ private:
     VCodecType codec;
 };
 
-class AudioFilterMockup : public BaseFilter 
+class OneToOneFilterMockup : virtual public OneToOneFilter 
 {
 public:
-    AudioFilterMockup(ACodecType c) : BaseFilter(READERS,WRITERS) {codec = c;};
+    OneToOneFilterMockup(size_t processTime_, size_t queueSize_, bool gotFrame_, 
+                         size_t frameTime, FilterRole role, bool sharedFrames) : 
+        OneToOneFilter(frameTime, role, false, sharedFrames), 
+        processTime(processTime_), queueSize(queueSize_), gotFrame(gotFrame_) {};
+    
+    void setGotFrame(bool gotFrame_) {gotFrame = gotFrame_;};
+    using BaseFilter::getReader;
     
 protected:
-    FrameQueue *allocQueue(int wId) {return AudioFrameQueue::createNew(codec);};
-    bool processFrame(bool removeFrame = true) {return true;};
-    Reader *setReader(int readerID, FrameQueue* queue, bool sharedQueue = false) {return NULL;};
+    bool doProcessFrame(Frame *org, Frame *dst) {
+        size_t realProcessTime;
+        std::uniform_int_distribution<size_t> distribution(processTime/2, processTime*0.99);
+        realProcessTime = distribution(generator);
+        utils::debugMsg("Process time " + std::to_string(realProcessTime));
+        std::this_thread::sleep_for(std::chrono::microseconds(realProcessTime));
+        return gotFrame;
+    }
     void doGetState(Jzon::Object &filterNode) {};
     void stop() {};
 
 private:
+    virtual FrameQueue *allocQueue(int wId) {return new AVFramedQueueMock(queueSize);};
+    
+    std::default_random_engine generator;
+    size_t processTime; //usec
+    size_t queueSize;
+    bool gotFrame;
+};
+
+class OneToManyFilterMockup : virtual public OneToManyFilter 
+{
+public:
+    OneToManyFilterMockup(unsigned maxWriters, size_t processTime_, size_t queueSize_, bool gotFrame_, 
+                         size_t frameTime, FilterRole role, bool sharedFrames) : 
+        OneToManyFilter(maxWriters, frameTime, role, false, sharedFrames), 
+        processTime(processTime_), queueSize(queueSize_), gotFrame(gotFrame_) {};
+    
+    void setGotFrame(bool gotFrame_) {gotFrame = gotFrame_;};
+    using BaseFilter::getReader;
+    
+protected:
+    bool doProcessFrame(Frame *org, std::map<int, Frame *> dstFrames) {
+        size_t realProcessTime;
+        std::uniform_int_distribution<size_t> distribution(processTime/2, processTime*0.99);
+        realProcessTime = distribution(generator);
+        utils::debugMsg("Process time " + std::to_string(realProcessTime));
+        std::this_thread::sleep_for(std::chrono::microseconds(realProcessTime));
+        return gotFrame;
+    }
+    void doGetState(Jzon::Object &filterNode) {};
+    void stop() {};
+
+private:
+    virtual FrameQueue *allocQueue(int wId) {return new AVFramedQueueMock(queueSize);};
+    
+    std::default_random_engine generator;
+    size_t processTime; //usec
+    size_t queueSize;
+    bool gotFrame;
+};
+
+class VideoFilterMockup : public OneToOneFilterMockup 
+{
+public:
+    VideoFilterMockup(VCodecType c) : OneToOneFilterMockup(20000, 4, true, 
+                      40000, MASTER, false)  {
+        codec = c;
+    };
+    
+protected:
+    FrameQueue *allocQueue(int wId) {return VideoFrameQueue::createNew(codec);};
+
+private:
+    VCodecType codec;
+};
+
+class AudioFilterMockup : public OneToOneFilterMockup 
+{
+public:
+    AudioFilterMockup(ACodecType c) : OneToOneFilterMockup(20000, 4, true, 
+                      40000, MASTER, false)  {
+        codec = c;
+    };
+    
+protected:
+    FrameQueue *allocQueue(int wId) {return AudioFrameQueue::createNew(codec);};
+
+private:
     ACodecType codec;
 };
+
 
 #endif

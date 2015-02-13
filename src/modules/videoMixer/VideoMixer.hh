@@ -19,14 +19,14 @@
  *
  *  Authors:  Marc Palau <marc.palau@i2cat.net>
  */
- 
+
 #ifndef _VIDEO_MIXER_HH
 #define _VIDEO_MIXER_HH
 
 #include "../../VideoFrame.hh"
 #include "../../Filter.hh"
 #include <opencv/cv.hpp>
- 
+
 
 #define MAX_LAYERS 16
 #define VMIXER_MAX_CHANNELS 16
@@ -56,12 +56,14 @@ private:
 };
 
 class VideoMixer : public ManyToOneFilter {
-    
+
     public:
-        VideoMixer(int framerate = VIDEO_DEFAULT_FRAMERATE, 
-                   int inputChannels = VMIXER_MAX_CHANNELS, 
-                   int outputWidth = DEFAULT_WIDTH, 
-                   int outputHeight = DEFAULT_HEIGHT);
+        VideoMixer(int framerate = VIDEO_DEFAULT_FRAMERATE,
+                   int inputChannels = VMIXER_MAX_CHANNELS,
+                   int outputWidth = DEFAULT_WIDTH,
+                   int outputHeight = DEFAULT_HEIGHT,
+                   size_t fTime = 0,
+                   FilterRole fRole_ = MASTER);
         ~VideoMixer();
         FrameQueue *allocQueue(int wId);
         bool doProcessFrame(std::map<int, Frame*> orgFrames, Frame *dst);
@@ -75,9 +77,9 @@ class VideoMixer : public ManyToOneFilter {
         void pasteToLayout(int frameID, VideoFrame* vFrame);
         bool configChannel(int id, float width, float height, float x, float y, int layer, bool enabled, float opacity);
 
-        void configChannelEvent(Jzon::Node* params, Jzon::Object &outputNode); 
+        void configChannelEvent(Jzon::Node* params, Jzon::Object &outputNode);
 
-        std::map<int, ChannelConfig*> channelsConfig;        
+        std::map<int, ChannelConfig*> channelsConfig;
         int outputWidth;
         int outputHeight;
         cv::Mat layoutImg;

@@ -31,7 +31,7 @@
 
 enum DefinedLogLevel {ERROR, WARNING, DEBUG, INFO};
 
-namespace utils 
+namespace utils
 {
     SampleFmt getSampleFormatFromString(std::string stringSampleFmt);
     ACodecType getCodecFromString(std::string stringCodec);
@@ -43,14 +43,14 @@ namespace utils
     std::string getWorkerTypeAsString(WorkerType type);
     std::string getTxFormatAsString(TxFormat format);
 	std::string randomIdGenerator(unsigned int length);
-    int getPayloadFromCodec(std::string codec); 
+    int getPayloadFromCodec(std::string codec);
 
-    
+
     void errorMsg(std::string msg);
     void warningMsg(std::string msg);
     void infoMsg(std::string msg);
     void debugMsg(std::string msg);
-    
+
     void setLogLevel(DefinedLogLevel level);
 	void startPresentacionTime();
 }

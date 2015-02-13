@@ -59,12 +59,11 @@ class SlaveFilter;
 class BaseFilter : public Runnable {
 
 public:
-    bool connectOneToOne(BaseFilter *R, bool slaveQueue = false);
-    bool connectManyToOne(BaseFilter *R, int writerID, bool slaveQueue = false);
-    bool connectOneToMany(BaseFilter *R, int readerID, bool slaveQueue = false);
-    bool connectManyToMany(BaseFilter *R, int readerID, int writerID, bool slaveQueue = false);
+    bool connectOneToOne(BaseFilter *R);
+    bool connectManyToOne(BaseFilter *R, int writerID);
+    bool connectOneToMany(BaseFilter *R, int readerID);
+    bool connectManyToMany(BaseFilter *R, int readerID, int writerID);
 
-    //bool disconnect(BaseFilter *R, int writerID, int readerID);
     bool disconnectWriter(int writerId);
     bool disconnectReader(int readerId);
     void disconnectAll();
@@ -77,7 +76,6 @@ public:
     const unsigned getMaxReaders() const {return maxReaders;};
     virtual void pushEvent(Event e);
     void getState(Jzon::Object &filterNode);
-    //bool deleteReader(int id);
     int getWorkerId(){return workerId;};
     void setWorkerId(int id){workerId = id;};
     bool isEnabled(){return enabled;};
@@ -136,7 +134,7 @@ protected:
     bool sharedFrames;
 
 private:
-    bool connect(BaseFilter *R, int writerID, int readerID, bool slaveQueue = false);
+    bool connect(BaseFilter *R, int writerID, int readerID);
 
 private:
     std::priority_queue<Event> eventQueue;

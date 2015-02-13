@@ -50,8 +50,7 @@ public:
     bool stop();
 
     Path* createPath(int orgFilter, int dstFilter, int orgWriter,
-                     int dstReader, std::vector<int> midFilters,
-                     bool sharedQueue = false);
+                     int dstReader, std::vector<int> midFilters);
     int searchFilterIDByType(FilterType type);
     bool addWorker(int id, Worker* worker);
     bool addPath(int id, Path* path);
@@ -76,7 +75,7 @@ public:
     void removePathEvent(Jzon::Node* params, Jzon::Object &outputNode);
     void addWorkerEvent(Jzon::Node* params, Jzon::Object &outputNode);
     void removeWorkerEvent(Jzon::Node* params, Jzon::Object &outputNode);
-    void addSlavesToWorkerEvent(Jzon::Node* params, Jzon::Object &outputNode);
+    void addSlavesToFilterEvent(Jzon::Node* params, Jzon::Object &outputNode);
     void addFiltersToWorkerEvent(Jzon::Node* params, Jzon::Object &outputNode);
     void stopEvent(Jzon::Node* params, Jzon::Object &outputNode);
     void startEvent(Jzon::Node* params, Jzon::Object &outputNode);

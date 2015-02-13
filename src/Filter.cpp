@@ -185,74 +185,59 @@ void BaseFilter::removeFrames()
     }
 }
 
-bool BaseFilter::connect(BaseFilter *R, int writerID, int readerID, bool slaveQueue)
+bool BaseFilter::connect(BaseFilter *R, int writerID, int readerID)
 {
     Reader* r;
     FrameQueue *queue;
 
-    utils::debugMsg("slaveQueue Value: " + std::to_string(slaveQueue));
     if (writers.size() < getMaxWriters() && writers.count(writerID) <= 0) {
         writers[writerID] = new Writer();
         utils::debugMsg("New writer created " + std::to_string(writerID));
     }
 
-    if (slaveQueue) {
-        if (writers.count(writerID) > 0 && !writers[writerID]->isConnected()) {
-            utils::errorMsg("Writer " + std::to_string(writerID) + " null or not connected");
-            return false;
-        }
-    } else {
-        if (writers.count(writerID) > 0 && writers[writerID]->isConnected()) {
-            utils::errorMsg("Writer " + std::to_string(writerID) + " null or already connected");
-            return false;
-        }
+    if (writers.count(writerID) > 0 && writers[writerID]->isConnected()) {
+        utils::errorMsg("Writer " + std::to_string(writerID) + " null or already connected");
+        return false;
     }
-
+    
     if (R->getReader(readerID) && R->getReader(readerID)->isConnected()){
         return false;
     }
 
-    if (slaveQueue) {
-        queue = writers[writerID]->getQueue();
-    } else {
-        queue = allocQueue(writerID);
-        utils::debugMsg("New queue allocated for writer " + std::to_string(writerID));
-    }
+    queue = allocQueue(writerID);
 
-    if (!(r = R->setReader(readerID, queue, slaveQueue))) {
+    if (!(r = R->setReader(readerID, queue))) {
         utils::errorMsg("Could not set the queue to the reader");
         return false;
     }
 
-    if (!slaveQueue) {
-        writers[writerID]->setQueue(queue);
-    }
+    writers[writerID]->setQueue(queue);
 
     return writers[writerID]->connect(r);
 }
 
-bool BaseFilter::connectOneToOne(BaseFilter *R, bool slaveQueue)
+bool BaseFilter::connectOneToOne(BaseFilter *R)
 {
     int writerID = generateWriterID();
     int readerID = R->generateReaderID();
-    return connect(R, writerID, readerID, slaveQueue);
+    return connect(R, writerID, readerID);
 }
 
-bool BaseFilter::connectManyToOne(BaseFilter *R, int writerID, bool slaveQueue)
+bool BaseFilter::connectManyToOne(BaseFilter *R, int writerID)
 {
     int readerID = R->generateReaderID();
-    return connect(R, writerID, readerID, slaveQueue);
+    return connect(R, writerID, readerID);
 }
 
-bool BaseFilter::connectManyToMany(BaseFilter *R, int readerID, int writerID, bool slaveQueue)
+bool BaseFilter::connectManyToMany(BaseFilter *R, int readerID, int writerID)
 {
-    return connect(R, writerID, readerID, slaveQueue);
+    return connect(R, writerID, readerID);
 }
 
-bool BaseFilter::connectOneToMany(BaseFilter *R, int readerID, bool slaveQueue)
+bool BaseFilter::connectOneToMany(BaseFilter *R, int readerID)
 {
     int writerID = generateWriterID();
-    return connect(R, writerID, readerID, slaveQueue);
+    return connect(R, writerID, readerID);
 }
 
 bool BaseFilter::disconnectWriter(int writerId)
@@ -293,26 +278,6 @@ void BaseFilter::disconnectAll()
         it.second->disconnect();
     }
 }
-
-//TODO: Delete
-// bool BaseFilter::disconnect(BaseFilter *R, int writerId, int readerId)
-// {
-//     if (writers.count(writerId) <= 0) {
-//         return false;
-//     }
-//
-//     Reader *r = R->getReader(readerId);
-//
-//     if (!r) {
-//         return false;
-//     }
-//
-//     writers[writerId]->disconnect(r);
-//     dFrames.erase(writerId);
-//     R->oFrames.erase(readerId);
-//
-//     return true;
-// }
 
 void BaseFilter::processEvent()
 {
@@ -380,23 +345,6 @@ bool BaseFilter::hasFrames()
 
 	return true;
 }
-
-//TODO: delete it
-// bool BaseFilter::deleteReader(int id)
-// {
-//     if (readers.count(id) <= 0) {
-//         return false;
-//     }
-// 
-//     if (readers[id]->isConnected()) {
-//         return false;
-//     }
-// 
-//     delete readers[id];
-//     readers.erase(id);
-// 
-//     return true;
-// }
 
 void BaseFilter::updateTimestamp()
 {

@@ -50,7 +50,6 @@ public:
     void setQueue(FrameQueue *queue) const;
     Frame* getFrame(bool force = false) const;
     void addFrame() const;
-	FrameQueue* getQueue() const {return queue;};
     bool disconnect() const;
 
 protected:

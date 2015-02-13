@@ -23,7 +23,7 @@
 
 #include "PipelineManager.hh"
 
-#define WORKER_DELETE_SLEEPING_TIME 500 //us
+#define WORKER_DELETE_SLEEPING_TIME 1000 //us
 
 PipelineManager::PipelineManager()
 {
@@ -154,7 +154,7 @@ BaseFilter* PipelineManager::createFilter(FilterType type)
             filter = new VideoDecoderLibav();
             break;
         case VIDEO_ENCODER:
-            filter = new VideoEncoderX264(true);
+            filter = new VideoEncoderX264();
             break;
         case VIDEO_MIXER:
             filter = new VideoMixer();
@@ -172,7 +172,7 @@ BaseFilter* PipelineManager::createFilter(FilterType type)
             filter = new AudioMixer();
             break;
         default:
-            utils::errorMsg("Filter type not contemplated!");
+            utils::errorMsg("Unknown filter type");
             filter = NULL;
             break;
     }
@@ -263,7 +263,7 @@ Path* PipelineManager::getPath(int id)
     return paths[id];
 }
 
-Path* PipelineManager::createPath(int orgFilter, int dstFilter, int orgWriter, int dstReader, std::vector<int> midFilters, bool sharedQueue)
+Path* PipelineManager::createPath(int orgFilter, int dstFilter, int orgWriter, int dstReader, std::vector<int> midFilters)
 {
     Path* path;
     BaseFilter* originFilter;
@@ -292,7 +292,7 @@ Path* PipelineManager::createPath(int orgFilter, int dstFilter, int orgWriter, i
         realDstReader = destinationFilter->generateReaderID();
     }
 
-    path = new Path(orgFilter, dstFilter, realOrgWriter, realDstReader, midFilters, sharedQueue);
+    path = new Path(orgFilter, dstFilter, realOrgWriter, realDstReader, midFilters);
 
     return path;
 }
@@ -308,9 +308,7 @@ bool PipelineManager::connectPath(Path* path)
     if (pathFilters.empty()) {
         if (filters[orgFilterId]->connectManyToMany(filters[dstFilterId],
                                                     path->getDstReaderID(),
-                                                    path->getOrgWriterID(),
-                                                    path->getShared()
-                                                    ))
+                                                    path->getOrgWriterID()))
         {
             return true;
         } else {
@@ -319,7 +317,7 @@ bool PipelineManager::connectPath(Path* path)
         }
     }
 
-    if (!filters[orgFilterId]->connectManyToOne(filters[pathFilters.front()], path->getOrgWriterID(), path->getShared())) {
+    if (!filters[orgFilterId]->connectManyToOne(filters[pathFilters.front()], path->getOrgWriterID())) {
         utils::errorMsg("Connecting path head to first filter!");
         return false;
     }
@@ -520,7 +518,6 @@ void PipelineManager::createPathEvent(Jzon::Node* params, Jzon::Object &outputNo
     int id, orgFilterId, dstFilterId;
     int orgWriterId = -1;
     int dstReaderId = -1;
-    bool sharedQueue = false;
     Path* path;
 
     if(!params) {
@@ -530,7 +527,7 @@ void PipelineManager::createPathEvent(Jzon::Node* params, Jzon::Object &outputNo
 
     if (!params->Has("id") || !params->Has("orgFilterId") ||
           !params->Has("dstFilterId") || !params->Has("orgWriterId") ||
-            !params->Has("dstReaderId") || !params->Has("sharedQueue")) {
+            !params->Has("dstReaderId")) {
         outputNode.Add("error", "Error creating path. Invalid JSON format...");
         return;
     }
@@ -546,13 +543,12 @@ void PipelineManager::createPathEvent(Jzon::Node* params, Jzon::Object &outputNo
     dstFilterId = params->Get("dstFilterId").ToInt();
     orgWriterId = params->Get("orgWriterId").ToInt();
     dstReaderId = params->Get("dstReaderId").ToInt();
-    sharedQueue = params->Get("sharedQueue").ToBool();
 
     for (Jzon::Array::iterator it = jsonFiltersIds.begin(); it != jsonFiltersIds.end(); ++it) {
         filtersIds.push_back((*it).ToInt());
     }
 
-    path = createPath(orgFilterId, dstFilterId, orgWriterId, dstReaderId, filtersIds, sharedQueue);
+    path = createPath(orgFilterId, dstFilterId, orgWriterId, dstReaderId, filtersIds);
 
     if (!path) {
         outputNode.Add("error", "Error creating path. Check introduced filter IDs...");
@@ -643,9 +639,6 @@ void PipelineManager::addWorkerEvent(Jzon::Node* params, Jzon::Object &outputNod
     if (type.compare("master") == 0) {
         worker = new Worker();
     }
-//    else if (type.compare("slave") == 0) {
-//        worker = new Slave();
-//    }
 
     if (!worker) {
         outputNode.Add("error", "Error creating worker. Check type...");
@@ -663,11 +656,9 @@ void PipelineManager::addWorkerEvent(Jzon::Node* params, Jzon::Object &outputNod
 }
 
 
-//TODO: rethink this event
-void PipelineManager::addSlavesToWorkerEvent(Jzon::Node* params, Jzon::Object &outputNode)
+void PipelineManager::addSlavesToFilterEvent(Jzon::Node* params, Jzon::Object &outputNode)
 {
-    Worker* master = NULL;
-    std::vector<Worker*> slaves;
+    BaseFilter *slave, *master;
     int masterId;
 
     if(!params) {
@@ -676,28 +667,32 @@ void PipelineManager::addSlavesToWorkerEvent(Jzon::Node* params, Jzon::Object &o
     }
 
     if (!params->Has("master")) {
-        outputNode.Add("error", "Error adding slaves to worker. Invalid JSON format...");
+        outputNode.Add("error", "Error adding slaves to filter. Invalid JSON format...");
         return;
     }
 
     if (!params->Has("slaves") || !params->Get("slaves").IsArray()) {
-        outputNode.Add("error", "Error adding slaves to worker. Invalid JSON format...");
+        outputNode.Add("error", "Error adding slaves to filter. Invalid JSON format...");
         return;
     }
 
     masterId = params->Get("master").ToInt();
-//     Jzon::Array& jsonSlavesIds = params->Get("slaves").AsArray();
+    Jzon::Array& jsonSlavesIds = params->Get("slaves").AsArray();
 
-    master = dynamic_cast<Worker*>(getWorker(masterId));
+    master = getFilter(masterId);
 
     if (!master) {
-        outputNode.Add("error", "Error adding slaves to worker. Invalid Master ID...");
+        outputNode.Add("error", "Error adding slaves to filter. Invalid Master ID...");
         return;
     }
 
-//    for (Jzon::Array::iterator it = jsonSlavesIds.begin(); it != jsonSlavesIds.end(); ++it) {
-//        master->addSlave((*it).ToInt(), dynamic_cast<Slave*>(workers[(*it).ToInt()]));
-//    }
+   for (Jzon::Array::iterator it = jsonSlavesIds.begin(); it != jsonSlavesIds.end(); ++it) {
+       if ((slave = getFilter((*it).ToInt())) && slave->getRole() == SLAVE){
+           master->addSlave((*it).ToInt(), slave);
+       } else {
+           outputNode.Add("error", "Error adding slaves to filter. Invalid Slave...");
+       }
+   }
 
     startWorkers();
 
@@ -727,7 +722,6 @@ void PipelineManager::addFiltersToWorkerEvent(Jzon::Node* params, Jzon::Object &
     Jzon::Array& jsonFiltersIds = params->Get("filters").AsArray();
 
     for (Jzon::Array::iterator it = jsonFiltersIds.begin(); it != jsonFiltersIds.end(); ++it) {
-
         if (!addFilterToWorker(workerId, (*it).ToInt())) {
             outputNode.Add("error", "Error adding filters to worker. Invalid internal error...");
             return;

@@ -94,6 +94,8 @@ protected:
 
 private:
     VCodecType codec;
+    
+    bool runDoProcessFrame() {return true;};
 };
 
 class OneToOneFilterMockup : virtual public OneToOneFilter

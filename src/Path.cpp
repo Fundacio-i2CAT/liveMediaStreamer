@@ -39,7 +39,6 @@ Path::Path(int originFilterID, int destinationFilterID, int orgWriterID,
     this->orgWriterID = orgWriterID;
     this->destinationFilterID = destinationFilterID;
     this->dstReaderID = dstReaderID;
-    shared = sharedQueue;
 
     filterIDs = midFiltersIDs;
 }

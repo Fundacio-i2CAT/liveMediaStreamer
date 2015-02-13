@@ -65,6 +65,8 @@ public:
     bool disconnectWriter(int writerId);
     bool disconnectReader(int readerId);
     void disconnectAll();
+    
+    bool addSlave(int id, BaseFilter *slave);
 
     FilterType getType() {return fType;};
     FilterRole getRole() {return fRole;};
@@ -80,12 +82,11 @@ public:
     virtual ~BaseFilter();
 
     //NOTE: these are public just for testing purposes
+    size_t processFrame();
+    void setFrameTime(size_t fTime);
 
 protected:
     BaseFilter(unsigned readersNum = MAX_READERS, unsigned writersNum = MAX_WRITERS, size_t fTime = 0, FilterRole fRole_ = MASTER, bool force_ = false, bool sharedFrames_ = true);
-
-    size_t processFrame();
-    void setFrameTime(size_t fTime);
 
     void addFrames();
     void removeFrames();
@@ -108,20 +109,9 @@ protected:
     std::map<std::string, std::function<void(Jzon::Node* params, Jzon::Object &outputNode)> > eventMap;
 
     virtual bool runDoProcessFrame() = 0;
-
-    bool addSlave(int id, BaseFilter *slave);
+    
     bool removeSlave(int id);
     std::map<int, BaseFilter*> slaves;
-
-    //TODO next methods to private?
-    size_t masterProcessFrame();
-    void processAll();
-    bool runningSlaves();
-    void setSharedFrames(bool sharedFrames_);
-    size_t slaveProcessFrame();
-    void execute() {process = true;};
-    bool isProcessing() {return process;};
-    void updateFrames(std::map<int, Frame*> oFrames_);
 
 protected:
     bool process;
@@ -143,12 +133,17 @@ protected:
     unsigned maxReaders;
     unsigned maxWriters;
     std::chrono::microseconds frameTime;
-    FilterRole fRole;
-    bool force;
-    bool sharedFrames;
 
 private:
     bool connect(BaseFilter *R, int writerID, int readerID);
+    size_t masterProcessFrame();
+    void processAll();
+    bool runningSlaves();
+    void setSharedFrames(bool sharedFrames_);
+    size_t slaveProcessFrame();
+    void execute() {process = true;};
+    bool isProcessing() {return process;};
+    void updateFrames(std::map<int, Frame*> oFrames_);
 
 private:
     std::priority_queue<Event> eventQueue;
@@ -156,6 +151,9 @@ private:
     int workerId;
     bool enabled;
     std::map<int, bool> rUpdates;
+    FilterRole fRole;
+    bool force;
+    bool sharedFrames;
 };
 
 class OneToOneFilter : public BaseFilter {
@@ -177,6 +175,7 @@ private:
     using BaseFilter::dFrames;
     using BaseFilter::processEvent;
     using BaseFilter::updateTimestamp;
+    using BaseFilter::addSlave;
 
     using BaseFilter::frameTime;
     using BaseFilter::timestamp;
@@ -186,11 +185,7 @@ private:
 
     using BaseFilter::maxReaders;
     using BaseFilter::maxWriters;
-    using BaseFilter::fRole;
-    using BaseFilter::force;
-
-    using BaseFilter::sharedFrames;
-
+    
     void stop() {};
 };
 
@@ -214,6 +209,7 @@ private:
     using BaseFilter::dFrames;
     using BaseFilter::processEvent;
     using BaseFilter::updateTimestamp;
+    using BaseFilter::addSlave;
 
     using BaseFilter::frameTime;
     using BaseFilter::timestamp;
@@ -223,8 +219,6 @@ private:
 
     using BaseFilter::maxReaders;
     using BaseFilter::maxWriters;
-    using BaseFilter::fRole;
-    using BaseFilter::force;
 
     void stop() {};
 };
@@ -249,7 +243,8 @@ private:
     using BaseFilter::oFrames;
     using BaseFilter::dFrames;
     using BaseFilter::processEvent;
-    using BaseFilter::updateTimestamp;
+    using BaseFilter::updateTimestamp;    
+    using BaseFilter::addSlave;
 
     using BaseFilter::frameTime;
     using BaseFilter::timestamp;
@@ -259,8 +254,6 @@ private:
 
     using BaseFilter::maxReaders;
     using BaseFilter::maxWriters;
-    using BaseFilter::fRole;
-    using BaseFilter::force;
 };
 
 class TailFilter : public BaseFilter {
@@ -291,8 +284,6 @@ private:
 
     using BaseFilter::maxReaders;
     using BaseFilter::maxWriters;
-    using BaseFilter::fRole;
-    using BaseFilter::force;
 };
 
 class ManyToOneFilter : public BaseFilter {
@@ -314,6 +305,7 @@ private:
     using BaseFilter::dFrames;
     using BaseFilter::processEvent;
     using BaseFilter::updateTimestamp;
+    using BaseFilter::addSlave;
 
     using BaseFilter::frameTime;
     using BaseFilter::timestamp;
@@ -323,8 +315,6 @@ private:
 
     using BaseFilter::maxReaders;
     using BaseFilter::maxWriters;
-    using BaseFilter::fRole;
-    using BaseFilter::force;
 
     void stop() {};
 };

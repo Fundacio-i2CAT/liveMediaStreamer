@@ -429,7 +429,7 @@ void BaseFilter::setSharedFrames(bool sharedFrames_)
 
 bool BaseFilter::addSlave(int id, BaseFilter *slave)
 {
-    if (slave->fRole != SLAVE){
+    if (fRole != MASTER || slave->fRole != SLAVE){
         return false;
     }
 

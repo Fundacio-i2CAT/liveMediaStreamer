@@ -260,10 +260,10 @@ void FilterTest::oneToOneSlaveProcessFrame()
 
 void FilterTest::masterSlavesIndependentFramesTest()
 {
-    MasterFilter* master = new OneToOneFilterMockup(15000,4,true, 40000, MASTER, false);
-    SlaveFilter* slave1 = new OneToOneFilterMockup(15000,4,true, 40000, SLAVE, false);
-    SlaveFilter* slave2 = new OneToOneFilterMockup(15000,4,false, 40000, SLAVE, true);
-    SlaveFilter* fakeSlave = new OneToOneFilterMockup(15000,4,false, 40000, MASTER, false);
+    BaseFilter* master = new OneToOneFilterMockup(15000,4,true, 40000, MASTER, false);
+    BaseFilter* slave1 = new OneToOneFilterMockup(15000,4,true, 40000, SLAVE, false);
+    BaseFilter* slave2 = new OneToOneFilterMockup(15000,4,false, 40000, SLAVE, true);
+    BaseFilter* fakeSlave = new OneToOneFilterMockup(15000,4,false, 40000, MASTER, false);
     
     //TODO: they  should be head/tail filters mockup
     BaseFilter* satelliteFilterVeryFirst = new BaseFilterMockup(1,1);
@@ -367,10 +367,10 @@ void FilterTest::masterSlavesIndependentFramesTest()
 void FilterTest::masterSlavesSharedFramesTest()
 {
     //TODO: we should recheck sharedFrames slaves doesn't have a connected reader
-    MasterFilter* master = new OneToOneFilterMockup(15000,4,false, 40000, MASTER, true);
-    SlaveFilter* slave1 = new OneToOneFilterMockup(15000,4,true, 40000, SLAVE, false);
-    SlaveFilter* slave2 = new OneToOneFilterMockup(15000,4,false, 40000, SLAVE, true);
-    SlaveFilter* fakeSlave = new OneToOneFilterMockup(15000,4,false, 40000, MASTER, false);
+    BaseFilter* master = new OneToOneFilterMockup(15000,4,false, 40000, MASTER, true);
+    BaseFilter* slave1 = new OneToOneFilterMockup(15000,4,true, 40000, SLAVE, false);
+    BaseFilter* slave2 = new OneToOneFilterMockup(15000,4,false, 40000, SLAVE, true);
+    BaseFilter* fakeSlave = new OneToOneFilterMockup(15000,4,false, 40000, MASTER, false);
     
     //TODO: they  should be head/tail filters mockup
     BaseFilter* satelliteFilterFirst = new BaseFilterMockup(1,1);

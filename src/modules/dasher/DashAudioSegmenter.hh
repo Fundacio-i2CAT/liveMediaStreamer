@@ -24,6 +24,10 @@
 #ifndef _DASH_AUDIO_SEGMENTER_HH
 #define _DASH_AUDIO_SEGMENTER_HH
 
+#define ADTS_FIRST_RESERVED_BYTE 0XFF
+#define ADTS_SECOND_RESERVED_BYTE 0XF1
+#define ADTS_HEADER_LENGTH 7
+
 #include "Dasher.hh"
 
 class DashAudioSegmenter : public DashSegmenter {
@@ -34,6 +38,8 @@ public:
     bool manageFrame(Frame* frame, bool &newFrame);
     bool updateConfig();
     bool finishSegment();
+
+    size_t getCustomSegmentDuration() {return customSegmentDuration;};
 
 private:
     bool updateMetadata();
@@ -53,7 +59,6 @@ private:
     unsigned char audioObjectType;
     unsigned char samplingFrequencyIndex;
     unsigned char channelConfiguration;
-    size_t tsOffset;
     size_t customSegmentDuration;
     AudioFrame* aFrame;
 };

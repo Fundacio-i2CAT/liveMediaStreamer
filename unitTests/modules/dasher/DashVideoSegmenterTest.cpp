@@ -214,18 +214,26 @@ void DashVideoSegmenterTest::manageNonIDRNals()
     CPPUNIT_ASSERT(segmenter->isVCLFrame());
 }
 
-
 void DashVideoSegmenterTest::updateConfig()
 {
     std::chrono::microseconds frameTime(40000);
     CPPUNIT_ASSERT(!segmenter->updateConfig());
 
     std::chrono::microseconds ts(std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now().time_since_epoch()));
-    idrNal->setPresentationTime(ts);
+    std::chrono::microseconds ts0(0);
+    idrNal->setPresentationTime(ts0);
     idrNal->setSize(WIDTH, HEIGHT);
-    audNal->setPresentationTime(ts);
+    audNal->setPresentationTime(ts0);
     audNal->setSize(WIDTH, HEIGHT);
 
+    segmenter->manageFrame(idrNal, newFrame);
+    segmenter->manageFrame(audNal, newFrame);
+
+    CPPUNIT_ASSERT(!segmenter->updateConfig());
+
+    idrNal->setPresentationTime(ts);
+    audNal->setPresentationTime(ts);
+    
     segmenter->manageFrame(idrNal, newFrame);
     segmenter->manageFrame(audNal, newFrame);
 
@@ -266,7 +274,7 @@ void DashVideoSegmenterTest::generateSegmentAndInitSegment()
     bool haveInit = false;
     bool haveSegment = false;
     std::chrono::microseconds frameTime(40000);
-    std::chrono::microseconds ts(0);
+    std::chrono::microseconds ts(std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now().time_since_epoch()));
     size_t nalCounter = 0;
     size_t dataLength = 0;
     std::string strName;

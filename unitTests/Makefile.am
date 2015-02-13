@@ -1,6 +1,11 @@
 AUTOMAKE_OPTIONS = foreign
 
-bin_PROGRAMS = connectionTest sinkManagerTest dashVideoSegmenterTest
+bin_PROGRAMS = connectionTest sinkManagerTest dashVideoSegmenterTest dashAudioSegmenterTest
+
+dashAudioSegmenterTest_SOURCES = modules/dasher/DashAudioSegmenterTest.cpp
+dashAudioSegmenterTest_CPPFLAGS = -std=c++11 -g -Wall -std=c++11 -g -D__STDC_CONSTANT_MACROS -I../src/
+dashAudioSegmenterTest_LDFLAGS = -L../src -llivemediastreamer -lcppunit 
+dashAudioSegmenterTest_DEPENDENCIES = ../src/liblivemediastreamer.la
 
 dashVideoSegmenterTest_SOURCES = modules/dasher/DashVideoSegmenterTest.cpp
 dashVideoSegmenterTest_CPPFLAGS = -std=c++11 -g -Wall -std=c++11 -g -D__STDC_CONSTANT_MACROS -I../src/

@@ -140,7 +140,8 @@ bool Dasher::removeSegmenter(int readerId)
 }
 
 DashSegmenter::DashSegmenter(size_t segDur, size_t tBase, std::string segBaseName, std::string segExt) : 
-dashContext(NULL), timeBase(tBase), segmentDuration(segDur), frameDuration(0), baseName(segBaseName), segmentExt(segExt)
+dashContext(NULL), timeBase(tBase), segmentDuration(segDur), frameDuration(0), baseName(segBaseName), 
+segmentExt(segExt), tsOffset(0)
 {
     segment = new DashSegment(MAX_DAT);
     initSegment = new DashSegment(MAX_DAT);

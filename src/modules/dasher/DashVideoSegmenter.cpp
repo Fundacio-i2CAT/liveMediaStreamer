@@ -113,7 +113,7 @@ bool DashVideoSegmenter::parseNal(VideoFrame* nal, bool &newFrame)
 
 bool DashVideoSegmenter::updateTimeValues() 
 {
-    if (currTimestamp < lastTs) {
+    if (currTimestamp == 0 || currTimestamp < lastTs) {
         return false;
     }
 

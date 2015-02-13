@@ -35,10 +35,6 @@ extern "C" {
 #include <map>
 #include <string>
 
-#define ADTS_FIRST_RESERVED_BYTE 0XFF
-#define ADTS_SECOND_RESERVED_BYTE 0XF1
-#define ADTS_HEADER_LENGTH 7
-
 #define MICROSECONDS_TIME_BASE 1000000
 
 class DashSegmenter;
@@ -76,6 +72,7 @@ public:
     bool generateSegment();
     size_t getFrameDuration() {return frameDuration;};
     size_t getTimeBase() {return timeBase;};
+    size_t getTsOffset() {return tsOffset;};
 
 protected:
     virtual bool updateMetadata() = 0;
@@ -93,6 +90,7 @@ protected:
     std::string baseName;
     std::string segmentExt;
     std::vector<unsigned char> metadata;
+    size_t tsOffset;
 };
 
 /*! It represents a dash segment. It contains a buffer with the segment data (it allocates data) and its length. Moreover, it contains the

@@ -19,7 +19,7 @@
  *
  *  Authors:  David Cassany <david.cassany@i2cat.net>
  *            Marc Palau <marc.palau@i2cat.net>
- *            
+ *
  */
 
 #ifndef _CONNECTION_HH
@@ -35,25 +35,25 @@
 #define INITIAL_SERVER_PORT 6970
 
 /*! Each connection represents a RTP/RTSP transmission. It is an interface to different specific connections
-    so it cannot be instantiated */ 
+    so it cannot be instantiated */
 
 class Connection {
-    
+
 public:
     /**
     * Class destructor. It stops the transmission if still playing
-    */ 
+    */
     virtual ~Connection();
 
     /**
     * It configures the connection and start the transmission
     * @return true if succeeded and false if not
-    */ 
+    */
     bool setup();
-    
+
 protected:
     Connection(UsageEnvironment* env, FramedSource *source);
-    
+
     bool startPlaying();
     void stopPlaying();
     static void afterPlaying(void* clientData);
@@ -69,23 +69,23 @@ protected:
 ////////////////////
 
 /*! It represents an RTP connection, which is defined by a destination IP and port. It is an interface so it
-    cannot be instantiated */ 
+    cannot be instantiated */
 
 class RTPConnection : public Connection {
-    
+
 public:
     /**
     * Class destructor
-    */ 
+    */
     virtual ~RTPConnection();
-    
+
 protected:
-    RTPConnection(UsageEnvironment* env, FramedSource* source, 
+    RTPConnection(UsageEnvironment* env, FramedSource* source,
                   std::string ip, unsigned port);
-    
-    bool specificSetup(); 
+
+    bool specificSetup();
     virtual bool additionalSetup() = 0;
-    
+
     std::string fIp;
     unsigned fPort;
     struct in_addr destinationAddress;
@@ -103,16 +103,16 @@ private:
 /////////////////////
 
 class DASHConnection : public Connection {
-    
+
 public:
     virtual ~DASHConnection();
-    
+
 protected:
     DASHConnection(UsageEnvironment* env, FramedSource* source, std::string fileName,
                    std::string quality, bool reInit, uint32_t segmentTime, uint32_t initSegment);
     bool specificSetup();
-    virtual bool additionalSetup() = 0; 
-    
+    virtual bool additionalSetup() = 0;
+
     std::string fFileName;
     std::string quality;
     bool fReInit;
@@ -124,9 +124,9 @@ protected:
 // RAW RTP CONNECTIONS //
 /////////////////////////
 
-class VideoConnection : public RTPConnection {   
+class VideoConnection : public RTPConnection {
 public:
-    VideoConnection(UsageEnvironment* env, FramedSource *source, 
+    VideoConnection(UsageEnvironment* env, FramedSource *source,
                     std::string ip, unsigned port, VCodecType codec);
 protected:
     bool additionalSetup();
@@ -138,12 +138,12 @@ private:
 
 class AudioConnection : public RTPConnection {
 public:
-    AudioConnection(UsageEnvironment* env, FramedSource *source, 
+    AudioConnection(UsageEnvironment* env, FramedSource *source,
                     std::string ip, unsigned port, ACodecType codec,
                     unsigned channels, unsigned sampleRate, SampleFmt sampleFormat);
 protected:
     bool additionalSetup();
-    
+
 private:
     ACodecType fCodec;
     unsigned fChannels;
@@ -155,12 +155,12 @@ private:
 // ULTRAGRID RTP CONNECTIONS //
 ///////////////////////////////
 
-class UltraGridVideoConnection : public RTPConnection {   
+class UltraGridVideoConnection : public RTPConnection {
 public:
     UltraGridVideoConnection(UsageEnvironment* env,
-                             FramedSource *source, 
+                             FramedSource *source,
                              std::string ip, unsigned port, VCodecType codec);
-    
+
 protected:
     bool additionalSetup();
 
@@ -172,7 +172,7 @@ private:
 class UltraGridAudioConnection : public RTPConnection {
 public:
     UltraGridAudioConnection(UsageEnvironment* env,
-                             FramedSource *source, 
+                             FramedSource *source,
                              std::string ip, unsigned port, ACodecType codec,
                              unsigned channels, unsigned sampleRate, SampleFmt sampleFormat);
 protected:
@@ -189,37 +189,37 @@ private:
 // MPEG-TS CONNECTION //
 ////////////////////////
 
-/*! It represents an RTP connection using MPEGTS container to mux the streams. 
-*   It is limited to one video stream and/or one audio stream. 
-*   Only H264 (for video) and AAC (for audio) codecs are supported 
-*/ 
+/*! It represents an RTP connection using MPEGTS container to mux the streams.
+*   It is limited to one video stream and/or one audio stream.
+*   Only H264 (for video) and AAC (for audio) codecs are supported
+*/
 
-class MpegTsConnection : public RTPConnection {   
+class MpegTsConnection : public RTPConnection {
 public:
     /**
     * Class constructor
-    * @param env Live555 UsageEnvironement 
+    * @param env Live555 UsageEnvironement
     * @param ip Destination IP
     * @param port Destination port
-    */ 
+    */
     MpegTsConnection(UsageEnvironment* env, std::string ip, unsigned port);
 
     /**
     * Adds a video source to the connection, which will be muxed in MPEGTS packets
-    * @param source Stream source, which must be a children of Live555 FramedSource class 
+    * @param source Stream source, which must be a children of Live555 FramedSource class
     * @param codec Video stream codec. Only H264 is supported
     * @return True if succeeded and false if not
-    */ 
+    */
     bool addVideoSource(FramedSource* source, VCodecType codec);
-    
+
     /**
     * Adds an audio source to the connection, which will be muxed in MPEGTS packets
-    * @param source Stream source, which must be a children of Live555 FramedSource class 
+    * @param source Stream source, which must be a children of Live555 FramedSource class
     * @param codec Audio stream codec. Only AAC is supported
     * @return True if succeeded and false if not
-    */ 
+    */
     bool addAudioSource(FramedSource* source, ACodecType codec);
-    
+
 protected:
     bool additionalSetup();
 
@@ -231,11 +231,11 @@ private:
 // DASH CONNECTIONS //
 //////////////////////////
 
-class DashVideoConnection : public DASHConnection {   
+class DashVideoConnection : public DASHConnection {
 public:
-    DashVideoConnection(UsageEnvironment* env, FramedSource *source, 
-                        std::string fileName, std::string quality, 
-                        bool reInit, uint32_t segmentTime, uint32_t initSegment, 
+    DashVideoConnection(UsageEnvironment* env, FramedSource *source,
+                        std::string fileName, std::string quality,
+                        bool reInit, uint32_t segmentTime, uint32_t initSegment,
                         VCodecType codec, uint32_t fps);
 protected:
     bool additionalSetup();
@@ -247,14 +247,14 @@ private:
 
 class DashAudioConnection : public DASHConnection {
 public:
-    DashAudioConnection(UsageEnvironment* env, FramedSource *source, 
-                        std::string fileName, std::string quality, 
-                        bool reInit, uint32_t segmentTime, uint32_t initSegment, 
-                        ACodecType codec, unsigned channels, 
+    DashAudioConnection(UsageEnvironment* env, FramedSource *source,
+                        std::string fileName, std::string quality,
+                        bool reInit, uint32_t segmentTime, uint32_t initSegment,
+                        ACodecType codec, unsigned channels,
                         unsigned sampleRate, SampleFmt sampleFormat);
 protected:
     bool additionalSetup();
-    
+
 private:
     ACodecType fCodec;
     unsigned fChannels;

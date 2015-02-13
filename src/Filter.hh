@@ -53,8 +53,6 @@
 #define VIDEO_DEFAULT_FRAMERATE 25 //fps
 #define RETRY 500 //us
 
-class MasterFilter;
-class SlaveFilter;
 
 class BaseFilter : public Runnable {
 
@@ -82,11 +80,12 @@ public:
     virtual ~BaseFilter();
 
     //NOTE: these are public just for testing purposes
-    size_t processFrame();
-    void setFrameTime(size_t fTime);
 
 protected:
-    BaseFilter();
+    BaseFilter(unsigned readersNum = MAX_READERS, unsigned writersNum = MAX_WRITERS, size_t fTime = 0, FilterRole fRole_ = MASTER, bool force_ = false, bool sharedFrames_ = true);
+
+    size_t processFrame();
+    void setFrameTime(size_t fTime);
 
     void addFrames();
     void removeFrames();
@@ -94,9 +93,6 @@ protected:
     virtual FrameQueue *allocQueue(int wId) = 0;
 
     std::chrono::microseconds getFrameTime() {return frameTime;};
-
-    virtual size_t slaveProcessFrame() = 0;
-    virtual size_t masterProcessFrame() = 0;
 
     virtual Reader *setReader(int readerID, FrameQueue* queue, bool sharedQueue = false);
     Reader* getReader(int id);
@@ -111,7 +107,25 @@ protected:
     void updateTimestamp();
     std::map<std::string, std::function<void(Jzon::Node* params, Jzon::Object &outputNode)> > eventMap;
 
+    virtual bool runDoProcessFrame() = 0;
+
+    bool addSlave(int id, BaseFilter *slave);
+    bool removeSlave(int id);
+    std::map<int, BaseFilter*> slaves;
+
+    //TODO next methods to private?
+    size_t masterProcessFrame();
+    void processAll();
+    bool runningSlaves();
+    void setSharedFrames(bool sharedFrames_);
+    size_t slaveProcessFrame();
+    void execute() {process = true;};
+    bool isProcessing() {return process;};
+    void updateFrames(std::map<int, Frame*> oFrames_);
+
 protected:
+    bool process;
+
     std::map<int, Reader*> readers;
     std::map<int, const Writer*> writers;
     std::map<int, Frame*> oFrames;
@@ -121,7 +135,6 @@ protected:
     float frameTimeMod;
     float bufferStateFrameTimeMod;
 
-    std::chrono::microseconds frameTime;
     std::chrono::microseconds timestamp;
     std::chrono::microseconds lastDiffTime;
     std::chrono::microseconds diffTime;
@@ -129,6 +142,7 @@ protected:
 
     unsigned maxReaders;
     unsigned maxWriters;
+    std::chrono::microseconds frameTime;
     FilterRole fRole;
     bool force;
     bool sharedFrames;
@@ -144,48 +158,7 @@ private:
     std::map<int, bool> rUpdates;
 };
 
-class MasterFilter : virtual public BaseFilter {
-
-public:
-    MasterFilter();
-    bool addSlave(int id, SlaveFilter *slave);
-
-protected:
-    bool removeSlave(int id);
-
-    virtual bool runDoProcessFrame() = 0;
-
-    std::map<int, SlaveFilter*> slaves;
-
-private:
-    size_t masterProcessFrame();
-    void processAll();
-    bool runningSlaves();
-};
-
-
-class SlaveFilter : virtual public BaseFilter {
-
-public:
-    SlaveFilter();
-
-protected:
-
-    virtual bool runDoProcessFrame() = 0;
-
-private:
-    friend class MasterFilter;
-    
-    void setSharedFrames(bool sharedFrames_) {sharedFrames = sharedFrames_;};
-    size_t slaveProcessFrame();
-    void execute() {process = true;};
-    bool isProcessing() {return process;};
-    void updateFrames(std::map<int, Frame*> oFrames_);
-    
-    bool process;
-};
-
-class OneToOneFilter : public MasterFilter, public SlaveFilter {
+class OneToOneFilter : public BaseFilter {
 
 protected:
     OneToOneFilter(size_t fTime = 0, FilterRole fRole_ = MASTER, bool force_ = false, bool sharedFrames_ = true);
@@ -216,12 +189,12 @@ private:
     using BaseFilter::fRole;
     using BaseFilter::force;
 
-    using MasterFilter::sharedFrames;
+    using BaseFilter::sharedFrames;
 
     void stop() {};
 };
 
-class OneToManyFilter : public MasterFilter, public SlaveFilter {
+class OneToManyFilter : public BaseFilter {
 
 protected:
     OneToManyFilter(unsigned writersNum = MAX_WRITERS, size_t fTime = 0, FilterRole fRole_ = MASTER, bool force_ = false, bool sharedFrames_ = true);
@@ -256,7 +229,7 @@ private:
     void stop() {};
 };
 
-class HeadFilter : public MasterFilter, public SlaveFilter {
+class HeadFilter : public BaseFilter {
 public:
     //TODO:implement this function
     void pushEvent(Event e);
@@ -290,7 +263,7 @@ private:
     using BaseFilter::force;
 };
 
-class TailFilter : public MasterFilter, public SlaveFilter {
+class TailFilter : public BaseFilter {
 public:
     void pushEvent(Event e);
 
@@ -322,7 +295,7 @@ private:
     using BaseFilter::force;
 };
 
-class ManyToOneFilter : public MasterFilter, public SlaveFilter {
+class ManyToOneFilter : public BaseFilter {
 
 protected:
     ManyToOneFilter(unsigned readersNum = MAX_READERS, size_t fTime = 0, FilterRole fRole_ = MASTER, bool force_ = false, bool sharedFrames_ = true);
@@ -364,15 +337,13 @@ public:
 
 protected:
     LiveMediaFilter(unsigned readersNum = MAX_READERS, unsigned writersNum = MAX_WRITERS, size_t fTime = 0, FilterRole fRole_ = NETWORK);
-    size_t processFrame();
 
     UsageEnvironment* env;
     uint8_t watch;
 
 private:
+    bool runDoProcessFrame();
 
-    size_t slaveProcessFrame() {return 0;};
-    size_t masterProcessFrame() {return 0;};
 };
 
 #endif

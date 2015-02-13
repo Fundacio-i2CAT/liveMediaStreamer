@@ -79,7 +79,7 @@ private:
     void addRTPConnectionEvent(Jzon::Node* params, Jzon::Object &outputNode);
     Reader *setReader(int readerID, FrameQueue* queue, bool sharedQueue = false);
 
-    size_t processFrame();
+    bool runDoProcessFrame();
 
     FrameQueue *allocQueue(int wId) { return NULL;};
 

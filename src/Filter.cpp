@@ -29,7 +29,8 @@
 #define SLOW_MODIFIER 1.10
 #define FAST_MODIFIER 0.90
 
-BaseFilter::BaseFilter()
+BaseFilter::BaseFilter(unsigned readersNum, unsigned writersNum, size_t fTime, FilterRole fRole_, bool force_, bool sharedFrames_):
+maxReaders(readersNum), maxWriters(writersNum), frameTime(fTime), fRole(fRole_), force(force_), sharedFrames(sharedFrames_)
 {
     frameTimeMod = 1;
     bufferStateFrameTimeMod = 1;
@@ -391,7 +392,7 @@ size_t BaseFilter::processFrame()
             return slaveProcessFrame();
             break;
         case NETWORK:
-            //TODO: add network filters process frame method
+            return runDoProcessFrame();
             break;
         default:
             return RETRY;
@@ -400,13 +401,8 @@ size_t BaseFilter::processFrame()
     return RETRY;
 }
 
-MasterFilter::MasterFilter() :
-    BaseFilter()
+void BaseFilter::processAll()
 {
-}
-
-void MasterFilter::processAll()
-{   
     for (auto it : slaves){
         if (sharedFrames){
             it.second->updateFrames(oFrames);
@@ -415,7 +411,7 @@ void MasterFilter::processAll()
     }
 }
 
-bool MasterFilter::runningSlaves()
+bool BaseFilter::runningSlaves()
 {
     bool running = false;
     for (auto it : slaves){
@@ -424,24 +420,31 @@ bool MasterFilter::runningSlaves()
     return running;
 }
 
-bool MasterFilter::addSlave(int id, SlaveFilter *slave)
+void BaseFilter::setSharedFrames(bool sharedFrames_)
+{
+    if(fRole == MASTER){
+        sharedFrames = sharedFrames_;
+    }
+}
+
+bool BaseFilter::addSlave(int id, BaseFilter *slave)
 {
     if (slave->fRole != SLAVE){
         return false;
     }
-    
+
     if (slaves.count(id) > 0){
         return false;
     }
-    
+
     slave->sharedFrames = sharedFrames;
-    
+
     slaves[id] = slave;
-    
+
     return true;
 }
 
-size_t MasterFilter::masterProcessFrame()
+size_t BaseFilter::masterProcessFrame()
 {
     size_t enlapsedTime;
     size_t frameTime_;
@@ -468,10 +471,10 @@ size_t MasterFilter::masterProcessFrame()
     if (frameTime.count() == 0){
         return RETRY;
     }
-    
+
     enlapsedTime = (std::chrono::duration_cast<std::chrono::microseconds>
         (std::chrono::system_clock::now().time_since_epoch()) - wallClock).count();
-        
+
     frameTime_ = frameTime.count()*frameTimeMod*bufferStateFrameTimeMod;
 
     if (enlapsedTime > frameTime_){
@@ -481,54 +484,42 @@ size_t MasterFilter::masterProcessFrame()
     return frameTime_ - enlapsedTime;
 }
 
-SlaveFilter::SlaveFilter() :
-    BaseFilter()
-{
-}
-
-size_t SlaveFilter::slaveProcessFrame()
+size_t BaseFilter::slaveProcessFrame()
 {
     if (!process){
         return RETRY;
     }
-    
+
     processEvent();
-    
+
     //TODO: decide policy to set run to true/false if retry
     if (!demandDestinationFrames()){
         return RETRY;
-    } 
-    
+    }
+
     if (!sharedFrames && !demandOriginFrames()) {
         return RETRY;
     }
-    
+
     runDoProcessFrame();
-    
+
     if (!sharedFrames){
         removeFrames();
     }
-    
+
     process = false;
     return RETRY;
 }
 
-void SlaveFilter::updateFrames(std::map<int, Frame*> oFrames_)
+void BaseFilter::updateFrames(std::map<int, Frame*> oFrames_)
 {
     oFrames = oFrames_;
 }
 
 OneToOneFilter::OneToOneFilter(size_t fTime, FilterRole fRole_, bool force_, bool sharedFrames_) :
-    BaseFilter(), MasterFilter(), SlaveFilter()
+    BaseFilter(1,1,fTime,fRole_,force_,sharedFrames_)
 {
-    sharedFrames = sharedFrames_;
-    fRole = fRole_;
-    force = force_;
-    frameTime = std::chrono::microseconds(fTime);
-    maxReaders = maxWriters = 1;
 }
-
-
 
 bool OneToOneFilter::runDoProcessFrame()
 {
@@ -544,18 +535,12 @@ bool OneToOneFilter::runDoProcessFrame()
 
 
 OneToManyFilter::OneToManyFilter(unsigned writersNum, size_t fTime, FilterRole fRole_, bool force_, bool sharedFrames_) :
-    BaseFilter(), MasterFilter(), SlaveFilter()
+    BaseFilter(1,writersNum,fTime,fRole_,force_,sharedFrames_)
 {
-    sharedFrames = sharedFrames_;
-    fRole = fRole_;
-    force = force_;
-    frameTime = std::chrono::microseconds(fTime);
-    maxReaders = 1;
-    maxWriters = writersNum;
 }
 
 bool OneToManyFilter::runDoProcessFrame()
-{   
+{
     if (doProcessFrame(oFrames.begin()->second, dFrames)) {
         updateTimestamp();
 
@@ -571,14 +556,8 @@ bool OneToManyFilter::runDoProcessFrame()
 }
 
 HeadFilter::HeadFilter(unsigned writersNum, size_t fTime, FilterRole fRole_) :
-    BaseFilter(), MasterFilter(), SlaveFilter()
+    BaseFilter(0,writersNum,fTime,fRole_,false,false)
 {
-    sharedFrames = false;
-    fRole = fRole_;
-    force = false;
-    frameTime = std::chrono::microseconds(fTime);
-    maxReaders = 0;
-    maxWriters = writersNum;
 }
 
 void HeadFilter::pushEvent(Event e)
@@ -602,14 +581,8 @@ void HeadFilter::pushEvent(Event e)
 
 
 TailFilter::TailFilter(unsigned readersNum, size_t fTime, FilterRole fRole_, bool sharedFrames_) :
-    BaseFilter(), MasterFilter(), SlaveFilter()
+    BaseFilter(readersNum,0,fTime,fRole_,false,sharedFrames_)
 {
-    sharedFrames = sharedFrames_;
-    fRole = fRole_;
-    force = false;
-    frameTime = std::chrono::microseconds(fTime);
-    maxReaders = readersNum;
-    maxWriters = 0;
 }
 
 void TailFilter::pushEvent(Event e)
@@ -632,14 +605,8 @@ void TailFilter::pushEvent(Event e)
 
 
 ManyToOneFilter::ManyToOneFilter(unsigned readersNum, size_t fTime, FilterRole fRole_, bool force_, bool sharedFrames_) :
-    BaseFilter(), MasterFilter(), SlaveFilter()
+    BaseFilter(readersNum,1,fTime,fRole_,force_,sharedFrames_)
 {
-    sharedFrames = sharedFrames_;
-    fRole = fRole_;
-    force = force_;
-    frameTime = std::chrono::microseconds(fTime);
-    maxReaders = readersNum;
-    maxWriters = 1;
 }
 
 bool ManyToOneFilter::runDoProcessFrame()
@@ -655,14 +622,8 @@ bool ManyToOneFilter::runDoProcessFrame()
 }
 
 LiveMediaFilter::LiveMediaFilter(unsigned readersNum, unsigned writersNum, size_t fTime, FilterRole fRole_) :
-BaseFilter(), watch(0)
+BaseFilter(readersNum, writersNum,fTime,fRole_,false,false), watch(0)
 {
-    fRole = fRole_;
-    force = false;
-    frameTime = std::chrono::microseconds(fTime);
-    maxReaders = readersNum;
-    maxWriters = writersNum;
-
     TaskScheduler* scheduler = BasicTaskScheduler::createNew();
     env = BasicUsageEnvironment::createNew(*scheduler);
 }
@@ -685,13 +646,13 @@ void LiveMediaFilter::pushEvent(Event e)
     e.sendAndClose(outputNode);
 }
 
-size_t LiveMediaFilter::processFrame()
+bool LiveMediaFilter::runDoProcessFrame()
 {
     if (envir() == NULL){
-        return 0;
+        return false;
     }
 
     envir()->taskScheduler().doEventLoop((char*) &watch);
 
-    return 1;
+    return true;
 }

@@ -19,7 +19,7 @@
  *
  *  Authors:  Marc Palau <marc.palau@i2cat.net>
  *            David Cassany <david.cassany@i2cat.net>
- *            
+ *
  */
 
 #ifndef _FILTER_MOCKUP_HH
@@ -43,29 +43,29 @@ public:
     virtual unsigned char *getDataBuf() {
         return buff;
     };
-    
+
     static FrameMock* createNew() {
         return new FrameMock();
     }
-    
+
     virtual unsigned char **getPlanarDataBuf() {return NULL;};
     virtual unsigned int getLength() {return 4;};
     virtual unsigned int getMaxLength() {return 4;};
     virtual void setLength(unsigned int length) {};
     virtual bool isPlanar() {return false;};
-    
+
 protected:
     unsigned char buff[4];
 };
 
-class AVFramedQueueMock : public AVFramedQueue 
+class AVFramedQueueMock : public AVFramedQueue
 {
 public:
     AVFramedQueueMock(unsigned max_) : AVFramedQueue() {
         max = max_;
         config();
     };
-    
+
 protected:
     virtual bool config() {
         for (unsigned i=0; i<max; i++) {
@@ -75,16 +75,16 @@ protected:
     }
 };
 
-class BaseFilterMockup : public BaseFilter 
+class BaseFilterMockup : public BaseFilter
 {
 public:
     BaseFilterMockup(unsigned readers, unsigned writers) : BaseFilter() {
         maxReaders = readers;
         maxWriters = writers;
     };
-    
+
     using BaseFilter::getReader;
-    
+
 protected:
     FrameQueue *allocQueue(int wId) {return new AVFramedQueueMock(4);};
     size_t masterProcessFrame() {return 20;};
@@ -96,17 +96,17 @@ private:
     VCodecType codec;
 };
 
-class OneToOneFilterMockup : virtual public OneToOneFilter 
+class OneToOneFilterMockup : virtual public OneToOneFilter
 {
 public:
-    OneToOneFilterMockup(size_t processTime_, size_t queueSize_, bool gotFrame_, 
-                         size_t frameTime, FilterRole role, bool sharedFrames) : 
-        OneToOneFilter(frameTime, role, false, sharedFrames), 
+    OneToOneFilterMockup(size_t processTime_, size_t queueSize_, bool gotFrame_,
+                         size_t frameTime, FilterRole role, bool sharedFrames) :
+        OneToOneFilter(frameTime, role, false, sharedFrames),
         processTime(processTime_), queueSize(queueSize_), gotFrame(gotFrame_) {};
-    
+
     void setGotFrame(bool gotFrame_) {gotFrame = gotFrame_;};
     using BaseFilter::getReader;
-    
+
 protected:
     bool doProcessFrame(Frame *org, Frame *dst) {
         size_t realProcessTime;
@@ -128,17 +128,17 @@ private:
     bool gotFrame;
 };
 
-class OneToManyFilterMockup : virtual public OneToManyFilter 
+class OneToManyFilterMockup : virtual public OneToManyFilter
 {
 public:
-    OneToManyFilterMockup(unsigned maxWriters, size_t processTime_, size_t queueSize_, bool gotFrame_, 
-                         size_t frameTime, FilterRole role, bool sharedFrames) : 
-        OneToManyFilter(maxWriters, frameTime, role, false, sharedFrames), 
+    OneToManyFilterMockup(unsigned maxWriters, size_t processTime_, size_t queueSize_, bool gotFrame_,
+                         size_t frameTime, FilterRole role, bool sharedFrames) :
+        OneToManyFilter(maxWriters, frameTime, role, false, sharedFrames),
         processTime(processTime_), queueSize(queueSize_), gotFrame(gotFrame_) {};
-    
+
     void setGotFrame(bool gotFrame_) {gotFrame = gotFrame_;};
     using BaseFilter::getReader;
-    
+
 protected:
     bool doProcessFrame(Frame *org, std::map<int, Frame *> dstFrames) {
         size_t realProcessTime;

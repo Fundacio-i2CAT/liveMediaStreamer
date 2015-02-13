@@ -78,15 +78,15 @@ void SinkManager::stop()
     watch = 1;
 }
 
-size_t SinkManager::processFrame()
+bool SinkManager::runDoProcessFrame()
 {
     if (envir() == NULL){
-        return 0;
+        return false;
     }
 
     envir()->taskScheduler().doEventLoop((char*) &watch);
 
-    return 1;
+    return true;
 }
 
 bool SinkManager::addSession(std::string id, std::vector<int> readers, std::string info, std::string desc)

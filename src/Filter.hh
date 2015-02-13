@@ -29,6 +29,7 @@
 #include <vector>
 #include <queue>
 #include <mutex>
+//NOTE: there should not be this kind of dependences here
 #include <liveMedia/liveMedia.hh>
 #include <BasicUsageEnvironment.hh>
 
@@ -372,11 +373,8 @@ protected:
 
 private:
 
-    //TODO decide whether roleProcessFrame methods are basefilter pure vurtual
-    //methods or should be only defined at its respective role class
     size_t slaveProcessFrame() {return 0;};
     size_t masterProcessFrame() {return 0;};
-
 };
 
 #endif

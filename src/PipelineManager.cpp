@@ -662,6 +662,8 @@ void PipelineManager::addWorkerEvent(Jzon::Node* params, Jzon::Object &outputNod
     outputNode.Add("error", Jzon::null);
 }
 
+
+//TODO: rethink this event
 void PipelineManager::addSlavesToWorkerEvent(Jzon::Node* params, Jzon::Object &outputNode)
 {
     Worker* master = NULL;
@@ -684,7 +686,7 @@ void PipelineManager::addSlavesToWorkerEvent(Jzon::Node* params, Jzon::Object &o
     }
 
     masterId = params->Get("master").ToInt();
-    Jzon::Array& jsonSlavesIds = params->Get("slaves").AsArray();
+//     Jzon::Array& jsonSlavesIds = params->Get("slaves").AsArray();
 
     master = dynamic_cast<Worker*>(getWorker(masterId));
 

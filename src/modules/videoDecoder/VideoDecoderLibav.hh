@@ -45,11 +45,11 @@ class VideoDecoderLibav : public OneToOneFilter {
         bool configure(int width, int height, PixType pixelFormat);
         
     private:
-		void initializeEventMap();
+        void initializeEventMap();
         bool toBuffer(VideoFrame *decodedFrame, VideoFrame *codedFrame);
         bool reconfigure(VCodecType codec);
         bool inputConfig();
-		void doGetState(Jzon::Object &filterNode);
+        void doGetState(Jzon::Object &filterNode);
         
         AVCodec             *codec;
         AVCodecContext      *codecCtx;

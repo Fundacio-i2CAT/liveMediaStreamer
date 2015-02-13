@@ -66,8 +66,6 @@ class AudioMixer : public ManyToOneFilter {
         void changeMasterVolumeEvent(Jzon::Node* params, Jzon::Object &outputNode);
         void muteMasterEvent(Jzon::Node* params, Jzon::Object &outputNode);
 
-        bool runDoProcessFrame(){ return false;};
-
         int frameChannels;
         int sampleRate;
         SampleFmt sampleFormat;

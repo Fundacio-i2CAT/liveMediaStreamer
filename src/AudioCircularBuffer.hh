@@ -65,15 +65,15 @@
 
         int channels;
         int sampleRate;
-        int bytesPerSample;
+        unsigned bytesPerSample;
         int chMaxSamples;
-        int channelMaxLength;
+        unsigned channelMaxLength;
         int delayBytes;
         unsigned char *data[MAX_CHANNELS];
         SampleFmt sampleFormat;
         bool outputFrameAlreadyRead;
 
-        int samplesBufferingThreshold;
+        unsigned samplesBufferingThreshold;
         State bufferingState;
 
         PlanarAudioFrame* inputFrame;

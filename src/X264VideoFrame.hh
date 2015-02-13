@@ -33,10 +33,10 @@ extern "C" {
 #define MAX_HEADER_NALS 8
 #define MAX_HEADER_NAL_SIZE 4096
 
-class X264VideoFrame : public VideoFrame {
+class X264VideoFrame : public InterleavedVideoFrame {
 
-public:
-	static X264VideoFrame* createNew(VCodecType codec, unsigned int width, unsigned int height, PixType pixelFormat);
+    public:
+	static X264VideoFrame* createNew(unsigned int width, unsigned int height, PixType pixelFormat);
 	~X264VideoFrame();
 	void setNals(x264_nal_t **nals, int num, int frameSize);
     void setHeaderNals(x264_nal_t **nals, int num, int headerSize);
@@ -46,27 +46,19 @@ public:
     int getHeaderNalsNum() {return hNalsNum;};
     int* getHeaderNalsSize() {return hNalSize;};
 
-    void clearNals();
+        void clearNals();
+        
+    private:
+	X264VideoFrame(unsigned int width, unsigned height, PixType pixelFormat);
+        
+        x264_nal_t **ppNals;
+        int nalsNum;
+        int frameLength;
 
-protected:
-	x264_nal_t **ppNals;
-	int nalsNum;
-	int frameLength;
-
-    int hNalsNum;
-    unsigned char *headerNals[MAX_HEADER_NALS];
-    int hNalSize[MAX_HEADER_NALS];
-    int headerLength;
-private:
-	X264VideoFrame(VCodecType codec, unsigned int width, unsigned height, PixType pixelFormat);
-
-	unsigned char *getDataBuf() { return NULL;};
-	unsigned char **getPlanarDataBuf() { return NULL;};
-	unsigned int getLength() { return 0;};
-	unsigned int getMaxLength() { return 0;};
-	void setLength(unsigned int length) { frameLength = length;};
-	bool isPlanar() {return false;};
-
+        int hNalsNum;
+        unsigned char *headerNals[MAX_HEADER_NALS];
+        int hNalSize[MAX_HEADER_NALS];
+        int headerLength;
 };
 
 #endif

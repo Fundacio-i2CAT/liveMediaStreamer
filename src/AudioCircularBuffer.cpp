@@ -166,7 +166,7 @@ bool AudioCircularBuffer::config()
 
 bool AudioCircularBuffer::pushBack(unsigned char **buffer, int samplesRequested)
 {
-    int bytesRequested = samplesRequested * bytesPerSample;
+    unsigned bytesRequested = samplesRequested * bytesPerSample;
 
     if (bytesRequested > (channelMaxLength - elements)) {
         return false;

@@ -51,7 +51,6 @@ public:
     void doGetState(Jzon::Object &filterNode);
     bool addSegmenter(int readerId, std::string segBaseName, int segDurInMicroSeconds);
     bool removeSegmenter(int readerId);
-
       
 private: 
     bool doProcessFrame(std::map<int, Frame*> orgFrames);

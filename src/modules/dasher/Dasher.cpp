@@ -94,10 +94,20 @@ bool Dasher::addSegmenter(int readerId, std::string segBaseName, int segDurInMic
     AudioFrameQueue *aQueue;
     Reader* r;
 
+    if (segBaseName.empty() || segDurInMicroSeconds == 0) {
+        utils::errorMsg("Error adding segmenter: empty segment base or segment duration 0");
+        return false;
+    }
+
     r = getReader(readerId);
 
     if (!r) {
         utils::errorMsg("Error adding segmenter: reader does not exist");
+        return false;
+    }
+
+    if (segmenters.count(readerId) > 0) {
+        utils::errorMsg("Error adding segmenter: there is a segmenter already assigned to this reader");
         return false;
     }
 

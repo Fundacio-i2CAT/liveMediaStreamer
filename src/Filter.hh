@@ -290,6 +290,8 @@ private:
     using BaseFilter::maxWriters;
     using BaseFilter::fRole;
     using BaseFilter::force;
+
+    void stop() {};
 };
 
 class TailFilter : public MasterFilter, public SlaveFilter {
@@ -303,6 +305,8 @@ protected:
 
 private:
     FrameQueue *allocQueue(int wId) {return NULL;};
+    bool runDoProcessFrame();
+    virtual bool doProcessFrame(std::map<int, Frame *> orgFrames) = 0;
     using BaseFilter::demandOriginFrames;
     using BaseFilter::demandDestinationFrames;
     using BaseFilter::addFrames;
@@ -322,6 +326,8 @@ private:
     using BaseFilter::maxWriters;
     using BaseFilter::fRole;
     using BaseFilter::force;
+
+    void stop() {};
 };
 
 class ManyToOneFilter : public MasterFilter, public SlaveFilter {

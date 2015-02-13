@@ -48,12 +48,12 @@ void signalHandler( int signum )
 void setupDasher() 
 {
     int workerId = rand();
-    Master* worker = NULL;
+    Worker* worker = NULL;
     PipelineManager *pipe = Controller::getInstance()->pipelineManager();
     
     dasher = new Dasher(SEGMENT_DURATION);
     pipe->addFilter(dasherId, dasher);
-    worker = new Master();
+    worker = new Worker();
     worker->addProcessor(dasherId, dasher);
     dasher->setWorkerId(workerId);
     pipe->addWorker(workerId, worker);
@@ -71,13 +71,12 @@ void addAudioSource(unsigned port, std::string codec = A_CODEC,
     std::vector<int> ids({decId, encId});
     std::string sessionId;
     std::string sdp;
-
     
     AudioDecoderLibav *decoder;
     AudioEncoderLibav *encoder;
     
-    Master* aDec;
-    Master* aEnc;
+    Worker* aDec;
+    Worker* aEnc;
     
     Session *session;
     Path *path;
@@ -96,7 +95,7 @@ void addAudioSource(unsigned port, std::string codec = A_CODEC,
         utils::errorMsg("Could not add audio session");
         return;
     }
-    if (!session->initiateSession()){
+    if (!session->initiateSession(receiver)){
         utils::errorMsg("Could not initiate audio session");
         return;
     }
@@ -104,7 +103,7 @@ void addAudioSource(unsigned port, std::string codec = A_CODEC,
     //NOTE: Adding decoder to pipeManager and handle worker
     decoder = new AudioDecoderLibav();
     pipe->addFilter(decId, decoder);
-    aDec = new Master();
+    aDec = new Worker();
     aDec->addProcessor(decId, decoder);
     decoder->setWorkerId(aDecId);
     pipe->addWorker(aDecId, aDec);
@@ -112,7 +111,7 @@ void addAudioSource(unsigned port, std::string codec = A_CODEC,
     //NOTE: Adding encoder to pipeManager and handle worker
     encoder = new AudioEncoderLibav();
     pipe->addFilter(encId, encoder);
-    aEnc = new Master();
+    aEnc = new Worker();
     aEnc->addProcessor(encId, encoder);
     encoder->setWorkerId(aEncId);
     pipe->addWorker(aEncId, aEnc);
@@ -148,9 +147,9 @@ void addVideoSource(unsigned port, unsigned fps = FRAME_RATE, std::string codec 
     VideoEncoderX264 *encoder;
     VideoDecoderLibav *decoder;
     
-    Master* wDec;
-    Master* wRes;
-    Master* wEnc;
+    Worker* wDec;
+    Worker* wRes;
+    Worker* wEnc;
     
     Session *session;
     Path *path;
@@ -169,7 +168,7 @@ void addVideoSource(unsigned port, unsigned fps = FRAME_RATE, std::string codec 
         utils::errorMsg("Could not add video session");
         return;
     }
-    if (!session->initiateSession()){
+    if (!session->initiateSession(receiver)){
         utils::errorMsg("Could not initiate video session");
         return;
     }
@@ -177,7 +176,7 @@ void addVideoSource(unsigned port, unsigned fps = FRAME_RATE, std::string codec 
     //NOTE: Adding decoder to pipeManager and handle worker
     decoder = new VideoDecoderLibav();
     pipe->addFilter(decId, decoder);
-    wDec = new Master();
+    wDec = new Worker();
     wDec->addProcessor(decId, decoder);
     decoder->setWorkerId(wDecId);
     pipe->addWorker(wDecId, wDec);
@@ -185,7 +184,7 @@ void addVideoSource(unsigned port, unsigned fps = FRAME_RATE, std::string codec 
     //NOTE: Adding resampler to pipeManager and handle worker
     resampler = new VideoResampler();
     pipe->addFilter(resId, resampler);
-    wRes = new Master();
+    wRes = new Worker();
     wRes->addProcessor(resId, resampler);
     resampler->setWorkerId(wResId);
     resampler->configure(width, height, 0, YUV420P);
@@ -194,7 +193,7 @@ void addVideoSource(unsigned port, unsigned fps = FRAME_RATE, std::string codec 
     //NOTE: Adding encoder to pipeManager and handle worker
     encoder = new VideoEncoderX264();
     pipe->addFilter(encId, encoder);
-    wEnc = new Master();
+    wEnc = new Worker();
     wEnc->addProcessor(encId, encoder);
     encoder->setWorkerId(wEncId);
     pipe->addWorker(wEncId, wEnc);

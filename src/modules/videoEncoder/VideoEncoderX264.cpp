@@ -54,14 +54,14 @@ bool VideoEncoderX264::doProcessFrame(Frame *org, Frame *dst) {
 	picIn.i_pts = pts;
 
     if (!reconfigure(videoFrame, x264Frame)) {
-		return false;
-	}
+        return false;
+    }
 
-	if (forceIntra) {
-		picIn.i_type = X264_TYPE_I;
-		forceIntra = false;
-	} else {
-		picIn.i_type = X264_TYPE_AUTO;
+    if (forceIntra) {
+        picIn.i_type = X264_TYPE_I;
+        forceIntra = false;
+    } else {
+        picIn.i_type = X264_TYPE_AUTO;
     }
 
     if (!fill_x264_picture(videoFrame)){
@@ -69,14 +69,14 @@ bool VideoEncoderX264::doProcessFrame(Frame *org, Frame *dst) {
         return false;
     }
 
-	frameLength = x264_encoder_encode(encoder, &ppNal, &piNal, &picIn, &picOut);
+    frameLength = x264_encoder_encode(encoder, &ppNal, &piNal, &picIn, &picOut);
 
-	if (frameLength < 1) {
-		utils::errorMsg("Could not encode video frame");
-		return false;
-	}
+    if (frameLength < 1) {
+        utils::errorMsg("Could not encode video frame");
+        return false;
+    }
 
-	x264Frame->setNals(&ppNal, piNal, frameLength);
+    x264Frame->setNals(&ppNal, piNal, frameLength);
     x264Frame->setSize(videoFrame->getWidth(), videoFrame->getHeight());
     
     pts++;

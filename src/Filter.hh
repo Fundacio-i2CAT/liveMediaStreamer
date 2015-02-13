@@ -47,15 +47,16 @@
 
 #include "Event.hh"
 
-#define DEFAULT_ID 1
-#define MAX_WRITERS 16
-#define MAX_READERS 16
-#define VIDEO_DEFAULT_FRAMERATE 25 //fps
-#define RETRY 500 //us
+
+#define DEFAULT_ID 1                /*!< Default ID for unique filter's readers and/or writers. */
+#define MAX_WRITERS 16              /*!< Default maximum writers for a filter. */
+#define MAX_READERS 16              /*!< Default maximum readers for a filter. */
+#define VIDEO_DEFAULT_FRAMERATE 25  /*!< Default frame rate in frames per second (fps). */
+#define RETRY 500                   /*!< Default retry time in microseconds (us). */
 
 /*! Generic filter class methods. It is an interface to different specific filters
-    so it cannot be instantiated */
-
+    so it cannot be instantiated
+*/
 class BaseFilter : public Runnable {
 
 public:

@@ -30,15 +30,50 @@
 
 #include "Dasher.hh"
 
+/*! Class responsible for managing DASH audio segments creation. It receives AAC frames appending them to create
+    complete segments. It also manages Init Segment creation, constructing MP4 metadata from AAC frames ADTS header*/ 
+
 class DashAudioSegmenter : public DashSegmenter {
 
 public:
+    /**
+    * Class constructor
+    * @param segDur Segment duration in milliseconds 
+    * @param segBaseName Base name for the segments. Segment names will be: segBaseName_<timestamp>.m4a and segBaseName_init.m4a
+    */ 
     DashAudioSegmenter(size_t segDur, std::string segBasename);
+
+    /**
+    * Class destructor
+    */ 
     ~DashAudioSegmenter();
+
+    /**
+    * It checks that the received frame is an audio frame and stores the pointer of this frame internally
+    * @param frame Pointer the source frame, which must be contained in an AudioFrame structure
+    * @param newFrame Passed by referenc.In audio case, it is set always to true
+    * @return false if error and true if the NAL has been managed correctly
+    */
     bool manageFrame(Frame* frame, bool &newFrame);
+
+    /**
+    * It setups internal stuff using the last frame stored by manageFrame method
+    * @return true if succeeded and false if not
+    */
     bool updateConfig();
+
+    /**
+    * It creates a DASH audio segment using the remaining data in the segment internal buffer. The duration of this segment
+    * can be less than the defined segment duration, set on the constructor
+    * @return true if succeeded and false if not
+    */
     bool finishSegment();
 
+    /**
+    * It returns the segment duration in audio timebase units, which was set on the constructor in milliseconds. 
+    * In this case, the time base corresponds to the sampling rate of the audio. 
+    * @return true if succeeded and false if not
+    */
     size_t getCustomSegmentDuration() {return customSegmentDuration;};
 
 private:

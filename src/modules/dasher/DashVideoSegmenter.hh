@@ -151,16 +151,8 @@ public:
     size_t getLastTs() {return lastTs;};
 
     /**
-    * Return the tiemstamp offset, which corresponds to the timestamp of the first NALU 
-    * managed by manageFrame method. Each timestamp will be relative to this one.
-    * @return timestamp in milliseconds
-    */
-    size_t getTsOffset() {return tsOffset;};
-
-    /**
-    * Return the tiemstamp offset, which corresponds to the timestamp of the first NALU 
-    * managed by manageFrame method. Each timestamp will be relative to this one.
-    * @return timestamp in milliseconds
+    * Return the framerate, which is calculated by the difference between currtimestamp and lastTs
+    * @return framerate in frames per second
     */
     size_t getFramerate() {return frameRate;};
 

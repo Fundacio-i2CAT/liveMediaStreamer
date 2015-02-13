@@ -38,18 +38,43 @@ extern "C" {
 #define MICROSECONDS_TIME_BASE 1000000
 
 class DashSegmenter;
-class DashAudioSegmenter;
 class DashSegment;
+
+/*! Class responsible for managing DASH segmenters. */ 
 
 class Dasher : public TailFilter {
 
 public:
+    /**
+    * Class constructor
+    * @param readersNum Max number of readers. MAX_READERS (16) by default 
+    */ 
     Dasher(int readersNum = MAX_READERS);
+
+    /**
+    * Class destructor
+    */ 
     ~Dasher();
 
+   
     bool deleteReader(int id);
     void doGetState(Jzon::Object &filterNode);
+
+    /**
+    * Adds a new segmenter associated to an existance reader. Only one segmenter can be associated to each reader
+    * @param readerId Reader associated to the segmenter 
+    * @param segBaseName Base name for the segments
+    * @param segDurInMicroSeconds Segment duration in milliseconds 
+    * @return true if suceeded and false if not
+    */ 
     bool addSegmenter(int readerId, std::string segBaseName, int segDurInMicroSeconds);
+
+    /**
+    * Remvoes an existant segmenter, using its associated reader id. A segment with the remaining 
+    * data buffered (if any) is created and written to disk
+    * @param readerId Reader associated to the segmenter 
+    * @return true if suceeded and false if not
+    */ 
     bool removeSegmenter(int readerId);
       
 private: 
@@ -59,18 +84,67 @@ private:
     std::map<int, DashSegmenter*> segmenters;
 };
 
+/*! Abstract class implemented by DashVideoSegmenter and DashAudioSegmenter */ 
+
 class DashSegmenter {
 
 public:
+    /**
+    * Class constructor
+    * @param segDur Segment duration in tBase units 
+    * @param tBase segDur timeBase 
+    * @param segBaseName Base name for the segments. Segment names will be: segBaseName_<timestamp>.segExt and segBaseName_init.segExt
+    * @param segExt segment file extension (.m4v for video and .m4a for audio) 
+    */ 
     DashSegmenter(size_t segDur, size_t tBase, std::string segBaseName, std::string segExt);
+
+    /**
+    * Class destructor
+    */ 
     virtual ~DashSegmenter();
+
+    /**
+    * Implemented by DashVideoSegmenter::manageFrame and DashAudioSegmenter::manageFrame
+    */ 
     virtual bool manageFrame(Frame* frame, bool &newFrame) = 0;
+
+    /**
+    * Implemented by DashVideoSegmenter::updateConfig and DashAudioSegmenter::updateConfig
+    */ 
     virtual bool updateConfig() = 0;
+
+    /**
+    * Implemented by DashVideoSegmenter::finishSegment and DashAudioSegmenter::finishSegment
+    */ 
     virtual bool finishSegment() = 0;
+
+    /**
+    * Generates and writes to disk an Init Segment if possible (or necessary)
+    */ 
     bool generateInitSegment();
+
+    /**
+    * Generates and writes to disk a segment if there is enough data buffered
+    */ 
     bool generateSegment();
+
+    /**
+    * Returns average frame duration 
+    * @return duration in time base
+    */
     size_t getFrameDuration() {return frameDuration;};
+
+    /**
+    * Returns the timestamp time base of the segments 
+    * @return time base in ticks per second
+    */
     size_t getTimeBase() {return timeBase;};
+
+    /**
+    * Return the timestamp offset, which corresponds to the timestamp of the first frame 
+    * managed by manageFrame method. Each timestamp will be relative to this one.
+    * @return timestamp in milliseconds
+    */
     size_t getTsOffset() {return tsOffset;};
 
 protected:

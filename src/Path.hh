@@ -19,7 +19,7 @@
  *
  *  Authors:  Marc Palau <marc.palau@i2cat.net>
  *            David Cassany <david.cassany@i2cat.net>
- *			  Martin German <martin.german@i2cat.net>
+ *	      Martin German <martin.german@i2cat.net>
  */
 
 #ifndef _PATH_HH

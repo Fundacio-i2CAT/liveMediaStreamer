@@ -57,7 +57,6 @@ size_t readFile(char const* fileName, char* dstBuffer)
     return inputDataSize;
 }
 
-
 class DashVideoSegmenterTest : public CppUnit::TestFixture
 {
     CPPUNIT_TEST_SUITE(DashVideoSegmenterTest);
@@ -68,6 +67,7 @@ class DashVideoSegmenterTest : public CppUnit::TestFixture
     CPPUNIT_TEST(manageNonIDRNals);
     CPPUNIT_TEST(updateConfig);
     CPPUNIT_TEST(generateSegmentAndInitSegment);
+    CPPUNIT_TEST(finishSegment);
     CPPUNIT_TEST_SUITE_END();
 
 public:
@@ -82,6 +82,7 @@ protected:
     void manageNonIDRNals();
     void updateConfig();
     void generateSegmentAndInitSegment();
+    void finishSegment();
 
     bool newFrame;
     DashVideoSegmenter* segmenter;
@@ -153,7 +154,6 @@ void DashVideoSegmenterTest::manageSetInternalValues()
     CPPUNIT_ASSERT(segmenter->getWidth() == WIDTH);
     CPPUNIT_ASSERT(segmenter->getHeight() == HEIGHT);
 }
-
 
 void DashVideoSegmenterTest::manageNonVCLNals()
 {
@@ -318,6 +318,37 @@ void DashVideoSegmenterTest::generateSegmentAndInitSegment()
     
     CPPUNIT_ASSERT(memcmp(initModel, init, initModelLength) == 0);
     CPPUNIT_ASSERT(memcmp(segmentModel, segment, segmentModelLength) == 0);
+}
+
+void DashVideoSegmenterTest::finishSegment()
+{
+    char* segmentModel = new char[MAX_DAT];
+    char* segment = new char[MAX_DAT];
+    size_t segmentModelLength;
+    size_t segmentLength;
+
+    segmentModelLength = readFile("testsData/modules/dasher/dashVideoSegmenterTest/truncatedSegmentModel.m4v", segmentModel);
+
+    std::chrono::microseconds ts(std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now().time_since_epoch()));
+    idrNal->setPresentationTime(ts);
+    idrNal->setSize(WIDTH, HEIGHT);
+    audNal->setPresentationTime(ts);
+    audNal->setSize(WIDTH, HEIGHT);
+
+    segmenter->manageFrame(idrNal, newFrame);
+    segmenter->manageFrame(audNal, newFrame);
+
+    CPPUNIT_ASSERT(segmenter->updateConfig());
+    CPPUNIT_ASSERT(!segmenter->generateSegment());
+    CPPUNIT_ASSERT(segmenter->finishSegment());
+
+    segmentLength = readFile("testsData/modules/dasher/dashVideoSegmenterTest/test_0.m4v", segment);
+
+    CPPUNIT_ASSERT(segmentModelLength == segmentLength);
+    CPPUNIT_ASSERT(memcmp(segmentModel, segment, segmentModelLength) == 0);
+
+    delete segmentModel;
+    delete segment;
 }
 
 CPPUNIT_TEST_SUITE_REGISTRATION(DashVideoSegmenterTest);

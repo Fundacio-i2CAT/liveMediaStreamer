@@ -63,7 +63,7 @@ bool DashVideoSegmenter::manageFrame(Frame* frame, bool &newFrame)
 bool DashVideoSegmenter::updateConfig()
 {
     if (!updateTimeValues()) {
-        utils::errorMsg("Error updating time values of DashAudioSegmenter: timestamp not valid");
+        utils::errorMsg("Error updating time values of DashVideoSegmenter: timestamp not valid");
         frameData.clear();
         return false;
     }
@@ -85,7 +85,27 @@ bool DashVideoSegmenter::updateConfig()
 
 bool DashVideoSegmenter::finishSegment()
 {
-    return false;
+    size_t segmentSize = 0;
+
+    if (!dashContext || !dashContext->ctxvideo || dashContext->ctxvideo->segment_data_size <= 0) {
+        return true;
+    }
+
+    segment->setTimestamp(dashContext->ctxvideo->earliest_presentation_time);
+    segmentSize = finish_segment(VIDEO_TYPE, segment->getDataBuffer(), &dashContext);
+
+    if (segmentSize <= I2ERROR_MAX) {
+        return false;
+    }
+
+    segment->setDataLength(segmentSize);
+
+    if(!segment->writeToDisk(getSegmentName())) {
+        utils::errorMsg("Error writing DASH segment to disk: invalid path");
+        return false;
+    }
+
+    return true;
 }
 
 bool DashVideoSegmenter::parseNal(VideoFrame* nal, bool &newFrame) 

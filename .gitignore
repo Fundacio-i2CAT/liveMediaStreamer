@@ -48,6 +48,7 @@ audio_rtp_only
 
 doc/
 
+*.xml
 *.mp4
 *.yuv
 *.yuv420p

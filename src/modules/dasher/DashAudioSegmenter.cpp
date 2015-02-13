@@ -75,7 +75,27 @@ bool DashAudioSegmenter::updateConfig()
 
 bool DashAudioSegmenter::finishSegment()
 {
-    return false;
+     size_t segmentSize = 0;
+
+    if (!dashContext || !dashContext->ctxaudio || dashContext->ctxaudio->segment_data_size <= 0) {
+        return true;
+    }
+
+    segment->setTimestamp(dashContext->ctxaudio->earliest_presentation_time);
+    segmentSize = finish_segment(AUDIO_TYPE, segment->getDataBuffer(), &dashContext);
+
+    if (segmentSize <= I2ERROR_MAX) {
+        return false;
+    }
+
+    segment->setDataLength(segmentSize);
+
+    if(!segment->writeToDisk(getSegmentName())) {
+        utils::errorMsg("Error writing DASH segment to disk: invalid path");
+        return false;
+    }
+
+    return true;
 }
 
 bool DashAudioSegmenter::appendFrameToDashSegment()

@@ -141,7 +141,10 @@ bool Dasher::removeSegmenter(int readerId)
         return false;
     }
 
-    segmenters[readerId]->finishSegment();
+    if (!segmenters[readerId]->finishSegment()) {
+        utils::errorMsg("Error removing DASH segmenter: last segment could not be written to disk. Anyway, segmenter has been deleted.");
+        return false;
+    }
 
     delete segmenters[readerId];
     segmenters.erase(readerId);

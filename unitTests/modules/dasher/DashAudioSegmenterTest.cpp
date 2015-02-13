@@ -61,6 +61,7 @@ class DashAudioSegmenterTest : public CppUnit::TestFixture
     CPPUNIT_TEST(manageFrame);
     CPPUNIT_TEST(updateConfig);
     CPPUNIT_TEST(generateSegmentAndInitSegment);
+    CPPUNIT_TEST(finishSegment);
     CPPUNIT_TEST_SUITE_END();
 
 public:
@@ -71,6 +72,7 @@ protected:
     void manageFrame();
     void updateConfig();
     void generateSegmentAndInitSegment();
+    void finishSegment();
 
     bool newFrame;
     DashAudioSegmenter* segmenter;
@@ -172,6 +174,33 @@ void DashAudioSegmenterTest::generateSegmentAndInitSegment()
 
     delete initModel;
     delete init;
+    delete segmentModel;
+    delete segment;
+}
+
+void DashAudioSegmenterTest::finishSegment()
+{
+    char* segmentModel = new char[MAX_DAT];
+    char* segment = new char[MAX_DAT];
+    size_t segmentModelLength;
+    size_t segmentLength;
+
+    segmentModelLength = readFile("testsData/modules/dasher/dashAudioSegmenterTest/truncatedSegmentModel.m4a", segmentModel);
+
+    std::chrono::microseconds ts(std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now().time_since_epoch()));
+    modelFrame->setPresentationTime(ts);
+    modelFrame->setSamples(AAC_FRAME_SAMPLES);
+    segmenter->manageFrame(modelFrame, newFrame);
+    segmenter->updateConfig();
+    CPPUNIT_ASSERT(!segmenter->generateSegment());
+    CPPUNIT_ASSERT(segmenter->finishSegment());
+
+    segmentLength = readFile("testsData/modules/dasher/dashAudioSegmenterTest/test_0.m4a", segment);
+
+    CPPUNIT_ASSERT(segmentModelLength == segmentLength);
+    
+    CPPUNIT_ASSERT(memcmp(segmentModel, segment, segmentModelLength) == 0);
+
     delete segmentModel;
     delete segment;
 }

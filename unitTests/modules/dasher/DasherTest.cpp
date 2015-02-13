@@ -101,8 +101,11 @@ void DasherTest::addSegmenter()
 void DasherTest::removeSegmenter()
 {
     dasher->addSegmenter(h264ReaderId, BASE_NAME, SEG_DURATION);
+    dasher->addSegmenter(aacReaderId, BASE_NAME, SEG_DURATION);
     CPPUNIT_ASSERT(dasher->removeSegmenter(h264ReaderId));
+    CPPUNIT_ASSERT(dasher->removeSegmenter(aacReaderId));
     CPPUNIT_ASSERT(!dasher->removeSegmenter(h264ReaderId));
+    CPPUNIT_ASSERT(!dasher->removeSegmenter(aacReaderId));
 }
 
 CPPUNIT_TEST_SUITE_REGISTRATION(DasherTest);

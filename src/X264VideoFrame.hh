@@ -35,37 +35,37 @@ extern "C" {
 
 class X264VideoFrame : public VideoFrame {
 
-	public:
+public:
 	static X264VideoFrame* createNew(VCodecType codec, unsigned int width, unsigned int height, PixType pixelFormat);
 	~X264VideoFrame();
 	void setNals(x264_nal_t **nals, int num, int frameSize);
-        void setHeaderNals(x264_nal_t **nals, int num, int headerSize);
+    void setHeaderNals(x264_nal_t **nals, int num, int headerSize);
 	x264_nal_t** getNals() {return ppNals;};
-        int getNalsNum() {return nalsNum;};
-        unsigned char** getHeaderNals() {return headerNals;};
-        int getHeaderNalsNum() {return hNalsNum;};
-        int* getHeaderNalsSize() {return hNalSize;};
+    int getNalsNum() {return nalsNum;};
+    unsigned char** getHeaderNals() {return headerNals;};
+    int getHeaderNalsNum() {return hNalsNum;};
+    int* getHeaderNalsSize() {return hNalSize;};
 
-        void clearNals();
+    void clearNals();
 
-	protected:
+protected:
 	x264_nal_t **ppNals;
 	int nalsNum;
 	int frameLength;
 
-        int hNalsNum;
-        unsigned char *headerNals[MAX_HEADER_NALS];
-        int hNalSize[MAX_HEADER_NALS];
-        int headerLength;
-	private:
+    int hNalsNum;
+    unsigned char *headerNals[MAX_HEADER_NALS];
+    int hNalSize[MAX_HEADER_NALS];
+    int headerLength;
+private:
 	X264VideoFrame(VCodecType codec, unsigned int width, unsigned height, PixType pixelFormat);
 
-	unsigned char *getDataBuf();
-	unsigned char **getPlanarDataBuf();
-	unsigned int getLength();
-	unsigned int getMaxLength();
-	void setLength(unsigned int length);
-	bool isPlanar();
+	unsigned char *getDataBuf() { return NULL;};
+	unsigned char **getPlanarDataBuf() { return NULL;};
+	unsigned int getLength() { return 0;};
+	unsigned int getMaxLength() { return 0;};
+	void setLength(unsigned int length) { frameLength = length;};
+	bool isPlanar() {return false;};
 
 };
 

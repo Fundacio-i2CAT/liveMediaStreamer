@@ -28,11 +28,11 @@
 int mod (int a, int b)
 {
     int ret = a % b;
-    
+
     if (ret < 0) {
         ret += b;
     }
-    
+
     return ret;
 }
 
@@ -75,7 +75,7 @@ void AudioCircularBuffer::removeFrame()
     return;
 }
 
-void AudioCircularBuffer::flush() 
+void AudioCircularBuffer::flush()
 {
     return;
 }
@@ -164,7 +164,7 @@ bool AudioCircularBuffer::config()
 }
 
 
-bool AudioCircularBuffer::pushBack(unsigned char **buffer, int samplesRequested) 
+bool AudioCircularBuffer::pushBack(unsigned char **buffer, int samplesRequested)
 {
     int bytesRequested = samplesRequested * bytesPerSample;
 
@@ -194,7 +194,7 @@ bool AudioCircularBuffer::pushBack(unsigned char **buffer, int samplesRequested)
     rear = (rear + bytesRequested) % channelMaxLength;
 
     return true;
-}   
+}
 
 bool AudioCircularBuffer::popFront(unsigned char **buffer, int samplesRequested)
 {
@@ -279,4 +279,3 @@ QueueState AudioCircularBuffer::getState()
 
     return state;
 }
-

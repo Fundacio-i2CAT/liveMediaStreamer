@@ -21,7 +21,7 @@
 
 #define A_MEDIUM "audio"
 #define A_PAYLOAD 97
-#define A_CODEC "PCMU"
+#define A_CODEC "OPUS"
 #define A_BANDWITH 128
 #define A_TIME_STMP_FREQ 48000
 #define A_CHANNELS 2
@@ -93,6 +93,8 @@ void addAudioSource(unsigned port, std::string codec = A_CODEC,
     aEnc->addProcessor(encId, encoder);
     encoder->setWorkerId(aEncId);
     pipe->addWorker(aEncId, aEnc);
+    
+    encoder->configure(MP3);
 
     //NOTE: add filter to path
     path = pipe->createPath(pipe->getReceiverID(), pipe->getTransmitterID(), port, -1, ids);
@@ -258,7 +260,7 @@ int main(int argc, char* argv[])
     if (port != 0 && !ip.empty()){
         addConnections(readers, ip, port);
     }
-
+    
     while (run) {
         sleep(1);
     }

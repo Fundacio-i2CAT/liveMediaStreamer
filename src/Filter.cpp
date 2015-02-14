@@ -621,8 +621,8 @@ bool ManyToOneFilter::runDoProcessFrame()
     return false;
 }
 
-LiveMediaFilter::LiveMediaFilter(unsigned readersNum, unsigned writersNum, size_t fTime, FilterRole fRole_) :
-BaseFilter(readersNum, writersNum,fTime,fRole_,false,false), watch(0)
+LiveMediaFilter::LiveMediaFilter(unsigned readersNum, unsigned writersNum) :
+BaseFilter(readersNum, writersNum, 0, NETWORK, false, false), watch(0)
 {
     TaskScheduler* scheduler = BasicTaskScheduler::createNew();
     env = BasicUsageEnvironment::createNew(*scheduler);

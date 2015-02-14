@@ -326,7 +326,7 @@ public:
     UsageEnvironment* envir() {return env;}
 
 protected:
-    LiveMediaFilter(unsigned readersNum = MAX_READERS, unsigned writersNum = MAX_WRITERS, size_t fTime = 0, FilterRole fRole_ = NETWORK);
+    LiveMediaFilter(unsigned readersNum = MAX_READERS, unsigned writersNum = MAX_WRITERS);
 
     UsageEnvironment* env;
     uint8_t watch;

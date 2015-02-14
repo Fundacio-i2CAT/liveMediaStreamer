@@ -43,7 +43,7 @@
 class SinkManager : public LiveMediaFilter {
 public:
 
-    SinkManager(unsigned readersNum = MAX_READERS, size_t fTime = 0, FilterRole fRole_ = MASTER);
+    SinkManager(unsigned readersNum = MAX_READERS);
     ~SinkManager();
     bool addSession(std::string id, std::vector<int> readers,
                     std::string info = "", std::string desc = "");

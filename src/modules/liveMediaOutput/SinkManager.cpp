@@ -37,8 +37,8 @@
 #include "../../Types.hh"
 #include "../../Utils.hh"
 
-SinkManager::SinkManager(unsigned readersNum, size_t fTime, FilterRole fRole_) :
-LiveMediaFilter(readersNum, 0, fTime, fRole_)
+SinkManager::SinkManager(unsigned readersNum) :
+LiveMediaFilter(readersNum, 0)
 {
     //TODO: Add authentication security
     rtspServer = RTSPServer::createNew(*env, RTSP_PORT, NULL);

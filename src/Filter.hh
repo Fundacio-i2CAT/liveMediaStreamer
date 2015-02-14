@@ -47,42 +47,144 @@
 
 #include "Event.hh"
 
-#define DEFAULT_ID 1
-#define MAX_WRITERS 16
-#define MAX_READERS 16
-#define VIDEO_DEFAULT_FRAMERATE 25 //fps
-#define RETRY 500 //us
 
+#define DEFAULT_ID 1                /*!< Default ID for unique filter's readers and/or writers. */
+#define MAX_WRITERS 16              /*!< Default maximum writers for a filter. */
+#define MAX_READERS 16              /*!< Default maximum readers for a filter. */
+#define VIDEO_DEFAULT_FRAMERATE 25  /*!< Default frame rate in frames per second (fps). */
+#define RETRY 500                   /*!< Default retry time in microseconds (us). */
 
+/*! Generic filter class methods. It is an interface to different specific filters
+    so it cannot be instantiated
+*/
 class BaseFilter : public Runnable {
 
 public:
+    /**
+    * Creates a one to one connection from an available writer to an available reader
+    * @param BaseFilter pointer of the filter to be connected
+    * @return True if succeeded and false if not
+    */
     bool connectOneToOne(BaseFilter *R);
+    /**
+    * Creates a many to one connection from specific writer to an available reader
+    * @param BaseFilter pointer of the filter to be connected
+    * @param Integer writer ID
+    * @return True if succeeded and false if not
+    */
     bool connectManyToOne(BaseFilter *R, int writerID);
+    /**
+    * Creates a one to many connection from an available writer to specific reader
+    * @param BaseFilter pointer of the filter to be connected
+    * @param Integer reader ID
+    * @return True if succeeded and false if not
+    */
     bool connectOneToMany(BaseFilter *R, int readerID);
+    /**
+    * Creates a many to many connection from specific reader to specific writer
+    * @param BaseFilter pointer of the filter to be connected
+    * @param Integer reader ID
+    * @param Integer writer ID
+    * @return True if succeeded and false if not
+    */
     bool connectManyToMany(BaseFilter *R, int readerID, int writerID);
 
+    /**
+    * Disconnects and cleans specified writer
+    * @param Integer writer ID
+    * @return True if succeeded and false if not
+    */
     bool disconnectWriter(int writerId);
+    /**
+    * Disconnects and cleans specified reader
+    * @param Integer reader ID
+    * @return True if succeeded and false if not
+    */
     bool disconnectReader(int readerId);
+    /**
+    * Disconnects and cleans all readers and writers
+    */
     void disconnectAll();
-    
+
+    /**
+    * If it is a master filter a new slave filter is added to the master's list
+    * @param Integer slave filter ID
+    * @param BaseFilter pointer of the slave filter to be added
+    * @return True if succeeded and false if not
+    */
     bool addSlave(int id, BaseFilter *slave);
 
+    /**
+    * Filter type getter
+    * @return filter type
+    */
     FilterType getType() {return fType;};
+    /**
+    * Filter role getter
+    * @return filter role
+    */
     FilterRole getRole() {return fRole;};
+
+    /**
+    * Generates a new and random reader ID
+    * @return filter role
+    */
     int generateReaderID();
+    /**
+    * Generates a new and random writer ID
+    * @return filter role
+    */
     int generateWriterID();
+    /**
+    * Maximum writers getter
+    * @return maximum number of possible writers for this filter
+    */
     const unsigned getMaxWriters() const {return maxWriters;};
+    /**
+    * Maximum readers getter
+    * @return maximum number of possible readers for this filter
+    */
     const unsigned getMaxReaders() const {return maxReaders;};
+    /**
+    * Adds a new event to the event queue from this filter
+    * @param new event
+    */
     virtual void pushEvent(Event e);
+    /**
+    * Get the state for this filter node
+    * @param filter node pointer
+    */
     void getState(Jzon::Object &filterNode);
+    /**
+    * Returns its worker ID
+    * @return Integer worker ID
+    */
     int getWorkerId(){return workerId;};
+    /**
+    * Sets the filter's worker ID
+    * @param Integer worker ID
+    */
     void setWorkerId(int id){workerId = id;};
+    /**
+    * Returns true if filter is enabled or false if not
+    * @return Bool enabled
+    */
     bool isEnabled(){return enabled;};
+
+    /**
+    * Class destructor. Deletes and clears its writers, readers, oframes, dframes and rupdates
+    */
     virtual ~BaseFilter();
 
     //NOTE: these are public just for testing purposes
+    /**
+    * Processes frames as a function of its role
+    */
     size_t processFrame();
+    /**
+    * Sets filter frame time
+    * @param size_t frame time
+    */
     void setFrameTime(size_t fTime);
 
 protected:
@@ -109,7 +211,7 @@ protected:
     std::map<std::string, std::function<void(Jzon::Node* params, Jzon::Object &outputNode)> > eventMap;
 
     virtual bool runDoProcessFrame() = 0;
-    
+
     bool removeSlave(int id);
     std::map<int, BaseFilter*> slaves;
 
@@ -185,7 +287,7 @@ private:
 
     using BaseFilter::maxReaders;
     using BaseFilter::maxWriters;
-    
+
     void stop() {};
 };
 
@@ -243,7 +345,7 @@ private:
     using BaseFilter::oFrames;
     using BaseFilter::dFrames;
     using BaseFilter::processEvent;
-    using BaseFilter::updateTimestamp;    
+    using BaseFilter::updateTimestamp;
     using BaseFilter::addSlave;
 
     using BaseFilter::frameTime;

@@ -8,7 +8,6 @@
 
 #include <csignal>
 #include <vector>
-#include <liveMedia.hh>
 #include <string>
 
 #define V_MEDIUM "video"
@@ -25,6 +24,8 @@
 #define A_BANDWITH 128
 #define A_TIME_STMP_FREQ 48000
 #define A_CHANNELS 2
+
+#define OUT_A_CODEC MP3
 
 bool run = true;
 
@@ -94,7 +95,7 @@ void addAudioSource(unsigned port, std::string codec = A_CODEC,
     encoder->setWorkerId(aEncId);
     pipe->addWorker(aEncId, aEnc);
     
-    encoder->configure(MP3);
+    encoder->configure(OUT_A_CODEC, A_CHANNELS, A_TIME_STMP_FREQ);
 
     //NOTE: add filter to path
     path = pipe->createPath(pipe->getReceiverID(), pipe->getTransmitterID(), port, -1, ids);

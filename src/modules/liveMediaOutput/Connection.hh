@@ -52,16 +52,56 @@ public:
     bool setup();
 
 protected:
-    Connection(UsageEnvironment* env, FramedSource *source);
+    Connection(UsageEnvironment* env);
 
-    bool startPlaying();
-    void stopPlaying();
+    virtual bool startPlaying() = 0;
+    virtual void stopPlaying() = 0;
     static void afterPlaying(void* clientData);
     virtual bool specificSetup() = 0;
 
     UsageEnvironment* fEnv;
-    FramedSource* fSource;
-    MediaSink* fSink;
+};
+
+////////////////////
+// RTSP CONNECTION //
+////////////////////
+
+/*! It represents an RTSP connection, which is defined by a name, format and former readers */
+
+class RTPSConnection : public Connection {
+
+public:
+    
+    /**
+    * Class destructor
+    */
+    RTSPConnection(UsageEnvironment* env, TxFormat txformat, RTSPServer* server,
+                   std::string name_, std::string info = "", std::string desc = "");
+    
+    /**
+    * Class destructor
+    */
+    ~RTSPConnection();
+    
+    bool addVideoSubsession(VCodecType codec, StreamReplicator* replicator, int readerId);
+    
+    bool addAudioSubsession(ACodecType codec, StreamReplicator* replicator,
+                                        unsigned channels, unsigned sampleRate, 
+                                        SampleFmt sampleFormat, int readerId);
+
+protected:
+
+    bool startPlaying();
+    void stopPlaying();
+    bool specificSetup();
+
+private:
+    ServerMediaSession* session;
+    //TODO: this should be const
+    RTSPServer* rtspServer
+    std::string name;
+    MPEG2TransportStreamFromESSource* tsFramer;
+    TxFormat format;
 };
 
 ////////////////////
@@ -78,6 +118,8 @@ public:
     * Class destructor
     */
     virtual ~RTPConnection();
+    
+    bool startPlaying();
 
 protected:
     RTPConnection(UsageEnvironment* env, FramedSource* source,
@@ -92,32 +134,13 @@ protected:
     RTCPInstance* rtcp;
     Groupsock *rtpGroupsock;
     Groupsock *rtcpGroupsock;
+    
+    FramedSource* fSource;
+    MediaSink* fSink;
 
 private:
     bool firstStepSetup();
     bool finalRTCPSetup();
-};
-
-/////////////////////
-// DASH CONNECTION //
-/////////////////////
-
-class DASHConnection : public Connection {
-
-public:
-    virtual ~DASHConnection();
-
-protected:
-    DASHConnection(UsageEnvironment* env, FramedSource* source, std::string fileName,
-                   std::string quality, bool reInit, uint32_t segmentTime, uint32_t initSegment);
-    bool specificSetup();
-    virtual bool additionalSetup() = 0;
-
-    std::string fFileName;
-    std::string quality;
-    bool fReInit;
-    uint32_t fSegmentTime;
-    uint32_t fInitSegment;
 };
 
 /////////////////////////

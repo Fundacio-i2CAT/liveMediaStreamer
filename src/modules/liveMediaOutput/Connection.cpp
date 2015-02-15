@@ -29,39 +29,18 @@
 #include "H264StartCodeInjector.hh"
 #include <GroupsockHelper.hh>
 
-Connection::Connection(UsageEnvironment* env, FramedSource *source) : 
-                       fEnv(env), fSource(source), fSink(NULL)
+Connection::Connection(UsageEnvironment* env) : 
+                       fEnv(env)
 {
 }
 
 Connection::~Connection()
 {
-    if (fSink) {
-        fSink->stopPlaying();
-    }
 }
 
 void Connection::afterPlaying(void* clientData) {
     MediaSink *clientSink = (MediaSink*) clientData;
     clientSink->stopPlaying();
-}
-
-bool Connection::startPlaying()
-{
-    if (!fSink || !fSource) {
-        utils::errorMsg("Cannot start playing, sink and/or source does not exist.");
-        return false;
-    }
-
-    fSink->startPlaying(*fSource, &Connection::afterPlaying, fSink);
-    return true;
-}
-
-void Connection::stopPlaying()
-{
-    if (fSink){
-        fSink->stopPlaying();
-    }
 }
 
 bool Connection::setup() 
@@ -78,19 +57,109 @@ bool Connection::setup()
 }
 
 ////////////////////
+// RTSP CONNECTION //
+////////////////////
+
+RTSPConnection::RTSPConnection(UsageEnvironment* env, TxFormat txformat, RTSPServer *server,
+                               std::string name_, std::string info, std::string desc) :
+                               Connection(env), session(NULL), rtspServer(server), 
+                               name(name_), tsFramer(NULL), format(txformat)
+                   
+{
+    session = ServerMediaSession::createNew(*env, name.c_str(), info.c_str(), desc.c_str());
+    if (session == NULL){
+        utils::errorMsg("Failed creating new ServerMediaSession");
+    }
+    
+    if (format == MPEGTS){
+        tsFramer = MPEG2TransportStreamFromESSource::createNew(*env);
+    }
+}
+
+bool RTSPConnection::addVideoSubsession(VCodecType codec, StreamReplicator* replicator, int readerId)
+{
+    MediaSubsession *subsession = NULL;
+    switch(codec){
+        case H264:
+            subsession = H264QueueServerMediaSubsession::createNew(env, replicators[readerId], readerId, False);
+            break;
+        case VP8:
+            subsession =  VP8QueueServerMediaSubsession::createNew(env, replicators[readerId], readerId, False);
+            break;
+        default:
+            break;
+    }
+    
+    if (!subsession){
+        return false;
+    }
+    
+    session->addSubsession(subsession);
+    
+    return true;
+}
+
+bool RTSPConnection::addAudioSubsession(ACodecType codec, StreamReplicator* replicator,
+                                        unsigned channels, unsigned sampleRate, 
+                                        SampleFmt sampleFormat, int readerId)
+{
+    MediaSubsession *subsession = NULL;
+    switch(codec){
+        //case MPEG4_GENERIC:
+            //TODO
+                        //printf("TODO createAudioMediaSubsession\n");
+            //break;
+        default:
+            subsession = AudioQueueServerMediaSubsession::createNew(*(envir()), replicator,
+                                                              readerId, codec, channels,
+                                                              sampleRate, sampleFormat, False);
+            break;
+    }
+    
+    if (!subsession){
+        return false;
+    }
+    
+    session->addSubsession(subsession);
+    
+    return true;
+}
+
+bool RTSPConnection::startPlaying()
+{
+    if (rtspServer == NULL){
+        return false;
+    }
+    
+    if (session == NULL){
+        return false;
+    }
+
+    rtspServer->addServerMediaSession(session);
+    char* url = rtspServer->rtspURL(session);
+
+    utils::infoMsg("Play " + id + " stream using the URL " + url);
+    delete[] url;
+
+    return true;
+}
+
+////////////////////
 // RTP CONNECTION //
 ////////////////////
 
 RTPConnection::RTPConnection(UsageEnvironment* env, FramedSource* source,
                              std::string ip, unsigned port) :
-                             Connection(env, source), fIp(ip), fPort(port)
+                             Connection(env), fIp(ip), fPort(port), 
+                             fSource(source), fSink(NULL)
 { 
 
 }
 
 RTPConnection::~RTPConnection()
-{
+{   
     if (fSink) {
+        fSink->stopPlaying();
         Medium::close(rtcp);
     }
 
@@ -100,6 +169,24 @@ RTPConnection::~RTPConnection()
 
     if (rtcpGroupsock) {
         delete rtcpGroupsock;
+    }
+}
+
+bool RTPConnection::startPlaying()
+{
+    if (!fSink || !fSource) {
+        utils::errorMsg("Cannot start playing, sink and/or source does not exist.");
+        return false;
+    }
+
+    fSink->startPlaying(*fSource, &Connection::afterPlaying, fSink);
+    return true;
+}
+
+void RTPConnection::stopPlaying()
+{
+    if (fSink){
+        fSink->stopPlaying();
     }
 }
 
@@ -175,28 +262,6 @@ bool RTPConnection::finalRTCPSetup()
 
     return true;
 }
-
-/////////////////////
-// DASH CONNECTION //
-/////////////////////
-
-DASHConnection::DASHConnection(UsageEnvironment* env, FramedSource* source, std::string fileName,
-                               std::string quality, bool reInit, uint32_t segmentTime, uint32_t initSegment) :
-                               Connection(env, source), fFileName(fileName), fReInit(reInit),
-                               fSegmentTime(segmentTime), fInitSegment(initSegment)
-{
-
-}
-
-DASHConnection::~DASHConnection()
-{
-}
-
-bool DASHConnection::specificSetup()
-{
-    return true;
-} 
-
 
 /////////////////////////
 // RAW RTP CONNECTIONS //

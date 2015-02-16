@@ -256,3 +256,22 @@ bool DashAudioSegmenter::setup(size_t segmentDuration, size_t timeBase, size_t s
     set_segment_duration(segmentDuration, &dashContext);
     return true;
 }
+
+ 
+size_t DashAudioSegmenter::getChannels()
+{
+    if (!aFrame) {
+        return 0;
+    }
+
+    return aFrame->getChannels();
+}
+
+size_t DashAudioSegmenter::getSampleRate()
+{
+    if (!aFrame) {
+        return 0;
+    }
+
+    return aFrame->getSampleRate();
+}

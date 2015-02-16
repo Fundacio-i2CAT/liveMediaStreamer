@@ -31,13 +31,31 @@
 #include <chrono>
 #include <fstream>
 
+#define V_SEG_TMPL "test_$RepresentationID$_$Time$.m4v"
+#define A_SEG_TMPL "test_$RepresentationID$_$Time$.m4a"
+#define V_INIT_SEG_TMPL "test_$RepresentationID$_init.m4v"
+#define A_INIT_SEG_TMPL "test_$RepresentationID$_init.m4a"
+#define V_BAND 2000000
+#define A_BAND 192000
+#define SEGMENT_DURATION 4 //sec
+#define MPD_LOCATION "http://localhost/dashLMS/test.mpd"
+#define MPD_PATH "/home/palau/nginx_root/dashLMS/test.mpd"
+
 Dasher::Dasher(int readersNum) : TailFilter(readersNum)
 {
+    mpdMngr = new MpdManager();
+    mpdMngr->setLocation(MPD_LOCATION);
+    mpdMngr->setMinBufferTime(SEGMENT_DURATION*(MAX_SEGMENTS_IN_MPD/2));
+    mpdMngr->setMinimumUpdatePeriod(SEGMENT_DURATION);
+    mpdMngr->setTimeShiftBufferDepth(SEGMENT_DURATION*MAX_SEGMENTS_IN_MPD);
 }
 
 Dasher::~Dasher()
 {
-
+    for (auto seg : segmenters) {
+        delete seg.second;
+    }
+    delete mpdMngr;
 }
 
 bool Dasher::doProcessFrame(std::map<int, Frame*> orgFrames)
@@ -71,6 +89,7 @@ bool Dasher::doProcessFrame(std::map<int, Frame*> orgFrames)
         }
 
         if (segmenter->generateSegment()) {
+            updateMpd(fr.first, segmenter);
             utils::debugMsg("New DASH segment generated");
         }
     }
@@ -152,6 +171,27 @@ bool Dasher::removeSegmenter(int readerId)
     return true;
 }
 
+void Dasher::updateMpd(int id, DashSegmenter* segmenter)
+{
+    DashVideoSegmenter* vSeg;
+    DashAudioSegmenter* aSeg;
+
+    if ((vSeg = dynamic_cast<DashVideoSegmenter*>(segmenter)) != NULL) {
+        mpdMngr->updateVideoAdaptationSet(V_ADAPT_SET_ID, segmenter->getTimeBase(), V_SEG_TMPL, V_INIT_SEG_TMPL);
+        mpdMngr->updateVideoRepresentation(V_ADAPT_SET_ID, std::to_string(id), VIDEO_CODEC, vSeg->getWidth(), 
+                                            vSeg->getHeight(), V_BAND, vSeg->getFramerate());
+        mpdMngr->updateAdaptationSetTimestamp(V_ADAPT_SET_ID, segmenter->getSegmentTimestamp(), vSeg->getSegmentDuration());
+    }
+
+    if ((aSeg = dynamic_cast<DashAudioSegmenter*>(segmenter)) != NULL) {
+        mpdMngr->updateAudioAdaptationSet(A_ADAPT_SET_ID, segmenter->getTimeBase(), A_SEG_TMPL, A_INIT_SEG_TMPL);
+        mpdMngr->updateAudioRepresentation(A_ADAPT_SET_ID, std::to_string(id), AUDIO_CODEC, aSeg->getSampleRate(), A_BAND, aSeg->getChannels());
+        mpdMngr->updateAdaptationSetTimestamp(A_ADAPT_SET_ID, segmenter->getSegmentTimestamp(), aSeg->getCustomSegmentDuration());
+    }
+
+    mpdMngr->writeToDisk(MPD_PATH);
+}
+
 DashSegmenter::DashSegmenter(size_t segDur, size_t tBase, std::string segBaseName, std::string segExt) : 
 dashContext(NULL), timeBase(tBase), segmentDuration(segDur), frameDuration(0), baseName(segBaseName), 
 segmentExt(segExt), tsOffset(0)
@@ -219,6 +259,10 @@ std::string DashSegmenter::getSegmentName()
     return fullName;
 }
 
+size_t DashSegmenter::getSegmentTimestamp() 
+{
+    return segment->getTimestamp();
+}
 
 DashSegment::DashSegment(size_t maxSize)
 {

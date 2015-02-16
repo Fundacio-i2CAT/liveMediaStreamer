@@ -22,7 +22,6 @@
  */
 
  #include "DashVideoSegmenter.hh"
- #include <fstream>
 
 DashVideoSegmenter::DashVideoSegmenter(size_t segDur, std::string segBaseName) : 
 DashSegmenter(segDur, MICROSECONDS_TIME_BASE, segBaseName, ".m4v"), 

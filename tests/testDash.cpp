@@ -30,7 +30,7 @@
 #define OUT_A_CODEC AAC
 
 #define SEGMENT_DURATION 4000000 //us
-#define SEG_BASE_NAME "/home/palau/nginx_root/dashLMS/test500"
+#define SEG_BASE_NAME "/home/palau/nginx_root/dashLMS/test"
 
 bool run = true;
 int dasherId = rand();
@@ -73,6 +73,7 @@ void addAudioSource(unsigned port, std::string codec = A_CODEC,
     std::vector<int> ids({decId, encId});
     std::string sessionId;
     std::string sdp;
+    std::string segPath;
     
     AudioDecoderLibav *decoder;
     AudioEncoderLibav *encoder;
@@ -127,7 +128,8 @@ void addAudioSource(unsigned port, std::string codec = A_CODEC,
     pipe->addPath(port, path);       
     pipe->connectPath(path);
 
-    if (!dasher->addSegmenter(dstReader, SEG_BASE_NAME, SEGMENT_DURATION)) {
+    segPath = std::string(SEG_BASE_NAME) + "_" + std::to_string(dstReader);
+    if (!dasher->addSegmenter(dstReader, segPath, SEGMENT_DURATION)) {
         utils::errorMsg("Error adding segmenter");
     }
 
@@ -148,7 +150,8 @@ void addVideoSource(unsigned port, unsigned fps = FRAME_RATE, std::string codec 
     std::vector<int> ids({decId, resId, encId});
     std::string sessionId;
     std::string sdp;
-    
+    std::string segPath;
+
     VideoResampler *resampler;
     VideoEncoderX264 *encoder;
     VideoDecoderLibav *decoder;
@@ -209,7 +212,10 @@ void addVideoSource(unsigned port, unsigned fps = FRAME_RATE, std::string codec 
     pipe->addPath(port, path);       
     pipe->connectPath(path);
 
-    dasher->addSegmenter(dstReader, SEG_BASE_NAME, SEGMENT_DURATION);
+    segPath = std::string(SEG_BASE_NAME) + "_" + std::to_string(dstReader);
+    if (!dasher->addSegmenter(dstReader, segPath, SEGMENT_DURATION)) {
+        utils::errorMsg("Error adding segmenter");
+    }
     
     pipe->startWorkers();
 }

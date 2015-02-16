@@ -27,6 +27,7 @@
 #include "../../Filter.hh"
 #include "../../VideoFrame.hh"
 #include "../../AudioFrame.hh"
+#include "MpdManager.hh"
 
 extern "C" {
     #include "i2libdash.h"
@@ -36,6 +37,10 @@ extern "C" {
 #include <string>
 
 #define MICROSECONDS_TIME_BASE 1000000
+#define V_ADAPT_SET_ID "0"
+#define A_ADAPT_SET_ID "1"
+#define VIDEO_CODEC "avc1.42c01e"
+#define AUDIO_CODEC "mp4a.40.2"
 
 class DashSegmenter;
 class DashSegment;
@@ -80,8 +85,11 @@ public:
 private: 
     bool doProcessFrame(std::map<int, Frame*> orgFrames);
     void initializeEventMap();
+    void updateMpd(int id, DashSegmenter* segmenter);
+
 
     std::map<int, DashSegmenter*> segmenters;
+    MpdManager* mpdMngr;
 };
 
 /*! Abstract class implemented by DashVideoSegmenter and DashAudioSegmenter */ 
@@ -146,6 +154,12 @@ public:
     * @return timestamp in milliseconds
     */
     size_t getTsOffset() {return tsOffset;};
+
+    /**
+    * It returns the last segment timestamp 
+    * @return timestamp in timeBase units
+    */
+    size_t getSegmentTimestamp();
 
 protected:
     virtual bool updateMetadata() = 0;

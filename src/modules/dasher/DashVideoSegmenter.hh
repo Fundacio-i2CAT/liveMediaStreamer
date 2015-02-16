@@ -156,6 +156,12 @@ public:
     */
     size_t getFramerate() {return frameRate;};
 
+    /**
+    * Return the segment duration 
+    * @return segment duration in timeBase units
+    */
+    size_t getSegmentDuration() {return segmentDuration;};
+
 private:
     bool updateMetadata();
     bool generateInitData();

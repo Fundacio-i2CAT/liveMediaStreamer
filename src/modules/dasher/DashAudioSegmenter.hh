@@ -72,9 +72,21 @@ public:
     /**
     * It returns the segment duration in audio timebase units, which was set on the constructor in milliseconds. 
     * In this case, the time base corresponds to the sampling rate of the audio. 
-    * @return true if succeeded and false if not
+    * @return segment duration in time base units
     */
     size_t getCustomSegmentDuration() {return customSegmentDuration;};
+
+    /**
+    * It returns the last configured audio channels number 
+    * @return number of audio channels
+    */
+    size_t getChannels();
+
+    /**
+    * It returns the last configured sample rate 
+    * @return sample rate in Hz
+    */
+    size_t getSampleRate();
 
 private:
     bool updateMetadata();

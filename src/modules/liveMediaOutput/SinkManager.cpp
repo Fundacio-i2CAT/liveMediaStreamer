@@ -411,35 +411,6 @@ bool SinkManager::deleteReader(int id)
     return true;
 }
 
-// bool SinkManager::publishSession(std::string id)
-// {
-//     if (sessionList.find(id) == sessionList.end()){
-//         utils::errorMsg("Failed, no session found with this id (" + id + ")");
-//         return false;
-//     }
-// 
-//     if (rtspServer == NULL){
-//         return false;
-//     }
-// 
-//     rtspServer->addServerMediaSession(sessionList[id]);
-//     char* url = rtspServer->rtspURL(sessionList[id]);
-// 
-//     utils::infoMsg("Play " + id + " stream using the URL " + url);
-//     delete[] url;
-// 
-//     return true;
-// }
-
-// ServerMediaSession* SinkManager::getSession(std::string id)
-// {
-//     if(sessionList.find(id) != sessionList.end()){
-//         return sessionList[id];
-//     }
-// 
-//     return NULL;
-// }
-
 void SinkManager::initializeEventMap()
 {
 //     eventMap["addSession"] = std::bind(&SinkManager::addSessionEvent, this,
@@ -448,52 +419,6 @@ void SinkManager::initializeEventMap()
                                         std::placeholders::_1,  std::placeholders::_2);
 
 }
-
-//TODO: update this event!
-// void SinkManager::addSessionEvent(Jzon::Node* params, Jzon::Object &outputNode)
-// {
-//     std::vector<int> readers;
-//     std::string sessionId;
-// 
-//     if (!params) {
-//         outputNode.Add("error", "Error adding session. No parameters!");
-//         return;
-//     }
-// 
-//     if (params->Has("sessionName")) {
-//         sessionId = params->Get("sessionName").ToString();
-//     } else {
-//         sessionId = utils::randomIdGenerator(ID_LENGTH);
-//     }
-// 
-//     if (!params->Has("readers") || !params->Get("readers").IsArray()) {
-//         outputNode.Add("error", "Error adding session. Readers does not exist or is not an array!");
-//         return;
-//     }
-// 
-//     Jzon::Array jsonReaders = params->Get("readers").AsArray();
-// 
-//     for (Jzon::Array::iterator it = jsonReaders.begin(); it != jsonReaders.end(); ++it) {
-//         readers.push_back((*it).ToInt());
-//     }
-// 
-//     if (readers.empty()) {
-//         outputNode.Add("error", "Error adding session. Readers array is empty!");
-//         return;
-//     }
-// 
-//     if(!addSession(sessionId, readers)) {
-//         outputNode.Add("error", "Error adding session. Internal error!");
-//         return;
-//     }
-// 
-//     if (!publishSession(sessionId)){
-//         outputNode.Add("error", "Error adding session. Internal error!");
-//         return;
-//     }
-// 
-//     outputNode.Add("sessionID", sessionId);
-// }
 
 void SinkManager::addRTPConnectionEvent(Jzon::Node* params, Jzon::Object &outputNode)
 {

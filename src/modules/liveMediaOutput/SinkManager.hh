@@ -68,12 +68,7 @@ public:
     * @return True if succeded and false if not
     */
     bool addRTSPConnection(std::vector<int> readers, int id, TxFormat txformat, 
-                           std::string name, std::string info = "", std::string desc = "");
-
-    //ServerMediaSession* getSession(std::string id);
-    //bool publishSession(std::string id);
-    //bool removeSession(std::string id);
-    
+                           std::string name, std::string info = "", std::string desc = "");  
 
     void stop();
 
@@ -100,7 +95,6 @@ private:
     void createAudioQueueSource(ACodecType codec, Reader *reader, int readerId);
     void doGetState(Jzon::Object &filterNode);
 
-    //std::map<std::string, ServerMediaSession*> sessionList;
     std::map<int, StreamReplicator*> replicators;
     std::map<int, Connection*> connections;
 

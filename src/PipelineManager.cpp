@@ -145,7 +145,7 @@ bool PipelineManager::addPath(int id, Path* path)
     return true;
 }
 
-BaseFilter* PipelineManager::createFilter(FilterType type)
+BaseFilter* PipelineManager::createFilter(FilterType type, Jzon::Node* params)
 {
     BaseFilter* filter;
 
@@ -179,7 +179,6 @@ BaseFilter* PipelineManager::createFilter(FilterType type)
 
     return filter;
 }
-
 
 bool PipelineManager::addFilter(int id, BaseFilter* filter)
 {
@@ -497,7 +496,7 @@ void PipelineManager::createFilterEvent(Jzon::Node* params, Jzon::Object &output
     id = params->Get("id").ToInt();
     fType = utils::getFilterTypeFromString(params->Get("type").ToString());
 
-    filter = createFilter(fType);
+    filter = createFilter(fType, params);
 
     if (!filter) {
         outputNode.Add("error", "Error creating filter. Specified type is not correct..");

@@ -42,22 +42,23 @@ public:
     ~AudioEncoderLibav();
     
     bool doProcessFrame(Frame *org, Frame *dst);
-    FrameQueue* allocQueue(int wId);
 
     int getSamplesPerFrame(){ return samplesPerFrame;};
-    int getChannels(){ return channels;};
-    int getSampleRate() {return sampleRate;};
-    SampleFmt getSampleFmt() {return sampleFmt;};
     ACodecType getCodec() {return fCodec;};
-    void configure(ACodecType codec, int internalChannels = DEFAULT_CHANNELS, int internalSampleRate = DEFAULT_SAMPLE_RATE);
 
+    bool setup(ACodecType codec, int codedAudioChannels, int codedAudioSampleRate);
     Reader* setReader(int readerID, FrameQueue* queue, bool sharedQueue = false);
 
 private:
+    FrameQueue* allocQueue(int wId);
+    
     void initializeEventMap();
     int resample(AudioFrame* src, AVFrame* dst);
     bool reconfigure(AudioFrame* frame);
-    bool config();
+    bool resamplingConfig();
+    bool codingConfig(); 
+
+
     void configEvent(Jzon::Node* params, Jzon::Object &outputNode);
     void doGetState(Jzon::Object &filterNode);
    
@@ -65,22 +66,22 @@ private:
     AVCodecContext      *codecCtx;
     AVFrame             *libavFrame;
     AVPacket            pkt;
-    AVSampleFormat      internalLibavSampleFormat;
     SwrContext          *resampleCtx;
     AVCodecID           codecID;
-    AVSampleFormat      libavSampleFmt;
     int                 gotFrame;
-    bool                needsConfig;
 
     ACodecType          fCodec;
-    SampleFmt           sampleFmt;
-    SampleFmt           internalSampleFmt;
-
-    int                 channels;
-    int                 internalChannels;
-    int                 sampleRate;
-    int                 internalSampleRate;
     int                 samplesPerFrame;
+
+    int                 internalChannels;
+    int                 internalSampleRate;
+    SampleFmt           internalSampleFmt;
+    AVSampleFormat      internalLibavSampleFmt;
+
+    int                 inputChannels;
+    int                 inputSampleRate;
+    SampleFmt           inputSampleFmt;
+    AVSampleFormat      inputLibavSampleFmt;
 
     unsigned char **dst_data;
     int linesize;

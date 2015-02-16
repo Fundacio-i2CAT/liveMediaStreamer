@@ -89,14 +89,16 @@ void addAudioSource(unsigned port, std::string codec = A_CODEC,
 
     //NOTE: Adding encoder to pipeManager and handle worker
     encoder = new AudioEncoderLibav();
+    if (!encoder->setup(OUT_A_CODEC, A_CHANNELS, A_TIME_STMP_FREQ)) {
+        utils::errorMsg("Error configuring audio encoder. Check provided parameters");
+        return;
+    }
     pipe->addFilter(encId, encoder);
     aEnc = new Worker();
     aEnc->addProcessor(encId, encoder);
     encoder->setWorkerId(aEncId);
     pipe->addWorker(aEncId, aEnc);
     
-    encoder->configure(OUT_A_CODEC, A_CHANNELS, A_TIME_STMP_FREQ);
-
     //NOTE: add filter to path
     path = pipe->createPath(pipe->getReceiverID(), pipe->getTransmitterID(), port, -1, ids);
     pipe->addPath(port, path);

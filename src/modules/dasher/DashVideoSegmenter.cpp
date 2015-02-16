@@ -25,7 +25,7 @@
 
 DashVideoSegmenter::DashVideoSegmenter(size_t segDur, std::string segBaseName) : 
 DashSegmenter(segDur, MICROSECONDS_TIME_BASE, segBaseName, ".m4v"), 
-updatedSPS(false), updatedPPS(false), lastTs(0), tsOffset(0), frameRate(0), isIntra(false), 
+updatedSPS(false), updatedPPS(false), lastTs(0), frameRate(0), isIntra(false), 
 isVCL(false), currTimestamp(0), width(0), height(0)
 {
 
@@ -132,7 +132,7 @@ bool DashVideoSegmenter::parseNal(VideoFrame* nal, bool &newFrame)
 
 bool DashVideoSegmenter::updateTimeValues() 
 {
-    if (currTimestamp == 0 || currTimestamp < lastTs) {
+    if (currTimestamp == 0 || currTimestamp < lastTs || currTimestamp < tsOffset) {
         return false;
     }
 

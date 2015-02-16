@@ -263,7 +263,7 @@ int main(int argc, char* argv[])
     if (port != 0 && !ip.empty()){
         addConnections(readers, ip, port);
     }
-    
+
     while (run) {
         sleep(1);
     }

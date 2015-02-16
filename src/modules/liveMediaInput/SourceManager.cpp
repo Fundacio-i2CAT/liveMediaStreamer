@@ -39,6 +39,10 @@ FrameQueue* createAudioQueue(unsigned char rtpPayloadFormat,
 SourceManager::SourceManager(unsigned writersNum): LiveMediaFilter(0, writersNum), watch(0)
 {
     fType = RECEIVER;
+
+    TaskScheduler* scheduler = BasicTaskScheduler::createNew();
+    env = BasicUsageEnvironment::createNew(*scheduler);
+
     initializeEventMap();
 }
 
@@ -74,15 +78,15 @@ bool SourceManager::hasCallback()
     return false;
 }
 
-size_t SourceManager::processFrame(bool removeFrame)
+bool SourceManager::runDoProcessFrame()
 {
     if (envir() == NULL){
-        return 0;
+        return false;
     }
 
     envir()->taskScheduler().doEventLoop((char*) &watch);
 
-    return 1;
+    return true;
 }
 
 bool SourceManager::addSession(Session* session)

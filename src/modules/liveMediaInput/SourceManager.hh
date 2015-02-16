@@ -92,8 +92,6 @@ public:
                                   unsigned int clientPortNum = 0,
                                   unsigned int channels = 0);
 
-    void stop();
-
     bool addSession(Session* session);
     bool removeSession(std::string id);
 
@@ -101,6 +99,8 @@ public:
     int getWriterID(unsigned int port);
     void setCallback(std::function<void(char const*, unsigned short)> callbackFunction);
     bool hasCallback();
+
+    UsageEnvironment* envir() {return env;}
 
 private:
     void initializeEventMap();
@@ -111,15 +111,19 @@ private:
     friend bool Session::initiateSession(SourceManager *mngr);
     bool addWriter(unsigned port, const Writer *writer);
 
-    size_t processFrame(bool removeFrame = false);
+    bool runDoProcessFrame();
     void addConnection(int wId, MediaSubsession* subsession);
 
     static void* startServer(void *args);
     FrameQueue *allocQueue(int wId);
 
+    void stop();
+
     std::map<std::string, Session*> sessionMap;
+
     UsageEnvironment* env;
     uint8_t watch;
+
     std::function<void(char const*, unsigned short)> callback;
 
 };

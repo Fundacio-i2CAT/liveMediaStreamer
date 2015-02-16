@@ -33,6 +33,8 @@
 
 #include <map>
 #include <string>
+#include <liveMedia/liveMedia.hh>
+#include <BasicUsageEnvironment.hh>
 
 #define RTSP_PORT 8554
 #define MAX_VIDEO_FRAME_SIZE 1024*1024
@@ -68,7 +70,7 @@ public:
     bool removeSessionByReaderId(int readerId);
     bool deleteReader(int id);
 
-    void stop();
+    UsageEnvironment* envir() {return env;}
 
 private:
     bool addStdRTPConnection(std::vector<int> readers, int id, std::string ip, int port);
@@ -80,6 +82,7 @@ private:
     Reader *setReader(int readerID, FrameQueue* queue, bool sharedQueue = false);
 
     bool runDoProcessFrame();
+    void stop();
 
     FrameQueue *allocQueue(int wId) { return NULL;};
 
@@ -98,6 +101,8 @@ private:
     std::map<int, Connection*> connections;
 
     RTSPServer* rtspServer;
+    UsageEnvironment* env;
+    uint8_t watch;
 };
 
 #endif

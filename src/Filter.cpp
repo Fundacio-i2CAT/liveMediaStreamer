@@ -200,7 +200,7 @@ bool BaseFilter::connect(BaseFilter *R, int writerID, int readerID)
         utils::errorMsg("Writer " + std::to_string(writerID) + " null or already connected");
         return false;
     }
-    
+
     if (R->getReader(readerID) && R->getReader(readerID)->isConnected()){
         return false;
     }
@@ -622,10 +622,8 @@ bool ManyToOneFilter::runDoProcessFrame()
 }
 
 LiveMediaFilter::LiveMediaFilter(unsigned readersNum, unsigned writersNum) :
-BaseFilter(readersNum, writersNum, 0, NETWORK, false, false), watch(0)
+BaseFilter(readersNum, writersNum, 0, NETWORK, false, false)
 {
-    TaskScheduler* scheduler = BasicTaskScheduler::createNew();
-    env = BasicUsageEnvironment::createNew(*scheduler);
 }
 
 void LiveMediaFilter::pushEvent(Event e)
@@ -644,15 +642,4 @@ void LiveMediaFilter::pushEvent(Event e)
 
     eventMap[action](params, outputNode);
     e.sendAndClose(outputNode);
-}
-
-bool LiveMediaFilter::runDoProcessFrame()
-{
-    if (envir() == NULL){
-        return false;
-    }
-
-    envir()->taskScheduler().doEventLoop((char*) &watch);
-
-    return true;
 }

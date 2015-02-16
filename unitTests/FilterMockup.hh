@@ -1,5 +1,5 @@
 /*
- *  FilterMockUp - A filter class mockup 
+ *  FilterMockUp - A filter class mockup
  *  Copyright (C) 2014  Fundació i2CAT, Internet i Innovació digital a Catalunya
  *
  *  This file is part of media-streamer.
@@ -94,7 +94,7 @@ protected:
 
 private:
     VCodecType codec;
-    
+
     bool runDoProcessFrame() {return true;};
 };
 
@@ -123,7 +123,7 @@ protected:
 
 private:
     virtual FrameQueue *allocQueue(int wId) {return new AVFramedQueueMock(queueSize);};
-    
+
     std::default_random_engine generator;
     size_t processTime; //usec
     size_t queueSize;
@@ -155,21 +155,53 @@ protected:
 
 private:
     virtual FrameQueue *allocQueue(int wId) {return new AVFramedQueueMock(queueSize);};
-    
+
     std::default_random_engine generator;
     size_t processTime; //usec
     size_t queueSize;
     bool gotFrame;
 };
 
-class VideoFilterMockup : public OneToOneFilterMockup 
+class LiveMediaFilterMockup : virtual public LiveMediaFilter
 {
 public:
-    VideoFilterMockup(VCodecType c) : OneToOneFilterMockup(20000, 4, true, 
+    LiveMediaFilterMockup(unsigned maxReaders, unsigned maxWriters, unsigned queueSize_, bool watch_) :
+        LiveMediaFilter(maxReaders, maxWriters),
+        queueSize(queueSize_), watch(watch_) {};
+
+    using BaseFilter::getReader;
+
+private:
+    virtual FrameQueue *allocQueue(int wId) {return new AVFramedQueueMock(queueSize);};
+    void stop() {
+        watch = false;
+    }
+    void doGetState(Jzon::Object &filterNode) {};
+    bool runDoProcessFrame(){
+        if(watch){
+            utils::debugMsg("LiveMedia filter dummy runDoProcessFrame\n");
+            while(watch){
+                std::this_thread::sleep_for(std::chrono::milliseconds(50));
+            }
+        }
+        return true;
+    }
+
+
+private:
+    size_t queueSize;
+    bool watch;
+
+};
+
+class VideoFilterMockup : public OneToOneFilterMockup
+{
+public:
+    VideoFilterMockup(VCodecType c) : OneToOneFilterMockup(20000, 4, true,
                       40000, MASTER, false)  {
         codec = c;
     };
-    
+
 protected:
     FrameQueue *allocQueue(int wId) {return VideoFrameQueue::createNew(codec);};
 
@@ -177,14 +209,14 @@ private:
     VCodecType codec;
 };
 
-class AudioFilterMockup : public OneToOneFilterMockup 
+class AudioFilterMockup : public OneToOneFilterMockup
 {
 public:
-    AudioFilterMockup(ACodecType c) : OneToOneFilterMockup(20000, 4, true, 
+    AudioFilterMockup(ACodecType c) : OneToOneFilterMockup(20000, 4, true,
                       40000, MASTER, false)  {
         codec = c;
     };
-    
+
 protected:
     FrameQueue *allocQueue(int wId) {return AudioFrameQueue::createNew(codec);};
 

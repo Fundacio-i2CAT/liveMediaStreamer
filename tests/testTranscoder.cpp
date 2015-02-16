@@ -94,8 +94,8 @@ void addAudioSource(unsigned port, std::string codec = A_CODEC,
     aEnc->addProcessor(encId, encoder);
     encoder->setWorkerId(aEncId);
     pipe->addWorker(aEncId, aEnc);
-    
-    encoder->configure(OUT_A_CODEC, A_CHANNELS, A_TIME_STMP_FREQ);
+
+    //encoder->configure(OUT_A_CODEC, A_CHANNELS, A_TIME_STMP_FREQ);
 
     //NOTE: add filter to path
     path = pipe->createPath(pipe->getReceiverID(), pipe->getTransmitterID(), port, -1, ids);
@@ -261,7 +261,7 @@ int main(int argc, char* argv[])
     if (port != 0 && !ip.empty()){
         addConnections(readers, ip, port);
     }
-    
+
     while (run) {
         sleep(1);
     }

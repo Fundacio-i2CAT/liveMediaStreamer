@@ -29,9 +29,6 @@
 #include <vector>
 #include <queue>
 #include <mutex>
-//NOTE: there should not be this kind of dependences here
-#include <liveMedia/liveMedia.hh>
-#include <BasicUsageEnvironment.hh>
 
 #ifndef _FRAME_QUEUE_HH
 #include "FrameQueue.hh"
@@ -425,16 +422,11 @@ class LiveMediaFilter : public BaseFilter
 {
 public:
     void pushEvent(Event e);
-    UsageEnvironment* envir() {return env;}
 
 protected:
     LiveMediaFilter(unsigned readersNum = MAX_READERS, unsigned writersNum = MAX_WRITERS);
 
-    UsageEnvironment* env;
-    uint8_t watch;
-
-private:
-    bool runDoProcessFrame();
+    virtual bool runDoProcessFrame() = 0;
 
 };
 

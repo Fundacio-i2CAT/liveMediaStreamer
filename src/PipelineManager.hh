@@ -86,7 +86,7 @@ private:
     bool removePath(int id);
     bool deletePath(Path* path);
     bool removeWorker(int id);
-    BaseFilter* createFilter(FilterType type);
+    BaseFilter* createFilter(FilterType type, Jzon::Node* params);
 
     static PipelineManager* pipeMngrInstance;
 

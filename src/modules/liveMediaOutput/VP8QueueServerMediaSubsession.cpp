@@ -27,22 +27,29 @@
 
 VP8QueueServerMediaSubsession*
 VP8QueueServerMediaSubsession::createNew(UsageEnvironment& env,
-                          StreamReplicator* replicator, int readerId,
+                          StreamReplicator* replica, int readerId,
                           Boolean reuseFirstSource) {
-    return new VP8QueueServerMediaSubsession(env, replicator, readerId, reuseFirstSource);
+    return new VP8QueueServerMediaSubsession(env, replica, readerId, reuseFirstSource);
 }
 
 VP8QueueServerMediaSubsession::VP8QueueServerMediaSubsession(UsageEnvironment& env,
-                          StreamReplicator* replicator, int readerId, 
+                          StreamReplicator* replica, int readerId, 
                           Boolean reuseFirstSource)
-  : QueueServerMediaSubsession(env, replicator, readerId, reuseFirstSource) {
+  : QueueServerMediaSubsession(env, reuseFirstSource), replicator(replica), reader(readerId)
+{
+}
+
+VP8QueueServerMediaSubsession::~VP8QueueServerMediaSubsession() 
+{
+  //NOTE: is this needed?
+  Medium::close(replicator);
 }
 
 FramedSource* VP8QueueServerMediaSubsession::createNewStreamSource(unsigned /*clientSessionId*/, unsigned& estBitrate) {
     //TODO: WTF
     estBitrate = 2000; // kbps, estimate
 
-    return fReplicator->createStreamReplica();
+    return replicator->createStreamReplica();
 }
 
 RTPSink* VP8QueueServerMediaSubsession
@@ -50,4 +57,11 @@ RTPSink* VP8QueueServerMediaSubsession
            unsigned char rtpPayloadTypeIfDynamic,
            FramedSource* /*inputSource*/) {
     return VP8VideoRTPSink::createNew(envir(), rtpGroupsock, rtpPayloadTypeIfDynamic);
+}
+
+std::vector<int> VP8QueueServerMediaSubsession::getReaderIds()
+{
+    std::vector<int> readers;
+    readers.push_back(reader);
+    return readers;
 }

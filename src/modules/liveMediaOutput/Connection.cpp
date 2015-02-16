@@ -66,7 +66,7 @@ bool Connection::setup()
 RTSPConnection::RTSPConnection(UsageEnvironment* env, TxFormat txformat, RTSPServer *server,
                                std::string name_, std::string info, std::string desc) :
                                Connection(env), session(NULL), rtspServer(server), 
-                               name(name_), tsFramer(NULL), format(txformat)
+                               name(name_), subsession(NULL), format(txformat), addedSub(false)
                    
 {
     session = ServerMediaSession::createNew(*env, name.c_str(), info.c_str(), desc.c_str());
@@ -75,61 +75,120 @@ RTSPConnection::RTSPConnection(UsageEnvironment* env, TxFormat txformat, RTSPSer
     }
     
     if (format == MPEGTS){
-        tsFramer = MPEG2TransportStreamFromESSource::createNew(*env);
+        subsession = MPEGTSQueueServerMediaSubsession::createNew(*env, False);
     }
-}
-
-bool RTSPConnection::addVideoSubsession(VCodecType codec, StreamReplicator* replicator, int readerId)
-{
-    ServerMediaSubsession *subsession = NULL;
-    switch(codec){
-        case H264:
-            subsession = H264QueueServerMediaSubsession::createNew(*fEnv, replicator, readerId, False);
-            break;
-        case VP8:
-            subsession =  VP8QueueServerMediaSubsession::createNew(*fEnv, replicator, readerId, False);
-            break;
-        default:
-            break;
-    }
-    
-    if (!subsession){
-        return false;
-    }
-    
-    session->addSubsession(subsession);
-    
-    return true;
 }
 
 RTSPConnection::~RTSPConnection()
 {
     stopPlaying();
-    //TODO: close medium
+}
+
+bool RTSPConnection::addVideoSubsession(VCodecType codec, StreamReplicator* replicator, int readerId)
+{
+    if (format == MPEGTS){
+        return addMPEGTSVideo(codec, replicator, readerId);
+    } else {
+        return addRawVideoSubsession(codec, replicator, readerId);
+    }
 }
 
 bool RTSPConnection::addAudioSubsession(ACodecType codec, StreamReplicator* replicator,
                                         unsigned channels, unsigned sampleRate, 
                                         SampleFmt sampleFormat, int readerId)
 {
-    ServerMediaSubsession *subsession = NULL;
+    if (format == MPEGTS){
+        return addMPEGTSAudio(codec, replicator, readerId);
+    } else {
+        return addRawAudioSubsession(codec, replicator, channels, sampleRate, sampleFormat, readerId);
+    }
+}
+
+bool RTSPConnection::addRawVideoSubsession(VCodecType codec, StreamReplicator* replicator, int readerId)
+{
+    ServerMediaSubsession *sSession = NULL;
+    switch(codec){
+        case H264:
+            sSession = H264QueueServerMediaSubsession::createNew(*fEnv, replicator, readerId, False);
+            break;
+        case VP8:
+            sSession =  VP8QueueServerMediaSubsession::createNew(*fEnv, replicator, readerId, False);
+            break;
+        default:
+            break;
+    }
+    
+    if (!sSession){
+        return false;
+    }
+    
+    session->addSubsession(sSession);
+    
+    return true;
+}
+
+bool RTSPConnection::addRawAudioSubsession(ACodecType codec, StreamReplicator* replicator,
+                                        unsigned channels, unsigned sampleRate, 
+                                        SampleFmt sampleFormat, int readerId)
+{
+    ServerMediaSubsession *sSession = NULL;
     switch(codec){
         //case MPEG4_GENERIC:
             //TODO
                         //printf("TODO createAudioMediaSubsession\n");
             //break;
         default:
-            subsession = AudioQueueServerMediaSubsession::createNew(*fEnv, replicator,
+            sSession = AudioQueueServerMediaSubsession::createNew(*fEnv, replicator,
                                                               readerId, codec, channels,
                                                               sampleRate, sampleFormat, False);
             break;
     }
     
-    if (!subsession){
+    if (!sSession){
         return false;
     }
     
-    session->addSubsession(subsession);
+    session->addSubsession(sSession);
+    
+    return true;
+}
+
+bool RTSPConnection::addMPEGTSVideo(VCodecType codec, StreamReplicator* replicator, int readerId)
+{
+    if (!subsession){
+        utils::errorMsg("MPEGTS subsession not defined!");
+        return false;
+    }
+        
+    if (!subsession->addVideoSource(codec, replicator, readerId)){
+        utils::errorMsg("Failed adding video to MPEGTS subsession");
+        return false;
+    }
+    
+    if (!addedSub){
+        session->addSubsession(subsession);
+        addedSub = true;
+    }
+    
+    return true;
+}
+
+bool RTSPConnection::addMPEGTSAudio(ACodecType codec, StreamReplicator* replicator, int readerId)
+{
+    if (!subsession){
+        utils::errorMsg("MPEGTS subsession not defined!");
+        return false;
+    }
+        
+    if (!subsession->addAudioSource(codec, replicator, readerId)){
+        utils::errorMsg("Failed adding audio to MPEGTS subsession");
+        return false;
+    }
+    
+    if (!addedSub){
+        session->addSubsession(subsession);
+        addedSub = true;
+    }
     
     return true;
 }
@@ -165,6 +224,8 @@ void RTSPConnection::stopPlaying()
     rtspServer->deleteServerMediaSession(session);
     
     session = NULL;
+    subsession = NULL;
+    addedSub = false;
 }
 
 std::vector<int> RTSPConnection::getReaders()
@@ -180,7 +241,9 @@ std::vector<int> RTSPConnection::getReaders()
             utils::errorMsg("Could not cast to QueueServerMediaSubsession");
             return readers;
         }
-        readers.push_back(qSubsession->getReaderId());
+        for (auto red : qSubsession->getReaderIds()){
+            readers.push_back(red);
+        }
         subsession = subIt.next();
     }
     return readers;

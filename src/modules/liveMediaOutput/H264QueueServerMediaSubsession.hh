@@ -29,35 +29,40 @@
 
 class H264QueueServerMediaSubsession: public QueueServerMediaSubsession {
 public:
-  static H264QueueServerMediaSubsession*
-  createNew(UsageEnvironment& env, StreamReplicator* replicator, 
-            int readerId, Boolean reuseFirstSource);
+    static H264QueueServerMediaSubsession*
+        createNew(UsageEnvironment& env, StreamReplicator* replica, 
+                  int readerId, Boolean reuseFirstSource);
 
 
-  void checkForAuxSDPLine1();
-  void afterPlayingDummy1();
+    void checkForAuxSDPLine1();
+    void afterPlayingDummy1();
+    
+    std::vector<int> getReaderIds();
 
 protected:
-  H264QueueServerMediaSubsession(UsageEnvironment& env, StreamReplicator* replicator, 
+    H264QueueServerMediaSubsession(UsageEnvironment& env, StreamReplicator* replica, 
                                  int readerId, Boolean reuseFirstSource);
 
-  virtual ~H264QueueServerMediaSubsession();
+    virtual ~H264QueueServerMediaSubsession();
 
-  void setDoneFlag() { fDoneFlag = ~0; }
+    void setDoneFlag() { fDoneFlag = ~0; }
 
 protected: 
-  char const* getAuxSDPLine(RTPSink* rtpSink,
+    char const* getAuxSDPLine(RTPSink* rtpSink,
                     FramedSource* inputSource);
-  FramedSource* createNewStreamSource(unsigned clientSessionId,
+    FramedSource* createNewStreamSource(unsigned clientSessionId,
                           unsigned& estBitrate);
-  RTPSink* createNewRTPSink(Groupsock* rtpGroupsock,
+    RTPSink* createNewRTPSink(Groupsock* rtpGroupsock,
                                     unsigned char rtpPayloadTypeIfDynamic,
                     FramedSource* inputSource);
 
 private:
-  char* fAuxSDPLine;
-  char fDoneFlag; 
-  RTPSink* fDummyRTPSink;
+    StreamReplicator* replicator;
+    int reader;
+    
+    char* fAuxSDPLine;
+    char fDoneFlag; 
+    RTPSink* fDummyRTPSink;
 };
 
 #endif

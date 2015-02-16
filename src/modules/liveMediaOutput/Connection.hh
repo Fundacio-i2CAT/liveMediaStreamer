@@ -30,7 +30,9 @@
 #include <BasicUsageEnvironment.hh>
 #include <liveMedia.hh>
 #include <Groupsock.hh>
+
 #include "../../Types.hh"
+#include "MPEGTSQueueServerMediaSubsession.hh"
 
 #define TTL 255
 #define INITIAL_SERVER_PORT 6970
@@ -103,12 +105,25 @@ protected:
     bool specificSetup();
 
 private:
+    bool addRawVideoSubsession(VCodecType codec, StreamReplicator* replicator, int readerId);
+    
+    bool addRawAudioSubsession(ACodecType codec, StreamReplicator* replicator,
+                            unsigned channels, unsigned sampleRate, 
+                            SampleFmt sampleFormat, int readerId);
+    
+    bool addMPEGTSVideo(VCodecType codec, StreamReplicator* replicator, int readerId);
+    
+    bool addMPEGTSAudio(ACodecType codec, StreamReplicator* replicator, int readerId);
+    
     ServerMediaSession* session;
     //TODO: this should be const
     RTSPServer* rtspServer;
     std::string name;
-    MPEG2TransportStreamFromESSource* tsFramer;
+    
+    MPEGTSQueueServerMediaSubsession* subsession;
+    
     TxFormat format;
+    bool addedSub;
 };
 
 ////////////////////

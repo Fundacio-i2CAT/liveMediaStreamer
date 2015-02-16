@@ -26,6 +26,7 @@
 #define _CONNECTION_HH
 
 #include <string>
+#include <vector>
 #include <BasicUsageEnvironment.hh>
 #include <liveMedia.hh>
 #include <Groupsock.hh>
@@ -50,12 +51,15 @@ public:
     * @return true if succeeded and false if not
     */
     bool setup();
+    
+    virtual std::vector<int> getReaders() = 0;
+    
+    virtual void stopPlaying() = 0;
 
 protected:
     Connection(UsageEnvironment* env);
 
     virtual bool startPlaying() = 0;
-    virtual void stopPlaying() = 0;
     static void afterPlaying(void* clientData);
     virtual bool specificSetup() = 0;
 
@@ -68,7 +72,7 @@ protected:
 
 /*! It represents an RTSP connection, which is defined by a name, format and former readers */
 
-class RTPSConnection : public Connection {
+class RTSPConnection : public Connection {
 
 public:
     
@@ -86,19 +90,22 @@ public:
     bool addVideoSubsession(VCodecType codec, StreamReplicator* replicator, int readerId);
     
     bool addAudioSubsession(ACodecType codec, StreamReplicator* replicator,
-                                        unsigned channels, unsigned sampleRate, 
-                                        SampleFmt sampleFormat, int readerId);
+                            unsigned channels, unsigned sampleRate, 
+                            SampleFmt sampleFormat, int readerId);
+    
+    std::vector<int> getReaders();
+    
+    void stopPlaying();
 
 protected:
 
     bool startPlaying();
-    void stopPlaying();
     bool specificSetup();
 
 private:
     ServerMediaSession* session;
     //TODO: this should be const
-    RTSPServer* rtspServer
+    RTSPServer* rtspServer;
     std::string name;
     MPEG2TransportStreamFromESSource* tsFramer;
     TxFormat format;
@@ -120,6 +127,7 @@ public:
     virtual ~RTPConnection();
     
     bool startPlaying();
+    void stopPlaying();
 
 protected:
     RTPConnection(UsageEnvironment* env, FramedSource* source,
@@ -150,12 +158,17 @@ private:
 class VideoConnection : public RTPConnection {
 public:
     VideoConnection(UsageEnvironment* env, FramedSource *source,
-                    std::string ip, unsigned port, VCodecType codec);
+                    std::string ip, unsigned port, VCodecType codec, int readerId);
+    
+    std::vector<int> getReaders();
+    
 protected:
     bool additionalSetup();
 
 private:
     VCodecType fCodec;
+    
+    int reader;
 };
 
 
@@ -163,7 +176,10 @@ class AudioConnection : public RTPConnection {
 public:
     AudioConnection(UsageEnvironment* env, FramedSource *source,
                     std::string ip, unsigned port, ACodecType codec,
-                    unsigned channels, unsigned sampleRate, SampleFmt sampleFormat);
+                    unsigned channels, unsigned sampleRate, SampleFmt sampleFormat, int readerId);
+    
+    std::vector<int> getReaders();
+    
 protected:
     bool additionalSetup();
 
@@ -172,6 +188,8 @@ private:
     unsigned fChannels;
     unsigned fSampleRate;
     SampleFmt fSampleFormat;
+    
+    int reader;
 };
 
 ///////////////////////////////
@@ -182,13 +200,17 @@ class UltraGridVideoConnection : public RTPConnection {
 public:
     UltraGridVideoConnection(UsageEnvironment* env,
                              FramedSource *source,
-                             std::string ip, unsigned port, VCodecType codec);
+                             std::string ip, unsigned port, VCodecType codec, int readerId);
 
+    std::vector<int> getReaders();
+    
 protected:
     bool additionalSetup();
 
 private:
     VCodecType fCodec;
+    
+    int reader;
 };
 
 
@@ -197,7 +219,10 @@ public:
     UltraGridAudioConnection(UsageEnvironment* env,
                              FramedSource *source,
                              std::string ip, unsigned port, ACodecType codec,
-                             unsigned channels, unsigned sampleRate, SampleFmt sampleFormat);
+                             unsigned channels, unsigned sampleRate, SampleFmt sampleFormat, int readerId);
+    
+    std::vector<int> getReaders();
+    
 protected:
     bool additionalSetup();
 
@@ -206,6 +231,8 @@ private:
     unsigned fChannels;
     unsigned fSampleRate;
     SampleFmt fSampleFormat;
+    
+    int reader;
 };
 
 ////////////////////////
@@ -233,7 +260,7 @@ public:
     * @param codec Video stream codec. Only H264 is supported
     * @return True if succeeded and false if not
     */
-    bool addVideoSource(FramedSource* source, VCodecType codec);
+    bool addVideoSource(FramedSource* source, VCodecType codec, int readerId);
 
     /**
     * Adds an audio source to the connection, which will be muxed in MPEGTS packets
@@ -241,48 +268,18 @@ public:
     * @param codec Audio stream codec. Only AAC is supported
     * @return True if succeeded and false if not
     */
-    bool addAudioSource(FramedSource* source, ACodecType codec);
+    bool addAudioSource(FramedSource* source, ACodecType codec, int readerId);
+    
+    std::vector<int> getReaders();
 
 protected:
     bool additionalSetup();
 
 private:
     MPEG2TransportStreamFromESSource* tsFramer;
-};
-
-//////////////////////////
-// DASH CONNECTIONS //
-//////////////////////////
-
-class DashVideoConnection : public DASHConnection {
-public:
-    DashVideoConnection(UsageEnvironment* env, FramedSource *source,
-                        std::string fileName, std::string quality,
-                        bool reInit, uint32_t segmentTime, uint32_t initSegment,
-                        VCodecType codec, uint32_t fps);
-protected:
-    bool additionalSetup();
-
-private:
-    VCodecType fCodec;
-    uint32_t fFps;
-};
-
-class DashAudioConnection : public DASHConnection {
-public:
-    DashAudioConnection(UsageEnvironment* env, FramedSource *source,
-                        std::string fileName, std::string quality,
-                        bool reInit, uint32_t segmentTime, uint32_t initSegment,
-                        ACodecType codec, unsigned channels,
-                        unsigned sampleRate, SampleFmt sampleFormat);
-protected:
-    bool additionalSetup();
-
-private:
-    ACodecType fCodec;
-    unsigned fChannels;
-    unsigned fSampleRate;
-    SampleFmt fSampleFormat;
+    
+    int audioReader;
+    int videoReader;
 };
 
 #endif

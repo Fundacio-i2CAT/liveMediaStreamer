@@ -73,8 +73,7 @@ public:
     //ServerMediaSession* getSession(std::string id);
     //bool publishSession(std::string id);
     //bool removeSession(std::string id);
-    //bool removeSessionByReaderId(int readerId);
-    bool deleteReader(int id);
+    
 
     void stop();
 
@@ -83,6 +82,10 @@ private:
     bool addUltraGridRTPConnection(std::vector<int> readers, int id, std::string ip, int port);
     bool addMpegTsRTPConnection(std::vector<int> readers, int id, std::string ip, int port);
     void initializeEventMap();
+    
+    bool removeConnectionByReaderId(int readerId);
+    bool deleteReader(int id);
+    
     //void addSessionEvent(Jzon::Node* params, Jzon::Object &outputNode);
     void addRTPConnectionEvent(Jzon::Node* params, Jzon::Object &outputNode);
     Reader *setReader(int readerID, FrameQueue* queue, bool sharedQueue = false);
@@ -92,11 +95,7 @@ private:
     FrameQueue *allocQueue(int wId) { return NULL;};
 
     bool addSubsessionByReader(RTSPConnection* connection, int readerId);
-//     bool createVideoMediaSubsession(VCodecType codec, int readerId);
-//     bool createAudioMediaSubsession(ACodecType codec,
-//                                                       unsigned channels,
-//                                                       unsigned sampleRate,
-//                                                       SampleFmt sampleFormat, int readerId);
+
     void createVideoQueueSource(VCodecType codec, Reader *reader, int readerId);
     void createAudioQueueSource(ACodecType codec, Reader *reader, int readerId);
     void doGetState(Jzon::Object &filterNode);

@@ -177,7 +177,6 @@ private:
     bool updatedSPS;
     bool updatedPPS;
     size_t lastTs;
-    size_t tsOffset;
     size_t frameRate;
     bool isIntra;
     bool isVCL;

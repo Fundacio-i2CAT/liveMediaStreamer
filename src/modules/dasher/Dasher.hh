@@ -56,8 +56,10 @@ public:
     */ 
     ~Dasher();
 
-   
+    //TODO: check this
     bool deleteReader(int id);
+
+    
     void doGetState(Jzon::Object &filterNode);
 
     /**

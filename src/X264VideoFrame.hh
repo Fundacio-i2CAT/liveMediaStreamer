@@ -39,12 +39,12 @@ class X264VideoFrame : public InterleavedVideoFrame {
 	static X264VideoFrame* createNew(unsigned int width, unsigned int height, PixType pixelFormat);
 	~X264VideoFrame();
 	void setNals(x264_nal_t **nals, int num, int frameSize);
-        void setHeaderNals(x264_nal_t **nals, int num, int headerSize);
+    void setHeaderNals(x264_nal_t **nals, int num, int headerSize);
 	x264_nal_t** getNals() {return ppNals;};
-        int getNalsNum() {return nalsNum;};
-        unsigned char** getHeaderNals() {return headerNals;};
-        int getHeaderNalsNum() {return hNalsNum;};
-        int* getHeaderNalsSize() {return hNalSize;};
+    int getNalsNum() {return nalsNum;};
+    unsigned char** getHeaderNals() {return headerNals;};
+    int getHeaderNalsNum() {return hNalsNum;};
+    int* getHeaderNalsSize() {return hNalSize;};
 
         void clearNals();
         

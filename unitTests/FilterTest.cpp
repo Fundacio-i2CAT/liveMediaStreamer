@@ -35,17 +35,13 @@
 #include "FilterMockup.hh"
 #include "Worker.hh"
 
-class FilterTest : public CppUnit::TestFixture
+class FilterUnitTest : public CppUnit::TestFixture
 {
-    CPPUNIT_TEST_SUITE(FilterTest);
+    CPPUNIT_TEST_SUITE(FilterUnitTest);
     CPPUNIT_TEST(connectOneToOne);
     CPPUNIT_TEST(connectManyToOne);
     CPPUNIT_TEST(connectOneToMany);
     CPPUNIT_TEST(connectManyToMany);
-    CPPUNIT_TEST(oneToOneMasterProcessFrame);
-    CPPUNIT_TEST(oneToOneSlaveProcessFrame);
-    CPPUNIT_TEST(masterSlavesSharedFramesTest);
-    CPPUNIT_TEST(masterSlavesIndependentFramesTest);
     CPPUNIT_TEST_SUITE_END();
 
 public:
@@ -57,23 +53,19 @@ protected:
     void connectManyToOne();
     void connectOneToMany();
     void connectManyToMany();
-    void oneToOneMasterProcessFrame();
-    void oneToOneSlaveProcessFrame();
-    void masterSlavesSharedFramesTest();
-    void masterSlavesIndependentFramesTest();
 };
 
-void FilterTest::setUp()
+void FilterUnitTest::setUp()
 {
 
 }
 
-void FilterTest::tearDown()
+void FilterUnitTest::tearDown()
 {
 
 }
 
-void FilterTest::connectOneToOne()
+void FilterUnitTest::connectOneToOne()
 {
     BaseFilter* filterToTest = new BaseFilterMockup(1,1);
     BaseFilter* satelliteFilter = new BaseFilterMockup(1,1);
@@ -88,7 +80,7 @@ void FilterTest::connectOneToOne()
     delete satelliteFilter;
 }
 
-void FilterTest::connectManyToOne()
+void FilterUnitTest::connectManyToOne()
 {
     BaseFilter* filterToTest = new BaseFilterMockup(1,2);
     BaseFilter* satelliteFilter = new BaseFilterMockup(1,1);
@@ -110,7 +102,7 @@ void FilterTest::connectManyToOne()
     delete satelliteFilter;
 }
 
-void FilterTest::connectOneToMany()
+void FilterUnitTest::connectOneToMany()
 {
     BaseFilter* filterToTest = new BaseFilterMockup(1,1);
     BaseFilter* satelliteFilter = new BaseFilterMockup(2,1);
@@ -131,7 +123,7 @@ void FilterTest::connectOneToMany()
     delete satelliteFilter;
 }
 
-void FilterTest::connectManyToMany()
+void FilterUnitTest::connectManyToMany()
 {
     BaseFilter* filterToTest = new BaseFilterMockup(1,2);
     BaseFilter* satelliteFilter = new BaseFilterMockup(2,1);
@@ -157,7 +149,39 @@ void FilterTest::connectManyToMany()
     delete satelliteFilter;
 }
 
-void FilterTest::oneToOneMasterProcessFrame()
+
+class FilterFunctionalTest : public CppUnit::TestFixture
+{
+    CPPUNIT_TEST_SUITE(FilterFunctionalTest);
+    CPPUNIT_TEST(oneToOneMasterProcessFrame);
+    CPPUNIT_TEST(oneToOneSlaveProcessFrame);
+    CPPUNIT_TEST(masterSlavesSharedFramesTest);
+    CPPUNIT_TEST(masterSlavesIndependentFramesTest);
+    CPPUNIT_TEST_SUITE_END();
+
+public:
+    void setUp();
+    void tearDown();
+
+protected:
+
+    void oneToOneMasterProcessFrame();
+    void oneToOneSlaveProcessFrame();
+    void masterSlavesSharedFramesTest();
+    void masterSlavesIndependentFramesTest();
+};
+
+void FilterFunctionalTest::setUp()
+{
+
+}
+
+void FilterFunctionalTest::tearDown()
+{
+
+}
+
+void FilterFunctionalTest::oneToOneMasterProcessFrame()
 {
     //TODO: this test should be done with HeadFilterMockup
     BaseFilter* filterToTest = new OneToOneFilterMockup(10000,4,false, 15000, MASTER, false);
@@ -212,7 +236,7 @@ void FilterTest::oneToOneMasterProcessFrame()
     delete satelliteFilterLast;
 }
 
-void FilterTest::oneToOneSlaveProcessFrame()
+void FilterFunctionalTest::oneToOneSlaveProcessFrame()
 {
     BaseFilter* filterToTest = new OneToOneFilterMockup(10000,4,false, 15000, SLAVE, false);
     BaseFilter* satelliteFilterFirst = new BaseFilterMockup(2,1);
@@ -258,12 +282,12 @@ void FilterTest::oneToOneSlaveProcessFrame()
     delete satelliteFilterLast;
 }
 
-void FilterTest::masterSlavesIndependentFramesTest()
+void FilterFunctionalTest::masterSlavesIndependentFramesTest()
 {
-    MasterFilter* master = new OneToOneFilterMockup(15000,4,true, 40000, MASTER, false);
-    SlaveFilter* slave1 = new OneToOneFilterMockup(15000,4,true, 40000, SLAVE, false);
-    SlaveFilter* slave2 = new OneToOneFilterMockup(15000,4,false, 40000, SLAVE, true);
-    SlaveFilter* fakeSlave = new OneToOneFilterMockup(15000,4,false, 40000, MASTER, false);
+    BaseFilter* master = new OneToOneFilterMockup(15000,4,true, 40000, MASTER, false);
+    BaseFilter* slave1 = new OneToOneFilterMockup(15000,4,true, 40000, SLAVE, false);
+    BaseFilter* slave2 = new OneToOneFilterMockup(15000,4,false, 40000, SLAVE, true);
+    BaseFilter* fakeSlave = new OneToOneFilterMockup(15000,4,false, 40000, MASTER, false);
     
     //TODO: they  should be head/tail filters mockup
     BaseFilter* satelliteFilterVeryFirst = new BaseFilterMockup(1,1);
@@ -364,13 +388,13 @@ void FilterTest::masterSlavesIndependentFramesTest()
     delete slaveW2;
 }
 
-void FilterTest::masterSlavesSharedFramesTest()
+void FilterFunctionalTest::masterSlavesSharedFramesTest()
 {
     //TODO: we should recheck sharedFrames slaves doesn't have a connected reader
-    MasterFilter* master = new OneToOneFilterMockup(15000,4,false, 40000, MASTER, true);
-    SlaveFilter* slave1 = new OneToOneFilterMockup(15000,4,true, 40000, SLAVE, false);
-    SlaveFilter* slave2 = new OneToOneFilterMockup(15000,4,false, 40000, SLAVE, true);
-    SlaveFilter* fakeSlave = new OneToOneFilterMockup(15000,4,false, 40000, MASTER, false);
+    BaseFilter* master = new OneToOneFilterMockup(15000,4,false, 40000, MASTER, true);
+    BaseFilter* slave1 = new OneToOneFilterMockup(15000,4,true, 40000, SLAVE, false);
+    BaseFilter* slave2 = new OneToOneFilterMockup(15000,4,false, 40000, SLAVE, true);
+    BaseFilter* fakeSlave = new OneToOneFilterMockup(15000,4,false, 40000, MASTER, false);
     
     //TODO: they  should be head/tail filters mockup
     BaseFilter* satelliteFilterFirst = new BaseFilterMockup(1,1);
@@ -459,7 +483,8 @@ void FilterTest::masterSlavesSharedFramesTest()
     delete slaveW2;
 }
 
-CPPUNIT_TEST_SUITE_REGISTRATION(FilterTest);
+CPPUNIT_TEST_SUITE_REGISTRATION(FilterFunctionalTest);
+CPPUNIT_TEST_SUITE_REGISTRATION(FilterUnitTest);
 
 int main(int argc, char* argv[])
 {

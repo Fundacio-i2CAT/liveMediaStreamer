@@ -29,7 +29,7 @@
 #include <iostream>
 #include "Worker.hh"
 
-Worker::Worker(): run(false), enabled(false)
+Worker::Worker(): run(false)
 {
     type = WORKER;
 }
@@ -55,7 +55,6 @@ bool Worker::addProcessor(int id, Runnable *processor)
     if (runnables.count(id) == 0) {
         processor->setId(id);
         runnables[id] = processor;
-        enabled = true;
         ret = true;
 
     }
@@ -117,21 +116,6 @@ void Worker::stop()
     }
 }
 
-void Worker::enable()
-{
-    enabled = true;
-}
-
-void Worker::disable()
-{
-    enabled = false;
-}
-
-bool Worker::isEnabled()
-{
-    return enabled;
-}
-
 void Worker::process()
 {
     Runnable* currentJob;
@@ -191,15 +175,12 @@ void Worker::getState(Jzon::Object &workerNode)
 
 LiveMediaWorker::LiveMediaWorker() : Worker()
 {
-    enabled = false;
     type = LIVEMEDIA;
 }
 
 void LiveMediaWorker::process()
 {
-    enabled = true;
     processors.top()->runProcessFrame();
-    enabled = false;
 }
 
 void LiveMediaWorker::stop()

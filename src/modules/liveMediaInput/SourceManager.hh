@@ -80,7 +80,7 @@ protected:
 
 class SourceManager : public LiveMediaFilter {
 public:
-    SourceManager(unsigned writersNum = MAX_WRITERS, size_t fTime = 0, FilterRole fRole_ = MASTER);
+    SourceManager(unsigned writersNum = MAX_WRITERS);
     ~SourceManager();
 
 public:

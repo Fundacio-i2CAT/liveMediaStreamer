@@ -36,7 +36,7 @@ FrameQueue* createAudioQueue(unsigned char rtpPayloadFormat,
                              char const* codecName, unsigned channels,
                              unsigned sampleRate);
 
-SourceManager::SourceManager(unsigned writersNum, size_t fTime, FilterRole fRole): LiveMediaFilter(0, writersNum, fTime, fRole), watch(0)
+SourceManager::SourceManager(unsigned writersNum): LiveMediaFilter(0, writersNum), watch(0)
 {
     fType = RECEIVER;
     initializeEventMap();

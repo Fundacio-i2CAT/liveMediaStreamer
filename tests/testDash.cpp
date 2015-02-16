@@ -27,6 +27,8 @@
 #define A_TIME_STMP_FREQ 48000
 #define A_CHANNELS 2
 
+#define OUT_A_CODEC AAC
+
 #define SEGMENT_DURATION 4000000 //us
 #define SEG_BASE_NAME "/home/palau/nginx_root/dashLMS/test500"
 
@@ -110,6 +112,10 @@ void addAudioSource(unsigned port, std::string codec = A_CODEC,
     
     //NOTE: Adding encoder to pipeManager and handle worker
     encoder = new AudioEncoderLibav();
+    if (!encoder->setup(OUT_A_CODEC, A_CHANNELS, A_TIME_STMP_FREQ)) {
+        utils::errorMsg("Error configuring audio encoder. Check provided parameters");
+        return;
+    }
     pipe->addFilter(encId, encoder);
     aEnc = new Worker();
     aEnc->addProcessor(encId, encoder);

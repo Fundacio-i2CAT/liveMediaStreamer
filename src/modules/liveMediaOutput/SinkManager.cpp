@@ -37,8 +37,8 @@
 #include "../../Types.hh"
 #include "../../Utils.hh"
 
-SinkManager::SinkManager(unsigned readersNum, size_t fTime, FilterRole fRole_) :
-LiveMediaFilter(readersNum, 0, fTime, fRole_)
+SinkManager::SinkManager(unsigned readersNum) :
+LiveMediaFilter(readersNum, 0)
 {
     //TODO: Add authentication security
     rtspServer = RTSPServer::createNew(*env, RTSP_PORT, NULL);
@@ -78,15 +78,15 @@ void SinkManager::stop()
     watch = 1;
 }
 
-size_t SinkManager::processFrame()
+bool SinkManager::runDoProcessFrame()
 {
     if (envir() == NULL){
-        return 0;
+        return false;
     }
 
     envir()->taskScheduler().doEventLoop((char*) &watch);
 
-    return 1;
+    return true;
 }
 
 bool SinkManager::addSession(std::string id, std::vector<int> readers, std::string info, std::string desc)

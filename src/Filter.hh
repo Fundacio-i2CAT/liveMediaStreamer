@@ -47,48 +47,148 @@
 
 #include "Event.hh"
 
-#define DEFAULT_ID 1
-#define MAX_WRITERS 16
-#define MAX_READERS 16
-#define VIDEO_DEFAULT_FRAMERATE 25 //fps
-#define RETRY 500 //us
 
-class MasterFilter;
-class SlaveFilter;
+#define DEFAULT_ID 1                /*!< Default ID for unique filter's readers and/or writers. */
+#define MAX_WRITERS 16              /*!< Default maximum writers for a filter. */
+#define MAX_READERS 16              /*!< Default maximum readers for a filter. */
+#define VIDEO_DEFAULT_FRAMERATE 25  /*!< Default frame rate in frames per second (fps). */
+#define RETRY 500                   /*!< Default retry time in microseconds (us). */
 
+/*! Generic filter class methods. It is an interface to different specific filters
+    so it cannot be instantiated
+*/
 class BaseFilter : public Runnable {
 
 public:
-    bool connectOneToOne(BaseFilter *R, bool slaveQueue = false);
-    bool connectManyToOne(BaseFilter *R, int writerID, bool slaveQueue = false);
-    bool connectOneToMany(BaseFilter *R, int readerID, bool slaveQueue = false);
-    bool connectManyToMany(BaseFilter *R, int readerID, int writerID, bool slaveQueue = false);
+    /**
+    * Creates a one to one connection from an available writer to an available reader
+    * @param BaseFilter pointer of the filter to be connected
+    * @return True if succeeded and false if not
+    */
+    bool connectOneToOne(BaseFilter *R);
+    /**
+    * Creates a many to one connection from specific writer to an available reader
+    * @param BaseFilter pointer of the filter to be connected
+    * @param Integer writer ID
+    * @return True if succeeded and false if not
+    */
+    bool connectManyToOne(BaseFilter *R, int writerID);
+    /**
+    * Creates a one to many connection from an available writer to specific reader
+    * @param BaseFilter pointer of the filter to be connected
+    * @param Integer reader ID
+    * @return True if succeeded and false if not
+    */
+    bool connectOneToMany(BaseFilter *R, int readerID);
+    /**
+    * Creates a many to many connection from specific reader to specific writer
+    * @param BaseFilter pointer of the filter to be connected
+    * @param Integer reader ID
+    * @param Integer writer ID
+    * @return True if succeeded and false if not
+    */
+    bool connectManyToMany(BaseFilter *R, int readerID, int writerID);
 
-    //bool disconnect(BaseFilter *R, int writerID, int readerID);
+    /**
+    * Disconnects and cleans specified writer
+    * @param Integer writer ID
+    * @return True if succeeded and false if not
+    */
     bool disconnectWriter(int writerId);
+    /**
+    * Disconnects and cleans specified reader
+    * @param Integer reader ID
+    * @return True if succeeded and false if not
+    */
     bool disconnectReader(int readerId);
+    /**
+    * Disconnects and cleans all readers and writers
+    */
     void disconnectAll();
 
+    /**
+    * If it is a master filter a new slave filter is added to the master's list
+    * @param Integer slave filter ID
+    * @param BaseFilter pointer of the slave filter to be added
+    * @return True if succeeded and false if not
+    */
+    bool addSlave(int id, BaseFilter *slave);
+
+    /**
+    * Filter type getter
+    * @return filter type
+    */
     FilterType getType() {return fType;};
+    /**
+    * Filter role getter
+    * @return filter role
+    */
     FilterRole getRole() {return fRole;};
+
+    /**
+    * Generates a new and random reader ID
+    * @return filter role
+    */
     int generateReaderID();
+    /**
+    * Generates a new and random writer ID
+    * @return filter role
+    */
     int generateWriterID();
+    /**
+    * Maximum writers getter
+    * @return maximum number of possible writers for this filter
+    */
     const unsigned getMaxWriters() const {return maxWriters;};
+    /**
+    * Maximum readers getter
+    * @return maximum number of possible readers for this filter
+    */
     const unsigned getMaxReaders() const {return maxReaders;};
+    /**
+    * Adds a new event to the event queue from this filter
+    * @param new event
+    */
     virtual void pushEvent(Event e);
+    /**
+    * Get the state for this filter node
+    * @param filter node pointer
+    */
     void getState(Jzon::Object &filterNode);
-    //bool deleteReader(int id);
+    /**
+    * Returns its worker ID
+    * @return Integer worker ID
+    */
     int getWorkerId(){return workerId;};
+    /**
+    * Sets the filter's worker ID
+    * @param Integer worker ID
+    */
     void setWorkerId(int id){workerId = id;};
+    /**
+    * Returns true if filter is enabled or false if not
+    * @return Bool enabled
+    */
     bool isEnabled(){return enabled;};
+
+    /**
+    * Class destructor. Deletes and clears its writers, readers, oframes, dframes and rupdates
+    */
     virtual ~BaseFilter();
 
     //NOTE: these are public just for testing purposes
+    /**
+    * Processes frames as a function of its role
+    */
     size_t processFrame();
+    /**
+    * Sets filter frame time
+    * @param size_t frame time
+    */
     void setFrameTime(size_t fTime);
 
 protected:
-    BaseFilter();
+    BaseFilter(unsigned readersNum = MAX_READERS, unsigned writersNum = MAX_WRITERS, size_t fTime = 0, FilterRole fRole_ = MASTER, bool force_ = false, bool sharedFrames_ = true);
 
     void addFrames();
     void removeFrames();
@@ -96,9 +196,6 @@ protected:
     virtual FrameQueue *allocQueue(int wId) = 0;
 
     std::chrono::microseconds getFrameTime() {return frameTime;};
-
-    virtual size_t slaveProcessFrame() = 0;
-    virtual size_t masterProcessFrame() = 0;
 
     virtual Reader *setReader(int readerID, FrameQueue* queue, bool sharedQueue = false);
     Reader* getReader(int id);
@@ -113,7 +210,14 @@ protected:
     void updateTimestamp();
     std::map<std::string, std::function<void(Jzon::Node* params, Jzon::Object &outputNode)> > eventMap;
 
+    virtual bool runDoProcessFrame() = 0;
+
+    bool removeSlave(int id);
+    std::map<int, BaseFilter*> slaves;
+
 protected:
+    bool process;
+
     std::map<int, Reader*> readers;
     std::map<int, const Writer*> writers;
     std::map<int, Frame*> oFrames;
@@ -123,7 +227,6 @@ protected:
     float frameTimeMod;
     float bufferStateFrameTimeMod;
 
-    std::chrono::microseconds frameTime;
     std::chrono::microseconds timestamp;
     std::chrono::microseconds lastDiffTime;
     std::chrono::microseconds diffTime;
@@ -131,12 +234,18 @@ protected:
 
     unsigned maxReaders;
     unsigned maxWriters;
-    FilterRole fRole;
-    bool force;
-    bool sharedFrames;
+    std::chrono::microseconds frameTime;
 
 private:
-    bool connect(BaseFilter *R, int writerID, int readerID, bool slaveQueue = false);
+    bool connect(BaseFilter *R, int writerID, int readerID);
+    size_t masterProcessFrame();
+    void processAll();
+    bool runningSlaves();
+    void setSharedFrames(bool sharedFrames_);
+    size_t slaveProcessFrame();
+    void execute() {process = true;};
+    bool isProcessing() {return process;};
+    void updateFrames(std::map<int, Frame*> oFrames_);
 
 private:
     std::priority_queue<Event> eventQueue;
@@ -144,50 +253,12 @@ private:
     int workerId;
     bool enabled;
     std::map<int, bool> rUpdates;
+    FilterRole fRole;
+    bool force;
+    bool sharedFrames;
 };
 
-class MasterFilter : virtual public BaseFilter {
-
-public:
-    MasterFilter();
-    bool addSlave(int id, SlaveFilter *slave);
-
-protected:
-    bool removeSlave(int id);
-
-    virtual bool runDoProcessFrame() = 0;
-
-    std::map<int, SlaveFilter*> slaves;
-
-private:
-    size_t masterProcessFrame();
-    void processAll();
-    bool runningSlaves();
-};
-
-
-class SlaveFilter : virtual public BaseFilter {
-
-public:
-    SlaveFilter();
-
-protected:
-
-    virtual bool runDoProcessFrame() = 0;
-
-private:
-    friend class MasterFilter;
-    
-    void setSharedFrames(bool sharedFrames_) {sharedFrames = sharedFrames_;};
-    size_t slaveProcessFrame();
-    void execute() {process = true;};
-    bool isProcessing() {return process;};
-    void updateFrames(std::map<int, Frame*> oFrames_);
-    
-    bool process;
-};
-
-class OneToOneFilter : public MasterFilter, public SlaveFilter {
+class OneToOneFilter : public BaseFilter {
 
 protected:
     OneToOneFilter(size_t fTime = 0, FilterRole fRole_ = MASTER, bool force_ = false, bool sharedFrames_ = true);
@@ -206,6 +277,7 @@ private:
     using BaseFilter::dFrames;
     using BaseFilter::processEvent;
     using BaseFilter::updateTimestamp;
+    using BaseFilter::addSlave;
 
     using BaseFilter::frameTime;
     using BaseFilter::timestamp;
@@ -215,15 +287,11 @@ private:
 
     using BaseFilter::maxReaders;
     using BaseFilter::maxWriters;
-    using BaseFilter::fRole;
-    using BaseFilter::force;
-
-    using MasterFilter::sharedFrames;
 
     void stop() {};
 };
 
-class OneToManyFilter : public MasterFilter, public SlaveFilter {
+class OneToManyFilter : public BaseFilter {
 
 protected:
     OneToManyFilter(unsigned writersNum = MAX_WRITERS, size_t fTime = 0, FilterRole fRole_ = MASTER, bool force_ = false, bool sharedFrames_ = true);
@@ -243,6 +311,7 @@ private:
     using BaseFilter::dFrames;
     using BaseFilter::processEvent;
     using BaseFilter::updateTimestamp;
+    using BaseFilter::addSlave;
 
     using BaseFilter::frameTime;
     using BaseFilter::timestamp;
@@ -252,13 +321,11 @@ private:
 
     using BaseFilter::maxReaders;
     using BaseFilter::maxWriters;
-    using BaseFilter::fRole;
-    using BaseFilter::force;
 
     void stop() {};
 };
 
-class HeadFilter : public MasterFilter, public SlaveFilter {
+class HeadFilter : public BaseFilter {
 public:
     //TODO:implement this function
     void pushEvent(Event e);
@@ -279,6 +346,7 @@ private:
     using BaseFilter::dFrames;
     using BaseFilter::processEvent;
     using BaseFilter::updateTimestamp;
+    using BaseFilter::addSlave;
 
     using BaseFilter::frameTime;
     using BaseFilter::timestamp;
@@ -288,13 +356,9 @@ private:
 
     using BaseFilter::maxReaders;
     using BaseFilter::maxWriters;
-    using BaseFilter::fRole;
-    using BaseFilter::force;
-
-    void stop() {};
 };
 
-class TailFilter : public MasterFilter, public SlaveFilter {
+class TailFilter : public BaseFilter {
 public:
     void pushEvent(Event e);
 
@@ -324,13 +388,11 @@ private:
 
     using BaseFilter::maxReaders;
     using BaseFilter::maxWriters;
-    using BaseFilter::fRole;
-    using BaseFilter::force;
 
     void stop() {};
 };
 
-class ManyToOneFilter : public MasterFilter, public SlaveFilter {
+class ManyToOneFilter : public BaseFilter {
 
 protected:
     ManyToOneFilter(unsigned readersNum = MAX_READERS, size_t fTime = 0, FilterRole fRole_ = MASTER, bool force_ = false, bool sharedFrames_ = true);
@@ -349,6 +411,7 @@ private:
     using BaseFilter::dFrames;
     using BaseFilter::processEvent;
     using BaseFilter::updateTimestamp;
+    using BaseFilter::addSlave;
 
     using BaseFilter::frameTime;
     using BaseFilter::timestamp;
@@ -358,8 +421,6 @@ private:
 
     using BaseFilter::maxReaders;
     using BaseFilter::maxWriters;
-    using BaseFilter::fRole;
-    using BaseFilter::force;
 
     void stop() {};
 };
@@ -371,16 +432,14 @@ public:
     UsageEnvironment* envir() {return env;}
 
 protected:
-    LiveMediaFilter(unsigned readersNum = MAX_READERS, unsigned writersNum = MAX_WRITERS, size_t fTime = 0, FilterRole fRole_ = NETWORK);
-    size_t processFrame();
+    LiveMediaFilter(unsigned readersNum = MAX_READERS, unsigned writersNum = MAX_WRITERS);
 
     UsageEnvironment* env;
     uint8_t watch;
 
 private:
+    bool runDoProcessFrame();
 
-    size_t slaveProcessFrame() {return 0;};
-    size_t masterProcessFrame() {return 0;};
 };
 
 #endif

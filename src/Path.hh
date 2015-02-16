@@ -19,7 +19,7 @@
  *
  *  Authors:  Marc Palau <marc.palau@i2cat.net>
  *            David Cassany <david.cassany@i2cat.net>
- *			  Martin German <martin.german@i2cat.net>
+ *	      Martin German <martin.german@i2cat.net>
  */
 
 #ifndef _PATH_HH
@@ -29,22 +29,20 @@
 
 class Path {
 public:
-    Path(int originFilterID, int orgWriterID, bool sharedQueue = false); 
+    Path(int originFilterID, int orgWriterID); 
     Path(int originFilterID, int destinationFilterID, int orgWriterID, 
-            int dstReaderID, std::vector<int> midFiltersIDs, bool sharedQueue = false); 
+            int dstReaderID, std::vector<int> midFiltersIDs); 
     void setDestinationFilter(int destinationFilterID, int dstReaderID);
     const int getDstReaderID() const {return dstReaderID;};
     const int getOrgWriterID() const {return orgWriterID;};
     const int getOriginFilterID() const {return originFilterID;};
     const int getDestinationFilterID() const {return destinationFilterID;};
     std::vector<int> getFilters(){return filterIDs;};
-	bool getShared(){return shared;};
 
 protected:
     void addFilterID(int filterID);
 
 private:
-	bool shared;
     int originFilterID;
     int destinationFilterID;
     int orgWriterID;

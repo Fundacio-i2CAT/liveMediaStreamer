@@ -72,19 +72,59 @@ struct RunnableLess : public std::binary_function<Runnable*, Runnable*, bool>
 class Worker {
     
 public:
+    
+    /**
+    * Creates a worker object
+    */
     Worker();
     virtual ~Worker();
     
+    /**
+    * Starts worker thread
+    * @return True if succeded and false if not
+    */
     bool start();
+    
+    /**
+    * @return True if succeded and false if not
+    */
     bool isRunning();
+    
+    /**
+    * Tell its thread to stop and waits until done
+    */
     virtual void stop();
-    virtual void enable();
-    virtual void disable();
-    bool isEnabled();
+
+    /**
+    * Adds a processor to the worker
+    * @param id processor ID
+    * @param processor processor objecto to add
+    * @return True if succeded and false if not
+    */
     bool addProcessor(int id, Runnable *processor);
+    
+    /**
+    * Removes a processor from the worker's list
+    * @param id processor ID
+    * @return True if succeded and false if not
+    */
     bool removeProcessor(int id);
+    
+    /**
+    * @return returns worker's type, see Types.hh
+    */
     WorkerType getType(){return type;};
+    
+    /**
+    * @return returns the number of curent processors
+    * @param workerNode json reference to fill
+    */
     size_t getProcessorsSize(){return processors.size();};
+    
+    /**
+    * Fills the appropriate JSON state object
+    * 
+    */
     void getState(Jzon::Object &workerNode);
     
 protected:

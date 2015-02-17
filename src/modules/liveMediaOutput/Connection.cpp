@@ -87,6 +87,10 @@ RTSPConnection::~RTSPConnection()
 
 bool RTSPConnection::addVideoSubsession(VCodecType codec, StreamReplicator* replicator, int readerId)
 {
+    if (!replicator){
+        return false;
+    }
+    
     for (auto it : getReaders()){
         if (readerId == it){
             return false;
@@ -104,6 +108,10 @@ bool RTSPConnection::addAudioSubsession(ACodecType codec, StreamReplicator* repl
                                         unsigned channels, unsigned sampleRate, 
                                         SampleFmt sampleFormat, int readerId)
 {
+    if (!replicator){
+        return false;
+    }
+    
     for (auto it : getReaders()){
         if (readerId == it){
             return false;

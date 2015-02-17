@@ -1,5 +1,5 @@
 /*
- *  H264QueueServerMediaSubsession.hh - It consumes NAL units from the frame queue on demand
+ *  MPEGTSQueueServerMediaSubsession.hh - A subsession class for MPEGTS
  *  Copyright (C) 2014  Fundació i2CAT, Internet i Innovació digital a Catalunya
  *
  *  This file is part of liveMediaStreamer.
@@ -21,48 +21,43 @@
  *            
  */
 
-#ifndef _H264_SERVER_MEDIA_SUBSESSION_HH
-#define _H264_SERVER_MEDIA_SUBSESSION_HH
+
+#ifndef _MPEGTS_QUEUE_SERVER_MEDIA_SUBSESSION_HH
+#define _MPEGTS_QUEUE_SERVER_MEDIA_SUBSESSION_HH
 
 #include <liveMedia.hh>
+#include "../../IOInterface.hh"
 #include "QueueServerMediaSubsession.hh"
 
-class H264QueueServerMediaSubsession: public QueueServerMediaSubsession {
+
+class MPEGTSQueueServerMediaSubsession: public QueueServerMediaSubsession {
 public:
-    static H264QueueServerMediaSubsession*
-        createNew(UsageEnvironment& env, StreamReplicator* replica, 
-                  int readerId, Boolean reuseFirstSource);
-
-
-    void checkForAuxSDPLine1();
-    void afterPlayingDummy1();
+    static MPEGTSQueueServerMediaSubsession*
+        createNew(UsageEnvironment& env, Boolean reuseFirstSource);
+    
+    bool addVideoSource(VCodecType codec, StreamReplicator* replicator, int readerId);
+    bool addAudioSource(ACodecType codec, StreamReplicator* replicator, int readerId);
     
     std::vector<int> getReaderIds();
 
 protected:
-    H264QueueServerMediaSubsession(UsageEnvironment& env, StreamReplicator* replica, 
-                                 int readerId, Boolean reuseFirstSource);
+  MPEGTSQueueServerMediaSubsession(UsageEnvironment& env, Boolean reuseFirstSource);
 
-    virtual ~H264QueueServerMediaSubsession();
-
-    void setDoneFlag() { fDoneFlag = ~0; }
+  ~MPEGTSQueueServerMediaSubsession();
 
 protected: 
-    char const* getAuxSDPLine(RTPSink* rtpSink,
-                    FramedSource* inputSource);
-    FramedSource* createNewStreamSource(unsigned clientSessionId,
+  FramedSource* createNewStreamSource(unsigned clientSessionId,
                           unsigned& estBitrate);
-    RTPSink* createNewRTPSink(Groupsock* rtpGroupsock,
+  RTPSink* createNewRTPSink(Groupsock* rtpGroupsock,
                                     unsigned char rtpPayloadTypeIfDynamic,
                     FramedSource* inputSource);
 
 private:
-    StreamReplicator* replicator;
-    int reader;
+    StreamReplicator* aReplicator;
+    StreamReplicator* vReplicator;
     
-    char* fAuxSDPLine;
-    char fDoneFlag; 
-    RTPSink* fDummyRTPSink;
+    int aReaderId;
+    int vReaderId;
 };
 
 #endif

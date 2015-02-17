@@ -21,7 +21,7 @@ liblivemediastreamer_la_SOURCES = modules/audioDecoder/AudioDecoderLibav.cpp \
                                   modules/liveMediaOutput/AudioQueueServerMediaSubsession.cpp \
                                   modules/liveMediaOutput/H264QueueServerMediaSubsession.cpp \
                                   modules/liveMediaOutput/H264QueueSource.cpp \
-                                  modules/liveMediaOutput/JPEGQueueServerMediaSubsession.cpp \
+                                  modules/liveMediaOutput/MPEGTSQueueServerMediaSubsession.cpp \
                                   modules/liveMediaOutput/QueueServerMediaSubsession.cpp \
                                   modules/liveMediaOutput/QueueSource.cpp \
                                   modules/liveMediaOutput/SinkManager.cpp \
@@ -46,6 +46,7 @@ liblivemediastreamer_la_SOURCES = modules/audioDecoder/AudioDecoderLibav.cpp \
                                   PipelineManager.cpp \
                                   Utils.cpp \
                                   VideoFrame.cpp \
+                                  Runnable.cpp \
                                   Worker.cpp \
                                   X264VideoCircularBuffer.cpp \
                                   X264VideoFrame.cpp 

@@ -30,18 +30,10 @@
 #include <queue>
 #include <mutex>
 
-#ifndef _FRAME_QUEUE_HH
+
 #include "FrameQueue.hh"
-#endif
-
-#ifndef _IO_INTERFACE_HH
 #include "IOInterface.hh"
-#endif
-
-#ifndef _WORKER_HH
-#include "Worker.hh"
-#endif
-
+#include "Runnable.hh"
 #include "Event.hh"
 
 

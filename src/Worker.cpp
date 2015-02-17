@@ -18,7 +18,7 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  *  Authors:  David Cassany <david.cassany@i2cat.net>,
- *  		  Martin German <martin.german@i2cat.net>
+ *
  *
  */
 
@@ -26,7 +26,8 @@
 #define IDLE 100
 #define ACTIVE_TIMEOUT 500
 
-#include <iostream>
+#include <map>
+
 #include "Worker.hh"
 
 Worker::Worker(): run(false)
@@ -189,35 +190,4 @@ void LiveMediaWorker::stop()
     if (isRunning()){
         thread.join();
     }
-}
-
-bool Runnable::ready()
-{
-    return time < std::chrono::system_clock::now();
-}
-
-void Runnable::sleepUntilReady()
-{
-    std::chrono::system_clock::time_point now = std::chrono::system_clock::now();
-    std::chrono::microseconds teaTime;
-
-    if (!ready()){
-        teaTime = std::chrono::duration_cast<std::chrono::microseconds>(time - now);
-
-        std::this_thread::sleep_for(teaTime);
-    }
-}
-
-bool Runnable::runProcessFrame()
-{
-    size_t ret;
-    
-    ret = processFrame();
-    if (ret < 0){
-        return false;
-    }
-
-    time = std::chrono::system_clock::now() + std::chrono::microseconds(ret);
-
-    return true;
 }

@@ -25,6 +25,8 @@
 #include "Filter.hh"
 #include "Utils.hh"
 
+#include <thread>
+
 #define WALL_CLOCK_THRESHOLD 100000 //us
 #define SLOW_MODIFIER 1.10
 #define FAST_MODIFIER 0.90

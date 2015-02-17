@@ -17,8 +17,8 @@
  *  You should have received a copy of the GNU General Public License
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- *  Authors:  David Cassany <david.cassany@i2cat.net>,
- *  		  Martin German <martin.german@i2cat.net>
+ *  Authors:  David Cassany <david.cassany@i2cat.net>
+ *
  *
  */
 
@@ -26,48 +26,16 @@
 #define _WORKER_HH
 
 #include <thread>
-#include <map>
 #include <chrono>
 #include <mutex>
 #include <queue>
-#include <vector>
 
-#include "Frame.hh"
 #include "Types.hh"
 #include "Jzon.h"
 #include "Utils.hh"
+#include "Runnable.hh"
 
 #define MAX_SLAVE 16
-
-class Runnable {
-    
-public:
-    virtual ~Runnable(){};
-    bool runProcessFrame();
-    virtual bool isEnabled() = 0;
-    virtual void stop() = 0;
-    bool ready();
-    void sleepUntilReady();
-    int getId() {return id;};
-    void setId(int id_) {id = id_;};
-    bool operator()(const Runnable* lhs, const Runnable* rhs);
-    std::chrono::system_clock::time_point getTime() const {return time;};
-    
-protected:
-    virtual size_t processFrame() = 0;
-    std::chrono::system_clock::time_point time;
-    
-private:
-    int id;
-};
-
-struct RunnableLess : public std::binary_function<Runnable*, Runnable*, bool>                                                                                     
-{
-  bool operator()(const Runnable* lhs, const Runnable* rhs) const
-  {
-    return lhs->getTime() > rhs->getTime();
-  }
-};
 
 class Worker {
     
@@ -123,7 +91,6 @@ public:
     
     /**
     * Fills the appropriate JSON state object
-    * 
     */
     void getState(Jzon::Object &workerNode);
     

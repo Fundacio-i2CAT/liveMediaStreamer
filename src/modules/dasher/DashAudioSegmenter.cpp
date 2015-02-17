@@ -161,9 +161,9 @@ bool DashAudioSegmenter::updateTimeValues(size_t currentTimestamp, int sampleRat
         return false;
     }
 
-    if (tsOffset <= 0) {
-        tsOffset = currentTimestamp;
-    }
+    // if (tsOffset <= 0) {
+    //     tsOffset = currentTimestamp;
+    // }
 
     frameDuration = samples;
     timeBase = sampleRate;

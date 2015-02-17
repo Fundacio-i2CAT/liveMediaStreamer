@@ -137,7 +137,7 @@ bool DashVideoSegmenter::updateTimeValues()
     }
 
     if (lastTs <= 0 || tsOffset <= 0 || frameRate <= 0) {
-        tsOffset = currTimestamp;
+        // tsOffset = currTimestamp;
         lastTs = currTimestamp;
         frameRate = VIDEO_DEFAULT_FRAMERATE;
         frameDuration = timeBase/VIDEO_DEFAULT_FRAMERATE;

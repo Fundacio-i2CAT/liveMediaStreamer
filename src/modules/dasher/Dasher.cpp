@@ -48,6 +48,8 @@ Dasher::Dasher(int readersNum) : TailFilter(readersNum)
     mpdMngr->setMinBufferTime(SEGMENT_DURATION*(MAX_SEGMENTS_IN_MPD/2));
     mpdMngr->setMinimumUpdatePeriod(SEGMENT_DURATION);
     mpdMngr->setTimeShiftBufferDepth(SEGMENT_DURATION*MAX_SEGMENTS_IN_MPD);
+
+    offset = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
 }
 
 Dasher::~Dasher()
@@ -138,6 +140,7 @@ bool Dasher::addSegmenter(int readerId, std::string segBaseName, int segDurInMic
         }
 
         segmenters[readerId] = new DashVideoSegmenter(segDurInMicroSeconds, segBaseName);
+        segmenters[readerId]->setOffset(offset);
     }
     
     if ((aQueue = dynamic_cast<AudioFrameQueue*>(r->getQueue())) != NULL) {
@@ -148,6 +151,7 @@ bool Dasher::addSegmenter(int readerId, std::string segBaseName, int segDurInMic
         }
 
         segmenters[readerId] = new DashAudioSegmenter(segDurInMicroSeconds, segBaseName);
+        segmenters[readerId]->setOffset(offset);
     }
     
     return true;
@@ -263,6 +267,12 @@ size_t DashSegmenter::getSegmentTimestamp()
 {
     return segment->getTimestamp();
 }
+
+void DashSegmenter::setOffset(size_t offs)
+{
+    tsOffset = offs;
+}
+
 
 DashSegment::DashSegment(size_t maxSize)
 {

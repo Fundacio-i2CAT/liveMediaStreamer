@@ -92,6 +92,7 @@ private:
 
     std::map<int, DashSegmenter*> segmenters;
     MpdManager* mpdMngr;
+    size_t offset;
 };
 
 /*! Abstract class implemented by DashVideoSegmenter and DashAudioSegmenter */ 
@@ -162,6 +163,7 @@ public:
     * @return timestamp in timeBase units
     */
     size_t getSegmentTimestamp();
+    void setOffset(size_t offs);
 
 protected:
     virtual bool updateMetadata() = 0;

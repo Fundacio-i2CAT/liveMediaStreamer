@@ -41,8 +41,6 @@ VP8QueueServerMediaSubsession::VP8QueueServerMediaSubsession(UsageEnvironment& e
 
 VP8QueueServerMediaSubsession::~VP8QueueServerMediaSubsession() 
 {
-  //NOTE: is this needed?
-  Medium::close(replicator);
 }
 
 FramedSource* VP8QueueServerMediaSubsession::createNewStreamSource(unsigned /*clientSessionId*/, unsigned& estBitrate) {

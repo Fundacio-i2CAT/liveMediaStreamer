@@ -66,7 +66,8 @@ bool Connection::setup()
 RTSPConnection::RTSPConnection(UsageEnvironment* env, TxFormat txformat, RTSPServer *server,
                                std::string name_, std::string info, std::string desc) :
                                Connection(env), session(NULL), rtspServer(server), 
-                               name(name_), subsession(NULL), format(txformat), addedSub(false)
+                               name(name_), subsession(NULL), format(txformat), 
+                               addedSub(false), started(false)
                    
 {
     session = ServerMediaSession::createNew(*env, name.c_str(), info.c_str(), desc.c_str());
@@ -86,6 +87,12 @@ RTSPConnection::~RTSPConnection()
 
 bool RTSPConnection::addVideoSubsession(VCodecType codec, StreamReplicator* replicator, int readerId)
 {
+    for (auto it : getReaders()){
+        if (readerId == it){
+            return false;
+        }
+    }
+    
     if (format == MPEGTS){
         return addMPEGTSVideo(codec, replicator, readerId);
     } else {
@@ -97,6 +104,12 @@ bool RTSPConnection::addAudioSubsession(ACodecType codec, StreamReplicator* repl
                                         unsigned channels, unsigned sampleRate, 
                                         SampleFmt sampleFormat, int readerId)
 {
+    for (auto it : getReaders()){
+        if (readerId == it){
+            return false;
+        }
+    }
+    
     if (format == MPEGTS){
         return addMPEGTSAudio(codec, replicator, readerId);
     } else {
@@ -193,8 +206,27 @@ bool RTSPConnection::addMPEGTSAudio(ACodecType codec, StreamReplicator* replicat
     return true;
 }
 
+std::string RTSPConnection::getURI()
+{
+    if (rtspServer == NULL){
+        return "";
+    }
+    
+    if (session == NULL){
+        return "";
+    }
+    
+    rtspServer->addServerMediaSession(session);
+    return rtspServer->rtspURL(session);
+}
+
+
 bool RTSPConnection::startPlaying()
 {
+    if (started){
+        return true;
+    }
+    
     if (rtspServer == NULL){
         return false;
     }
@@ -207,17 +239,18 @@ bool RTSPConnection::startPlaying()
     std::string url = rtspServer->rtspURL(session);
 
     utils::infoMsg("Play stream using the URL " + url);
-
+    started = true;
+    
     return true;
 }
 
 void RTSPConnection::stopPlaying()
-{
-    if (rtspServer == NULL){
+{   
+    if (session == NULL){
         return;
     }
     
-    if (session == NULL){
+    if (rtspServer == NULL){
         return;
     }
 
@@ -226,6 +259,7 @@ void RTSPConnection::stopPlaying()
     session = NULL;
     subsession = NULL;
     addedSub = false;
+    started = false;
 }
 
 std::vector<int> RTSPConnection::getReaders()

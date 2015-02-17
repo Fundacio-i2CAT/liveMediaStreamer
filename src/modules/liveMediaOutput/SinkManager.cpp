@@ -40,7 +40,7 @@ LiveMediaFilter(readersNum, 0), watch(0)
     TaskScheduler* scheduler = BasicTaskScheduler::createNew();
     env = BasicUsageEnvironment::createNew(*scheduler);
 
-    //TODO: Add authentication security
+    //TODO: Add authentication security, autodetect port?
     rtspServer = RTSPServer::createNew(*env, RTSP_PORT, NULL);
     if (rtspServer == NULL) {
         utils::errorMsg("Failed to create RTSP server");
@@ -54,6 +54,7 @@ LiveMediaFilter(readersNum, 0), watch(0)
 
 SinkManager::~SinkManager()
 {
+    stop();
     delete &envir()->taskScheduler();
     envir()->reclaim();
     env = NULL;
@@ -64,12 +65,16 @@ void SinkManager::stop()
     for (auto it : connections) {
        delete it.second;
     }
+    connections.clear();
 
     for (auto it : replicators) {
        Medium::close(it.second);
     }
-
-    Medium::close(rtspServer);
+    replicators.clear();
+    
+    if (rtspServer){
+        Medium::close(rtspServer);
+    }
 
     watch = 1;
 }
@@ -82,6 +87,22 @@ bool SinkManager::runDoProcessFrame()
 
     envir()->taskScheduler().doEventLoop((char*) &watch);
 
+    return true;
+}
+
+bool SinkManager::removeConnection(int id)
+{
+    Connection* connection;
+    if (connections.count(id) <= 0){
+        return false;
+    }
+    
+    connection = connections[id];
+    connections.erase(id);
+    connection->stopPlaying();
+    
+    delete connection;
+    
     return true;
 }
 
@@ -340,7 +361,6 @@ void SinkManager::createAudioQueueSource(ACodecType codec, Reader *reader, int r
     QueueSource *source;
     switch(codec){
        // case MPEG4_GENERIC:
-			//printf("TODO createAudioQueueSource\n");
             //TODO
             //break;
         default:
@@ -354,12 +374,17 @@ bool SinkManager::addSubsessionByReader(RTSPConnection* connection ,int readerId
 {
     VideoFrameQueue *vQueue;
     AudioFrameQueue *aQueue;
+    
+    Reader* reader = getReader(readerId);
+    if (!reader){
+        return false;
+    }
 
-    if ((vQueue = dynamic_cast<VideoFrameQueue*>(getReader(readerId)->getQueue())) != NULL){
+    if ((vQueue = dynamic_cast<VideoFrameQueue*>(reader->getQueue())) != NULL){
         return connection->addVideoSubsession(vQueue->getCodec(), replicators[readerId], readerId);
     }
 
-    if ((aQueue = dynamic_cast<AudioFrameQueue*>(getReader(readerId)->getQueue())) != NULL){
+    if ((aQueue = dynamic_cast<AudioFrameQueue*>(reader->getQueue())) != NULL){
         return connection->addAudioSubsession(aQueue->getCodec(), replicators[readerId], 
                                               aQueue->getChannels(), aQueue->getSampleRate(), 
                                               aQueue->getSampleFmt(), readerId);
@@ -416,14 +441,70 @@ bool SinkManager::deleteReader(int id)
 
 void SinkManager::initializeEventMap()
 {
-//     eventMap["addSession"] = std::bind(&SinkManager::addSessionEvent, this,
-//                                         std::placeholders::_1,  std::placeholders::_2);
+    eventMap["addRTSPConnection"] = std::bind(&SinkManager::addRTSPConnectionEvent, this,
+                                        std::placeholders::_1,  std::placeholders::_2);
     eventMap["addRTPConnection"] = std::bind(&SinkManager::addRTPConnectionEvent, this,
                                         std::placeholders::_1,  std::placeholders::_2);
 
 }
 
 void SinkManager::addRTPConnectionEvent(Jzon::Node* params, Jzon::Object &outputNode)
+{
+    int id;
+    TxFormat txFormat;
+    std::string name, strTxFormat;
+    std::string info = "";
+    std::string desc = "";
+    std::vector<int> readers;
+
+    if (!params) {
+        outputNode.Add("error", "Error adding session. No parameters!");
+        return;
+    }
+
+    if (!params->Has("id") || !params->Has("txFormat") || !params->Has("name")) {
+        outputNode.Add("error", "Error adding connection. Wrong parameters!");
+        return;
+    }
+
+    if (!params->Has("readers") || !params->Get("readers").IsArray()) {
+        outputNode.Add("error", "Error adding connection. Readers does not exist or is not an array!");
+        return;
+    }
+
+    id = params->Get("id").ToInt();
+    name = params->Get("name").ToString();
+    strTxFormat = params->Get("txFormat").ToString();
+    txFormat = utils::getTxFormatFromString(strTxFormat);
+    
+    if (params->Has("info")){
+        info = params->Get("name").ToString();
+    }
+    
+    if (params->Has("desc")){
+        desc = params->Get("name").ToString();
+    }
+
+    Jzon::Array jsonReaders = params->Get("readers").AsArray();
+
+    for (Jzon::Array::iterator it = jsonReaders.begin(); it != jsonReaders.end(); ++it) {
+        readers.push_back((*it).ToInt());
+    }
+
+    if (readers.empty()) {
+        outputNode.Add("error", "Error adding RTSP connection. Readers array is empty!");
+        return;
+    }
+
+    if(!addRTSPConnection(readers, id, txFormat, name, info, desc)) {
+        outputNode.Add("error", "Error adding RTSP connection. Internal error!");
+        return;
+    }
+
+    outputNode.Add("error", Jzon::null);
+}
+
+void SinkManager::addRTSPConnectionEvent(Jzon::Node* params, Jzon::Object &outputNode)
 {
     std::vector<int> readers;
     int connectionId;
@@ -472,33 +553,35 @@ void SinkManager::addRTPConnectionEvent(Jzon::Node* params, Jzon::Object &output
     outputNode.Add("error", Jzon::null);
 }
 
-//TODO: update this event
 void SinkManager::doGetState(Jzon::Object &filterNode)
 {
-//     Jzon::Array sessionArray;
-//     ServerMediaSubsession* subsession;
-//     int readerId;
-// 
-//     for (auto it : sessionList) {
-//         Jzon::Array jsonReaders;
-//         Jzon::Object jsonSession;
-//         std::string uri = rtspServer->rtspURL(it.second);
-// 
-//         jsonSession.Add("id", it.first);
-//         jsonSession.Add("uri", uri);
-// 
-//         ServerMediaSubsessionIterator sIt(*it.second);
-//         subsession = sIt.next();
-// 
-//         while(subsession) {
-//             readerId = dynamic_cast<QueueServerMediaSubsession*>(subsession)->getReaderId();
-//             jsonReaders.Add(readerId);
-//             subsession = sIt.next();
-//         }
-// 
-//         jsonSession.Add("readers", jsonReaders);
-//         sessionArray.Add(jsonSession);
-//     }
-// 
-//     filterNode.Add("sessions", sessionArray);
+    Jzon::Array connectionArray;
+
+    RTPConnection* rtpConn;
+    RTSPConnection* rtspConn;
+    std::string uri;
+
+    for (auto it : connections) {
+        Jzon::Array jsonReaders;
+        Jzon::Object jsonConnection;
+        
+        if ((rtspConn = dynamic_cast<RTSPConnection*>(it.second))){
+            jsonConnection.Add("name", rtspConn->getName());
+            jsonConnection.Add("uri", rtspConn->getURI());
+        } else if ((rtpConn = dynamic_cast<RTPConnection*>(it.second))){
+            jsonConnection.Add("ip", rtpConn->getIP());
+            jsonConnection.Add("port", std::to_string(rtpConn->getPort()));
+        } else {
+            filterNode.Add("error", Jzon::null);
+        }
+
+        for (auto reader : it.second->getReaders()){
+            jsonReaders.Add(reader);
+        }
+        
+        jsonConnection.Add("readers", jsonReaders);
+        connectionArray.Add(jsonConnection);
+    }
+
+    filterNode.Add("sessions", connectionArray);
 }

@@ -125,7 +125,7 @@ Writer::~Writer()
 bool Writer::connect(Reader *reader) const
 {
     if (!queue) {
-		utils::errorMsg("The queue is empty");
+        utils::errorMsg("The queue is empty");
         return false;
     }
 

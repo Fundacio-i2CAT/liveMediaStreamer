@@ -42,8 +42,6 @@ H264QueueServerMediaSubsession::H264QueueServerMediaSubsession(UsageEnvironment&
 
 H264QueueServerMediaSubsession::~H264QueueServerMediaSubsession() 
 {
-  //NOTE: is this needed?
-  Medium::close(replicator);
   delete[] fAuxSDPLine;
 }
 

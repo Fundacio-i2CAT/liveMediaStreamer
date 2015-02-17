@@ -48,8 +48,6 @@ AudioQueueServerMediaSubsession::AudioQueueServerMediaSubsession(UsageEnvironmen
 
 AudioQueueServerMediaSubsession::~AudioQueueServerMediaSubsession()
 {
-    //NOTE: is this needed?
-    Medium::close(replicator);
 }
 
 FramedSource* AudioQueueServerMediaSubsession::createNewStreamSource(unsigned /*clientSessionId*/, unsigned& estBitrate) {

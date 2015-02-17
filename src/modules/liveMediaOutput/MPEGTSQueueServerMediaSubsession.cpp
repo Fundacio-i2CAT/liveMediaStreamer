@@ -39,8 +39,6 @@ MPEGTSQueueServerMediaSubsession* MPEGTSQueueServerMediaSubsession::createNew(
 
 MPEGTSQueueServerMediaSubsession::~MPEGTSQueueServerMediaSubsession()
 {
-    Medium::close(aReplicator);
-    Medium::close(vReplicator);
 }
 
 std::vector<int> MPEGTSQueueServerMediaSubsession::getReaderIds()

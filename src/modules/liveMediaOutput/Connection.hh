@@ -95,6 +95,9 @@ public:
                             unsigned channels, unsigned sampleRate, 
                             SampleFmt sampleFormat, int readerId);
     
+    std::string getURI();
+    std::string getName() const {return name;};
+    
     std::vector<int> getReaders();
     
     void stopPlaying();
@@ -117,13 +120,14 @@ private:
     
     ServerMediaSession* session;
     //TODO: this should be const
-    RTSPServer* rtspServer;
+    RTSPServer* const rtspServer;
     std::string name;
     
     MPEGTSQueueServerMediaSubsession* subsession;
     
     TxFormat format;
     bool addedSub;
+    bool started;
 };
 
 ////////////////////
@@ -143,6 +147,9 @@ public:
     
     bool startPlaying();
     void stopPlaying();
+    
+    std::string getIP() const {return fIp;};
+    unsigned getPort() const {return fPort;};
 
 protected:
     RTPConnection(UsageEnvironment* env, FramedSource* source,

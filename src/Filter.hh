@@ -242,7 +242,7 @@ private:
     int workerId;
     bool enabled;
     std::map<int, bool> rUpdates;
-    FilterRole fRole;
+    FilterRole const fRole;
     bool force;
     bool sharedFrames;
 };

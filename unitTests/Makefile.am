@@ -20,11 +20,9 @@ connectionTest_CPPFLAGS = -std=c++11 -g -Wall -D__STDC_CONSTANT_MACROS -I../src/
 connectionTest_LDFLAGS = -L../src -llivemediastreamer -lcppunit -lBasicUsageEnvironment -lUsageEnvironment -lliveMedia -lgroupsock -lavcodec -lavformat -lavutil -lswresample -lswscale
 connectionTest_DEPENDENCIES = ../src/liblivemediastreamer.la
 
-#TODO: get rid off livemediastreamer dependency
-sinkManagerTest_SOURCES = modules/liveMediaOutput/SinkManagerTest.cpp
+sinkManagerTest_SOURCES = modules/liveMediaOutput/SinkManagerTest.cpp ../src/modules/liveMediaOutput/SPSparser/h264_stream.c  ../src/modules/liveMediaOutput/AudioQueueServerMediaSubsession.cpp ../src/modules/liveMediaOutput/Connection.cpp ../src/modules/liveMediaOutput/H264QueueServerMediaSubsession.cpp ../src/modules/liveMediaOutput/H264QueueSource.cpp ../src/modules/liveMediaOutput/H264StartCodeInjector.cpp ../src/modules/liveMediaOutput/H264VideoStreamSampler.cpp ../src/modules/liveMediaOutput/JPEGQueueServerMediaSubsession.cpp ../src/modules/liveMediaOutput/MPEGTSQueueServerMediaSubsession.cpp ../src/modules/liveMediaOutput/QueueServerMediaSubsession.cpp ../src/modules/liveMediaOutput/QueueSource.cpp ../src/modules/liveMediaOutput/SinkManager.cpp ../src/modules/liveMediaOutput/UltraGridAudioRTPSink.cpp ../src/modules/liveMediaOutput/UltraGridVideoRTPSink.cpp ../src/modules/liveMediaOutput/VP8QueueServerMediaSubsession.cpp ../src/Frame.cpp ../src/VideoFrame.cpp ../src/AudioFrame.cpp ../src/Runnable.cpp ../src/AVFramedQueue.cpp ../src/Utils.cpp ../src/Jzon.cpp ../src/Filter.cpp FilterMockup.hh ../src/FrameQueue.cpp ../src/IOInterface.cpp ../src/Event.cpp
 sinkManagerTest_CPPFLAGS = -std=c++11 -g -Wall -g -D__STDC_CONSTANT_MACROS -I../src/
-sinkManagerTest_LDFLAGS = -L../src -llivemediastreamer -lcppunit -lBasicUsageEnvironment -lUsageEnvironment -lliveMedia -lgroupsock -lavcodec -lavformat -lavutil -lswresample -lswscale
-sinkManagerTest_DEPENDENCIES = ../src/liblivemediastreamer.la
+sinkManagerTest_LDFLAGS = -L../src -lcppunit -lBasicUsageEnvironment -lUsageEnvironment -lliveMedia -lgroupsock
 
 filterTest_SOURCES = FilterTest.cpp FilterMockup.hh ../src/AVFramedQueue.cpp ../src/FrameQueue.cpp ../src/IOInterface.cpp ../src/Event.cpp ../src/Frame.cpp  ../src/VideoFrame.cpp ../src/Runnable.cpp ../src/AudioFrame.cpp ../src/Jzon.cpp ../src/Utils.cpp ../src/Filter.cpp ../src/Worker.cpp
 filterTest_CPPFLAGS = -std=c++11 -g -Wall -g -D__STDC_CONSTANT_MACROS -I../src -I.

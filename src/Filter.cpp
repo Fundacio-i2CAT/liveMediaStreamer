@@ -34,6 +34,7 @@ maxReaders(readersNum), maxWriters(writersNum), frameTime(fTime), fRole(fRole_),
 {
     frameTimeMod = 1;
     bufferStateFrameTimeMod = 1;
+    timestamp = std::chrono::microseconds(0);
 }
 
 BaseFilter::~BaseFilter()
@@ -361,7 +362,11 @@ void BaseFilter::updateTimestamp()
         return;
     }
 
-    timestamp += frameTime;
+    if (timestamp.count() == 0) {
+        timestamp = wallClock;
+    } else {
+        timestamp += frameTime;
+    }
 
     lastDiffTime = diffTime;
     diffTime = wallClock - timestamp;
@@ -414,6 +419,7 @@ void BaseFilter::processAll()
         if (sharedFrames){
             it.second->updateFrames(oFrames);
         }
+        it.second->setWallClock(wallClock);
         it.second->execute();
     }
 }
@@ -493,7 +499,7 @@ size_t BaseFilter::masterProcessFrame()
 
 size_t BaseFilter::slaveProcessFrame()
 {
-    if (!process){
+    if (!process) {
         return RETRY;
     }
 

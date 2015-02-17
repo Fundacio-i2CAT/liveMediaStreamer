@@ -30,7 +30,8 @@
 #define OUT_A_CODEC AAC
 
 #define SEGMENT_DURATION 4000000 //us
-#define SEG_BASE_NAME "/home/palau/nginx_root/dashLMS/test500"
+#define SEG_BASE_NAME1 "/home/palau/nginx_root/dashLMS/test1"
+#define SEG_BASE_NAME2 "/home/palau/nginx_root/dashLMS/test2"
 
 bool run = true;
 int dasherId = rand();
@@ -127,7 +128,7 @@ void addAudioSource(unsigned port, std::string codec = A_CODEC,
     pipe->addPath(port, path);       
     pipe->connectPath(path);
 
-    if (!dasher->addSegmenter(dstReader, SEG_BASE_NAME, SEGMENT_DURATION)) {
+    if (!dasher->addSegmenter(dstReader, SEG_BASE_NAME1, SEGMENT_DURATION)) {
         utils::errorMsg("Error adding segmenter");
     }
 
@@ -137,28 +138,40 @@ void addAudioSource(unsigned port, std::string codec = A_CODEC,
 void addVideoSource(unsigned port, unsigned fps = FRAME_RATE, std::string codec = V_CODEC, 
                     unsigned width = 0, unsigned height = 0)
 {
-    int wResId = rand();
-    int wEncId = rand();
+    int wRes1Id = rand();
+    int wRes2Id = rand();
+    int wEnc1Id = rand();
+    int wEnc2Id = rand();
     int wDecId = rand();
     int decId = rand();
-    int resId = rand();
-    int encId = rand();
-    int dstReader = rand();
+    int res1Id = rand();
+    int res2Id = rand();
+    int enc1Id = rand();
+    int enc2Id = rand();
+    int dstReader1 = rand();
+    int dstReader2 = rand();
 
-    std::vector<int> ids({decId, resId, encId});
+    std::vector<int> masterIds({decId, res1Id, enc1Id});
+    std::vector<int> slaveIds({enc2Id});
     std::string sessionId;
     std::string sdp;
     
-    VideoResampler *resampler;
-    VideoEncoderX264 *encoder;
+    VideoResampler *resampler1;
+    VideoResampler *resampler2;
+    VideoEncoderX264 *encoder1;
+    VideoEncoderX264 *encoder2;
     VideoDecoderLibav *decoder;
     
     Worker* wDec;
-    Worker* wRes;
-    Worker* wEnc;
+    Worker* wRes1;
+    Worker* wRes2;
+    Worker* wEnc1;
+    Worker* wEnc2;
     
     Session *session;
-    Path *path;
+    Path *masterPath;
+    Path *slavePath;
+    int slavePathId = rand();
     
     PipelineManager *pipe = Controller::getInstance()->pipelineManager();
     SourceManager *receiver = pipe->getReceiver();
@@ -188,28 +201,61 @@ void addVideoSource(unsigned port, unsigned fps = FRAME_RATE, std::string codec 
     pipe->addWorker(wDecId, wDec);
     
     //NOTE: Adding resampler to pipeManager and handle worker
-    resampler = new VideoResampler();
-    pipe->addFilter(resId, resampler);
-    wRes = new Worker();
-    wRes->addProcessor(resId, resampler);
-    resampler->setWorkerId(wResId);
-    resampler->configure(width, height, 0, YUV420P);
-    pipe->addWorker(wResId, wRes);
+    resampler1 = new VideoResampler();
+    pipe->addFilter(res1Id, resampler1);
+    wRes1 = new Worker();
+    wRes1->addProcessor(res1Id, resampler1);
+    resampler1->setWorkerId(wRes1Id);
+    resampler1->configure(width, height, 0, YUV420P);
+    pipe->addWorker(wRes1Id, wRes1);
+
+    //NOTE: Adding resampler to pipeManager and handle worker
+    resampler2 = new VideoResampler(SLAVE);
+    pipe->addFilter(res2Id, resampler2);
+    wRes2 = new Worker();
+    wRes2->addProcessor(res2Id, resampler2);
+    resampler2->setWorkerId(wRes2Id);
+    resampler2->configure(640, 480, 0, YUV420P);
+    pipe->addWorker(wRes2Id, wRes2);
+    ((BaseFilter*)resampler1)->addSlave(res2Id, resampler2);
     
     //NOTE: Adding encoder to pipeManager and handle worker
-    encoder = new VideoEncoderX264();
-    pipe->addFilter(encId, encoder);
-    wEnc = new Worker();
-    wEnc->addProcessor(encId, encoder);
-    encoder->setWorkerId(wEncId);
-    pipe->addWorker(wEncId, wEnc);
-    
-    //NOTE: add filter to path
-    path = pipe->createPath(pipe->getReceiverID(), dasherId, port, dstReader, ids);
-    pipe->addPath(port, path);       
-    pipe->connectPath(path);
+    encoder1 = new VideoEncoderX264();
+    pipe->addFilter(enc1Id, encoder1);
+    wEnc1 = new Worker();
+    wEnc1->addProcessor(enc1Id, encoder1);
+    encoder1->setWorkerId(wEnc1Id);
+    pipe->addWorker(wEnc1Id, wEnc1);
 
-    dasher->addSegmenter(dstReader, SEG_BASE_NAME, SEGMENT_DURATION);
+    //NOTE: Adding encoder to pipeManager and handle worker
+    encoder2 = new VideoEncoderX264(SLAVE, VIDEO_DEFAULT_FRAMERATE, false);
+    pipe->addFilter(enc2Id, encoder2);
+    wEnc2 = new Worker();
+    wEnc2->addProcessor(enc2Id, encoder2);
+    encoder2->setWorkerId(wEnc2Id);
+    pipe->addWorker(wEnc2Id, wEnc2);
+    ((BaseFilter*)encoder1)->addSlave(res2Id, encoder2);
+
+    //NOTE: add filter to path
+    masterPath = pipe->createPath(pipe->getReceiverID(), dasherId, port, dstReader1, masterIds);
+    pipe->addPath(port, masterPath);       
+    pipe->connectPath(masterPath);
+
+    //NOTE: add filter to path
+    slavePath = pipe->createPath(res2Id, dasherId, -1, dstReader2, slaveIds);
+    pipe->addPath(slavePathId, slavePath);       
+    pipe->connectPath(slavePath);
+
+    std::cout << "Master reader: " << dstReader1 << std::endl;
+    std::cout << "Slave reader: " << dstReader2 << std::endl;
+
+    if (!dasher->addSegmenter(dstReader1, SEG_BASE_NAME1, SEGMENT_DURATION)) {
+        utils::errorMsg("Error adding segmenter");
+    }
+
+    if (!dasher->addSegmenter(dstReader2, SEG_BASE_NAME2, SEGMENT_DURATION)) {
+        utils::errorMsg("Error adding segmenter");
+    }
     
     pipe->startWorkers();
 }

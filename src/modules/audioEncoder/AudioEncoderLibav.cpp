@@ -29,7 +29,7 @@ bool checkSampleFormat(AVCodec *codec, enum AVSampleFormat sampleFmt);
 bool checkSampleRateSupport(AVCodec *codec, int sampleRate);
 bool checkChannelLayoutSupport(AVCodec *codec, uint64_t channelLayout);
 
-AudioEncoderLibav::AudioEncoderLibav() : OneToOneFilter(), fCodec(AC_NONE), samplesPerFrame(0),
+AudioEncoderLibav::AudioEncoderLibav(FilterRole fRole_) : OneToOneFilter(0, fRole_), fCodec(AC_NONE), samplesPerFrame(0),
 internalChannels(0), internalSampleRate(0), internalSampleFmt(S_NONE), internalLibavSampleFmt(AV_SAMPLE_FMT_NONE),
 inputChannels(0), inputSampleRate(0), inputSampleFmt(S_NONE), inputLibavSampleFmt(AV_SAMPLE_FMT_NONE)
 {
@@ -227,10 +227,9 @@ bool AudioEncoderLibav::codingConfig()
     libavFrame->channel_layout = codecCtx->channel_layout;
     libavFrame->channels = internalChannels;
 
-    //TODO check frameTime processing...
-    //frameTime = std::chrono::microseconds(1000000*libavFrame->nb_samples/internalSampleRate);
 
     samplesPerFrame = libavFrame->nb_samples;
+    setFrameTime((1000000*samplesPerFrame)/internalSampleRate);
 
     if (av_frame_get_buffer(libavFrame, 0) < 0) {
         utils::errorMsg("Could not setup audio frame");

@@ -53,7 +53,7 @@ AVSampleFormat getAVSampleFormatFromtIntCode(int id)
 }
 
 AudioDecoderLibav::AudioDecoderLibav(FilterRole fRole_)
-: OneToOneFilter(fRole_)
+: OneToOneFilter(0, fRole_)
 {
     avcodec_register_all();
 

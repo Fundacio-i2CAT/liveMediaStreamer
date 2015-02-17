@@ -24,14 +24,14 @@
 #include <cmath>
 #include "VideoEncoderX264.hh"
 
-VideoEncoderX264::VideoEncoderX264(int framerate, size_t fTime, FilterRole fRole_): OneToOneFilter(fTime, fRole_ ,true)
+VideoEncoderX264::VideoEncoderX264(FilterRole fRole_, int framerate, bool shareFrames) : 
+OneToOneFilter(1000000/framerate, fRole_ , true, shareFrames)
 {
     fType = VIDEO_ENCODER;
 
     pts = 0;
     fps = framerate;
 
-    setFrameTime(1000000/fps);
     forceIntra = false;
     encoder = NULL;
     x264_picture_init(&picIn);

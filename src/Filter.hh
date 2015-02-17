@@ -183,6 +183,11 @@ public:
     * @param size_t frame time
     */
     void setFrameTime(size_t fTime);
+    /**
+    * Sets a dfined wall clock to the filter
+    * @param refWallClock reference wall clock
+    */
+    void setWallClock(std::chrono::microseconds refWallClock) {wallClock = refWallClock;};
 
 protected:
     BaseFilter(unsigned readersNum = MAX_READERS, unsigned writersNum = MAX_WRITERS, size_t fTime = 0, FilterRole fRole_ = MASTER, bool force_ = false, bool sharedFrames_ = true);
@@ -275,6 +280,7 @@ private:
     using BaseFilter::processEvent;
     using BaseFilter::updateTimestamp;
     using BaseFilter::addSlave;
+    using BaseFilter::setWallClock;
 
     using BaseFilter::frameTime;
     using BaseFilter::timestamp;
@@ -309,6 +315,7 @@ private:
     using BaseFilter::processEvent;
     using BaseFilter::updateTimestamp;
     using BaseFilter::addSlave;
+    using BaseFilter::setWallClock;
 
     using BaseFilter::frameTime;
     using BaseFilter::timestamp;
@@ -344,6 +351,7 @@ private:
     using BaseFilter::processEvent;
     using BaseFilter::updateTimestamp;
     using BaseFilter::addSlave;
+    using BaseFilter::setWallClock;
 
     using BaseFilter::frameTime;
     using BaseFilter::timestamp;
@@ -376,6 +384,7 @@ private:
     using BaseFilter::dFrames;
     using BaseFilter::processEvent;
     using BaseFilter::updateTimestamp;
+    using BaseFilter::setWallClock;
 
     using BaseFilter::frameTime;
     using BaseFilter::timestamp;
@@ -409,6 +418,7 @@ private:
     using BaseFilter::processEvent;
     using BaseFilter::updateTimestamp;
     using BaseFilter::addSlave;
+    using BaseFilter::setWallClock;
 
     using BaseFilter::frameTime;
     using BaseFilter::timestamp;

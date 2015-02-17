@@ -35,6 +35,7 @@
 #include "modules/liveMediaOutput/SinkManager.hh"
 
 #include "Path.hh"
+#include "Worker.hh"
 
 #include <map>
 

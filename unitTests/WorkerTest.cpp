@@ -33,6 +33,7 @@
 #include <cppunit/XmlOutputter.h>
 
 #include "Worker.hh"
+#include "Runnable.hh"
 #include "RunnableMockup.hh"
 
 class WorkerTest : public CppUnit::TestFixture

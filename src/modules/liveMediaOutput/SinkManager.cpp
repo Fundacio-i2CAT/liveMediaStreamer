@@ -27,9 +27,6 @@
 #include "SinkManager.hh"
 #include "../../AVFramedQueue.hh"
 #include "../../AudioCircularBuffer.hh"
-#include "H264QueueServerMediaSubsession.hh"
-#include "VP8QueueServerMediaSubsession.hh"
-#include "AudioQueueServerMediaSubsession.hh"
 #include "QueueSource.hh"
 #include "H264QueueSource.hh"
 #include "Types.hh"
@@ -68,10 +65,6 @@ void SinkManager::stop()
        delete it.second;
     }
 
-    for (auto it : sessionList ) {
-        rtspServer->deleteServerMediaSession(it.second);
-    }
-
     for (auto it : replicators) {
        Medium::close(it.second);
     }
@@ -92,39 +85,37 @@ bool SinkManager::runDoProcessFrame()
     return true;
 }
 
-bool SinkManager::addSession(std::string id, std::vector<int> readers, std::string info, std::string desc)
+bool SinkManager::addRTSPConnection(std::vector<int> readers, int id, TxFormat txformat, 
+                                    std::string name, std::string info, std::string desc)
 {
+    RTSPConnection* connection;
     if (!rtspServer){
         utils::errorMsg("Unitialized RTSPServer");
         return false;
     }
 
-    if (sessionList.count(id) > 0){
-        utils::errorMsg("Failed, this session already exists: " + id);
+    if (connections.count(id) > 0){
+        utils::errorMsg("Failed, this connection already exists");
         return false;
     }
 
-    ServerMediaSession* servSession
-        = ServerMediaSession::createNew(*(envir()), id.c_str(), info.c_str(), desc.c_str());
-
-    if (servSession == NULL){
-        utils::errorMsg("Failed creating new ServerMediaSession");
-        return false;
-    }
-
-    ServerMediaSubsession *subsession;
+    connection = new RTSPConnection(env, txformat, rtspServer, name, info, desc);
+    //TODO: test connection construction
 
     for (auto & reader : readers){
-        if ((subsession = createSubsessionByReader(reader)) != NULL) {
-            servSession->addSubsession(subsession);
-        } else {
-            servSession->deleteAllSubsessions();
-            Medium::close(servSession);
+        if (!addSubsessionByReader(connection, reader)) {
+            delete connection;
             return false;
         }
     }
+    
+    if (!connection->setup()) {
+        utils::errorMsg("Error in RTSPConnection setup");
+        delete connection;
+        return false;
+    }
 
-    sessionList[id] = servSession;
+    connections[id] = connection;
 
     return true;
 }
@@ -190,10 +181,10 @@ bool SinkManager::addMpegTsRTPConnection(std::vector<int> inputReaders, int id, 
         aQueue = dynamic_cast<AudioFrameQueue*>(getReader(inReader)->getQueue());
 
         if (vQueue && !hasVideo) {
-            success = conn->addVideoSource(replicators[inReader]->createStreamReplica(), vQueue->getCodec());
+            success = conn->addVideoSource(replicators[inReader]->createStreamReplica(), vQueue->getCodec(), inReader);
             hasVideo = true;
         } else if (aQueue && !hasAudio) {
-            success = conn->addAudioSource(replicators[inReader]->createStreamReplica(), aQueue->getCodec());
+            success = conn->addAudioSource(replicators[inReader]->createStreamReplica(), aQueue->getCodec(), inReader);
             hasAudio = true;
         } else {
             utils::errorMsg("Error creating MpegTSRTPConnection. Only one video and/or one audio is supported");
@@ -208,43 +199,6 @@ bool SinkManager::addMpegTsRTPConnection(std::vector<int> inputReaders, int id, 
 
     if (!conn->setup()) {
         utils::errorMsg("Error in MpegTSRTPConnection setup");
-        delete conn;
-        return false;
-    }
-
-    connections[id] = conn;
-    return true;
-}
-
-bool SinkManager::addDASHConnection(int reader, unsigned id, std::string fileName,
-                                    std::string quality, bool reInit, uint32_t segmentTime,
-                                    uint32_t initSegment, uint32_t fps)
-{
-    VideoFrameQueue *vQueue;
-    AudioFrameQueue *aQueue;
-    Connection* conn = NULL;
-
-    if ((vQueue = dynamic_cast<VideoFrameQueue*>(getReader(reader)->getQueue())) != NULL) {
-        conn = new DashVideoConnection(envir(), replicators[reader]->createStreamReplica(),
-                                       fileName, quality, reInit, segmentTime, initSegment,
-                                       vQueue->getCodec(), fps);
-
-    }
-
-    if ((aQueue = dynamic_cast<AudioFrameQueue*>(getReader(reader)->getQueue())) != NULL) {
-        conn = new DashAudioConnection(envir(), replicators[reader]->createStreamReplica(),
-                                       fileName, quality, reInit, segmentTime, initSegment,
-                                       aQueue->getCodec(), aQueue->getChannels(),
-                                       aQueue->getSampleRate(), aQueue->getSampleFmt());
-    }
-
-    if (!conn) {
-        utils::errorMsg("Error creating RawRTPConnection");
-        return false;
-    }
-
-    if (!conn->setup()) {
-        utils::errorMsg("Error in connection setup");
         delete conn;
         return false;
     }
@@ -274,13 +228,13 @@ bool SinkManager::addStdRTPConnection(std::vector<int> readers, int id, std::str
 
     if ((vQueue = dynamic_cast<VideoFrameQueue*>(r->getQueue())) != NULL) {
         conn = new VideoConnection(envir(), replicators[readers.front()]->createStreamReplica(),
-                                   ip, port, vQueue->getCodec());
+                                   ip, port, vQueue->getCodec(), readers.front());
     }
 
     if ((aQueue = dynamic_cast<AudioFrameQueue*>(r->getQueue())) != NULL){
         conn = new AudioConnection(envir(), replicators[readers.front()]->createStreamReplica(),
                                    ip, port, aQueue->getCodec(), aQueue->getChannels(),
-                                   aQueue->getSampleRate(), aQueue->getSampleFmt());
+                                   aQueue->getSampleRate(), aQueue->getSampleFmt(), readers.front());
     }
 
     if (!conn) {
@@ -318,12 +272,12 @@ bool SinkManager::addUltraGridRTPConnection(std::vector<int> readers, int id, st
     }
 
     if ((vQueue = dynamic_cast<VideoFrameQueue*>(r->getQueue())) != NULL) {
-        conn = new UltraGridVideoConnection(envir(), replicators[readers.front()]->createStreamReplica(), ip, port, vQueue->getCodec());
+        conn = new UltraGridVideoConnection(envir(), replicators[readers.front()]->createStreamReplica(), ip, port, vQueue->getCodec(), readers.front());
     }
 
     if ((aQueue = dynamic_cast<AudioFrameQueue*>(r->getQueue())) != NULL) {
         conn = new UltraGridAudioConnection(envir(), replicators[readers.front()]->createStreamReplica(), ip, port,
-                        aQueue->getCodec(), aQueue->getChannels(), aQueue->getSampleRate(), aQueue->getSampleFmt());
+                        aQueue->getCodec(), aQueue->getChannels(), aQueue->getSampleRate(), aQueue->getSampleFmt(), readers.front());
     }
 
     if (!conn) {
@@ -396,96 +350,48 @@ void SinkManager::createAudioQueueSource(ACodecType codec, Reader *reader, int r
     }
 }
 
-ServerMediaSubsession *SinkManager::createVideoMediaSubsession(VCodecType codec, int readerId)
-{
-    switch(codec){
-        case H264:
-            return H264QueueServerMediaSubsession::createNew(*(envir()), replicators[readerId], readerId, False);
-            break;
-        case VP8:
-            return VP8QueueServerMediaSubsession::createNew(*(envir()), replicators[readerId], readerId, False);
-            break;
-        default:
-            break;
-    }
-    return NULL;
-}
-
-ServerMediaSubsession *SinkManager::createAudioMediaSubsession(ACodecType codec,
-                                                               unsigned channels,
-                                                               unsigned sampleRate,
-                                                               SampleFmt sampleFormat,
-                                                               int readerId)
-{
-    switch(codec){
-        //case MPEG4_GENERIC:
-            //TODO
-			//printf("TODO createAudioMediaSubsession\n");
-            //break;
-        default:
-            return AudioQueueServerMediaSubsession::createNew(*(envir()), replicators[readerId],
-                                                              readerId, codec, channels,
-                                                              sampleRate, sampleFormat, False);
-            break;
-    }
-    return NULL;
-}
-
-ServerMediaSubsession *SinkManager::createSubsessionByReader(int readerId)
+bool SinkManager::addSubsessionByReader(RTSPConnection* connection ,int readerId)
 {
     VideoFrameQueue *vQueue;
     AudioFrameQueue *aQueue;
 
     if ((vQueue = dynamic_cast<VideoFrameQueue*>(getReader(readerId)->getQueue())) != NULL){
-        return createVideoMediaSubsession(vQueue->getCodec(), readerId);
+        return connection->addVideoSubsession(vQueue->getCodec(), replicators[readerId], readerId);
     }
 
     if ((aQueue = dynamic_cast<AudioFrameQueue*>(getReader(readerId)->getQueue())) != NULL){
-        return createAudioMediaSubsession(aQueue->getCodec(), aQueue->getChannels(),
-                                          aQueue->getSampleRate(), aQueue->getSampleFmt(), readerId);
+        return connection->addAudioSubsession(aQueue->getCodec(), replicators[readerId], 
+                                              aQueue->getChannels(), aQueue->getSampleRate(), 
+                                              aQueue->getSampleFmt(), readerId);
     }
-
-    return NULL;
-}
-
-bool SinkManager::removeSession(std::string id)
-{
-    if (sessionList.count(id) <= 0){
-        utils::errorMsg("Failed, no session found with this id (" + id + ")");
-        return false;
-    }
-
-    rtspServer->deleteServerMediaSession(sessionList[id]);
-    sessionList.erase(id);
 
     return false;
 }
 
-bool SinkManager::removeSessionByReaderId(int readerId)
+bool SinkManager::removeConnectionByReaderId(int readerId)
 {
+    std::vector<int> readers;
+    std::vector<int> connToDelete;
     bool ret = false;
-    QueueServerMediaSubsession *qSubsession;
-    ServerMediaSubsession *subsession;
-
-    std::map<std::string, ServerMediaSession*>::iterator it = sessionList.begin();
-    while(it != sessionList.end()){
-        ServerMediaSubsessionIterator subIt(*it->second);
-        subsession = subIt.next();
-        while(subsession){
-            if (!(qSubsession = dynamic_cast<QueueServerMediaSubsession *>(subsession))){
-                utils::errorMsg("Could not cast to QueueServerMediaSubsession");
-                return false;
+    Connection* conn;
+    
+    for (auto it : connections){
+        readers = it.second->getReaders();
+        for (auto ti : readers){
+            if (ti == readerId){
+                it.second->stopPlaying();
+                connToDelete.push_back(it.first);
             }
-            if (qSubsession->getReaderId() == readerId){
-                std::map<std::string, ServerMediaSession*>::iterator tmpIt = it;
-                removeSession(tmpIt->first);
-                ret = true;
-                break;
-            }
-            subsession = subIt.next();
         }
-        it++;
     }
+    
+    for (auto id : connToDelete){
+        conn = connections[id];
+        connections.erase(id);
+        delete conn;
+        ret |= true;
+    }
+    
     return ret;
 }
 
@@ -496,7 +402,7 @@ bool SinkManager::deleteReader(int id)
         return false;
     }
 
-    removeSessionByReaderId(id);
+    removeConnectionByReaderId(id);
 
     if (reader->isConnected()) {
         return false;
@@ -508,87 +414,13 @@ bool SinkManager::deleteReader(int id)
     return true;
 }
 
-bool SinkManager::publishSession(std::string id)
-{
-    if (sessionList.find(id) == sessionList.end()){
-        utils::errorMsg("Failed, no session found with this id (" + id + ")");
-        return false;
-    }
-
-    if (rtspServer == NULL){
-        return false;
-    }
-
-    rtspServer->addServerMediaSession(sessionList[id]);
-    char* url = rtspServer->rtspURL(sessionList[id]);
-
-    utils::infoMsg("Play " + id + " stream using the URL " + url);
-    delete[] url;
-
-    return true;
-}
-
-ServerMediaSession* SinkManager::getSession(std::string id)
-{
-    if(sessionList.find(id) != sessionList.end()){
-        return sessionList[id];
-    }
-
-    return NULL;
-}
-
 void SinkManager::initializeEventMap()
 {
-    eventMap["addSession"] = std::bind(&SinkManager::addSessionEvent, this,
-                                        std::placeholders::_1,  std::placeholders::_2);
+//     eventMap["addSession"] = std::bind(&SinkManager::addSessionEvent, this,
+//                                         std::placeholders::_1,  std::placeholders::_2);
     eventMap["addRTPConnection"] = std::bind(&SinkManager::addRTPConnectionEvent, this,
                                         std::placeholders::_1,  std::placeholders::_2);
 
-}
-
-void SinkManager::addSessionEvent(Jzon::Node* params, Jzon::Object &outputNode)
-{
-    std::vector<int> readers;
-    std::string sessionId;
-
-    if (!params) {
-        outputNode.Add("error", "Error adding session. No parameters!");
-        return;
-    }
-
-    if (params->Has("sessionName")) {
-        sessionId = params->Get("sessionName").ToString();
-    } else {
-        sessionId = utils::randomIdGenerator(ID_LENGTH);
-    }
-
-    if (!params->Has("readers") || !params->Get("readers").IsArray()) {
-        outputNode.Add("error", "Error adding session. Readers does not exist or is not an array!");
-        return;
-    }
-
-    Jzon::Array jsonReaders = params->Get("readers").AsArray();
-
-    for (Jzon::Array::iterator it = jsonReaders.begin(); it != jsonReaders.end(); ++it) {
-        readers.push_back((*it).ToInt());
-    }
-
-    if (readers.empty()) {
-        outputNode.Add("error", "Error adding session. Readers array is empty!");
-        return;
-    }
-
-    if(!addSession(sessionId, readers)) {
-        outputNode.Add("error", "Error adding session. Internal error!");
-        return;
-    }
-
-    if (!publishSession(sessionId)){
-        outputNode.Add("error", "Error adding session. Internal error!");
-        return;
-    }
-
-    outputNode.Add("sessionID", sessionId);
 }
 
 void SinkManager::addRTPConnectionEvent(Jzon::Node* params, Jzon::Object &outputNode)
@@ -640,32 +472,33 @@ void SinkManager::addRTPConnectionEvent(Jzon::Node* params, Jzon::Object &output
     outputNode.Add("error", Jzon::null);
 }
 
+//TODO: update this event
 void SinkManager::doGetState(Jzon::Object &filterNode)
 {
-    Jzon::Array sessionArray;
-    ServerMediaSubsession* subsession;
-    int readerId;
-
-    for (auto it : sessionList) {
-        Jzon::Array jsonReaders;
-        Jzon::Object jsonSession;
-        std::string uri = rtspServer->rtspURL(it.second);
-
-        jsonSession.Add("id", it.first);
-        jsonSession.Add("uri", uri);
-
-        ServerMediaSubsessionIterator sIt(*it.second);
-        subsession = sIt.next();
-
-        while(subsession) {
-            readerId = dynamic_cast<QueueServerMediaSubsession*>(subsession)->getReaderId();
-            jsonReaders.Add(readerId);
-            subsession = sIt.next();
-        }
-
-        jsonSession.Add("readers", jsonReaders);
-        sessionArray.Add(jsonSession);
-    }
-
-    filterNode.Add("sessions", sessionArray);
+//     Jzon::Array sessionArray;
+//     ServerMediaSubsession* subsession;
+//     int readerId;
+// 
+//     for (auto it : sessionList) {
+//         Jzon::Array jsonReaders;
+//         Jzon::Object jsonSession;
+//         std::string uri = rtspServer->rtspURL(it.second);
+// 
+//         jsonSession.Add("id", it.first);
+//         jsonSession.Add("uri", uri);
+// 
+//         ServerMediaSubsessionIterator sIt(*it.second);
+//         subsession = sIt.next();
+// 
+//         while(subsession) {
+//             readerId = dynamic_cast<QueueServerMediaSubsession*>(subsession)->getReaderId();
+//             jsonReaders.Add(readerId);
+//             subsession = sIt.next();
+//         }
+// 
+//         jsonSession.Add("readers", jsonReaders);
+//         sessionArray.Add(jsonSession);
+//     }
+// 
+//     filterNode.Add("sessions", sessionArray);
 }

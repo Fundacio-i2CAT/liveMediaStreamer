@@ -264,18 +264,16 @@ int main(int argc, char* argv[])
     for (auto it : pipe->getPaths()) {
         readers.push_back(it.second->getDstReaderID());
     }
-
+  
     sessionId = utils::randomIdGenerator(ID_LENGTH);
-    if (!transmitter->addSession(sessionId, readers)){
+    if (!transmitter->addRTSPConnection(readers, 1, STD_RTP, sessionId)){
         return 1;
     }
-    transmitter->publishSession(sessionId);
 
     sessionId = utils::randomIdGenerator(ID_LENGTH);
-    if (!transmitter->addSession(sessionId, readers)){
+    if (!transmitter->addRTSPConnection(readers, 2, MPEGTS, sessionId)){
         return 1;
     }
-    transmitter->publishSession(sessionId);
 
     if (port != 0 && !ip.empty()){
         addConnections(readers, ip, port);

@@ -1,5 +1,5 @@
 /*
- *  QueueServerMediaSubsession.cpp - A generic subsession class for our frame queue
+ *  Runnable.cpp - This is the interface between Workers and Filters
  *  Copyright (C) 2014  Fundació i2CAT, Internet i Innovació digital a Catalunya
  *
  *  This file is part of liveMediaStreamer.
@@ -17,20 +17,42 @@
  *  You should have received a copy of the GNU General Public License
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- *  Authors:  David Cassany <david.cassany@i2cat.net>,
- *            
+ *  Authors:  David Cassany <david.cassany@i2cat.net>
+ *
+ *
  */
 
+#include "Runnable.hh"
 
-#include "QueueServerMediaSubsession.hh"
+#include <thread>
 
-QueueServerMediaSubsession
-::QueueServerMediaSubsession(UsageEnvironment& env, Boolean reuseFirstSource)
-    : OnDemandServerMediaSubsession(env, reuseFirstSource)
+bool Runnable::ready()
 {
+    return time < std::chrono::system_clock::now();
 }
 
-QueueServerMediaSubsession::~QueueServerMediaSubsession()
+void Runnable::sleepUntilReady()
 {
+    std::chrono::system_clock::time_point now = std::chrono::system_clock::now();
+    std::chrono::microseconds teaTime;
+
+    if (!ready()){
+        teaTime = std::chrono::duration_cast<std::chrono::microseconds>(time - now);
+
+        std::this_thread::sleep_for(teaTime);
+    }
 }
 
+bool Runnable::runProcessFrame()
+{
+    size_t ret;
+    
+    ret = processFrame();
+    if (ret < 0){
+        return false;
+    }
+
+    time = std::chrono::system_clock::now() + std::chrono::microseconds(ret);
+
+    return true;
+}

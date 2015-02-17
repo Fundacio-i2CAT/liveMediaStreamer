@@ -83,9 +83,9 @@ void MpegTsConnectionTest::addVideoSource()
     CPPUNIT_ASSERT(conn != NULL);
     CPPUNIT_ASSERT(framer != NULL);
 
-    CPPUNIT_ASSERT(!conn->addVideoSource(NULL, H264));
-    CPPUNIT_ASSERT(!conn->addVideoSource(framer, VP8));
-    CPPUNIT_ASSERT(conn->addVideoSource(framer, H264));
+    CPPUNIT_ASSERT(!conn->addVideoSource(NULL, H264, 1));
+    CPPUNIT_ASSERT(!conn->addVideoSource(framer, VP8, 1));
+    CPPUNIT_ASSERT(conn->addVideoSource(framer, H264, 1));
 
     CPPUNIT_ASSERT(conn->setup());
 }
@@ -98,9 +98,9 @@ void MpegTsConnectionTest::addAudioSource()
     CPPUNIT_ASSERT(conn != NULL);
     CPPUNIT_ASSERT(aInputSource != NULL);
 
-    CPPUNIT_ASSERT(!conn->addAudioSource(NULL, AAC));
-    CPPUNIT_ASSERT(!conn->addAudioSource(aInputSource, MP3));
-    CPPUNIT_ASSERT(conn->addAudioSource(aInputSource, AAC));
+    CPPUNIT_ASSERT(!conn->addAudioSource(NULL, AAC, 2));
+    CPPUNIT_ASSERT(!conn->addAudioSource(aInputSource, MP3, 2));
+    CPPUNIT_ASSERT(conn->addAudioSource(aInputSource, AAC, 2));
     
     CPPUNIT_ASSERT(conn->setup());
 }

@@ -59,7 +59,7 @@ protected:
 
 void SinkManagerTest::setUp()
 {
-    sinkManager = new SinkManager();
+    sinkManager = SinkManager::createNew();
     vFilter = new VideoFilterMockup(H264);
     utils::errorMsg("video mockup created");
     aFilter = new AudioFilterMockup(AAC);

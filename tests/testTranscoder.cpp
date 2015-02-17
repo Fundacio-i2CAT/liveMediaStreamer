@@ -231,7 +231,10 @@ int main(int argc, char* argv[])
     }
 
     PipelineManager *pipe = Controller::getInstance()->pipelineManager();
-    pipe->start();
+    if (! pipe->start()){
+        utils::errorMsg("Couldn't start pipe");
+        return 1;
+    }
     SinkManager *transmitter = pipe->getTransmitter();
 
     signal(SIGINT, signalHandler);

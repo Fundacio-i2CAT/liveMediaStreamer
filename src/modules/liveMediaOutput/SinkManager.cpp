@@ -34,6 +34,18 @@
 #include "../../Types.hh"
 #include "../../Utils.hh"
 
+
+SinkManager* SinkManager::createNew(unsigned readersNum)
+{
+    SinkManager *sMgr = new SinkManager(readersNum);
+    
+    if (sMgr->isGood()){
+        return sMgr;
+    }
+    
+    return NULL;
+}
+
 SinkManager::SinkManager(unsigned readersNum) :
 LiveMediaFilter(readersNum, 0), watch(0)
 {

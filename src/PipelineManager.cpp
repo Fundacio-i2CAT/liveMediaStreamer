@@ -54,8 +54,13 @@ bool PipelineManager::start()
     int receiverWorkerId = rand();
     transmitterID = rand();
     int transmitterWorkerId = rand();
-    SinkManager* transmitter = new SinkManager();
+
+    SinkManager* transmitter = SinkManager::createNew();
     SourceManager* receiver = new SourceManager();
+    
+    if (!transmitter){
+        return false;
+    }
 
     if (!addFilter(receiverID, receiver)) {
         return false;

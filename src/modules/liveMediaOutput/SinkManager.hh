@@ -42,8 +42,8 @@
 
 class SinkManager : public LiveMediaFilter {
 public:
-
-    SinkManager(unsigned readersNum = MAX_READERS);
+    static SinkManager* createNew(unsigned readersNum = MAX_READERS);
+    
     ~SinkManager();
 
     /**
@@ -80,6 +80,10 @@ public:
     UsageEnvironment* envir() {return env;}
 
 private:
+    SinkManager(unsigned readersNum = MAX_READERS);
+    
+    bool isGood() {return rtspServer != NULL;};
+    
     bool addStdRTPConnection(std::vector<int> readers, int id, std::string ip, int port);
     bool addUltraGridRTPConnection(std::vector<int> readers, int id, std::string ip, int port);
     bool addMpegTsRTPConnection(std::vector<int> readers, int id, std::string ip, int port);

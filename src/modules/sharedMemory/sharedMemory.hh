@@ -43,33 +43,54 @@
 #define MAX_SIZE 1920*1080*3
 #define KEY 6789
 
-
+/*! OneToOneFilter sharing memory with another process. This filter uses shm
+library, a POSIX shared memory library to share specific address spaces between
+different processes.
+*/
 class SharedMemory : public OneToOneFilter {
 
 public:
+    /**
+    * Creates new shared memory object
+    * @param key_ value for defining the piece of address to share
+    * @return SharedMemory object or NULL if any error while creating
+    * @see OneToOneFilter to check the inherated input params
+    */
     static SharedMemory* createNew(unsigned key_, size_t fTime = 0, FilterRole fRole_ = MASTER, bool force_ = false, bool sharedFrames_ = true);
+    /**
+    * Class destructor
+    */
     ~SharedMemory();
 
+    /**
+    * Main method that bypass incoming frame to output and checks if the shared
+    * memory can be written with new incoming frame
+    * @param Frame *org as origin input frame
+    * @param Frame *dst as destination output frame
+    * @return true always, an incoming frame must be always bypassed
+    */
     bool doProcessFrame(Frame *org, Frame *dst);
+    /**
+    * Allocs frame queue to be used
+    * @param Integer of the worker ID
+    * @return FrameQueue object or NULL if any error while creating the queue
+    */
     FrameQueue* allocQueue(int wId);
-    bool isEnabled() {return enabled;};
 
 private:
     SharedMemory(unsigned key_ = KEY, size_t fTime = 0, FilterRole fRole_ = MASTER, bool force_ = false, bool sharedFrames_ = true);
+    bool isEnabled() {return enabled;};
 
     void initializeEventMap();
     void doGetState(Jzon::Object &filterNode);
 
     void copyOrgToDstFrame(InterleavedVideoFrame *org, InterleavedVideoFrame *dst);
     int writeSharedMemory(uint8_t *buffer, int buffer_size);
-	uint8_t * readSharedMemory();
 	void writeFramePayload(uint16_t seqNum);
-	void readFramePayload();
 	bool isWritable();
-	bool isReadable();
-	Frame * getFrameObject();
+	Frame * getFrameObject() { return frame;};
 	bool setFrameObject(Frame* in_frame);
-	uint16_t getSeqNum();
+	uint16_t getSeqNum() { return seqNum;};
 
     uint16_t getCodecFromVCodec(VCodecType codec);
 	uint16_t getPixelFormatFromPixType(PixType pxlFrmt);

@@ -164,8 +164,8 @@ void addVideoSource(unsigned port, unsigned fps = FRAME_RATE, std::string codec 
     pipe->addWorker(wDecId, wDec);
 
     //NOTE: Adding sharedMemory to pipeManager and handle worker
-    shm = shm->createNew(KEY);
-    if(!shm->isEnabled()){
+    shm = SharedMemory::createNew(KEY);
+    if(!shm){
         utils::errorMsg("Could not initiate sharedMemory filter");
         return;
     }
@@ -264,7 +264,7 @@ int main(int argc, char* argv[])
     for (auto it : pipe->getPaths()) {
         readers.push_back(it.second->getDstReaderID());
     }
-  
+
     sessionId = utils::randomIdGenerator(ID_LENGTH);
     if (!transmitter->addRTSPConnection(readers, 1, STD_RTP, sessionId)){
         return 1;

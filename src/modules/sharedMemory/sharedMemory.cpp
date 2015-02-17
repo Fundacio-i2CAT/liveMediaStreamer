@@ -21,11 +21,15 @@
  */
 
 #include "sharedMemory.hh"
-#include "../../Utils.hh"
 
 SharedMemory* SharedMemory::createNew(unsigned key_, size_t fTime, FilterRole fRole_, bool force_, bool sharedFrames_)
 {
-    return new SharedMemory(key_, fTime, fRole_, force_, sharedFrames_);
+    SharedMemory *shm = new SharedMemory(key_, fTime, fRole_, force_, sharedFrames_);
+
+    if(shm->isEnabled()){
+        return shm;
+    }
+    return NULL;
 }
 
 SharedMemory::SharedMemory(unsigned key_, size_t fTime, FilterRole fRole_, bool force_, bool sharedFrames_):
@@ -121,14 +125,6 @@ int SharedMemory::writeSharedMemory(uint8_t *buf, int buf_size) {
 	return 0;
 }
 
-uint8_t * SharedMemory::readSharedMemory() {
-	*access = CHAR_READING;
-	memcpy(access + HEADER_SIZE, buffer, sizeof(uint8_t) * SHMSIZE);
-	*access = CHAR_WRITING;
-
-	return buffer;
-}
-
 void SharedMemory::writeFramePayload(uint16_t seqNum) {
 
 	uint32_t tv_sec = frame->getPresentationTime().count() / 1000000;
@@ -152,49 +148,8 @@ void SharedMemory::writeFramePayload(uint16_t seqNum) {
 	memcpy(access+20, &length, sizeof(uint32_t));
 }
 
-void SharedMemory::readFramePayload() {
-
-	uint32_t tv_sec;
-	uint32_t tv_usec;
-	uint16_t width;
-	uint16_t height;
-	uint32_t length;
-	uint16_t codec;
-	uint16_t pixFmt;
-
-	memcpy(&seqNum, access+2, sizeof(uint16_t));
-	memcpy(&pixFmt, access+4, sizeof(uint16_t));
-	memcpy(&codec, access+6, sizeof(uint16_t));
-	memcpy(&height, access+8, sizeof(uint16_t));
-	memcpy(&width, access+10, sizeof(uint16_t));
-	memcpy(&tv_sec, access+12, sizeof(uint32_t));
-	memcpy(&tv_usec, access+16, sizeof(uint32_t));
-	memcpy(&length, access+20, sizeof(uint32_t));
-
-	if(!frame){
-		utils::debugMsg("Initializing Frame Object");
-		frame = InterleavedVideoFrame::createNew(getVCodecFromCodecType(codec), width, height, getPixTypeFromPixelFormat(pixFmt));
-	}
-
-	frame->setSize(width, height);
-	frame->setPixelFormat(getPixTypeFromPixelFormat(pixFmt));
-	frame->setLength(length);
-	frame->setPresentationTime(std::chrono::milliseconds(1000000 * tv_sec + tv_usec));
-
-	std::cout << "Reading Frame Payload: seqNum = "<< seqNum << " pixFmt = " << pixFmt << " codec = "<< codec << " size = " << width << "x" << height << " ts(sec) = " << tv_sec << " ts(usec) = "<< tv_usec << " length = " << length << std::endl;
-	//utils::debugMsg("Reading Frame Payload: seqNum = "+ seqNum + " pixFmt = " + pixFmt + " codec = "+ codec + " size = " + width + "x" + height + " ts(sec) = " + tv_sec + " ts(usec) = "+ tv_usec + " length = " + length + "");
-}
-
 bool SharedMemory::isWritable() {
 	return *access == CHAR_WRITING;
-}
-
-bool SharedMemory::isReadable() {
-	return *access == CHAR_READING;
-}
-
-Frame * SharedMemory::getFrameObject(){
-	return frame;
 }
 
 bool SharedMemory::setFrameObject(Frame* in_frame){
@@ -204,10 +159,6 @@ bool SharedMemory::setFrameObject(Frame* in_frame){
 		frame = NULL;
 		return false;
 	}
-}
-
-uint16_t SharedMemory::getSeqNum(){
-	return seqNum;
 }
 
 uint16_t SharedMemory::getCodecFromVCodec(VCodecType codec){

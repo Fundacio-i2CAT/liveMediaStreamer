@@ -34,8 +34,6 @@
 
 #define V_BAND 2000000
 #define A_BAND 192000
-#define MPD_LOCATION "http://localhost/dashLMS/test.mpd"
-#define MPD_PATH "/home/palau/nginx_root/dashLMS/test.mpd"
 
 Dasher* Dasher::createNew(std::string dashFolder, std::string baseName, size_t segDurInSeconds, std::string mpdLocation, int readersNum)
 {
@@ -62,7 +60,7 @@ TailFilter(readersNum)
     vSegTempl = baseName + "_$RepresentationID$_$Time$.m4v";
     aSegTempl = baseName + "_$RepresentationID$_$Time$.m4a";
     vInitSegTempl = baseName + "_$RepresentationID$_init.m4v";
-    aInitSegTempl = baseName + "_$RepresentationID$_init.m4v";
+    aInitSegTempl = baseName + "_$RepresentationID$_init.m4a";
 
     mpdMngr = new MpdManager();
     mpdMngr->setLocation(mpdLocation);
@@ -136,6 +134,7 @@ bool Dasher::addSegmenter(int readerId)
     VideoFrameQueue *vQueue;
     AudioFrameQueue *aQueue;
     Reader* r;
+    std::string completeSegBasePath;
 
     r = getReader(readerId);
 
@@ -156,7 +155,8 @@ bool Dasher::addSegmenter(int readerId)
             return false;
         }
 
-        segmenters[readerId] = new DashVideoSegmenter(segDurInMicrosec, segmentsBasePath);
+        completeSegBasePath = segmentsBasePath + "_" + std::to_string(readerId);
+        segmenters[readerId] = new DashVideoSegmenter(segDurInMicrosec, completeSegBasePath);
         segmenters[readerId]->setOffset(timestampOffset);
     }
     
@@ -167,7 +167,8 @@ bool Dasher::addSegmenter(int readerId)
             return false;
         }
 
-        segmenters[readerId] = new DashAudioSegmenter(segDurInMicrosec, segmentsBasePath);
+        completeSegBasePath = segmentsBasePath + "_" + std::to_string(readerId);
+        segmenters[readerId] = new DashAudioSegmenter(segDurInMicrosec, completeSegBasePath);
         segmenters[readerId]->setOffset(timestampOffset);
     }
     
@@ -210,7 +211,7 @@ void Dasher::updateMpd(int id, DashSegmenter* segmenter)
         mpdMngr->updateAdaptationSetTimestamp(A_ADAPT_SET_ID, segmenter->getSegmentTimestamp(), aSeg->getSegmentDuration());
     }
 
-    mpdMngr->writeToDisk(MPD_PATH);
+    mpdMngr->writeToDisk(mpdPath.c_str());
 }
 
 DashSegmenter::DashSegmenter(size_t segDur, size_t tBase, std::string segBaseName, std::string segExt) : 

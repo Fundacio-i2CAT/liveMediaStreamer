@@ -30,9 +30,9 @@
 #define OUT_A_CODEC AAC
 
 #define SEG_DURATION 4 //sec
-#define DASH_FOLDER "home/palau/nginx_root/dashLMS"
+#define DASH_FOLDER "/home/palau/nginx_root/dashLMS"
 #define BASE_NAME "test"
-#define MPD_LOCATION "http://localhost/testsData/modules/dasher/test.mpd"
+#define MPD_LOCATION "http://localhost/dashLMS/test.mpd"
 
 
 bool run = true;

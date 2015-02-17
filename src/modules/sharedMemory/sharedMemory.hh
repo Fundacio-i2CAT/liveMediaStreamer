@@ -23,23 +23,68 @@
 #ifndef _SHARED_MEMORY_HH
 #define _SHARED_MEMORY_HH
 
+#include <sys/types.h>
+#include <sys/ipc.h>
+#include <sys/shm.h>
+#include <stdio.h>
+#include <string.h>
+#include <stdint.h>
+#include <iostream>
+
 #include "../../FrameQueue.hh"
 #include "../../Filter.hh"
+#include "../../VideoFrame.hh"
+#include "../../AVFramedQueue.hh"
+
+#define SHMSIZE   		6220824		//1920x1080x3 + 24
+#define HEADER_SIZE		24			//4B * 6 (sync.byte and frame info)
+#define CHAR_READING 	'0'
+#define CHAR_WRITING 	'1'
+#define MAX_SIZE 1920*1080*3
+#define KEY 6789
+
 
 class SharedMemory : public OneToOneFilter {
 
 public:
-    SharedMemory(FilterRole fRole_ = MASTER);
+    static SharedMemory* createNew(unsigned key_, size_t fTime = 0, FilterRole fRole_ = MASTER, bool force_ = false, bool sharedFrames_ = true);
     ~SharedMemory();
 
     bool doProcessFrame(Frame *org, Frame *dst);
     FrameQueue* allocQueue(int wId);
+    bool isEnabled() {return enabled;};
 
 private:
+    SharedMemory(unsigned key_ = KEY, size_t fTime = 0, FilterRole fRole_ = MASTER, bool force_ = false, bool sharedFrames_ = true);
+
     void initializeEventMap();
-    //void configEvent(Jzon::Node* params, Jzon::Object &outputNode);
     void doGetState(Jzon::Object &filterNode);
 
+    void copyOrgToDstFrame(InterleavedVideoFrame *org, InterleavedVideoFrame *dst);
+    int writeSharedMemory(uint8_t *buffer, int buffer_size);
+	uint8_t * readSharedMemory();
+	void writeFramePayload(uint16_t seqNum);
+	void readFramePayload();
+	bool isWritable();
+	bool isReadable();
+	Frame * getFrameObject();
+	bool setFrameObject(Frame* in_frame);
+	uint16_t getSeqNum();
+
+    uint16_t getCodecFromVCodec(VCodecType codec);
+	uint16_t getPixelFormatFromPixType(PixType pxlFrmt);
+	PixType getPixTypeFromPixelFormat(uint16_t pixType);
+	VCodecType getVCodecFromCodecType(uint16_t codecType);
+
+private:
+	key_t 						SharedMemorykey;
+	int 						SharedMemoryID;
+    uint8_t                     *SharedMemoryOrigin;
+	uint8_t 					*buffer;
+	uint8_t 					*access;
+	InterleavedVideoFrame 		*frame;
+	uint16_t 					seqNum;
+    bool                        enabled;
 };
 
 #endif

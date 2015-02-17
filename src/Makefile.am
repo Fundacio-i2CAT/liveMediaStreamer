@@ -32,6 +32,7 @@ liblivemediastreamer_la_SOURCES = modules/audioDecoder/AudioDecoderLibav.cpp \
                                   modules/liveMediaOutput/UltraGridAudioRTPSink.cpp \
                                   modules/liveMediaOutput/UltraGridVideoRTPSink.cpp \
                                   modules/liveMediaOutput/SPSparser/h264_stream.c \
+                                  modules/sharedMemory/sharedMemory.cpp \
                                   AVFramedQueue.cpp \
                                   AudioCircularBuffer.cpp \
                                   AudioFrame.cpp \
@@ -48,7 +49,7 @@ liblivemediastreamer_la_SOURCES = modules/audioDecoder/AudioDecoderLibav.cpp \
                                   VideoFrame.cpp \
                                   Worker.cpp \
                                   X264VideoCircularBuffer.cpp \
-                                  X264VideoFrame.cpp 
+                                  X264VideoFrame.cpp
 
 liblivemediastreamer_la_CPPFLAGS = -std=c++11 -g -D__STDC_CONSTANT_MACROS -Wall
 

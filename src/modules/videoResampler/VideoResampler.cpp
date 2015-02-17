@@ -27,7 +27,7 @@
 
 AVPixelFormat getLibavPixFmt(PixType pixType);
 
-VideoResampler::VideoResampler()
+VideoResampler::VideoResampler(FilterRole fRole_) : OneToOneFilter(0, fRole_)
 {
     fType = VIDEO_RESAMPLER;
 

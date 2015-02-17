@@ -27,22 +27,28 @@
 
 H264QueueServerMediaSubsession*
 H264QueueServerMediaSubsession::createNew(UsageEnvironment& env,
-                          StreamReplicator* replicator, int readerId,
-                          Boolean reuseFirstSource) {
-    return new H264QueueServerMediaSubsession(env, replicator, readerId, reuseFirstSource);
+                          StreamReplicator* replica, int readerId,
+                          Boolean reuseFirstSource) 
+{
+    return new H264QueueServerMediaSubsession(env, replica, readerId, reuseFirstSource);
 }
 
 H264QueueServerMediaSubsession::H264QueueServerMediaSubsession(UsageEnvironment& env,
-                          StreamReplicator* replicator, int readerId, Boolean reuseFirstSource)
-: QueueServerMediaSubsession(env, replicator, readerId, reuseFirstSource),
-    fAuxSDPLine(NULL), fDoneFlag(0), fDummyRTPSink(NULL) {
+                          StreamReplicator* replica, int readerId, Boolean reuseFirstSource)
+: QueueServerMediaSubsession(env, reuseFirstSource), replicator(replica), reader(readerId),
+    fAuxSDPLine(NULL), fDoneFlag(0), fDummyRTPSink(NULL) 
+{
 }
 
-H264QueueServerMediaSubsession::~H264QueueServerMediaSubsession() {
+H264QueueServerMediaSubsession::~H264QueueServerMediaSubsession() 
+{
+  //NOTE: is this needed?
+  Medium::close(replicator);
   delete[] fAuxSDPLine;
 }
 
-static void afterPlayingDummy(void* clientData) {
+static void afterPlayingDummy(void* clientData) 
+{
   H264QueueServerMediaSubsession* subsess = (H264QueueServerMediaSubsession*)clientData;
   subsess->afterPlayingDummy1();
 }
@@ -94,7 +100,7 @@ FramedSource* H264QueueServerMediaSubsession::createNewStreamSource(unsigned /*c
     //TODO: WTF
     estBitrate = 2000; // kbps, estimate
     
-    return H264VideoStreamDiscreteFramer::createNew(envir(), fReplicator->createStreamReplica());
+    return H264VideoStreamDiscreteFramer::createNew(envir(), replicator->createStreamReplica());
 }
 
 RTPSink* H264QueueServerMediaSubsession
@@ -102,4 +108,11 @@ RTPSink* H264QueueServerMediaSubsession
            unsigned char rtpPayloadTypeIfDynamic,
            FramedSource* /*inputSource*/) {
 	return H264VideoRTPSink::createNew(envir(), rtpGroupsock, rtpPayloadTypeIfDynamic);
+}
+
+std::vector<int> H264QueueServerMediaSubsession::getReaderIds()
+{
+    std::vector<int> readers;
+    readers.push_back(reader);
+    return readers;
 }

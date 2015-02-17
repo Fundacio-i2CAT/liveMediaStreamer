@@ -110,17 +110,17 @@ void DashVideoSegmenterTest::setUp()
     idrNal = InterleavedVideoFrame::createNew(H264, LENGTH_H264);
     nonIdrNal = InterleavedVideoFrame::createNew(H264, LENGTH_H264);
 
-    dataLength = readFile("testsData/modules/dasher/dashVideoSegmenterTest/nal_sps", (char*)spsNal->getDataBuf());
+    dataLength = readFile("testsData/modules/dasher/dashVideoSegmenterTest/nalModels/nal_sps", (char*)spsNal->getDataBuf());
     spsNal->setLength(dataLength);
-    dataLength = readFile("testsData/modules/dasher/dashVideoSegmenterTest/nal_pps", (char*)ppsNal->getDataBuf());
+    dataLength = readFile("testsData/modules/dasher/dashVideoSegmenterTest/nalModels/nal_pps", (char*)ppsNal->getDataBuf());
     ppsNal->setLength(dataLength);
-    dataLength = readFile("testsData/modules/dasher/dashVideoSegmenterTest/nal_sei", (char*)seiNal->getDataBuf());
+    dataLength = readFile("testsData/modules/dasher/dashVideoSegmenterTest/nalModels/nal_sei", (char*)seiNal->getDataBuf());
     seiNal->setLength(dataLength);
-    dataLength = readFile("testsData/modules/dasher/dashVideoSegmenterTest/nal_aud", (char*)audNal->getDataBuf());
+    dataLength = readFile("testsData/modules/dasher/dashVideoSegmenterTest/nalModels/nal_aud", (char*)audNal->getDataBuf());
     audNal->setLength(dataLength);
-    dataLength = readFile("testsData/modules/dasher/dashVideoSegmenterTest/nal_idr_0", (char*)idrNal->getDataBuf());
+    dataLength = readFile("testsData/modules/dasher/dashVideoSegmenterTest/nalModels/nal_idr_0", (char*)idrNal->getDataBuf());
     idrNal->setLength(dataLength);
-    dataLength = readFile("testsData/modules/dasher/dashVideoSegmenterTest/nal_nonIdr0", (char*)nonIdrNal->getDataBuf());
+    dataLength = readFile("testsData/modules/dasher/dashVideoSegmenterTest/nalModels/nal_nonIdr0", (char*)nonIdrNal->getDataBuf());
     nonIdrNal->setLength(dataLength);
 }
 
@@ -239,7 +239,6 @@ void DashVideoSegmenterTest::updateConfig()
 
     CPPUNIT_ASSERT(segmenter->updateConfig());
     CPPUNIT_ASSERT(segmenter->getLastTs() == (size_t)ts.count());
-    CPPUNIT_ASSERT(segmenter->getTsOffset() == (size_t)ts.count());
     CPPUNIT_ASSERT(segmenter->getFramerate() == VIDEO_DEFAULT_FRAMERATE);
     CPPUNIT_ASSERT(segmenter->getFrameDuration() == segmenter->getTimeBase()/VIDEO_DEFAULT_FRAMERATE);
 
@@ -254,7 +253,6 @@ void DashVideoSegmenterTest::updateConfig()
 
     CPPUNIT_ASSERT(segmenter->updateConfig());
     CPPUNIT_ASSERT(segmenter->getLastTs() == (size_t)ts2.count());
-    CPPUNIT_ASSERT(segmenter->getTsOffset() == (size_t)ts.count());
     CPPUNIT_ASSERT(segmenter->getFrameDuration() == (size_t)(ts2.count() - ts.count()));
     CPPUNIT_ASSERT(segmenter->getFramerate() == segmenter->getTimeBase()/segmenter->getFrameDuration());    
 }
@@ -269,12 +267,14 @@ void DashVideoSegmenterTest::generateSegmentAndInitSegment()
     char* segment = new char[MAX_DAT];
     size_t segmentModelLength;
     size_t segmentLength;
+    std::string segName;
+    size_t orgTsValue = 1000;
 
     bool newFrame;
     bool haveInit = false;
     bool haveSegment = false;
     std::chrono::microseconds frameTime(40000);
-    std::chrono::microseconds ts(std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now().time_since_epoch()));
+    std::chrono::microseconds ts(orgTsValue);
     size_t nalCounter = 0;
     size_t dataLength = 0;
     std::string strName;
@@ -285,7 +285,7 @@ void DashVideoSegmenterTest::generateSegmentAndInitSegment()
     dummyNal->setSize(WIDTH, HEIGHT);
     
     while(!haveInit || !haveSegment) {
-        strName = "testsData/modules/dasher/dashVideoSegmenterTest/nal_" + std::to_string(nalCounter);
+        strName = "testsData/modules/dasher/dashVideoSegmenterTest/nalModels/nal_" + std::to_string(nalCounter);
         dataLength = readFile(strName.c_str(), (char*)dummyNal->getDataBuf());
         dummyNal->setLength(dataLength);
         dummyNal->setPresentationTime(ts);
@@ -310,14 +310,20 @@ void DashVideoSegmenterTest::generateSegmentAndInitSegment()
         }
     }
 
+    segName = std::string(BASE_NAME) + "_" + std::to_string(orgTsValue) + ".m4v";
+
     initLength = readFile("testsData/modules/dasher/dashVideoSegmenterTest/test_init.m4v", init);
-    segmentLength = readFile("testsData/modules/dasher/dashVideoSegmenterTest/test_0.m4v", segment);
+    segmentLength = readFile(segName.c_str(), segment);
 
     CPPUNIT_ASSERT(initModelLength == initLength);
     CPPUNIT_ASSERT(segmentModelLength == segmentLength);
     
     CPPUNIT_ASSERT(memcmp(initModel, init, initModelLength) == 0);
     CPPUNIT_ASSERT(memcmp(segmentModel, segment, segmentModelLength) == 0);
+
+    if (std::remove(segName.c_str()) != 0){
+        utils::errorMsg("Coudn't delete file");
+    }
 }
 
 void DashVideoSegmenterTest::finishSegment()
@@ -326,10 +332,12 @@ void DashVideoSegmenterTest::finishSegment()
     char* segment = new char[MAX_DAT];
     size_t segmentModelLength;
     size_t segmentLength;
+    std::string segName;
+    size_t orgTsValue = 2000;
 
     segmentModelLength = readFile("testsData/modules/dasher/dashVideoSegmenterTest/truncatedSegmentModel.m4v", segmentModel);
 
-    std::chrono::microseconds ts(std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now().time_since_epoch()));
+    std::chrono::microseconds ts(orgTsValue);
     idrNal->setPresentationTime(ts);
     idrNal->setSize(WIDTH, HEIGHT);
     audNal->setPresentationTime(ts);
@@ -342,10 +350,16 @@ void DashVideoSegmenterTest::finishSegment()
     CPPUNIT_ASSERT(!segmenter->generateSegment());
     CPPUNIT_ASSERT(segmenter->finishSegment());
 
-    segmentLength = readFile("testsData/modules/dasher/dashVideoSegmenterTest/test_0.m4v", segment);
+    segName = std::string(BASE_NAME) + "_" + std::to_string(orgTsValue) + ".m4v";
+
+    segmentLength = readFile(segName.c_str(), segment);
 
     CPPUNIT_ASSERT(segmentModelLength == segmentLength);
     CPPUNIT_ASSERT(memcmp(segmentModel, segment, segmentModelLength) == 0);
+
+    if (std::remove(segName.c_str()) != 0){
+        utils::errorMsg("Coudn't delete file");
+    }
 
     delete segmentModel;
     delete segment;

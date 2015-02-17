@@ -30,18 +30,10 @@
 #include <queue>
 #include <mutex>
 
-#ifndef _FRAME_QUEUE_HH
+
 #include "FrameQueue.hh"
-#endif
-
-#ifndef _IO_INTERFACE_HH
 #include "IOInterface.hh"
-#endif
-
-#ifndef _WORKER_HH
-#include "Worker.hh"
-#endif
-
+#include "Runnable.hh"
 #include "Event.hh"
 
 
@@ -173,6 +165,11 @@ public:
     */
     virtual ~BaseFilter();
 
+    /**
+    * Sets a dfined wall clock to the filter
+    * @param refWallClock reference wall clock
+    */
+    void setWallClock(std::chrono::microseconds refWallClock) {wallClock = refWallClock;};
     //NOTE: these are public just for testing purposes
     /**
     * Processes frames as a function of its role
@@ -275,6 +272,7 @@ private:
     using BaseFilter::processEvent;
     using BaseFilter::updateTimestamp;
     using BaseFilter::addSlave;
+    using BaseFilter::setWallClock;
 
     using BaseFilter::frameTime;
     using BaseFilter::timestamp;
@@ -309,6 +307,7 @@ private:
     using BaseFilter::processEvent;
     using BaseFilter::updateTimestamp;
     using BaseFilter::addSlave;
+    using BaseFilter::setWallClock;
 
     using BaseFilter::frameTime;
     using BaseFilter::timestamp;
@@ -344,6 +343,7 @@ private:
     using BaseFilter::processEvent;
     using BaseFilter::updateTimestamp;
     using BaseFilter::addSlave;
+    using BaseFilter::setWallClock;
 
     using BaseFilter::frameTime;
     using BaseFilter::timestamp;
@@ -376,6 +376,7 @@ private:
     using BaseFilter::dFrames;
     using BaseFilter::processEvent;
     using BaseFilter::updateTimestamp;
+    using BaseFilter::setWallClock;
 
     using BaseFilter::frameTime;
     using BaseFilter::timestamp;
@@ -409,6 +410,7 @@ private:
     using BaseFilter::processEvent;
     using BaseFilter::updateTimestamp;
     using BaseFilter::addSlave;
+    using BaseFilter::setWallClock;
 
     using BaseFilter::frameTime;
     using BaseFilter::timestamp;

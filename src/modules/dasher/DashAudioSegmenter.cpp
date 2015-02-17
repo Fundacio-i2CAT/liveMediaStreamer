@@ -24,7 +24,7 @@
  #include "DashAudioSegmenter.hh"
 
 DashAudioSegmenter::DashAudioSegmenter(size_t segDur, std::string segBaseName) : 
-DashSegmenter(segDur, 0, segBaseName, ".m4a")
+DashSegmenter(segDur, MICROSECONDS_TIME_BASE, segBaseName, ".m4a")
 {
 
 }
@@ -64,7 +64,7 @@ bool DashAudioSegmenter::updateConfig()
         return false;
     }
 
-    if (!setup(customSegmentDuration, timeBase, frameDuration, aFrame->getChannels(), 
+    if (!setup(segmentDuration, timeBase, frameDuration, aFrame->getChannels(), 
                         aFrame->getSampleRate(), aFrame->getBytesPerSample()*BYTE_TO_BIT)) {
         utils::errorMsg("Error during Dash Audio Segmenter setup");
         return false;
@@ -110,7 +110,7 @@ bool DashAudioSegmenter::appendFrameToDashSegment()
         return false;
     }
 
-    pts = customTimestamp(aFrame->getPresentationTime().count());
+    pts = aFrame->getPresentationTime().count() - tsOffset;
 
     dataWithoutADTS = aFrame->getDataBuf() + ADTS_HEADER_LENGTH;
     dataLengthWithoutADTS = aFrame->getLength() - ADTS_HEADER_LENGTH;
@@ -161,19 +161,8 @@ bool DashAudioSegmenter::updateTimeValues(size_t currentTimestamp, int sampleRat
         return false;
     }
 
-    // if (tsOffset <= 0) {
-    //     tsOffset = currentTimestamp;
-    // }
-
-    frameDuration = samples;
-    timeBase = sampleRate;
-    customSegmentDuration = (segmentDuration*timeBase)/MICROSECONDS_TIME_BASE;
+    frameDuration = samples*MICROSECONDS_TIME_BASE/sampleRate;
     return true;
-}
-
-size_t DashAudioSegmenter::customTimestamp(size_t currentTimestamp) 
-{
-    return ((currentTimestamp - tsOffset)*timeBase)/MICROSECONDS_TIME_BASE;
 }
 
 bool DashAudioSegmenter::updateMetadata()

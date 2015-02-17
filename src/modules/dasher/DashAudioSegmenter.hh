@@ -70,13 +70,6 @@ public:
     bool finishSegment();
 
     /**
-    * It returns the segment duration in audio timebase units, which was set on the constructor in milliseconds. 
-    * In this case, the time base corresponds to the sampling rate of the audio. 
-    * @return segment duration in time base units
-    */
-    size_t getCustomSegmentDuration() {return customSegmentDuration;};
-
-    /**
     * It returns the last configured audio channels number 
     * @return number of audio channels
     */
@@ -100,13 +93,11 @@ private:
     unsigned char getMetadata1stByte(unsigned char audioObjectType, unsigned char samplingFrequencyIndex);
     unsigned char getMetadata2ndByte(unsigned char samplingFrequencyIndex, unsigned char channelConfiguration);
     bool updateTimeValues(size_t currentTimestamp, int sampleRate, int samples);
-    size_t customTimestamp(size_t currentTimestamp);
 
     unsigned char profile;
     unsigned char audioObjectType;
     unsigned char samplingFrequencyIndex;
     unsigned char channelConfiguration;
-    size_t customSegmentDuration;
     AudioFrame* aFrame;
 };
 

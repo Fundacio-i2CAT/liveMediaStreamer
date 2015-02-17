@@ -116,10 +116,7 @@ void DashAudioSegmenterTest::updateConfig()
     modelFrame->setSamples(AAC_FRAME_SAMPLES);
     segmenter->manageFrame(modelFrame, newFrame);
     CPPUNIT_ASSERT(segmenter->updateConfig());
-    CPPUNIT_ASSERT(segmenter->getFrameDuration() == AAC_FRAME_SAMPLES);
-    CPPUNIT_ASSERT(segmenter->getTimeBase() == SAMPLE_RATE);
-    CPPUNIT_ASSERT(segmenter->getTsOffset() == (size_t)ts.count());
-    CPPUNIT_ASSERT(segmenter->getCustomSegmentDuration() == (SEG_DURATION*segmenter->getTimeBase())/MICROSECONDS_TIME_BASE);
+    CPPUNIT_ASSERT(segmenter->getFrameDuration() == AAC_FRAME_SAMPLES*segmenter->getTimeBase()/SAMPLE_RATE);
 }
 
 void DashAudioSegmenterTest::generateSegmentAndInitSegment()
@@ -132,13 +129,14 @@ void DashAudioSegmenterTest::generateSegmentAndInitSegment()
     char* segment = new char[MAX_DAT];
     size_t segmentModelLength;
     size_t segmentLength;
+    size_t orgTsValue = 1000;
+    std::string segName;
 
     bool newFrame;
     bool haveInit = false;
     bool haveSegment = false;
     std::chrono::microseconds frameTime(21333);
-    std::chrono::microseconds ts(std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now().time_since_epoch()));
-    std::string strName;
+    std::chrono::microseconds ts(orgTsValue);
 
     initModelLength = readFile("testsData/modules/dasher/dashAudioSegmenterTest/initModel.m4a", initModel);
     segmentModelLength = readFile("testsData/modules/dasher/dashAudioSegmenterTest/segmentModel.m4a", segmentModel);
@@ -163,14 +161,20 @@ void DashAudioSegmenterTest::generateSegmentAndInitSegment()
         }
     }
 
+    segName = std::string(BASE_NAME) + "_" + std::to_string(orgTsValue) + ".m4a";
+
     initLength = readFile("testsData/modules/dasher/dashAudioSegmenterTest/test_init.m4a", init);
-    segmentLength = readFile("testsData/modules/dasher/dashAudioSegmenterTest/test_0.m4a", segment);
+    segmentLength = readFile(segName.c_str(), segment);
 
     CPPUNIT_ASSERT(initModelLength == initLength);
     CPPUNIT_ASSERT(segmentModelLength == segmentLength);
     
     CPPUNIT_ASSERT(memcmp(initModel, init, initModelLength) == 0);
     CPPUNIT_ASSERT(memcmp(segmentModel, segment, segmentModelLength) == 0);
+
+    if (std::remove(segName.c_str()) != 0){
+        utils::errorMsg("Coudn't delete file");
+    }
 
     delete initModel;
     delete init;
@@ -184,10 +188,12 @@ void DashAudioSegmenterTest::finishSegment()
     char* segment = new char[MAX_DAT];
     size_t segmentModelLength;
     size_t segmentLength;
+    size_t orgTsValue = 2000;
+    std::string segName;
 
     segmentModelLength = readFile("testsData/modules/dasher/dashAudioSegmenterTest/truncatedSegmentModel.m4a", segmentModel);
 
-    std::chrono::microseconds ts(std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now().time_since_epoch()));
+    std::chrono::microseconds ts(orgTsValue);
     modelFrame->setPresentationTime(ts);
     modelFrame->setSamples(AAC_FRAME_SAMPLES);
     segmenter->manageFrame(modelFrame, newFrame);
@@ -195,11 +201,16 @@ void DashAudioSegmenterTest::finishSegment()
     CPPUNIT_ASSERT(!segmenter->generateSegment());
     CPPUNIT_ASSERT(segmenter->finishSegment());
 
-    segmentLength = readFile("testsData/modules/dasher/dashAudioSegmenterTest/test_0.m4a", segment);
+    segName = std::string(BASE_NAME) + "_" + std::to_string(orgTsValue) + ".m4a";
+
+    segmentLength = readFile(segName.c_str(), segment);
 
     CPPUNIT_ASSERT(segmentModelLength == segmentLength);
-    
     CPPUNIT_ASSERT(memcmp(segmentModel, segment, segmentModelLength) == 0);
+
+    if (std::remove(segName.c_str()) != 0){
+        utils::errorMsg("Coudn't delete file");
+    }
 
     delete segmentModel;
     delete segment;

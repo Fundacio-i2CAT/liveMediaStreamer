@@ -27,41 +27,23 @@
 #include "UltraGridVideoRTPSink.hh"
 #include "H264VideoStreamSampler.hh"
 #include "H264StartCodeInjector.hh"
+#include "H264QueueServerMediaSubsession.hh"
+#include "VP8QueueServerMediaSubsession.hh"
+#include "AudioQueueServerMediaSubsession.hh"
 #include <GroupsockHelper.hh>
 
-Connection::Connection(UsageEnvironment* env, FramedSource *source) : 
-                       fEnv(env), fSource(source), fSink(NULL)
+Connection::Connection(UsageEnvironment* env) : 
+                       fEnv(env)
 {
 }
 
 Connection::~Connection()
 {
-    if (fSink) {
-        fSink->stopPlaying();
-    }
 }
 
 void Connection::afterPlaying(void* clientData) {
     MediaSink *clientSink = (MediaSink*) clientData;
     clientSink->stopPlaying();
-}
-
-bool Connection::startPlaying()
-{
-    if (!fSink || !fSource) {
-        utils::errorMsg("Cannot start playing, sink and/or source does not exist.");
-        return false;
-    }
-
-    fSink->startPlaying(*fSource, &Connection::afterPlaying, fSink);
-    return true;
-}
-
-void Connection::stopPlaying()
-{
-    if (fSink){
-        fSink->stopPlaying();
-    }
 }
 
 bool Connection::setup() 
@@ -78,19 +60,217 @@ bool Connection::setup()
 }
 
 ////////////////////
+// RTSP CONNECTION //
+////////////////////
+
+RTSPConnection::RTSPConnection(UsageEnvironment* env, TxFormat txformat, RTSPServer *server,
+                               std::string name_, std::string info, std::string desc) :
+                               Connection(env), session(NULL), rtspServer(server), 
+                               name(name_), subsession(NULL), format(txformat), addedSub(false)
+                   
+{
+    session = ServerMediaSession::createNew(*env, name.c_str(), info.c_str(), desc.c_str());
+    if (session == NULL){
+        utils::errorMsg("Failed creating new ServerMediaSession");
+    }
+    
+    if (format == MPEGTS){
+        subsession = MPEGTSQueueServerMediaSubsession::createNew(*env, False);
+    }
+}
+
+RTSPConnection::~RTSPConnection()
+{
+    stopPlaying();
+}
+
+bool RTSPConnection::addVideoSubsession(VCodecType codec, StreamReplicator* replicator, int readerId)
+{
+    if (format == MPEGTS){
+        return addMPEGTSVideo(codec, replicator, readerId);
+    } else {
+        return addRawVideoSubsession(codec, replicator, readerId);
+    }
+}
+
+bool RTSPConnection::addAudioSubsession(ACodecType codec, StreamReplicator* replicator,
+                                        unsigned channels, unsigned sampleRate, 
+                                        SampleFmt sampleFormat, int readerId)
+{
+    if (format == MPEGTS){
+        return addMPEGTSAudio(codec, replicator, readerId);
+    } else {
+        return addRawAudioSubsession(codec, replicator, channels, sampleRate, sampleFormat, readerId);
+    }
+}
+
+bool RTSPConnection::addRawVideoSubsession(VCodecType codec, StreamReplicator* replicator, int readerId)
+{
+    ServerMediaSubsession *sSession = NULL;
+    switch(codec){
+        case H264:
+            sSession = H264QueueServerMediaSubsession::createNew(*fEnv, replicator, readerId, False);
+            break;
+        case VP8:
+            sSession =  VP8QueueServerMediaSubsession::createNew(*fEnv, replicator, readerId, False);
+            break;
+        default:
+            break;
+    }
+    
+    if (!sSession){
+        return false;
+    }
+    
+    session->addSubsession(sSession);
+    
+    return true;
+}
+
+bool RTSPConnection::addRawAudioSubsession(ACodecType codec, StreamReplicator* replicator,
+                                        unsigned channels, unsigned sampleRate, 
+                                        SampleFmt sampleFormat, int readerId)
+{
+    ServerMediaSubsession *sSession = NULL;
+    switch(codec){
+        //case MPEG4_GENERIC:
+            //TODO
+                        //printf("TODO createAudioMediaSubsession\n");
+            //break;
+        default:
+            sSession = AudioQueueServerMediaSubsession::createNew(*fEnv, replicator,
+                                                              readerId, codec, channels,
+                                                              sampleRate, sampleFormat, False);
+            break;
+    }
+    
+    if (!sSession){
+        return false;
+    }
+    
+    session->addSubsession(sSession);
+    
+    return true;
+}
+
+bool RTSPConnection::addMPEGTSVideo(VCodecType codec, StreamReplicator* replicator, int readerId)
+{
+    if (!subsession){
+        utils::errorMsg("MPEGTS subsession not defined!");
+        return false;
+    }
+        
+    if (!subsession->addVideoSource(codec, replicator, readerId)){
+        utils::errorMsg("Failed adding video to MPEGTS subsession");
+        return false;
+    }
+    
+    if (!addedSub){
+        session->addSubsession(subsession);
+        addedSub = true;
+    }
+    
+    return true;
+}
+
+bool RTSPConnection::addMPEGTSAudio(ACodecType codec, StreamReplicator* replicator, int readerId)
+{
+    if (!subsession){
+        utils::errorMsg("MPEGTS subsession not defined!");
+        return false;
+    }
+        
+    if (!subsession->addAudioSource(codec, replicator, readerId)){
+        utils::errorMsg("Failed adding audio to MPEGTS subsession");
+        return false;
+    }
+    
+    if (!addedSub){
+        session->addSubsession(subsession);
+        addedSub = true;
+    }
+    
+    return true;
+}
+
+bool RTSPConnection::startPlaying()
+{
+    if (rtspServer == NULL){
+        return false;
+    }
+    
+    if (session == NULL){
+        return false;
+    }
+
+    rtspServer->addServerMediaSession(session);
+    std::string url = rtspServer->rtspURL(session);
+
+    utils::infoMsg("Play stream using the URL " + url);
+
+    return true;
+}
+
+void RTSPConnection::stopPlaying()
+{
+    if (rtspServer == NULL){
+        return;
+    }
+    
+    if (session == NULL){
+        return;
+    }
+
+    rtspServer->deleteServerMediaSession(session);
+    
+    session = NULL;
+    subsession = NULL;
+    addedSub = false;
+}
+
+std::vector<int> RTSPConnection::getReaders()
+{
+    std::vector<int> readers;
+    ServerMediaSubsessionIterator subIt(*session);
+    ServerMediaSubsession *subsession;
+    QueueServerMediaSubsession *qSubsession;
+    
+    subsession = subIt.next();
+    while(subsession){
+        if (!(qSubsession = dynamic_cast<QueueServerMediaSubsession *>(subsession))){
+            utils::errorMsg("Could not cast to QueueServerMediaSubsession");
+            return readers;
+        }
+        for (auto red : qSubsession->getReaderIds()){
+            readers.push_back(red);
+        }
+        subsession = subIt.next();
+    }
+    return readers;
+}
+
+bool RTSPConnection::specificSetup() 
+{
+    //TODO:
+    return true;
+}
+
+////////////////////
 // RTP CONNECTION //
 ////////////////////
 
 RTPConnection::RTPConnection(UsageEnvironment* env, FramedSource* source,
                              std::string ip, unsigned port) :
-                             Connection(env, source), fIp(ip), fPort(port)
+                             Connection(env), fIp(ip), fPort(port), 
+                             fSource(source), fSink(NULL)
 { 
 
 }
 
 RTPConnection::~RTPConnection()
-{
+{   
     if (fSink) {
+        fSink->stopPlaying();
         Medium::close(rtcp);
     }
 
@@ -100,6 +280,24 @@ RTPConnection::~RTPConnection()
 
     if (rtcpGroupsock) {
         delete rtcpGroupsock;
+    }
+}
+
+bool RTPConnection::startPlaying()
+{
+    if (!fSink || !fSource) {
+        utils::errorMsg("Cannot start playing, sink and/or source does not exist.");
+        return false;
+    }
+
+    fSink->startPlaying(*fSource, &Connection::afterPlaying, fSink);
+    return true;
+}
+
+void RTPConnection::stopPlaying()
+{
+    if (fSink){
+        fSink->stopPlaying();
     }
 }
 
@@ -176,35 +374,13 @@ bool RTPConnection::finalRTCPSetup()
     return true;
 }
 
-/////////////////////
-// DASH CONNECTION //
-/////////////////////
-
-DASHConnection::DASHConnection(UsageEnvironment* env, FramedSource* source, std::string fileName,
-                               std::string quality, bool reInit, uint32_t segmentTime, uint32_t initSegment) :
-                               Connection(env, source), fFileName(fileName), fReInit(reInit),
-                               fSegmentTime(segmentTime), fInitSegment(initSegment)
-{
-
-}
-
-DASHConnection::~DASHConnection()
-{
-}
-
-bool DASHConnection::specificSetup()
-{
-    return true;
-} 
-
-
 /////////////////////////
 // RAW RTP CONNECTIONS //
 /////////////////////////
 
 VideoConnection::VideoConnection(UsageEnvironment* env, FramedSource* source,
-                                 std::string ip, unsigned port, VCodecType codec) : 
-                                 RTPConnection(env, source, ip, port), fCodec(codec)
+                                 std::string ip, unsigned port, VCodecType codec, int readerId) : 
+                                 RTPConnection(env, source, ip, port), fCodec(codec), reader(readerId)
 {
     
 }
@@ -231,13 +407,20 @@ bool VideoConnection::additionalSetup()
     return true;
 }
 
+std::vector<int> VideoConnection::getReaders()
+{
+    std::vector<int> readers;
+    readers.push_back(reader);
+    return readers;
+}
 
 AudioConnection::AudioConnection(UsageEnvironment* env, FramedSource *source,
                                  std::string ip, unsigned port, ACodecType codec,
-                                 unsigned channels, unsigned sampleRate, SampleFmt sampleFormat) :
+                                 unsigned channels, unsigned sampleRate, 
+                                 SampleFmt sampleFormat, int readerId) :
                                  RTPConnection(env, source, ip, port), fCodec(codec),
                                  fChannels(channels), fSampleRate(sampleRate),
-                                 fSampleFormat(sampleFormat)
+                                 fSampleFormat(sampleFormat), reader(readerId)
 {
     
 }
@@ -284,13 +467,21 @@ bool AudioConnection::additionalSetup()
     return true;
 }
 
+std::vector<int> AudioConnection::getReaders()
+{
+    std::vector<int> readers;
+    readers.push_back(reader);
+    return readers;
+}
+
 ///////////////////////////////
 // ULTRAGRID RTP CONNECTIONS //
 ///////////////////////////////
 
 UltraGridVideoConnection::UltraGridVideoConnection(UsageEnvironment* env, FramedSource *source, 
-                                                   std::string ip, unsigned port, VCodecType codec) :
-                                                   RTPConnection(env, source, ip, port), fCodec(codec)
+                                                   std::string ip, unsigned port, VCodecType codec, int readerId) :
+                                                   RTPConnection(env, source, ip, port), 
+                                                   fCodec(codec), reader(readerId)
 {
 }
 
@@ -315,13 +506,20 @@ bool UltraGridVideoConnection::additionalSetup()
     return true;
 }
 
+std::vector<int> UltraGridVideoConnection::getReaders()
+{
+    std::vector<int> readers;
+    readers.push_back(reader);
+    return readers;
+}
+
 UltraGridAudioConnection::UltraGridAudioConnection(UsageEnvironment* env, FramedSource *source,
                                                    std::string ip, unsigned port, ACodecType codec,
                                                    unsigned channels, unsigned sampleRate,
-                                                   SampleFmt sampleFormat) :
-				RTPConnection(env, source, ip, port), fCodec(codec),
-				fChannels(channels), fSampleRate(sampleRate),
-				fSampleFormat(sampleFormat)
+                                                   SampleFmt sampleFormat, int readerId) :
+                                RTPConnection(env, source, ip, port), fCodec(codec),
+                                fChannels(channels), fSampleRate(sampleRate),
+                                fSampleFormat(sampleFormat), reader(readerId)
 {
 
 }
@@ -331,20 +529,27 @@ bool UltraGridAudioConnection::additionalSetup()
 
     switch(fCodec){
         case MP3:
-        	fSink =  UltraGridAudioRTPSink::createNew(*fEnv, rtpGroupsock, fCodec,
-        			                        fChannels, fSampleRate, fSampleFormat);
+            fSink =  UltraGridAudioRTPSink::createNew(*fEnv, rtpGroupsock, fCodec,
+                                                      fChannels, fSampleRate, fSampleFormat);
             break;
         default:
             fSink = NULL;
             break;
     }
 
-	if (!fSink) {
-		utils::errorMsg("UltraGridAudioConnection could not be created");
-		return false;
-	}
+    if (!fSink) {
+        utils::errorMsg("UltraGridAudioConnection could not be created");
+        return false;
+    }
 
     return true;
+}
+
+std::vector<int> UltraGridAudioConnection::getReaders()
+{
+    std::vector<int> readers;
+    readers.push_back(reader);
+    return readers;
 }
 
 ////////////////////////
@@ -352,15 +557,15 @@ bool UltraGridAudioConnection::additionalSetup()
 ////////////////////////
 
 MpegTsConnection::MpegTsConnection(UsageEnvironment* env, std::string ip, unsigned port) 
-: RTPConnection(env, NULL, ip, port)
+: RTPConnection(env, NULL, ip, port), audioReader(-1), videoReader(-1)
 {
     tsFramer = MPEG2TransportStreamFromESSource::createNew(*env);
 }
 
-bool MpegTsConnection::addVideoSource(FramedSource* source, VCodecType codec)
+bool MpegTsConnection::addVideoSource(FramedSource* source, VCodecType codec, int readerId)
 {
     FramedSource* startCodeInjector;
-
+    
     if (codec != H264) {
         utils::errorMsg("Error creating MPEG-TS Connection. Only H264 video codec is valid");
         return false;
@@ -376,13 +581,21 @@ bool MpegTsConnection::addVideoSource(FramedSource* source, VCodecType codec)
         return false;
     }
 
+    if (videoReader == -1){
+        videoReader = readerId;
+    } else {
+        utils::errorMsg("Error video reader ID was already set.");
+        return false;
+    }
+    
+    
     startCodeInjector = H264StartCodeInjector::createNew(*fEnv, source);
     tsFramer->addNewVideoSource(startCodeInjector, 5/*mpegVersion: H.264*/);
 
     return true;
 }
 
-bool MpegTsConnection::addAudioSource(FramedSource* source, ACodecType codec)
+bool MpegTsConnection::addAudioSource(FramedSource* source, ACodecType codec, int readerId)
 {
     if (codec != AAC) {
         utils::errorMsg("Error creating MPEG-TS Connection. Only AAC audio codec is valid");
@@ -396,6 +609,13 @@ bool MpegTsConnection::addAudioSource(FramedSource* source, ACodecType codec)
 
     if (!source) {
         utils::errorMsg("Error adding audio source to MPEG-TS Connection. Provided source is NULL");
+        return false;
+    }
+    
+    if (audioReader == -1){
+        audioReader = readerId;
+    } else {
+        utils::errorMsg("Error video reader ID was already set.");
         return false;
     }
 
@@ -423,74 +643,16 @@ bool MpegTsConnection::additionalSetup()
     return true;
 }
 
-
-//////////////////////
-// DASH CONNECTIONS //
-//////////////////////
-
-DashVideoConnection::DashVideoConnection(UsageEnvironment* env, FramedSource *source, 
-                                         std::string fileName, std::string quality, 
-                                         bool reInit, uint32_t segmentTime, uint32_t initSegment, 
-                                         VCodecType codec, uint32_t fps) : 
-                                         DASHConnection(env, source, fileName, quality, 
-                                            reInit, segmentTime, initSegment), 
-                                         fCodec(codec), fFps(fps)
+std::vector<int> MpegTsConnection::getReaders()
 {
-
-}
-
-bool DashVideoConnection::additionalSetup()
-{
-//    switch(fCodec){
-//        case H264:
-//            fSink = DashFileSink::createNew(*fEnv, fFileName.c_str(), MAX_DAT, True, quality.c_str(), fInitSegment, "m4v", ONLY_VIDEO, false);
-//            fSource = DashSegmenterVideoSource::createNew(*fEnv, fSource, fReInit, fFps, fSegmentTime);
-//            break;
-//        default:
-//            fSink = NULL;
-//            break;
-//    }
-//
-//    if (!fSink) {
-//        utils::errorMsg("DashVideoConnection could not be created");
-//        return false;
-//    }
-//
-//    return true;
-	return false;
-}
-
-
-DashAudioConnection::DashAudioConnection(UsageEnvironment* env, FramedSource *source, 
-                                         std::string fileName, std::string quality, 
-                                         bool reInit, uint32_t segmentTime, uint32_t initSegment, 
-                                         ACodecType codec, unsigned channels, 
-                                         unsigned sampleRate, SampleFmt sampleFormat) : 
-                                         DASHConnection(env, source, fileName, quality,
-                                            reInit, segmentTime, initSegment), 
-                                        fCodec(codec), fChannels(channels), 
-                                        fSampleRate(sampleRate), fSampleFormat(sampleFormat)
-{
-
-}
-
-bool DashAudioConnection::additionalSetup() 
-{
-//    switch (fCodec) {
-//        case AAC:
-//            fSink = DashFileSink::createNew(*fEnv, fFileName.c_str(), MAX_DAT, True, quality.c_str(), fInitSegment, "m4a", ONLY_AUDIO, false);
-//            fSource = DashSegmenterAudioSource::createNew(*fEnv, fSource, fReInit, fSegmentTime, fSampleRate);
-//            break;
-//        default:
-//            fSink = NULL;
-//            break;
-//    }
-//
-//    if (!fSink) {
-//        utils::errorMsg("DashAudioConnection could not be created");
-//        return false;
-//    }
-//
-//    return true;
-	return false;
+    std::vector<int> readers;
+    if (audioReader != -1){
+        readers.push_back(audioReader);
+    }
+    
+    if (videoReader != -1){
+        readers.push_back(videoReader);
+    }
+    
+    return readers;
 }

@@ -29,21 +29,26 @@
 
 class VP8QueueServerMediaSubsession: public QueueServerMediaSubsession {
 public:
-  static VP8QueueServerMediaSubsession*
-  createNew(UsageEnvironment& env, StreamReplicator* replicator, int readerId, Boolean reuseFirstSource);
+    static VP8QueueServerMediaSubsession*
+    createNew(UsageEnvironment& env, StreamReplicator* replica, int readerId, Boolean reuseFirstSource);
+    
+    std::vector<int> getReaderIds();
 
 protected:
-  VP8QueueServerMediaSubsession(UsageEnvironment& env,
-                                StreamReplicator* replicator, int readerId, Boolean reuseFirstSource);
-      // called only by createNew();
-  virtual ~VP8QueueServerMediaSubsession(){};
+    VP8QueueServerMediaSubsession(UsageEnvironment& env,
+                                  StreamReplicator* replica, int readerId, Boolean reuseFirstSource);
+  
+    ~VP8QueueServerMediaSubsession();
 
 protected: // redefined virtual functions
-  FramedSource* createNewStreamSource(unsigned clientSessionId,
-                          unsigned& estBitrate);
-  RTPSink* createNewRTPSink(Groupsock* rtpGroupsock,
-                                    unsigned char rtpPayloadTypeIfDynamic,
-                    FramedSource* inputSource);
+    FramedSource* createNewStreamSource(unsigned clientSessionId,
+                                        unsigned& estBitrate);
+    RTPSink* createNewRTPSink(Groupsock* rtpGroupsock,
+                              unsigned char rtpPayloadTypeIfDynamic,
+                              FramedSource* inputSource);
+private:
+    StreamReplicator* replicator;
+    int reader;
 };
 
 #endif

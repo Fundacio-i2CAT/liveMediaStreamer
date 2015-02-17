@@ -30,26 +30,48 @@
 #include <string>
 #include <chrono>
 #include <fstream>
+#include <unistd.h>
 
-#define V_SEG_TMPL "test_$RepresentationID$_$Time$.m4v"
-#define A_SEG_TMPL "test_$RepresentationID$_$Time$.m4a"
-#define V_INIT_SEG_TMPL "test_$RepresentationID$_init.m4v"
-#define A_INIT_SEG_TMPL "test_$RepresentationID$_init.m4a"
 #define V_BAND 2000000
 #define A_BAND 192000
-#define SEGMENT_DURATION 4 //sec
 #define MPD_LOCATION "http://localhost/dashLMS/test.mpd"
 #define MPD_PATH "/home/palau/nginx_root/dashLMS/test.mpd"
 
-Dasher::Dasher(int readersNum) : TailFilter(readersNum)
+Dasher* Dasher::createNew(std::string dashFolder, std::string baseName, size_t segDurInSeconds, std::string mpdLocation, int readersNum)
 {
-    mpdMngr = new MpdManager();
-    mpdMngr->setLocation(MPD_LOCATION);
-    mpdMngr->setMinBufferTime(SEGMENT_DURATION*(MAX_SEGMENTS_IN_MPD/2));
-    mpdMngr->setMinimumUpdatePeriod(SEGMENT_DURATION);
-    mpdMngr->setTimeShiftBufferDepth(SEGMENT_DURATION*MAX_SEGMENTS_IN_MPD);
+    std::string mpdPath;
+    std::string segmentsBasePath;
 
-    offset = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+    if (access(dashFolder.c_str(), W_OK) != 0) {
+        utils::errorMsg("Error creating Dasher: provided folder is not writable");
+        return NULL;
+    }
+
+    if (dashFolder.back() != '/') {
+        dashFolder.append("/");
+    }
+
+    return new Dasher(dashFolder, baseName, segDurInSeconds, mpdLocation);
+}
+
+Dasher::Dasher(std::string dashFolder, std::string baseName, size_t segDurInSec, std::string mpdLocation, int readersNum) : 
+TailFilter(readersNum)
+{
+    mpdPath = dashFolder + baseName + ".mpd";
+    segmentsBasePath = dashFolder + baseName;
+    vSegTempl = baseName + "_$RepresentationID$_$Time$.m4v";
+    aSegTempl = baseName + "_$RepresentationID$_$Time$.m4a";
+    vInitSegTempl = baseName + "_$RepresentationID$_init.m4v";
+    aInitSegTempl = baseName + "_$RepresentationID$_init.m4v";
+
+    mpdMngr = new MpdManager();
+    mpdMngr->setLocation(mpdLocation);
+    mpdMngr->setMinBufferTime(segDurInSec*(MAX_SEGMENTS_IN_MPD/2));
+    mpdMngr->setMinimumUpdatePeriod(segDurInSec);
+    mpdMngr->setTimeShiftBufferDepth(segDurInSec*MAX_SEGMENTS_IN_MPD);
+
+    timestampOffset = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+    segDurInMicrosec = segDurInSec*1000000;
 }
 
 Dasher::~Dasher()
@@ -109,16 +131,11 @@ void Dasher::doGetState(Jzon::Object &filterNode)
 //TODO: implement    
 }
 
-bool Dasher::addSegmenter(int readerId, std::string segBaseName, int segDurInMicroSeconds)
+bool Dasher::addSegmenter(int readerId)
 {
     VideoFrameQueue *vQueue;
     AudioFrameQueue *aQueue;
     Reader* r;
-
-    if (segBaseName.empty() || segDurInMicroSeconds == 0) {
-        utils::errorMsg("Error adding segmenter: empty segment base or segment duration 0");
-        return false;
-    }
 
     r = getReader(readerId);
 
@@ -139,8 +156,8 @@ bool Dasher::addSegmenter(int readerId, std::string segBaseName, int segDurInMic
             return false;
         }
 
-        segmenters[readerId] = new DashVideoSegmenter(segDurInMicroSeconds, segBaseName);
-        segmenters[readerId]->setOffset(offset);
+        segmenters[readerId] = new DashVideoSegmenter(segDurInMicrosec, segmentsBasePath);
+        segmenters[readerId]->setOffset(timestampOffset);
     }
     
     if ((aQueue = dynamic_cast<AudioFrameQueue*>(r->getQueue())) != NULL) {
@@ -150,8 +167,8 @@ bool Dasher::addSegmenter(int readerId, std::string segBaseName, int segDurInMic
             return false;
         }
 
-        segmenters[readerId] = new DashAudioSegmenter(segDurInMicroSeconds, segBaseName);
-        segmenters[readerId]->setOffset(offset);
+        segmenters[readerId] = new DashAudioSegmenter(segDurInMicrosec, segmentsBasePath);
+        segmenters[readerId]->setOffset(timestampOffset);
     }
     
     return true;
@@ -181,16 +198,16 @@ void Dasher::updateMpd(int id, DashSegmenter* segmenter)
     DashAudioSegmenter* aSeg;
 
     if ((vSeg = dynamic_cast<DashVideoSegmenter*>(segmenter)) != NULL) {
-        mpdMngr->updateVideoAdaptationSet(V_ADAPT_SET_ID, segmenter->getTimeBase(), V_SEG_TMPL, V_INIT_SEG_TMPL);
+        mpdMngr->updateVideoAdaptationSet(V_ADAPT_SET_ID, segmenter->getTimeBase(), vSegTempl, vInitSegTempl);
         mpdMngr->updateVideoRepresentation(V_ADAPT_SET_ID, std::to_string(id), VIDEO_CODEC, vSeg->getWidth(), 
                                             vSeg->getHeight(), V_BAND, vSeg->getFramerate());
         mpdMngr->updateAdaptationSetTimestamp(V_ADAPT_SET_ID, segmenter->getSegmentTimestamp(), vSeg->getSegmentDuration());
     }
 
     if ((aSeg = dynamic_cast<DashAudioSegmenter*>(segmenter)) != NULL) {
-        mpdMngr->updateAudioAdaptationSet(A_ADAPT_SET_ID, segmenter->getTimeBase(), A_SEG_TMPL, A_INIT_SEG_TMPL);
+        mpdMngr->updateAudioAdaptationSet(A_ADAPT_SET_ID, segmenter->getTimeBase(), aSegTempl, aInitSegTempl);
         mpdMngr->updateAudioRepresentation(A_ADAPT_SET_ID, std::to_string(id), AUDIO_CODEC, aSeg->getSampleRate(), A_BAND, aSeg->getChannels());
-        mpdMngr->updateAdaptationSetTimestamp(A_ADAPT_SET_ID, segmenter->getSegmentTimestamp(), aSeg->getCustomSegmentDuration());
+        mpdMngr->updateAdaptationSetTimestamp(A_ADAPT_SET_ID, segmenter->getSegmentTimestamp(), aSeg->getSegmentDuration());
     }
 
     mpdMngr->writeToDisk(MPD_PATH);

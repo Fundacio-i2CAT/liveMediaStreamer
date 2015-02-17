@@ -31,25 +31,27 @@
 class AudioQueueServerMediaSubsession: public QueueServerMediaSubsession {
 public:
   static AudioQueueServerMediaSubsession*
-  createNew(UsageEnvironment& env, StreamReplicator* replicator, 
+  createNew(UsageEnvironment& env, StreamReplicator* replica, 
             int readerId, 
             ACodecType codec,
             unsigned channels,
             unsigned sampleRate,
             SampleFmt sampleFormat, 
             Boolean reuseFirstSource);
+  
+  std::vector<int> getReaderIds();
 
 protected:
   AudioQueueServerMediaSubsession(UsageEnvironment& env,
-                                  StreamReplicator* replicator, 
+                                  StreamReplicator* replica, 
                                   int readerId, 
                                   ACodecType codec,
                                   unsigned channels,
                                   unsigned sampleRate,
                                   SampleFmt sampleFormat,
                                   Boolean reuseFirstSource);
-      // called only by createNew();
-  virtual ~AudioQueueServerMediaSubsession(){};
+
+  ~AudioQueueServerMediaSubsession();
 
 protected: // redefined virtual functions
   FramedSource* createNewStreamSource(unsigned clientSessionId,
@@ -58,6 +60,9 @@ protected: // redefined virtual functions
                                     unsigned char rtpPayloadTypeIfDynamic,
                     FramedSource* inputSource);
 private:
+    StreamReplicator* replicator;
+    int reader;
+    
     ACodecType fCodec;
     unsigned fChannels;
     unsigned fSampleRate;

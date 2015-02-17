@@ -50,12 +50,7 @@ class DashSegment;
 class Dasher : public TailFilter {
 
 public:
-    /**
-    * Class constructor
-    * @param readersNum Max number of readers. MAX_READERS (16) by default 
-    */ 
-    Dasher(int readersNum = MAX_READERS);
-
+    static Dasher* createNew(std::string dashFolder, std::string baseName, size_t segDurInSeconds, std::string mpdLocation, int readersNum = MAX_READERS);
     /**
     * Class destructor
     */ 
@@ -70,11 +65,9 @@ public:
     /**
     * Adds a new segmenter associated to an existance reader. Only one segmenter can be associated to each reader
     * @param readerId Reader associated to the segmenter 
-    * @param segBaseName Base name for the segments
-    * @param segDurInMicroSeconds Segment duration in milliseconds 
     * @return true if suceeded and false if not
     */ 
-    bool addSegmenter(int readerId, std::string segBaseName, int segDurInMicroSeconds);
+    bool addSegmenter(int readerId);
 
     /**
     * Remvoes an existant segmenter, using its associated reader id. A segment with the remaining 
@@ -85,14 +78,21 @@ public:
     bool removeSegmenter(int readerId);
       
 private: 
+    Dasher(std::string dashFolder, std::string baseName, size_t segDurInSec, std::string mpdLocation, int readersNum = MAX_READERS);
     bool doProcessFrame(std::map<int, Frame*> orgFrames);
     void initializeEventMap();
     void updateMpd(int id, DashSegmenter* segmenter);
 
-
     std::map<int, DashSegmenter*> segmenters;
     MpdManager* mpdMngr;
-    size_t offset;
+    size_t timestampOffset;
+    size_t segDurInMicrosec;
+    std::string mpdPath;
+    std::string segmentsBasePath;
+    std::string vSegTempl;
+    std::string aSegTempl;
+    std::string vInitSegTempl;
+    std::string aInitSegTempl;
 };
 
 /*! Abstract class implemented by DashVideoSegmenter and DashAudioSegmenter */ 
@@ -100,6 +100,7 @@ private:
 class DashSegmenter {
 
 public:
+    
     /**
     * Class constructor
     * @param segDur Segment duration in tBase units 
@@ -164,6 +165,12 @@ public:
     */
     size_t getSegmentTimestamp();
     void setOffset(size_t offs);
+
+    /**
+    * Return the segment duration 
+    * @return segment duration in timeBase units
+    */
+    size_t getSegmentDuration() {return segmentDuration;};
 
 protected:
     virtual bool updateMetadata() = 0;

@@ -249,7 +249,7 @@ int main(int argc, char* argv[])
     }
   
     sessionId = utils::randomIdGenerator(ID_LENGTH);
-    if (!transmitter->addRTSPConnection(readers, 1, MPEGTS, sessionId)){
+    if (!transmitter->addRTSPConnection(readers, 1, STD_RTP, sessionId)){
         return 1;
     }
 

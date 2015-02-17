@@ -37,7 +37,7 @@ X264VideoFrame::X264VideoFrame(unsigned int width, unsigned height, PixType pixe
     this->hNalsNum = 0;
     this->headerLength = 0;
     
-    for(int i = 0; i < MAX_HEADER_NALS; i++){
+    for(int i = 0; i < MAX_HEADER_NALS; i++) {
         headerNals[i] = (unsigned char *) malloc(sizeof(unsigned char)*MAX_HEADER_NAL_SIZE);
     }
 }

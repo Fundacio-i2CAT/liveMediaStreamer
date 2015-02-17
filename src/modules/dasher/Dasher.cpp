@@ -17,19 +17,22 @@
  *  You should have received a copy of the GNU General Public License
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- *  Authors:  David Cassany <david.cassany@i2cat.net>,
+ *  Authors:  Marc Palau <marc.palau@i2cat.net>
  *            
  */
  
 #include "Dasher.hh"
+#include "../../AVFramedQueue.hh"
+#include "DashVideoSegmenter.hh"
+#include "DashAudioSegmenter.hh"
 
 #include <map>
 #include <string>
+#include <chrono>
+#include <fstream>
 
-Dasher::Dasher(int readersNum) : 
-TailFilter(readersNum) 
+Dasher::Dasher(int readersNum) : TailFilter(readersNum)
 {
-
 }
 
 Dasher::~Dasher()
@@ -39,14 +42,37 @@ Dasher::~Dasher()
 
 bool Dasher::doProcessFrame(std::map<int, Frame*> orgFrames)
 {
+    DashSegmenter* segmenter;
+    bool newFrame;
+
     for (auto fr : orgFrames) {
 
         if (!fr.second) {
-            //TODO: check this
-            return false;
+            continue;
         }
 
-        segmenters[fr.first]->manageFrame(fr.second);
+        segmenter = segmenters[fr.first];
+        if (!segmenter->manageFrame(fr.second, newFrame)) {
+            utils::errorMsg("Error managing frame");
+            continue;
+        }
+
+        if (!newFrame ) {
+            continue;
+        }
+
+        if (!segmenter->updateConfig()) {
+            utils::errorMsg("[DashSegmenter] Error updating config");
+            continue;
+        }
+
+        if (segmenter->generateInitSegment()) {
+            utils::debugMsg("New DASH init segment generated");
+        }
+
+        if (segmenter->generateSegment()) {
+            utils::debugMsg("New DASH segment generated");
+        }
     }
 
     return true;
@@ -57,118 +83,189 @@ void Dasher::initializeEventMap()
 
 }
 
-Reader* Dasher::setReader(int readerID, FrameQueue* queue, bool sharedQueue = false)
+void Dasher::doGetState(Jzon::Object &filterNode)
+{
+//TODO: implement    
+}
+
+bool Dasher::addSegmenter(int readerId, std::string segBaseName, int segDurInMicroSeconds)
 {
     VideoFrameQueue *vQueue;
     AudioFrameQueue *aQueue;
-    
-    if (readers.size() >= getMaxReaders() || readers.count(readerId) > 0 ) {
-        return NULL;
-    }
-    
-    Reader* r = new Reader();
-    readers[readerId] = r;
-    
-    if ((vQueue = dynamic_cast<VideoFrameQueue*>(queue)) != NULL) {
-        segmenters[readerId] = new DashVideoSegmenter();
-    }
-    
-    if ((aQueue = dynamic_cast<AudioFrameQueue*>(queue)) != NULL){
-        segmenters[readerId] = new DashAudioSegmenter();
-    }
-    
-    return r;
+    Reader* r;
 
-}
-
-DashSegmenter::DashSegmenter() : dashContext(NULL)
-{
-
-}
-
-DashVideoSegmenter::DashVideoSegmenter() : 
-DashSegmenter() 
-{
-
-}
-
-bool DashVideoSegmenter::manageFrame(Frame* frame)
-{
-    VideoFrame* vFrame;
-
-    vFrame = dynamic_cast<VideoFrame*>(frame);
-
-    if (!vFrame) {
-        utils::errorMsg("Error managing frame: it MUST be a video frame");
+    if (segBaseName.empty() || segDurInMicroSeconds == 0) {
+        utils::errorMsg("Error adding segmenter: empty segment base or segment duration 0");
         return false;
     }
 
-    if (!setup(size_t segmentDuration, size_t timeBase, size_t sampleDuration, vFrame->getWidth(), vFrame->getHeight(), size_t framerate)) {
-        utils::errorMsg("Error while setupping DashVideoSegmenter");
-        return false;
-    }
-}
+    r = getReader(readerId);
 
-bool DashVideoSegmenter::setup(size_t segmentDuration, size_t timeBase, size_t sampleDuration, size_t width, size_t height, size_t framerate)
-{
-    uint8_t i2error = I2OK;
-
-    if (!dashContext) {
-        i2error = generate_context(&dashContext, VIDEO_TYPE);
-    }
-
-    if (i2error != I2OK || !dashContext) {
+    if (!r) {
+        utils::errorMsg("Error adding segmenter: reader does not exist");
         return false;
     }
 
-    i2error = fill_video_context(&dashContext, width, height, framerate, timeBase, sampleDuration);
-
-    if (i2error != I2OK) {
+    if (segmenters.count(readerId) > 0) {
+        utils::errorMsg("Error adding segmenter: there is a segmenter already assigned to this reader");
         return false;
     }
 
-    set_segment_duration(segmentDuration, &dashContext);
+    if ((vQueue = dynamic_cast<VideoFrameQueue*>(r->getQueue())) != NULL) {
+
+        if (vQueue->getCodec() != H264) {
+            utils::errorMsg("Error setting dasher reader: only H264 codec is supported for video");
+            return false;
+        }
+
+        segmenters[readerId] = new DashVideoSegmenter(segDurInMicroSeconds, segBaseName);
+    }
+    
+    if ((aQueue = dynamic_cast<AudioFrameQueue*>(r->getQueue())) != NULL) {
+
+        if (aQueue->getCodec() != AAC) {
+            utils::errorMsg("Error setting Dasher reader: only AAC codec is supported for audio");
+            return false;
+        }
+
+        segmenters[readerId] = new DashAudioSegmenter(segDurInMicroSeconds, segBaseName);
+    }
+    
     return true;
 }
 
-
-DashAudioSegmenter::DashAudioSegmenter() : 
-DashSegmenter()
+bool Dasher::removeSegmenter(int readerId)
 {
-
-}
-
-bool DashAudioSegmenter::manageFrame(Frame* frame)
-{
-    AudioFrame* aFrame;
-
-    aFrame = dynamic_cast<AudioFrame*>(frame);
-
-    if (!aFrame) {
-        utils::errorMsg("Error managing frame: it MUST be an audio frame");
+    if (segmenters.count(readerId) <= 0) {
+        utils::errorMsg("Error removing DASH segmenter: no segmenter associated to provided reader");
         return false;
     }
-}
 
-bool DashAudioSegmenter::setup(size_t segmentDuration, size_t timeBase, size_t sampleDuration, size_t channels, size_t sampleRate, size_t bitsPerSample)
-{
-    uint8_t i2error = I2OK;
-
-    if (!dashContext) {
-        i2error = generate_context(&dashContext, AUDIO_TYPE);
+    if (!segmenters[readerId]->finishSegment()) {
+        utils::errorMsg("Error removing DASH segmenter: last segment could not be written to disk. Anyway, segmenter has been deleted.");
+        return false;
     }
+
+    delete segmenters[readerId];
+    segmenters.erase(readerId);
     
-    if (i2error != I2OK || !dashContext) {
-        return false;
-    }
-
-    i2error = fill_audio_context(&dashContext, channels, sampleRate, sampleSize, timeBase, sampleDuration); 
-
-    if (i2error != I2OK) {
-        return false;
-    }
-
-    set_segment_duration(segmentDuration, &dashContext);
     return true;
+}
+
+DashSegmenter::DashSegmenter(size_t segDur, size_t tBase, std::string segBaseName, std::string segExt) : 
+dashContext(NULL), timeBase(tBase), segmentDuration(segDur), frameDuration(0), baseName(segBaseName), 
+segmentExt(segExt), tsOffset(0)
+{
+    segment = new DashSegment(MAX_DAT);
+    initSegment = new DashSegment(MAX_DAT);
+}
+
+DashSegmenter::~DashSegmenter()
+{
+    delete segment;
+    delete initSegment;
+}
+
+bool DashSegmenter::generateInitSegment() 
+{
+    if (!updateMetadata()) {
+        return false;
+    }
+
+    if (!generateInitData()) {
+        utils::errorMsg("Error generating video init segment");
+        return false;
+    }
+
+    if(!initSegment->writeToDisk(getInitSegmentName())) {
+        utils::errorMsg("Error writing DASH init segment to disk: invalid path");
+        return false;
+    }
+
+    return true;
+}
+
+bool DashSegmenter::generateSegment()
+{
+    if (!appendFrameToDashSegment()) {
+        return false;
+    }
+        
+    if(!segment->writeToDisk(getSegmentName())) {
+        utils::errorMsg("Error writing DASH segment to disk: invalid path");
+        return false;
+    }
+
+    segment->incrSeqNumber();
+
+    return true;
+}
+
+std::string DashSegmenter::getInitSegmentName()
+{
+    std::string fullName;
+
+    fullName = baseName + "_init" + segmentExt;
+    
+    return fullName;
+}
+
+std::string DashSegmenter::getSegmentName()
+{
+    std::string fullName;
+
+    fullName = baseName + "_" + std::to_string(segment->getTimestamp()) + segmentExt;
+    
+    return fullName;
+}
+
+
+DashSegment::DashSegment(size_t maxSize)
+{
+    data = new unsigned char[maxSize];
+    timestamp = 0;
+    dataLength = 0;
+    seqNumber = 0;
+}
+
+DashSegment::~DashSegment()
+{
+    delete[] data;
+}
+
+void DashSegment::setSeqNumber(size_t seqNum)
+{
+    seqNumber = seqNum;
+}
+
+void DashSegment::setDataLength(size_t length)
+{
+    dataLength = length;
+}
+
+bool DashSegment::writeToDisk(std::string path)
+{
+    const char* p = path.c_str();
+    std::ofstream file(p, std::ofstream::binary);
+
+    if (!file) {
+        return false;
+    }
+
+    file.write((char*)data, dataLength);
+    file.close();
+    return true;
+}
+
+void DashSegment::setTimestamp(size_t ts)
+{
+    timestamp = ts;
+}
+
+void DashSegment::clear()
+{
+    timestamp = 0;
+    dataLength = 0;
+    seqNumber = 0;
 }
 

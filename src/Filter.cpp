@@ -117,6 +117,10 @@ bool BaseFilter::demandOriginFrames()
     bool someFrame = false;
     QueueState qState;
 
+    if (maxReaders == 0) {
+        return true;
+    }
+
     for (auto it : readers) {
         if (!it.second->isConnected()) {
             it.second->disconnect();
@@ -154,6 +158,10 @@ bool BaseFilter::demandOriginFrames()
 
 bool BaseFilter::demandDestinationFrames()
 {
+    if (maxWriters == 0) {
+        return true;
+    }
+
     bool newFrame = false;
     for (auto it : writers){
         if (!it.second->isConnected()){
@@ -338,7 +346,6 @@ void BaseFilter::getState(Jzon::Object &filterNode)
     doGetState(filterNode);
     eventQueueMutex.unlock();
 }
-
 
 bool BaseFilter::hasFrames()
 {
@@ -557,6 +564,7 @@ bool OneToManyFilter::runDoProcessFrame()
     return false;
 }
 
+//TODO: runDoProcessFrame to be implemented
 HeadFilter::HeadFilter(unsigned writersNum, size_t fTime, FilterRole fRole_) :
     BaseFilter(0,writersNum,fTime,fRole_,false,false)
 {
@@ -580,12 +588,16 @@ void HeadFilter::pushEvent(Event e)
     e.sendAndClose(outputNode);
 }
 
-
-
 TailFilter::TailFilter(unsigned readersNum, size_t fTime, FilterRole fRole_, bool sharedFrames_) :
     BaseFilter(readersNum,0,fTime,fRole_,false,sharedFrames_)
 {
 }
+
+bool TailFilter::runDoProcessFrame()
+{
+    return doProcessFrame(oFrames);
+}
+
 
 void TailFilter::pushEvent(Event e)
 {

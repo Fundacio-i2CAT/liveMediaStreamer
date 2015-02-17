@@ -87,9 +87,7 @@ Frame* AVFramedQueue::forceGetFront(bool &newFrame)
 {
     if (!firstFrame) {
         utils::debugMsg("Forcing front without any frame. Undefined behaviour");
-        //TODO: WHY ??
-        //return dummy frame
-       // return NULL;
+        return NULL;
     }
 
     return frames[(front + (max - 1)) % max]; 

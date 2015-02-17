@@ -70,24 +70,28 @@ bool X264VideoCircularBuffer::config()
 
 bool X264VideoCircularBuffer::pushBack() 
 {
-    Frame* interleavedVideoFrame;
+    Frame* frame;
+    VideoFrame* vFrame;
     int nalsNum;
     x264_nal_t** nals;
     unsigned char** hNals;
     int* hNalSize;
-    
+
     if ((nalsNum = inputFrame->getHeaderNalsNum()) > 0){       
         hNals = inputFrame->getHeaderNals();
         hNalSize = inputFrame->getHeaderNalsSize();
         
         for (int i=0; i<nalsNum; i++) {
-            if ((interleavedVideoFrame = innerGetRear()) == NULL){
-                interleavedVideoFrame = innerForceGetRear();
+            if ((frame = innerGetRear()) == NULL){
+                frame = innerForceGetRear();
             }
             
-            memcpy(interleavedVideoFrame->getDataBuf(), hNals[i], hNalSize[i]);
-            interleavedVideoFrame->setLength(hNalSize[i]);
-            interleavedVideoFrame->setPresentationTime(inputFrame->getPresentationTime());
+            vFrame = dynamic_cast<VideoFrame*>(frame);
+
+            memcpy(vFrame->getDataBuf(), hNals[i], hNalSize[i]);
+            vFrame->setLength(hNalSize[i]);
+            vFrame->setPresentationTime(inputFrame->getPresentationTime());
+            vFrame->setSize(inputFrame->getWidth(), inputFrame->getHeight());
             innerAddFrame();
         }
     }
@@ -96,13 +100,16 @@ bool X264VideoCircularBuffer::pushBack()
     nals = inputFrame->getNals();
 
     for (int i=0; i<nalsNum; i++) {
-        if ((interleavedVideoFrame = innerGetRear()) == NULL){
-            interleavedVideoFrame = innerForceGetRear();
+        if ((frame = innerGetRear()) == NULL){
+            frame = innerForceGetRear();
         }
 
-        memcpy(interleavedVideoFrame->getDataBuf(), (*nals)[i].p_payload, (*nals)[i].i_payload);
-        interleavedVideoFrame->setLength((*nals)[i].i_payload);
-		interleavedVideoFrame->setPresentationTime(inputFrame->getPresentationTime());
+        vFrame = dynamic_cast<VideoFrame*>(frame);
+
+        memcpy(vFrame->getDataBuf(), (*nals)[i].p_payload, (*nals)[i].i_payload);
+        vFrame->setLength((*nals)[i].i_payload);
+        vFrame->setPresentationTime(inputFrame->getPresentationTime());
+        vFrame->setSize(inputFrame->getWidth(), inputFrame->getHeight());
 		innerAddFrame();
 	}
 	

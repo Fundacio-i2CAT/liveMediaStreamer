@@ -358,6 +358,8 @@ protected:
 
 private:
     FrameQueue *allocQueue(int wId) {return NULL;};
+    bool runDoProcessFrame();
+    virtual bool doProcessFrame(std::map<int, Frame *> orgFrames) = 0;
     using BaseFilter::demandOriginFrames;
     using BaseFilter::demandDestinationFrames;
     using BaseFilter::addFrames;
@@ -375,6 +377,8 @@ private:
 
     using BaseFilter::maxReaders;
     using BaseFilter::maxWriters;
+
+    void stop() {};
 };
 
 class ManyToOneFilter : public BaseFilter {

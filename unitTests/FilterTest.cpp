@@ -15,8 +15,8 @@
  *  You should have received a copy of the GNU General Public License
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- *  Authors:  David Cassany <david.cassany@i2cat.net>
- *
+ *  Authors:    David Cassany <david.cassany@i2cat.net>
+ *              Gerard Castillo <gerard.castillo@i2cat.net>
  *
  */
 
@@ -34,6 +34,7 @@
 
 #include "FilterMockup.hh"
 #include "Worker.hh"
+
 
 class FilterUnitTest : public CppUnit::TestFixture
 {
@@ -340,37 +341,6 @@ void FilterFunctionalTest::oneToOneSlaveProcessFrame()
     delete satelliteFilterLast;
 }
 
-//TODO: to implement liveMediaSinkFilterTest too
-void FilterFunctionalTest::liveMediaSourceFilterTest()
-{
-    BaseFilter* headFilterToTest = new LiveMediaFilterMockup(0,10000,4,true);
-    BaseFilter* satelliteFilter1 = new BaseFilterMockup(1,1);
-    BaseFilter* satelliteFilter2 = new BaseFilterMockup(1,1);
-    Worker *masterW = new Worker();
-
-    CPPUNIT_ASSERT(headFilterToTest->connectManyToOne(satelliteFilter1,1));
-    CPPUNIT_ASSERT(headFilterToTest->connectManyToOne(satelliteFilter2,2));
-
-    CPPUNIT_ASSERT(masterW->addProcessor(1, headFilterToTest));
-
-    CPPUNIT_ASSERT(!masterW->isRunning());
-
-    CPPUNIT_ASSERT(masterW->start());
-
-    CPPUNIT_ASSERT(headFilterToTest->disconnectWriter(1));
-
-    CPPUNIT_ASSERT(masterW->isRunning());
-
-    masterW->stop();
-
-    CPPUNIT_ASSERT(!masterW->isRunning());
-
-    delete headFilterToTest;
-    delete satelliteFilter1;
-    delete satelliteFilter2;
-    delete masterW;
-}
-
 void FilterFunctionalTest::masterSlavesIndependentFramesTest()
 {
     BaseFilter* master = new OneToOneFilterMockup(15000,4,true, 40000, MASTER, false);
@@ -570,6 +540,37 @@ void FilterFunctionalTest::masterSlavesSharedFramesTest()
     delete masterW;
     delete slaveW1;
     delete slaveW2;
+}
+
+//TODO: to implement liveMediaSinkFilterTest too
+void FilterFunctionalTest::liveMediaSourceFilterTest()
+{
+    BaseFilter* headFilterToTest = new LiveMediaFilterMockup(0,10000,4,true);
+    BaseFilter* satelliteFilter1 = new BaseFilterMockup(1,1);
+    BaseFilter* satelliteFilter2 = new BaseFilterMockup(1,1);
+    Worker *masterW = new Worker();
+
+    CPPUNIT_ASSERT(headFilterToTest->connectManyToOne(satelliteFilter1,1));
+    CPPUNIT_ASSERT(headFilterToTest->connectManyToOne(satelliteFilter2,2));
+
+    CPPUNIT_ASSERT(masterW->addProcessor(1, headFilterToTest));
+
+    CPPUNIT_ASSERT(!masterW->isRunning());
+
+    CPPUNIT_ASSERT(masterW->start());
+
+    CPPUNIT_ASSERT(headFilterToTest->disconnectWriter(1));
+
+    CPPUNIT_ASSERT(masterW->isRunning());
+
+    masterW->stop();
+
+    CPPUNIT_ASSERT(!masterW->isRunning());
+
+    delete headFilterToTest;
+    delete satelliteFilter1;
+    delete satelliteFilter2;
+    delete masterW;
 }
 
 CPPUNIT_TEST_SUITE_REGISTRATION(FilterFunctionalTest);

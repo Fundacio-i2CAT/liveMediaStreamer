@@ -5,6 +5,7 @@
 #include "../src/AudioFrame.hh"
 #include "../src/Controller.hh"
 #include "../src/Utils.hh"
+#include "../src/modules/sharedMemory/SharedMemory.hh"
 
 #include <csignal>
 #include <vector>
@@ -98,7 +99,7 @@ void addAudioSource(unsigned port, std::string codec = A_CODEC,
     aEnc->addProcessor(encId, encoder);
     encoder->setWorkerId(aEncId);
     pipe->addWorker(aEncId, aEnc);
-    
+
     //NOTE: add filter to path
     path = pipe->createPath(pipe->getReceiverID(), pipe->getTransmitterID(), port, -1, ids);
     pipe->addPath(port, path);
@@ -116,17 +117,21 @@ void addVideoSource(unsigned port, unsigned fps = FRAME_RATE, std::string codec 
     int decId = rand();
     int resId = rand();
     int encId = rand();
-    std::vector<int> ids({decId, resId, encId});
+    int shmId = rand();
+    int wShmId = rand();
+    std::vector<int> ids({decId, shmId, resId, encId});
     std::string sessionId;
     std::string sdp;
 
     VideoResampler *resampler;
     VideoEncoderX264 *encoder;
     VideoDecoderLibav *decoder;
+    SharedMemory *shm;
 
     Worker* wDec;
     Worker* wRes;
     Worker* wEnc;
+    Worker* wShm;
 
     Session *session;
     Path *path;
@@ -157,6 +162,18 @@ void addVideoSource(unsigned port, unsigned fps = FRAME_RATE, std::string codec 
     wDec->addProcessor(decId, decoder);
     decoder->setWorkerId(wDecId);
     pipe->addWorker(wDecId, wDec);
+
+    //NOTE: Adding sharedMemory to pipeManager and handle worker
+    shm = SharedMemory::createNew(KEY);
+    if(!shm){
+        utils::errorMsg("Could not initiate sharedMemory filter");
+        return;
+    }
+    pipe->addFilter(shmId, shm);
+    wShm = new Worker();
+    wShm->addProcessor(shmId, shm);
+    shm->setWorkerId(wShmId);
+    pipe->addWorker(wShmId, wShm);
 
     //NOTE: Adding resampler to pipeManager and handle worker
     resampler = new VideoResampler();
@@ -250,7 +267,7 @@ int main(int argc, char* argv[])
     for (auto it : pipe->getPaths()) {
         readers.push_back(it.second->getDstReaderID());
     }
-  
+
     sessionId = utils::randomIdGenerator(ID_LENGTH);
     if (!transmitter->addRTSPConnection(readers, 1, STD_RTP, sessionId)){
         return 1;

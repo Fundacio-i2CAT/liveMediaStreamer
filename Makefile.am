@@ -1,8 +1,8 @@
 ACLOCAL_AMFLAGS = -I m4
 SUBDIRS = src unitTests
-#SUBDIRS = src
 
-bin_PROGRAMS = livemediastreamer testtranscoder testdash
+bin_PROGRAMS = livemediastreamer testtranscoder
+#bin_PROGRAMS = livemediastreamer testtranscoder testdash
 
 livemediastreamer_SOURCES = tests/liveMediaStreamer.cpp
 livemediastreamer_CPPFLAGS = -Isrc/ -std=c++11 -g -Wall -D__STDC_CONSTANT_MACROS
@@ -14,8 +14,8 @@ testtranscoder_CPPFLAGS = -std=c++11 -g -Wall -D__STDC_CONSTANT_MACROS
 testtranscoder_LDFLAGS = -Lsrc -llivemediastreamer -lBasicUsageEnvironment -lUsageEnvironment -lliveMedia -lgroupsock -lavcodec -lavformat -lavutil -lswresample -lswscale
 testtranscoder_DEPENDENCIES = src/liblivemediastreamer.la 
 
-testdash_SOURCES = tests/testDash.cpp
-testdash_CPPFLAGS = -std=c++11 -g -Wall -D__STDC_CONSTANT_MACROS
-testdash_LDFLAGS = -Lsrc -llivemediastreamer -lBasicUsageEnvironment -lUsageEnvironment -lliveMedia -lgroupsock -lavcodec -lavformat -lavutil -lswresample -lswscale
-testdash_DEPENDENCIES = src/liblivemediastreamer.la
+# testdash_SOURCES = tests/testDash.cpp
+# testdash_CPPFLAGS = -std=c++11 -g -Wall -D__STDC_CONSTANT_MACROS
+# testdash_LDFLAGS = -Lsrc -llivemediastreamer -lBasicUsageEnvironment -lUsageEnvironment -lliveMedia -lgroupsock -lavcodec -lavformat -lavutil -lswresample -lswscale
+# testdash_DEPENDENCIES = src/liblivemediastreamer.la
 

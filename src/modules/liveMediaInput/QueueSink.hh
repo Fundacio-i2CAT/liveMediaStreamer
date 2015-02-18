@@ -35,7 +35,7 @@ class QueueSink: public MediaSink {
 
 public:
     static QueueSink* createNew(UsageEnvironment& env, Writer *writer, unsigned port);
-    const Writer * getWriter() {return fWriter;};
+    Writer* getWriter() const {return fWriter;};
     unsigned getPort() {return fPort;};
 
 protected:

@@ -162,12 +162,12 @@ bool addVideoSDPSession(unsigned port, std::string codec = V_CODEC)
                                             V_BANDWITH, V_TIME_STMP_FREQ, port);
     utils::infoMsg(sdp);
 
-    session = Session::createNew(*(receiver->envir()), sdp, sessionId);
+    session = Session::createNew(*(receiver->envir()), sdp, sessionId, receiver);
     if (!receiver->addSession(session)){
         utils::errorMsg("Could not add video session");
         return false;
     }
-    if (!session->initiateSession(receiver)){
+    if (!session->initiateSession()){
         utils::errorMsg("Could not initiate video session");
         return false;
     }
@@ -191,12 +191,12 @@ bool addAudioSDPSession(unsigned port, std::string codec = A_CODEC,
                                             A_BANDWITH, freq, port, channels);
     utils::infoMsg(sdp);
 
-    session = Session::createNew(*(receiver->envir()), sdp, sessionId);
+    session = Session::createNew(*(receiver->envir()), sdp, sessionId, receiver);
     if (!receiver->addSession(session)){
         utils::errorMsg("Could not add audio session");
         return false;
     }
-    if (!session->initiateSession(receiver)){
+    if (!session->initiateSession()){
         utils::errorMsg("Could not initiate audio session");
         return false;
     }
@@ -214,13 +214,13 @@ bool addRTSPsession(std::string rtspUri)
     PipelineManager *pipe = Controller::getInstance()->pipelineManager();
     SourceManager *receiver = pipe->getReceiver();
     
-    session = Session::createNewByURL(*(receiver->envir()), "testTranscoder", rtspUri, sessionId);
+    session = Session::createNewByURL(*(receiver->envir()), "testTranscoder", rtspUri, sessionId, receiver);
     if (!receiver->addSession(session)){
         utils::errorMsg("Could not add rtsp session");
         return false;
     }
     
-    if (!session->initiateSession(receiver)){
+    if (!session->initiateSession()){
         utils::errorMsg("Could not initiate video session");
         return false;
     }

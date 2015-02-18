@@ -42,12 +42,16 @@ class SourceManager;
 
 class StreamClientState {
 public:
-    StreamClientState(std::string id_);
+    StreamClientState(std::string id_, SourceManager *const  manager);
     virtual ~StreamClientState();
 
     std::string getId(){return id;};
+    
+    bool addWriterToMngr(unsigned port, Writer* writer);
 
 public:
+    SourceManager *const mngr;
+    
     MediaSubsessionIterator* iter;
     MediaSession* session;
     MediaSubsession* subsession;
@@ -60,19 +64,19 @@ private:
 
 class Session {
 public:
-    static Session* createNewByURL(UsageEnvironment& env, std::string progName, std::string rtspURL, std::string id);
-    static Session* createNew(UsageEnvironment& env, std::string sdp, std::string id);
+    static Session* createNewByURL(UsageEnvironment& env, std::string progName, std::string rtspURL, std::string id, SourceManager *const mngr);
+    static Session* createNew(UsageEnvironment& env, std::string sdp, std::string id, SourceManager *const mngr);
 
-    virtual ~Session();
+    ~Session();
 
     std::string getId() {return scs->getId();};
     MediaSubsession* getSubsessionByPort(int port);
     StreamClientState* getScs() {return scs;};
 
-    bool initiateSession(SourceManager* mngr);
+    bool initiateSession();
 
 protected:
-    Session(std::string id);
+    Session(std::string id, SourceManager *const mngr);
 
     RTSPClient* client;
     StreamClientState *scs;
@@ -108,7 +112,8 @@ private:
     void doGetState(Jzon::Object &filterNode);
     void addSessionEvent(Jzon::Node* params, Jzon::Object &outputNode);
 
-    friend bool Session::initiateSession(SourceManager *mngr);
+    friend bool Session::initiateSession();
+    friend bool StreamClientState::addWriterToMngr(unsigned port, Writer* writer);
     bool addWriter(unsigned port, const Writer *writer);
 
     bool runDoProcessFrame();

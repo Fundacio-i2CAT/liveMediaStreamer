@@ -41,7 +41,7 @@
 #define CHAR_READING 	'0'
 #define CHAR_WRITING 	'1'
 #define MAX_SIZE 1920*1080*3
-#define KEY 6789
+#define KEY 1985
 
 /*! OneToOneFilter sharing memory with another process. This filter uses shm
 library, a POSIX shared memory library to share specific address spaces between
@@ -56,7 +56,7 @@ public:
     * @return SharedMemory object or NULL if any error while creating
     * @see OneToOneFilter to check the inherated input params
     */
-    static SharedMemory* createNew(unsigned key_, size_t fTime = 0, FilterRole fRole_ = MASTER, bool force_ = false, bool sharedFrames_ = true);
+    static SharedMemory* createNew(size_t key_, size_t fTime = 0, FilterRole fRole_ = MASTER, bool force_ = false, bool sharedFrames_ = true);
     /**
     * Class destructor
     */
@@ -78,7 +78,7 @@ public:
     FrameQueue* allocQueue(int wId);
 
 private:
-    SharedMemory(unsigned key_ = KEY, size_t fTime = 0, FilterRole fRole_ = MASTER, bool force_ = false, bool sharedFrames_ = true);
+    SharedMemory(size_t key_ = KEY, size_t fTime = 0, FilterRole fRole_ = MASTER, bool force_ = false, bool sharedFrames_ = true);
     bool isEnabled() {return enabled;};
 
     void initializeEventMap();
@@ -98,8 +98,8 @@ private:
 	VCodecType getVCodecFromCodecType(uint16_t codecType);
 
 private:
-	key_t 						SharedMemorykey;
-	int 						SharedMemoryID;
+	size_t 						SharedMemorykey;
+	size_t 						SharedMemoryID;
     uint8_t                     *SharedMemoryOrigin;
 	uint8_t 					*buffer;
 	uint8_t 					*access;

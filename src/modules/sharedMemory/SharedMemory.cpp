@@ -22,7 +22,7 @@
 
 #include "SharedMemory.hh"
 
-SharedMemory* SharedMemory::createNew(unsigned key_, size_t fTime, FilterRole fRole_, bool force_, bool sharedFrames_)
+SharedMemory* SharedMemory::createNew(size_t key_, size_t fTime, FilterRole fRole_, bool force_, bool sharedFrames_)
 {
     SharedMemory *shm = new SharedMemory(key_, fTime, fRole_, force_, sharedFrames_);
 
@@ -32,37 +32,45 @@ SharedMemory* SharedMemory::createNew(unsigned key_, size_t fTime, FilterRole fR
     return NULL;
 }
 
-SharedMemory::SharedMemory(unsigned key_, size_t fTime, FilterRole fRole_, bool force_, bool sharedFrames_):
-    OneToOneFilter(fTime, fRole_)
+SharedMemory::SharedMemory(size_t key_, size_t fTime, FilterRole fRole_, bool force_, bool sharedFrames_):
+    OneToOneFilter(fTime, fRole_), enabled(true)
 {
-    enabled = true;
-    if ((SharedMemoryID = shmget(key_, SHMSIZE, IPC_CREAT | 0666)) < 0) {
-        perror("shmget");
+    if ((SharedMemoryID = shmget(key_, SHMSIZE, (IPC_EXCL | IPC_CREAT ) | 0666)) < 0) {
+        utils::debugMsg("SharedMemory::shmget error - filter not created - might be already created");
         enabled = false;
+        return;
     }
 
     if ((SharedMemoryOrigin = (uint8_t*) shmat(SharedMemoryID, NULL, 0)) == (uint8_t *) -1) {
-        perror("shmat");
+        utils::debugMsg("SharedMemory::shmat error - filter not created - might be due to not having enough space");
         enabled = false;
+        return;
     }
 
-    memset(SharedMemoryOrigin,0,SHMSIZE);
+    if(enabled){
+        utils::infoMsg("VERY IMPORTANT: Share following shared memory key ID with reader process: \033[1;32m"+ std::to_string(SharedMemoryID) + "\033[0m");
 
-    access = SharedMemoryOrigin;
-    buffer = SharedMemoryOrigin + HEADER_SIZE;
-    SharedMemorykey = key_;
+        memset(SharedMemoryOrigin,0,SHMSIZE);
 
-    //init sync
-    *access = CHAR_WRITING;
+        access = SharedMemoryOrigin;
+        buffer = SharedMemoryOrigin + HEADER_SIZE;
+        SharedMemorykey = key_;
 
-    //TODO get seqNum from incoming frame
-    seqNum = 0;
+        //init sync
+        *access = CHAR_WRITING;
+
+        //TODO get seqNum from incoming frame
+        seqNum = 0;
+    }
 }
 
 SharedMemory::~SharedMemory()
 {
+    if(shmctl (SharedMemoryID , IPC_RMID , 0) != 0){
+        utils::infoMsg("SharedMemory::shmctl error - Could not set IPC_RMID flag to shared memory segment ID");
+    }
     if(shmdt(SharedMemoryOrigin) != 0){
-        fprintf(stderr, "Could not close memory segment.\n");
+        utils::infoMsg("SharedMemory::shmdt error - Could not detach memory segment");
     }
 }
 

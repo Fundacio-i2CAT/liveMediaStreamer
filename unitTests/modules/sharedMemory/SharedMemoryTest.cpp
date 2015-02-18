@@ -33,6 +33,7 @@
 
 #include "FilterMockup.hh"
 #include "modules/sharedMemory/SharedMemory.hh"
+//#include "SharedMemoryTestUtils.hh"
 
 class SharedMemoryTest : public CppUnit::TestFixture
 {
@@ -61,8 +62,14 @@ void SharedMemoryTest::tearDown()
 void SharedMemoryTest::connectWithSharedMemory()
 {
     BaseFilter* sharedMemoryFilter = SharedMemory::createNew(KEY);
+    CPPUNIT_ASSERT(!(sharedMemoryFilter == NULL));
+
     BaseFilter* satelliteFilterHead = new BaseFilterMockup(0,1);
     BaseFilter* satelliteFilterTail = new BaseFilterMockup(1,0);
+
+    BaseFilter* sharedMemoryFilterErr = SharedMemory::createNew(KEY);
+    CPPUNIT_ASSERT(sharedMemoryFilterErr == NULL);
+    delete sharedMemoryFilterErr;
 
     CPPUNIT_ASSERT(satelliteFilterHead->connectOneToOne(sharedMemoryFilter));
     CPPUNIT_ASSERT(sharedMemoryFilter->connectOneToOne(satelliteFilterTail));
@@ -72,11 +79,49 @@ void SharedMemoryTest::connectWithSharedMemory()
     CPPUNIT_ASSERT(satelliteFilterHead->disconnectWriter(1));
     CPPUNIT_ASSERT(satelliteFilterTail->disconnectReader(1));
 
+    sharedMemoryFilter->disconnectAll();
+
     delete sharedMemoryFilter;
     delete satelliteFilterHead;
     delete satelliteFilterTail;
 }
 
+
+class SharedMemoryFunctionalTest : public CppUnit::TestFixture
+{
+    CPPUNIT_TEST_SUITE(SharedMemoryFunctionalTest);
+    CPPUNIT_TEST(sharedMemoryFilterWithDummyReader);
+    CPPUNIT_TEST_SUITE_END();
+
+public:
+    void setUp();
+    void tearDown();
+
+protected:
+
+    void sharedMemoryFilterWithDummyReader();
+};
+
+void SharedMemoryFunctionalTest::setUp()
+{
+
+}
+
+void SharedMemoryFunctionalTest::tearDown()
+{
+
+}
+
+void SharedMemoryFunctionalTest::sharedMemoryFilterWithDummyReader()
+{
+
+
+
+
+
+}
+
+CPPUNIT_TEST_SUITE_REGISTRATION(SharedMemoryFunctionalTest);
 CPPUNIT_TEST_SUITE_REGISTRATION(SharedMemoryTest);
 
 int main(int argc, char* argv[])

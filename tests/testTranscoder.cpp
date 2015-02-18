@@ -167,7 +167,7 @@ void addVideoSource(unsigned port, unsigned fps = FRAME_RATE, std::string codec 
     shm = SharedMemory::createNew(KEY);
     if(!shm){
         utils::errorMsg("Could not initiate sharedMemory filter");
-        return;
+        exit(0);
     }
     pipe->addFilter(shmId, shm);
     wShm = new Worker();

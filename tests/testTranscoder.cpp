@@ -5,7 +5,7 @@
 #include "../src/AudioFrame.hh"
 #include "../src/Controller.hh"
 #include "../src/Utils.hh"
-#include "../src/modules/sharedMemory/sharedMemory.hh"
+#include "../src/modules/sharedMemory/SharedMemory.hh"
 
 #include <csignal>
 #include <vector>

@@ -32,7 +32,7 @@ liblivemediastreamer_la_SOURCES = modules/audioDecoder/AudioDecoderLibav.cpp \
                                   modules/liveMediaOutput/UltraGridAudioRTPSink.cpp \
                                   modules/liveMediaOutput/UltraGridVideoRTPSink.cpp \
                                   modules/liveMediaOutput/SPSparser/h264_stream.c \
-                                  modules/sharedMemory/sharedMemory.cpp \
+                                  modules/sharedMemory/SharedMemory.cpp \
                                   AVFramedQueue.cpp \
                                   AudioCircularBuffer.cpp \
                                   AudioFrame.cpp \

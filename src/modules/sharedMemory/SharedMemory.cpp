@@ -20,7 +20,7 @@
  *  Authors:    Gerard Castillo <gerard.castillo@i2cat.net>
  */
 
-#include "sharedMemory.hh"
+#include "SharedMemory.hh"
 
 SharedMemory* SharedMemory::createNew(unsigned key_, size_t fTime, FilterRole fRole_, bool force_, bool sharedFrames_)
 {

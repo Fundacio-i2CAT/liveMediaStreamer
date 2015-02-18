@@ -51,7 +51,9 @@ liblivemediastreamer_la_SOURCES = modules/audioDecoder/AudioDecoderLibav.cpp \
                                   X264VideoCircularBuffer.cpp \
                                   X264VideoFrame.cpp 
 
-liblivemediastreamer_la_CPPFLAGS = -std=c++11 -g -D__STDC_CONSTANT_MACROS -Wall
+liblivemediastreamer_la_CPPFLAGS = -g -D__STDC_CONSTANT_MACROS -Wall
+
+liblivemediastreamer_la_CXXFLAGS = -std=c++11 
 
 liblivemediastreamer_la_CFLAGS = -g -D__STDC_CONSTANT_MACROS -Wall
 

@@ -47,15 +47,20 @@ SinkManager* SinkManager::createNew(unsigned readersNum)
 }
 
 SinkManager::SinkManager(unsigned readersNum) :
-LiveMediaFilter(readersNum, 0), watch(0)
+LiveMediaFilter(readersNum, 0), rtspServer(NULL), watch(0)
 {
     TaskScheduler* scheduler = BasicTaskScheduler::createNew();
     env = BasicUsageEnvironment::createNew(*scheduler);
+    
+    unsigned port = RTSP_PORT;
 
-    //TODO: Add authentication security, autodetect port?
-    rtspServer = RTSPServer::createNew(*env, RTSP_PORT, NULL);
-    if (rtspServer == NULL) {
-        utils::errorMsg("Failed to create RTSP server");
+    while(rtspServer == NULL && port <= (RTSP_PORT + 10)){
+        utils::infoMsg("Starting RTSP server at port: " + std::to_string(port));
+        rtspServer = RTSPServer::createNew(*env, port, NULL);
+        if (rtspServer == NULL) {
+            utils::errorMsg("Failed to create RTSP server");
+            port += 2;
+        }
     }
 
     OutPacketBuffer::increaseMaxSizeTo(MAX_VIDEO_FRAME_SIZE);

@@ -132,13 +132,6 @@ bool SourceManager::addWriter(unsigned port, const Writer *writer)
     }
     writers[port] = writer;
 
-
-    //TODO check callback:
-    //if (mngr->hasCallback()) {
-    //    mngr->callback(subsession->mediumName(), subsession->clientPortNum());
-    //}
-
-
     return true;
 }
 
@@ -221,8 +214,9 @@ void SourceManager::addSessionEvent(Jzon::Node* params, Jzon::Object &outputNode
         return;
     }
 
-    addSession(session);
-    session->initiateSession(this);
+    if (addSession(session)) {
+        session->initiateSession(this);
+    }
 
     outputNode.Add("error", Jzon::null);
 }

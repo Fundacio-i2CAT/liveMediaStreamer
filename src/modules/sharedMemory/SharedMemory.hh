@@ -42,7 +42,7 @@
 #define CHAR_READING 	'1'
 #define CHAR_WRITING 	'0'
 #define MAX_SIZE 1920*1080*3
-#define KEY 1907
+#define KEY 1985
 
 /*! OneToOneFilter sharing memory with another process. This filter uses shm
 library, a POSIX shared memory library to share specific address spaces between

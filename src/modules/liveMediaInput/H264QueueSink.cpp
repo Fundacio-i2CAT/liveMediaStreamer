@@ -66,6 +66,7 @@ void H264QueueSink::afterGettingFrame(unsigned frameSize, struct timeval present
         frame->setLength(frameSize + sizeof(start_code));
         frame->newOriginTime();
         frame->setPresentationTime(microseconds(presentationTime.tv_sec*1000000 + presentationTime.tv_usec));
+        frame->setSequenceNumber(++seqNum);
         fWriter->addFrame();
     }
     continuePlaying();

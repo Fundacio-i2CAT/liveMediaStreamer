@@ -27,7 +27,7 @@
 #include <sys/time.h>
 
 QueueSink::QueueSink(UsageEnvironment& env, Writer *writer, unsigned port)
-  : MediaSink(env), fWriter(writer), fPort(port)
+  : MediaSink(env), fWriter(writer), fPort(port), seqNum(0)
 {
     frame = NULL;
     dummyBuffer = new unsigned char[DUMMY_RECEIVE_BUFFER_SIZE];
@@ -82,6 +82,7 @@ void QueueSink::afterGettingFrame(unsigned frameSize, struct timeval presentatio
         frame->setLength(frameSize);
         frame->newOriginTime();
         frame->setPresentationTime(microseconds(presentationTime.tv_sec*1000000 + presentationTime.tv_usec));
+        frame->setSequenceNumber(++seqNum);
         fWriter->addFrame();
     }
 

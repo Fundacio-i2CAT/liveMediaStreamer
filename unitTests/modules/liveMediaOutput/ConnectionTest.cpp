@@ -32,6 +32,7 @@
 #include <cppunit/XmlOutputter.h>
 
 #include "modules/liveMediaOutput/Connection.hh"
+#include "Utils.hh"
 
 #define CHANNELS 2
 #define SAMPLERATE 48000
@@ -258,6 +259,8 @@ int main(int argc, char* argv[])
     runner.addTest( CppUnit::TestFactoryRegistry::getRegistry().makeTest() );
     runner.run( "", false );
     outputter->write();
+    
+    utils::printMood(runner.result().wasSuccessful());
 
     return runner.result().wasSuccessful() ? 0 : 1;
 } 

@@ -132,13 +132,6 @@ bool SourceManager::addWriter(unsigned port, const Writer *writer)
     }
     writers[port] = writer;
 
-
-    //TODO check callback:
-    //if (mngr->hasCallback()) {
-    //    mngr->callback(subsession->mediumName(), subsession->clientPortNum());
-    //}
-
-
     return true;
 }
 
@@ -188,7 +181,7 @@ void SourceManager::addSessionEvent(Jzon::Node* params, Jzon::Object &outputNode
         std::string progName = params->Get("progName").ToString();
         std::string rtspURL = params->Get("uri").ToString();
         sessionId = params->Get("id").ToString();
-        session = Session::createNewByURL(*env, progName, rtspURL, sessionId);
+        session = Session::createNewByURL(*env, progName, rtspURL, sessionId, this);
 
     } else if (params->Has("subsessions") && params->Get("subsessions").IsArray()) {
 
@@ -214,15 +207,16 @@ void SourceManager::addSessionEvent(Jzon::Node* params, Jzon::Object &outputNode
                                                 timeStampFrequency, port, channels);
         }
 
-        session = Session::createNew(*env, sdp, sessionId);
+        session = Session::createNew(*env, sdp, sessionId, this);
 
     } else {
         outputNode.Add("error", "Error adding session. Wrong parameters!");
         return;
     }
 
-    addSession(session);
-    session->initiateSession(this);
+    if (addSession(session)) {
+        session->initiateSession();
+    }
 
     outputNode.Add("error", Jzon::null);
 }
@@ -361,15 +355,15 @@ FrameQueue* createAudioQueue(unsigned char rtpPayloadFormat, char const* codecNa
 
 // Implementation of "Session"
 
-Session::Session(std::string id)
+Session::Session(std::string id, SourceManager *const mngr)
   : client(NULL)
 {
-    scs = new StreamClientState(id);
+    scs = new StreamClientState(id, mngr);
 }
 
-Session* Session::createNew(UsageEnvironment& env, std::string sdp, std::string id)
+Session* Session::createNew(UsageEnvironment& env, std::string sdp, std::string id, SourceManager *const mngr)
 {
-    Session* newSession = new Session(id);
+    Session* newSession = new Session(id, mngr);
     MediaSession* mSession = MediaSession::createNew(env, sdp.c_str());
 
     if (mSession == NULL){
@@ -382,9 +376,9 @@ Session* Session::createNew(UsageEnvironment& env, std::string sdp, std::string 
     return newSession;
 }
 
-Session* Session::createNewByURL(UsageEnvironment& env, std::string progName, std::string rtspURL, std::string id)
+Session* Session::createNewByURL(UsageEnvironment& env, std::string progName, std::string rtspURL, std::string id, SourceManager *const mngr)
 {
-    Session* session = new Session(id);
+    Session* session = new Session(id, mngr);
 
     RTSPClient* rtspClient = ExtendedRTSPClient::createNew(env, rtspURL.c_str(), session->scs, RTSP_CLIENT_VERBOSITY_LEVEL, progName.c_str());
     if (rtspClient == NULL) {
@@ -397,15 +391,15 @@ Session* Session::createNewByURL(UsageEnvironment& env, std::string progName, st
     return session;
 }
 
-bool Session::initiateSession(SourceManager *mngr)
+bool Session::initiateSession()
 {
     MediaSubsession* subsession;
     QueueSink *queueSink;
 
-    if (this->scs->session != NULL){
-        UsageEnvironment& env = this->scs->session->envir();
-        this->scs->iter = new MediaSubsessionIterator(*(this->scs->session));
-        subsession = this->scs->iter->next();
+    if (scs->session != NULL){
+        UsageEnvironment& env = scs->session->envir();
+        scs->iter = new MediaSubsessionIterator(*(scs->session));
+        subsession = scs->iter->next();
         while (subsession != NULL) {
             if (!subsession->initiate()) {
                 utils::errorMsg("Failed to initiate the subsession");
@@ -420,13 +414,13 @@ bool Session::initiateSession(SourceManager *mngr)
                     subsession->deInitiate();
                     return false;
                 }
-                if (!mngr->addWriter(queueSink->getPort(), queueSink->getWriter())){
+                if (!scs->addWriterToMngr(queueSink->getPort(), queueSink->getWriter())){
                     utils::errorMsg("Failed adding writer in SourceManager");
                     subsession->deInitiate();
                     return false;
                 }
             }
-            subsession = this->scs->iter->next();
+            subsession = scs->iter->next();
         }
         return true;
     } else if (client != NULL){
@@ -473,12 +467,14 @@ MediaSubsession* Session::getSubsessionByPort(int port)
 
 // Implementation of "StreamClientState":
 
-StreamClientState::StreamClientState(std::string id_)
-: iter(NULL), session(NULL), subsession(NULL), streamTimerTask(NULL), duration(0.0) {
-    id = id_;
+StreamClientState::StreamClientState(std::string id_, SourceManager *const  manager) :
+    mngr(manager), iter(NULL), session(NULL), subsession(NULL), 
+    streamTimerTask(NULL), duration(0.0), id(id_)
+{
 }
 
-StreamClientState::~StreamClientState() {
+StreamClientState::~StreamClientState() 
+{
     delete iter;
     if (session != NULL) {
 
@@ -487,4 +483,9 @@ StreamClientState::~StreamClientState() {
         env.taskScheduler().unscheduleDelayedTask(streamTimerTask);
         Medium::close(session);
     }
+}
+
+bool StreamClientState::addWriterToMngr(unsigned id, Writer* writer)
+{
+    return mngr->addWriter(id, writer);
 }

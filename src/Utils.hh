@@ -42,7 +42,7 @@ namespace utils
     std::string getFilterTypeAsString(FilterType type);
     std::string getWorkerTypeAsString(WorkerType type);
     std::string getTxFormatAsString(TxFormat format);
-	std::string randomIdGenerator(unsigned int length);
+    std::string randomIdGenerator(unsigned int length);
     int getPayloadFromCodec(std::string codec);
 
 
@@ -52,7 +52,7 @@ namespace utils
     void debugMsg(std::string msg);
 
     void setLogLevel(DefinedLogLevel level);
-	void startPresentacionTime();
+    void printMood(bool mood);
 }
 
 #endif

@@ -40,14 +40,16 @@
 
 
 class FrameMock : public Frame {
-public:
+public:   
     ~FrameMock(){};
     virtual unsigned char *getDataBuf() {
         return buff;
     };
 
-    static FrameMock* createNew() {
-        return new FrameMock();
+    static FrameMock* createNew(size_t seqNum) {
+        FrameMock *frame = new FrameMock();
+        frame->setSequenceNumber(seqNum);
+        return frame;
     }
 
     virtual unsigned char **getPlanarDataBuf() {return NULL;};
@@ -96,7 +98,7 @@ public:
 protected:
     virtual bool config() {
         for (unsigned i=0; i<max; i++) {
-                frames[i] = FrameMock::createNew();
+                frames[i] = FrameMock::createNew(i+1);
         }
         return true;
     }

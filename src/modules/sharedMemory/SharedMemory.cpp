@@ -76,9 +76,6 @@ SharedMemory::~SharedMemory()
 
 bool SharedMemory::doProcessFrame(Frame *org, Frame *dst)
 {
-    //TODO get seqNum from incoming frame
-    seqNum++;
-
     InterleavedVideoFrame* vframe = dynamic_cast<InterleavedVideoFrame*>(org);
     copyOrgToDstFrame(vframe,dynamic_cast<InterleavedVideoFrame*>(dst));
 
@@ -90,7 +87,7 @@ bool SharedMemory::doProcessFrame(Frame *org, Frame *dst)
         return true;
     }
 
-    writeFramePayload(seqNum);
+    writeFramePayload(vframe->getSequenceNumber());
     writeSharedMemory(getFrameObject()->getDataBuf(), getFrameObject()->getLength());
 
     return true;
@@ -122,6 +119,10 @@ void SharedMemory::copyOrgToDstFrame(InterleavedVideoFrame*org, InterleavedVideo
     dst->setPresentationTime(org->getPresentationTime());
     dst->setOriginTime(org->getOriginTime());
     dst->setPixelFormat(org->getPixelFormat());
+    dst->setSequenceNumber(org->getSequenceNumber());
+    dst->setOriginTime(org->getOriginTime());
+    dst->setDuration(org->getDuration());
+        
     memcpy(dst->getDataBuf(), org->getDataBuf(),org->getLength());
 }
 

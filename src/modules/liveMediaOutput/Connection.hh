@@ -54,8 +54,15 @@ public:
     */
     bool setup();
     
+    /**
+    * It returns the list of associated readers of this connection
+    * @return return a vector with the readers Ids in this connection
+    */
     virtual std::vector<int> getReaders() = 0;
     
+    /**
+    * Stops transmitting this connection
+    */
     virtual void stopPlaying() = 0;
 
 protected:
@@ -89,17 +96,52 @@ public:
     */
     ~RTSPConnection();
     
+    /**
+    * Adds a video source to the connection
+    * @param codec represents the video codec of the source to add
+    * @param replicator it is the replicator from where the source is created
+    * @param readerId it is the id of the reader associated with this replicator
+    * @return True if succeded and false if not
+    */
     bool addVideoSubsession(VCodecType codec, StreamReplicator* replicator, int readerId);
     
+    /**
+    * Adds an audio source to the connection
+    * @param codec represents the audio codec of the source to add
+    * @param replicator it is the replicator from where the source is created
+    * @param channels it is the number of audio channels of this source
+    * @param smapleRate it is the sample rate of this source
+    * @param sampleFormat it is the format of this source samples
+    * @param readerId it is the id of the reader associated with this replicator
+    * @return True if succeded and false if not
+    */
     bool addAudioSubsession(ACodecType codec, StreamReplicator* replicator,
                             unsigned channels, unsigned sampleRate, 
                             SampleFmt sampleFormat, int readerId);
     
+    /**
+    * Adds a video source to the connection
+    * @param codec represents the video codec of the source to add
+    * @param replicator it is the replicator from where the source is created
+    * @param readerId it is the id of the reader associated with this replicator
+    * @return True if succeded and false if not
+    */
     std::string getURI();
+    
+    /**
+    * @return it returns the RTSPConnection name
+    */
     std::string getName() const {return name;};
     
+    /**
+    * It returns the list of associated readers of this connection
+    * @return return a vector with the readers Ids in this connection
+    */
     std::vector<int> getReaders();
     
+    /**
+    * Stops transmitting this connection
+    */
     void stopPlaying();
 
 protected:

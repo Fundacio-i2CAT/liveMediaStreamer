@@ -35,9 +35,28 @@ public:
     static MPEGTSQueueServerMediaSubsession*
         createNew(UsageEnvironment& env, Boolean reuseFirstSource);
     
+    /**
+    * Adds a video source to an MPEGTS subsession
+    * @param codec represents the video codec of the source to add
+    * @param replicator it is the replicator from where the source is created
+    * @param readerId it is the id of the reader associated with this replicator
+    * @return True if succeded and false if not
+    */
     bool addVideoSource(VCodecType codec, StreamReplicator* replicator, int readerId);
+    
+    /**
+    * Adds an audio source to an MPEGTS subsession
+    * @param codec represents the audio codec of the source to add
+    * @param replicator it is the replicator from where the source is created
+    * @param readerId it is the id of the reader associated with this replicator
+    * @return True if succeded and false if not
+    */
     bool addAudioSource(ACodecType codec, StreamReplicator* replicator, int readerId);
     
+    /**
+    * Get the associated readers of this connection
+    * @return a vector of readers ids without any particular order
+    */
     std::vector<int> getReaderIds();
 
 protected:

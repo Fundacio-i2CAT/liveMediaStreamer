@@ -52,11 +52,13 @@ Dasher* Dasher::createNew(std::string dashFolder, std::string baseName, size_t s
     return new Dasher(dashFolder, baseName, segDurInSeconds, mpdLocation);
 }
 
-Dasher::Dasher(std::string dashFolder, std::string baseName, size_t segDurInSec, std::string mpdLocation, int readersNum) : 
+Dasher::Dasher(std::string dashFolder, std::string baseName_, size_t segDurInSec, std::string mpdLocation, int readersNum) : 
 TailFilter(readersNum)
 {
-    mpdPath = dashFolder + baseName + ".mpd";
-    segmentsBasePath = dashFolder + baseName;
+    basePath = dashFolder;
+    baseName = baseName_;
+    mpdPath = basePath + baseName + ".mpd";
+    segmentsBasePath = basePath + baseName;
     vSegTempl = baseName + "_$RepresentationID$_$Time$.m4v";
     aSegTempl = baseName + "_$RepresentationID$_$Time$.m4a";
     vInitSegTempl = baseName + "_$RepresentationID$_init.m4v";
@@ -106,14 +108,144 @@ bool Dasher::doProcessFrame(std::map<int, Frame*> orgFrames)
             continue;
         }
 
-        if (segmenter->generateInitSegment()) {
-            utils::debugMsg("New DASH init segment generated");
+        generateInitSegment(fr.first, segmenter);
+
+        generateSegment(fr.first, segmenter);
+
+        mpdMngr->writeToDisk(mpdPath.c_str());
+    }
+
+    return true;
+}
+
+bool Dasher::generateInitSegment(size_t id, DashSegmenter* segmenter)
+{
+    DashVideoSegmenter* vSeg;
+    DashAudioSegmenter* aSeg;
+
+    if ((vSeg = dynamic_cast<DashVideoSegmenter*>(segmenter)) != NULL) {
+        
+        if (!vSeg->generateInitSegment(initSegments[id])) {
+            return true;
         }
 
-        if (segmenter->generateSegment()) {
-            updateMpd(fr.first, segmenter);
-            utils::debugMsg("New DASH segment generated");
+        if(!initSegments[id]->writeToDisk(getInitSegmentName(basePath, baseName, id, V_EXT))) {
+            utils::errorMsg("Error writing DASH segment to disk: invalid path");
+            return false;
         }
+    }
+
+    if ((aSeg = dynamic_cast<DashAudioSegmenter*>(segmenter)) != NULL) {
+
+        if (!aSeg->generateInitSegment(initSegments[id])) {
+            return true;
+        }
+
+        if(!initSegments[id]->writeToDisk(getInitSegmentName(basePath, baseName, id, A_EXT))) {
+            utils::errorMsg("Error writing DASH segment to disk: invalid path");
+            return false;
+        }
+    }
+
+    if (!vSeg && !aSeg) {
+        return false;
+    }
+
+    return true;
+}
+
+bool Dasher::generateSegment(size_t id, DashSegmenter* segmenter)
+{
+    DashVideoSegmenter* vSeg;
+    DashAudioSegmenter* aSeg;
+    size_t refTimestamp;
+
+    if ((vSeg = dynamic_cast<DashVideoSegmenter*>(segmenter)) != NULL) {
+        
+        if (!vSeg->generateSegment(vSegments[id])) {
+            return true;
+        }
+
+        refTimestamp = updateTimestampControl(vSegments);
+        mpdMngr->updateVideoAdaptationSet(V_ADAPT_SET_ID, segmenters[id]->getTimeBase(), vSegTempl, vInitSegTempl);
+        mpdMngr->updateVideoRepresentation(V_ADAPT_SET_ID, std::to_string(id), VIDEO_CODEC, vSeg->getWidth(), 
+                                            vSeg->getHeight(), V_BAND, vSeg->getFramerate());
+
+        if (refTimestamp <= 0) {
+            return true;
+        }
+
+        if (!writeSegmentsToDisk(vSegments, refTimestamp, V_EXT)) {
+            utils::errorMsg("Error writing DASH segment to disk");
+            return false;
+        }
+
+        mpdMngr->updateAdaptationSetTimestamp(V_ADAPT_SET_ID, refTimestamp, segmenter->getSegDurInTimeBaseUnits());
+    }
+
+    if ((aSeg = dynamic_cast<DashAudioSegmenter*>(segmenter)) != NULL) {
+
+        if (!aSeg->generateSegment(aSegments[id])) {
+            return true;
+        }
+
+        refTimestamp = updateTimestampControl(aSegments);
+        mpdMngr->updateAudioAdaptationSet(A_ADAPT_SET_ID, segmenters[id]->getTimeBase(), aSegTempl, aInitSegTempl);
+        mpdMngr->updateAudioRepresentation(A_ADAPT_SET_ID, std::to_string(id), AUDIO_CODEC, aSeg->getSampleRate(), A_BAND, aSeg->getChannels());
+
+        if (refTimestamp <= 0) {
+            return true;
+        }
+
+        if (!writeSegmentsToDisk(aSegments, refTimestamp, A_EXT)) {
+            utils::errorMsg("Error writing DASH segment to disk");
+            return false;
+        }
+
+        mpdMngr->updateAdaptationSetTimestamp(A_ADAPT_SET_ID, refTimestamp, segmenter->getSegDurInTimeBaseUnits());
+    }
+
+    if (!vSeg && !aSeg) {
+        return false;
+    }
+
+    return true;
+}
+
+size_t Dasher::updateTimestampControl(std::map<int,DashSegment*> segments)
+{   
+    size_t refTimestamp = 0;
+
+    for (auto seg : segments) {
+
+        if (seg.second->getTimestamp() <= 0) {
+            return 0;
+        }
+
+        if (refTimestamp == 0) {
+            refTimestamp = seg.second->getTimestamp();
+        }
+
+        if (refTimestamp != seg.second->getTimestamp()) {
+            utils::warningMsg("Segments of the same Adaptation Set have different timestamps"); 
+            utils::warningMsg("Setting timestamp to a reference one: this may cause playing errors");
+        }
+    }
+
+    return refTimestamp;
+}
+
+bool Dasher::writeSegmentsToDisk(std::map<int,DashSegment*> segments, size_t timestamp, std::string segExt)
+{
+    for (auto seg : segments) {
+
+        if(!seg.second->writeToDisk(getSegmentName(basePath, baseName, seg.first, timestamp, segExt))) {
+            utils::errorMsg("Error writing DASH segment to disk: invalid path");
+            return false;
+        }
+
+        seg.second->clear();
+        seg.second->incrSeqNumber();
     }
 
     return true;
@@ -155,9 +287,10 @@ bool Dasher::addSegmenter(int readerId)
             return false;
         }
 
-        completeSegBasePath = segmentsBasePath + "_" + std::to_string(readerId);
         segmenters[readerId] = new DashVideoSegmenter(segDurInMicrosec, completeSegBasePath);
         segmenters[readerId]->setOffset(timestampOffset);
+        vSegments[readerId] = new DashSegment();
+        initSegments[readerId] = new DashSegment();
     }
     
     if ((aQueue = dynamic_cast<AudioFrameQueue*>(r->getQueue())) != NULL) {
@@ -167,9 +300,10 @@ bool Dasher::addSegmenter(int readerId)
             return false;
         }
 
-        completeSegBasePath = segmentsBasePath + "_" + std::to_string(readerId);
         segmenters[readerId] = new DashAudioSegmenter(segDurInMicrosec, completeSegBasePath);
         segmenters[readerId]->setOffset(timestampOffset);
+        aSegments[readerId] = new DashSegment();
+        initSegments[readerId] = new DashSegment();
     }
     
     return true;
@@ -193,97 +327,55 @@ bool Dasher::removeSegmenter(int readerId)
     return true;
 }
 
-void Dasher::updateMpd(int id, DashSegmenter* segmenter)
+std::string Dasher::getSegmentName(std::string basePath, std::string baseName, size_t reprId, size_t timestamp, std::string ext)
 {
-    DashVideoSegmenter* vSeg;
-    DashAudioSegmenter* aSeg;
+    std::string fullName;
+    fullName = basePath + baseName + "_" + std::to_string(reprId) + "_" + std::to_string(timestamp) + ext;
 
-    if ((vSeg = dynamic_cast<DashVideoSegmenter*>(segmenter)) != NULL) {
-        mpdMngr->updateVideoAdaptationSet(V_ADAPT_SET_ID, segmenter->getTimeBase(), vSegTempl, vInitSegTempl);
-        mpdMngr->updateVideoRepresentation(V_ADAPT_SET_ID, std::to_string(id), VIDEO_CODEC, vSeg->getWidth(), 
-                                            vSeg->getHeight(), V_BAND, vSeg->getFramerate());
-        mpdMngr->updateAdaptationSetTimestamp(V_ADAPT_SET_ID, segmenter->getSegmentTimestamp(), vSeg->getSegmentDuration());
-    }
-
-    if ((aSeg = dynamic_cast<DashAudioSegmenter*>(segmenter)) != NULL) {
-        mpdMngr->updateAudioAdaptationSet(A_ADAPT_SET_ID, segmenter->getTimeBase(), aSegTempl, aInitSegTempl);
-        mpdMngr->updateAudioRepresentation(A_ADAPT_SET_ID, std::to_string(id), AUDIO_CODEC, aSeg->getSampleRate(), A_BAND, aSeg->getChannels());
-        mpdMngr->updateAdaptationSetTimestamp(A_ADAPT_SET_ID, segmenter->getSegmentTimestamp(), aSeg->getSegmentDuration());
-    }
-
-    mpdMngr->writeToDisk(mpdPath.c_str());
+    return fullName;
 }
 
-DashSegmenter::DashSegmenter(size_t segDur, size_t tBase, std::string segBaseName, std::string segExt) : 
-dashContext(NULL), timeBase(tBase), segmentDuration(segDur), frameDuration(0), baseName(segBaseName), 
-segmentExt(segExt), tsOffset(0)
+std::string Dasher::getInitSegmentName(std::string basePath, std::string baseName, size_t reprId, std::string ext)
 {
-    segment = new DashSegment(MAX_DAT);
-    initSegment = new DashSegment(MAX_DAT);
+    std::string fullName;
+    fullName = basePath + baseName + "_" + std::to_string(reprId) + "_init" + ext;
+
+    return fullName;
+}
+
+
+DashSegmenter::DashSegmenter(size_t segDurInMicros, size_t tBase) : 
+dashContext(NULL), timeBase(tBase), segDurInMicroSec(segDurInMicros), frameDuration(0), tsOffset(0)
+{
+    segDurInTimeBaseUnits = segDurInMicroSec*timeBase/MICROSECONDS_TIME_BASE;
 }
 
 DashSegmenter::~DashSegmenter()
 {
-    delete segment;
-    delete initSegment;
+
 }
 
-bool DashSegmenter::generateInitSegment() 
+bool DashSegmenter::generateInitSegment(DashSegment* segment) 
 {
     if (!updateMetadata()) {
         return false;
     }
 
-    if (!generateInitData()) {
+    if (!generateInitData(segment)) {
         utils::errorMsg("Error generating video init segment");
         return false;
     }
 
-    if(!initSegment->writeToDisk(getInitSegmentName())) {
-        utils::errorMsg("Error writing DASH init segment to disk: invalid path");
+    return true;
+}
+
+bool DashSegmenter::generateSegment(DashSegment* segment)
+{
+    if (!appendFrameToDashSegment(segment)) {
         return false;
     }
 
     return true;
-}
-
-bool DashSegmenter::generateSegment()
-{
-    if (!appendFrameToDashSegment()) {
-        return false;
-    }
-        
-    if(!segment->writeToDisk(getSegmentName())) {
-        utils::errorMsg("Error writing DASH segment to disk: invalid path");
-        return false;
-    }
-
-    segment->incrSeqNumber();
-
-    return true;
-}
-
-std::string DashSegmenter::getInitSegmentName()
-{
-    std::string fullName;
-
-    fullName = baseName + "_init" + segmentExt;
-    
-    return fullName;
-}
-
-std::string DashSegmenter::getSegmentName()
-{
-    std::string fullName;
-
-    fullName = baseName + "_" + std::to_string(segment->getTimestamp()) + segmentExt;
-    
-    return fullName;
-}
-
-size_t DashSegmenter::getSegmentTimestamp() 
-{
-    return segment->getTimestamp();
 }
 
 void DashSegmenter::setOffset(size_t offs)
@@ -291,6 +383,14 @@ void DashSegmenter::setOffset(size_t offs)
     tsOffset = offs;
 }
 
+size_t DashSegmenter::customTimestamp(size_t timestamp)
+{
+    return (timestamp - tsOffset)*timeBase/MICROSECONDS_TIME_BASE;
+}
+
+/////////////////
+// DashSegment //
+/////////////////
 
 DashSegment::DashSegment(size_t maxSize)
 {
@@ -338,6 +438,5 @@ void DashSegment::clear()
 {
     timestamp = 0;
     dataLength = 0;
-    seqNumber = 0;
 }
 

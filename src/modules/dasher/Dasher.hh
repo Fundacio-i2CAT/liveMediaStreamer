@@ -41,6 +41,8 @@ extern "C" {
 #define A_ADAPT_SET_ID "1"
 #define VIDEO_CODEC "avc1.42c01e"
 #define AUDIO_CODEC "mp4a.40.2"
+#define V_EXT ".m4v"
+#define A_EXT ".m4a"
 
 class DashSegmenter;
 class DashSegment;
@@ -76,17 +78,31 @@ public:
     * @return true if suceeded and false if not
     */ 
     bool removeSegmenter(int readerId);
+
+    static std::string getSegmentName(std::string basePath, std::string baseName, size_t reprId, size_t timestamp, std::string ext);
+    static std::string getInitSegmentName(std::string basePath, std::string baseName, size_t reprId, std::string ext);
       
 private: 
     Dasher(std::string dashFolder, std::string baseName, size_t segDurInSec, std::string mpdLocation, int readersNum = MAX_READERS);
     bool doProcessFrame(std::map<int, Frame*> orgFrames);
     void initializeEventMap();
     void updateMpd(int id, DashSegmenter* segmenter);
+    bool generateInitSegment(size_t id, DashSegmenter* segmenter);
+    bool generateSegment(size_t id, DashSegmenter* segmenter);
+    size_t updateTimestampControl(std::map<int,DashSegment*> segments);
+    bool writeSegmentsToDisk(std::map<int,DashSegment*> segments, size_t timestamp, std::string segExt);
+
 
     std::map<int, DashSegmenter*> segmenters;
+    std::map<int, DashSegment*> vSegments;
+    std::map<int, DashSegment*> aSegments;
+    std::map<int, DashSegment*> initSegments;
+
     MpdManager* mpdMngr;
     size_t timestampOffset;
     size_t segDurInMicrosec;
+    std::string basePath;
+    std::string baseName;
     std::string mpdPath;
     std::string segmentsBasePath;
     std::string vSegTempl;
@@ -108,7 +124,7 @@ public:
     * @param segBaseName Base name for the segments. Segment names will be: segBaseName_<timestamp>.segExt and segBaseName_init.segExt
     * @param segExt segment file extension (.m4v for video and .m4a for audio) 
     */ 
-    DashSegmenter(size_t segDur, size_t tBase, std::string segBaseName, std::string segExt);
+    DashSegmenter(size_t segDur, size_t tBase);
 
     /**
     * Class destructor
@@ -133,12 +149,12 @@ public:
     /**
     * Generates and writes to disk an Init Segment if possible (or necessary)
     */ 
-    bool generateInitSegment();
+    bool generateInitSegment(DashSegment* segment);
 
     /**
     * Generates and writes to disk a segment if there is enough data buffered
     */ 
-    bool generateSegment();
+    bool generateSegment(DashSegment* segment);
 
     /**
     * Returns average frame duration 
@@ -170,23 +186,23 @@ public:
     * Return the segment duration 
     * @return segment duration in timeBase units
     */
-    size_t getSegmentDuration() {return segmentDuration;};
+    size_t getsegDurInMicroSec() {return segDurInMicroSec;};
+    size_t getSegDurInTimeBaseUnits() {return segDurInTimeBaseUnits;};
+
 
 protected:
     virtual bool updateMetadata() = 0;
-    virtual bool generateInitData() = 0;
-    virtual bool appendFrameToDashSegment() = 0;
+    virtual bool generateInitData(DashSegment* segment) = 0;
+    virtual bool appendFrameToDashSegment(DashSegment* segment) = 0;
     std::string getInitSegmentName();
     std::string getSegmentName();
+    size_t customTimestamp(size_t timestamp);
     
     i2ctx* dashContext;
     size_t timeBase;
-    size_t segmentDuration;
+    size_t segDurInMicroSec;
+    size_t segDurInTimeBaseUnits;
     size_t frameDuration;
-    DashSegment* segment;
-    DashSegment* initSegment;
-    std::string baseName;
-    std::string segmentExt;
     std::vector<unsigned char> metadata;
     size_t tsOffset;
 };
@@ -201,7 +217,7 @@ public:
     * Class constructor
     * @param maxSize Segment data max length
     */ 
-    DashSegment(size_t maxSize);
+    DashSegment(size_t maxSize = MAX_DAT);
 
     /**
     * Class destructor

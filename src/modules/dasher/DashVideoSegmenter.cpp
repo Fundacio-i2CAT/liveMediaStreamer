@@ -24,7 +24,7 @@
  #include "DashVideoSegmenter.hh"
 
 DashVideoSegmenter::DashVideoSegmenter(size_t segDur, std::string segBaseName) : 
-DashSegmenter(segDur, MICROSECONDS_TIME_BASE, segBaseName, ".m4v"), 
+DashSegmenter(segDur, MICROSECONDS_TIME_BASE), 
 updatedSPS(false), updatedPPS(false), lastTs(0), frameRate(0), isIntra(false), 
 isVCL(false), currTimestamp(0), width(0), height(0)
 {
@@ -73,7 +73,7 @@ bool DashVideoSegmenter::updateConfig()
         return false;
     }
 
-    if(!setup(segmentDuration, timeBase, frameDuration, width, height, frameRate)) {
+    if(!setup(segDurInTimeBaseUnits, timeBase, frameDuration, width, height, frameRate)) {
         utils::errorMsg("Error during Dash Video Segmenter setup");
         frameData.clear();
         return false;
@@ -84,25 +84,25 @@ bool DashVideoSegmenter::updateConfig()
 
 bool DashVideoSegmenter::finishSegment()
 {
-    size_t segmentSize = 0;
+    // size_t segmentSize = 0;
 
-    if (!dashContext || !dashContext->ctxvideo || dashContext->ctxvideo->segment_data_size <= 0) {
-        return true;
-    }
+    // if (!dashContext || !dashContext->ctxvideo || dashContext->ctxvideo->segment_data_size <= 0) {
+    //     return true;
+    // }
 
-    segment->setTimestamp(dashContext->ctxvideo->earliest_presentation_time);
-    segmentSize = finish_segment(VIDEO_TYPE, segment->getDataBuffer(), &dashContext);
+    // segment->setTimestamp(dashContext->ctxvideo->earliest_presentation_time);
+    // segmentSize = finish_segment(VIDEO_TYPE, segment->getDataBuffer(), &dashContext);
 
-    if (segmentSize <= I2ERROR_MAX) {
-        return false;
-    }
+    // if (segmentSize <= I2ERROR_MAX) {
+    //     return false;
+    // }
 
-    segment->setDataLength(segmentSize);
+    // segment->setDataLength(segmentSize);
 
-    if(!segment->writeToDisk(getSegmentName())) {
-        utils::errorMsg("Error writing DASH segment to disk: invalid path");
-        return false;
-    }
+    // if(!segment->writeToDisk(getSegmentName())) {
+    //     utils::errorMsg("Error writing DASH segment to disk: invalid path");
+    //     return false;
+    // }
 
     return true;
 }
@@ -183,13 +183,13 @@ bool DashVideoSegmenter::updateMetadata()
     return true;
 }
 
-bool DashVideoSegmenter::generateInitData() 
+bool DashVideoSegmenter::generateInitData(DashSegment* segment) 
 {
     size_t initSize = 0;
     unsigned char* data;
     unsigned dataLength;
 
-    if (!dashContext || metadata.empty()) {
+    if (!dashContext || metadata.empty() || !segment || !segment->getDataBuffer()) {
         return false;
     }
 
@@ -200,23 +200,24 @@ bool DashVideoSegmenter::generateInitData()
         return false;
     }
 
-    initSize = new_init_video_handler(data, dataLength, initSegment->getDataBuffer(), &dashContext);
+    initSize = new_init_video_handler(data, dataLength, segment->getDataBuffer(), &dashContext);
 
     if (initSize == 0) {
         return false;
     }
 
-    initSegment->setDataLength(initSize);
+    segment->setDataLength(initSize);
 
     return true;
 }
 
-bool DashVideoSegmenter::appendFrameToDashSegment()
+bool DashVideoSegmenter::appendFrameToDashSegment(DashSegment* segment)
 {
     size_t segmentSize = 0;
     unsigned char* data;
     unsigned dataLength;
     size_t pts;
+    size_t segTimestamp;
 
     if (frameData.empty()) {
         return false;
@@ -231,7 +232,7 @@ bool DashVideoSegmenter::appendFrameToDashSegment()
 
     pts = currTimestamp - tsOffset;
 
-    segment->setTimestamp(dashContext->ctxvideo->earliest_presentation_time);
+    segTimestamp = dashContext->ctxvideo->earliest_presentation_time;
     segmentSize = add_sample(data, dataLength, frameDuration, pts, pts, segment->getSeqNumber(), 
                              VIDEO_TYPE, segment->getDataBuffer(), isIntra, &dashContext);
 
@@ -241,6 +242,7 @@ bool DashVideoSegmenter::appendFrameToDashSegment()
         return false;
     }
     
+    segment->setTimestamp(segTimestamp);
     segment->setDataLength(segmentSize);
     return true;
 }

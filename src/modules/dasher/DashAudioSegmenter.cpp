@@ -24,7 +24,7 @@
  #include "DashAudioSegmenter.hh"
 
 DashAudioSegmenter::DashAudioSegmenter(size_t segDur, std::string segBaseName) : 
-DashSegmenter(segDur, MICROSECONDS_TIME_BASE, segBaseName, ".m4a")
+DashSegmenter(segDur, 0)
 {
 
 }
@@ -64,7 +64,7 @@ bool DashAudioSegmenter::updateConfig()
         return false;
     }
 
-    if (!setup(segmentDuration, timeBase, frameDuration, aFrame->getChannels(), 
+    if (!setup(segDurInTimeBaseUnits, timeBase, frameDuration, aFrame->getChannels(), 
                         aFrame->getSampleRate(), aFrame->getBytesPerSample()*BYTE_TO_BIT)) {
         utils::errorMsg("Error during Dash Audio Segmenter setup");
         return false;
@@ -75,47 +75,49 @@ bool DashAudioSegmenter::updateConfig()
 
 bool DashAudioSegmenter::finishSegment()
 {
-     size_t segmentSize = 0;
+     // size_t segmentSize = 0;
 
-    if (!dashContext || !dashContext->ctxaudio || dashContext->ctxaudio->segment_data_size <= 0) {
-        return true;
-    }
+    // if (!dashContext || !dashContext->ctxaudio || dashContext->ctxaudio->segment_data_size <= 0) {
+    //     return true;
+    // }
 
-    segment->setTimestamp(dashContext->ctxaudio->earliest_presentation_time);
-    segmentSize = finish_segment(AUDIO_TYPE, segment->getDataBuffer(), &dashContext);
+    // segment->setTimestamp(dashContext->ctxaudio->earliest_presentation_time);
+    // segmentSize = finish_segment(AUDIO_TYPE, segment->getDataBuffer(), &dashContext);
 
-    if (segmentSize <= I2ERROR_MAX) {
-        return false;
-    }
+    // if (segmentSize <= I2ERROR_MAX) {
+    //     return false;
+    // }
 
-    segment->setDataLength(segmentSize);
+    // segment->setDataLength(segmentSize);
 
-    if(!segment->writeToDisk(getSegmentName())) {
-        utils::errorMsg("Error writing DASH segment to disk: invalid path");
-        return false;
-    }
+    // if(!segment->writeToDisk(getSegmentName())) {
+    //     utils::errorMsg("Error writing DASH segment to disk: invalid path");
+    //     return false;
+    // }
 
     return true;
 }
 
-bool DashAudioSegmenter::appendFrameToDashSegment()
+bool DashAudioSegmenter::appendFrameToDashSegment(DashSegment* segment)
 {
     size_t segmentSize = 0;
     unsigned char* dataWithoutADTS;
     size_t dataLengthWithoutADTS;
     size_t pts;
+    size_t segTimestamp;
 
     if (!aFrame || !aFrame->getDataBuf() || aFrame->getLength() <= 0) {
         utils::errorMsg("Error appeding frame to segment: frame not valid");
         return false;
     }
 
-    pts = aFrame->getPresentationTime().count() - tsOffset;
+    pts = customTimestamp(aFrame->getPresentationTime().count());
 
+    //PTS theoric: only first segment as presentation time, then increment by duration
     dataWithoutADTS = aFrame->getDataBuf() + ADTS_HEADER_LENGTH;
     dataLengthWithoutADTS = aFrame->getLength() - ADTS_HEADER_LENGTH;
 
-    segment->setTimestamp(dashContext->ctxaudio->earliest_presentation_time);
+    segTimestamp = dashContext->ctxaudio->earliest_presentation_time;
     segmentSize = add_sample(dataWithoutADTS, dataLengthWithoutADTS, frameDuration, pts, pts, segment->getSeqNumber(), 
                              AUDIO_TYPE, segment->getDataBuffer(), 1, &dashContext);
 
@@ -124,16 +126,17 @@ bool DashAudioSegmenter::appendFrameToDashSegment()
     }
     
     segment->setDataLength(segmentSize);
+    segment->setTimestamp(segTimestamp);
     return true;
 }
 
-bool DashAudioSegmenter::generateInitData() 
+bool DashAudioSegmenter::generateInitData(DashSegment* segment) 
 {
     size_t initSize = 0;
     unsigned char* data;
     unsigned dataLength;
 
-    if (!dashContext || metadata.empty()) {
+    if (!dashContext || metadata.empty() || !segment || !segment->getDataBuffer()) {
         return false;
     }
 
@@ -144,13 +147,13 @@ bool DashAudioSegmenter::generateInitData()
         return false;
     }
 
-    initSize = init_audio_handler(data, dataLength, initSegment->getDataBuffer(), &dashContext);
+    initSize = init_audio_handler(data, dataLength, segment->getDataBuffer(), &dashContext);
 
     if (initSize == 0) {
         return false;
     }
 
-    initSegment->setDataLength(initSize);
+    segment->setDataLength(initSize);
 
     return true;
 }
@@ -161,7 +164,9 @@ bool DashAudioSegmenter::updateTimeValues(size_t currentTimestamp, int sampleRat
         return false;
     }
 
-    frameDuration = samples*MICROSECONDS_TIME_BASE/sampleRate;
+    timeBase = sampleRate;
+    frameDuration = samples;
+    segDurInTimeBaseUnits = segDurInMicroSec*timeBase/MICROSECONDS_TIME_BASE;
     return true;
 }
 

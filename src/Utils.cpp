@@ -41,6 +41,8 @@ namespace utils
         config.configure();
 
         logConfigured = true;
+        Logger logger = Logger::getInstance(LOG4CPLUS_TEXT("main"));
+        logger.setLogLevel(INFO_LOG_LEVEL);
     }
 
     SampleFmt getSampleFormatFromString(std::string stringSampleFmt)
@@ -400,9 +402,9 @@ namespace utils
     
     void printMood(bool mood){
         if (mood){
-            std::cout << "\e[1;32m SUCCESS \e[5m(⌐■_■)\e[0m" << std::endl << std::endl;
+            std::cout << "\e[1;32mSUCCESS \e[5m(⌐■_■)\e[0m" << std::endl << std::endl;
         } else {
-            std::cout << "\e[5;31mFAILED! \e[25m (Shit happens...)\e[1;33m¯\\_(ツ)_/¯\e[0m" << std::endl << std::endl;
+            std::cout << "\e[5;31mFAILED! \e[25m (Shit happens...)\e[1;33m ¯\\_(ツ)_/¯\e[0m" << std::endl << std::endl;
         }
     }
 }

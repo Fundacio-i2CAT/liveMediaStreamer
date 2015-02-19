@@ -41,6 +41,8 @@ namespace utils
         config.configure();
 
         logConfigured = true;
+        Logger logger = Logger::getInstance(LOG4CPLUS_TEXT("main"));
+        logger.setLogLevel(INFO_LOG_LEVEL);
     }
 
     SampleFmt getSampleFormatFromString(std::string stringSampleFmt)
@@ -353,7 +355,7 @@ namespace utils
         }
 
         Logger logger = Logger::getInstance(LOG4CPLUS_TEXT("main"));
-        LOG4CPLUS_WARN(logger, msg);
+        LOG4CPLUS_WARN(logger, "\e[2;91m" + msg + "\e[0m");
     }
 
     void debugMsg(std::string msg)
@@ -367,7 +369,7 @@ namespace utils
         }
 
         Logger logger = Logger::getInstance(LOG4CPLUS_TEXT("main"));
-        LOG4CPLUS_DEBUG(logger, msg);
+        LOG4CPLUS_DEBUG(logger, "\e[2;37m" + msg + "\e[0m");
     }
 
     void errorMsg(std::string msg)
@@ -379,9 +381,9 @@ namespace utils
         if (msg.empty()){
             return;
         }
-
+        
         Logger logger = Logger::getInstance(LOG4CPLUS_TEXT("main"));
-        LOG4CPLUS_ERROR(logger, msg);
+        LOG4CPLUS_ERROR(logger,  "\e[1;31m" + msg + "\e[0m");
     }
 
     void infoMsg(std::string msg)
@@ -395,6 +397,14 @@ namespace utils
         }
 
         Logger logger = Logger::getInstance(LOG4CPLUS_TEXT("main"));
-        LOG4CPLUS_INFO(logger, msg);
+        LOG4CPLUS_INFO(logger, "\e[1;33m" + msg + "\e[0m");
+    }
+    
+    void printMood(bool mood){
+        if (mood){
+            std::cout << "\e[1;32mSUCCESS \e[5m(⌐■_■)\e[0m" << std::endl << std::endl;
+        } else {
+            std::cout << "\e[5;31mFAILED! \e[25m (Shit happens...)\e[1;33m ¯\\_(ツ)_/¯\e[0m" << std::endl << std::endl;
+        }
     }
 }

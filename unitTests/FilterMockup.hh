@@ -17,8 +17,9 @@
  *  You should have received a copy of the GNU General Public License
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- *  Authors:  Marc Palau <marc.palau@i2cat.net>
- *            David Cassany <david.cassany@i2cat.net>
+ *  Authors:    Marc Palau <marc.palau@i2cat.net>
+ *              David Cassany <david.cassany@i2cat.net>
+ *              Gerard Castillo <gerard.castillo@i2cat.net>
  *
  */
 
@@ -38,14 +39,16 @@
 
 
 class FrameMock : public Frame {
-public:
+public:   
     ~FrameMock(){};
     virtual unsigned char *getDataBuf() {
         return buff;
     };
 
-    static FrameMock* createNew() {
-        return new FrameMock();
+    static FrameMock* createNew(size_t seqNum) {
+        FrameMock *frame = new FrameMock();
+        frame->setSequenceNumber(seqNum);
+        return frame;
     }
 
     virtual unsigned char **getPlanarDataBuf() {return NULL;};
@@ -69,7 +72,7 @@ public:
 protected:
     virtual bool config() {
         for (unsigned i=0; i<max; i++) {
-                frames[i] = FrameMock::createNew();
+                frames[i] = FrameMock::createNew(i+1);
         }
         return true;
     }
@@ -186,7 +189,6 @@ private:
         }
         return true;
     }
-
 
 private:
     size_t queueSize;

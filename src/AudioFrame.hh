@@ -59,7 +59,7 @@ class AudioFrame : public Frame {
         static int getDefaultSamples(int sampleRate);
         static SampleFmt getSampleFormatFromString(std::string stringSampleFmt);
         static ACodecType getCodecFromString(std::string stringCodec);
-
+        std::chrono::microseconds getDuration() const;
               
     protected:
         int channels, sampleRate, samples, maxSamples, bytesPerSample; 

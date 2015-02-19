@@ -108,11 +108,14 @@ bool Dasher::doProcessFrame(std::map<int, Frame*> orgFrames)
             continue;
         }
 
-        generateInitSegment(fr.first, segmenter);
+        if (!generateInitSegment(fr.first, segmenter)) {
+            utils::errorMsg("[DashSegmenter] Error generating init segment");
+            continue;
+        }
 
-        generateSegment(fr.first, segmenter);
-
-        mpdMngr->writeToDisk(mpdPath.c_str());
+        if (generateSegment(fr.first, segmenter)) {
+            mpdMngr->writeToDisk(mpdPath.c_str());
+        }
     }
 
     return true;
@@ -136,8 +139,6 @@ bool Dasher::generateInitSegment(size_t id, DashSegmenter* segmenter)
     }
 
     if ((aSeg = dynamic_cast<DashAudioSegmenter*>(segmenter)) != NULL) {
-
-       
 
         if (!aSeg->generateInitSegment(initSegments[id])) {
             return true;
@@ -164,13 +165,9 @@ bool Dasher::generateSegment(size_t id, DashSegmenter* segmenter)
 
     if ((vSeg = dynamic_cast<DashVideoSegmenter*>(segmenter)) != NULL) {
         
-        // std::cout << "Vseg duration: " << vSeg->getsegDurInMicroSec() << std::endl;
-        // std::cout << "Vseg duration: " << vSeg->getSegDurInTimeBaseUnits() << std::endl;
-
         if (!vSeg->generateSegment(vSegments[id])) {
-            return true;
+            return false;
         }
-
 
         refTimestamp = updateTimestampControl(vSegments);
         mpdMngr->updateVideoAdaptationSet(V_ADAPT_SET_ID, segmenters[id]->getTimeBase(), vSegTempl, vInitSegTempl);
@@ -178,7 +175,7 @@ bool Dasher::generateSegment(size_t id, DashSegmenter* segmenter)
                                             vSeg->getHeight(), V_BAND, vSeg->getFramerate());
 
         if (refTimestamp <= 0) {
-            return true;
+            return false;
         }
 
         if (!writeSegmentsToDisk(vSegments, refTimestamp, V_EXT)) {
@@ -191,11 +188,8 @@ bool Dasher::generateSegment(size_t id, DashSegmenter* segmenter)
 
     if ((aSeg = dynamic_cast<DashAudioSegmenter*>(segmenter)) != NULL) {
 
-        // std::cout << "Aseg duration: " << aSeg->getsegDurInMicroSec() << std::endl;
-        // std::cout << "Aseg duration: " << aSeg->getSegDurInTimeBaseUnits() << std::endl;
-
         if (!aSeg->generateSegment(aSegments[id])) {
-            return true;
+            return false;
         }
 
         refTimestamp = updateTimestampControl(aSegments);
@@ -203,7 +197,7 @@ bool Dasher::generateSegment(size_t id, DashSegmenter* segmenter)
         mpdMngr->updateAudioRepresentation(A_ADAPT_SET_ID, std::to_string(id), AUDIO_CODEC, aSeg->getSampleRate(), A_BAND, aSeg->getChannels());
 
         if (refTimestamp <= 0) {
-            return true;
+            return false;
         }
 
         if (!writeSegmentsToDisk(aSegments, refTimestamp, A_EXT)) {

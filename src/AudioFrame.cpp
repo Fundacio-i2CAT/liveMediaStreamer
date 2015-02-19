@@ -44,6 +44,13 @@ AudioFrame::AudioFrame(int ch, int sRate, int maxSamples, ACodecType codec)
     this->maxSamples = maxSamples; 
 }
 
+std::chrono::microseconds AudioFrame::getDuration() const
+{
+    std::chrono::microseconds duration(samples*1000000/sampleRate);
+    return duration;
+}
+
+
 //////////////////////////////////////////////////
 //INTERLEAVED AUDIO FRAME METHODS IMPLEMENTATION//
 //////////////////////////////////////////////////

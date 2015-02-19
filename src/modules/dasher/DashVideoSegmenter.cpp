@@ -52,7 +52,8 @@ bool DashVideoSegmenter::manageFrame(Frame* frame, bool &newFrame)
         return false;
     }
 
-    currTimestamp = nal->getPresentationTime().count();
+    currDuration = nal->getDuration().count();
+    currTimestamp = nal->getPresentationTime().count(); 
     width = nal->getWidth();
     height = nal->getHeight();
 
@@ -132,20 +133,12 @@ bool DashVideoSegmenter::parseNal(VideoFrame* nal, bool &newFrame)
 
 bool DashVideoSegmenter::updateTimeValues() 
 {
-    if (currTimestamp == 0 || currTimestamp < lastTs || currTimestamp < tsOffset) {
+    if (currTimestamp == 0 || currDuration == 0 || currTimestamp < tsOffset) {
         return false;
     }
 
-    if (lastTs <= 0 || frameRate <= 0) {
-        lastTs = currTimestamp;
-        frameRate = VIDEO_DEFAULT_FRAMERATE;
-        frameDuration = timeBase/VIDEO_DEFAULT_FRAMERATE;
-    } else {
-        frameDuration = (currTimestamp - lastTs)*timeBase/MICROSECONDS_TIME_BASE;
-        frameRate = MICROSECONDS_TIME_BASE/frameDuration;
-        lastTs = currTimestamp;
-    }
-
+    frameDuration = currDuration*timeBase/MICROSECONDS_TIME_BASE;
+    frameRate = MICROSECONDS_TIME_BASE/currDuration;
     return true;
 }
 

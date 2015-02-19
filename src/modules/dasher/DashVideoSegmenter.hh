@@ -180,6 +180,7 @@ private:
     bool isIntra;
     bool isVCL;
     size_t currTimestamp;
+    size_t currDuration;
     size_t width;
     size_t height;
 };

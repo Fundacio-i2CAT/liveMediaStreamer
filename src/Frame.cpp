@@ -43,12 +43,12 @@ void Frame::setOriginTime(std::chrono::system_clock::time_point orgTime)
     originTime = orgTime;
 }
 
-std::chrono::microseconds Frame::getPresentationTime()
+void Frame::setDuration(std::chrono::microseconds dur)
 {
-    return presentationTime;
+    duration = dur;
 }
-
-std::chrono::system_clock::time_point Frame::getOriginTime()
+       
+void Frame::setSequenceNumber(size_t seqNum)
 {
-    return originTime;
+    sequenceNumber = seqNum;
 }

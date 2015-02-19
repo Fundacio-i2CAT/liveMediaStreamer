@@ -27,8 +27,6 @@
 #include "QueueSource.hh"
 #include "../../Filter.hh"
 #include "../../IOInterface.hh"
-#include "DashSegmenterVideoSource.hh"
-#include "DashSegmenterAudioSource.hh"
 #include "Connection.hh"
 
 #include <map>
@@ -44,8 +42,8 @@
 
 class SinkManager : public LiveMediaFilter {
 public:
-
-    SinkManager(unsigned readersNum = MAX_READERS);
+    static SinkManager* createNew(unsigned readersNum = MAX_READERS);
+    
     ~SinkManager();
 
     /**
@@ -70,11 +68,22 @@ public:
     * @return True if succeded and false if not
     */
     bool addRTSPConnection(std::vector<int> readers, int id, TxFormat txformat, 
-                           std::string name, std::string info = "", std::string desc = "");  
+                           std::string name, std::string info = "", std::string desc = "");
+    
+    /**
+    * Removes the connection determined by the id
+    * @param id Connection Id to delete
+    * @return True if succeded, the connected with the given id has been stopped and deteled
+    */
+    bool removeConnection(int id);
 
     UsageEnvironment* envir() {return env;}
 
 private:
+    SinkManager(unsigned readersNum = MAX_READERS);
+    
+    bool isGood() {return rtspServer != NULL;};
+    
     bool addStdRTPConnection(std::vector<int> readers, int id, std::string ip, int port);
     bool addUltraGridRTPConnection(std::vector<int> readers, int id, std::string ip, int port);
     bool addMpegTsRTPConnection(std::vector<int> readers, int id, std::string ip, int port);
@@ -83,8 +92,9 @@ private:
     bool removeConnectionByReaderId(int readerId);
     bool deleteReader(int id);
     
-    //void addSessionEvent(Jzon::Node* params, Jzon::Object &outputNode);
+    void addRTSPConnectionEvent(Jzon::Node* params, Jzon::Object &outputNode);
     void addRTPConnectionEvent(Jzon::Node* params, Jzon::Object &outputNode);
+    
     Reader *setReader(int readerID, FrameQueue* queue, bool sharedQueue = false);
 
     bool runDoProcessFrame();

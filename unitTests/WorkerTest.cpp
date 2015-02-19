@@ -144,5 +144,7 @@ int main(int argc, char* argv[])
     runner.run( "", false );
     outputter->write();
 
+    utils::printMood(runner.result().wasSuccessful());
+    
     return runner.result().wasSuccessful() ? 0 : 1;
 } 

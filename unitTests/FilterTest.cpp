@@ -15,8 +15,8 @@
  *  You should have received a copy of the GNU General Public License
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- *  Authors:  David Cassany <david.cassany@i2cat.net>
- *
+ *  Authors:    David Cassany <david.cassany@i2cat.net>
+ *              Gerard Castillo <gerard.castillo@i2cat.net>
  *
  */
 
@@ -241,8 +241,10 @@ void FilterFunctionalTest::tearDown()
 
 void FilterFunctionalTest::oneToOneMasterProcessFrame()
 {
+    size_t frameTime= 15000;
+    size_t processTime = 10000;
     //TODO: this test should be done with HeadFilterMockup
-    BaseFilter* filterToTest = new OneToOneFilterMockup(10000,4,false, 15000, MASTER, false);
+    BaseFilter* filterToTest = new OneToOneFilterMockup(processTime, 4, false, frameTime, MASTER, false);
     BaseFilter* satelliteFilterFirst = new BaseFilterMockup(1,1);
     BaseFilter* satelliteFilterLast = new BaseFilterMockup(1,1);
 
@@ -267,7 +269,7 @@ void FilterFunctionalTest::oneToOneMasterProcessFrame()
         frameQueue->addFrame();
         time = filterToTest->processFrame();
         utils::debugMsg("Time to sleep " + std::to_string(time));
-        CPPUNIT_ASSERT(time > 0 && time >= 5000 && time < 11500);
+        CPPUNIT_ASSERT(time > 0 && time >= processTime/2 && time < frameTime*1.5);
     }
 
     CPPUNIT_ASSERT(filterToTest->processFrame() == RETRY);
@@ -276,7 +278,7 @@ void FilterFunctionalTest::oneToOneMasterProcessFrame()
     CPPUNIT_ASSERT(satelliteFilterFirst->disconnectWriter(1));
     CPPUNIT_ASSERT(satelliteFilterLast->disconnectReader(1));
 
-    filterToTest = new OneToOneFilterMockup(10000,4,false, 0, MASTER, false);
+    filterToTest = new OneToOneFilterMockup(processTime,4,false, 0, MASTER, false);
     filterMockup = dynamic_cast<OneToOneFilterMockup*>(filterToTest);
 
     CPPUNIT_ASSERT(satelliteFilterFirst->connectOneToOne(filterToTest));
@@ -296,7 +298,10 @@ void FilterFunctionalTest::oneToOneMasterProcessFrame()
 
 void FilterFunctionalTest::oneToOneSlaveProcessFrame()
 {
-    BaseFilter* filterToTest = new OneToOneFilterMockup(10000,4,false, 15000, SLAVE, false);
+    size_t frameTime= 15000;
+    size_t processTime = 10000;
+    
+    BaseFilter* filterToTest = new OneToOneFilterMockup(processTime,4,false, frameTime, SLAVE, false);
     BaseFilter* satelliteFilterFirst = new BaseFilterMockup(2,1);
     BaseFilter* satelliteFilterLast = new BaseFilterMockup(1,2);
 
@@ -322,7 +327,7 @@ void FilterFunctionalTest::oneToOneSlaveProcessFrame()
     CPPUNIT_ASSERT(satelliteFilterFirst->disconnectWriter(1));
     CPPUNIT_ASSERT(satelliteFilterLast->disconnectReader(1));
 
-    filterToTest = new OneToOneFilterMockup(10000,4,false, 0, SLAVE, true);
+    filterToTest = new OneToOneFilterMockup(processTime,4,false, 0, SLAVE, true);
 
     CPPUNIT_ASSERT(satelliteFilterFirst->connectOneToOne(filterToTest));
     CPPUNIT_ASSERT(filterToTest->connectOneToOne(satelliteFilterLast));
@@ -340,43 +345,15 @@ void FilterFunctionalTest::oneToOneSlaveProcessFrame()
     delete satelliteFilterLast;
 }
 
-//TODO: to implement liveMediaSinkFilterTest too
-void FilterFunctionalTest::liveMediaSourceFilterTest()
-{
-    BaseFilter* headFilterToTest = new LiveMediaFilterMockup(0,10000,4,true);
-    BaseFilter* satelliteFilter1 = new BaseFilterMockup(1,1);
-    BaseFilter* satelliteFilter2 = new BaseFilterMockup(1,1);
-    Worker *masterW = new Worker();
-
-    CPPUNIT_ASSERT(headFilterToTest->connectManyToOne(satelliteFilter1,1));
-    CPPUNIT_ASSERT(headFilterToTest->connectManyToOne(satelliteFilter2,2));
-
-    CPPUNIT_ASSERT(masterW->addProcessor(1, headFilterToTest));
-
-    CPPUNIT_ASSERT(!masterW->isRunning());
-
-    CPPUNIT_ASSERT(masterW->start());
-
-    CPPUNIT_ASSERT(headFilterToTest->disconnectWriter(1));
-
-    CPPUNIT_ASSERT(masterW->isRunning());
-
-    masterW->stop();
-
-    CPPUNIT_ASSERT(!masterW->isRunning());
-
-    delete headFilterToTest;
-    delete satelliteFilter1;
-    delete satelliteFilter2;
-    delete masterW;
-}
-
 void FilterFunctionalTest::masterSlavesIndependentFramesTest()
 {
-    BaseFilter* master = new OneToOneFilterMockup(15000,4,true, 40000, MASTER, false);
-    BaseFilter* slave1 = new OneToOneFilterMockup(15000,4,true, 40000, SLAVE, false);
-    BaseFilter* slave2 = new OneToOneFilterMockup(15000,4,false, 40000, SLAVE, true);
-    BaseFilter* fakeSlave = new OneToOneFilterMockup(15000,4,false, 40000, MASTER, false);
+    size_t frameTime= 40000;
+    size_t processTime = 15000;
+    
+    BaseFilter* master = new OneToOneFilterMockup(processTime,4,true, frameTime, MASTER, false);
+    BaseFilter* slave1 = new OneToOneFilterMockup(processTime,4,true, frameTime, SLAVE, false);
+    BaseFilter* slave2 = new OneToOneFilterMockup(processTime,4,false, frameTime, SLAVE, true);
+    BaseFilter* fakeSlave = new OneToOneFilterMockup(processTime,4,false, frameTime, MASTER, false);
 
     //TODO: they  should be head/tail filters mockup
     BaseFilter* satelliteFilterVeryFirst = new BaseFilterMockup(1,1);
@@ -463,6 +440,24 @@ void FilterFunctionalTest::masterSlavesIndependentFramesTest()
     CPPUNIT_ASSERT(masterOut->getElements() == 3);
     CPPUNIT_ASSERT(slave1Out->getElements() == 3);
     CPPUNIT_ASSERT(slave2Out->getElements() == 0);
+    
+    size_t seq = 0;
+    size_t elements = masterOut->getElements();
+    bool newFrame;
+    for (size_t i = 0; i < elements; i ++){
+        CPPUNIT_ASSERT(seq < masterOut->getFront(newFrame)->getSequenceNumber());
+        seq = masterOut->getFront(newFrame)->getSequenceNumber();
+        masterOut->removeFrame();
+    }
+    
+    seq = 0;
+    elements = slave1Out->getElements();
+    for (size_t i = 0; i < elements; i ++){
+        CPPUNIT_ASSERT(seq < slave1Out->getFront(newFrame)->getSequenceNumber());
+        seq = slave1Out->getFront(newFrame)->getSequenceNumber();
+        slave1Out->removeFrame();
+    }
+    
 
     delete master;
     delete slave1;
@@ -556,9 +551,17 @@ void FilterFunctionalTest::masterSlavesSharedFramesTest()
     CPPUNIT_ASSERT(!slaveW2->isRunning());
 
     CPPUNIT_ASSERT(masterIn->getElements() == 0);
-
     CPPUNIT_ASSERT(slave1Out->getElements() == 3);
     CPPUNIT_ASSERT(slave2Out->getElements() == 0);
+    
+    size_t seq = 0;
+    size_t elements = slave1Out->getElements();
+    bool newFrame;
+    for (size_t i = 0; i < elements; i ++){
+        CPPUNIT_ASSERT(seq < slave1Out->getFront(newFrame)->getSequenceNumber());
+        seq = slave1Out->getFront(newFrame)->getSequenceNumber();
+        slave1Out->removeFrame();
+    }
 
     delete master;
     delete slave1;
@@ -570,6 +573,37 @@ void FilterFunctionalTest::masterSlavesSharedFramesTest()
     delete masterW;
     delete slaveW1;
     delete slaveW2;
+}
+
+//TODO: to implement liveMediaSinkFilterTest too
+void FilterFunctionalTest::liveMediaSourceFilterTest()
+{
+    BaseFilter* headFilterToTest = new LiveMediaFilterMockup(0,10000,4,true);
+    BaseFilter* satelliteFilter1 = new BaseFilterMockup(1,1);
+    BaseFilter* satelliteFilter2 = new BaseFilterMockup(1,1);
+    Worker *masterW = new Worker();
+
+    CPPUNIT_ASSERT(headFilterToTest->connectManyToOne(satelliteFilter1,1));
+    CPPUNIT_ASSERT(headFilterToTest->connectManyToOne(satelliteFilter2,2));
+
+    CPPUNIT_ASSERT(masterW->addProcessor(1, headFilterToTest));
+
+    CPPUNIT_ASSERT(!masterW->isRunning());
+
+    CPPUNIT_ASSERT(masterW->start());
+
+    CPPUNIT_ASSERT(headFilterToTest->disconnectWriter(1));
+
+    CPPUNIT_ASSERT(masterW->isRunning());
+
+    masterW->stop();
+
+    CPPUNIT_ASSERT(!masterW->isRunning());
+
+    delete headFilterToTest;
+    delete satelliteFilter1;
+    delete satelliteFilter2;
+    delete masterW;
 }
 
 CPPUNIT_TEST_SUITE_REGISTRATION(FilterFunctionalTest);
@@ -584,6 +618,8 @@ int main(int argc, char* argv[])
     runner.addTest( CppUnit::TestFactoryRegistry::getRegistry().makeTest() );
     runner.run( "", false );
     outputter->write();
+    
+    utils::printMood(runner.result().wasSuccessful());
 
     return runner.result().wasSuccessful() ? 0 : 1;
 }

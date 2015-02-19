@@ -56,7 +56,6 @@ Frame* X264VideoCircularBuffer::forceGetRear()
     return inputFrame;
 }
 
-
 X264VideoCircularBuffer::X264VideoCircularBuffer(): VideoFrameQueue(H264, YUYV422)
 {
     config();
@@ -92,6 +91,7 @@ bool X264VideoCircularBuffer::pushBack()
             vFrame->setLength(hNalSize[i]);
             vFrame->setPresentationTime(inputFrame->getPresentationTime());
             vFrame->setSize(inputFrame->getWidth(), inputFrame->getHeight());
+            vFrame->setDuration(inputFrame->getDuration());
             innerAddFrame();
         }
     }
@@ -110,6 +110,7 @@ bool X264VideoCircularBuffer::pushBack()
         vFrame->setLength((*nals)[i].i_payload);
         vFrame->setPresentationTime(inputFrame->getPresentationTime());
         vFrame->setSize(inputFrame->getWidth(), inputFrame->getHeight());
+        vFrame->setDuration(inputFrame->getDuration());
 		innerAddFrame();
 	}
 	

@@ -96,6 +96,8 @@ namespace handlers
 
     void continueAfterSETUP(RTSPClient* rtspClient, int resultCode, char* resultString)
     {
+        QueueSink *queueSink;
+        
         do {
             UsageEnvironment& env = rtspClient->envir();
             StreamClientState& scs = *(((ExtendedRTSPClient*)rtspClient)->getScs());
@@ -109,7 +111,20 @@ namespace handlers
                 scs.subsession->clientPortNum() << "-" <<
                 scs.subsession->clientPortNum()+1 << ")\n";
 
-            handlers::addSubsessionSink(env, scs.subsession);
+            if (!handlers::addSubsessionSink(env, scs.subsession)){
+                utils::errorMsg("Failed linking subsession and QueueSink");
+                scs.subsession->deInitiate();
+            }
+            
+            if(!(queueSink = dynamic_cast<QueueSink *>(scs.subsession->sink))){
+                utils::errorMsg("Failed to initiate subsession sink");
+                scs.subsession->deInitiate();
+            }
+            
+            if (!scs.addWriterToMngr(queueSink->getPort(), queueSink->getWriter())){
+                utils::errorMsg("Failed adding writer in SourceManager");
+                scs.subsession->deInitiate();
+            }
 
         } while (0);
         delete[] resultString;

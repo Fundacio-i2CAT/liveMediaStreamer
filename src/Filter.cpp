@@ -357,11 +357,13 @@ bool BaseFilter::hasFrames()
 	return true;
 }
 
-void BaseFilter::updateTimestamp()
-{
+bool BaseFilter::updateTimestamp()
+{   
     if (frameTime.count() == 0) {
+        lastValidTimestamp = timestamp;
         timestamp = wallClock;
-        return;
+        duration = timestamp - lastValidTimestamp;
+        return true;
     }
 
     if (timestamp.count() == 0) {
@@ -377,8 +379,12 @@ void BaseFilter::updateTimestamp()
         // reset timestamp value in order to realign with the wall clock
         utils::warningMsg("Wall clock deviations exceeded! Reseting values!");
         timestamp = wallClock;
+        duration = frameTime + diffTime;
         diffTime = std::chrono::microseconds(0);
         frameTimeMod = 1;
+    } else {
+        lastValidTimestamp = timestamp;
+        duration = frameTime;
     }
 
     if (diffTime.count() > 0 && lastDiffTime < diffTime) {
@@ -394,6 +400,8 @@ void BaseFilter::updateTimestamp()
     if (frameTimeMod < 0) {
         frameTimeMod = 0;
     }
+    
+    return timestamp >= lastValidTimestamp;
 }
 
 size_t BaseFilter::processFrame()
@@ -491,7 +499,7 @@ size_t BaseFilter::masterProcessFrame()
         (std::chrono::system_clock::now().time_since_epoch()) - wallClock).count();
 
     frameTime_ = frameTime.count()*frameTimeMod*bufferStateFrameTimeMod;
-
+    
     if (enlapsedTime > frameTime_){
         return 0;
     }
@@ -538,9 +546,9 @@ OneToOneFilter::OneToOneFilter(size_t fTime, FilterRole fRole_, bool force_, boo
 
 bool OneToOneFilter::runDoProcessFrame()
 {
-    if (doProcessFrame(oFrames.begin()->second, dFrames.begin()->second)) {
-        updateTimestamp();
+    if (updateTimestamp() && doProcessFrame(oFrames.begin()->second, dFrames.begin()->second)) {
         dFrames.begin()->second->setPresentationTime(timestamp);
+        dFrames.begin()->second->setDuration(duration);
         addFrames();
         return true;
     }
@@ -556,11 +564,11 @@ OneToManyFilter::OneToManyFilter(unsigned writersNum, size_t fTime, FilterRole f
 
 bool OneToManyFilter::runDoProcessFrame()
 {
-    if (doProcessFrame(oFrames.begin()->second, dFrames)) {
-        updateTimestamp();
+    if (updateTimestamp() && doProcessFrame(oFrames.begin()->second, dFrames)) {
 
         for (auto it : dFrames) {
             it.second->setPresentationTime(timestamp);
+            it.second->setDuration(duration);
         }
 
         addFrames();
@@ -631,9 +639,9 @@ ManyToOneFilter::ManyToOneFilter(unsigned readersNum, size_t fTime, FilterRole f
 
 bool ManyToOneFilter::runDoProcessFrame()
 {
-    if (doProcessFrame(oFrames, dFrames.begin()->second)) {
-        updateTimestamp();
+    if (updateTimestamp() && doProcessFrame(oFrames, dFrames.begin()->second)) {
         dFrames.begin()->second->setPresentationTime(timestamp);
+        dFrames.begin()->second->setDuration(duration);
         addFrames();
         return true;
     }

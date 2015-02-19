@@ -201,7 +201,7 @@ protected:
     void processEvent();
     virtual void doGetState(Jzon::Object &filterNode) = 0;
 
-    void updateTimestamp();
+    bool updateTimestamp();
     std::map<std::string, std::function<void(Jzon::Node* params, Jzon::Object &outputNode)> > eventMap;
 
     virtual bool runDoProcessFrame() = 0;
@@ -222,6 +222,8 @@ protected:
     float bufferStateFrameTimeMod;
 
     std::chrono::microseconds timestamp;
+    std::chrono::microseconds lastValidTimestamp;
+    std::chrono::microseconds duration;
     std::chrono::microseconds lastDiffTime;
     std::chrono::microseconds diffTime;
     std::chrono::microseconds wallClock;
@@ -276,6 +278,8 @@ private:
 
     using BaseFilter::frameTime;
     using BaseFilter::timestamp;
+    using BaseFilter::lastValidTimestamp;
+    using BaseFilter::duration;
     using BaseFilter::lastDiffTime;
     using BaseFilter::diffTime;
     using BaseFilter::wallClock;
@@ -311,6 +315,8 @@ private:
 
     using BaseFilter::frameTime;
     using BaseFilter::timestamp;
+    using BaseFilter::lastValidTimestamp;
+    using BaseFilter::duration;
     using BaseFilter::lastDiffTime;
     using BaseFilter::diffTime;
     using BaseFilter::wallClock;
@@ -347,6 +353,8 @@ private:
 
     using BaseFilter::frameTime;
     using BaseFilter::timestamp;
+    using BaseFilter::lastValidTimestamp;
+    using BaseFilter::duration;
     using BaseFilter::lastDiffTime;
     using BaseFilter::diffTime;
     using BaseFilter::wallClock;
@@ -380,6 +388,8 @@ private:
 
     using BaseFilter::frameTime;
     using BaseFilter::timestamp;
+    using BaseFilter::lastValidTimestamp;
+    using BaseFilter::duration;
     using BaseFilter::lastDiffTime;
     using BaseFilter::diffTime;
     using BaseFilter::wallClock;
@@ -414,6 +424,8 @@ private:
 
     using BaseFilter::frameTime;
     using BaseFilter::timestamp;
+    using BaseFilter::lastValidTimestamp;
+    using BaseFilter::duration;
     using BaseFilter::lastDiffTime;
     using BaseFilter::diffTime;
     using BaseFilter::wallClock;

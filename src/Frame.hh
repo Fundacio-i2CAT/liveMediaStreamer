@@ -37,9 +37,13 @@ class Frame {
         void setPresentationTime(std::chrono::microseconds pTime);
         void newOriginTime();
         void setOriginTime(std::chrono::system_clock::time_point orgTime);
+        void setDuration(std::chrono::microseconds dur);
+        void setSequenceNumber(size_t seqNum);
         
-        std::chrono::microseconds getPresentationTime();
-        std::chrono::system_clock::time_point getOriginTime();
+        std::chrono::microseconds getPresentationTime() const {return presentationTime;};
+        std::chrono::system_clock::time_point getOriginTime() const {return originTime;};
+        std::chrono::microseconds getDuration() const {return duration;};
+        
         virtual unsigned char *getDataBuf() = 0;
         virtual unsigned char **getPlanarDataBuf() = 0;
         virtual unsigned int getLength() = 0;
@@ -50,6 +54,8 @@ class Frame {
     protected:
         std::chrono::microseconds presentationTime;
         std::chrono::system_clock::time_point originTime;
+        std::chrono::microseconds duration;
+        size_t sequenceNumber;
 };
 
 #endif

@@ -47,7 +47,7 @@ public:
 
     std::string getId(){return id;};
     
-    bool addWriterToMngr(unsigned port, Writer* writer);
+    bool addWriterToMngr(unsigned id, Writer* writer);
 
 public:
     SourceManager *const mngr;

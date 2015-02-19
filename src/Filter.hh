@@ -216,6 +216,7 @@ protected:
     std::map<int, const Writer*> writers;
     std::map<int, Frame*> oFrames;
     std::map<int, Frame*> dFrames;
+    std::map<int, size_t> seqNums;
     FilterType fType;
 
     float frameTimeMod;
@@ -271,6 +272,7 @@ private:
     using BaseFilter::writers;
     using BaseFilter::oFrames;
     using BaseFilter::dFrames;
+    using BaseFilter::seqNums;
     using BaseFilter::processEvent;
     using BaseFilter::updateTimestamp;
     using BaseFilter::addSlave;
@@ -308,6 +310,7 @@ private:
     using BaseFilter::writers;
     using BaseFilter::oFrames;
     using BaseFilter::dFrames;
+    using BaseFilter::seqNums;
     using BaseFilter::processEvent;
     using BaseFilter::updateTimestamp;
     using BaseFilter::addSlave;
@@ -338,7 +341,7 @@ protected:
     using BaseFilter::setFrameTime;
     using BaseFilter::getFrameTime;
 
-private:
+private:   
     using BaseFilter::demandOriginFrames;
     using BaseFilter::demandDestinationFrames;
     using BaseFilter::addFrames;
@@ -346,6 +349,7 @@ private:
     using BaseFilter::readers;
     using BaseFilter::oFrames;
     using BaseFilter::dFrames;
+    using BaseFilter::seqNums;
     using BaseFilter::processEvent;
     using BaseFilter::updateTimestamp;
     using BaseFilter::addSlave;
@@ -382,6 +386,7 @@ private:
     using BaseFilter::removeFrames;
     using BaseFilter::oFrames;
     using BaseFilter::dFrames;
+    using BaseFilter::seqNums;
     using BaseFilter::processEvent;
     using BaseFilter::updateTimestamp;
     using BaseFilter::setWallClock;
@@ -408,7 +413,7 @@ protected:
     using BaseFilter::setFrameTime;
     using BaseFilter::getFrameTime;
 
-private:
+private:   
     bool runDoProcessFrame();
     using BaseFilter::demandOriginFrames;
     using BaseFilter::demandDestinationFrames;
@@ -417,6 +422,7 @@ private:
     using BaseFilter::writers;
     using BaseFilter::oFrames;
     using BaseFilter::dFrames;
+    using BaseFilter::seqNums;
     using BaseFilter::processEvent;
     using BaseFilter::updateTimestamp;
     using BaseFilter::addSlave;
@@ -446,6 +452,29 @@ protected:
 
     virtual bool runDoProcessFrame() = 0;
 
+private:
+    using BaseFilter::demandOriginFrames;
+    using BaseFilter::demandDestinationFrames;
+    using BaseFilter::addFrames;
+    using BaseFilter::removeFrames;
+    using BaseFilter::oFrames;
+    using BaseFilter::dFrames;
+    using BaseFilter::seqNums;
+    using BaseFilter::processEvent;
+    using BaseFilter::updateTimestamp;
+    using BaseFilter::addSlave;
+    using BaseFilter::setWallClock;
+    using BaseFilter::frameTime;
+    using BaseFilter::timestamp;
+    using BaseFilter::lastValidTimestamp;
+    using BaseFilter::duration;
+    using BaseFilter::lastDiffTime;
+    using BaseFilter::diffTime;
+    using BaseFilter::wallClock;
+
+    using BaseFilter::maxReaders;
+    using BaseFilter::maxWriters;
+    
 };
 
 #endif

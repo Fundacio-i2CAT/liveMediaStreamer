@@ -440,6 +440,24 @@ void FilterFunctionalTest::masterSlavesIndependentFramesTest()
     CPPUNIT_ASSERT(masterOut->getElements() == 3);
     CPPUNIT_ASSERT(slave1Out->getElements() == 3);
     CPPUNIT_ASSERT(slave2Out->getElements() == 0);
+    
+    size_t seq = 0;
+    size_t elements = masterOut->getElements();
+    bool newFrame;
+    for (size_t i = 0; i < elements; i ++){
+        CPPUNIT_ASSERT(seq < masterOut->getFront(newFrame)->getSequenceNumber());
+        seq = masterOut->getFront(newFrame)->getSequenceNumber();
+        masterOut->removeFrame();
+    }
+    
+    seq = 0;
+    elements = slave1Out->getElements();
+    for (size_t i = 0; i < elements; i ++){
+        CPPUNIT_ASSERT(seq < slave1Out->getFront(newFrame)->getSequenceNumber());
+        seq = slave1Out->getFront(newFrame)->getSequenceNumber();
+        slave1Out->removeFrame();
+    }
+    
 
     delete master;
     delete slave1;
@@ -533,9 +551,17 @@ void FilterFunctionalTest::masterSlavesSharedFramesTest()
     CPPUNIT_ASSERT(!slaveW2->isRunning());
 
     CPPUNIT_ASSERT(masterIn->getElements() == 0);
-
     CPPUNIT_ASSERT(slave1Out->getElements() == 3);
     CPPUNIT_ASSERT(slave2Out->getElements() == 0);
+    
+    size_t seq = 0;
+    size_t elements = slave1Out->getElements();
+    bool newFrame;
+    for (size_t i = 0; i < elements; i ++){
+        CPPUNIT_ASSERT(seq < slave1Out->getFront(newFrame)->getSequenceNumber());
+        seq = slave1Out->getFront(newFrame)->getSequenceNumber();
+        slave1Out->removeFrame();
+    }
 
     delete master;
     delete slave1;

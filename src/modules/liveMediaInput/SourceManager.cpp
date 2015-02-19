@@ -485,7 +485,7 @@ StreamClientState::~StreamClientState()
     }
 }
 
-bool StreamClientState::addWriterToMngr(unsigned port, Writer* writer)
+bool StreamClientState::addWriterToMngr(unsigned id, Writer* writer)
 {
-    return mngr->addWriter(port, writer);
+    return mngr->addWriter(id, writer);
 }

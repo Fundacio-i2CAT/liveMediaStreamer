@@ -38,7 +38,7 @@ public:
     void flush();
     virtual Frame *forceGetRear();
     Frame *forceGetFront(bool &newFrame);
-    const int getElements() {return elements;};
+    unsigned getElements() const {return elements;};
     bool frameToRead();
     QueueState getState();
 

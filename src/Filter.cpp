@@ -204,6 +204,7 @@ bool BaseFilter::connect(BaseFilter *R, int writerID, int readerID)
 
     if (writers.size() < getMaxWriters() && writers.count(writerID) <= 0) {
         writers[writerID] = new Writer();
+        seqNums[writerID] = 0;
         utils::debugMsg("New writer created " + std::to_string(writerID));
     }
 
@@ -549,6 +550,7 @@ bool OneToOneFilter::runDoProcessFrame()
     if (updateTimestamp() && doProcessFrame(oFrames.begin()->second, dFrames.begin()->second)) {
         dFrames.begin()->second->setPresentationTime(timestamp);
         dFrames.begin()->second->setDuration(duration);
+        dFrames.begin()->second->setSequenceNumber(oFrames.begin()->second->getSequenceNumber());
         addFrames();
         return true;
     }
@@ -569,6 +571,7 @@ bool OneToManyFilter::runDoProcessFrame()
         for (auto it : dFrames) {
             it.second->setPresentationTime(timestamp);
             it.second->setDuration(duration);
+            it.second->setSequenceNumber(oFrames.begin()->second->getSequenceNumber());
         }
 
         addFrames();
@@ -582,6 +585,7 @@ bool OneToManyFilter::runDoProcessFrame()
 HeadFilter::HeadFilter(unsigned writersNum, size_t fTime, FilterRole fRole_) :
     BaseFilter(0,writersNum,fTime,fRole_,false,false)
 {
+    
 }
 
 void HeadFilter::pushEvent(Event e)
@@ -642,6 +646,8 @@ bool ManyToOneFilter::runDoProcessFrame()
     if (updateTimestamp() && doProcessFrame(oFrames, dFrames.begin()->second)) {
         dFrames.begin()->second->setPresentationTime(timestamp);
         dFrames.begin()->second->setDuration(duration);
+        seqNums[dFrames.begin()->first]++;
+        dFrames.begin()->second->setSequenceNumber(seqNums[dFrames.begin()->first]);
         addFrames();
         return true;
     }

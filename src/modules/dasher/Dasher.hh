@@ -37,6 +37,7 @@ extern "C" {
 #include <string>
 
 #define MICROSECONDS_TIME_BASE 1000000
+#define DASH_VIDEO_TIME_BASE 12800
 #define V_ADAPT_SET_ID "0"
 #define A_ADAPT_SET_ID "1"
 #define VIDEO_CODEC "avc1.42c01e"
@@ -91,7 +92,6 @@ private:
     bool generateSegment(size_t id, DashSegmenter* segmenter);
     size_t updateTimestampControl(std::map<int,DashSegment*> segments);
     bool writeSegmentsToDisk(std::map<int,DashSegment*> segments, size_t timestamp, std::string segExt);
-
 
     std::map<int, DashSegmenter*> segmenters;
     std::map<int, DashSegment*> vSegments;

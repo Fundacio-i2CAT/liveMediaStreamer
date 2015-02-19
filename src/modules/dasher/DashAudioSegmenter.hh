@@ -41,7 +41,7 @@ public:
     * @param segDur Segment duration in milliseconds 
     * @param segBaseName Base name for the segments. Segment names will be: segBaseName_<timestamp>.m4a and segBaseName_init.m4a
     */ 
-    DashAudioSegmenter(size_t segDur, std::string segBasename);
+    DashAudioSegmenter(size_t segDur);
 
     /**
     * Class destructor

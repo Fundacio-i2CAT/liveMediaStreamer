@@ -57,7 +57,7 @@ public:
     * @param segDur Segment duration in milliseconds 
     * @param segBaseName Base name for the segments. Segment names will be: segBaseName_<timestamp>.m4v and segBaseName_init.m4v
     */ 
-    DashVideoSegmenter(size_t segDur, std::string segBaseName);
+    DashVideoSegmenter(size_t segDur);
 
     /**
     * Class destructor
@@ -169,7 +169,6 @@ private:
     void createMetadata();
     bool appendNalToFrame(unsigned char* nalData, unsigned nalDataLength, bool &newFrame);
     bool updateTimeValues();
-    size_t customTimestamp(size_t currentTimestamp);
 
     std::vector<unsigned char> frameData;
     std::vector<unsigned char> lastSPS;

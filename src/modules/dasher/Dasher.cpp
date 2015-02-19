@@ -137,6 +137,8 @@ bool Dasher::generateInitSegment(size_t id, DashSegmenter* segmenter)
 
     if ((aSeg = dynamic_cast<DashAudioSegmenter*>(segmenter)) != NULL) {
 
+       
+
         if (!aSeg->generateInitSegment(initSegments[id])) {
             return true;
         }
@@ -162,9 +164,13 @@ bool Dasher::generateSegment(size_t id, DashSegmenter* segmenter)
 
     if ((vSeg = dynamic_cast<DashVideoSegmenter*>(segmenter)) != NULL) {
         
+        // std::cout << "Vseg duration: " << vSeg->getsegDurInMicroSec() << std::endl;
+        // std::cout << "Vseg duration: " << vSeg->getSegDurInTimeBaseUnits() << std::endl;
+
         if (!vSeg->generateSegment(vSegments[id])) {
             return true;
         }
+
 
         refTimestamp = updateTimestampControl(vSegments);
         mpdMngr->updateVideoAdaptationSet(V_ADAPT_SET_ID, segmenters[id]->getTimeBase(), vSegTempl, vInitSegTempl);
@@ -184,6 +190,9 @@ bool Dasher::generateSegment(size_t id, DashSegmenter* segmenter)
     }
 
     if ((aSeg = dynamic_cast<DashAudioSegmenter*>(segmenter)) != NULL) {
+
+        // std::cout << "Aseg duration: " << aSeg->getsegDurInMicroSec() << std::endl;
+        // std::cout << "Aseg duration: " << aSeg->getSegDurInTimeBaseUnits() << std::endl;
 
         if (!aSeg->generateSegment(aSegments[id])) {
             return true;
@@ -225,6 +234,7 @@ size_t Dasher::updateTimestampControl(std::map<int,DashSegment*> segments)
         if (refTimestamp == 0) {
             refTimestamp = seg.second->getTimestamp();
         }
+
 
         if (refTimestamp != seg.second->getTimestamp()) {
             utils::warningMsg("Segments of the same Adaptation Set have different timestamps"); 
@@ -287,7 +297,7 @@ bool Dasher::addSegmenter(int readerId)
             return false;
         }
 
-        segmenters[readerId] = new DashVideoSegmenter(segDurInMicrosec, completeSegBasePath);
+        segmenters[readerId] = new DashVideoSegmenter(segDurInMicrosec);
         segmenters[readerId]->setOffset(timestampOffset);
         vSegments[readerId] = new DashSegment();
         initSegments[readerId] = new DashSegment();
@@ -300,7 +310,7 @@ bool Dasher::addSegmenter(int readerId)
             return false;
         }
 
-        segmenters[readerId] = new DashAudioSegmenter(segDurInMicrosec, completeSegBasePath);
+        segmenters[readerId] = new DashAudioSegmenter(segDurInMicrosec);
         segmenters[readerId]->setOffset(timestampOffset);
         aSegments[readerId] = new DashSegment();
         initSegments[readerId] = new DashSegment();

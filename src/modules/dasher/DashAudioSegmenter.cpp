@@ -23,7 +23,7 @@
 
  #include "DashAudioSegmenter.hh"
 
-DashAudioSegmenter::DashAudioSegmenter(size_t segDur, std::string segBaseName) : 
+DashAudioSegmenter::DashAudioSegmenter(size_t segDur) : 
 DashSegmenter(segDur, 0)
 {
 

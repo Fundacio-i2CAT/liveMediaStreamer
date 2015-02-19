@@ -23,8 +23,8 @@
 
  #include "DashVideoSegmenter.hh"
 
-DashVideoSegmenter::DashVideoSegmenter(size_t segDur, std::string segBaseName) : 
-DashSegmenter(segDur, MICROSECONDS_TIME_BASE), 
+DashVideoSegmenter::DashVideoSegmenter(size_t segDur) : 
+DashSegmenter(segDur, DASH_VIDEO_TIME_BASE), 
 updatedSPS(false), updatedPPS(false), lastTs(0), frameRate(0), isIntra(false), 
 isVCL(false), currTimestamp(0), width(0), height(0)
 {
@@ -141,8 +141,8 @@ bool DashVideoSegmenter::updateTimeValues()
         frameRate = VIDEO_DEFAULT_FRAMERATE;
         frameDuration = timeBase/VIDEO_DEFAULT_FRAMERATE;
     } else {
-        frameDuration = currTimestamp - lastTs;
-        frameRate = timeBase/frameDuration;
+        frameDuration = (currTimestamp - lastTs)*timeBase/MICROSECONDS_TIME_BASE;
+        frameRate = MICROSECONDS_TIME_BASE/frameDuration;
         lastTs = currTimestamp;
     }
 
@@ -230,7 +230,7 @@ bool DashVideoSegmenter::appendFrameToDashSegment(DashSegment* segment)
         return false;
     }
 
-    pts = currTimestamp - tsOffset;
+    pts = customTimestamp(currTimestamp);
 
     segTimestamp = dashContext->ctxvideo->earliest_presentation_time;
     segmentSize = add_sample(data, dataLength, frameDuration, pts, pts, segment->getSeqNumber(), 

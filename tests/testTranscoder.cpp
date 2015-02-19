@@ -108,7 +108,7 @@ void addAudioSource(unsigned port, std::string codec = A_CODEC,
     pipe->startWorkers();
 }
 
-void addVideoSource(unsigned port, unsigned fps = FRAME_RATE, std::string codec = V_CODEC,
+void addVideoSource(unsigned port, bool sharingMemory = false, unsigned fps = FRAME_RATE, std::string codec = V_CODEC,
                     unsigned width = 0, unsigned height = 0)
 {
     int wResId = rand();
@@ -119,19 +119,29 @@ void addVideoSource(unsigned port, unsigned fps = FRAME_RATE, std::string codec 
     int encId = rand();
     int shmId = rand();
     int wShmId = rand();
-    std::vector<int> ids({decId, shmId, resId, encId});
+    SharedMemory *shm;
+    Worker* wShm;
+
+    std::vector<int> ids({decId, resId, encId});
+
+    if(sharingMemory){
+        ids.clear();
+        ids.push_back(decId);
+        ids.push_back(shmId);
+        ids.push_back(resId);
+        ids.push_back(encId);
+    }
+
     std::string sessionId;
     std::string sdp;
 
     VideoResampler *resampler;
     VideoEncoderX264 *encoder;
     VideoDecoderLibav *decoder;
-    SharedMemory *shm;
 
     Worker* wDec;
     Worker* wRes;
     Worker* wEnc;
-    Worker* wShm;
 
     Session *session;
     Path *path;
@@ -164,16 +174,18 @@ void addVideoSource(unsigned port, unsigned fps = FRAME_RATE, std::string codec 
     pipe->addWorker(wDecId, wDec);
 
     //NOTE: Adding sharedMemory to pipeManager and handle worker
-    shm = SharedMemory::createNew(KEY);
-    if(!shm){
-        utils::errorMsg("Could not initiate sharedMemory filter");
-        exit(0);
+    if(sharingMemory){
+        shm = SharedMemory::createNew(KEY);
+        if(!shm){
+            utils::errorMsg("Could not initiate sharedMemory filter");
+            exit(0);
+        }
+        pipe->addFilter(shmId, shm);
+        wShm = new Worker();
+        wShm->addProcessor(shmId, shm);
+        shm->setWorkerId(wShmId);
+        pipe->addWorker(wShmId, wShm);
     }
-    pipe->addFilter(shmId, shm);
-    wShm = new Worker();
-    wShm->addProcessor(shmId, shm);
-    shm->setWorkerId(wShmId);
-    pipe->addWorker(wShmId, wShm);
 
     //NOTE: Adding resampler to pipeManager and handle worker
     resampler = new VideoResampler();
@@ -220,6 +232,7 @@ int main(int argc, char* argv[])
     std::string ip;
     std::string sessionId;
     std::string rtspUri;
+    bool sharingMemory = false;
 
     utils::setLogLevel(INFO);
 
@@ -239,6 +252,9 @@ int main(int argc, char* argv[])
         } else if (strcmp(argv[i],"-f")==0) {
             fps = std::stoi(argv[i+1]);
             utils::infoMsg("output frame rate: " + std::to_string(fps));
+        } else if (strcmp(argv[i],"-s")==0) {
+            sharingMemory = true;
+            utils::infoMsg("sharing memory: true");
         }
     }
 
@@ -257,7 +273,7 @@ int main(int argc, char* argv[])
     signal(SIGINT, signalHandler);
 
     if (vPort != 0){
-        addVideoSource(vPort, fps);
+        addVideoSource(vPort, sharingMemory, fps);
     }
 
     if (aPort != 0){

@@ -42,7 +42,7 @@ SharedMemory::SharedMemory(size_t key_, size_t fTime, FilterRole fRole_, bool fo
     }
 
     if ((SharedMemoryOrigin = (uint8_t*) shmat(SharedMemoryID, NULL, 0)) == (uint8_t *) -1) {
-        utils::debugMsg("SharedMemory::shmat error - filter not created - might be due to not having enough space");
+        utils::debugMsg("SharedMemory::shmat error - filter not created");
         enabled = false;
         return;
     }
@@ -126,6 +126,7 @@ void SharedMemory::copyOrgToDstFrame(InterleavedVideoFrame*org, InterleavedVideo
 }
 
 int SharedMemory::writeSharedMemory(uint8_t *buf, int buf_size) {
+
 	*access = CHAR_WRITING;
 	memcpy(buffer, buf, sizeof(uint8_t) * buf_size);
 	*access = CHAR_READING;
@@ -143,8 +144,7 @@ void SharedMemory::writeFramePayload(uint16_t seqNum) {
 	uint16_t codec = getCodecFromVCodec(frame->getCodec());
 	uint16_t pixFmt = getPixelFormatFromPixType(frame->getPixelFormat());
 
-	std::cout << "Writing Frame Payload: seqNum = "<< seqNum << " pixFmt = " << pixFmt << " codec = "<< codec << " size = " << width << "x" << height << " ts(sec) = " << tv_sec << " ts(usec) = "<< tv_usec << " length = " << length << std::endl;
-    //utils::debugMsg("Writing Frame Payload: seqNum = " + seqNum + " pixFmt = " + pixFmt + " codec = "+ codec + " size = " + width + "x" + height + " ts(sec) = " + tv_sec + " ts(usec) = "+ tv_usec + " length = " + length +"");
+    utils::debugMsg("Writing Frame Payload: seqNum = " + std::to_string(seqNum) + " pixFmt = " + std::to_string(pixFmt) + " codec = "+ std::to_string(codec) + " size = " + std::to_string(width) + "x" + std::to_string(height) + " ts(sec) = " + std::to_string(tv_sec) + " ts(usec) = "+ std::to_string(tv_usec) + " length = " + std::to_string(length) +"");
 
 	memcpy(access+2, &seqNum, sizeof(uint16_t));
 	memcpy(access+4, &pixFmt, sizeof(uint16_t));

@@ -31,6 +31,6 @@ workerTest_SOURCES = ../src/Utils.cpp WorkerTest.cpp RunnableMockup.hh ../src/Wo
 workerTest_CPPFLAGS = -std=c++11 -g -Wall -g -D__STDC_CONSTANT_MACROS -I../src -I.
 workerTest_LDFLAGS = -llog4cplus -lcppunit
 
-sharedMemoryTest_SOURCES = modules/sharedMemory/SharedMemoryTest.cpp ../src/modules/sharedMemory/SharedMemory.cpp FilterMockup.hh ../src/AVFramedQueue.cpp ../src/FrameQueue.cpp ../src/IOInterface.cpp ../src/Event.cpp ../src/Frame.cpp  ../src/VideoFrame.cpp ../src/Runnable.cpp ../src/AudioFrame.cpp ../src/Jzon.cpp ../src/Utils.cpp ../src/Filter.cpp ../src/Worker.cpp
+sharedMemoryTest_SOURCES = modules/sharedMemory/SharedMemoryTest.cpp ../src/modules/sharedMemory/SharedMemory.cpp FilterMockup.hh modules/sharedMemory/SharedMemoryDummyReader.cpp ../src/AVFramedQueue.cpp ../src/FrameQueue.cpp ../src/IOInterface.cpp ../src/Event.cpp ../src/Frame.cpp  ../src/VideoFrame.cpp ../src/Runnable.cpp ../src/AudioFrame.cpp ../src/Jzon.cpp ../src/Utils.cpp ../src/Filter.cpp ../src/Worker.cpp
 sharedMemoryTest_CPPFLAGS = -std=c++11 -g -Wall -g -D__STDC_CONSTANT_MACROS -I../src -I.
 sharedMemoryTest_LDFLAGS = -llog4cplus -lcppunit

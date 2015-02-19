@@ -210,7 +210,8 @@ bool DashVideoSegmenter::appendFrameToDashSegment(DashSegment* segment)
     unsigned char* data;
     unsigned dataLength;
     size_t pts;
-    size_t segTimestamp;
+    uint32_t segTimestamp;
+    size_t addSampleReturn;
 
     if (frameData.empty()) {
         return false;
@@ -225,11 +226,14 @@ bool DashVideoSegmenter::appendFrameToDashSegment(DashSegment* segment)
 
     pts = customTimestamp(currTimestamp);
 
-    segTimestamp = dashContext->ctxvideo->earliest_presentation_time;
-    segmentSize = add_sample(data, dataLength, frameDuration, pts, pts, segment->getSeqNumber(), 
-                             VIDEO_TYPE, segment->getDataBuffer(), isIntra, &dashContext);
-
+    segmentSize = generate_video_segment(isIntra, segment->getDataBuffer(), &dashContext, &segTimestamp);
+    addSampleReturn = add_video_sample(data, dataLength, frameDuration, pts, pts, segment->getSeqNumber(), isIntra, &dashContext);
     frameData.clear();
+
+    if (addSampleReturn != I2OK) {
+        utils::errorMsg("Error adding video sample. Code error: " + std::to_string(addSampleReturn));
+        return false;
+    }
 
     if (segmentSize <= I2ERROR_MAX) {
         return false;

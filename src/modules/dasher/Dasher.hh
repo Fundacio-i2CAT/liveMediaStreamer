@@ -205,6 +205,7 @@ protected:
     size_t frameDuration;
     std::vector<unsigned char> metadata;
     size_t tsOffset;
+    size_t theoricPts;
 };
 
 /*! It represents a dash segment. It contains a buffer with the segment data (it allocates data) and its length. Moreover, it contains the

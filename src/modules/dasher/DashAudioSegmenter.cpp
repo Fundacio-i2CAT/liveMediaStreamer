@@ -104,7 +104,8 @@ bool DashAudioSegmenter::appendFrameToDashSegment(DashSegment* segment)
     unsigned char* dataWithoutADTS;
     size_t dataLengthWithoutADTS;
     size_t pts;
-    size_t segTimestamp;
+    uint32_t segTimestamp;
+    size_t addSampleReturn;
 
     if (!aFrame || !aFrame->getDataBuf() || aFrame->getLength() <= 0) {
         utils::errorMsg("Error appeding frame to segment: frame not valid");
@@ -117,16 +118,20 @@ bool DashAudioSegmenter::appendFrameToDashSegment(DashSegment* segment)
     dataWithoutADTS = aFrame->getDataBuf() + ADTS_HEADER_LENGTH;
     dataLengthWithoutADTS = aFrame->getLength() - ADTS_HEADER_LENGTH;
 
-    segTimestamp = dashContext->ctxaudio->earliest_presentation_time;
-    segmentSize = add_sample(dataWithoutADTS, dataLengthWithoutADTS, frameDuration, pts, pts, segment->getSeqNumber(), 
-                             AUDIO_TYPE, segment->getDataBuffer(), 1, &dashContext);
+    segmentSize = generate_audio_segment(segment->getDataBuffer(), &dashContext, &segTimestamp);
+    addSampleReturn = add_audio_sample(dataWithoutADTS, dataLengthWithoutADTS, frameDuration, pts, pts, segment->getSeqNumber(), &dashContext);
+
+    if (addSampleReturn != I2OK) {
+        utils::errorMsg("Error adding video sample. Code error: " + std::to_string(addSampleReturn));
+        return false;
+    }
 
     if (segmentSize <= I2ERROR_MAX) {
         return false;
     }
     
-    segment->setDataLength(segmentSize);
     segment->setTimestamp(segTimestamp);
+    segment->setDataLength(segmentSize);
     return true;
 }
 

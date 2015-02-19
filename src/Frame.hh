@@ -42,7 +42,7 @@ class Frame {
         
         std::chrono::microseconds getPresentationTime() const {return presentationTime;};
         std::chrono::system_clock::time_point getOriginTime() const {return originTime;};
-        std::chrono::microseconds getDuration() const {return duration;};
+        virtual std::chrono::microseconds getDuration() const {return duration;};
         
         virtual unsigned char *getDataBuf() = 0;
         virtual unsigned char **getPlanarDataBuf() = 0;

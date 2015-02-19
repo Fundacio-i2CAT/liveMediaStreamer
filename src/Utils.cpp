@@ -397,4 +397,12 @@ namespace utils
         Logger logger = Logger::getInstance(LOG4CPLUS_TEXT("main"));
         LOG4CPLUS_INFO(logger, "\e[1;33m" + msg + "\e[0m");
     }
+    
+    void printMood(bool mood){
+        if (mood){
+            std::cout << "\e[1;32m SUCCESS \e[5m(⌐■_■)\e[0m" << std::endl << std::endl;
+        } else {
+            std::cout << "\e[5;31mFAILED! \e[25m (Shit happens...)\e[1;33m¯\\_(ツ)_/¯\e[0m" << std::endl << std::endl;
+        }
+    }
 }

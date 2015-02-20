@@ -137,7 +137,7 @@ bool DashVideoSegmenter::updateTimeValues()
         return false;
     }
 
-    frameDuration = currDuration*timeBase/MICROSECONDS_TIME_BASE;
+    frameDuration = microsToTimeBase(currDuration);
     frameRate = MICROSECONDS_TIME_BASE/currDuration;
     return true;
 }
@@ -209,7 +209,6 @@ bool DashVideoSegmenter::appendFrameToDashSegment(DashSegment* segment)
     size_t segmentSize = 0;
     unsigned char* data;
     unsigned dataLength;
-    size_t pts;
     uint32_t segTimestamp;
     size_t addSampleReturn;
 
@@ -224,10 +223,15 @@ bool DashVideoSegmenter::appendFrameToDashSegment(DashSegment* segment)
         return false;
     }
 
-    pts = customTimestamp(currTimestamp);
-
     segmentSize = generate_video_segment(isIntra, segment->getDataBuffer(), &dashContext, &segTimestamp);
-    addSampleReturn = add_video_sample(data, dataLength, frameDuration, pts, pts, segment->getSeqNumber(), isIntra, &dashContext);
+
+    if (segmentSize > I2ERROR_MAX || theoricPts == 0) {
+        theoricPts = customTimestamp(currTimestamp);
+    } else {
+        theoricPts += frameDuration;
+    }
+
+    addSampleReturn = add_video_sample(data, dataLength, frameDuration, theoricPts, theoricPts, segment->getSeqNumber(), isIntra, &dashContext);
     frameData.clear();
 
     if (addSampleReturn != I2OK) {

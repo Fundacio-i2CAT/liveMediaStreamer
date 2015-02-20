@@ -124,7 +124,7 @@ public:
     * @param duration Duration of the current segment in timescale base.
     * @return true if succeeded and false if not
     */
-    bool updateAdaptationSetTimestamp(std::string id, int ts, int duration);
+    unsigned updateAdaptationSetTimestamp(std::string id, unsigned ts, unsigned duration);
 
     /**
     * Updates an existing video representation. If it does not exists, it creates a new one. Each representation is
@@ -211,7 +211,7 @@ public:
     * Sets timestamp and duration
     * @see MpdManager::updateAdaptationSetTimestamp 
     */
-    void updateTimestamp(int ts, int duration);
+    unsigned updateTimestamp(unsigned ts, unsigned duration);
 
 protected:
     bool segmentAlignment;

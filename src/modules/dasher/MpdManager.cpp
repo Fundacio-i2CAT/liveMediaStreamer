@@ -105,18 +105,19 @@ void MpdManager::setLocation(std::string loc)
     location = loc;
 }
 
-bool MpdManager::updateAdaptationSetTimestamp(std::string id, int ts, int duration)
+unsigned MpdManager::updateAdaptationSetTimestamp(std::string id, unsigned ts, unsigned duration)
 {
     AdaptationSet* adSet;
+    unsigned removedTimestamp;
 
     adSet = getAdaptationSet(id);
 
     if (!adSet) {
-        return false;
+        return 0;
     }
 
-    adSet->updateTimestamp(ts, duration);
-    return true;
+    removedTimestamp = adSet->updateTimestamp(ts, duration);
+    return removedTimestamp;
 }
 
 void MpdManager::updateVideoAdaptationSet(std::string id, int timescale, std::string segmentTempl, std::string initTempl)
@@ -206,20 +207,17 @@ AdaptationSet::~AdaptationSet()
 { 
 }
 
-void AdaptationSet::updateTimestamp(int ts, int duration)
+unsigned AdaptationSet::updateTimestamp(unsigned ts, unsigned duration)
 {
-    for (auto listTs : timestamps){
-        if (listTs.first == ts) {
-            return;
-        }
-    }
+    unsigned removedTimestamp= 0;
 
     if (timestamps.size() >= MAX_SEGMENTS_IN_MPD) {
+        removedTimestamp = timestamps.front().first;
         timestamps.pop_front();
     }
 
     timestamps.push_back(std::pair<int,int>(ts, duration));
-
+    return removedTimestamp;
 }
 
 void AdaptationSet::update(int segTimescale, std::string segTempl, std::string initTempl)

@@ -103,7 +103,6 @@ bool DashAudioSegmenter::appendFrameToDashSegment(DashSegment* segment)
     size_t segmentSize = 0;
     unsigned char* dataWithoutADTS;
     size_t dataLengthWithoutADTS;
-    size_t pts;
     uint32_t segTimestamp;
     size_t addSampleReturn;
 
@@ -112,14 +111,18 @@ bool DashAudioSegmenter::appendFrameToDashSegment(DashSegment* segment)
         return false;
     }
 
-    pts = customTimestamp(aFrame->getPresentationTime().count());
+    segmentSize = generate_audio_segment(segment->getDataBuffer(), &dashContext, &segTimestamp);
 
-    //PTS theoric: only first segment as presentation time, then increment by duration
+    if (segmentSize > I2ERROR_MAX || theoricPts == 0) {
+        theoricPts = customTimestamp(aFrame->getPresentationTime().count());
+    } else {
+        theoricPts += frameDuration;
+    }
+
     dataWithoutADTS = aFrame->getDataBuf() + ADTS_HEADER_LENGTH;
     dataLengthWithoutADTS = aFrame->getLength() - ADTS_HEADER_LENGTH;
 
-    segmentSize = generate_audio_segment(segment->getDataBuffer(), &dashContext, &segTimestamp);
-    addSampleReturn = add_audio_sample(dataWithoutADTS, dataLengthWithoutADTS, frameDuration, pts, pts, segment->getSeqNumber(), &dashContext);
+    addSampleReturn = add_audio_sample(dataWithoutADTS, dataLengthWithoutADTS, frameDuration, theoricPts, theoricPts, segment->getSeqNumber(), &dashContext);
 
     if (addSampleReturn != I2OK) {
         utils::errorMsg("Error adding video sample. Code error: " + std::to_string(addSampleReturn));

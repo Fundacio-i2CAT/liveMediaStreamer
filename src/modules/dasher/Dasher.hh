@@ -92,6 +92,8 @@ private:
     bool generateSegment(size_t id, DashSegmenter* segmenter);
     size_t updateTimestampControl(std::map<int,DashSegment*> segments);
     bool writeSegmentsToDisk(std::map<int,DashSegment*> segments, size_t timestamp, std::string segExt);
+    bool cleanSegments(std::map<int,DashSegment*> segments, size_t timestamp, std::string segExt);
+
 
     std::map<int, DashSegmenter*> segmenters;
     std::map<int, DashSegment*> vSegments;
@@ -197,6 +199,7 @@ protected:
     std::string getInitSegmentName();
     std::string getSegmentName();
     size_t customTimestamp(size_t timestamp);
+    size_t microsToTimeBase(size_t microsValue);
     
     i2ctx* dashContext;
     size_t timeBase;

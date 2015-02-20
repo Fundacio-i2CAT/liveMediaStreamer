@@ -31,6 +31,7 @@
 #include <chrono>
 #include <fstream>
 #include <unistd.h>
+#include <math.h>
 
 #define V_BAND 2000000
 #define A_BAND 192000
@@ -114,7 +115,7 @@ bool Dasher::doProcessFrame(std::map<int, Frame*> orgFrames)
         }
 
         if (generateSegment(fr.first, segmenter)) {
-            mpdMngr->writeToDisk(mpdPath.c_str());
+            utils::debugMsg("[DashSegmenter] New segment generated");
         }
     }
 
@@ -162,6 +163,7 @@ bool Dasher::generateSegment(size_t id, DashSegmenter* segmenter)
     DashVideoSegmenter* vSeg;
     DashAudioSegmenter* aSeg;
     size_t refTimestamp;
+    size_t rmTimestamp;
 
     if ((vSeg = dynamic_cast<DashVideoSegmenter*>(segmenter)) != NULL) {
         
@@ -179,11 +181,17 @@ bool Dasher::generateSegment(size_t id, DashSegmenter* segmenter)
         }
 
         if (!writeSegmentsToDisk(vSegments, refTimestamp, V_EXT)) {
-            utils::errorMsg("Error writing DASH segment to disk");
+            utils::errorMsg("Error writing DASH video segment to disk");
             return false;
         }
 
-        mpdMngr->updateAdaptationSetTimestamp(V_ADAPT_SET_ID, refTimestamp, segmenter->getSegDurInTimeBaseUnits());
+        rmTimestamp = mpdMngr->updateAdaptationSetTimestamp(V_ADAPT_SET_ID, refTimestamp, segmenter->getSegDurInTimeBaseUnits());
+
+        mpdMngr->writeToDisk(mpdPath.c_str());
+
+        if (rmTimestamp > 0 && !cleanSegments(vSegments, rmTimestamp, V_EXT)) {
+            utils::warningMsg("Error cleaning dash video segments");
+        } 
     }
 
     if ((aSeg = dynamic_cast<DashAudioSegmenter*>(segmenter)) != NULL) {
@@ -201,11 +209,17 @@ bool Dasher::generateSegment(size_t id, DashSegmenter* segmenter)
         }
 
         if (!writeSegmentsToDisk(aSegments, refTimestamp, A_EXT)) {
-            utils::errorMsg("Error writing DASH segment to disk");
+            utils::errorMsg("Error writing DASH audio segment to disk");
             return false;
         }
 
-        mpdMngr->updateAdaptationSetTimestamp(A_ADAPT_SET_ID, refTimestamp, segmenter->getSegDurInTimeBaseUnits());
+        rmTimestamp = mpdMngr->updateAdaptationSetTimestamp(A_ADAPT_SET_ID, refTimestamp, segmenter->getSegDurInTimeBaseUnits());
+
+        mpdMngr->writeToDisk(mpdPath.c_str());
+
+        if (rmTimestamp > 0 && !cleanSegments(aSegments, rmTimestamp, A_EXT)) {
+            utils::warningMsg("Error cleaning dash audio segments");
+        } 
     }
 
     if (!vSeg && !aSeg) {
@@ -254,6 +268,24 @@ bool Dasher::writeSegmentsToDisk(std::map<int,DashSegment*> segments, size_t tim
 
     return true;
 }
+
+bool Dasher::cleanSegments(std::map<int,DashSegment*> segments, size_t timestamp, std::string segExt)
+{
+    bool success = true;
+    std::string segmentName;
+
+    for (auto seg : segments) {
+        segmentName = getSegmentName(basePath, baseName, seg.first, timestamp, segExt);
+
+        if (std::remove(segmentName.c_str()) != 0) {
+            success &= false;
+            utils::warningMsg("Error cleaning dash segment: " + segmentName);
+        }
+    }
+
+    return true;
+}
+
 
 void Dasher::initializeEventMap()
 {
@@ -349,7 +381,7 @@ std::string Dasher::getInitSegmentName(std::string basePath, std::string baseNam
 
 
 DashSegmenter::DashSegmenter(size_t segDurInMicros, size_t tBase) : 
-dashContext(NULL), timeBase(tBase), segDurInMicroSec(segDurInMicros), frameDuration(0), tsOffset(0)
+dashContext(NULL), timeBase(tBase), segDurInMicroSec(segDurInMicros), frameDuration(0), tsOffset(0), theoricPts(0)
 {
     segDurInTimeBaseUnits = segDurInMicroSec*timeBase/MICROSECONDS_TIME_BASE;
 }
@@ -391,6 +423,18 @@ size_t DashSegmenter::customTimestamp(size_t timestamp)
 {
     return (timestamp - tsOffset)*timeBase/MICROSECONDS_TIME_BASE;
 }
+
+size_t DashSegmenter::microsToTimeBase(size_t microsValue)
+{
+    double result;
+    size_t roundedResult;
+
+    result = (double)microsValue*timeBase/MICROSECONDS_TIME_BASE;
+    roundedResult = round(result);
+
+    return roundedResult;
+}
+
 
 /////////////////
 // DashSegment //

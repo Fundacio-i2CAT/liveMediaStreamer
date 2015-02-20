@@ -30,6 +30,7 @@
 #include <string.h>
 #include <stdint.h>
 #include <iostream>
+#include <fstream>
 
 #include "../../FrameQueue.hh"
 #include "../../Filter.hh"
@@ -38,8 +39,8 @@
 
 #define SHMSIZE   		6220824		//1920x1080x3 + 24
 #define HEADER_SIZE		24			//4B * 6 (sync.byte and frame info)
-#define CHAR_READING 	'0'
-#define CHAR_WRITING 	'1'
+#define CHAR_READING 	'1'
+#define CHAR_WRITING 	'0'
 #define MAX_SIZE 1920*1080*3
 #define KEY 1985
 
@@ -61,36 +62,32 @@ public:
     * Class destructor
     */
     ~SharedMemory();
-
     /**
-    * Main method that bypass incoming frame to output and checks if the shared
-    * memory can be written with new incoming frame
-    * @param Frame *org as origin input frame
-    * @param Frame *dst as destination output frame
-    * @return true always, an incoming frame must be always bypassed
+    * Returns the shared memory ID of this filter
+    * @return SharedMemoryID of its sharedMemory filter
     */
-    bool doProcessFrame(Frame *org, Frame *dst);
-    /**
-    * Allocs frame queue to be used
-    * @param Integer of the worker ID
-    * @return FrameQueue object or NULL if any error while creating the queue
-    */
-    FrameQueue* allocQueue(int wId);
 
-private:
+protected:
     SharedMemory(size_t key_ = KEY, size_t fTime = 0, FilterRole fRole_ = MASTER, bool force_ = false, bool sharedFrames_ = true);
+    size_t getSharedMemoryID() { return SharedMemoryID;};
     bool isEnabled() {return enabled;};
-
-    void initializeEventMap();
-    void doGetState(Jzon::Object &filterNode);
-
-    void copyOrgToDstFrame(InterleavedVideoFrame *org, InterleavedVideoFrame *dst);
     int writeSharedMemory(uint8_t *buffer, int buffer_size);
 	void writeFramePayload(uint16_t seqNum);
 	bool isWritable();
 	Frame * getFrameObject() { return frame;};
 	bool setFrameObject(Frame* in_frame);
 	uint16_t getSeqNum() { return seqNum;};
+
+protected:
+	InterleavedVideoFrame 		*frame;
+
+private:
+    bool doProcessFrame(Frame *org, Frame *dst);
+    void initializeEventMap();
+    void doGetState(Jzon::Object &filterNode);
+    FrameQueue* allocQueue(int wId);
+
+    void copyOrgToDstFrame(InterleavedVideoFrame *org, InterleavedVideoFrame *dst);
 
     uint16_t getCodecFromVCodec(VCodecType codec);
 	uint16_t getPixelFormatFromPixType(PixType pxlFrmt);
@@ -103,7 +100,6 @@ private:
     uint8_t                     *SharedMemoryOrigin;
 	uint8_t 					*buffer;
 	uint8_t 					*access;
-	InterleavedVideoFrame 		*frame;
 	uint16_t 					seqNum;
     bool                        enabled;
 };

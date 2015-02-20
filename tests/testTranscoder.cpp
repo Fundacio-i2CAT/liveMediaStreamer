@@ -6,6 +6,7 @@
 #include "../src/AudioFrame.hh"
 #include "../src/Controller.hh"
 #include "../src/Utils.hh"
+#include "../src/modules/sharedMemory/SharedMemory.hh"
 
 #include <csignal>
 #include <vector>
@@ -122,7 +123,7 @@ void addAudioPath(unsigned port, Dasher* dasher, int dasherId)
     utils::infoMsg("Audio path created from port " + std::to_string(port));
 }
 
-void addVideoPath(unsigned port, Dasher* dasher, int dasherId, unsigned width = 0, unsigned height = 0)
+void addVideoPath(unsigned port, Dasher* dasher, int dasherId, bool sharingMemory = false,  unsigned width = 0, unsigned height = 0)
 {    
     PipelineManager *pipe = Controller::getInstance()->pipelineManager();
     
@@ -138,8 +139,24 @@ void addVideoPath(unsigned port, Dasher* dasher, int dasherId, unsigned width = 
     int dstReader1 = rand();
     int dstReader2 = rand();
     int slavePathId = rand();
+    int shmId = rand();
+    int wShmId = rand();
+    SharedMemory *shm;
+    Worker* wShm;
+
     std::vector<int> ids({decId, resId, encId});
     std::vector<int> slaveIds({encId2});
+
+    if(sharingMemory){
+        ids.clear();
+        ids.push_back(decId);
+        ids.push_back(shmId);
+        ids.push_back(resId);
+        ids.push_back(encId);
+    }
+
+    std::string sessionId;
+    std::string sdp;
 
     VideoResampler *resampler;
     VideoEncoderX264 *encoder;
@@ -160,6 +177,20 @@ void addVideoPath(unsigned port, Dasher* dasher, int dasherId, unsigned width = 
     wDec->addProcessor(decId, decoder);
     decoder->setWorkerId(wDecId);
     pipe->addWorker(wDecId, wDec);
+
+    //NOTE: Adding sharedMemory to pipeManager and handle worker
+    if(sharingMemory){
+        shm = SharedMemory::createNew(KEY);
+        if(!shm){
+            utils::errorMsg("Could not initiate sharedMemory filter");
+            exit(0);
+        }
+        pipe->addFilter(shmId, shm);
+        wShm = new Worker();
+        wShm->addProcessor(shmId, shm);
+        shm->setWorkerId(wShmId);
+        pipe->addWorker(wShmId, wShm);
+    }
 
     //NOTE: Adding resampler to pipeManager and handle worker
     resampler = new VideoResampler();
@@ -367,7 +398,8 @@ int main(int argc, char* argv[])
     int port = 0;
     std::string ip;
     std::string rtspUri;
-    bool dash = false;
+    bool sharingMemory = false;   
+	bool dash = false;
     Dasher* dasher = NULL;
     int dasherId = rand();
     std::vector<int> readers;
@@ -394,7 +426,10 @@ int main(int argc, char* argv[])
         } else if (strcmp(argv[i],"-dash")==0) {
             dash = true;
             utils::infoMsg("Output will be DASH, ignoring any -P, -d or -ts flag");
-        } 
+        } else if (strcmp(argv[i],"-s")==0) {
+            sharingMemory = true;
+            utils::infoMsg("sharing memory: true");
+        }
     }
 
     if (vPort == 0 && aPort == 0 && rtspUri.length() == 0){
@@ -416,7 +451,7 @@ int main(int argc, char* argv[])
 
     if (vPort != 0 && rtspUri.length() == 0){
         addVideoSDPSession(vPort);
-        addVideoPath(vPort, dasher, dasherId);
+        addVideoPath(vPort, dasher, dasherId, sharingMemory);
     }
 
     if (aPort != 0 && rtspUri.length() == 0){

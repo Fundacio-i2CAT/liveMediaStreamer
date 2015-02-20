@@ -71,6 +71,7 @@ public:
     size_t getSharedMemoryID() { return SharedMemoryID;};
 	bool isEnabled() {return enabled;};
 	static void dummyReaderThread(SharedMemoryDummyReader* dummyReader);
+	size_t getReadFrames() {return readFrames;};
 
     uint16_t getCodecFromVCodec(VCodecType codec);
 	uint16_t getPixelFormatFromPixType(PixType pxlFrmt);
@@ -85,6 +86,7 @@ private:
 	InterleavedVideoFrame 		*frame;
 	uint16_t					seqNum;
     bool                        enabled;
+	size_t						readFrames;
 
 };
 

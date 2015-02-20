@@ -34,7 +34,7 @@ SharedMemoryFilterMockup::~SharedMemoryFilterMockup()
 
 
 SharedMemoryDummyReader::SharedMemoryDummyReader(size_t shmID, VCodecType codec):
-	SharedMemoryID(shmID), frame(NULL), enabled (true)
+	SharedMemoryID(shmID), frame(NULL), enabled (true), readFrames(0)
 {
     if ((SharedMemoryOrigin = (uint8_t*) shmat(SharedMemoryID, NULL, 0)) == (uint8_t *) -1) {
         utils::infoMsg("SharedMemory::shmat error - filter not created");
@@ -127,6 +127,7 @@ int SharedMemoryDummyReader::writeFrameToFile(unsigned char const * const buff, 
 {
 	std::string fileName = "frame" + std::to_string(seqNum);
 	utils::debugMsg("Got frame: " + fileName );
+	readFrames++;
 	/*
 	std::ofstream fs;
 	fs.open (fileName, std::ostream::out | std::ofstream::app | std::ofstream::binary);

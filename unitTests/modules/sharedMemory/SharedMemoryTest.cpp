@@ -154,6 +154,8 @@ void SharedMemoryFunctionalTest::sharedMemoryFilterWithDummyReader()
     dummyReader->setDisabled();
     dReader.join();
 
+    CPPUNIT_ASSERT(dummyReader->getReadFrames() == 10);
+
     sharedMemoryFilter->disconnectAll();
 
     delete sharedMemoryFilterB;

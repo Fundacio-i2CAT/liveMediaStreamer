@@ -320,7 +320,7 @@ uint16_t SharedMemory::getCodecFromVCodec(VCodecType codec){
 			val= 4;
 			break;
 		default:
-			std::cerr << "[Video Frame Queue] Codec not supported!" << std::endl;
+			utils::errorMsg("[Video Frame Queue] Codec not supported!");
 			val= 0;
 			break;
 	}
@@ -343,7 +343,7 @@ VCodecType SharedMemory::getVCodecFromCodecType(uint16_t codecType){
 			codec= RAW;
 			break;
 		default:
-			std::cerr << "[Video Frame Queue] Codec not supported!" << std::endl;
+			utils::errorMsg("[Video Frame Queue] Codec not supported!");
 			codec= VC_NONE;
 			break;
 	}
@@ -375,7 +375,7 @@ uint16_t SharedMemory::getPixelFormatFromPixType(PixType pxlFrmt){
 			val= 7;
 			break;
 		default:
-			std::cerr << "[Resampler] Unknown output pixel format" << std::endl;
+			utils::errorMsg("[Resampler] Unknown output pixel format");
 			val= 0;
 			break;
 	}
@@ -407,7 +407,7 @@ PixType SharedMemory::getPixTypeFromPixelFormat(uint16_t pixType){
 			pxlFrmt= YUVJ420P;
 			break;
 		default:
-			std::cerr << "[Resampler] Unknown output pixel format" << std::endl;
+			utils::errorMsg("[Resampler] Unknown output pixel format");
 			pxlFrmt= P_NONE;
 			break;
 	}

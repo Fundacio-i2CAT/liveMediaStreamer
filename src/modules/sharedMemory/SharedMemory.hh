@@ -67,7 +67,7 @@ public:
     * @return SharedMemory object or NULL if any error while creating
     * @see OneToOneFilter to check the inherated input params
     */
-    static SharedMemory* createNew(size_t key_, size_t fTime = 0, FilterRole fRole_ = MASTER, bool force_ = false, bool sharedFrames_ = true);
+    static SharedMemory* createNew(size_t key_, std::string codec, size_t fTime = 0, FilterRole fRole_ = MASTER, bool force_ = false, bool sharedFrames_ = true);
     /**
     * Class destructor
     */
@@ -78,11 +78,11 @@ public:
     */
 
 protected:
-    SharedMemory(size_t key_ = KEY, size_t fTime = 0, FilterRole fRole_ = MASTER, bool force_ = false, bool sharedFrames_ = true);
+    SharedMemory(size_t key_ = KEY, std::string codec = "RAW", size_t fTime = 0, FilterRole fRole_ = MASTER, bool force_ = false, bool sharedFrames_ = true);
     size_t getSharedMemoryID() { return SharedMemoryID;};
     bool isEnabled() {return enabled;};
     void writeSharedMemoryH264();
-    bool appendNalToFrame(unsigned char* nalData, unsigned nalDataLength, bool &newFrame);
+    bool appendNalToFrame(unsigned char* nalData, unsigned nalDataLength, int startCodeOffset, bool &newFrame);
     bool parseNal(VideoFrame* nal, bool &newFrame);
     int detectStartCode(unsigned char const* ptr);
     int writeSharedMemoryRAW(uint8_t *buffer, int buffer_size);
@@ -121,8 +121,6 @@ private:
     bool                        enabled;
     bool                        newFrame;
     std::vector<unsigned char>  frameData;
-    bool                        isIntra;
-    bool                        isVCL;
 };
 
 #endif

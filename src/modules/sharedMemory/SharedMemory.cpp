@@ -22,9 +22,9 @@
 
 #include "SharedMemory.hh"
 
-SharedMemory* SharedMemory::createNew(size_t key_, size_t fTime, FilterRole fRole_, bool force_, bool sharedFrames_)
+SharedMemory* SharedMemory::createNew(size_t key_, std::string codec, size_t fTime, FilterRole fRole_, bool force_, bool sharedFrames_)
 {
-    SharedMemory *shm = new SharedMemory(key_, fTime, fRole_, force_, sharedFrames_);
+    SharedMemory *shm = new SharedMemory(key_, codec, fTime, fRole_, force_, sharedFrames_);
 
     if(shm->isEnabled()){
         return shm;
@@ -32,9 +32,16 @@ SharedMemory* SharedMemory::createNew(size_t key_, size_t fTime, FilterRole fRol
     return NULL;
 }
 
-SharedMemory::SharedMemory(size_t key_, size_t fTime, FilterRole fRole_, bool force_, bool sharedFrames_):
-    OneToOneFilter(fTime, fRole_), enabled(true), newFrame(true), isIntra(false), isVCL(false)
+SharedMemory::SharedMemory(size_t key_, std::string codec, size_t fTime, FilterRole fRole_, bool force_, bool sharedFrames_):
+    OneToOneFilter(fTime, fRole_), enabled(true), newFrame(false)
     {
+
+    if(!(codec == "RAW" || codec == "H264")){
+        utils::errorMsg("SharedMemory::error - filter not created - only RAW and H264 codecs are supported");
+        enabled = false;
+        return;
+    }
+
     if ((SharedMemoryID = shmget(key_, SHMSIZE, (IPC_EXCL | IPC_CREAT ) | 0666)) < 0) {
         utils::errorMsg("SharedMemory::shmget error - filter not created - might be already created");
         enabled = false;
@@ -48,7 +55,7 @@ SharedMemory::SharedMemory(size_t key_, size_t fTime, FilterRole fRole_, bool fo
     }
 
     if(enabled){
-        utils::infoMsg("VERY IMPORTANT: Share following shared memory key ID with reader process: \033[1;32m"+ std::to_string(SharedMemoryID) + "\033[0m");
+        utils::infoMsg("VERY IMPORTANT: Share following shared memory ID (from key "+ std::to_string(key_)+") with reader process: \033[1;32m"+ std::to_string(SharedMemoryID) + "\033[0m for \033[1;32m" + codec + "\033[0m codec");
 
         memset(SharedMemoryOrigin,0,SHMSIZE);
 
@@ -84,13 +91,9 @@ bool SharedMemory::doProcessFrame(Frame *org, Frame *dst)
         return true;
     }
 
-    utils::infoMsg("SharedMemory::seqNum = "+std::to_string(frame->getSequenceNumber()));
-    utils::infoMsg("SharedMemory::previous seqNum = "+std::to_string(seqNum));
-
     if(!isWritable()){
         if(vframe->getCodec() == H264){
-            if(frame->getSequenceNumber() != seqNum){
-                utils::infoMsg("SharedMemory::new seqNum!!!");
+            if(frame->getSequenceNumber() != seqNum && newFrame){
                 seqNum = frame->getSequenceNumber();
                 frameData.clear();
             }
@@ -101,15 +104,13 @@ bool SharedMemory::doProcessFrame(Frame *org, Frame *dst)
 
     switch(vframe->getCodec()){
         case H264:
-            if(frame->getSequenceNumber() != seqNum){
-                utils::infoMsg("SharedMemory::is Writable and new seqNum!!!");
+            if(frame->getSequenceNumber() != seqNum && newFrame){
                 seqNum = frame->getSequenceNumber();
-                if(newFrame) writeFramePayload(seqNum);
+                writeFramePayload(seqNum);
                 writeSharedMemoryH264();
                 frameData.clear();
             }
             parseNal(vframe, newFrame);
-            if(newFrame) writeFramePayload(seqNum);
             break;
         case RAW:
             writeFramePayload(vframe->getSequenceNumber());
@@ -185,15 +186,21 @@ bool SharedMemory::parseNal(VideoFrame* nal, bool &newFrame)
     int nalDataLength;
 
     startCodeOffset = detectStartCode(nal->getDataBuf());
-    nalData = nal->getDataBuf() + startCodeOffset;
-    nalDataLength = nal->getLength() - startCodeOffset;
+
+    if(startCodeOffset == 0){
+        utils::errorMsg("Error parsing NAL: no start code detected");
+        return false;
+    }
+
+    nalData = nal->getDataBuf();
+    nalDataLength = nal->getLength();
 
     if (!nalData || nalDataLength <= 0) {
         utils::errorMsg("Error parsing NAL: invalid data pointer or length");
         return false;
     }
 
-    if (!appendNalToFrame(nalData, nalDataLength, newFrame)) {
+    if (!appendNalToFrame(nalData, nalDataLength, startCodeOffset, newFrame)) {
         utils::errorMsg("Error parsing NAL: invalid NALU type");
         return false;
     }
@@ -215,39 +222,29 @@ int SharedMemory::detectStartCode(unsigned char const* ptr)
     return 0;
 }
 
-bool SharedMemory::appendNalToFrame(unsigned char* nalData, unsigned nalDataLength, bool &newFrame)
+bool SharedMemory::appendNalToFrame(unsigned char* nalData, unsigned nalDataLength, int startCodeOffset, bool &newFrame)
 {
     unsigned char nalType;
 
-    nalType = nalData[0] & H264_NALU_TYPE_MASK;
+    nalType = nalData[startCodeOffset] & H264_NALU_TYPE_MASK;
 
     switch (nalType) {
         case SPS:
-            isVCL = false;
-            isIntra = false;
             newFrame = false;
             break;
         case PPS:
-            isVCL = false;
-            isIntra = false;
             newFrame = false;
             break;
         case SEI:
-            isVCL = false;
-            isIntra = false;
             newFrame = false;
             break;
         case AUD:
-            newFrame = isVCL;
+            newFrame = true;
             break;
         case IDR:
-            isVCL = true;
-            isIntra = true;
             newFrame = false;
             break;
         case NON_IDR:
-            isVCL = true;
-            isIntra = false;
             newFrame = false;
             break;
         default:
@@ -255,12 +252,7 @@ bool SharedMemory::appendNalToFrame(unsigned char* nalData, unsigned nalDataLeng
             return false;
     }
 
-    if (nalType == IDR || nalType == NON_IDR) {
-        frameData.insert(frameData.end(), (nalDataLength >> 24) & 0xFF);
-        frameData.insert(frameData.end(), (nalDataLength >> 16) & 0xFF);
-        frameData.insert(frameData.end(), (nalDataLength >> 8) & 0xFF);
-        frameData.insert(frameData.end(), nalDataLength & 0xFF);
-
+    if (nalType != AUD) {
         frameData.insert(frameData.end(), nalData, nalData + nalDataLength);
     }
 

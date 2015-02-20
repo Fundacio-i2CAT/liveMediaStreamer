@@ -62,13 +62,13 @@ void SharedMemoryTest::tearDown()
 
 void SharedMemoryTest::connectWithSharedMemory()
 {
-    BaseFilter* sharedMemoryFilter = SharedMemory::createNew(KEY);
+    BaseFilter* sharedMemoryFilter = SharedMemory::createNew(KEY, "RAW");
     CPPUNIT_ASSERT(!(sharedMemoryFilter == NULL));
 
     BaseFilter* satelliteFilterHead = new BaseFilterMockup(0,1);
     BaseFilter* satelliteFilterTail = new BaseFilterMockup(1,0);
 
-    BaseFilter* sharedMemoryFilterErr = SharedMemory::createNew(KEY);
+    BaseFilter* sharedMemoryFilterErr = SharedMemory::createNew(KEY, "RAW");
     CPPUNIT_ASSERT(sharedMemoryFilterErr == NULL);
     delete sharedMemoryFilterErr;
 
@@ -115,7 +115,7 @@ void SharedMemoryFunctionalTest::tearDown()
 
 void SharedMemoryFunctionalTest::sharedMemoryFilterWithDummyReader()
 {
-    SharedMemoryFilterMockup* sharedMemoryFilter = new SharedMemoryFilterMockup(KEY);
+    SharedMemoryFilterMockup* sharedMemoryFilter = new SharedMemoryFilterMockup(KEY, "RAW");
     CPPUNIT_ASSERT(!(sharedMemoryFilter == NULL));
     BaseFilter* satelliteFilterHead = new BaseFilterMockup(0,1);
     BaseFilter* satelliteFilterTail = new BaseFilterMockup(1,0);
@@ -131,7 +131,7 @@ void SharedMemoryFunctionalTest::sharedMemoryFilterWithDummyReader()
     CPPUNIT_ASSERT(satelliteFilterHead->connectOneToOne(sharedMemoryFilter));
     CPPUNIT_ASSERT(sharedMemoryFilter->connectOneToOne(satelliteFilterTail));
 
-    SharedMemoryDummyReader* dummyReader = new SharedMemoryDummyReader(sharedMemoryFilter->getSharedMemoryID());
+    SharedMemoryDummyReader* dummyReader = new SharedMemoryDummyReader(sharedMemoryFilter->getSharedMemoryID(), "RAW");
 
     std::thread dReader(SharedMemoryDummyReader::dummyReaderThread, dummyReader);
 

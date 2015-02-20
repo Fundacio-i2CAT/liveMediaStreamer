@@ -38,7 +38,7 @@
 class SharedMemoryFilterMockup : public SharedMemory
 {
 public:
-	SharedMemoryFilterMockup(size_t key_);
+	SharedMemoryFilterMockup(size_t key_, std::string codec);
 	~SharedMemoryFilterMockup();
 	using BaseFilter::getReader;
 	using SharedMemory::getSharedMemoryID;
@@ -58,7 +58,7 @@ private:
 class SharedMemoryDummyReader {
 
 public:
-	SharedMemoryDummyReader(size_t shmID);
+	SharedMemoryDummyReader(size_t shmID, std::string codec);
 	~SharedMemoryDummyReader();
 	uint8_t * readSharedFrame();
 	void readFramePayload();

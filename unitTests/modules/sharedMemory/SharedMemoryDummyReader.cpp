@@ -22,8 +22,8 @@
 #include "SharedMemoryDummyReader.hh"
 
 
-SharedMemoryFilterMockup::SharedMemoryFilterMockup(size_t key_):
-	SharedMemory(key_)
+SharedMemoryFilterMockup::SharedMemoryFilterMockup(size_t key_, std::string codec):
+	SharedMemory(key_, codec)
 {
 }
 
@@ -33,7 +33,7 @@ SharedMemoryFilterMockup::~SharedMemoryFilterMockup()
 
 
 
-SharedMemoryDummyReader::SharedMemoryDummyReader(size_t shmID):
+SharedMemoryDummyReader::SharedMemoryDummyReader(size_t shmID, std::string codec):
 	SharedMemoryID(shmID), frame(NULL), enabled (true)
 {
     if ((SharedMemoryOrigin = (uint8_t*) shmat(SharedMemoryID, NULL, 0)) == (uint8_t *) -1) {

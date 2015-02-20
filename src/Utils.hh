@@ -39,6 +39,7 @@ namespace utils
     TxFormat getTxFormatFromString(std::string stringTxFormat);
     std::string getSampleFormatAsString(SampleFmt sFormat);
     std::string getAudioCodecAsString(ACodecType codec);
+    std::string getVideoCodecAsString(VCodecType codec);
     std::string getFilterTypeAsString(FilterType type);
     std::string getWorkerTypeAsString(WorkerType type);
     std::string getTxFormatAsString(TxFormat format);

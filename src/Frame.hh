@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- *  Authors: David Cassany <david.cassany@i2cat.net> 
+ *  Authors: David Cassany <david.cassany@i2cat.net>
  *           Marc Palau <marc.palau@i2cat.net>
  */
 
@@ -33,25 +33,25 @@ class Frame {
     public:
         Frame();
         virtual ~Frame() {};
-              
+
         void setPresentationTime(std::chrono::microseconds pTime);
         void newOriginTime();
         void setOriginTime(std::chrono::system_clock::time_point orgTime);
         void setDuration(std::chrono::microseconds dur);
         void setSequenceNumber(size_t seqNum);
-        
+
         std::chrono::microseconds getPresentationTime() const {return presentationTime;};
         std::chrono::system_clock::time_point getOriginTime() const {return originTime;};
         virtual std::chrono::microseconds getDuration() const {return duration;};
         size_t getSequenceNumber() const {return sequenceNumber;}
-        
+
         virtual unsigned char *getDataBuf() = 0;
         virtual unsigned char **getPlanarDataBuf() = 0;
         virtual unsigned int getLength() = 0;
         virtual unsigned int getMaxLength() = 0;
         virtual void setLength(unsigned int length) = 0;
         virtual bool isPlanar() = 0;
-        
+
     protected:
         std::chrono::microseconds presentationTime;
         std::chrono::system_clock::time_point originTime;

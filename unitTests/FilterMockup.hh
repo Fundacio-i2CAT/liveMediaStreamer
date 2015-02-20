@@ -40,7 +40,7 @@
 
 
 class FrameMock : public Frame {
-public:   
+public:
     ~FrameMock(){};
     virtual unsigned char *getDataBuf() {
         return buff;

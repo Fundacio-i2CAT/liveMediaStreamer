@@ -18,9 +18,9 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  *  Authors:  Marc Palau <marc.palau@i2cat.net>
- *            
+ *
  */
- 
+
 #ifndef _DASH_VIDEO_SEGMENTER_HH
 #define _DASH_VIDEO_SEGMENTER_HH
 
@@ -47,32 +47,32 @@
 
 /*! Class responsible for managing DASH video segments creation. It receives H264 NALs, joining them into complete frames
     and using these frames to create the segments. It also manages Init Segment creation, constructing MP4 metadata from
-    SPS and PPS NALUs*/ 
+    SPS and PPS NALUs*/
 
 class DashVideoSegmenter : public DashSegmenter {
 
 public:
     /**
     * Class constructor
-    * @param segDur Segment duration in milliseconds 
+    * @param segDur Segment duration in milliseconds
     * @param segBaseName Base name for the segments. Segment names will be: segBaseName_<timestamp>.m4v and segBaseName_init.m4v
-    */ 
+    */
     DashVideoSegmenter(size_t segDur, std::string segBaseName);
 
     /**
     * Class destructor
-    */ 
+    */
     ~DashVideoSegmenter();
 
     /**
     * It manages an input NAL, doing different actions depending on its type. Contemplated NALUs are:
-    *   - SPS (7) and PPS (8) 
+    *   - SPS (7) and PPS (8)
     *      Saves this NALs to generate InitSegment. They will be not appended to the frame
     *   - SEI (6)
     *       It is just ignored
     *   - AUD (9)
     *       It is used to detect the end of a frame. It is not appended to the internal frame buffer. It
-    *       sets newFrame to true only if the previously received NALs are VCL (IDR and NON-IDR) 
+    *       sets newFrame to true only if the previously received NALs are VCL (IDR and NON-IDR)
     *   - IDR (5)
     *       It is appended to the internal frame buffer and activates isIntra flag
     *   - NON-IDR (1)
@@ -95,7 +95,7 @@ public:
     * @return true if succeeded and false if not
     */
     bool finishSegment();
-    
+
     /**
     * Returns the isIntra flag, set by the last execution of manageFrame method
     * @return true if intraFrame and false if not

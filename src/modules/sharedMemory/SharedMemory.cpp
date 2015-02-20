@@ -33,16 +33,16 @@ SharedMemory* SharedMemory::createNew(size_t key_, size_t fTime, FilterRole fRol
 }
 
 SharedMemory::SharedMemory(size_t key_, size_t fTime, FilterRole fRole_, bool force_, bool sharedFrames_):
-    OneToOneFilter(fTime, fRole_), enabled(true)
-{
+    OneToOneFilter(fTime, fRole_), enabled(true), newFrame(true), isIntra(false), isVCL(false)
+    {
     if ((SharedMemoryID = shmget(key_, SHMSIZE, (IPC_EXCL | IPC_CREAT ) | 0666)) < 0) {
-        utils::debugMsg("SharedMemory::shmget error - filter not created - might be already created");
+        utils::errorMsg("SharedMemory::shmget error - filter not created - might be already created");
         enabled = false;
         return;
     }
 
     if ((SharedMemoryOrigin = (uint8_t*) shmat(SharedMemoryID, NULL, 0)) == (uint8_t *) -1) {
-        utils::debugMsg("SharedMemory::shmat error - filter not created");
+        utils::errorMsg("SharedMemory::shmat error - filter not created");
         enabled = false;
         return;
     }
@@ -60,17 +60,17 @@ SharedMemory::SharedMemory(size_t key_, size_t fTime, FilterRole fRole_, bool fo
         *access = CHAR_WRITING;
 
         //TODO get seqNum from incoming frame
-        seqNum = 0;
+        seqNum = 1;
     }
 }
 
 SharedMemory::~SharedMemory()
 {
     if(shmctl (SharedMemoryID , IPC_RMID , 0) != 0){
-        utils::infoMsg("SharedMemory::shmctl error - Could not set IPC_RMID flag to shared memory segment ID");
+        utils::errorMsg("SharedMemory::shmctl error - Could not set IPC_RMID flag to shared memory segment ID");
     }
     if(shmdt(SharedMemoryOrigin) != 0){
-        utils::infoMsg("SharedMemory::shmdt error - Could not detach memory segment");
+        utils::errorMsg("SharedMemory::shmdt error - Could not detach memory segment");
     }
 }
 
@@ -79,16 +79,46 @@ bool SharedMemory::doProcessFrame(Frame *org, Frame *dst)
     InterleavedVideoFrame* vframe = dynamic_cast<InterleavedVideoFrame*>(org);
     copyOrgToDstFrame(vframe,dynamic_cast<InterleavedVideoFrame*>(dst));
 
-    if(!isWritable()){
-        return true;
-    }
-
     if(!setFrameObject(vframe)){
+        utils::errorMsg("SharedMemory::error - Unable to set frame object from incoming frame");
         return true;
     }
 
-    writeFramePayload(vframe->getSequenceNumber());
-    writeSharedMemory(getFrameObject()->getDataBuf(), getFrameObject()->getLength());
+    utils::infoMsg("SharedMemory::seqNum = "+std::to_string(frame->getSequenceNumber()));
+    utils::infoMsg("SharedMemory::previous seqNum = "+std::to_string(seqNum));
+
+    if(!isWritable()){
+        if(vframe->getCodec() == H264){
+            if(frame->getSequenceNumber() != seqNum){
+                utils::infoMsg("SharedMemory::new seqNum!!!");
+                seqNum = frame->getSequenceNumber();
+                frameData.clear();
+            }
+            parseNal(vframe, newFrame);
+        }
+        return true;
+    }
+
+    switch(vframe->getCodec()){
+        case H264:
+            if(frame->getSequenceNumber() != seqNum){
+                utils::infoMsg("SharedMemory::is Writable and new seqNum!!!");
+                seqNum = frame->getSequenceNumber();
+                if(newFrame) writeFramePayload(seqNum);
+                writeSharedMemoryH264();
+                frameData.clear();
+            }
+            parseNal(vframe, newFrame);
+            if(newFrame) writeFramePayload(seqNum);
+            break;
+        case RAW:
+            writeFramePayload(vframe->getSequenceNumber());
+            writeSharedMemoryRAW(getFrameObject()->getDataBuf(), getFrameObject()->getLength());
+            break;
+        default:
+            utils::errorMsg("SharedMemory::error - only RAW and H264 frames are shareable");
+            break;
+    }
 
     return true;
 }
@@ -113,7 +143,8 @@ void SharedMemory::doGetState(Jzon::Object &filterNode)
     filterNode.Add("sampleFormat", utils::getSampleFormatAsString(sampleFmt));*/
 }
 
-void SharedMemory::copyOrgToDstFrame(InterleavedVideoFrame*org, InterleavedVideoFrame *dst){
+void SharedMemory::copyOrgToDstFrame(InterleavedVideoFrame*org, InterleavedVideoFrame *dst)
+{
     dst->setLength(org->getLength());
     dst->setSize(org->getWidth(), org->getHeight());
     dst->setPresentationTime(org->getPresentationTime());
@@ -122,11 +153,122 @@ void SharedMemory::copyOrgToDstFrame(InterleavedVideoFrame*org, InterleavedVideo
     dst->setSequenceNumber(org->getSequenceNumber());
     dst->setOriginTime(org->getOriginTime());
     dst->setDuration(org->getDuration());
-        
+
     memcpy(dst->getDataBuf(), org->getDataBuf(),org->getLength());
 }
 
-int SharedMemory::writeSharedMemory(uint8_t *buf, int buf_size) {
+void SharedMemory::writeSharedMemoryH264()
+{
+    uint8_t* data;
+    unsigned dataLength;
+    uint32_t length;
+    data = reinterpret_cast<uint8_t*> (&frameData[0]);
+    dataLength = frameData.size();
+    length = dataLength;
+
+    if (!data) {
+        utils::errorMsg("SharedMemory::error - no data from appended frame");
+        return;
+    }
+
+	*access = CHAR_WRITING;
+    memcpy(access+20, &length, sizeof(uint32_t));
+	memcpy(buffer, data, sizeof(uint8_t) * dataLength);
+	*access = CHAR_READING;
+}
+
+
+bool SharedMemory::parseNal(VideoFrame* nal, bool &newFrame)
+{
+    int startCodeOffset;
+    unsigned char* nalData;
+    int nalDataLength;
+
+    startCodeOffset = detectStartCode(nal->getDataBuf());
+    nalData = nal->getDataBuf() + startCodeOffset;
+    nalDataLength = nal->getLength() - startCodeOffset;
+
+    if (!nalData || nalDataLength <= 0) {
+        utils::errorMsg("Error parsing NAL: invalid data pointer or length");
+        return false;
+    }
+
+    if (!appendNalToFrame(nalData, nalDataLength, newFrame)) {
+        utils::errorMsg("Error parsing NAL: invalid NALU type");
+        return false;
+    }
+
+    return true;
+}
+
+int SharedMemory::detectStartCode(unsigned char const* ptr)
+{
+    u_int32_t bytes = 0|(ptr[0]<<16)|(ptr[1]<<8)|ptr[2];
+    if (bytes == H264_NALU_START_CODE) {
+        return SHORT_START_CODE_LENGTH;
+    }
+
+    bytes = (ptr[0]<<24)|(ptr[1]<<16)|(ptr[2]<<8)|ptr[3];
+    if (bytes == H264_NALU_START_CODE) {
+        return LONG_START_CODE_LENGTH;
+    }
+    return 0;
+}
+
+bool SharedMemory::appendNalToFrame(unsigned char* nalData, unsigned nalDataLength, bool &newFrame)
+{
+    unsigned char nalType;
+
+    nalType = nalData[0] & H264_NALU_TYPE_MASK;
+
+    switch (nalType) {
+        case SPS:
+            isVCL = false;
+            isIntra = false;
+            newFrame = false;
+            break;
+        case PPS:
+            isVCL = false;
+            isIntra = false;
+            newFrame = false;
+            break;
+        case SEI:
+            isVCL = false;
+            isIntra = false;
+            newFrame = false;
+            break;
+        case AUD:
+            newFrame = isVCL;
+            break;
+        case IDR:
+            isVCL = true;
+            isIntra = true;
+            newFrame = false;
+            break;
+        case NON_IDR:
+            isVCL = true;
+            isIntra = false;
+            newFrame = false;
+            break;
+        default:
+            utils::errorMsg("Error parsing NAL: NalType " + std::to_string(nalType) + " not contemplated");
+            return false;
+    }
+
+    if (nalType == IDR || nalType == NON_IDR) {
+        frameData.insert(frameData.end(), (nalDataLength >> 24) & 0xFF);
+        frameData.insert(frameData.end(), (nalDataLength >> 16) & 0xFF);
+        frameData.insert(frameData.end(), (nalDataLength >> 8) & 0xFF);
+        frameData.insert(frameData.end(), nalDataLength & 0xFF);
+
+        frameData.insert(frameData.end(), nalData, nalData + nalDataLength);
+    }
+
+    return true;
+}
+
+int SharedMemory::writeSharedMemoryRAW(uint8_t *buf, int buf_size)
+{
 
 	*access = CHAR_WRITING;
 	memcpy(buffer, buf, sizeof(uint8_t) * buf_size);

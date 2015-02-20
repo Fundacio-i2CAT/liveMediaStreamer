@@ -147,7 +147,7 @@ void SharedMemoryFunctionalTest::sharedMemoryFilterWithDummyReader()
         if(sharedMemoryFilter->isWritable()){
             sharedMemoryFilter->writeFramePayload(seqNum++);
             sharedMemoryFilter->getFrameObject()->setPresentationTime(fakeTimeStamp);
-            sharedMemoryFilter->writeSharedMemory(frameMockup->getDataBuf(),frameMockup->getLength());
+            sharedMemoryFilter->writeSharedMemoryRAW(frameMockup->getDataBuf(),frameMockup->getLength());
         }
     }
 

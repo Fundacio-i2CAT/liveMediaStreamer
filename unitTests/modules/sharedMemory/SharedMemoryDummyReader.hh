@@ -43,7 +43,7 @@ public:
 	using BaseFilter::getReader;
 	using SharedMemory::getSharedMemoryID;
 	using SharedMemory::isEnabled;
-	using SharedMemory::writeSharedMemory;
+	using SharedMemory::writeSharedMemoryRAW;
 	using SharedMemory::writeFramePayload;
 	using SharedMemory::isWritable;
 	using SharedMemory::getFrameObject;

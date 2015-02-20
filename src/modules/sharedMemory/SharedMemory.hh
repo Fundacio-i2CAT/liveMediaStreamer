@@ -43,6 +43,16 @@
 #define CHAR_WRITING 	'0'
 #define MAX_SIZE 1920*1080*3
 #define KEY 1985
+#define NON_IDR 1
+#define IDR 5
+#define SEI 6
+#define SPS 7
+#define PPS 8
+#define AUD 9
+#define H264_NALU_START_CODE 0x00000001
+#define SHORT_START_CODE_LENGTH 3
+#define LONG_START_CODE_LENGTH 4
+#define H264_NALU_TYPE_MASK 0x1F
 
 /*! OneToOneFilter sharing memory with another process. This filter uses shm
 library, a POSIX shared memory library to share specific address spaces between
@@ -71,12 +81,19 @@ protected:
     SharedMemory(size_t key_ = KEY, size_t fTime = 0, FilterRole fRole_ = MASTER, bool force_ = false, bool sharedFrames_ = true);
     size_t getSharedMemoryID() { return SharedMemoryID;};
     bool isEnabled() {return enabled;};
-    int writeSharedMemory(uint8_t *buffer, int buffer_size);
+    void writeSharedMemoryH264();
+    bool appendNalToFrame(unsigned char* nalData, unsigned nalDataLength, bool &newFrame);
+    bool parseNal(VideoFrame* nal, bool &newFrame);
+    int detectStartCode(unsigned char const* ptr);
+    int writeSharedMemoryRAW(uint8_t *buffer, int buffer_size);
 	void writeFramePayload(uint16_t seqNum);
 	bool isWritable();
 	Frame * getFrameObject() { return frame;};
 	bool setFrameObject(Frame* in_frame);
 	uint16_t getSeqNum() { return seqNum;};
+    void setSeqNum(uint16_t seqNum_) { seqNum = seqNum_;};
+    bool isNewFrame() { return newFrame;};
+    void setNewFrame(bool newFrame_) { newFrame = newFrame_;};
 
 protected:
 	InterleavedVideoFrame 		*frame;
@@ -102,6 +119,10 @@ private:
 	uint8_t 					*access;
 	uint16_t 					seqNum;
     bool                        enabled;
+    bool                        newFrame;
+    std::vector<unsigned char>  frameData;
+    bool                        isIntra;
+    bool                        isVCL;
 };
 
 #endif

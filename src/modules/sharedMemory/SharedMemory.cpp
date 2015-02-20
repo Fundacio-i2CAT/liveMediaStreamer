@@ -105,9 +105,9 @@ bool SharedMemory::doProcessFrame(Frame *org, Frame *dst)
     switch(vframe->getCodec()){
         case H264:
             if(frame->getSequenceNumber() != seqNum && newFrame){
-                seqNum = frame->getSequenceNumber();
                 writeFramePayload(seqNum);
                 writeSharedMemoryH264();
+                seqNum = frame->getSequenceNumber();
                 frameData.clear();
             }
             parseNal(vframe, newFrame);

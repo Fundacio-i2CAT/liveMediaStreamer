@@ -26,11 +26,13 @@
 #include <algorithm>
 #include <log4cplus/logger.h>
 #include <log4cplus/loggingmacros.h>
+#include <log4cplus/consoleappender.h>
 #include <log4cplus/configurator.h>
 #include <sys/time.h>
 #include <random>
 
 using namespace log4cplus;
+using namespace log4cplus::helpers;
 
 static bool logConfigured = false;
 
@@ -39,7 +41,13 @@ namespace utils
     void configureLog(){
         BasicConfigurator config;
         config.configure();
-
+        
+        SharedObjectPtr<Appender> append_1(new ConsoleAppender());
+        append_1->setName(LOG4CPLUS_TEXT("First"));
+        log4cplus::tstring pattern = LOG4CPLUS_TEXT("%-5p [%l] - %m %n");
+        append_1->setLayout( std::auto_ptr<Layout>(new PatternLayout(pattern)) );
+        Logger::getRoot().addAppender(append_1);
+        
         logConfigured = true;
         Logger logger = Logger::getInstance(LOG4CPLUS_TEXT("main"));
         logger.setLogLevel(INFO_LOG_LEVEL);

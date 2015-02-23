@@ -16,7 +16,7 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  *  Authors:  Marc Palau <marc.palau@i2cat.net>
- *            
+ *
  */
 
 #include <string>
@@ -38,11 +38,11 @@
 #define SAMPLE_RATE 48000
 #define AAC_FRAME_SAMPLES 1024
 
-size_t readFile(char const* fileName, char* dstBuffer) 
+size_t readFile(char const* fileName, char* dstBuffer)
 {
     size_t inputDataSize;
     std::ifstream inputDataFile(fileName, std::ios::in|std::ios::binary|std::ios::ate);
-    
+
     if (!inputDataFile.is_open()) {
         CPPUNIT_FAIL("Test data upload failed. Check test data file paths\n");
         return 0;
@@ -84,7 +84,7 @@ void DashAudioSegmenterTest::setUp()
 {
     size_t dataLength;
 
-    segmenter = new DashAudioSegmenter(SEG_DURATION, BASE_NAME);
+    segmenter = new DashAudioSegmenter(std::chrono::seconds(SEG_DURATION));
     modelFrame = InterleavedAudioFrame::createNew(CHANNELS, SAMPLE_RATE, AudioFrame::getMaxSamples(SAMPLE_RATE), AAC, S16);
 
     dataLength = readFile("testsData/modules/dasher/dashAudioSegmenterTest/modelFrame.aac", (char*)modelFrame->getDataBuf());
@@ -108,11 +108,11 @@ void DashAudioSegmenterTest::updateConfig()
     std::chrono::microseconds ts(std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now().time_since_epoch()));
     std::chrono::microseconds ts0(0);
 
-    modelFrame->setPresentationTime(ts0);
+    modelFrame->setPresentationTime(std::chrono::system_clock::time_point(ts0));
     segmenter->manageFrame(modelFrame, newFrame);
     CPPUNIT_ASSERT(!segmenter->updateConfig());
 
-    modelFrame->setPresentationTime(ts);
+    modelFrame->setPresentationTime(std::chrono::system_clock::time_point(ts));
     modelFrame->setSamples(AAC_FRAME_SAMPLES);
     segmenter->manageFrame(modelFrame, newFrame);
     CPPUNIT_ASSERT(segmenter->updateConfig());
@@ -131,6 +131,7 @@ void DashAudioSegmenterTest::generateSegmentAndInitSegment()
     size_t segmentLength;
     size_t orgTsValue = 1000;
     std::string segName;
+    DashSegment* aSegment = new DashSegment();
 
     bool newFrame;
     bool haveInit = false;
@@ -142,9 +143,9 @@ void DashAudioSegmenterTest::generateSegmentAndInitSegment()
     segmentModelLength = readFile("testsData/modules/dasher/dashAudioSegmenterTest/segmentModel.m4a", segmentModel);
 
     modelFrame->setSamples(AAC_FRAME_SAMPLES);
-    
+
     while(!haveInit || !haveSegment) {
-        modelFrame->setPresentationTime(ts);
+        modelFrame->setPresentationTime(std::chrono::system_clock::time_point(ts));
         segmenter->manageFrame(modelFrame, newFrame);
 
         if(!segmenter->updateConfig()) {
@@ -152,11 +153,11 @@ void DashAudioSegmenterTest::generateSegmentAndInitSegment()
         }
         ts += frameTime;
 
-        if (segmenter->generateInitSegment()) {
+        if (segmenter->generateInitSegment(aSegment)) {
             haveInit = true;
         }
 
-        if (segmenter->generateSegment()) {
+        if (segmenter->generateSegment(aSegment)) {
             haveSegment = true;
         }
     }
@@ -168,7 +169,7 @@ void DashAudioSegmenterTest::generateSegmentAndInitSegment()
 
     CPPUNIT_ASSERT(initModelLength == initLength);
     CPPUNIT_ASSERT(segmentModelLength == segmentLength);
-    
+
     CPPUNIT_ASSERT(memcmp(initModel, init, initModelLength) == 0);
     CPPUNIT_ASSERT(memcmp(segmentModel, segment, segmentModelLength) == 0);
 
@@ -190,15 +191,16 @@ void DashAudioSegmenterTest::finishSegment()
     size_t segmentLength;
     size_t orgTsValue = 2000;
     std::string segName;
+    DashSegment* aSegment = new DashSegment();
 
     segmentModelLength = readFile("testsData/modules/dasher/dashAudioSegmenterTest/truncatedSegmentModel.m4a", segmentModel);
 
     std::chrono::microseconds ts(orgTsValue);
-    modelFrame->setPresentationTime(ts);
+    modelFrame->setPresentationTime(std::chrono::system_clock::time_point(ts));
     modelFrame->setSamples(AAC_FRAME_SAMPLES);
     segmenter->manageFrame(modelFrame, newFrame);
     segmenter->updateConfig();
-    CPPUNIT_ASSERT(!segmenter->generateSegment());
+    CPPUNIT_ASSERT(!segmenter->generateSegment(aSegment));
     CPPUNIT_ASSERT(segmenter->finishSegment());
 
     segName = std::string(BASE_NAME) + "_" + std::to_string(orgTsValue) + ".m4a";
@@ -227,8 +229,8 @@ int main(int argc, char* argv[])
     runner.addTest( CppUnit::TestFactoryRegistry::getRegistry().makeTest() );
     runner.run( "", false );
     outputter->write();
-    
+
     utils::printMood(runner.result().wasSuccessful());
 
     return runner.result().wasSuccessful() ? 0 : 1;
-} 
+}

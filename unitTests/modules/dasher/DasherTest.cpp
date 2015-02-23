@@ -16,7 +16,7 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  *  Authors:  Marc Palau <marc.palau@i2cat.net>
- *            
+ *
  */
 
 #include <string>
@@ -67,9 +67,9 @@ protected:
 
 void DasherTest::setUp()
 {
-    dasher = Dasher::createNew(DASH_FOLDER, BASE_NAME, SEG_DURATION, MPD_LOCATION);
+    dasher = new Dasher();
 
-    if(!dasher) {
+    if(!dasher->configure(DASH_FOLDER, BASE_NAME, SEG_DURATION, MPD_LOCATION)) {
         CPPUNIT_FAIL("Dasher creation failed");
     }
 
@@ -124,8 +124,8 @@ int main(int argc, char* argv[])
     runner.addTest( CppUnit::TestFactoryRegistry::getRegistry().makeTest() );
     runner.run( "", false );
     outputter->write();
-    
+
     utils::printMood(runner.result().wasSuccessful());
 
     return runner.result().wasSuccessful() ? 0 : 1;
-} 
+}

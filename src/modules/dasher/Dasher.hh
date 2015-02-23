@@ -55,7 +55,7 @@ class Dasher : public TailFilter {
 public:
     /**
     * Class constructor. It only initializes filter type parameter and events map.
-    . @see bool configure method to completely initialize dasher filter.
+    * @see configure method to completely initialize dasher filter.
     */
     Dasher(int readersNum = MAX_READERS);
 

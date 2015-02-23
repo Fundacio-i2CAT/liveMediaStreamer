@@ -56,10 +56,9 @@ Dasher* setupDasher(int dasherId)
     int workerId = rand();
     Worker* worker = NULL;
     PipelineManager *pipe = Controller::getInstance()->pipelineManager();
-    
-    dasher = Dasher::createNew(DASH_FOLDER, BASE_NAME, SEG_DURATION, MPD_LOCATION);
 
-    if(!dasher) {
+    dasher = new Dasher();
+    if(!dasher->configure(DASH_FOLDER, BASE_NAME, SEG_DURATION, MPD_LOCATION)) {
         exit(1);
     }
 
@@ -254,7 +253,7 @@ void addVideoPath(unsigned port, Dasher* dasher, int dasherId, size_t sharingMem
         resampler2->configure(640, 480, 0, YUV420P);
         pipe->addWorker(wResId2, wRes2);
         ((BaseFilter*)resampler)->addSlave(resId2, resampler2);
-    
+
         //NOTE: Adding encoder to pipeManager and handle worker
         encoder2 = new VideoEncoderX264(SLAVE, VIDEO_DEFAULT_FRAMERATE, false);
         pipe->addFilter(encId2, encoder2);

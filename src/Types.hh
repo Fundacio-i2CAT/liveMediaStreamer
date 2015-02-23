@@ -18,6 +18,7 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  *  Authors:  Marc Palau <marc.palau@i2cat.net>
+ *            Gerard Castillo <gerard.castillo@i2cat.net>
  */
 
 #ifndef _TYPES_HH
@@ -44,7 +45,7 @@ enum ACodecType {AC_NONE = -1, G711, PCMU, OPUS, PCM, AAC, MP3};
 
 enum SampleFmt {S_NONE = -1, U8, S16, FLT, U8P, S16P, FLTP};
 
-enum FilterType {FT_NONE = -1, RECEIVER, TRANSMITTER, VIDEO_DECODER, VIDEO_ENCODER, VIDEO_RESAMPLER, VIDEO_MIXER, AUDIO_DECODER, AUDIO_ENCODER, AUDIO_MIXER};
+enum FilterType {FT_NONE = -1, RECEIVER, TRANSMITTER, VIDEO_DECODER, VIDEO_ENCODER, VIDEO_RESAMPLER, VIDEO_MIXER, AUDIO_DECODER, AUDIO_ENCODER, AUDIO_MIXER, DASHER};
 
 enum FilterRole {FR_NONE = -1, NETWORK, MASTER, SLAVE};
 

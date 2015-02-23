@@ -19,6 +19,7 @@
  *
  *  Authors:  Marc Palau <marc.palau@i2cat.net>,
  *            David Cassany <david.cassany@i2cat.net>
+ *            Gerard Castillo <gerard.castillo@i2cat.net>
  */
 
 #ifndef _PIPELINE_MANAGER_HH
@@ -33,6 +34,7 @@
 #include "modules/videoResampler/VideoResampler.hh"
 #include "modules/liveMediaInput/SourceManager.hh"
 #include "modules/liveMediaOutput/SinkManager.hh"
+#include "modules/dasher/Dasher.hh"
 
 #include "Path.hh"
 #include "Worker.hh"

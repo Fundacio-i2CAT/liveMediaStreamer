@@ -18,9 +18,10 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  *  Authors:  Marc Palau <marc.palau@i2cat.net>
- *            
+ *            Gerard Castillo <gerard.castillo@i2cat.net>
+ *
  */
- 
+
 #ifndef _DASHER_HH
 #define _DASHER_HH
 
@@ -47,43 +48,57 @@ extern "C" {
 class DashSegmenter;
 class DashSegment;
 
-/*! Class responsible for managing DASH segmenters. */ 
+/*! Class responsible for managing DASH segmenters. */
 
 class Dasher : public TailFilter {
 
 public:
-    static Dasher* createNew(std::string dashFolder, std::string baseName, size_t segDurInSeconds, std::string mpdLocation, int readersNum = MAX_READERS);
+    /**
+    * Class constructor. It only initializes filter type parameter and events map.
+    . @see bool configure method to completely initialize dasher filter.
+    */
+    Dasher(int readersNum = MAX_READERS);
+
+    /**
+    * Configures the dasher filter with next required parameters:
+    * @param dashFolder is the system folder where the segmenter is going to work with
+    * @param baseName_ is the file base name for all generated and required files
+    * @param segDurInSeconds is the time duration in seconds
+    * @param mpdLocation is the URI where the MPD is going to be served from
+    * @return true if suceeded and false if not
+    */
+    bool configure(std::string dashFolder, std::string baseName_, size_t segDurInSeconds, std::string mpdLocation);
+
     /**
     * Class destructor
-    */ 
+    */
     ~Dasher();
 
     //TODO: check this
     bool deleteReader(int id);
 
-    
+
     void doGetState(Jzon::Object &filterNode);
 
     /**
     * Adds a new segmenter associated to an existance reader. Only one segmenter can be associated to each reader
-    * @param readerId Reader associated to the segmenter 
+    * @param readerId Reader associated to the segmenter
     * @return true if suceeded and false if not
-    */ 
+    */
     bool addSegmenter(int readerId);
 
     /**
-    * Remvoes an existant segmenter, using its associated reader id. A segment with the remaining 
+    * Remvoes an existant segmenter, using its associated reader id. A segment with the remaining
     * data buffered (if any) is created and written to disk
-    * @param readerId Reader associated to the segmenter 
+    * @param readerId Reader associated to the segmenter
     * @return true if suceeded and false if not
-    */ 
+    */
     bool removeSegmenter(int readerId);
 
     static std::string getSegmentName(std::string basePath, std::string baseName, size_t reprId, size_t timestamp, std::string ext);
     static std::string getInitSegmentName(std::string basePath, std::string baseName, size_t reprId, std::string ext);
-      
-private: 
-    Dasher(std::string dashFolder, std::string baseName, size_t segDurInSec, std::string mpdLocation, int readersNum = MAX_READERS);
+
+private:
     bool doProcessFrame(std::map<int, Frame*> orgFrames);
     void initializeEventMap();
     void updateMpd(int id, DashSegmenter* segmenter);
@@ -92,6 +107,9 @@ private:
     size_t updateTimestampControl(std::map<int,DashSegment*> segments);
     bool writeSegmentsToDisk(std::map<int,DashSegment*> segments, size_t timestamp, std::string segExt);
     bool cleanSegments(std::map<int,DashSegment*> segments, size_t timestamp, std::string segExt);
+    void configureEvent(Jzon::Node* params, Jzon::Object &outputNode);
+    void addSegmenterEvent(Jzon::Node* params, Jzon::Object &outputNode);
+    void removeSegmenterEvent(Jzon::Node* params, Jzon::Object &outputNode);
 
 
     std::map<int, DashSegmenter*> segmenters;
@@ -113,79 +131,79 @@ private:
     std::string aInitSegTempl;
 };
 
-/*! Abstract class implemented by DashVideoSegmenter and DashAudioSegmenter */ 
+/*! Abstract class implemented by DashVideoSegmenter and DashAudioSegmenter */
 
 class DashSegmenter {
 
 public:
-    
+
     /**
     * Class constructor
-    * @param segDur Segment duration in tBase units 
-    * @param tBase segDur timeBase 
+    * @param segDur Segment duration in tBase units
+    * @param tBase segDur timeBase
     * @param segBaseName Base name for the segments. Segment names will be: segBaseName_<timestamp>.segExt and segBaseName_init.segExt
-    * @param segExt segment file extension (.m4v for video and .m4a for audio) 
-    */ 
+    * @param segExt segment file extension (.m4v for video and .m4a for audio)
+    */
     DashSegmenter(std::chrono::seconds segmentDuration, size_t tBase);
 
     /**
     * Class destructor
-    */ 
+    */
     virtual ~DashSegmenter();
 
     /**
     * Implemented by DashVideoSegmenter::manageFrame and DashAudioSegmenter::manageFrame
-    */ 
+    */
     virtual bool manageFrame(Frame* frame, bool &newFrame) = 0;
 
     /**
     * Implemented by DashVideoSegmenter::updateConfig and DashAudioSegmenter::updateConfig
-    */ 
+    */
     virtual bool updateConfig() = 0;
 
     /**
     * Implemented by DashVideoSegmenter::finishSegment and DashAudioSegmenter::finishSegment
-    */ 
+    */
     virtual bool finishSegment() = 0;
 
     /**
     * Generates and writes to disk an Init Segment if possible (or necessary)
-    */ 
+    */
     bool generateInitSegment(DashSegment* segment);
 
     /**
     * Generates and writes to disk a segment if there is enough data buffered
-    */ 
+    */
     bool generateSegment(DashSegment* segment);
 
     /**
-    * Returns average frame duration 
+    * Returns average frame duration
     * @return duration in time base
     */
     size_t getFrameDuration() {return frameDuration;};
 
     /**
-    * Returns the timestamp time base of the segments 
+    * Returns the timestamp time base of the segments
     * @return time base in ticks per second
     */
     size_t getTimeBase() {return timeBase;};
 
     /**
-    * Return the timestamp offset, which corresponds to the timestamp of the first frame 
+    * Return the timestamp offset, which corresponds to the timestamp of the first frame
     * managed by manageFrame method. Each timestamp will be relative to this one.
     * @return timestamp in milliseconds
     */
     std::chrono::system_clock::time_point getTsOffset() {return tsOffset;};
 
     /**
-    * It returns the last segment timestamp 
+    * It returns the last segment timestamp
     * @return timestamp in timeBase units
     */
     size_t getSegmentTimestamp();
     void setOffset(std::chrono::system_clock::time_point offs);
 
     /**
-    * Return the segment duration 
+    * Return the segment duration
     * @return segment duration in timeBase units
     */
     std::chrono::seconds getsegDur() {return segDur;};
@@ -201,7 +219,7 @@ protected:
     size_t customTimestamp(std::chrono::system_clock::time_point timestamp);
     size_t nanosToTimeBase(std::chrono::nanoseconds nanosValue);
 
-    
+
     std::chrono::seconds segDur;
     std::chrono::system_clock::time_point tsOffset;
 
@@ -214,79 +232,79 @@ protected:
 };
 
 /*! It represents a dash segment. It contains a buffer with the segment data (it allocates data) and its length. Moreover, it contains the
-    segment sequence number and the output file name (in order to write the segment to disk) */ 
+    segment sequence number and the output file name (in order to write the segment to disk) */
 
 class DashSegment {
-    
+
 public:
     /**
     * Class constructor
     * @param maxSize Segment data max length
-    */ 
+    */
     DashSegment(size_t maxSize = MAX_DAT);
 
     /**
     * Class destructor
-    */ 
+    */
     ~DashSegment();
 
     /**
     * @return Pointer to segment data
-    */ 
+    */
     unsigned char* getDataBuffer() {return data;};
 
     /**
     * @return Segment data length in bytes
-    */ 
+    */
     size_t getDataLength() {return dataLength;};
 
     /**
     * @params Segment data length in bytes
-    */ 
+    */
     void setDataLength(size_t length);
 
     /**
     * It sets the sequence number of the segment
     * @params seqNum is the sequence number to set
-    */ 
+    */
     void setSeqNumber(size_t seqNum);
-    
+
     /**
     * @return Segment sequence number
-    */ 
+    */
     size_t getSeqNumber(){return seqNumber;};
 
     /**
     * Increase by one the sequence number
-    */ 
+    */
     void incrSeqNumber(){seqNumber++;};
 
     /**
     * @return Segment segment timestamp
-    */ 
+    */
     size_t getTimestamp(){return timestamp;};
 
     /**
     * It sets the segment timestamp
     * @params ts is the timestamp to set
-    */ 
+    */
     void setTimestamp(size_t ts);
 
     /**
     * Writes segment to disk
     * @params Path to write
     * @retrun True if suceeded and False if not
-    */ 
+    */
     bool writeToDisk(std::string path);
 
     /**
     * Clears segment data
-    */ 
+    */
     void clear();
-    
+
     /**
     * @return true if the segment has no data
-    */ 
+    */
     bool isEmpty() {return (dataLength == 0 && seqNumber == 0 && timestamp == 0);};
 
 private:

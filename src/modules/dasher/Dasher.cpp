@@ -18,7 +18,7 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  *  Authors:  Marc Palau <marc.palau@i2cat.net>
- *
+ *            Gerard Castillo <gerard.castillo@i2cat.net>
  */
 
 #include "Dasher.hh"
@@ -36,26 +36,35 @@
 #define V_BAND 2000000
 #define A_BAND 192000
 
-Dasher* Dasher::createNew(std::string dashFolder, std::string baseName, size_t segDurInSeconds, std::string mpdLocation, int readersNum)
+Dasher::Dasher(int readersNum) :
+TailFilter(readersNum)
+{
+    fType = DASHER;
+    initializeEventMap();
+}
+
+Dasher::~Dasher()
+{
+    for (auto seg : segmenters) {
+        delete seg.second;
+    }
+    delete mpdMngr;
+}
+
+bool Dasher::configure(std::string dashFolder, std::string baseName_, size_t segDurInSec, std::string mpdLocation)
 {
     std::string mpdPath;
     std::string segmentsBasePath;
 
     if (access(dashFolder.c_str(), W_OK) != 0) {
         utils::errorMsg("Error creating Dasher: provided folder is not writable");
-        return NULL;
+        return false;
     }
 
     if (dashFolder.back() != '/') {
         dashFolder.append("/");
     }
 
-    return new Dasher(dashFolder, baseName, segDurInSeconds, mpdLocation);
-}
-
-Dasher::Dasher(std::string dashFolder, std::string baseName_, size_t segDurInSec, std::string mpdLocation, int readersNum) : 
-TailFilter(readersNum)
-{
     basePath = dashFolder;
     baseName = baseName_;
     mpdPath = basePath + baseName + ".mpd";
@@ -73,14 +82,8 @@ TailFilter(readersNum)
 
     timestampOffset = std::chrono::system_clock::now();
     segDur = std::chrono::seconds(segDurInSec);
-}
 
-Dasher::~Dasher()
-{
-    for (auto seg : segmenters) {
-        delete seg.second;
-    }
-    delete mpdMngr;
+    return true;
 }
 
 bool Dasher::doProcessFrame(std::map<int, Frame*> orgFrames)
@@ -128,7 +131,7 @@ bool Dasher::generateInitSegment(size_t id, DashSegmenter* segmenter)
     DashAudioSegmenter* aSeg;
 
     if ((vSeg = dynamic_cast<DashVideoSegmenter*>(segmenter)) != NULL) {
-        
+
         if (!vSeg->generateInitSegment(initSegments[id])) {
             return true;
         }
@@ -166,14 +169,14 @@ bool Dasher::generateSegment(size_t id, DashSegmenter* segmenter)
     size_t rmTimestamp;
 
     if ((vSeg = dynamic_cast<DashVideoSegmenter*>(segmenter)) != NULL) {
-        
+
         if (!vSeg->generateSegment(vSegments[id])) {
             return false;
         }
 
         refTimestamp = updateTimestampControl(vSegments);
         mpdMngr->updateVideoAdaptationSet(V_ADAPT_SET_ID, segmenters[id]->getTimeBase(), vSegTempl, vInitSegTempl);
-        mpdMngr->updateVideoRepresentation(V_ADAPT_SET_ID, std::to_string(id), VIDEO_CODEC, vSeg->getWidth(), 
+        mpdMngr->updateVideoRepresentation(V_ADAPT_SET_ID, std::to_string(id), VIDEO_CODEC, vSeg->getWidth(),
                                             vSeg->getHeight(), V_BAND, vSeg->getFramerate());
 
         if (refTimestamp <= 0) {
@@ -191,7 +194,7 @@ bool Dasher::generateSegment(size_t id, DashSegmenter* segmenter)
 
         if (rmTimestamp > 0 && !cleanSegments(vSegments, rmTimestamp, V_EXT)) {
             utils::warningMsg("Error cleaning dash video segments");
-        } 
+        }
     }
 
     if ((aSeg = dynamic_cast<DashAudioSegmenter*>(segmenter)) != NULL) {
@@ -219,7 +222,7 @@ bool Dasher::generateSegment(size_t id, DashSegmenter* segmenter)
 
         if (rmTimestamp > 0 && !cleanSegments(aSegments, rmTimestamp, A_EXT)) {
             utils::warningMsg("Error cleaning dash audio segments");
-        } 
+        }
     }
 
     if (!vSeg && !aSeg) {
@@ -230,7 +233,7 @@ bool Dasher::generateSegment(size_t id, DashSegmenter* segmenter)
 }
 
 size_t Dasher::updateTimestampControl(std::map<int,DashSegment*> segments)
-{   
+{
     size_t refTimestamp = 0;
 
     for (auto seg : segments) {
@@ -244,7 +247,7 @@ size_t Dasher::updateTimestampControl(std::map<int,DashSegment*> segments)
         }
 
         if (refTimestamp != seg.second->getTimestamp()) {
-            utils::warningMsg("Segments of the same Adaptation Set have different timestamps"); 
+            utils::warningMsg("Segments of the same Adaptation Set have different timestamps");
             utils::warningMsg("Setting timestamp to a reference one: this may cause playing errors");
         }
     }
@@ -288,12 +291,89 @@ bool Dasher::cleanSegments(std::map<int,DashSegment*> segments, size_t timestamp
 
 void Dasher::initializeEventMap()
 {
-
+     eventMap["configure"] = std::bind(&Dasher::configureEvent,
+                                                this, std::placeholders::_1, std::placeholders::_2);
+     eventMap["addSegmenter"] = std::bind(&Dasher::addSegmenterEvent,
+                                                this, std::placeholders::_1, std::placeholders::_2);
+     eventMap["removeSegmenter"] = std::bind(&Dasher::removeSegmenterEvent,
+                                                this, std::placeholders::_1, std::placeholders::_2);
 }
 
 void Dasher::doGetState(Jzon::Object &filterNode)
 {
-//TODO: implement
+    //TODO: to add more parameters?
+    filterNode.Add("folder", basePath);
+    filterNode.Add("baseName", baseName);
+    filterNode.Add("mpdURI", mpdPath);
+    filterNode.Add("segDurInSec", std::to_string(segDur.count()));
+
+}
+
+void Dasher::configureEvent(Jzon::Node* params, Jzon::Object &outputNode)
+{
+    if (!params) {
+        outputNode.Add("error", "Error configuring Dasher");
+        return;
+    }
+
+    if (!params->Has("folder") || !params->Has("baseName") || !params->Has("segDurInSec") ||
+            !params->Has("mpdURI")) {
+
+        outputNode.Add("error", "Error configuring Dasher. Check parameters!");
+        return;
+    }
+    std::string dashFolder = params->Get("folder").ToString();
+    std::string baseName = params->Get("baseName").ToString();
+    size_t segDurInSec = params->Get("segDurInSec").ToInt();
+    std::string mpdLocation = params->Get("mpdURI").ToString();
+
+    if (!configure(dashFolder, baseName, segDurInSec, mpdLocation)) {
+        outputNode.Add("error", "Error configuring Dasher. Check parameters!");
+    } else {
+        outputNode.Add("error", Jzon::null);
+    }
+}
+
+void Dasher::addSegmenterEvent(Jzon::Node* params, Jzon::Object &outputNode)
+{
+    if (!params) {
+        outputNode.Add("error", "Error adding segmenter in Dasher");
+        return;
+    }
+
+    if (!params->Has("id")){
+        outputNode.Add("error", "Error adding segmenter in Dasher. Check parameters!");
+        return;
+    }
+
+    int id = params->Get("id").ToInt();
+
+    if (!addSegmenter(id)) {
+        outputNode.Add("error", "Error adding segmenter in Dasher. Check parameters!");
+    } else {
+        outputNode.Add("error", Jzon::null);
+    }
+}
+
+void Dasher::removeSegmenterEvent(Jzon::Node* params, Jzon::Object &outputNode)
+{
+    if (!params) {
+        outputNode.Add("error", "Error removing segmenter in Dasher");
+        return;
+    }
+
+    if (!params->Has("id")){
+        outputNode.Add("error", "Error removing segmenter in Dasher. Check parameters!");
+        return;
+    }
+
+    int id = params->Get("id").ToInt();
+
+    if (!removeSegmenter(id)) {
+        outputNode.Add("error", "Error removing segmenter in Dasher. Check parameters!");
+    } else {
+        outputNode.Add("error", Jzon::null);
+    }
 }
 
 bool Dasher::addSegmenter(int readerId)
@@ -379,7 +459,7 @@ std::string Dasher::getInitSegmentName(std::string basePath, std::string baseNam
 }
 
 
-DashSegmenter::DashSegmenter(std::chrono::seconds segmentDuration, size_t tBase) : 
+DashSegmenter::DashSegmenter(std::chrono::seconds segmentDuration, size_t tBase) :
 segDur(segmentDuration), dashContext(NULL), timeBase(tBase), frameDuration(0), theoricPts(0)
 {
     segDurInTimeBaseUnits = segDur.count()*timeBase;
@@ -390,7 +470,7 @@ DashSegmenter::~DashSegmenter()
 
 }
 
-bool DashSegmenter::generateInitSegment(DashSegment* segment) 
+bool DashSegmenter::generateInitSegment(DashSegment* segment)
 {
     if (!updateMetadata()) {
         return false;

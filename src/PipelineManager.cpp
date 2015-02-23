@@ -19,6 +19,7 @@
  *
  *  Authors:  Marc Palau <marc.palau@i2cat.net>,
  *            David Cassany <david.cassany@i2cat.net>
+ *            Gerard Castillo <gerard.castillo@i2cat.net>
  */
 
 #include "PipelineManager.hh"
@@ -57,7 +58,7 @@ bool PipelineManager::start()
 
     SinkManager* transmitter = SinkManager::createNew();
     SourceManager* receiver = new SourceManager();
-    
+
     if (!transmitter){
         return false;
     }
@@ -175,6 +176,9 @@ BaseFilter* PipelineManager::createFilter(FilterType type, Jzon::Node* params)
             break;
         case AUDIO_MIXER:
             filter = new AudioMixer();
+            break;
+        case DASHER:
+            filter = new Dasher();
             break;
         default:
             utils::errorMsg("Unknown filter type");

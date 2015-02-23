@@ -26,13 +26,14 @@
 #define A_TIME_STMP_FREQ 48000
 #define A_CHANNELS 2
 
-#define OUT_A_CODEC MP3
+#define OUT_A_CODEC AAC
 
 #define RETRIES 60
 
-#define SEGMENT_DURATION 4000000 //us
-#define SEG_BASE_NAME1 "adaptationSet1"
-#define SEG_BASE_NAME2 "adaptationSet2"
+#define SEG_DURATION 4 //sec
+#define DASH_FOLDER "/home/palau/nginx_root/dashLMS"
+#define BASE_NAME "test"
+#define MPD_LOCATION "http://localhost/dashLMS/test.mpd"
 
 bool run = true;
 
@@ -55,7 +56,12 @@ Dasher* setupDasher(int dasherId)
     Worker* worker = NULL;
     PipelineManager *pipe = Controller::getInstance()->pipelineManager();
     
-    dasher = new Dasher(SEGMENT_DURATION);
+    dasher = Dasher::createNew(DASH_FOLDER, BASE_NAME, SEG_DURATION, MPD_LOCATION);
+
+    if(!dasher) {
+        exit(1);
+    }
+
     pipe->addFilter(dasherId, dasher);
     worker = new Worker();
     worker->addProcessor(dasherId, dasher);
@@ -113,7 +119,7 @@ void addAudioPath(unsigned port, Dasher* dasher, int dasherId)
     pipe->addPath(port, path);       
     pipe->connectPath(path);
 
-    if (dasher != NULL && !dasher->addSegmenter(dstReader, SEG_BASE_NAME1, SEGMENT_DURATION)) {
+    if (dasher != NULL && !dasher->addSegmenter(dstReader)) {
         utils::errorMsg("Error adding segmenter");
     }
     
@@ -205,11 +211,11 @@ void addVideoPath(unsigned port, Dasher* dasher, int dasherId, unsigned width = 
         utils::infoMsg("Master reader: " + std::to_string(dstReader1));
         utils::infoMsg("Slave reader: " + std::to_string(dstReader2));
 
-        if (!dasher->addSegmenter(dstReader1, SEG_BASE_NAME1, SEGMENT_DURATION)) {
+        if (!dasher->addSegmenter(dstReader1)) {
             utils::errorMsg("Error adding segmenter");
         }
 
-        if (!dasher->addSegmenter(dstReader2, SEG_BASE_NAME2, SEGMENT_DURATION)) {
+        if (!dasher->addSegmenter(dstReader2)) {
             utils::errorMsg("Error adding segmenter");
         }
     }
@@ -398,7 +404,7 @@ int main(int argc, char* argv[])
     }
 
     if (vPort == 0 && aPort == 0 && rtspUri.length() == 0){
-        utils::errorMsg("invalid parameters");
+        utils::errorMsg("Invalid parameters. Usage: testranscoder -v <video_input_port> -a <audio_input_port> -d <dst_ip> -P <dst_port> -r <rtsp_uri> -dash");
         return 1;
     }
 

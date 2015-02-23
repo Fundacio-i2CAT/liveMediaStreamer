@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- *  Authors: David Cassany <david.cassany@i2cat.net> 
+ *  Authors: David Cassany <david.cassany@i2cat.net>
  *           Marc Palau <marc.palau@i2cat.net>
  */
 
@@ -28,7 +28,7 @@
 #include "Types.hh"
 
 class VideoFrame : public Frame {
-    
+
     public:
         void setSize(int width, int height);
         void setPixelFormat(PixType pixelFormat);
@@ -36,7 +36,7 @@ class VideoFrame : public Frame {
         int getWidth() {return width;};
         int getHeight() {return height;};
         PixType getPixelFormat() {return pixelFormat;};
-              
+
     protected:
         int width, height;
         PixType pixelFormat;
@@ -55,11 +55,11 @@ class InterleavedVideoFrame : public VideoFrame {
         unsigned int getMaxLength() {return bufferMaxLen;};
         void setLength(unsigned int length) {bufferLen = length;};
         bool isPlanar() {return false;};
-        
+
     protected:
         InterleavedVideoFrame(VCodecType codec, unsigned int maxLength);
         InterleavedVideoFrame(VCodecType codec, int width, int height, PixType pixelFormat);
-              
+
     private:
         unsigned char *frameBuff;
         unsigned int bufferLen;

@@ -2,6 +2,7 @@
 #include "../src/modules/liveMediaOutput/SinkManager.hh"
 #include "../src/modules/videoResampler/VideoResampler.hh"
 #include "../src/modules/videoEncoder/VideoEncoderX264.hh"
+#include "../src/modules/sharedMemory/SharedMemory.hh"
 #include "../src/modules/dasher/Dasher.hh"
 #include "../src/AudioFrame.hh"
 #include "../src/Controller.hh"
@@ -48,10 +49,10 @@ void signalHandler( int signum )
     utils::infoMsg("Workers Stopped");
 }
 
-Dasher* setupDasher(int dasherId) 
+Dasher* setupDasher(int dasherId)
 {
     Dasher* dasher;
-    
+
     int workerId = rand();
     Worker* worker = NULL;
     PipelineManager *pipe = Controller::getInstance()->pipelineManager();
@@ -67,14 +68,14 @@ Dasher* setupDasher(int dasherId)
     worker->addProcessor(dasherId, dasher);
     dasher->setWorkerId(workerId);
     pipe->addWorker(workerId, worker);
-    
+
     return dasher;
 }
 
 void addAudioPath(unsigned port, Dasher* dasher, int dasherId)
-{    
+{
     PipelineManager *pipe = Controller::getInstance()->pipelineManager();
-    
+
     int aDecId = rand();
     int aEncId = rand();
     int decId = rand();
@@ -87,9 +88,9 @@ void addAudioPath(unsigned port, Dasher* dasher, int dasherId)
 
     Worker* aDec;
     Worker* aEnc;
-    
+
     Path *path;
-    
+
     //NOTE: Adding decoder to pipeManager and handle worker
     decoder = new AudioDecoderLibav();
     pipe->addFilter(decId, decoder);
@@ -109,30 +110,31 @@ void addAudioPath(unsigned port, Dasher* dasher, int dasherId)
     aEnc->addProcessor(encId, encoder);
     encoder->setWorkerId(aEncId);
     pipe->addWorker(aEncId, aEnc);
-    
+
     //NOTE: add filter to path
     if (dasher == NULL){
         path = pipe->createPath(pipe->getReceiverID(), pipe->getTransmitterID(), port, -1, ids);
     } else {
         path = pipe->createPath(pipe->getReceiverID(), dasherId, port, dstReader, ids);
     }
-    pipe->addPath(port, path);       
+    pipe->addPath(port, path);
     pipe->connectPath(path);
 
     if (dasher != NULL && !dasher->addSegmenter(dstReader)) {
         utils::errorMsg("Error adding segmenter");
     }
-    
+
     pipe->startWorkers();
-    
+
     utils::infoMsg("Audio path created from port " + std::to_string(port));
 }
 
-void addVideoPath(unsigned port, Dasher* dasher, int dasherId, unsigned width = 0, unsigned height = 0)
-{    
+void addVideoPath(unsigned port, Dasher* dasher, int dasherId, size_t sharingMemoryKey = 0,  unsigned width = 0, unsigned height = 0)
+{
     PipelineManager *pipe = Controller::getInstance()->pipelineManager();
-    
+
     int wResId = rand();
+    int wResId2 = rand();
     int wEncId = rand();
     int wEncId2 = rand();
     int wDecId = rand();
@@ -144,19 +146,42 @@ void addVideoPath(unsigned port, Dasher* dasher, int dasherId, unsigned width = 
     int dstReader1 = rand();
     int dstReader2 = rand();
     int slavePathId = rand();
+    int shmId = rand();
+    int wShmId = rand();
+    SharedMemory *shm;
+    Worker* wShm;
+    int shmEncId = rand();
+    int wEncShmId = rand();
+    SharedMemory *shmEnc;
+    Worker* wEncShm;
+
     std::vector<int> ids({decId, resId, encId});
     std::vector<int> slaveIds({encId2});
 
+    if(sharingMemoryKey>0){
+        ids.clear();
+        ids.push_back(decId);
+        ids.push_back(shmId);
+        ids.push_back(resId);
+        ids.push_back(encId);
+        ids.push_back(shmEncId);
+    }
+
+    std::string sessionId;
+    std::string sdp;
+
     VideoResampler *resampler;
+    VideoResampler *resampler2;
     VideoEncoderX264 *encoder;
     VideoEncoderX264 *encoder2;
     VideoDecoderLibav *decoder;
 
     Worker* wDec;
     Worker* wRes;
+    Worker* wRes2;
     Worker* wEnc;
     Worker* wEnc2;
-    
+
     Path *path, *slavePath;
 
     //NOTE: Adding decoder to pipeManager and handle worker
@@ -166,6 +191,20 @@ void addVideoPath(unsigned port, Dasher* dasher, int dasherId, unsigned width = 
     wDec->addProcessor(decId, decoder);
     decoder->setWorkerId(wDecId);
     pipe->addWorker(wDecId, wDec);
+
+    //NOTE: Adding sharedMemory to pipeManager and handle worker
+    if(sharingMemoryKey > 0){
+        shm = SharedMemory::createNew(sharingMemoryKey, RAW);
+        if(!shm){
+            utils::errorMsg("Could not initiate sharedMemory filter");
+            exit(1);
+        }
+        pipe->addFilter(shmId, shm);
+        wShm = new Worker();
+        wShm->addProcessor(shmId, shm);
+        shm->setWorkerId(wShmId);
+        pipe->addWorker(wShmId, wShm);
+    }
 
     //NOTE: Adding resampler to pipeManager and handle worker
     resampler = new VideoResampler();
@@ -184,16 +223,38 @@ void addVideoPath(unsigned port, Dasher* dasher, int dasherId, unsigned width = 
     encoder->setWorkerId(wEncId);
     pipe->addWorker(wEncId, wEnc);
 
-    
+    if(sharingMemoryKey > 0){
+        shmEnc = SharedMemory::createNew(sharingMemoryKey + 1, H264);
+        if(!shmEnc){
+            utils::errorMsg("Could not initiate sharedMemory filter");
+            exit(1);
+        }
+        pipe->addFilter(shmEncId, shmEnc);
+        wEncShm = new Worker();
+        wEncShm->addProcessor(shmId, shmEnc);
+        shmEnc->setWorkerId(wEncShmId);
+        pipe->addWorker(wEncShmId, wEncShm);
+    }
+
     if (dasher != NULL){
         path = pipe->createPath(pipe->getReceiverID(), dasherId, port, dstReader1, ids);
     } else {
         path = pipe->createPath(pipe->getReceiverID(), pipe->getTransmitterID(), port, -1, ids);
     }
-    pipe->addPath(port, path);       
+    pipe->addPath(port, path);
     pipe->connectPath(path);
-   
+
     if (dasher != NULL){
+        //NOTE: Adding resampler to pipeManager and handle worker
+        resampler2 = new VideoResampler(SLAVE);
+        pipe->addFilter(resId2, resampler2);
+        wRes2 = new Worker();
+        wRes2->addProcessor(resId2, resampler2);
+        resampler2->setWorkerId(wResId2);
+        resampler2->configure(640, 480, 0, YUV420P);
+        pipe->addWorker(wResId2, wRes2);
+        ((BaseFilter*)resampler)->addSlave(resId2, resampler2);
+    
         //NOTE: Adding encoder to pipeManager and handle worker
         encoder2 = new VideoEncoderX264(SLAVE, VIDEO_DEFAULT_FRAMERATE, false);
         pipe->addFilter(encId2, encoder2);
@@ -201,11 +262,14 @@ void addVideoPath(unsigned port, Dasher* dasher, int dasherId, unsigned width = 
         wEnc2->addProcessor(encId2, encoder2);
         encoder2->setWorkerId(wEncId2);
         pipe->addWorker(wEncId2, wEnc2);
-        ((BaseFilter*)encoder)->addSlave(resId2, encoder2);
+        ((BaseFilter*)encoder)->addSlave(wEncId2, encoder2);
 
         //NOTE: add filter to path
         slavePath = pipe->createPath(resId2, dasherId, -1, dstReader2, slaveIds);
-        pipe->addPath(slavePathId, slavePath);       
+        pipe->addPath(slavePathId, slavePath);
+        if (!slavePath) {
+            std::cout << "NO slave path...." << std::endl;
+        }
         pipe->connectPath(slavePath);
 
         utils::infoMsg("Master reader: " + std::to_string(dstReader1));
@@ -219,9 +283,9 @@ void addVideoPath(unsigned port, Dasher* dasher, int dasherId, unsigned width = 
             utils::errorMsg("Error adding segmenter");
         }
     }
-    
+
     pipe->startWorkers();
-    
+
     utils::infoMsg("Video path created from port " + std::to_string(port));
 }
 
@@ -249,7 +313,7 @@ bool addVideoSDPSession(unsigned port, std::string codec = V_CODEC)
         utils::errorMsg("Could not initiate video session");
         return false;
     }
-    
+
     return true;
 }
 
@@ -258,7 +322,7 @@ bool addAudioSDPSession(unsigned port, std::string codec = A_CODEC,
 {
     PipelineManager *pipe = Controller::getInstance()->pipelineManager();
     SourceManager *receiver = pipe->getReceiver();
-    
+
     Session *session;
     std::string sessionId;
     std::string sdp;
@@ -278,7 +342,7 @@ bool addAudioSDPSession(unsigned port, std::string codec = A_CODEC,
         utils::errorMsg("Could not initiate audio session");
         return false;
     }
-    
+
     return true;
 }
 
@@ -288,53 +352,53 @@ bool addRTSPsession(std::string rtspUri, Dasher* dasher, int dasherId)
     std::string sessionId = utils::randomIdGenerator(ID_LENGTH);
     std::string medium;
     unsigned retries = 0;
-    
+
     PipelineManager *pipe = Controller::getInstance()->pipelineManager();
     SourceManager *receiver = pipe->getReceiver();
-    
+
     session = Session::createNewByURL(*(receiver->envir()), "testTranscoder", rtspUri, sessionId, receiver);
     if (!receiver->addSession(session)){
         utils::errorMsg("Could not add rtsp session");
         return false;
     }
-    
+
     if (!session->initiateSession()){
         utils::errorMsg("Could not initiate video session");
         return false;
     }
-    
+
     while (session->getScs()->session == NULL && retries <= RETRIES){
         sleep(1);
         retries++;
     }
-    
+
     MediaSubsessionIterator iter(*(session->getScs()->session));
     MediaSubsession* subsession;
-    
+
     while(iter.next() == NULL && retries <= RETRIES){
         sleep(1);
         retries++;
     }
-    
+
     if (retries > RETRIES){
         delete receiver;
         return false;
     }
-    
+
     utils::infoMsg("RTSP client session created!");
-    
+
     iter.reset();
-    
-    while((subsession = iter.next()) != NULL){            
+
+    while((subsession = iter.next()) != NULL){
         medium = subsession->mediumName();
-        
+
         if (medium.compare("video") == 0){
             addVideoPath(subsession->clientPortNum(), dasher, dasherId);
         } else if (medium.compare("audio") == 0){
             addAudioPath(subsession->clientPortNum(), dasher, dasherId);
         }
     }
-    
+
     return true;
 }
 
@@ -343,7 +407,7 @@ bool publishRTSPSession(std::vector<int> readers)
     std::string sessionId;
     PipelineManager *pipe = Controller::getInstance()->pipelineManager();
     SinkManager *transmitter = pipe->getTransmitter();
-     
+
     sessionId = utils::randomIdGenerator(ID_LENGTH);
     if (!transmitter->addRTSPConnection(readers, 1, STD_RTP, sessionId)){
         return false;
@@ -353,7 +417,7 @@ bool publishRTSPSession(std::vector<int> readers)
     if (!transmitter->addRTSPConnection(readers, 2, MPEGTS, sessionId)){
         return false;
     }
-    
+
     return true;
 }
 
@@ -373,7 +437,8 @@ int main(int argc, char* argv[])
     int port = 0;
     std::string ip;
     std::string rtspUri;
-    bool dash = false;
+    size_t sharingMemoryKey = 0;
+	bool dash = false;
     Dasher* dasher = NULL;
     int dasherId = rand();
     std::vector<int> readers;
@@ -400,7 +465,10 @@ int main(int argc, char* argv[])
         } else if (strcmp(argv[i],"-dash")==0) {
             dash = true;
             utils::infoMsg("Output will be DASH, ignoring any -P, -d or -ts flag");
-        } 
+        } else if (strcmp(argv[i],"-s")==0) {
+            sharingMemoryKey = std::stoi(argv[i+1]);
+            utils::infoMsg("sharing memory key set to: "+ std::to_string(sharingMemoryKey));
+        }
     }
 
     if (vPort == 0 && aPort == 0 && rtspUri.length() == 0){
@@ -413,36 +481,36 @@ int main(int argc, char* argv[])
         utils::errorMsg("Couldn't start pipe");
         return 1;
     }
-    
+
     signal(SIGINT, signalHandler);
-    
+
     if (dash){
         dasher = setupDasher(dasherId);
     }
 
     if (vPort != 0 && rtspUri.length() == 0){
         addVideoSDPSession(vPort);
-        addVideoPath(vPort, dasher, dasherId);
+        addVideoPath(vPort, dasher, dasherId, sharingMemoryKey);
     }
 
     if (aPort != 0 && rtspUri.length() == 0){
         addAudioSDPSession(aPort);
         addAudioPath(aPort, dasher, dasherId);
     }
-    
+
     if (rtspUri.length() > 0){
         if (!addRTSPsession(rtspUri, dasher, dasherId)){
             utils::errorMsg("Couldn't start rtsp client session!");
             return 1;
         }
     }
-    
+
     for (auto it : pipe->getPaths()) {
         readers.push_back(it.second->getDstReaderID());
     }
-    
+
     if (!dash) {
-        publishRTSPSession(readers); 
+        publishRTSPSession(readers);
     }
 
     if (!dash && port != 0 && !ip.empty()){

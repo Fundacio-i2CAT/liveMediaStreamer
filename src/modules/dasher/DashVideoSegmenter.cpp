@@ -18,7 +18,7 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  *  Authors:  Marc Palau <marc.palau@i2cat.net>
- *            
+ *
  */
 
  #include "DashVideoSegmenter.hh"
@@ -31,7 +31,7 @@ isVCL(false), width(0), height(0)
 
 }
 
-DashVideoSegmenter::~DashVideoSegmenter() 
+DashVideoSegmenter::~DashVideoSegmenter()
 {
 
 }
@@ -108,7 +108,7 @@ bool DashVideoSegmenter::finishSegment()
     return true;
 }
 
-bool DashVideoSegmenter::parseNal(VideoFrame* nal, bool &newFrame) 
+bool DashVideoSegmenter::parseNal(VideoFrame* nal, bool &newFrame)
 {
     int startCodeOffset;
     unsigned char* nalData;
@@ -131,7 +131,7 @@ bool DashVideoSegmenter::parseNal(VideoFrame* nal, bool &newFrame)
     return true;
 }
 
-bool DashVideoSegmenter::updateTimeValues() 
+bool DashVideoSegmenter::updateTimeValues()
 {
     if (currDuration.count() == 0) {
         return false;
@@ -246,7 +246,7 @@ bool DashVideoSegmenter::appendFrameToDashSegment(DashSegment* segment)
 
 bool DashVideoSegmenter::appendNalToFrame(unsigned char* nalData, unsigned nalDataLength, bool &newFrame)
 {
-    unsigned char nalType; 
+    unsigned char nalType;
 
     nalType = nalData[0] & H264_NALU_TYPE_MASK;
 
@@ -333,7 +333,7 @@ void DashVideoSegmenter::createMetadata()
     metadata.insert(metadata.end(), lastPPS.begin(), lastPPS.end());
 }
 
-int DashVideoSegmenter::detectStartCode(unsigned char const* ptr) 
+int DashVideoSegmenter::detectStartCode(unsigned char const* ptr)
 {
     u_int32_t bytes = 0|(ptr[0]<<16)|(ptr[1]<<8)|ptr[2];
     if (bytes == H264_NALU_START_CODE) {

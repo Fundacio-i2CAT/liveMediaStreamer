@@ -75,7 +75,7 @@ bool X264VideoCircularBuffer::pushBack()
     x264_nal_t** nals;
     unsigned char** hNals;
     int* hNalSize;
-
+    
     if ((nalsNum = inputFrame->getHeaderNalsNum()) > 0){       
         hNals = inputFrame->getHeaderNals();
         hNalSize = inputFrame->getHeaderNalsSize();
@@ -86,6 +86,7 @@ bool X264VideoCircularBuffer::pushBack()
             }
             
             vFrame = dynamic_cast<VideoFrame*>(frame);
+            vFrame->setSequenceNumber(inputFrame->getSequenceNumber());
 
             memcpy(vFrame->getDataBuf(), hNals[i], hNalSize[i]);
             vFrame->setLength(hNalSize[i]);
@@ -105,6 +106,7 @@ bool X264VideoCircularBuffer::pushBack()
         }
 
         vFrame = dynamic_cast<VideoFrame*>(frame);
+        vFrame->setSequenceNumber(inputFrame->getSequenceNumber());
 
         memcpy(vFrame->getDataBuf(), (*nals)[i].p_payload, (*nals)[i].i_payload);
         vFrame->setLength((*nals)[i].i_payload);

@@ -30,6 +30,7 @@
 #include <string.h>
 #include <stdint.h>
 #include <iostream>
+#include <fstream>
 
 #include "../../FrameQueue.hh"
 #include "../../Filter.hh"
@@ -38,10 +39,20 @@
 
 #define SHMSIZE   		6220824		//1920x1080x3 + 24
 #define HEADER_SIZE		24			//4B * 6 (sync.byte and frame info)
-#define CHAR_READING 	'0'
-#define CHAR_WRITING 	'1'
+#define CHAR_READING 	'1'
+#define CHAR_WRITING 	'0'
 #define MAX_SIZE 1920*1080*3
 #define KEY 1985
+#define NON_IDR 1
+#define IDR 5
+#define SEI 6
+#define SPS 7
+#define PPS 8
+#define AUD 9
+#define H264_NALU_START_CODE 0x00000001
+#define SHORT_START_CODE_LENGTH 3
+#define LONG_START_CODE_LENGTH 4
+#define H264_NALU_TYPE_MASK 0x1F
 
 /*! OneToOneFilter sharing memory with another process. This filter uses shm
 library, a POSIX shared memory library to share specific address spaces between
@@ -53,44 +64,48 @@ public:
     /**
     * Creates new shared memory object
     * @param key_ value for defining the piece of address to share
+    * @param VCodecType codec value defined in order to correlate type of shared frames with its shared memory space
     * @return SharedMemory object or NULL if any error while creating
     * @see OneToOneFilter to check the inherated input params
     */
-    static SharedMemory* createNew(size_t key_, size_t fTime = 0, FilterRole fRole_ = MASTER, bool force_ = false, bool sharedFrames_ = true);
+    static SharedMemory* createNew(size_t key_, VCodecType codec, size_t fTime = 0, FilterRole fRole_ = MASTER, bool force_ = false, bool sharedFrames_ = true);
     /**
     * Class destructor
     */
     ~SharedMemory();
-
     /**
-    * Main method that bypass incoming frame to output and checks if the shared
-    * memory can be written with new incoming frame
-    * @param Frame *org as origin input frame
-    * @param Frame *dst as destination output frame
-    * @return true always, an incoming frame must be always bypassed
+    * Returns the shared memory ID of this filter
+    * @return SharedMemoryID of its sharedMemory filter
     */
-    bool doProcessFrame(Frame *org, Frame *dst);
-    /**
-    * Allocs frame queue to be used
-    * @param Integer of the worker ID
-    * @return FrameQueue object or NULL if any error while creating the queue
-    */
-    FrameQueue* allocQueue(int wId);
 
-private:
-    SharedMemory(size_t key_ = KEY, size_t fTime = 0, FilterRole fRole_ = MASTER, bool force_ = false, bool sharedFrames_ = true);
+protected:
+    SharedMemory(size_t key_, VCodecType codec_, size_t fTime = 0, FilterRole fRole_ = MASTER, bool force_ = false, bool sharedFrames_ = true);
+    size_t getSharedMemoryID() { return SharedMemoryID;};
     bool isEnabled() {return enabled;};
-
-    void initializeEventMap();
-    void doGetState(Jzon::Object &filterNode);
-
-    void copyOrgToDstFrame(InterleavedVideoFrame *org, InterleavedVideoFrame *dst);
-    int writeSharedMemory(uint8_t *buffer, int buffer_size);
+    void writeSharedMemoryH264();
+    bool appendNalToFrame(unsigned char* nalData, unsigned nalDataLength, int startCodeOffset, bool &newFrame);
+    bool parseNal(VideoFrame* nal, bool &newFrame);
+    int detectStartCode(unsigned char const* ptr);
+    int writeSharedMemoryRAW(uint8_t *buffer, int buffer_size);
 	void writeFramePayload(uint16_t seqNum);
 	bool isWritable();
 	Frame * getFrameObject() { return frame;};
 	bool setFrameObject(Frame* in_frame);
 	uint16_t getSeqNum() { return seqNum;};
+    void setSeqNum(uint16_t seqNum_) { seqNum = seqNum_;};
+    bool isNewFrame() { return newFrame;};
+    void setNewFrame(bool newFrame_) { newFrame = newFrame_;};
+
+protected:
+	InterleavedVideoFrame 		*frame;
+
+private:
+    bool doProcessFrame(Frame *org, Frame *dst);
+    void initializeEventMap();
+    void doGetState(Jzon::Object &filterNode);
+    FrameQueue* allocQueue(int wId);
+
+    void copyOrgToDstFrame(InterleavedVideoFrame *org, InterleavedVideoFrame *dst);
 
     uint16_t getCodecFromVCodec(VCodecType codec);
 	uint16_t getPixelFormatFromPixType(PixType pxlFrmt);
@@ -103,9 +118,11 @@ private:
     uint8_t                     *SharedMemoryOrigin;
 	uint8_t 					*buffer;
 	uint8_t 					*access;
-	InterleavedVideoFrame 		*frame;
 	uint16_t 					seqNum;
     bool                        enabled;
+    bool                        newFrame;
+    std::vector<unsigned char>  frameData;
+    VCodecType const            codec;
 };
 
 #endif

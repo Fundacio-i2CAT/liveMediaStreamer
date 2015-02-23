@@ -33,13 +33,14 @@
 #include "Filter.hh"
 #include "AVFramedQueue.hh"
 #include "Frame.hh"
+#include "VideoFrame.hh"
 
 #define READERS 1
 #define WRITERS 1
 
 
 class FrameMock : public Frame {
-public:   
+public:
     ~FrameMock(){};
     virtual unsigned char *getDataBuf() {
         return buff;
@@ -59,6 +60,31 @@ public:
 
 protected:
     unsigned char buff[4];
+};
+
+class VideoFrameMock : public InterleavedVideoFrame
+{
+public:
+    ~VideoFrameMock(){};
+    virtual unsigned char *getDataBuf() {
+        return buff;
+    };
+
+    static VideoFrameMock* createNew() {
+        return new VideoFrameMock();
+    };
+
+    virtual unsigned char **getPlanarDataBuf() {return NULL;};
+    virtual unsigned int getLength() {return 4;};
+    virtual unsigned int getMaxLength() {return 4;};
+    virtual void setLength(unsigned int length) {};
+    virtual bool isPlanar() {return false;};
+
+protected:
+    unsigned char buff[4] = {1,1,1,1};
+
+private:
+    VideoFrameMock(): InterleavedVideoFrame(RAW, 1920, 1080, YUV420P) {};
 };
 
 class AVFramedQueueMock : public AVFramedQueue

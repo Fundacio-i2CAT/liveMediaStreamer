@@ -18,9 +18,9 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  *  Authors:  Marc Palau <marc.palau@i2cat.net>
- *            
+ *
  */
- 
+
 #include "Dasher.hh"
 #include "../../AVFramedQueue.hh"
 #include "DashVideoSegmenter.hh"
@@ -293,7 +293,7 @@ void Dasher::initializeEventMap()
 
 void Dasher::doGetState(Jzon::Object &filterNode)
 {
-//TODO: implement    
+//TODO: implement
 }
 
 bool Dasher::addSegmenter(int readerId)
@@ -327,7 +327,7 @@ bool Dasher::addSegmenter(int readerId)
         vSegments[readerId] = new DashSegment();
         initSegments[readerId] = new DashSegment();
     }
-    
+
     if ((aQueue = dynamic_cast<AudioFrameQueue*>(r->getQueue())) != NULL) {
 
         if (aQueue->getCodec() != AAC) {
@@ -340,7 +340,7 @@ bool Dasher::addSegmenter(int readerId)
         aSegments[readerId] = new DashSegment();
         initSegments[readerId] = new DashSegment();
     }
-    
+
     return true;
 }
 
@@ -358,7 +358,7 @@ bool Dasher::removeSegmenter(int readerId)
 
     delete segmenters[readerId];
     segmenters.erase(readerId);
-    
+
     return true;
 }
 
@@ -481,4 +481,3 @@ void DashSegment::clear()
     timestamp = 0;
     dataLength = 0;
 }
-

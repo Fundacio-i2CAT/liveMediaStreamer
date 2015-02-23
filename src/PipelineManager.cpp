@@ -275,12 +275,22 @@ Path* PipelineManager::createPath(int orgFilter, int dstFilter, int orgWriter, i
     int realOrgWriter = orgWriter;
     int realDstReader = dstReader;
 
+    if (filters.count(orgFilter) <= 0) {
+        utils::errorMsg("Origin filter does not exist");
+    }
+
+    if (filters.count(dstFilter) <= 0) {
+        utils::errorMsg("Destination filter does not exist");
+    }
+
     if (filters.count(orgFilter) <= 0 || filters.count(dstFilter) <= 0) {
+        utils::errorMsg("Error creating path: origin and/or destination filter do not exist");
         return NULL;
     }
 
     for (auto it : midFilters) {
         if (filters.count(it) <= 0) {
+            utils::errorMsg("Error creating path: one or more of the mid filters do no exist");
             return NULL;
         }
     }

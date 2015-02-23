@@ -89,6 +89,30 @@ namespace utils
 
         return codec;
     }
+    std::string getVideoCodecAsString(VCodecType codec)
+    {
+       std::string stringCodec;
+
+        switch(codec) {
+            case H264:
+                stringCodec = "H264";
+                break;
+            case RAW:
+                stringCodec = "RAW";
+                break;
+            case VP8:
+                stringCodec = "VP8";
+                break;
+            case MJPEG:
+                stringCodec = "MJPEG";
+                break;
+            default:
+                stringCodec = "";
+                break;
+        }
+
+        return stringCodec;
+    }
 
     std::string getAudioCodecAsString(ACodecType codec)
     {
@@ -381,7 +405,7 @@ namespace utils
         if (msg.empty()){
             return;
         }
-        
+
         Logger logger = Logger::getInstance(LOG4CPLUS_TEXT("main"));
         LOG4CPLUS_ERROR(logger,  "\e[1;31m" + msg + "\e[0m");
     }
@@ -399,7 +423,7 @@ namespace utils
         Logger logger = Logger::getInstance(LOG4CPLUS_TEXT("main"));
         LOG4CPLUS_INFO(logger, "\e[1;33m" + msg + "\e[0m");
     }
-    
+
     void printMood(bool mood){
         if (mood){
             std::cout << "\e[1;32mSUCCESS \e[5m(⌐■_■)\e[0m" << std::endl << std::endl;

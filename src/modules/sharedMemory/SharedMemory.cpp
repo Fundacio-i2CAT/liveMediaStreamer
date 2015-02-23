@@ -134,9 +134,12 @@ int SharedMemory::writeSharedMemory(uint8_t *buf, int buf_size) {
 }
 
 void SharedMemory::writeFramePayload(uint16_t seqNum) {
+    std::chrono::microseconds presentationTime; 
 
-	uint32_t tv_sec = frame->getPresentationTime().count() / 1000000;
-	uint32_t tv_usec = frame->getPresentationTime().count() % 1000000;
+    presentationTime = duration_cast<std::chrono::microseconds>(frame->getPresentationTime().time_since_epoch());
+
+    uint32_t tv_sec = presentationTime.count()/std::micro::den;
+    uint32_t tv_usec = presentationTime.count()%std::micro::den;
 	uint16_t width = frame->getWidth();
 	uint16_t height = frame->getHeight();
 	uint32_t length = frame->getLength();

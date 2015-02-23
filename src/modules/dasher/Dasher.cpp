@@ -71,8 +71,8 @@ TailFilter(readersNum)
     mpdMngr->setMinimumUpdatePeriod(segDurInSec);
     mpdMngr->setTimeShiftBufferDepth(segDurInSec*MAX_SEGMENTS_IN_MPD);
 
-    timestampOffset = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
-    segDurInMicrosec = segDurInSec*1000000;
+    timestampOffset = std::chrono::system_clock::now();
+    segDur = std::chrono::seconds(segDurInSec);
 }
 
 Dasher::~Dasher()
@@ -243,7 +243,6 @@ size_t Dasher::updateTimestampControl(std::map<int,DashSegment*> segments)
             refTimestamp = seg.second->getTimestamp();
         }
 
-
         if (refTimestamp != seg.second->getTimestamp()) {
             utils::warningMsg("Segments of the same Adaptation Set have different timestamps"); 
             utils::warningMsg("Setting timestamp to a reference one: this may cause playing errors");
@@ -323,7 +322,7 @@ bool Dasher::addSegmenter(int readerId)
             return false;
         }
 
-        segmenters[readerId] = new DashVideoSegmenter(segDurInMicrosec);
+        segmenters[readerId] = new DashVideoSegmenter(segDur);
         segmenters[readerId]->setOffset(timestampOffset);
         vSegments[readerId] = new DashSegment();
         initSegments[readerId] = new DashSegment();
@@ -336,7 +335,7 @@ bool Dasher::addSegmenter(int readerId)
             return false;
         }
 
-        segmenters[readerId] = new DashAudioSegmenter(segDurInMicrosec);
+        segmenters[readerId] = new DashAudioSegmenter(segDur);
         segmenters[readerId]->setOffset(timestampOffset);
         aSegments[readerId] = new DashSegment();
         initSegments[readerId] = new DashSegment();
@@ -380,10 +379,10 @@ std::string Dasher::getInitSegmentName(std::string basePath, std::string baseNam
 }
 
 
-DashSegmenter::DashSegmenter(size_t segDurInMicros, size_t tBase) : 
-dashContext(NULL), timeBase(tBase), segDurInMicroSec(segDurInMicros), frameDuration(0), tsOffset(0), theoricPts(0)
+DashSegmenter::DashSegmenter(std::chrono::seconds segmentDuration, size_t tBase) : 
+segDur(segmentDuration), dashContext(NULL), timeBase(tBase), frameDuration(0), theoricPts(0)
 {
-    segDurInTimeBaseUnits = segDurInMicroSec*timeBase/MICROSECONDS_TIME_BASE;
+    segDurInTimeBaseUnits = segDur.count()*timeBase;
 }
 
 DashSegmenter::~DashSegmenter()
@@ -414,25 +413,20 @@ bool DashSegmenter::generateSegment(DashSegment* segment)
     return true;
 }
 
-void DashSegmenter::setOffset(size_t offs)
+void DashSegmenter::setOffset(std::chrono::system_clock::time_point offs)
 {
     tsOffset = offs;
 }
 
-size_t DashSegmenter::customTimestamp(size_t timestamp)
+size_t DashSegmenter::customTimestamp(std::chrono::system_clock::time_point timestamp)
 {
-    return (timestamp - tsOffset)*timeBase/MICROSECONDS_TIME_BASE;
+    std::chrono::nanoseconds ts = timestamp - tsOffset;
+    return ts.count()*timeBase/std::nano::den;
 }
 
-size_t DashSegmenter::microsToTimeBase(size_t microsValue)
+size_t DashSegmenter::nanosToTimeBase(std::chrono::nanoseconds nanosValue)
 {
-    double result;
-    size_t roundedResult;
-
-    result = (double)microsValue*timeBase/MICROSECONDS_TIME_BASE;
-    roundedResult = round(result);
-
-    return roundedResult;
+    return nanosValue.count()*timeBase/std::nano::den;
 }
 
 

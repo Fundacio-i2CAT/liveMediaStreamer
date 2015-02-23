@@ -82,7 +82,7 @@ public:
     std::chrono::system_clock::time_point getTime() const {return time;};
     
 protected:
-    virtual size_t processFrame() = 0;
+    virtual std::chrono::nanoseconds processFrame() = 0;
     std::chrono::system_clock::time_point time;
     
 private:

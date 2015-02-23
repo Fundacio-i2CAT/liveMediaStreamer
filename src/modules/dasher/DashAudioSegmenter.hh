@@ -41,7 +41,7 @@ public:
     * @param segDur Segment duration in milliseconds 
     * @param segBaseName Base name for the segments. Segment names will be: segBaseName_<timestamp>.m4a and segBaseName_init.m4a
     */ 
-    DashAudioSegmenter(size_t segDur);
+    DashAudioSegmenter(std::chrono::seconds segDur);
 
     /**
     * Class destructor
@@ -92,7 +92,7 @@ private:
     unsigned char getChannelConfFromADTSHeader(unsigned char* adtsHeader);
     unsigned char getMetadata1stByte(unsigned char audioObjectType, unsigned char samplingFrequencyIndex);
     unsigned char getMetadata2ndByte(unsigned char samplingFrequencyIndex, unsigned char channelConfiguration);
-    bool updateTimeValues(size_t currentTimestamp, int sampleRate, int samples);
+    bool updateTimeValues(int sampleRate, int samples);
 
     unsigned char profile;
     unsigned char audioObjectType;

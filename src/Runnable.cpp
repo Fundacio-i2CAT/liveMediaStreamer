@@ -45,14 +45,15 @@ void Runnable::sleepUntilReady()
 
 bool Runnable::runProcessFrame()
 {
-    size_t ret;
+    std::chrono::nanoseconds ret;
     
     ret = processFrame();
-    if (ret < 0){
+
+    if (ret.count() < 0){
         return false;
     }
 
-    time = std::chrono::system_clock::now() + std::chrono::microseconds(ret);
+    time = std::chrono::system_clock::now() + ret;
 
     return true;
 }

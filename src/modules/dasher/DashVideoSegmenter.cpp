@@ -23,10 +23,10 @@
 
  #include "DashVideoSegmenter.hh"
 
-DashVideoSegmenter::DashVideoSegmenter(size_t segDur) : 
+DashVideoSegmenter::DashVideoSegmenter(std::chrono::seconds segDur) : 
 DashSegmenter(segDur, DASH_VIDEO_TIME_BASE), 
 updatedSPS(false), updatedPPS(false), lastTs(0), frameRate(0), isIntra(false), 
-isVCL(false), currTimestamp(0), width(0), height(0)
+isVCL(false), width(0), height(0)
 {
 
 }
@@ -52,8 +52,8 @@ bool DashVideoSegmenter::manageFrame(Frame* frame, bool &newFrame)
         return false;
     }
 
-    currDuration = nal->getDuration().count();
-    currTimestamp = nal->getPresentationTime().count(); 
+    currDuration = nal->getDuration();
+    currTimestamp = nal->getPresentationTime(); 
     width = nal->getWidth();
     height = nal->getHeight();
 
@@ -133,12 +133,12 @@ bool DashVideoSegmenter::parseNal(VideoFrame* nal, bool &newFrame)
 
 bool DashVideoSegmenter::updateTimeValues() 
 {
-    if (currTimestamp == 0 || currDuration == 0 || currTimestamp < tsOffset) {
+    if (currDuration.count() == 0) {
         return false;
     }
 
-    frameDuration = microsToTimeBase(currDuration);
-    frameRate = MICROSECONDS_TIME_BASE/currDuration;
+    frameDuration = nanosToTimeBase(currDuration);
+    frameRate = std::nano::den/currDuration.count();
     return true;
 }
 
@@ -225,11 +225,7 @@ bool DashVideoSegmenter::appendFrameToDashSegment(DashSegment* segment)
 
     segmentSize = generate_video_segment(isIntra, segment->getDataBuffer(), &dashContext, &segTimestamp);
 
-    if (segmentSize > I2ERROR_MAX || theoricPts == 0) {
-        theoricPts = customTimestamp(currTimestamp);
-    } else {
-        theoricPts += frameDuration;
-    }
+    theoricPts = customTimestamp(currTimestamp);
 
     addSampleReturn = add_video_sample(data, dataLength, frameDuration, theoricPts, theoricPts, segment->getSeqNumber(), isIntra, &dashContext);
     frameData.clear();

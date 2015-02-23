@@ -57,7 +57,7 @@ public:
     * @param segDur Segment duration in milliseconds 
     * @param segBaseName Base name for the segments. Segment names will be: segBaseName_<timestamp>.m4v and segBaseName_init.m4v
     */ 
-    DashVideoSegmenter(size_t segDur);
+    DashVideoSegmenter(std::chrono::seconds segDur);
 
     /**
     * Class destructor
@@ -130,7 +130,7 @@ public:
     * Return the presentation timestamp of the last NALU managed by manageFrame method
     * @return timestamp in milliseconds
     */
-    size_t getCurrentTimestamp() {return currTimestamp;};
+    // size_t getCurrentTimestamp() {return currTimestamp.time_since_epoch();};
 
     /**
     * Return the width of the last complete frame managed by manageFrame method
@@ -179,8 +179,8 @@ private:
     size_t frameRate;
     bool isIntra;
     bool isVCL;
-    size_t currTimestamp;
-    size_t currDuration;
+    std::chrono::system_clock::time_point currTimestamp;
+    std::chrono::nanoseconds currDuration;
     size_t width;
     size_t height;
 };

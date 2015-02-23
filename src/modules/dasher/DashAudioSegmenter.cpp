@@ -23,7 +23,7 @@
 
  #include "DashAudioSegmenter.hh"
 
-DashAudioSegmenter::DashAudioSegmenter(size_t segDur) : 
+DashAudioSegmenter::DashAudioSegmenter(std::chrono::seconds segDur) : 
 DashSegmenter(segDur, 0)
 {
 
@@ -59,7 +59,7 @@ bool DashAudioSegmenter::updateConfig()
         return false;
     }
 
-    if (!updateTimeValues(aFrame->getPresentationTime().count(), aFrame->getSampleRate(), aFrame->getSamples())) {
+    if (!updateTimeValues(aFrame->getSampleRate(), aFrame->getSamples())) {
         utils::errorMsg("Error updating time values of DashAudioSegmenter: timestamp not valid");
         return false;
     }
@@ -113,11 +113,7 @@ bool DashAudioSegmenter::appendFrameToDashSegment(DashSegment* segment)
 
     segmentSize = generate_audio_segment(segment->getDataBuffer(), &dashContext, &segTimestamp);
 
-    if (segmentSize > I2ERROR_MAX || theoricPts == 0) {
-        theoricPts = customTimestamp(aFrame->getPresentationTime().count());
-    } else {
-        theoricPts += frameDuration;
-    }
+    theoricPts = customTimestamp(aFrame->getPresentationTime());
 
     dataWithoutADTS = aFrame->getDataBuf() + ADTS_HEADER_LENGTH;
     dataLengthWithoutADTS = aFrame->getLength() - ADTS_HEADER_LENGTH;
@@ -166,15 +162,11 @@ bool DashAudioSegmenter::generateInitData(DashSegment* segment)
     return true;
 }
 
-bool DashAudioSegmenter::updateTimeValues(size_t currentTimestamp, int sampleRate, int samples) 
+bool DashAudioSegmenter::updateTimeValues(int sampleRate, int samples) 
 {
-    if (tsOffset > currentTimestamp || currentTimestamp == 0) {
-        return false;
-    }
-
     timeBase = sampleRate;
     frameDuration = samples;
-    segDurInTimeBaseUnits = segDurInMicroSec*timeBase/MICROSECONDS_TIME_BASE;
+    segDurInTimeBaseUnits = segDur.count()*timeBase;
     return true;
 }
 

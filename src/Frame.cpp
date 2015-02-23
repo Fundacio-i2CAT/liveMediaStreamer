@@ -28,7 +28,7 @@ Frame::Frame()
 	originTime = std::chrono::system_clock::now();
 }
 
-void Frame::setPresentationTime(std::chrono::microseconds pTime)
+void Frame::setPresentationTime(std::chrono::system_clock::time_point pTime)
 {
     presentationTime = pTime;
 }
@@ -43,7 +43,7 @@ void Frame::setOriginTime(std::chrono::system_clock::time_point orgTime)
     originTime = orgTime;
 }
 
-void Frame::setDuration(std::chrono::microseconds dur)
+void Frame::setDuration(std::chrono::nanoseconds dur)
 {
     duration = dur;
 }

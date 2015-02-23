@@ -118,7 +118,7 @@ protected:
         std::uniform_int_distribution<size_t> distribution(processTime/2, processTime*0.99);
         realProcessTime = distribution(generator);
         utils::debugMsg("Process time " + std::to_string(realProcessTime));
-        std::this_thread::sleep_for(std::chrono::microseconds(realProcessTime));
+        std::this_thread::sleep_for(std::chrono::nanoseconds(realProcessTime));
         return gotFrame;
     }
     void doGetState(Jzon::Object &filterNode) {};
@@ -150,7 +150,7 @@ protected:
         std::uniform_int_distribution<size_t> distribution(processTime/2, processTime*0.99);
         realProcessTime = distribution(generator);
         utils::debugMsg("Process time " + std::to_string(realProcessTime));
-        std::this_thread::sleep_for(std::chrono::microseconds(realProcessTime));
+        std::this_thread::sleep_for(std::chrono::nanoseconds(realProcessTime));
         return gotFrame;
     }
     void doGetState(Jzon::Object &filterNode) {};

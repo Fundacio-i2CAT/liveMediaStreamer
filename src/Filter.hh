@@ -41,7 +41,7 @@
 #define MAX_WRITERS 16              /*!< Default maximum writers for a filter. */
 #define MAX_READERS 16              /*!< Default maximum readers for a filter. */
 #define VIDEO_DEFAULT_FRAMERATE 25  /*!< Default frame rate in frames per second (fps). */
-#define RETRY 500                   /*!< Default retry time in microseconds (us). */
+#define RETRY 500000                   /*!< Default retry time in nanoseconds (ns). */
 
 /*! Generic filter class methods. It is an interface to different specific filters
     so it cannot be instantiated
@@ -169,17 +169,17 @@ public:
     * Sets a dfined wall clock to the filter
     * @param refWallClock reference wall clock
     */
-    void setWallClock(std::chrono::microseconds refWallClock) {wallClock = refWallClock;};
+    void setWallClock(std::chrono::system_clock::time_point refWallClock) {wallClock = refWallClock;};
     //NOTE: these are public just for testing purposes
     /**
     * Processes frames as a function of its role
     */
-    size_t processFrame();
+    std::chrono::nanoseconds processFrame();
     /**
     * Sets filter frame time
     * @param size_t frame time
     */
-    void setFrameTime(size_t fTime);
+    void setFrameTime(std::chrono::nanoseconds fTime);
 
 protected:
     BaseFilter(unsigned readersNum = MAX_READERS, unsigned writersNum = MAX_WRITERS, size_t fTime = 0, FilterRole fRole_ = MASTER, bool force_ = false, bool sharedFrames_ = true);
@@ -189,7 +189,7 @@ protected:
     bool hasFrames();
     virtual FrameQueue *allocQueue(int wId) = 0;
 
-    std::chrono::microseconds getFrameTime() {return frameTime;};
+    std::chrono::nanoseconds getFrameTime() {return frameTime;};
 
     virtual Reader *setReader(int readerID, FrameQueue* queue, bool sharedQueue = false);
     Reader* getReader(int id);
@@ -222,24 +222,24 @@ protected:
     float frameTimeMod;
     float bufferStateFrameTimeMod;
 
-    std::chrono::microseconds timestamp;
-    std::chrono::microseconds lastValidTimestamp;
-    std::chrono::microseconds duration;
-    std::chrono::microseconds lastDiffTime;
-    std::chrono::microseconds diffTime;
-    std::chrono::microseconds wallClock;
+    std::chrono::system_clock::time_point timestamp;
+    std::chrono::system_clock::time_point lastValidTimestamp;
+    std::chrono::nanoseconds duration;
+    std::chrono::nanoseconds lastDiffTime;
+    std::chrono::nanoseconds diffTime;
+    std::chrono::system_clock::time_point wallClock;
 
     unsigned maxReaders;
     unsigned maxWriters;
-    std::chrono::microseconds frameTime;
+    std::chrono::nanoseconds frameTime;
 
 private:
     bool connect(BaseFilter *R, int writerID, int readerID);
-    size_t masterProcessFrame();
+    std::chrono::nanoseconds masterProcessFrame();
     void processAll();
     bool runningSlaves();
     void setSharedFrames(bool sharedFrames_);
-    size_t slaveProcessFrame();
+    std::chrono::nanoseconds slaveProcessFrame();
     void execute() {process = true;};
     bool isProcessing() {return process;};
     void updateFrames(std::map<int, Frame*> oFrames_);

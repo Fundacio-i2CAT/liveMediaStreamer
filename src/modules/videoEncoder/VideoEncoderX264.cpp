@@ -137,7 +137,7 @@ bool VideoEncoderX264::configure(int gop_, int bitrate_, int threads_, int fps_,
         fps = fps_;
     }
 
-    setFrameTime(1000000/fps);
+    setFrameTime(std::chrono::nanoseconds(std::nano::den/fps));
 
     needsConfig = true;
     return true;
@@ -177,7 +177,7 @@ bool VideoEncoderX264::reconfigure(VideoFrame* orgFrame, X264VideoFrame* x264Fra
         xparams.i_fps_den = 1;
         xparams.b_intra_refresh = 0;
         xparams.b_aud = 1;
-        xparams.i_keyint_max = std::round(1000.0*gop/getFrameTime().count());
+        xparams.i_keyint_max = gop;
         xparams.rc.i_bitrate = bitrate;
         if (annexB){
             xparams.b_annexb = 1;

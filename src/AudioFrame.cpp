@@ -44,9 +44,9 @@ AudioFrame::AudioFrame(int ch, int sRate, int maxSamples, ACodecType codec)
     this->maxSamples = maxSamples; 
 }
 
-std::chrono::microseconds AudioFrame::getDuration() const
+std::chrono::nanoseconds AudioFrame::getDuration() const
 {
-    std::chrono::microseconds duration(samples*1000000/sampleRate);
+    std::chrono::nanoseconds duration(samples*std::nano::den/sampleRate);
     return duration;
 }
 

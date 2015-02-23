@@ -36,7 +36,6 @@ extern "C" {
 #include <map>
 #include <string>
 
-#define MICROSECONDS_TIME_BASE 1000000
 #define DASH_VIDEO_TIME_BASE 12800
 #define V_ADAPT_SET_ID "0"
 #define A_ADAPT_SET_ID "1"
@@ -101,8 +100,9 @@ private:
     std::map<int, DashSegment*> initSegments;
 
     MpdManager* mpdMngr;
-    size_t timestampOffset;
-    size_t segDurInMicrosec;
+    std::chrono::system_clock::time_point timestampOffset;
+    std::chrono::seconds segDur;
+
     std::string basePath;
     std::string baseName;
     std::string mpdPath;
@@ -126,7 +126,7 @@ public:
     * @param segBaseName Base name for the segments. Segment names will be: segBaseName_<timestamp>.segExt and segBaseName_init.segExt
     * @param segExt segment file extension (.m4v for video and .m4a for audio) 
     */ 
-    DashSegmenter(size_t segDur, size_t tBase);
+    DashSegmenter(std::chrono::seconds segmentDuration, size_t tBase);
 
     /**
     * Class destructor
@@ -175,20 +175,20 @@ public:
     * managed by manageFrame method. Each timestamp will be relative to this one.
     * @return timestamp in milliseconds
     */
-    size_t getTsOffset() {return tsOffset;};
+    std::chrono::system_clock::time_point getTsOffset() {return tsOffset;};
 
     /**
     * It returns the last segment timestamp 
     * @return timestamp in timeBase units
     */
     size_t getSegmentTimestamp();
-    void setOffset(size_t offs);
+    void setOffset(std::chrono::system_clock::time_point offs);
 
     /**
     * Return the segment duration 
     * @return segment duration in timeBase units
     */
-    size_t getsegDurInMicroSec() {return segDurInMicroSec;};
+    std::chrono::seconds getsegDur() {return segDur;};
     size_t getSegDurInTimeBaseUnits() {return segDurInTimeBaseUnits;};
 
 
@@ -198,16 +198,18 @@ protected:
     virtual bool appendFrameToDashSegment(DashSegment* segment) = 0;
     std::string getInitSegmentName();
     std::string getSegmentName();
-    size_t customTimestamp(size_t timestamp);
-    size_t microsToTimeBase(size_t microsValue);
+    size_t customTimestamp(std::chrono::system_clock::time_point timestamp);
+    size_t nanosToTimeBase(std::chrono::nanoseconds nanosValue);
+
     
+    std::chrono::seconds segDur;
+    std::chrono::system_clock::time_point tsOffset;
+
     i2ctx* dashContext;
     size_t timeBase;
-    size_t segDurInMicroSec;
     size_t segDurInTimeBaseUnits;
     size_t frameDuration;
     std::vector<unsigned char> metadata;
-    size_t tsOffset;
     size_t theoricPts;
 };
 

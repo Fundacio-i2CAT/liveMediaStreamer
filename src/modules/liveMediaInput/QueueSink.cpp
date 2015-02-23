@@ -81,7 +81,7 @@ void QueueSink::afterGettingFrame(unsigned frameSize, struct timeval presentatio
     if (frame != NULL){
         frame->setLength(frameSize);
         frame->newOriginTime();
-        frame->setPresentationTime(microseconds(presentationTime.tv_sec*1000000 + presentationTime.tv_usec));
+        frame->setPresentationTime(std::chrono::system_clock::now());
         frame->setSequenceNumber(++seqNum);
         fWriter->addFrame();
     }

@@ -199,7 +199,6 @@ bool DashVideoSegmenter::appendFrameToDashSegment(DashSegment* segment)
     }
 
     segmentSize = generate_video_segment(isIntra, segment->getDataBuffer(), &dashContext, &segTimestamp);
-
     theoricPts = customTimestamp(currTimestamp);
 
     addSampleReturn = add_video_sample(data, dataLength, frameDuration, theoricPts, theoricPts, segment->getSeqNumber(), isIntra, &dashContext);

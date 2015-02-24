@@ -137,7 +137,6 @@ private:
     std::string basePath;
     std::string baseName;
     std::string mpdPath;
-    std::string segmentsBasePath;
     std::string vSegTempl;
     std::string aSegTempl;
     std::string vInitSegTempl;
@@ -222,6 +221,7 @@ protected:
     virtual bool updateMetadata() = 0;
     virtual bool generateInitData(DashSegment* segment) = 0;
     virtual bool appendFrameToDashSegment(DashSegment* segment) = 0;
+    virtual bool generateSegment(DashSegment* segment) = 0;
     std::string getInitSegmentName();
     std::string getSegmentName();
     size_t customTimestamp(std::chrono::system_clock::time_point timestamp);

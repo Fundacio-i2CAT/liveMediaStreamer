@@ -110,6 +110,7 @@ AC_CHECK_LIB([opencv_core], [main], [], AC_MSG_ERROR([cannot find opencv_core]))
 AC_CHECK_LIB([opencv_imgproc], [main], [], AC_MSG_ERROR([cannot find opencv_imgproc]))
 AC_CHECK_LIB([x264], [x264_encoder_encode], [], AC_MSG_ERROR([cannot find x264]))
 AC_CHECK_LIB([log4cplus], [main], [], AC_MSG_ERROR([cannot find log4cplus]))
+AC_CHECK_LIB([cppunit], [main], [], AC_MSG_ERROR([cannot find cppunit]))
  
 AC_CHECK_FILE(/usr/local/include/opencv/cv.h, [CPPFLAGS="$CPPFLAGS -I/usr/local/include/opencv"; break;],[
     AC_CHECK_FILE(/usr/include/opencv/cv.h, [CPPFLAGS="$CPPFLAGS -I/usr/include/opencv"; break;],[])])

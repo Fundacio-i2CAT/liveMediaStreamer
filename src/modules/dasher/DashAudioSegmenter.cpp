@@ -73,31 +73,6 @@ bool DashAudioSegmenter::updateConfig()
     return true;
 }
 
-bool DashAudioSegmenter::finishSegment()
-{
-     // size_t segmentSize = 0;
-
-    // if (!dashContext || !dashContext->ctxaudio || dashContext->ctxaudio->segment_data_size <= 0) {
-    //     return true;
-    // }
-
-    // segment->setTimestamp(dashContext->ctxaudio->earliest_presentation_time);
-    // segmentSize = finish_segment(AUDIO_TYPE, segment->getDataBuffer(), &dashContext);
-
-    // if (segmentSize <= I2ERROR_MAX) {
-    //     return false;
-    // }
-
-    // segment->setDataLength(segmentSize);
-
-    // if(!segment->writeToDisk(getSegmentName())) {
-    //     utils::errorMsg("Error writing DASH segment to disk: invalid path");
-    //     return false;
-    // }
-
-    return true;
-}
-
 bool DashAudioSegmenter::appendFrameToDashSegment(DashSegment* segment)
 {
     size_t segmentSize = 0;
@@ -175,21 +150,20 @@ bool DashAudioSegmenter::updateMetadata()
     unsigned char* data;
 
     if (!aFrame || !aFrame->getDataBuf() || aFrame->getLength() < ADTS_HEADER_LENGTH) {
-        utils::errorMsg("ADTS header not valid");
+        utils::errorMsg("ADTS header not valid - check data buffer and its header length");
         return false;
     }
 
     data = aFrame->getDataBuf();
 
     if (data[0] != ADTS_FIRST_RESERVED_BYTE || data[1] != ADTS_SECOND_RESERVED_BYTE) {
-        utils::errorMsg("ADTS header not valid");
+        utils::errorMsg("ADTS header not valid - check reserved bytes");
         return false;
     }
 
     if (profile == getProfileFromADTSHeader(data) && samplingFrequencyIndex == getSamplingFreqIdxFromADTSHeader(data) &&
         channelConfiguration == getChannelConfFromADTSHeader(data) && !metadata.empty())
     {
-        utils::errorMsg("ADTS header not valid");
         return false;
     }
 

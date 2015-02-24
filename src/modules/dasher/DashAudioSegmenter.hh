@@ -18,9 +18,9 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  *  Authors:  Marc Palau <marc.palau@i2cat.net>
- *            
+ *
  */
- 
+
 #ifndef _DASH_AUDIO_SEGMENTER_HH
 #define _DASH_AUDIO_SEGMENTER_HH
 
@@ -31,21 +31,21 @@
 #include "Dasher.hh"
 
 /*! Class responsible for managing DASH audio segments creation. It receives AAC frames appending them to create
-    complete segments. It also manages Init Segment creation, constructing MP4 metadata from AAC frames ADTS header*/ 
+    complete segments. It also manages Init Segment creation, constructing MP4 metadata from AAC frames ADTS header*/
 
 class DashAudioSegmenter : public DashSegmenter {
 
 public:
     /**
     * Class constructor
-    * @param segDur Segment duration in milliseconds 
+    * @param segDur Segment duration in milliseconds
     * @param segBaseName Base name for the segments. Segment names will be: segBaseName_<timestamp>.m4a and segBaseName_init.m4a
-    */ 
+    */
     DashAudioSegmenter(std::chrono::seconds segDur);
 
     /**
     * Class destructor
-    */ 
+    */
     ~DashAudioSegmenter();
 
     /**
@@ -63,20 +63,13 @@ public:
     bool updateConfig();
 
     /**
-    * It creates a DASH audio segment using the remaining data in the segment internal buffer. The duration of this segment
-    * can be less than the defined segment duration, set on the constructor
-    * @return true if succeeded and false if not
-    */
-    bool finishSegment();
-
-    /**
-    * It returns the last configured audio channels number 
+    * It returns the last configured audio channels number
     * @return number of audio channels
     */
     size_t getChannels();
 
     /**
-    * It returns the last configured sample rate 
+    * It returns the last configured sample rate
     * @return sample rate in Hz
     */
     size_t getSampleRate();

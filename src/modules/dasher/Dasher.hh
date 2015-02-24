@@ -74,12 +74,6 @@ public:
     */
     ~Dasher();
 
-    //TODO: check this
-    bool deleteReader(int id);
-
-
-    void doGetState(Jzon::Object &filterNode);
-
     /**
     * Adds a new segmenter associated to an existance reader. Only one segmenter can be associated to each reader
     * @param readerId Reader associated to the segmenter
@@ -95,11 +89,30 @@ public:
     */
     bool removeSegmenter(int readerId);
 
+    /**
+    * Creates a segment name as a function of the input and required params
+    * @param basePath is the folder path where the segments are written
+    * @param baseName is the base name for that segment specified as a convention
+    * @param reprId is the specific ID of that segmenter with an associated reader
+    * @param timestamp is the time stamp for that instant for that segment
+    * @param ext is the file extension that indicates its file format
+    * @return string of the segment name
+    */
     static std::string getSegmentName(std::string basePath, std::string baseName, size_t reprId, size_t timestamp, std::string ext);
+
+    /**
+    * Creates the init segment name as a function of the input and required params
+    * @param basePath is the folder path where the segments are written
+    * @param baseName is the base name for that segment specified as a convention
+    * @param reprId is the specific ID of that segmenter with an associated reader
+    * @param ext is the file extension that indicates its file format
+    * @return string of the initialization segment name
+    */
     static std::string getInitSegmentName(std::string basePath, std::string baseName, size_t reprId, std::string ext);
 
 private:
     bool doProcessFrame(std::map<int, Frame*> orgFrames);
+    void doGetState(Jzon::Object &filterNode);
     void initializeEventMap();
     void updateMpd(int id, DashSegmenter* segmenter);
     bool generateInitSegment(size_t id, DashSegmenter* segmenter);

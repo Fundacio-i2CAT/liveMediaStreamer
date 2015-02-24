@@ -434,11 +434,21 @@ bool Dasher::removeSegmenter(int readerId)
     if (vSegments.count(readerId) > 0) {
         delete vSegments[readerId];
         vSegments.erase(readerId);
+        
+        if (!mpdMngr->removeRepresentation(V_ADAPT_SET_ID, std::to_string(readerId))) {
+            utils::errorMsg("Error updating DASH MPD when removing segmenter");
+            return false;
+        }
     }
 
     if (aSegments.count(readerId) > 0) {
         delete aSegments[readerId];
         aSegments.erase(readerId);
+        
+        if (!mpdMngr->removeRepresentation(A_ADAPT_SET_ID, std::to_string(readerId))) {
+            utils::errorMsg("Error updating DASH MPD when removing segmenter");
+            return false;
+        }
     }
 
     if (initSegments.count(readerId) > 0) {
@@ -448,6 +458,7 @@ bool Dasher::removeSegmenter(int readerId)
 
     delete segmenters[readerId];
     segmenters.erase(readerId);
+
 
     return true;
 }

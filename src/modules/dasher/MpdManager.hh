@@ -151,6 +151,14 @@ public:
     */
     void updateAudioRepresentation(std::string adSetId, std::string reprId, std::string codec, int sampleRate, int bandwidth, int channels);
 
+    /**
+    * Remvoes an existing audio/video representation 
+    * @param adSetId Adaptation set Id
+    * @param reprId Representation Id
+    * @return true on success and false on fail
+    */
+    bool removeRepresentation(std::string adSetId, std::string reprId);
+
 private:
     bool addAdaptationSet(std::string id, AdaptationSet* adaptationSet);
     AdaptationSet* getAdaptationSet(std::string id);
@@ -213,7 +221,14 @@ public:
     */
     unsigned updateTimestamp(unsigned ts, unsigned duration);
 
+    /**
+    * Sets timescale, segment template and init template values
+    * @see MpdManager::removeRepresentation 
+    */
+    virtual bool removeRepresentation(std::string id) = 0;
+    
 protected:
+
     bool segmentAlignment;
     int startWithSAP;
     bool subsegmentAlignment;
@@ -255,7 +270,8 @@ public:
 private:
     VideoRepresentation* getRepresentation(std::string id);
     bool addRepresentation(std::string id, VideoRepresentation* repr);
-    
+    bool removeRepresentation(std::string id);
+
     std::map<std::string, VideoRepresentation*> representations;
     int maxWidth;
     int maxHeight;
@@ -292,7 +308,8 @@ public:
 private:
     AudioRepresentation* getRepresentation(std::string id);
     bool addRepresentation(std::string id, AudioRepresentation* repr);
-    
+    bool removeRepresentation(std::string id);
+
     std::map<std::string, AudioRepresentation*> representations;
     std::string lang;
     std::string roleSchemeIdUri;

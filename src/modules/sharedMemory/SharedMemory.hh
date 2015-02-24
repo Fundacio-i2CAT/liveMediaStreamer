@@ -64,10 +64,11 @@ public:
     /**
     * Creates new shared memory object
     * @param key_ value for defining the piece of address to share
+    * @param VCodecType codec value defined in order to correlate type of shared frames with its shared memory space
     * @return SharedMemory object or NULL if any error while creating
     * @see OneToOneFilter to check the inherated input params
     */
-    static SharedMemory* createNew(size_t key_, std::string codec, size_t fTime = 0, FilterRole fRole_ = MASTER, bool force_ = false, bool sharedFrames_ = true);
+    static SharedMemory* createNew(size_t key_, VCodecType codec, size_t fTime = 0, FilterRole fRole_ = MASTER, bool force_ = false, bool sharedFrames_ = true);
     /**
     * Class destructor
     */
@@ -78,7 +79,7 @@ public:
     */
 
 protected:
-    SharedMemory(size_t key_ = KEY, std::string codec = "RAW", size_t fTime = 0, FilterRole fRole_ = MASTER, bool force_ = false, bool sharedFrames_ = true);
+    SharedMemory(size_t key_, VCodecType codec_, size_t fTime = 0, FilterRole fRole_ = MASTER, bool force_ = false, bool sharedFrames_ = true);
     size_t getSharedMemoryID() { return SharedMemoryID;};
     bool isEnabled() {return enabled;};
     void writeSharedMemoryH264();
@@ -121,6 +122,7 @@ private:
     bool                        enabled;
     bool                        newFrame;
     std::vector<unsigned char>  frameData;
+    VCodecType const            codec;
 };
 
 #endif

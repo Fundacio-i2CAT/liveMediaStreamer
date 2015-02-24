@@ -22,7 +22,7 @@
 
 #include "SharedMemory.hh"
 
-SharedMemory* SharedMemory::createNew(size_t key_, std::string codec, size_t fTime, FilterRole fRole_, bool force_, bool sharedFrames_)
+SharedMemory* SharedMemory::createNew(size_t key_, VCodecType codec, size_t fTime, FilterRole fRole_, bool force_, bool sharedFrames_)
 {
     SharedMemory *shm = new SharedMemory(key_, codec, fTime, fRole_, force_, sharedFrames_);
 
@@ -32,11 +32,11 @@ SharedMemory* SharedMemory::createNew(size_t key_, std::string codec, size_t fTi
     return NULL;
 }
 
-SharedMemory::SharedMemory(size_t key_, std::string codec, size_t fTime, FilterRole fRole_, bool force_, bool sharedFrames_):
-    OneToOneFilter(fTime, fRole_), enabled(true), newFrame(false)
+SharedMemory::SharedMemory(size_t key_, VCodecType codec_, size_t fTime, FilterRole fRole_, bool force_, bool sharedFrames_):
+    OneToOneFilter(fTime, fRole_), enabled(true), newFrame(false), codec(codec_)
     {
 
-    if(!(codec == "RAW" || codec == "H264")){
+    if(!(codec == RAW || codec == H264)){
         utils::errorMsg("SharedMemory::error - filter not created - only RAW and H264 codecs are supported");
         enabled = false;
         return;
@@ -55,7 +55,7 @@ SharedMemory::SharedMemory(size_t key_, std::string codec, size_t fTime, FilterR
     }
 
     if(enabled){
-        utils::infoMsg("VERY IMPORTANT: Share following shared memory ID (from key "+ std::to_string(key_)+") with reader process: \033[1;32m"+ std::to_string(SharedMemoryID) + "\033[0m for \033[1;32m" + codec + "\033[0m codec");
+        utils::infoMsg("VERY IMPORTANT: Share following shared memory ID (from key "+ std::to_string(key_)+") with reader process: \033[1;32m"+ std::to_string(SharedMemoryID) + "\033[0m for \033[1;32m" + utils::getVideoCodecAsString(codec) + "\033[0m codec");
 
         memset(SharedMemoryOrigin,0,SHMSIZE);
 
@@ -105,9 +105,9 @@ bool SharedMemory::doProcessFrame(Frame *org, Frame *dst)
     switch(vframe->getCodec()){
         case H264:
             if(frame->getSequenceNumber() != seqNum && newFrame){
-                seqNum = frame->getSequenceNumber();
                 writeFramePayload(seqNum);
                 writeSharedMemoryH264();
+                seqNum = frame->getSequenceNumber();
                 frameData.clear();
             }
             parseNal(vframe, newFrame);
@@ -126,7 +126,7 @@ bool SharedMemory::doProcessFrame(Frame *org, Frame *dst)
 
 FrameQueue* SharedMemory::allocQueue(int wId)
 {
-    return VideoFrameQueue::createNew(RAW, RGB24);
+    return VideoFrameQueue::createNew(codec, RGB24);
 }
 
 //TODO to be implemented
@@ -320,7 +320,7 @@ uint16_t SharedMemory::getCodecFromVCodec(VCodecType codec){
 			val= 4;
 			break;
 		default:
-			std::cerr << "[Video Frame Queue] Codec not supported!" << std::endl;
+			utils::errorMsg("[Video Frame Queue] Codec not supported!");
 			val= 0;
 			break;
 	}
@@ -343,7 +343,7 @@ VCodecType SharedMemory::getVCodecFromCodecType(uint16_t codecType){
 			codec= RAW;
 			break;
 		default:
-			std::cerr << "[Video Frame Queue] Codec not supported!" << std::endl;
+			utils::errorMsg("[Video Frame Queue] Codec not supported!");
 			codec= VC_NONE;
 			break;
 	}
@@ -375,7 +375,7 @@ uint16_t SharedMemory::getPixelFormatFromPixType(PixType pxlFrmt){
 			val= 7;
 			break;
 		default:
-			std::cerr << "[Resampler] Unknown output pixel format" << std::endl;
+			utils::errorMsg("[Resampler] Unknown output pixel format");
 			val= 0;
 			break;
 	}
@@ -407,7 +407,7 @@ PixType SharedMemory::getPixTypeFromPixelFormat(uint16_t pixType){
 			pxlFrmt= YUVJ420P;
 			break;
 		default:
-			std::cerr << "[Resampler] Unknown output pixel format" << std::endl;
+			utils::errorMsg("[Resampler] Unknown output pixel format");
 			pxlFrmt= P_NONE;
 			break;
 	}

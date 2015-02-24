@@ -18,21 +18,21 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  *  Authors:  Marc Palau <marc.palau@i2cat.net>
- *            
+ *
  */
 
  #include "DashVideoSegmenter.hh"
  #include <fstream>
 
-DashVideoSegmenter::DashVideoSegmenter(size_t segDur, std::string segBaseName) : 
-DashSegmenter(segDur, MICROSECONDS_TIME_BASE, segBaseName, ".m4v"), 
-updatedSPS(false), updatedPPS(false), lastTs(0), frameRate(0), isIntra(false), 
+DashVideoSegmenter::DashVideoSegmenter(size_t segDur, std::string segBaseName) :
+DashSegmenter(segDur, MICROSECONDS_TIME_BASE, segBaseName, ".m4v"),
+updatedSPS(false), updatedPPS(false), lastTs(0), frameRate(0), isIntra(false),
 isVCL(false), currTimestamp(0), width(0), height(0)
 {
 
 }
 
-DashVideoSegmenter::~DashVideoSegmenter() 
+DashVideoSegmenter::~DashVideoSegmenter()
 {
 
 }
@@ -108,7 +108,7 @@ bool DashVideoSegmenter::finishSegment()
     return true;
 }
 
-bool DashVideoSegmenter::parseNal(VideoFrame* nal, bool &newFrame) 
+bool DashVideoSegmenter::parseNal(VideoFrame* nal, bool &newFrame)
 {
     int startCodeOffset;
     unsigned char* nalData;
@@ -131,7 +131,7 @@ bool DashVideoSegmenter::parseNal(VideoFrame* nal, bool &newFrame)
     return true;
 }
 
-bool DashVideoSegmenter::updateTimeValues() 
+bool DashVideoSegmenter::updateTimeValues()
 {
     if (currTimestamp == 0 || currTimestamp < lastTs || currTimestamp < tsOffset) {
         return false;
@@ -185,7 +185,7 @@ bool DashVideoSegmenter::updateMetadata()
     return true;
 }
 
-bool DashVideoSegmenter::generateInitData() 
+bool DashVideoSegmenter::generateInitData()
 {
     size_t initSize = 0;
     unsigned char* data;
@@ -234,7 +234,7 @@ bool DashVideoSegmenter::appendFrameToDashSegment()
     pts = currTimestamp - tsOffset;
 
     segment->setTimestamp(dashContext->ctxvideo->earliest_presentation_time);
-    segmentSize = add_sample(data, dataLength, frameDuration, pts, pts, segment->getSeqNumber(), 
+    segmentSize = add_sample(data, dataLength, frameDuration, pts, pts, segment->getSeqNumber(),
                              VIDEO_TYPE, segment->getDataBuffer(), isIntra, &dashContext);
 
     frameData.clear();
@@ -242,14 +242,14 @@ bool DashVideoSegmenter::appendFrameToDashSegment()
     if (segmentSize <= I2ERROR_MAX) {
         return false;
     }
-    
+
     segment->setDataLength(segmentSize);
     return true;
 }
 
 bool DashVideoSegmenter::appendNalToFrame(unsigned char* nalData, unsigned nalDataLength, bool &newFrame)
 {
-    unsigned char nalType; 
+    unsigned char nalType;
 
     nalType = nalData[0] & H264_NALU_TYPE_MASK;
 
@@ -336,7 +336,7 @@ void DashVideoSegmenter::createMetadata()
     metadata.insert(metadata.end(), lastPPS.begin(), lastPPS.end());
 }
 
-int DashVideoSegmenter::detectStartCode(unsigned char const* ptr) 
+int DashVideoSegmenter::detectStartCode(unsigned char const* ptr)
 {
     u_int32_t bytes = 0|(ptr[0]<<16)|(ptr[1]<<8)|ptr[2];
     if (bytes == H264_NALU_START_CODE) {

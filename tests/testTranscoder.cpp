@@ -123,7 +123,7 @@ void addAudioPath(unsigned port, Dasher* dasher, int dasherId)
     utils::infoMsg("Audio path created from port " + std::to_string(port));
 }
 
-void addVideoPath(unsigned port, Dasher* dasher, int dasherId, bool sharingMemory,  unsigned width = 0, unsigned height = 0)
+void addVideoPath(unsigned port, Dasher* dasher, int dasherId, size_t sharingMemoryKey = 0,  unsigned width = 0, unsigned height = 0)
 {
     PipelineManager *pipe = Controller::getInstance()->pipelineManager();
 
@@ -152,7 +152,7 @@ void addVideoPath(unsigned port, Dasher* dasher, int dasherId, bool sharingMemor
 
     std::vector<int> slaveIds({encId2});
 
-    if(sharingMemory){
+    if(sharingMemoryKey > 0){
         ids = {decId, resId, shmId, encId, shmEncId};
     } else {
         ids = {decId, resId, encId};
@@ -182,8 +182,8 @@ void addVideoPath(unsigned port, Dasher* dasher, int dasherId, bool sharingMemor
     pipe->addWorker(wDecId, wDec);
 
     //NOTE: Adding sharedMemory to pipeManager and handle worker
-    if(sharingMemory){
-        shm = SharedMemory::createNew(KEY, "RAW");
+    if(sharingMemoryKey > 0){
+        shm = SharedMemory::createNew(sharingMemoryKey, RAW);
         if(!shm){
             utils::errorMsg("Could not initiate sharedMemory filter");
             exit(1);
@@ -212,8 +212,8 @@ void addVideoPath(unsigned port, Dasher* dasher, int dasherId, bool sharingMemor
     encoder->setWorkerId(wEncId);
     pipe->addWorker(wEncId, wEnc);
 
-    if(sharingMemory){
-        shmEnc = SharedMemory::createNew(KEY+1, "H264");
+    if(sharingMemoryKey > 0){
+        shmEnc = SharedMemory::createNew(sharingMemoryKey + 1, H264);
         if(!shmEnc){
             utils::errorMsg("Could not initiate sharedMemory filter");
             exit(1);
@@ -230,7 +230,9 @@ void addVideoPath(unsigned port, Dasher* dasher, int dasherId, bool sharingMemor
     } else {
         path = pipe->createPath(pipe->getReceiverID(), pipe->getTransmitterID(), port, -1, ids);
     }
-    
+    pipe->addPath(port, path);
+    pipe->connectPath(path);
+
     if (dasher != NULL){
         //NOTE: Adding encoder to pipeManager and handle worker
         encoder2 = new VideoEncoderX264(SLAVE, VIDEO_DEFAULT_FRAMERATE, false);
@@ -257,9 +259,6 @@ void addVideoPath(unsigned port, Dasher* dasher, int dasherId, bool sharingMemor
             utils::errorMsg("Error adding segmenter");
         }
     }
-    
-    pipe->addPath(port, path);
-    pipe->connectPath(path);
 
     pipe->startWorkers();
 
@@ -323,7 +322,7 @@ bool addAudioSDPSession(unsigned port, std::string codec = A_CODEC,
     return true;
 }
 
-bool addRTSPsession(std::string rtspUri, Dasher* dasher, int dasherId, bool sharingMemory)
+bool addRTSPsession(std::string rtspUri, Dasher* dasher, int dasherId, size_t sharingMemory)
 {
     Session* session;
     std::string sessionId = utils::randomIdGenerator(ID_LENGTH);
@@ -414,8 +413,8 @@ int main(int argc, char* argv[])
     int port = 0;
     std::string ip;
     std::string rtspUri;
-    bool sharingMemory = false;
-    bool dash = false;
+    size_t sharingMemoryKey = 0;
+	bool dash = false;
     Dasher* dasher = NULL;
     int dasherId = rand();
     std::vector<int> readers;
@@ -443,8 +442,8 @@ int main(int argc, char* argv[])
             dash = true;
             utils::infoMsg("Output will be DASH, ignoring any -P, -d or -ts flag");
         } else if (strcmp(argv[i],"-s")==0) {
-            sharingMemory = true;
-            utils::infoMsg("sharing memory: true");
+            sharingMemoryKey = std::stoi(argv[i+1]);
+            utils::infoMsg("sharing memory key set to: "+ std::to_string(sharingMemoryKey));
         }
     }
 
@@ -467,7 +466,7 @@ int main(int argc, char* argv[])
 
     if (vPort != 0 && rtspUri.length() == 0){
         addVideoSDPSession(vPort);
-        addVideoPath(vPort, dasher, dasherId, sharingMemory);
+        addVideoPath(vPort, dasher, dasherId, sharingMemoryKey);
     }
 
     if (aPort != 0 && rtspUri.length() == 0){
@@ -476,7 +475,7 @@ int main(int argc, char* argv[])
     }
 
     if (rtspUri.length() > 0){
-        if (!addRTSPsession(rtspUri, dasher, dasherId, sharingMemory)){
+        if (!addRTSPsession(rtspUri, dasher, dasherId, sharingMemoryKey)){
             utils::errorMsg("Couldn't start rtsp client session!");
             return 1;
         }

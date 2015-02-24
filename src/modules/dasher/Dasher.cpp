@@ -53,9 +53,6 @@ Dasher::~Dasher()
 
 bool Dasher::configure(std::string dashFolder, std::string baseName_, size_t segDurInSec, std::string mpdLocation)
 {
-    std::string mpdPath;
-    std::string segmentsBasePath;
-
     if (access(dashFolder.c_str(), W_OK) != 0) {
         utils::errorMsg("Error creating Dasher: provided folder is not writable");
         return false;

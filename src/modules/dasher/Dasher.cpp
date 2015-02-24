@@ -285,7 +285,7 @@ bool Dasher::cleanSegments(std::map<int,DashSegment*> segments, size_t timestamp
         }
     }
 
-    return true;
+    return success;
 }
 
 
@@ -458,6 +458,9 @@ std::string Dasher::getInitSegmentName(std::string basePath, std::string baseNam
     return fullName;
 }
 
+///////////////////
+// DashSegmenter //
+///////////////////
 
 DashSegmenter::DashSegmenter(std::chrono::seconds segmentDuration, size_t tBase) :
 segDur(segmentDuration), dashContext(NULL), timeBase(tBase), frameDuration(0), theoricPts(0)

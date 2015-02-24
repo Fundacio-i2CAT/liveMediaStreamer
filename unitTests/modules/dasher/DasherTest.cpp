@@ -34,7 +34,7 @@
 #include "FilterMockup.hh"
 
 #define SEG_DURATION 2 //sec
-#define DASH_FOLDER "testsData/modules/dasher/dasherTest"
+#define DASH_FOLDER "testsData/modules/dasher"
 #define BASE_NAME "test"
 #define MPD_LOCATION "http://localhost/testsData/modules/dasher/test.mpd"
 

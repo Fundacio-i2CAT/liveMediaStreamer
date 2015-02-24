@@ -386,15 +386,19 @@ uint32_t add_video_sample(byte *input_data, uint32_t input_data_length, uint32_t
     if ((*context) == NULL) {
         return I2ERROR_CONTEXT_NULL;
     }
+    
     if (input_data == NULL) {
         return I2ERROR_SOURCE_NULL;
-    }   
+    }
+
     if (input_data_length < 1) {
         return I2ERROR_SIZE_ZERO;
     }
+
     if (sample_duration < 1) {
         return I2ERROR_DURATION_ZERO;
     }
+
     if ((is_intra != TRUE) && (is_intra != FALSE)) {
         return I2ERROR_IS_INTRA;
     }
@@ -402,7 +406,7 @@ uint32_t add_video_sample(byte *input_data, uint32_t input_data_length, uint32_t
 
     i2ctx_sample *ctxSample = (*context)->ctxvideo->ctxsample;
 
-    if(ctxSample->mdat_sample_length == 0 && is_intra != TRUE) {
+    if (ctxSample->mdat_sample_length == 0 && is_intra != TRUE) {
         return I2ERROR_IS_INTRA;
     )
 

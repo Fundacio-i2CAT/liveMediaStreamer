@@ -129,7 +129,7 @@ bool Dasher::doProcessFrame(std::map<int, Frame*> orgFrames)
     return true;
 }
 
-bool Dasher::generateSegment(size_t id, DashSegmenter* segmenter)
+bool Dasher::appendFrameToSegment(size_t id, DashSegmenter* segmenter)
 {
     DashVideoSegmenter* vSeg;
     DashAudioSegmenter* aSeg;
@@ -528,16 +528,6 @@ bool DashSegmenter::generateInitSegment(DashSegment* segment)
 
     if (!generateInitData(segment)) {
         utils::errorMsg("Error generating video init segment");
-        return false;
-    }
-
-    return true;
-}
-
-bool DashSegmenter::generateSegment(DashSegment* segment)
-{
-    generateSegment(segment);
-    if (!appendFrameToDashSegment(segment)) {
         return false;
     }
 

@@ -114,9 +114,10 @@ private:
     bool doProcessFrame(std::map<int, Frame*> orgFrames);
     void doGetState(Jzon::Object &filterNode);
     void initializeEventMap();
-    void updateMpd(int id, DashSegmenter* segmenter);
     bool generateInitSegment(size_t id, DashSegmenter* segmenter);
     bool generateSegment(size_t id, DashSegmenter* segmenter);
+    bool appendFrameToSegment(size_t id, DashSegmenter* segmenter);
+
     size_t updateTimestampControl(std::map<int,DashSegment*> segments);
     bool writeSegmentsToDisk(std::map<int,DashSegment*> segments, size_t timestamp, std::string segExt);
     bool cleanSegments(std::map<int,DashSegment*> segments, size_t timestamp, std::string segExt);
@@ -178,11 +179,9 @@ public:
     */
     bool generateInitSegment(DashSegment* segment);
 
-    /**
-    * Generates and writes to disk a segment if there is enough data buffered
-    */
-    bool generateSegment(DashSegment* segment);
 
+    virtual bool appendFrameToDashSegment(DashSegment* segment) = 0;
+    virtual bool generateSegment(DashSegment* segment) = 0;
     /**
     * Returns average frame duration
     * @return duration in time base
@@ -220,13 +219,10 @@ public:
 protected:
     virtual bool updateMetadata() = 0;
     virtual bool generateInitData(DashSegment* segment) = 0;
-    virtual bool appendFrameToDashSegment(DashSegment* segment) = 0;
-    virtual bool generateSegment(DashSegment* segment) = 0;
     std::string getInitSegmentName();
     std::string getSegmentName();
     size_t customTimestamp(std::chrono::system_clock::time_point timestamp);
     size_t nanosToTimeBase(std::chrono::nanoseconds nanosValue);
-
 
     std::chrono::seconds segDur;
     std::chrono::system_clock::time_point tsOffset;

@@ -176,6 +176,16 @@ void MpdManager::updateAudioRepresentation(std::string adSetId, std::string repr
     adSet->updateAudioRepresentation(reprId, codec, sampleRate, bandwidth, channels);
 }
 
+bool MpdManager::removeRepresentation(std::string adSetId, std::string reprId)
+{
+    if (adaptationSets.count(adSetId) <= 0) {
+        return false;
+    }
+
+    return adaptationSets[adSetId]->removeRepresentation(reprId);
+}
+
+
 bool MpdManager::addAdaptationSet(std::string id, AdaptationSet* adaptationSet)
 {
     if (adaptationSets.count(id) > 0) {
@@ -185,7 +195,6 @@ bool MpdManager::addAdaptationSet(std::string id, AdaptationSet* adaptationSet)
     adaptationSets[id] = adaptationSet;
     return true;
 }
-
 
 AdaptationSet* MpdManager::getAdaptationSet(std::string id)
 {
@@ -241,6 +250,17 @@ VideoAdaptationSet::~VideoAdaptationSet()
     for (auto repr : representations) {
         delete repr.second;
     }
+}
+
+bool VideoAdaptationSet::removeRepresentation(std::string id) 
+{
+    if (representations.count(id) <= 0) {
+        return false;
+    }
+
+    delete representations[id];
+    representations.erase(id);
+    return true;
 }
 
 VideoRepresentation* VideoAdaptationSet::getRepresentation(std::string id)
@@ -342,6 +362,17 @@ AudioAdaptationSet::~AudioAdaptationSet()
     for (auto repr : representations) {
         delete repr.second;
     }
+}
+
+bool AudioAdaptationSet::removeRepresentation(std::string id) 
+{
+    if (representations.count(id) <= 0) {
+        return false;
+    }
+
+    delete representations[id];
+    representations.erase(id);
+    return true;
 }
 
 AudioRepresentation* AudioAdaptationSet::getRepresentation(std::string id)

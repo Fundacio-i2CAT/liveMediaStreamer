@@ -25,7 +25,7 @@
 
 DashVideoSegmenter::DashVideoSegmenter(std::chrono::seconds segDur) : 
 DashSegmenter(segDur, DASH_VIDEO_TIME_BASE), 
-updatedSPS(false), updatedPPS(false), lastTs(0), frameRate(0), isIntra(false), 
+updatedSPS(false), updatedPPS(false), frameRate(0), isIntra(false), 
 isVCL(false), width(0), height(0)
 {
 
@@ -79,31 +79,6 @@ bool DashVideoSegmenter::updateConfig()
         frameData.clear();
         return false;
     }
-
-    return true;
-}
-
-bool DashVideoSegmenter::finishSegment()
-{
-    // size_t segmentSize = 0;
-
-    // if (!dashContext || !dashContext->ctxvideo || dashContext->ctxvideo->segment_data_size <= 0) {
-    //     return true;
-    // }
-
-    // segment->setTimestamp(dashContext->ctxvideo->earliest_presentation_time);
-    // segmentSize = finish_segment(VIDEO_TYPE, segment->getDataBuffer(), &dashContext);
-
-    // if (segmentSize <= I2ERROR_MAX) {
-    //     return false;
-    // }
-
-    // segment->setDataLength(segmentSize);
-
-    // if(!segment->writeToDisk(getSegmentName())) {
-    //     utils::errorMsg("Error writing DASH segment to disk: invalid path");
-    //     return false;
-    // }
 
     return true;
 }

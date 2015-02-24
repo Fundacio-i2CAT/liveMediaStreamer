@@ -335,7 +335,7 @@ uint32_t generate_video_segment(uint8_t nextFrameIsIntra, byte *output_data, i2c
         return I2ERROR_IS_INTRA;
     }
 
-    if ( (nextFrameIsIntra == TRUE) && ( ( ((*context)->duration - (*context)->threshold)) <= ((*context)->ctxvideo->current_video_duration) ) ) {
+    if ((nextFrameIsIntra == TRUE) && ((((*context)->duration - (*context)->threshold)) <= ((*context)->ctxvideo->current_video_duration))) {
         segDataLength = segmentGenerator((*context)->ctxvideo->segment_data, (*context)->ctxvideo->segment_data_size, output_data, VIDEO_TYPE, context);
 
         if (segDataLength <= I2ERROR_MAX) {

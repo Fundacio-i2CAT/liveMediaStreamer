@@ -90,13 +90,6 @@ public:
     bool updateConfig();
 
     /**
-    * It creates a DASH video segment using the remaining data in the segment internal buffer. The duration of this segment
-    * can be less than the defined segment duration, set on the constructor
-    * @return true if succeeded and false if not
-    */
-    bool finishSegment();
-
-    /**
     * Returns the isIntra flag, set by the last execution of manageFrame method
     * @return true if intraFrame and false if not
     */
@@ -145,12 +138,6 @@ public:
     size_t getHeight() {return height;};
 
     /**
-    * Return the previous timestamp of the last NALU managed by manageFrame method
-    * @return timestamp in milliseconds
-    */
-    size_t getLastTs() {return lastTs;};
-
-    /**
     * Return the framerate, which is calculated by the difference between currtimestamp and lastTs
     * @return framerate in frames per second
     */
@@ -175,7 +162,6 @@ private:
     std::vector<unsigned char> lastPPS;
     bool updatedSPS;
     bool updatedPPS;
-    size_t lastTs;
     size_t frameRate;
     bool isIntra;
     bool isVCL;

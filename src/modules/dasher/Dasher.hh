@@ -162,11 +162,6 @@ public:
     virtual bool updateConfig() = 0;
 
     /**
-    * Implemented by DashVideoSegmenter::finishSegment and DashAudioSegmenter::finishSegment
-    */
-    virtual bool finishSegment() = 0;
-
-    /**
     * Generates and writes to disk an Init Segment if possible (or necessary)
     */
     bool generateInitSegment(DashSegment* segment);

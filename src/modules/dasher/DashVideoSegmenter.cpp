@@ -213,18 +213,20 @@ bool DashVideoSegmenter::generateSegment(DashSegment* segment)
 {
     size_t segmentSize = 0;
     uint32_t segTimestamp;
+    uint32_t segDuration;
 
     if (frameData.empty()) {
         return false;
     }
 
-    segmentSize = generate_video_segment(isIntra, segment->getDataBuffer(), &dashContext, &segTimestamp);
+    segmentSize = generate_video_segment(isIntra, segment->getDataBuffer(), &dashContext, &segTimestamp, &segDuration);
 
     if (segmentSize <= I2ERROR_MAX) {
         return false;
     }
     
     segment->setTimestamp(segTimestamp);
+    segment->setDuration(segDuration);
     segment->setDataLength(segmentSize);
     return true;
 }

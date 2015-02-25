@@ -120,7 +120,7 @@ private:
     DashSegmenter* getSegmenter(size_t id);
     bool forceAudioSegmentsGeneration();
 
-    size_t updateTimestampControl(std::map<int,DashSegment*> segments);
+    bool updateTimestampControl(std::map<int,DashSegment*> segments, size_t &timestamp, size_t &duration);
     bool writeSegmentsToDisk(std::map<int,DashSegment*> segments, size_t timestamp, std::string segExt);
     bool cleanSegments(std::map<int,DashSegment*> segments, size_t timestamp, std::string segExt);
     void configureEvent(Jzon::Node* params, Jzon::Object &outputNode);
@@ -300,6 +300,17 @@ public:
     void setTimestamp(size_t ts);
 
     /**
+    * @return Segment segment timestamp
+    */
+    size_t getDuration(){return duration;};
+
+    /**
+    * It sets the segment timestamp
+    * @params ts is the timestamp to set
+    */
+    void setDuration(size_t dur);
+
+    /**
     * Writes segment to disk
     * @params Path to write
     * @retrun True if suceeded and False if not
@@ -321,6 +332,7 @@ private:
     size_t dataLength;
     size_t seqNumber;
     size_t timestamp;
+    size_t duration;
 };
 
 #endif

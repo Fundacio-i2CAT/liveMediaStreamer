@@ -315,7 +315,7 @@ uint32_t init_audio_handler(byte *input_data, uint32_t size_input, byte *output_
     return initAudio;
 }
 
-uint32_t generate_video_segment(uint8_t nextFrameIsIntra, byte *output_data, i2ctx **context, uint32_t* segmentTimestamp)
+uint32_t generate_video_segment(uint8_t nextFrameIsIntra, byte *output_data, i2ctx **context, uint32_t* segmentTimestamp, uint32_t* segmentDuration)
 {
     uint32_t segDataLength;
 
@@ -340,6 +340,7 @@ uint32_t generate_video_segment(uint8_t nextFrameIsIntra, byte *output_data, i2c
             return segDataLength;
         }
 
+        *segmentDuration = (*context)->ctxvideo->current_video_duration;
         *segmentTimestamp = (*context)->ctxvideo->earliest_presentation_time;
         context_refresh(context, VIDEO_TYPE);
     }
@@ -347,7 +348,7 @@ uint32_t generate_video_segment(uint8_t nextFrameIsIntra, byte *output_data, i2c
     return segDataLength;
 }
 
-uint32_t generate_audio_segment(byte *output_data, i2ctx **context, uint32_t* segmentTimestamp)
+uint32_t generate_audio_segment(byte *output_data, i2ctx **context, uint32_t* segmentTimestamp, uint32_t* segmentDuration)
 {
     uint32_t segDataLength;
 
@@ -369,6 +370,7 @@ uint32_t generate_audio_segment(byte *output_data, i2ctx **context, uint32_t* se
             return segDataLength;
         }
 
+        *segmentDuration = (*context)->ctxaudio->current_audio_duration;
         *segmentTimestamp = (*context)->ctxaudio->earliest_presentation_time;
         context_refresh(context, AUDIO_TYPE);
     }
@@ -376,7 +378,7 @@ uint32_t generate_audio_segment(byte *output_data, i2ctx **context, uint32_t* se
     return segDataLength;
 }
 
-uint32_t force_generate_audio_segment(byte *output_data, i2ctx **context, uint32_t* segmentTimestamp)
+uint32_t force_generate_audio_segment(byte *output_data, i2ctx **context, uint32_t* segmentTimestamp, uint32_t* segmentDuration)
 {
     uint32_t segDataLength;
 
@@ -396,6 +398,7 @@ uint32_t force_generate_audio_segment(byte *output_data, i2ctx **context, uint32
         return segDataLength;
     }
 
+    *segmentDuration = (*context)->ctxaudio->current_audio_duration;
     *segmentTimestamp = (*context)->ctxaudio->earliest_presentation_time;
     context_refresh(context, AUDIO_TYPE);
 

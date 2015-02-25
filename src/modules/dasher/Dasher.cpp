@@ -204,6 +204,7 @@ bool Dasher::generateSegment(size_t id, DashSegmenter* segmenter)
     DashVideoSegmenter* vSeg;
     DashAudioSegmenter* aSeg;
     size_t refTimestamp;
+    size_t refDuration;
     size_t rmTimestamp;
 
     if ((vSeg = dynamic_cast<DashVideoSegmenter*>(segmenter)) != NULL) {
@@ -212,12 +213,11 @@ bool Dasher::generateSegment(size_t id, DashSegmenter* segmenter)
             return false;
         }
 
-        refTimestamp = updateTimestampControl(vSegments);
         mpdMngr->updateVideoAdaptationSet(V_ADAPT_SET_ID, segmenters[id]->getTimeBase(), vSegTempl, vInitSegTempl);
         mpdMngr->updateVideoRepresentation(V_ADAPT_SET_ID, std::to_string(id), VIDEO_CODEC, vSeg->getWidth(),
                                             vSeg->getHeight(), V_BAND, vSeg->getFramerate());
 
-        if (refTimestamp <= 0) {
+        if (!updateTimestampControl(vSegments, refTimestamp, refDuration)) {
             return false;
         }
 
@@ -230,7 +230,7 @@ bool Dasher::generateSegment(size_t id, DashSegmenter* segmenter)
             return false;
         }
 
-        rmTimestamp = mpdMngr->updateAdaptationSetTimestamp(V_ADAPT_SET_ID, refTimestamp, segmenter->getSegDurInTimeBaseUnits());
+        rmTimestamp = mpdMngr->updateAdaptationSetTimestamp(V_ADAPT_SET_ID, refTimestamp, refDuration);
 
         mpdMngr->writeToDisk(mpdPath.c_str());
 
@@ -245,11 +245,10 @@ bool Dasher::generateSegment(size_t id, DashSegmenter* segmenter)
             return false;
         }
 
-        refTimestamp = updateTimestampControl(aSegments);
         mpdMngr->updateAudioAdaptationSet(A_ADAPT_SET_ID, segmenters[id]->getTimeBase(), aSegTempl, aInitSegTempl);
         mpdMngr->updateAudioRepresentation(A_ADAPT_SET_ID, std::to_string(id), AUDIO_CODEC, aSeg->getSampleRate(), A_BAND, aSeg->getChannels());
 
-        if (refTimestamp <= 0) {
+        if (!updateTimestampControl(aSegments, refTimestamp, refDuration)) {
             return false;
         }
 
@@ -279,6 +278,7 @@ bool Dasher::forceAudioSegmentsGeneration()
     DashSegmenter* segmenter;
     DashAudioSegmenter* aSeg;
     size_t refTimestamp;
+    size_t refDuration;
     size_t rmTimestamp;
 
     for (auto seg : aSegments) {
@@ -300,11 +300,10 @@ bool Dasher::forceAudioSegmentsGeneration()
             return false;
         }
 
-        refTimestamp = updateTimestampControl(aSegments);
         mpdMngr->updateAudioAdaptationSet(A_ADAPT_SET_ID, segmenters[seg.first]->getTimeBase(), aSegTempl, aInitSegTempl);
         mpdMngr->updateAudioRepresentation(A_ADAPT_SET_ID, std::to_string(seg.first), AUDIO_CODEC, aSeg->getSampleRate(), A_BAND, aSeg->getChannels());
 
-        if (refTimestamp <= 0) {
+         if (!updateTimestampControl(aSegments, refTimestamp, refDuration)) {
             continue;
         }
 
@@ -313,7 +312,7 @@ bool Dasher::forceAudioSegmentsGeneration()
             return false;
         }
 
-        rmTimestamp = mpdMngr->updateAdaptationSetTimestamp(A_ADAPT_SET_ID, refTimestamp, segmenter->getSegDurInTimeBaseUnits());
+        rmTimestamp = mpdMngr->updateAdaptationSetTimestamp(A_ADAPT_SET_ID, refTimestamp, refDuration);
 
         if (rmTimestamp > 0 && !cleanSegments(aSegments, rmTimestamp, A_EXT)) {
             utils::warningMsg("Error cleaning dash audio segments");
@@ -323,27 +322,35 @@ bool Dasher::forceAudioSegmentsGeneration()
     return true;
 }
 
-size_t Dasher::updateTimestampControl(std::map<int,DashSegment*> segments)
+bool Dasher::updateTimestampControl(std::map<int,DashSegment*> segments, size_t &timestamp, size_t &duration)
 {
     size_t refTimestamp = 0;
+    size_t refDuration = 0;
 
     for (auto seg : segments) {
 
-        if (seg.second->getTimestamp() <= 0) {
-            return 0;
+        if (seg.second->getTimestamp() <= 0 || seg.second->getTimestamp() <= 0) {
+            return false;
         }
 
-        if (refTimestamp == 0) {
+        if (refTimestamp == 0 && refDuration == 0) {
             refTimestamp = seg.second->getTimestamp();
+            refDuration = seg.second->getDuration();
         }
 
-        if (refTimestamp != seg.second->getTimestamp()) {
-            utils::warningMsg("Segments of the same Adaptation Set have different timestamps");
-            utils::warningMsg("Setting timestamp to a reference one: this may cause playing errors");
+        if (refTimestamp != seg.second->getTimestamp() || refDuration != seg.second->getDuration()) {
+            utils::warningMsg("Segments of the same Adaptation Set have different timestamps and/or durations");
+            utils::warningMsg("Setting timestamp and/or duration to a reference one: this may cause playing errors");
         }
     }
 
-    return refTimestamp;
+    if (refTimestamp == 0 || refDuration == 0) {
+        return false;
+    }
+
+    timestamp = refTimestamp;
+    duration = refDuration;
+    return true;
 }
 
 bool Dasher::writeSegmentsToDisk(std::map<int,DashSegment*> segments, size_t timestamp, std::string segExt)
@@ -670,8 +677,14 @@ void DashSegment::setTimestamp(size_t ts)
     timestamp = ts;
 }
 
+void DashSegment::setDuration(size_t dur)
+{
+    duration = dur;
+}
+
 void DashSegment::clear()
 {
     timestamp = 0;
+    duration = 0;
     dataLength = 0;
 }

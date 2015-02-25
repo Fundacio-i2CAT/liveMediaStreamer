@@ -61,12 +61,9 @@ void SinkManagerTest::setUp()
 {
     sinkManager = SinkManager::createNew();
     vFilter = new VideoFilterMockup(H264);
-    utils::errorMsg("video mockup created");
     aFilter = new AudioFilterMockup(AAC);
-    utils::errorMsg("audio mockup created");
     vFilter->connectOneToMany(sinkManager, vReaderId);
     aFilter->connectOneToMany(sinkManager, aReaderId);
-    utils::errorMsg("connections done");
 }
 
 void SinkManagerTest::tearDown()

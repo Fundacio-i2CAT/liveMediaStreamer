@@ -29,9 +29,8 @@
 //READER IMPLEMENTATION//
 /////////////////////////
 
-Reader::Reader(bool sharedQueue)
+Reader::Reader()
 {
-    this->sharedQueue = sharedQueue;
     queue = NULL;
 }
 
@@ -81,11 +80,6 @@ bool Reader::disconnect()
 {
     if (!queue) {
         return false;
-    }
-
-    if (sharedQueue) {
-        queue = NULL;
-        return true;
     }
 
     if (queue->isConnected()) {

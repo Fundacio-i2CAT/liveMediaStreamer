@@ -630,7 +630,6 @@ bool MpegTsConnection::addVideoSource(FramedSource* source, VCodecType codec, in
         return false;
     }
     
-    
     startCodeInjector = H264StartCodeInjector::createNew(*fEnv, source);
     tsFramer->addNewVideoSource(startCodeInjector, 5/*mpegVersion: H.264*/);
 

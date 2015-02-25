@@ -212,11 +212,32 @@ namespace utils
            fType = RECEIVER;
         }  else if (stringFilterType.compare("transmitter") == 0) {
            fType = TRANSMITTER;
+        }  else if (stringFilterType.compare("sharedMemory") == 0) {
+           fType = SHARED_MEMORY;
+        }  else if (stringFilterType.compare("dasher") == 0) {
+           fType = DASHER;
         }  else {
            fType = FT_NONE;
         }
 
         return fType;
+    }
+    
+    FilterRole getRoleTypeFromString(std::string stringRoleType)
+    {
+        FilterRole fRole;
+
+        if (stringRoleType.compare("master") == 0) {
+           fRole = MASTER;
+        } else if (stringRoleType.compare("slave") == 0) {
+           fRole = SLAVE;
+        }  else if (stringRoleType.compare("network") == 0) {
+           fRole = NETWORK;
+        }  else {
+           fRole = FR_NONE;
+        }
+
+        return fRole;
     }
 
     std::string getSampleFormatAsString(SampleFmt sFormat)
@@ -260,11 +281,8 @@ namespace utils
                 stringWorker = "livemedia";
                 break;
             case WORKER:
-                stringWorker = "master";
+                stringWorker = "worker";
                 break;
-//            case SLAVE:
-//                stringWorker = "slave";
-//                break;
             default:
                 stringWorker = "";
                 break;

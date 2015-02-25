@@ -22,7 +22,7 @@
 
 #include "SharedMemory.hh"
 
-SharedMemory* SharedMemory::createNew(size_t key_, VCodecType codec, size_t fTime, FilterRole fRole_, bool force_, bool sharedFrames_)
+SharedMemory* SharedMemory::createNew(size_t key_, VCodecType codec, FilterRole fRole_, size_t fTime, bool force_, bool sharedFrames_)
 {
     SharedMemory *shm = new SharedMemory(key_, codec, fTime, fRole_, force_, sharedFrames_);
 
@@ -33,8 +33,8 @@ SharedMemory* SharedMemory::createNew(size_t key_, VCodecType codec, size_t fTim
 }
 
 SharedMemory::SharedMemory(size_t key_, VCodecType codec_, size_t fTime, FilterRole fRole_, bool force_, bool sharedFrames_):
-    OneToOneFilter(fTime, fRole_), enabled(true), newFrame(false), codec(codec_)
-    {
+    OneToOneFilter(fRole_, fTime), enabled(true), newFrame(false), codec(codec_)
+{
 
     if(!(codec == RAW || codec == H264)){
         utils::errorMsg("SharedMemory::error - filter not created - only RAW and H264 codecs are supported");
@@ -69,6 +69,8 @@ SharedMemory::SharedMemory(size_t key_, VCodecType codec_, size_t fTime, FilterR
         //TODO get seqNum from incoming frame
         seqNum = 1;
     }
+    
+    fType = SHARED_MEMORY;
 }
 
 SharedMemory::~SharedMemory()

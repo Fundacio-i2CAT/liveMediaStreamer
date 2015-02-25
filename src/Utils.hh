@@ -37,6 +37,7 @@ namespace utils
     ACodecType getCodecFromString(std::string stringCodec);
     FilterType getFilterTypeFromString(std::string stringFilterType);
     TxFormat getTxFormatFromString(std::string stringTxFormat);
+    FilterRole getRoleTypeFromString(std::string stringRoleType);
     std::string getSampleFormatAsString(SampleFmt sFormat);
     std::string getAudioCodecAsString(ACodecType codec);
     std::string getVideoCodecAsString(VCodecType codec);

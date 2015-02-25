@@ -49,7 +49,7 @@ public:
     * Class constructor
     * @param readersNum Max number of readers. MAX_READERS (16) by default 
     */ 
-    Dasher(int readersNum = MAX_READERS);
+    Dasher(FilterRole role = MASTER, bool sharedFrames = true, int readersNum = MAX_READERS);
 
     /**
     * Class destructor

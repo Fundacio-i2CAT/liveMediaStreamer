@@ -28,6 +28,8 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <unistd.h>
+#include <stdio.h>
+#include <string.h>
 
 Controller* Controller::ctrlInstance = NULL;
 PipelineManager* PipelineManager::pipeMngrInstance = NULL;
@@ -262,8 +264,6 @@ void Controller::initializeEventMap()
     eventMap["addFiltersToWorker"] = std::bind(&PipelineManager::addFiltersToWorkerEvent, pipeMngrInstance, 
                                             std::placeholders::_1, std::placeholders::_2);
     eventMap["reset"] = std::bind(&PipelineManager::resetEvent, pipeMngrInstance, 
-                                            std::placeholders::_1, std::placeholders::_2);
-    eventMap["start"] = std::bind(&PipelineManager::startEvent, pipeMngrInstance, 
                                             std::placeholders::_1, std::placeholders::_2);
     eventMap["stop"] = std::bind(&PipelineManager::stopEvent, pipeMngrInstance, 
                                             std::placeholders::_1, std::placeholders::_2);

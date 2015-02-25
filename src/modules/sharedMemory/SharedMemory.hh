@@ -68,7 +68,7 @@ public:
     * @return SharedMemory object or NULL if any error while creating
     * @see OneToOneFilter to check the inherated input params
     */
-    static SharedMemory* createNew(size_t key_, VCodecType codec, size_t fTime = 0, FilterRole fRole_ = MASTER, bool force_ = false, bool sharedFrames_ = true);
+    static SharedMemory* createNew(size_t key_, VCodecType codec, FilterRole fRole_ = MASTER, size_t fTime = 0, bool force_ = false, bool sharedFrames_ = true);
     /**
     * Class destructor
     */

@@ -19,7 +19,7 @@
  *
  *  Authors:  David Cassany <david.cassany@i2cat.net>,
  *            Marc Palau <marc.palau@i2cat.net>
- *			  Gerard Castillo <gerard.castillo@i2cat.net>
+ *	      Gerard Castillo <gerard.castillo@i2cat.net>
  */
 
 #ifndef _FILTER_HH
@@ -191,7 +191,7 @@ protected:
 
     std::chrono::microseconds getFrameTime() {return frameTime;};
 
-    virtual Reader *setReader(int readerID, FrameQueue* queue, bool sharedQueue = false);
+    virtual Reader *setReader(int readerID, FrameQueue* queue);
     Reader* getReader(int id);
 
     bool demandOriginFrames();
@@ -258,7 +258,7 @@ private:
 class OneToOneFilter : public BaseFilter {
 
 protected:
-    OneToOneFilter(size_t fTime = 0, FilterRole fRole_ = MASTER, bool force_ = false, bool sharedFrames_ = true);
+    OneToOneFilter(FilterRole fRole_ = MASTER, bool sharedFrames_ = true, size_t fTime = 0, bool force_ = false);
     virtual bool doProcessFrame(Frame *org, Frame *dst) = 0;
     using BaseFilter::setFrameTime;
     using BaseFilter::getFrameTime;
@@ -295,7 +295,7 @@ private:
 class OneToManyFilter : public BaseFilter {
 
 protected:
-    OneToManyFilter(unsigned writersNum = MAX_WRITERS, size_t fTime = 0, FilterRole fRole_ = MASTER, bool force_ = false, bool sharedFrames_ = true);
+    OneToManyFilter(FilterRole fRole_ = MASTER, bool sharedFrames_ = true, unsigned writersNum = MAX_WRITERS, size_t fTime = 0, bool force_ = false);
     virtual bool doProcessFrame(Frame *org, std::map<int, Frame *> dstFrames) = 0;
     using BaseFilter::setFrameTime;
     using BaseFilter::getFrameTime;
@@ -336,7 +336,7 @@ public:
     void pushEvent(Event e);
 
 protected:
-    HeadFilter(unsigned writersNum = MAX_WRITERS, size_t fTime = 0, FilterRole fRole_ = MASTER);
+    HeadFilter(FilterRole fRole_ = MASTER, unsigned writersNum = MAX_WRITERS, size_t fTime = 0);
     int getNullWriterID();
     using BaseFilter::setFrameTime;
     using BaseFilter::getFrameTime;
@@ -372,7 +372,7 @@ public:
     void pushEvent(Event e);
 
 protected:
-    TailFilter(unsigned readersNum = MAX_READERS, size_t fTime = 0, FilterRole fRole_ = MASTER, bool sharedFrames_ = true);
+    TailFilter(FilterRole fRole_ = MASTER, bool sharedFrames_ = true, unsigned readersNum = MAX_READERS, size_t fTime = 0);
     using BaseFilter::setFrameTime;
     using BaseFilter::getFrameTime;
 
@@ -408,7 +408,7 @@ private:
 class ManyToOneFilter : public BaseFilter {
 
 protected:
-    ManyToOneFilter(unsigned readersNum = MAX_READERS, size_t fTime = 0, FilterRole fRole_ = MASTER, bool force_ = false, bool sharedFrames_ = true);
+    ManyToOneFilter(FilterRole fRole_ = MASTER, bool sharedFrames_ = true, unsigned readersNum = MAX_READERS, size_t fTime = 0, bool force_ = false);
     virtual bool doProcessFrame(std::map<int, Frame *> orgFrames, Frame *dst) = 0;
     using BaseFilter::setFrameTime;
     using BaseFilter::getFrameTime;

@@ -70,13 +70,13 @@ Reader* BaseFilter::getReader(int id)
     return readers[id];
 }
 
-Reader* BaseFilter::setReader(int readerID, FrameQueue* queue, bool sharedQueue)
+Reader* BaseFilter::setReader(int readerID, FrameQueue* queue)
 {
     if (readers.size() >= getMaxReaders() || readers.count(readerID) > 0 ) {
         return NULL;
     }
 
-    Reader* r = new Reader(sharedQueue);
+    Reader* r = new Reader();
     readers[readerID] = r;
 
     return r;
@@ -540,7 +540,7 @@ void BaseFilter::updateFrames(std::map<int, Frame*> oFrames_)
     oFrames = oFrames_;
 }
 
-OneToOneFilter::OneToOneFilter(size_t fTime, FilterRole fRole_, bool force_, bool sharedFrames_) :
+OneToOneFilter::OneToOneFilter(FilterRole fRole_, bool sharedFrames_, size_t fTime, bool force_) :
     BaseFilter(1,1,fTime,fRole_,force_,sharedFrames_)
 {
 }
@@ -559,7 +559,7 @@ bool OneToOneFilter::runDoProcessFrame()
 }
 
 
-OneToManyFilter::OneToManyFilter(unsigned writersNum, size_t fTime, FilterRole fRole_, bool force_, bool sharedFrames_) :
+OneToManyFilter::OneToManyFilter(FilterRole fRole_, bool sharedFrames_, unsigned writersNum, size_t fTime, bool force_) :
     BaseFilter(1,writersNum,fTime,fRole_,force_,sharedFrames_)
 {
 }
@@ -582,7 +582,7 @@ bool OneToManyFilter::runDoProcessFrame()
 }
 
 //TODO: runDoProcessFrame to be implemented
-HeadFilter::HeadFilter(unsigned writersNum, size_t fTime, FilterRole fRole_) :
+HeadFilter::HeadFilter(FilterRole fRole_, unsigned writersNum, size_t fTime) :
     BaseFilter(0,writersNum,fTime,fRole_,false,false)
 {
     
@@ -606,8 +606,8 @@ void HeadFilter::pushEvent(Event e)
     e.sendAndClose(outputNode);
 }
 
-TailFilter::TailFilter(unsigned readersNum, size_t fTime, FilterRole fRole_, bool sharedFrames_) :
-    BaseFilter(readersNum,0,fTime,fRole_,false,sharedFrames_)
+TailFilter::TailFilter(FilterRole fRole_, bool sharedFrames_, unsigned readersNum, size_t fTime) :
+    BaseFilter(readersNum, 0, fTime, fRole_, false, sharedFrames_)
 {
 }
 
@@ -636,7 +636,7 @@ void TailFilter::pushEvent(Event e)
 }
 
 
-ManyToOneFilter::ManyToOneFilter(unsigned readersNum, size_t fTime, FilterRole fRole_, bool force_, bool sharedFrames_) :
+ManyToOneFilter::ManyToOneFilter(FilterRole fRole_, bool sharedFrames_, unsigned readersNum, size_t fTime, bool force_) :
     BaseFilter(readersNum,1,fTime,fRole_,force_,sharedFrames_)
 {
 }

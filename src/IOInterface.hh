@@ -60,7 +60,7 @@ protected:
 
 class Reader {
 public:
-    Reader(bool sharedQueue = false);
+    Reader();
     ~Reader();
     void setQueue(FrameQueue *queue);
     bool isConnected();
@@ -76,7 +76,6 @@ protected:
 private:
     friend class Writer;
 
-    bool sharedQueue;
 };
 
 #endif

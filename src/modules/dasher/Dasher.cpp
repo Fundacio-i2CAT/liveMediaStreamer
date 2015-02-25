@@ -31,7 +31,7 @@
 #include <chrono>
 #include <fstream>
 
-Dasher::Dasher(int readersNum) : TailFilter(readersNum)
+Dasher::Dasher(FilterRole role, bool sharedFrames, int readersNum) : TailFilter(role, sharedFrames, readersNum)
 {
 }
 

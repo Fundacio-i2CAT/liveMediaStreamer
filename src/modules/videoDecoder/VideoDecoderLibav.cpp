@@ -27,7 +27,7 @@
 
 PixType getPixelFormat(AVPixelFormat format);
 
-VideoDecoderLibav::VideoDecoderLibav()
+VideoDecoderLibav::VideoDecoderLibav(FilterRole fRole_, bool sharedFrames) : OneToOneFilter(fRole_, sharedFrames)
 {
     avcodec_register_all();
 
@@ -208,10 +208,7 @@ void VideoDecoderLibav::initializeEventMap()
 
 void VideoDecoderLibav::doGetState(Jzon::Object &filterNode)
 {
-   /* filterNode.Add("codec", utils::getAudioCodecAsString(fCodec));
-    filterNode.Add("sampleRate", sampleRate);
-    filterNode.Add("channels", channels);
-    filterNode.Add("sampleFormat", utils::getSampleFormatAsString(sampleFmt));*/
+    filterNode.Add("codec", utils::getVideoCodecAsString(fCodec));
 }
 
 PixType getPixelFormat(AVPixelFormat format)

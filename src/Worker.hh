@@ -109,8 +109,6 @@ protected:
 class LiveMediaWorker : public Worker {
 public:
     LiveMediaWorker();
-    void enable() {};
-    void disable() {};
     void stop();
 private:
     void process();

@@ -38,7 +38,7 @@ extern "C" {
 class AudioEncoderLibav : public OneToOneFilter {
 
 public:
-    AudioEncoderLibav(FilterRole fRole_ = MASTER);
+    AudioEncoderLibav(FilterRole fRole_ = MASTER, bool sharedFrames = true);
     ~AudioEncoderLibav();
     
     bool doProcessFrame(Frame *org, Frame *dst);
@@ -47,7 +47,7 @@ public:
     ACodecType getCodec() {return fCodec;};
 
     bool setup(ACodecType codec, int codedAudioChannels, int codedAudioSampleRate);
-    Reader* setReader(int readerID, FrameQueue* queue, bool sharedQueue = false);
+    Reader* setReader(int readerID, FrameQueue* queue);
 
 private:
     FrameQueue* allocQueue(int wId);

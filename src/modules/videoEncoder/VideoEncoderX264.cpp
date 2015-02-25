@@ -24,8 +24,8 @@
 #include <cmath>
 #include "VideoEncoderX264.hh"
 
-VideoEncoderX264::VideoEncoderX264(FilterRole fRole_, int framerate, bool shareFrames) : 
-OneToOneFilter(1000000/framerate, fRole_ , true, shareFrames)
+VideoEncoderX264::VideoEncoderX264(FilterRole fRole_, bool sharedFrames, int framerate) : 
+OneToOneFilter(fRole_, sharedFrames, 1000000/framerate, true)
 {
     fType = VIDEO_ENCODER;
 
@@ -43,7 +43,14 @@ OneToOneFilter(1000000/framerate, fRole_ , true, shareFrames)
 }
 
 VideoEncoderX264::~VideoEncoderX264(){
-	//TODO: delete encoder;
+	if (midFrame){
+            av_frame_free(&midFrame);
+        }
+        
+        if (encoder){
+            x264_picture_clean(&picIn);            
+            x264_encoder_close(encoder);
+        }
 }
 
 bool VideoEncoderX264::doProcessFrame(Frame *org, Frame *dst) {

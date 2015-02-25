@@ -58,12 +58,12 @@ private:
 class VideoMixer : public ManyToOneFilter {
 
     public:
-        VideoMixer(int framerate = VIDEO_DEFAULT_FRAMERATE,
+        VideoMixer(FilterRole fRole_ = MASTER, bool sharedFrames = true,
+                   int framerate = VIDEO_DEFAULT_FRAMERATE,
                    int inputChannels = VMIXER_MAX_CHANNELS,
                    int outputWidth = DEFAULT_WIDTH,
                    int outputHeight = DEFAULT_HEIGHT,
-                   size_t fTime = 0,
-                   FilterRole fRole_ = MASTER);
+                   size_t fTime = 0);
         ~VideoMixer();
         FrameQueue *allocQueue(int wId);
         bool doProcessFrame(std::map<int, Frame*> orgFrames, Frame *dst);

@@ -29,7 +29,7 @@ bool checkSampleFormat(AVCodec *codec, enum AVSampleFormat sampleFmt);
 bool checkSampleRateSupport(AVCodec *codec, int sampleRate);
 bool checkChannelLayoutSupport(AVCodec *codec, uint64_t channelLayout);
 
-AudioEncoderLibav::AudioEncoderLibav(FilterRole fRole_) : OneToOneFilter(0, fRole_), fCodec(AC_NONE), samplesPerFrame(0),
+AudioEncoderLibav::AudioEncoderLibav(FilterRole fRole_, bool sharedFrames) : OneToOneFilter(fRole_, sharedFrames), fCodec(AC_NONE), samplesPerFrame(0),
 internalChannels(0), internalSampleRate(0), internalSampleFmt(S_NONE), internalLibavSampleFmt(AV_SAMPLE_FMT_NONE),
 inputChannels(0), inputSampleRate(0), inputSampleFmt(S_NONE), inputLibavSampleFmt(AV_SAMPLE_FMT_NONE)
 {
@@ -111,7 +111,7 @@ bool AudioEncoderLibav::doProcessFrame(Frame *org, Frame *dst)
     return true;
 }
 
-Reader* AudioEncoderLibav::setReader(int readerID, FrameQueue* queue, bool sharedQueue)
+Reader* AudioEncoderLibav::setReader(int readerID, FrameQueue* queue)
 {
     if (readers.size() >= getMaxReaders() || readers.count(readerID) > 0 ) {
         return NULL;
@@ -122,7 +122,7 @@ Reader* AudioEncoderLibav::setReader(int readerID, FrameQueue* queue, bool share
         return NULL;
     }
 
-    Reader* r = new Reader(sharedQueue);
+    Reader* r = new Reader();
     readers[readerID] = r;
 
     dynamic_cast<AudioCircularBuffer*>(queue)->setOutputFrameSamples(samplesPerFrame);

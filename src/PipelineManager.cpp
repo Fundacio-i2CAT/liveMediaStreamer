@@ -120,11 +120,14 @@ BaseFilter* PipelineManager::createFilter(FilterType type, Jzon::Node* params)
         return NULL;
     }
     role = utils::getRoleTypeFromString(params->Get("role").ToString());
+    if (role != MASTER && role != SLAVE){
+        role = MASTER;
+    }
     
     if (params->Has("sharedFrames")){
         sharedFrames = params->Get("sharedFrames").ToBool();
     }
-
+    
     switch (type) {
         case RECEIVER:
             filter = new SourceManager();

@@ -128,6 +128,10 @@ BaseFilter* PipelineManager::createFilter(FilterType type, Jzon::Node* params)
         sharedFrames = params->Get("sharedFrames").ToBool();
     }
     
+    //TODO: this shouldn't be here
+    int key = rand();
+    VCodecType codec = RAW;
+    
     switch (type) {
         case RECEIVER:
             filter = new SourceManager();
@@ -157,8 +161,11 @@ BaseFilter* PipelineManager::createFilter(FilterType type, Jzon::Node* params)
             filter = new AudioMixer(role, sharedFrames);
             break;
         case SHARED_MEMORY:
-            //TODO Add key param from params variable, create configure
-            filter = SharedMemory::createNew(1111, RAW, role, sharedFrames);
+            if (params->Has("codec")){
+                codec = utils::getVideoCodecFromString(params->Get("codec").ToString());
+                key = params->Get("key").ToInt();
+            }
+            filter = SharedMemory::createNew(key, codec, role, sharedFrames);
             break;
         case DASHER:
             filter = new Dasher(role, sharedFrames);

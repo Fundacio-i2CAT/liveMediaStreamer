@@ -115,7 +115,7 @@ BaseFilter* PipelineManager::createFilter(FilterType type, Jzon::Node* params)
     BaseFilter* filter;
     FilterRole role;
     bool sharedFrames = true;
-    
+
     if (!params->Has("role")){
         return NULL;
     }
@@ -123,11 +123,11 @@ BaseFilter* PipelineManager::createFilter(FilterType type, Jzon::Node* params)
     if (role != MASTER && role != SLAVE){
         role = MASTER;
     }
-    
+
     if (params->Has("sharedFrames")){
         sharedFrames = params->Get("sharedFrames").ToBool();
     }
-    
+
     switch (type) {
         case RECEIVER:
             filter = new SourceManager();
@@ -722,15 +722,5 @@ void PipelineManager::stopEvent(Jzon::Node* params, Jzon::Object &outputNode)
         return;
     }
 
-    outputNode.Add("error", Jzon::null);
-}
-
-void PipelineManager::resetEvent(Jzon::Node* params, Jzon::Object &outputNode)
-{
-    if (!stop()) {
-        outputNode.Add("error", "Error stopping pipe. Internal error...");
-        return;
-    }
-    
     outputNode.Add("error", Jzon::null);
 }

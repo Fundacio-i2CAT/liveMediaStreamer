@@ -44,7 +44,7 @@ namespace utils
         log4cplus::tstring pattern = LOG4CPLUS_TEXT("%-5p [%l] - %m %n");
         append_1->setLayout( std::auto_ptr<Layout>(new PatternLayout(pattern)) );
         Logger::getRoot().addAppender(append_1);
-        
+
         logConfigured = true;
         Logger logger = Logger::getInstance(LOG4CPLUS_TEXT("main"));
         logger.setLogLevel(INFO_LOG_LEVEL);
@@ -222,7 +222,7 @@ namespace utils
 
         return fType;
     }
-    
+
     FilterRole getRoleTypeFromString(std::string stringRoleType)
     {
         FilterRole fRole;
@@ -238,6 +238,27 @@ namespace utils
         }
 
         return fRole;
+    }
+    std::string getRoleAsString(FilterRole role)
+    {
+        std::string stringRole;
+
+        switch(role) {
+            case MASTER:
+                stringRole = "master";
+                break;
+            case SLAVE:
+                stringRole = "slave";
+                break;
+            case NETWORK:
+                stringRole = "network";
+                break;
+            default:
+                stringRole = "";
+                break;
+        }
+
+        return stringRole;
     }
 
     std::string getSampleFormatAsString(SampleFmt sFormat)

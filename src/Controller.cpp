@@ -24,7 +24,7 @@
 
 #include "Controller.hh"
 #include "Utils.hh"
-#include <sys/types.h> 
+#include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <unistd.h>
@@ -37,7 +37,7 @@ PipelineManager* PipelineManager::pipeMngrInstance = NULL;
 void sendAndClose(Jzon::Object outputNode, int socket);
 
 Controller::Controller()
-{    
+{
     ctrlInstance = this;
     pipeMngrInstance = PipelineManager::getInstance();
     inputRootNode = new Jzon::Object();
@@ -51,7 +51,7 @@ Controller* Controller::getInstance()
     if (ctrlInstance != NULL){
         return ctrlInstance;
     }
-    
+
     return new Controller();
 }
 
@@ -77,26 +77,26 @@ bool Controller::createSocket(int port)
     int yes=1;
 
     listeningSocket = socket(AF_INET, SOCK_STREAM, 0);
-    
+
     if (listeningSocket < 0) {
         utils::errorMsg("Opening socket");
         return false;
     }
-     
+
     if (setsockopt(listeningSocket, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(int)) == -1 ) {
         utils::errorMsg("Setting socket options");
         return false;
     }
-    
+
     bzero((char *) &serv_addr, sizeof(serv_addr));
     serv_addr.sin_family = AF_INET;
     serv_addr.sin_addr.s_addr = INADDR_ANY;
     serv_addr.sin_port = htons(port);
-    
+
     if (bind(listeningSocket, (struct sockaddr *) &serv_addr, sizeof(serv_addr)) < 0) {
         utils::errorMsg("On binding");
         return false;
-    } 
+    }
 
     return true;
 }
@@ -143,7 +143,7 @@ bool Controller::readAndParse()
     return true;
 }
 
-void Controller::processRequest() 
+void Controller::processRequest()
 {
     Jzon::Object outputNode;
 
@@ -155,7 +155,7 @@ void Controller::processRequest()
         } else {
             outputNode.Add("error", Jzon::null);
         }
-        
+
         sendAndClose(outputNode, connectionSocket);
 
     } else if (inputRootNode->Get("events").IsObject()) {
@@ -165,7 +165,7 @@ void Controller::processRequest()
         outputNode.Add("error", "Error while processing event. INvalid JSON format...");
         sendAndClose(outputNode, connectionSocket);
     }
-    
+
 }
 
 bool Controller::processEventArray(const Jzon::Array events)
@@ -179,16 +179,16 @@ bool Controller::processEventArray(const Jzon::Array events)
     return true;
 }
 
-bool Controller::processEvent(Jzon::Object event, int socket) 
+bool Controller::processEvent(Jzon::Object event, int socket)
 {
     if (event.Get("filterID").ToInt() != 0) {
         return processFilterEvent(event, socket);
     }
- 
+
     return processInternalEvent(event, socket);
 }
 
-bool Controller::processFilterEvent(Jzon::Object event, int socket) 
+bool Controller::processFilterEvent(Jzon::Object event, int socket)
 {
     int filterID = -1;
     int delay = 0;
@@ -220,7 +220,7 @@ bool Controller::processFilterEvent(Jzon::Object event, int socket)
     return true;
 }
 
-bool Controller::processInternalEvent(Jzon::Object event, int socket) 
+bool Controller::processInternalEvent(Jzon::Object event, int socket)
 {
     Jzon::Object outputNode;
 
@@ -247,23 +247,21 @@ bool Controller::processInternalEvent(Jzon::Object event, int socket)
 
 void Controller::initializeEventMap()
 {
-    eventMap["getState"] = std::bind(&PipelineManager::getStateEvent, pipeMngrInstance, 
+    eventMap["getState"] = std::bind(&PipelineManager::getStateEvent, pipeMngrInstance,
                                             std::placeholders::_1, std::placeholders::_2);
-    eventMap["createPath"] = std::bind(&PipelineManager::createPathEvent, pipeMngrInstance, 
+    eventMap["createPath"] = std::bind(&PipelineManager::createPathEvent, pipeMngrInstance,
                                             std::placeholders::_1, std::placeholders::_2);
-    eventMap["removePath"] = std::bind(&PipelineManager::removePathEvent, pipeMngrInstance, 
+    eventMap["removePath"] = std::bind(&PipelineManager::removePathEvent, pipeMngrInstance,
                                             std::placeholders::_1, std::placeholders::_2);
-    eventMap["createFilter"] = std::bind(&PipelineManager::createFilterEvent, pipeMngrInstance, 
+    eventMap["createFilter"] = std::bind(&PipelineManager::createFilterEvent, pipeMngrInstance,
                                             std::placeholders::_1, std::placeholders::_2);
-    eventMap["addWorker"] = std::bind(&PipelineManager::addWorkerEvent, pipeMngrInstance, 
+    eventMap["addWorker"] = std::bind(&PipelineManager::addWorkerEvent, pipeMngrInstance,
                                             std::placeholders::_1, std::placeholders::_2);
-    eventMap["removeWorker"] = std::bind(&PipelineManager::removeWorkerEvent, pipeMngrInstance, 
+    eventMap["removeWorker"] = std::bind(&PipelineManager::removeWorkerEvent, pipeMngrInstance,
                                             std::placeholders::_1, std::placeholders::_2);
-    eventMap["addSlavesToFilter"] = std::bind(&PipelineManager::addSlavesToFilterEvent, pipeMngrInstance, 
+    eventMap["addSlavesToFilter"] = std::bind(&PipelineManager::addSlavesToFilterEvent, pipeMngrInstance,
                                             std::placeholders::_1, std::placeholders::_2);
-    eventMap["addFiltersToWorker"] = std::bind(&PipelineManager::addFiltersToWorkerEvent, pipeMngrInstance, 
-                                            std::placeholders::_1, std::placeholders::_2);
-    eventMap["reset"] = std::bind(&PipelineManager::resetEvent, pipeMngrInstance, 
+    eventMap["addFiltersToWorker"] = std::bind(&PipelineManager::addFiltersToWorkerEvent, pipeMngrInstance,
                                             std::placeholders::_1, std::placeholders::_2);
     eventMap["stop"] = std::bind(&PipelineManager::stopEvent, pipeMngrInstance, 
                                             std::placeholders::_1, std::placeholders::_2);

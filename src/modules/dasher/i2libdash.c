@@ -408,7 +408,7 @@ uint32_t add_video_sample(byte *input_data, uint32_t input_data_length, uint32_t
 
     if (ctxSample->mdat_sample_length == 0 && is_intra != TRUE) {
         return I2ERROR_IS_INTRA;
-    )
+    }
 
     // Add segment data
     memcpy((*context)->ctxvideo->segment_data + (*context)->ctxvideo->segment_data_size, input_data, input_data_length);

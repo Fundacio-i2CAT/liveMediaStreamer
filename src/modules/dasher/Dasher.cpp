@@ -70,8 +70,6 @@ bool Dasher::configure(std::string dashFolder, std::string baseName_, size_t seg
     vInitSegTempl = baseName + "_$RepresentationID$_init.m4v";
     aInitSegTempl = baseName + "_$RepresentationID$_init.m4a";
 
-    std::cout << "MPD PATH: " << mpdPath << std::endl;
-
     mpdMngr = new MpdManager();
     mpdMngr->setLocation(mpdLocation);
     mpdMngr->setMinBufferTime(segDurInSec*(MAX_SEGMENTS_IN_MPD/2));
@@ -223,7 +221,6 @@ bool Dasher::generateSegment(size_t id, DashSegmenter* segmenter)
         rmTimestamp = mpdMngr->updateAdaptationSetTimestamp(V_ADAPT_SET_ID, refTimestamp, segmenter->getSegDurInTimeBaseUnits());
 
         mpdMngr->writeToDisk(mpdPath.c_str());
-        std::cout << "Write to disk: " << mpdPath << std::endl;
 
         if (rmTimestamp > 0 && !cleanSegments(vSegments, rmTimestamp, V_EXT)) {
             utils::warningMsg("Error cleaning dash video segments");
@@ -252,7 +249,6 @@ bool Dasher::generateSegment(size_t id, DashSegmenter* segmenter)
         rmTimestamp = mpdMngr->updateAdaptationSetTimestamp(A_ADAPT_SET_ID, refTimestamp, segmenter->getSegDurInTimeBaseUnits());
 
         mpdMngr->writeToDisk(mpdPath.c_str());
-        std::cout << "Write to disk: " << mpdPath << std::endl;
 
         if (rmTimestamp > 0 && !cleanSegments(aSegments, rmTimestamp, A_EXT)) {
             utils::warningMsg("Error cleaning dash audio segments");

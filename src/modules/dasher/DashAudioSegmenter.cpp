@@ -115,6 +115,23 @@ bool DashAudioSegmenter::generateSegment(DashSegment* segment)
     return true;
 }
 
+bool DashAudioSegmenter::forceGenerateSegment(DashSegment* segment)
+{
+    size_t segmentSize = 0;
+    uint32_t segTimestamp;
+
+    segmentSize = force_generate_audio_segment(segment->getDataBuffer(), &dashContext, &segTimestamp);
+
+    if (segmentSize <= I2ERROR_MAX) {
+        return false;
+    }
+
+    segment->setTimestamp(segTimestamp);
+    segment->setDataLength(segmentSize);
+    return true;
+}
+
+
 bool DashAudioSegmenter::flushDashContext()
 {
     if (!dashContext) {

@@ -104,8 +104,6 @@ bool Dasher::doProcessFrame(std::map<int, Frame*> orgFrames)
             continue;
         }
 
-        std::cout << fr.first << "," << (std::chrono::duration_cast<std::chrono::milliseconds>(fr.second->getPresentationTime() - timestampOffset)).count() << std::endl;
-
         if (!segmenter->updateConfig()) {
             utils::errorMsg("[DashSegmenter] Error updating config");
             continue;
@@ -223,6 +221,10 @@ bool Dasher::generateSegment(size_t id, DashSegmenter* segmenter)
             return false;
         }
 
+        if (!forceAudioSegmentsGeneration()) {
+            utils::errorMsg("Error forcing the generation of audio segments. This may cause errors!");
+        }
+
         if (!writeSegmentsToDisk(vSegments, refTimestamp, V_EXT)) {
             utils::errorMsg("Error writing DASH video segment to disk");
             return false;
@@ -267,6 +269,55 @@ bool Dasher::generateSegment(size_t id, DashSegmenter* segmenter)
 
     if (!vSeg && !aSeg) {
         return false;
+    }
+
+    return true;
+}
+
+bool Dasher::forceAudioSegmentsGeneration()
+{
+    DashSegmenter* segmenter;
+    DashAudioSegmenter* aSeg;
+    size_t refTimestamp;
+    size_t rmTimestamp;
+
+    for (auto seg : aSegments) {
+
+        segmenter = getSegmenter(seg.first);
+
+        if (!segmenter) {
+            continue;
+        }
+
+        aSeg = dynamic_cast<DashAudioSegmenter*>(segmenter);
+
+        if (!aSeg) {
+            continue;
+        }
+
+        if (!aSeg->forceGenerateSegment(seg.second)) {
+            utils::errorMsg("Error forcing audio segment generation");
+            return false;
+        }
+
+        refTimestamp = updateTimestampControl(aSegments);
+        mpdMngr->updateAudioAdaptationSet(A_ADAPT_SET_ID, segmenters[seg.first]->getTimeBase(), aSegTempl, aInitSegTempl);
+        mpdMngr->updateAudioRepresentation(A_ADAPT_SET_ID, std::to_string(seg.first), AUDIO_CODEC, aSeg->getSampleRate(), A_BAND, aSeg->getChannels());
+
+        if (refTimestamp <= 0) {
+            continue;
+        }
+
+        if (!writeSegmentsToDisk(aSegments, refTimestamp, A_EXT)) {
+            utils::errorMsg("Error writing DASH audio segment to disk");
+            return false;
+        }
+
+        rmTimestamp = mpdMngr->updateAdaptationSetTimestamp(A_ADAPT_SET_ID, refTimestamp, segmenter->getSegDurInTimeBaseUnits());
+
+        if (rmTimestamp > 0 && !cleanSegments(aSegments, rmTimestamp, A_EXT)) {
+            utils::warningMsg("Error cleaning dash audio segments");
+        }
     }
 
     return true;
@@ -516,6 +567,16 @@ std::string Dasher::getInitSegmentName(std::string basePath, std::string baseNam
 
     return fullName;
 }
+
+DashSegmenter* Dasher::getSegmenter(size_t id)
+{
+    if (segmenters.count(id) <= 0) {
+        return NULL;
+    }
+
+    return segmenters[id];
+}
+
 
 ///////////////////
 // DashSegmenter //

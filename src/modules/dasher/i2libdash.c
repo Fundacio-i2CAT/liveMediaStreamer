@@ -376,6 +376,33 @@ uint32_t generate_audio_segment(byte *output_data, i2ctx **context, uint32_t* se
     return segDataLength;
 }
 
+uint32_t force_generate_audio_segment(byte *output_data, i2ctx **context, uint32_t* segmentTimestamp)
+{
+    uint32_t segDataLength;
+
+    segDataLength = 0;
+
+    if ((*context) == NULL) {
+        return I2ERROR_CONTEXT_NULL;
+    }
+    
+    if (output_data == NULL) {
+        return I2ERROR_DESTINATION_NULL;
+    }
+
+    segDataLength = segmentGenerator((*context)->ctxaudio->segment_data, (*context)->ctxaudio->segment_data_size, output_data, AUDIO_TYPE, context);
+
+    if (segDataLength <= I2ERROR_MAX) {
+        return segDataLength;
+    }
+
+    *segmentTimestamp = (*context)->ctxaudio->earliest_presentation_time;
+    context_refresh(context, AUDIO_TYPE);
+
+    return segDataLength;
+}
+
+
 uint32_t add_video_sample(byte *input_data, uint32_t input_data_length, uint32_t sample_duration, 
                           uint32_t pts, uint32_t dts, uint32_t seqNumber, uint8_t is_intra, i2ctx **context)
 {

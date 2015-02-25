@@ -76,8 +76,9 @@ public:
 
     bool appendFrameToDashSegment(DashSegment* segment);
     bool generateSegment(DashSegment* segment);
+    bool forceGenerateSegment(DashSegment* segment);
     bool flushDashContext();
-    
+
 private:
     bool updateMetadata();
     bool generateInitData(DashSegment* segment);

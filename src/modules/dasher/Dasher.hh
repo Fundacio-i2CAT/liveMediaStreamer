@@ -117,6 +117,8 @@ private:
     bool generateInitSegment(size_t id, DashSegmenter* segmenter);
     bool generateSegment(size_t id, DashSegmenter* segmenter);
     bool appendFrameToSegment(size_t id, DashSegmenter* segmenter);
+    DashSegmenter* getSegmenter(size_t id);
+    bool forceAudioSegmentsGeneration();
 
     size_t updateTimestampControl(std::map<int,DashSegment*> segments);
     bool writeSegmentsToDisk(std::map<int,DashSegment*> segments, size_t timestamp, std::string segExt);

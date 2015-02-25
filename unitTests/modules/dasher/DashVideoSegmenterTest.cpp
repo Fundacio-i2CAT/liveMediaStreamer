@@ -80,7 +80,6 @@ protected:
     void manageIDRNals();
     void manageNonIDRNals();
     void updateConfig();
-    void generateSegmentAndInitSegment();
     void generateInitSegment();
     void appendFrameToDashSegment();
     void generateSegment();

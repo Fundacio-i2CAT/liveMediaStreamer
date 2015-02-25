@@ -79,7 +79,7 @@ bool DashAudioSegmenter::appendFrameToDashSegment(DashSegment* segment)
     size_t dataLengthWithoutADTS;
     size_t addSampleReturn;
 
-    if (!aFrame || !aFrame->getDataBuf() || aFrame->getLength() <= 0) {
+    if (!aFrame || !aFrame->getDataBuf() || aFrame->getLength() <= 0 || !dashContext) {
         utils::errorMsg("Error appeding frame to segment: frame not valid");
         return false;
     }

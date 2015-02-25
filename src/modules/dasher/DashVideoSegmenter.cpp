@@ -229,6 +229,16 @@ bool DashVideoSegmenter::generateSegment(DashSegment* segment)
     return true;
 }
 
+bool DashVideoSegmenter::flushDashContext()
+{
+    if (!dashContext) {
+        return false;
+    }
+
+    context_refresh(&dashContext, VIDEO_TYPE);
+    return true;
+}
+
 bool DashVideoSegmenter::appendNalToFrame(unsigned char* nalData, unsigned nalDataLength, bool &newFrame)
 {
     unsigned char nalType;

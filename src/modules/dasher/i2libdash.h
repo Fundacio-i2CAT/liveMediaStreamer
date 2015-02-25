@@ -68,5 +68,8 @@ uint32_t add_video_sample(byte *input_data, uint32_t input_data_length, uint32_t
 uint32_t add_audio_sample(byte *input_data, uint32_t input_data_length, uint32_t sample_duration, 
                           uint32_t pts, uint32_t dts, uint32_t seqNumber, i2ctx **context);
 
+void context_refresh(i2ctx **context, uint32_t media_type);
+
+
 #endif
 

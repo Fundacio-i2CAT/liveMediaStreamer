@@ -37,7 +37,7 @@
 #define A_BAND 192000
 
 Dasher::Dasher(int readersNum) :
-TailFilter(readersNum)
+TailFilter(readersNum), hasVideo(false), videoStarted(false)
 {
     fType = DASHER;
     initializeEventMap();
@@ -104,6 +104,8 @@ bool Dasher::doProcessFrame(std::map<int, Frame*> orgFrames)
             continue;
         }
 
+        std::cout << fr.first << "," << (std::chrono::duration_cast<std::chrono::milliseconds>(fr.second->getPresentationTime() - timestampOffset)).count() << std::endl;
+
         if (!segmenter->updateConfig()) {
             utils::errorMsg("[DashSegmenter] Error updating config");
             continue;
@@ -138,9 +140,17 @@ bool Dasher::appendFrameToSegment(size_t id, DashSegmenter* segmenter)
             utils::errorMsg("Error appending video frame to segment");
             return false;
         }
+
+        videoStarted = true;
     }   
 
     if ((aSeg = dynamic_cast<DashAudioSegmenter*>(segmenter)) != NULL) {
+
+        if (hasVideo && !videoStarted) {
+            mpdMngr->flushAdaptationSetTimestamps(A_ADAPT_SET_ID);
+            aSeg->flushDashContext();
+            return true;
+        }
 
         if (!aSeg->appendFrameToDashSegment(aSegments[id])) {
             utils::errorMsg("Error appending audio frame to segment");
@@ -436,6 +446,7 @@ bool Dasher::addSegmenter(int readerId)
         segmenters[readerId]->setOffset(timestampOffset);
         vSegments[readerId] = new DashSegment();
         initSegments[readerId] = new DashSegment();
+        hasVideo = true;
     }
 
     if ((aQueue = dynamic_cast<AudioFrameQueue*>(r->getQueue())) != NULL) {
@@ -481,7 +492,12 @@ bool Dasher::removeSegmenter(int readerId)
     delete segmenters[readerId];
     segmenters.erase(readerId);
 
+    if (vSegments.empty()) {
+        hasVideo = false;
+        videoStarted = false;
+    }
 
+    mpdMngr->writeToDisk(mpdPath.c_str());
     return true;
 }
 

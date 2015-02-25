@@ -125,7 +125,6 @@ private:
     void addSegmenterEvent(Jzon::Node* params, Jzon::Object &outputNode);
     void removeSegmenterEvent(Jzon::Node* params, Jzon::Object &outputNode);
 
-
     std::map<int, DashSegmenter*> segmenters;
     std::map<int, DashSegment*> vSegments;
     std::map<int, DashSegment*> aSegments;
@@ -142,6 +141,9 @@ private:
     std::string aSegTempl;
     std::string vInitSegTempl;
     std::string aInitSegTempl;
+
+    bool hasVideo;
+    bool videoStarted;
 };
 
 /*! Abstract class implemented by DashVideoSegmenter and DashAudioSegmenter */
@@ -214,6 +216,7 @@ public:
     */
     std::chrono::seconds getsegDur() {return segDur;};
     size_t getSegDurInTimeBaseUnits() {return segDurInTimeBaseUnits;};
+    virtual bool flushDashContext() = 0;
 
 
 protected:

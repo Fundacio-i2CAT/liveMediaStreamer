@@ -145,6 +145,7 @@ public:
 
     bool appendFrameToDashSegment(DashSegment* segment);
     bool generateSegment(DashSegment* segment);
+    bool flushDashContext();
 
 private:
     bool updateMetadata();

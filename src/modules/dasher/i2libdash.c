@@ -25,8 +25,6 @@
 #include "i2libdash.h"
 
 // PRIVATE FUNCTIONS DECLARATION
-void context_refresh(i2ctx **context, uint32_t media_type);
-
 void audio_context_initializer(i2ctx **context);
 
 void audio_sample_context_initializer(i2ctx_audio **ctxAudio);

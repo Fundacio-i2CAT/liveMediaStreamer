@@ -115,6 +115,16 @@ bool DashAudioSegmenter::generateSegment(DashSegment* segment)
     return true;
 }
 
+bool DashAudioSegmenter::flushDashContext()
+{
+    if (!dashContext) {
+        return false;
+    }
+
+    context_refresh(&dashContext, AUDIO_TYPE);
+    return true;
+}
+
 bool DashAudioSegmenter::generateInitData(DashSegment* segment)
 {
     size_t initSize = 0;

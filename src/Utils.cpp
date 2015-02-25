@@ -73,7 +73,7 @@ namespace utils
         return sampleFormat;
     }
 
-    ACodecType getCodecFromString(std::string stringCodec)
+    ACodecType getAudioCodecFromString(std::string stringCodec)
     {
         ACodecType codec;
         if (stringCodec.compare("g711") == 0) {
@@ -94,6 +94,25 @@ namespace utils
 
         return codec;
     }
+       
+    VCodecType getVideoCodecFromString(std::string stringCodec)
+    {
+        VCodecType codec;
+        if (stringCodec.compare("H264") == 0) {
+            codec = H264;
+        } else if (stringCodec.compare("VP8") == 0) {
+            codec = VP8;
+        }  else if (stringCodec.compare("MJPEG") == 0) {
+            codec = MJPEG;
+        }  else if (stringCodec.compare("RAW") == 0) {
+            codec = RAW;
+        }  else {
+            codec = VC_NONE;
+        }
+
+        return codec;
+    }
+    
     std::string getVideoCodecAsString(VCodecType codec)
     {
        std::string stringCodec;

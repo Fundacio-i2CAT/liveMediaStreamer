@@ -137,7 +137,7 @@ void SharedMemoryFunctionalTest::sharedMemoryFilterWithDummyReader()
 
     CPPUNIT_ASSERT(sharedMemoryFilter->isEnabled());
     CPPUNIT_ASSERT(sharedMemoryFilter->isWritable());
-    sharedMemoryFilter->setFrameObject(frameMockup);
+    //sharedMemoryFilter->setFrameObject(frameMockup);
     startPoint = std::chrono::system_clock::now();
 
     for(int i = 0; i<10; i++){
@@ -145,8 +145,8 @@ void SharedMemoryFunctionalTest::sharedMemoryFilterWithDummyReader()
         fakeTimeStamp = std::chrono::duration_cast<std::chrono::microseconds>(
                     std::chrono::system_clock::now() - startPoint);
         if(sharedMemoryFilter->isWritable()){
-            sharedMemoryFilter->writeFramePayload(seqNum++);
-            sharedMemoryFilter->getFrameObject()->setPresentationTime(fakeTimeStamp);
+            //sharedMemoryFilter->writeFramePayload(seqNum++);
+            //sharedMemoryFilter->getFrameObject()->setPresentationTime(fakeTimeStamp);
             sharedMemoryFilter->writeSharedMemoryRAW(frameMockup->getDataBuf(),frameMockup->getLength());
         }
     }

@@ -46,8 +46,6 @@ public:
 	using SharedMemory::writeSharedMemoryRAW;
 	using SharedMemory::writeFramePayload;
 	using SharedMemory::isWritable;
-	using SharedMemory::getFrameObject;
-	using SharedMemory::setFrameObject;
 	using SharedMemory::getSeqNum;
 
 private:

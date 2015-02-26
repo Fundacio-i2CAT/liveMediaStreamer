@@ -214,6 +214,7 @@ bool BaseFilter::connect(BaseFilter *R, int writerID, int readerID)
     }
 
     if (R->getReader(readerID) && R->getReader(readerID)->isConnected()){
+        utils::errorMsg("Reader " + std::to_string(readerID) + " null or already connected");
         return false;
     }
 
@@ -344,6 +345,7 @@ void BaseFilter::getState(Jzon::Object &filterNode)
 {
     eventQueueMutex.lock();
     filterNode.Add("type", utils::getFilterTypeAsString(fType));
+    filterNode.Add("role", utils::getRoleAsString(fRole));
     filterNode.Add("workerId", workerId);
     doGetState(filterNode);
     eventQueueMutex.unlock();
@@ -359,7 +361,7 @@ bool BaseFilter::hasFrames()
 }
 
 bool BaseFilter::updateTimestamp()
-{   
+{
     if (frameTime.count() == 0) {
         lastValidTimestamp = timestamp;
         timestamp = wallClock;
@@ -401,7 +403,7 @@ bool BaseFilter::updateTimestamp()
     if (frameTimeMod < 0) {
         frameTimeMod = 0;
     }
-    
+
     return timestamp >= lastValidTimestamp;
 }
 
@@ -500,7 +502,7 @@ size_t BaseFilter::masterProcessFrame()
         (std::chrono::system_clock::now().time_since_epoch()) - wallClock).count();
 
     frameTime_ = frameTime.count()*frameTimeMod*bufferStateFrameTimeMod;
-    
+
     if (enlapsedTime > frameTime_){
         return 0;
     }
@@ -585,7 +587,7 @@ bool OneToManyFilter::runDoProcessFrame()
 HeadFilter::HeadFilter(FilterRole fRole_, unsigned writersNum, size_t fTime) :
     BaseFilter(0,writersNum,fTime,fRole_,false,false)
 {
-    
+
 }
 
 void HeadFilter::pushEvent(Event e)

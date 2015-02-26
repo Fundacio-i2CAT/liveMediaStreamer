@@ -19,7 +19,7 @@
  *
  *  Authors:  Marc Palau <marc.palau@i2cat.net>,
  *            Ignacio Contreras <ignacio.contreras@i2cat.net>
- */     
+ */
 
 
 #include <stdio.h>
@@ -41,7 +41,7 @@ int main(int argc, char *argv[]) {
 
     Controller* ctrl = Controller::getInstance();
 
-    utils::setLogLevel(INFO);
+    utils::setLogLevel(DEBUG);
 
     port = atoi(argv[1]);
     if (!ctrl->createSocket(port)) {
@@ -63,5 +63,5 @@ int main(int argc, char *argv[]) {
 
     ctrl->stopAndCloseSocket();
 
-    return 0; 
+    return 0;
 }

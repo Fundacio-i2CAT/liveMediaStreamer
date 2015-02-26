@@ -65,7 +65,6 @@ public:
     void addSlavesToFilterEvent(Jzon::Node* params, Jzon::Object &outputNode);
     void addFiltersToWorkerEvent(Jzon::Node* params, Jzon::Object &outputNode);
     void stopEvent(Jzon::Node* params, Jzon::Object &outputNode);
-    void resetEvent(Jzon::Node* params, Jzon::Object &outputNode);
 
 private:
     PipelineManager();

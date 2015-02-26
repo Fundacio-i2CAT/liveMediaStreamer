@@ -115,7 +115,7 @@ BaseFilter* PipelineManager::createFilter(FilterType type, Jzon::Node* params)
     BaseFilter* filter;
     FilterRole role;
     bool sharedFrames = true;
-    
+
     if (!params->Has("role")){
         return NULL;
     }
@@ -123,15 +123,15 @@ BaseFilter* PipelineManager::createFilter(FilterType type, Jzon::Node* params)
     if (role != MASTER && role != SLAVE){
         role = MASTER;
     }
-    
+
     if (params->Has("sharedFrames")){
         sharedFrames = params->Get("sharedFrames").ToBool();
     }
-    
+
     //TODO: this shouldn't be here
     int key = rand();
     VCodecType codec = RAW;
-    
+
     switch (type) {
         case RECEIVER:
             filter = new SourceManager();
@@ -402,6 +402,7 @@ void PipelineManager::startWorkers()
 {
     for (auto it : workers) {
         if (!it.second->isRunning()) {
+            utils::debugMsg("Worker " + std::to_string(it.first) + " starting");
             it.second->start();
             utils::debugMsg("Worker " + std::to_string(it.first) + " started");
         }
@@ -623,7 +624,7 @@ void PipelineManager::addWorkerEvent(Jzon::Node* params, Jzon::Object &outputNod
     id = params->Get("id").ToInt();
     type = params->Get("type").ToString();
 
-    if (type.compare("livemedia")){
+    if (type.compare("livemedia") == 0){
         worker = new LiveMediaWorker();
     } else {
         worker = new Worker();
@@ -638,8 +639,6 @@ void PipelineManager::addWorkerEvent(Jzon::Node* params, Jzon::Object &outputNod
         outputNode.Add("error", "Error adding worker to filter. Check filter ID...");
         return;
     }
-
-    startWorkers();
 
     outputNode.Add("error", Jzon::null);
 }
@@ -682,8 +681,6 @@ void PipelineManager::addSlavesToFilterEvent(Jzon::Node* params, Jzon::Object &o
            outputNode.Add("error", "Error adding slaves to filter. Invalid Slave...");
        }
    }
-
-    startWorkers();
 
     outputNode.Add("error", Jzon::null);
 }
@@ -729,15 +726,5 @@ void PipelineManager::stopEvent(Jzon::Node* params, Jzon::Object &outputNode)
         return;
     }
 
-    outputNode.Add("error", Jzon::null);
-}
-
-void PipelineManager::resetEvent(Jzon::Node* params, Jzon::Object &outputNode)
-{
-    if (!stop()) {
-        outputNode.Add("error", "Error stopping pipe. Internal error...");
-        return;
-    }
-    
     outputNode.Add("error", Jzon::null);
 }

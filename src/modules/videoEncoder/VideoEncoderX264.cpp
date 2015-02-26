@@ -267,7 +267,7 @@ void VideoEncoderX264::forceIntraEvent(Jzon::Node* params)
 
 void VideoEncoderX264::initializeEventMap()
 {
-	eventMap["forceIntra"] = std::bind(&VideoEncoderX264::forceIntraEvent, this, std::placeholders::_1);
+    eventMap["forceIntra"] = std::bind(&VideoEncoderX264::forceIntraEvent, this, std::placeholders::_1);
     eventMap["configure"] = std::bind(&VideoEncoderX264::configEvent, this, std::placeholders::_1, std::placeholders::_2);
 }
 

@@ -130,7 +130,7 @@ Reader* AudioEncoderLibav::setReader(int readerID, FrameQueue* queue)
     return r;
 }
 
-bool AudioEncoderLibav::setup(ACodecType codec, int codedAudioChannels, int codedAudioSampleRate)
+bool AudioEncoderLibav::configure(ACodecType codec, int codedAudioChannels, int codedAudioSampleRate)
 {
     if (fCodec != AC_NONE) {
         utils::errorMsg("Auduo encoder is still configured");
@@ -395,4 +395,42 @@ bool checkChannelLayoutSupport(AVCodec *codec, uint64_t channelLayout)
     }
 
     return false;
+}
+
+void AudioEncoderLibav::configEvent(Jzon::Node* params, Jzon::Object &outputNode)
+{
+    ACodecType codec; 
+    int codedAudioChannels;
+    int codedAudioSampleRate;
+
+    if (!params) {
+        return;
+    }
+
+    codec = fCodec;
+    codedAudioChannels = internalChannels;
+    codedAudioSampleRate = internalSampleRate;
+
+    if (params->Has("codec")){
+        codec = utils::getAudioCodecFromString(params->Get("codec").ToString());
+    }
+
+    if (params->Has("sampleRate")){
+        codedAudioSampleRate = params->Get("sampleRate").ToInt();
+    }
+
+    if (params->Has("channels")){
+        codedAudioChannels = params->Get("channels").ToInt();
+    }
+
+    if (!configure(codec, codedAudioChannels, codedAudioSampleRate)){
+        outputNode.Add("error", "Error configuring audio encoder");
+    } else {
+        outputNode.Add("error", Jzon::null);
+    }
+}
+
+void AudioEncoderLibav::initializeEventMap()
+{
+    eventMap["configure"] = std::bind(&AudioEncoderLibav::configEvent, this, std::placeholders::_1, std::placeholders::_2);
 }

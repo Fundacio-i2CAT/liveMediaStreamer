@@ -46,7 +46,7 @@ public:
     int getSamplesPerFrame(){ return samplesPerFrame;};
     ACodecType getCodec() {return fCodec;};
 
-    bool setup(ACodecType codec, int codedAudioChannels, int codedAudioSampleRate);
+    bool configure(ACodecType codec, int codedAudioChannels, int codedAudioSampleRate);
     Reader* setReader(int readerID, FrameQueue* queue);
 
 private:

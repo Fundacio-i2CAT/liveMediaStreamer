@@ -42,7 +42,7 @@ namespace utils
         SharedObjectPtr<Appender> append_1(new ConsoleAppender());
         append_1->setName(LOG4CPLUS_TEXT("First"));
         log4cplus::tstring pattern = LOG4CPLUS_TEXT("%-5p [%l] - %m %n");
-        append_1->setLayout( std::auto_ptr<Layout>(new PatternLayout(pattern)) );
+        append_1->setLayout(std::auto_ptr<Layout>(new PatternLayout(pattern)));
         Logger::getRoot().addAppender(append_1);
         
         logConfigured = true;

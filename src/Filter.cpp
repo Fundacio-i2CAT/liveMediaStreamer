@@ -214,6 +214,7 @@ bool BaseFilter::connect(BaseFilter *R, int writerID, int readerID)
     }
 
     if (R->getReader(readerID) && R->getReader(readerID)->isConnected()){
+        utils::errorMsg("Reader " + std::to_string(readerID) + " null or already connected");
         return false;
     }
 

@@ -121,7 +121,7 @@ void Worker::process()
 {
     Runnable* currentJob;
 
-    while(run) {
+    while(!processors.empty() && run) {
         mtx.lock();
 
         while (!processors.empty() && processors.top()->ready()){
@@ -132,12 +132,18 @@ void Worker::process()
             processors.push(currentJob);
         }
 
-        currentJob = processors.top();
+        if (!processors.empty()){
+            currentJob = processors.top();
 
-        mtx.unlock();
+            mtx.unlock();
 
-        currentJob->sleepUntilReady();
+            currentJob->sleepUntilReady();
+        } else {
+            mtx.unlock();
+        }
     }
+
+    thread.detach();
 }
 
 //TODO: avoid void functions
@@ -181,12 +187,18 @@ LiveMediaWorker::LiveMediaWorker() : Worker()
 
 void LiveMediaWorker::process()
 {
-    processors.top()->runProcessFrame();
+    if(!processors.empty()){
+        processors.top()->runProcessFrame();
+    } else {
+        thread.detach();
+    }
 }
 
 void LiveMediaWorker::stop()
 {
-    processors.top()->stop();
+    if(!processors.empty()){
+        processors.top()->stop();
+    }
     if (isRunning()){
         thread.join();
     }

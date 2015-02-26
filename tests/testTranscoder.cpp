@@ -129,7 +129,7 @@ void addAudioPath(unsigned port, Dasher* dasher, int dasherId, int receiverID, i
     utils::infoMsg("Audio path created from port " + std::to_string(port));
 }
 
-void addVideoPath(unsigned port, Dasher* dasher, int dasherId, int receiverID, int transmitterID, 
+void addVideoPath(unsigned port, Dasher* dasher, int dasherId, int receiverID, int transmitterID,
                   size_t sharingMemoryKey = 0,  unsigned width = 0, unsigned height = 0)
 {
     PipelineManager *pipe = Controller::getInstance()->pipelineManager();
@@ -154,7 +154,7 @@ void addVideoPath(unsigned port, Dasher* dasher, int dasherId, int receiverID, i
     int wEncShmId = rand();
     SharedMemory *shmEnc;
     Worker* wEncShm;
-    
+
     std::vector<int> ids;
 
     std::vector<int> slaveIds({encId2});
@@ -323,7 +323,7 @@ bool addAudioSDPSession(unsigned port, SourceManager *receiver, std::string code
     return true;
 }
 
-bool addRTSPsession(std::string rtspUri, Dasher* dasher, int dasherId, size_t sharingMemory, 
+bool addRTSPsession(std::string rtspUri, Dasher* dasher, int dasherId, size_t sharingMemory,
                     SourceManager *receiver, int receiverID, int transmitterID)
 {
     Session* session;
@@ -406,12 +406,12 @@ int main(int argc, char* argv[])
     Dasher* dasher = NULL;
     int dasherId = rand();
     std::vector<int> readers;
-    
+
     int transmitterID = rand();
     int receiverID = rand();
     int transWorkID = rand();
     int receiWorkID = rand();
-    
+
     SinkManager* transmitter = NULL;
     SourceManager* receiver = NULL;
     PipelineManager *pipe;
@@ -461,7 +461,7 @@ int main(int argc, char* argv[])
             utils::errorMsg("RTSPServer constructor failed");
             return 1;
         }
-        
+
         lW = new LiveMediaWorker();
         pipe->addWorker(transWorkID, lW);
         pipe->addFilter(transmitterID, transmitter);
@@ -472,9 +472,9 @@ int main(int argc, char* argv[])
     pipe->addWorker(receiWorkID, lW);
     pipe->addFilter(receiverID, receiver);
     pipe->addFilterToWorker(receiWorkID, receiverID);
-    
+
     pipe->startWorkers();
-    
+
     signal(SIGINT, signalHandler);
 
     if (vPort != 0 && rtspUri.length() == 0){

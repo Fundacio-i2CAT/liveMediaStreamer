@@ -101,7 +101,7 @@ void addAudioPath(unsigned port, Dasher* dasher, int dasherId, int receiverID, i
 
     //NOTE: Adding encoder to pipeManager and handle worker
     encoder = new AudioEncoderLibav();
-    if (!encoder->setup(OUT_A_CODEC, A_CHANNELS, A_TIME_STMP_FREQ)) {
+    if (!encoder->configure(OUT_A_CODEC, A_CHANNELS, A_TIME_STMP_FREQ)) {
         utils::errorMsg("Error configuring audio encoder. Check provided parameters");
         return;
     }

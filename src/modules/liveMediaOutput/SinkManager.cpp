@@ -470,7 +470,7 @@ void SinkManager::initializeEventMap()
 
 }
 
-void SinkManager::addRTPConnectionEvent(Jzon::Node* params, Jzon::Object &outputNode)
+void SinkManager::addRTSPConnectionEvent(Jzon::Node* params, Jzon::Object &outputNode)
 {
     int id;
     TxFormat txFormat;
@@ -500,11 +500,11 @@ void SinkManager::addRTPConnectionEvent(Jzon::Node* params, Jzon::Object &output
     txFormat = utils::getTxFormatFromString(strTxFormat);
     
     if (params->Has("info")){
-        info = params->Get("name").ToString();
+        info = params->Get("info").ToString();
     }
     
     if (params->Has("desc")){
-        desc = params->Get("name").ToString();
+        desc = params->Get("desc").ToString();
     }
 
     Jzon::Array jsonReaders = params->Get("readers").AsArray();
@@ -526,7 +526,7 @@ void SinkManager::addRTPConnectionEvent(Jzon::Node* params, Jzon::Object &output
     outputNode.Add("error", Jzon::null);
 }
 
-void SinkManager::addRTSPConnectionEvent(Jzon::Node* params, Jzon::Object &outputNode)
+void SinkManager::addRTPConnectionEvent(Jzon::Node* params, Jzon::Object &outputNode)
 {
     std::vector<int> readers;
     int connectionId;

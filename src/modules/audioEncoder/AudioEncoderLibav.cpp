@@ -47,6 +47,8 @@ inputChannels(0), inputSampleRate(0), inputSampleFmt(S_NONE), inputLibavSampleFm
     framerateMod = 1;
 
     currentTime = std::chrono::microseconds(0);
+
+    initializeEventMap();
 }
 
 AudioEncoderLibav::~AudioEncoderLibav()
@@ -133,7 +135,7 @@ Reader* AudioEncoderLibav::setReader(int readerID, FrameQueue* queue)
 bool AudioEncoderLibav::configure(ACodecType codec, int codedAudioChannels, int codedAudioSampleRate)
 {
     if (fCodec != AC_NONE) {
-        utils::errorMsg("Auduo encoder is still configured");
+        utils::errorMsg("Audio encoder is already configured");
         return false;
     }
 

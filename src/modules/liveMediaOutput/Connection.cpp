@@ -223,8 +223,7 @@ std::string RTSPConnection::getURI()
     if (session == NULL){
         return "";
     }
-    
-    rtspServer->addServerMediaSession(session);
+
     return rtspServer->rtspURL(session);
 }
 

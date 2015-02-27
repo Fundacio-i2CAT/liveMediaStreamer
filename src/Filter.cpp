@@ -27,7 +27,7 @@
 
 #include <thread>
 
-#define WALL_CLOCK_THRESHOLD 100 * 1000 * 1000 //100 ms in nanoseconds
+#define WALL_CLOCK_THRESHOLD 3 //number of frames
 #define SLOW_MODIFIER 1.10
 #define FAST_MODIFIER 0.90
 
@@ -362,6 +362,8 @@ bool BaseFilter::hasFrames()
 
 bool BaseFilter::updateTimestamp()
 {   
+    int threshold = frameTime.count() * WALL_CLOCK_THRESHOLD;
+    
     if (frameTime.count() == 0) {
         lastValidTimestamp = timestamp;
         timestamp = wallClock;
@@ -375,7 +377,7 @@ bool BaseFilter::updateTimestamp()
     lastDiffTime = diffTime;
     diffTime = wallClock - timestamp;
 
-    if (diffTime.count() > WALL_CLOCK_THRESHOLD || diffTime.count() < (-WALL_CLOCK_THRESHOLD) ) {
+    if (diffTime.count() > threshold || diffTime.count() < (-threshold) ) {
         // reset timestamp value in order to realign with the wall clock
         utils::warningMsg("Wall clock deviations exceeded! Reseting values!");
         timestamp = wallClock;

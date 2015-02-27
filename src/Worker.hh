@@ -66,7 +66,7 @@ public:
     /**
     * Adds a processor to the worker
     * @param id processor ID
-    * @param processor processor objecto to add
+    * @param processor processor object to add
     * @return True if succeded and false if not
     */
     bool addProcessor(int id, Runnable *processor);

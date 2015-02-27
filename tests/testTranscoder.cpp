@@ -32,7 +32,7 @@
 #define RETRIES 60
 
 #define SEG_DURATION 4 //sec
-#define DASH_FOLDER "/home/palau/nginx_root/dashLMS"
+#define DASH_FOLDER "dashLMS"
 #define BASE_NAME "test"
 #define MPD_LOCATION "http://localhost/dashLMS/test.mpd"
 

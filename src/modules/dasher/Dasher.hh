@@ -114,16 +114,18 @@ private:
     bool doProcessFrame(std::map<int, Frame*> orgFrames);
     void doGetState(Jzon::Object &filterNode);
     void initializeEventMap();
-    void updateMpd(int id, DashSegmenter* segmenter);
     bool generateInitSegment(size_t id, DashSegmenter* segmenter);
     bool generateSegment(size_t id, DashSegmenter* segmenter);
-    size_t updateTimestampControl(std::map<int,DashSegment*> segments);
+    bool appendFrameToSegment(size_t id, DashSegmenter* segmenter);
+    DashSegmenter* getSegmenter(size_t id);
+    bool forceAudioSegmentsGeneration();
+
+    bool updateTimestampControl(std::map<int,DashSegment*> segments, size_t &timestamp, size_t &duration);
     bool writeSegmentsToDisk(std::map<int,DashSegment*> segments, size_t timestamp, std::string segExt);
     bool cleanSegments(std::map<int,DashSegment*> segments, size_t timestamp, std::string segExt);
     void configureEvent(Jzon::Node* params, Jzon::Object &outputNode);
     void addSegmenterEvent(Jzon::Node* params, Jzon::Object &outputNode);
     void removeSegmenterEvent(Jzon::Node* params, Jzon::Object &outputNode);
-
 
     std::map<int, DashSegmenter*> segmenters;
     std::map<int, DashSegment*> vSegments;
@@ -137,11 +139,13 @@ private:
     std::string basePath;
     std::string baseName;
     std::string mpdPath;
-    std::string segmentsBasePath;
     std::string vSegTempl;
     std::string aSegTempl;
     std::string vInitSegTempl;
     std::string aInitSegTempl;
+
+    bool hasVideo;
+    bool videoStarted;
 };
 
 /*! Abstract class implemented by DashVideoSegmenter and DashAudioSegmenter */
@@ -179,11 +183,9 @@ public:
     */
     bool generateInitSegment(DashSegment* segment);
 
-    /**
-    * Generates and writes to disk a segment if there is enough data buffered
-    */
-    bool generateSegment(DashSegment* segment);
 
+    virtual bool appendFrameToDashSegment(DashSegment* segment) = 0;
+    virtual bool generateSegment(DashSegment* segment) = 0;
     /**
     * Returns average frame duration
     * @return duration in time base
@@ -216,17 +218,16 @@ public:
     */
     std::chrono::seconds getsegDur() {return segDur;};
     size_t getSegDurInTimeBaseUnits() {return segDurInTimeBaseUnits;};
+    virtual bool flushDashContext() = 0;
 
 
 protected:
     virtual bool updateMetadata() = 0;
     virtual bool generateInitData(DashSegment* segment) = 0;
-    virtual bool appendFrameToDashSegment(DashSegment* segment) = 0;
     std::string getInitSegmentName();
     std::string getSegmentName();
     size_t customTimestamp(std::chrono::system_clock::time_point timestamp);
     size_t nanosToTimeBase(std::chrono::nanoseconds nanosValue);
-
 
     std::chrono::seconds segDur;
     std::chrono::system_clock::time_point tsOffset;
@@ -299,6 +300,17 @@ public:
     void setTimestamp(size_t ts);
 
     /**
+    * @return Segment segment timestamp
+    */
+    size_t getDuration(){return duration;};
+
+    /**
+    * It sets the segment timestamp
+    * @params ts is the timestamp to set
+    */
+    void setDuration(size_t dur);
+
+    /**
     * Writes segment to disk
     * @params Path to write
     * @retrun True if suceeded and False if not
@@ -320,6 +332,7 @@ private:
     size_t dataLength;
     size_t seqNumber;
     size_t timestamp;
+    size_t duration;
 };
 
 #endif

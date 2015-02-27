@@ -24,7 +24,7 @@
  #include "DashAudioSegmenter.hh"
 
 DashAudioSegmenter::DashAudioSegmenter(std::chrono::seconds segDur) :
-DashSegmenter(segDur, 0)
+DashSegmenter(segDur, 0), aFrame(0)
 {
 
 }
@@ -75,18 +75,14 @@ bool DashAudioSegmenter::updateConfig()
 
 bool DashAudioSegmenter::appendFrameToDashSegment(DashSegment* segment)
 {
-    size_t segmentSize = 0;
     unsigned char* dataWithoutADTS;
     size_t dataLengthWithoutADTS;
-    uint32_t segTimestamp;
     size_t addSampleReturn;
 
-    if (!aFrame || !aFrame->getDataBuf() || aFrame->getLength() <= 0) {
+    if (!aFrame || !aFrame->getDataBuf() || aFrame->getLength() <= 0 || !dashContext) {
         utils::errorMsg("Error appeding frame to segment: frame not valid");
         return false;
     }
-
-    segmentSize = generate_audio_segment(segment->getDataBuffer(), &dashContext, &segTimestamp);
 
     theoricPts = customTimestamp(aFrame->getPresentationTime());
 
@@ -100,12 +96,53 @@ bool DashAudioSegmenter::appendFrameToDashSegment(DashSegment* segment)
         return false;
     }
 
+    return true;
+}
+
+bool DashAudioSegmenter::generateSegment(DashSegment* segment)
+{
+    size_t segmentSize = 0;
+    uint32_t segTimestamp;
+    uint32_t segDuration;
+
+    segmentSize = generate_audio_segment(segment->getDataBuffer(), &dashContext, &segTimestamp, &segDuration);
+
     if (segmentSize <= I2ERROR_MAX) {
         return false;
     }
 
     segment->setTimestamp(segTimestamp);
+    segment->setDuration(segDuration);
     segment->setDataLength(segmentSize);
+    return true;
+}
+
+bool DashAudioSegmenter::forceGenerateSegment(DashSegment* segment)
+{
+    size_t segmentSize = 0;
+    uint32_t segTimestamp;
+    uint32_t segDuration;
+
+    segmentSize = force_generate_audio_segment(segment->getDataBuffer(), &dashContext, &segTimestamp, &segDuration);
+
+    if (segmentSize <= I2ERROR_MAX) {
+        return false;
+    }
+
+    segment->setTimestamp(segTimestamp);
+    segment->setDuration(segDuration);
+    segment->setDataLength(segmentSize);
+    return true;
+}
+
+
+bool DashAudioSegmenter::flushDashContext()
+{
+    if (!dashContext) {
+        return false;
+    }
+
+    context_refresh(&dashContext, AUDIO_TYPE);
     return true;
 }
 

@@ -22,12 +22,11 @@
  */
 
  #include "DashVideoSegmenter.hh"
- #include <fstream>
 
-DashVideoSegmenter::DashVideoSegmenter(size_t segDur, std::string segBaseName) :
-DashSegmenter(segDur, MICROSECONDS_TIME_BASE, segBaseName, ".m4v"),
-updatedSPS(false), updatedPPS(false), lastTs(0), frameRate(0), isIntra(false),
-isVCL(false), currTimestamp(0), width(0), height(0)
+DashVideoSegmenter::DashVideoSegmenter(std::chrono::seconds segDur) : 
+DashSegmenter(segDur, DASH_VIDEO_TIME_BASE), 
+updatedSPS(false), updatedPPS(false), frameRate(0), isIntra(false), 
+isVCL(false), width(0), height(0)
 {
 
 }
@@ -53,7 +52,8 @@ bool DashVideoSegmenter::manageFrame(Frame* frame, bool &newFrame)
         return false;
     }
 
-    currTimestamp = nal->getPresentationTime().count();
+    currDuration = nal->getDuration();
+    currTimestamp = nal->getPresentationTime(); 
     width = nal->getWidth();
     height = nal->getHeight();
 
@@ -74,34 +74,9 @@ bool DashVideoSegmenter::updateConfig()
         return false;
     }
 
-    if(!setup(segmentDuration, timeBase, frameDuration, width, height, frameRate)) {
+    if(!setup(segDurInTimeBaseUnits, timeBase, frameDuration, width, height, frameRate)) {
         utils::errorMsg("Error during Dash Video Segmenter setup");
         frameData.clear();
-        return false;
-    }
-
-    return true;
-}
-
-bool DashVideoSegmenter::finishSegment()
-{
-    size_t segmentSize = 0;
-
-    if (!dashContext || !dashContext->ctxvideo || dashContext->ctxvideo->segment_data_size <= 0) {
-        return true;
-    }
-
-    segment->setTimestamp(dashContext->ctxvideo->earliest_presentation_time);
-    segmentSize = finish_segment(VIDEO_TYPE, segment->getDataBuffer(), &dashContext);
-
-    if (segmentSize <= I2ERROR_MAX) {
-        return false;
-    }
-
-    segment->setDataLength(segmentSize);
-
-    if(!segment->writeToDisk(getSegmentName())) {
-        utils::errorMsg("Error writing DASH segment to disk: invalid path");
         return false;
     }
 
@@ -133,21 +108,12 @@ bool DashVideoSegmenter::parseNal(VideoFrame* nal, bool &newFrame)
 
 bool DashVideoSegmenter::updateTimeValues()
 {
-    if (currTimestamp == 0 || currTimestamp < lastTs || currTimestamp < tsOffset) {
+    if (currDuration.count() == 0) {
         return false;
     }
 
-    if (lastTs <= 0 || tsOffset <= 0 || frameRate <= 0) {
-        tsOffset = currTimestamp;
-        lastTs = currTimestamp;
-        frameRate = VIDEO_DEFAULT_FRAMERATE;
-        frameDuration = timeBase/VIDEO_DEFAULT_FRAMERATE;
-    } else {
-        frameDuration = currTimestamp - lastTs;
-        frameRate = timeBase/frameDuration;
-        lastTs = currTimestamp;
-    }
-
+    frameDuration = nanosToTimeBase(currDuration);
+    frameRate = std::nano::den/currDuration.count();
     return true;
 }
 
@@ -185,13 +151,13 @@ bool DashVideoSegmenter::updateMetadata()
     return true;
 }
 
-bool DashVideoSegmenter::generateInitData()
+bool DashVideoSegmenter::generateInitData(DashSegment* segment) 
 {
     size_t initSize = 0;
     unsigned char* data;
     unsigned dataLength;
 
-    if (!dashContext || metadata.empty()) {
+    if (!dashContext || metadata.empty() || !segment || !segment->getDataBuffer()) {
         return false;
     }
 
@@ -202,23 +168,24 @@ bool DashVideoSegmenter::generateInitData()
         return false;
     }
 
-    initSize = new_init_video_handler(data, dataLength, initSegment->getDataBuffer(), &dashContext);
+    initSize = new_init_video_handler(data, dataLength, segment->getDataBuffer(), &dashContext);
 
     if (initSize == 0) {
         return false;
     }
 
-    initSegment->setDataLength(initSize);
+    segment->setDataLength(initSize);
 
     return true;
 }
 
-bool DashVideoSegmenter::appendFrameToDashSegment()
+bool DashVideoSegmenter::appendFrameToDashSegment(DashSegment* segment)
 {
     size_t segmentSize = 0;
     unsigned char* data;
     unsigned dataLength;
-    size_t pts;
+    uint32_t segTimestamp;
+    size_t addSampleReturn;
 
     if (frameData.empty()) {
         return false;
@@ -231,18 +198,23 @@ bool DashVideoSegmenter::appendFrameToDashSegment()
         return false;
     }
 
-    pts = currTimestamp - tsOffset;
+    segmentSize = generate_video_segment(isIntra, segment->getDataBuffer(), &dashContext, &segTimestamp);
 
-    segment->setTimestamp(dashContext->ctxvideo->earliest_presentation_time);
-    segmentSize = add_sample(data, dataLength, frameDuration, pts, pts, segment->getSeqNumber(),
-                             VIDEO_TYPE, segment->getDataBuffer(), isIntra, &dashContext);
+    theoricPts = customTimestamp(currTimestamp);
 
+    addSampleReturn = add_video_sample(data, dataLength, frameDuration, theoricPts, theoricPts, segment->getSeqNumber(), isIntra, &dashContext);
     frameData.clear();
+
+    if (addSampleReturn != I2OK) {
+        utils::errorMsg("Error adding video sample. Code error: " + std::to_string(addSampleReturn));
+        return false;
+    }
 
     if (segmentSize <= I2ERROR_MAX) {
         return false;
     }
-
+    
+    segment->setTimestamp(segTimestamp);
     segment->setDataLength(segmentSize);
     return true;
 }

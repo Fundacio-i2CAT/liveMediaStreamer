@@ -317,6 +317,158 @@ uint32_t init_audio_handler(byte *input_data, uint32_t size_input, byte *output_
     return initAudio;
 }
 
+uint32_t generate_video_segment(uint8_t nextFrameIsIntra, byte *output_data, i2ctx **context, uint32_t* segmentTimestamp)
+{
+    uint32_t segDataLength;
+
+    segDataLength = 0;
+
+    if ((*context) == NULL) {
+        return I2ERROR_CONTEXT_NULL;
+    }
+    
+    if (output_data == NULL) {
+        return I2ERROR_DESTINATION_NULL;
+    }
+
+    if ((nextFrameIsIntra != TRUE) && (nextFrameIsIntra != FALSE)) {
+        return I2ERROR_IS_INTRA;
+    }
+
+    if ((nextFrameIsIntra == TRUE) && ((((*context)->duration - (*context)->threshold)) <= ((*context)->ctxvideo->current_video_duration))) {
+        segDataLength = segmentGenerator((*context)->ctxvideo->segment_data, (*context)->ctxvideo->segment_data_size, output_data, VIDEO_TYPE, context);
+
+        if (segDataLength <= I2ERROR_MAX) {
+            return segDataLength;
+        }
+
+        *segmentTimestamp = (*context)->ctxvideo->earliest_presentation_time;
+        context_refresh(context, VIDEO_TYPE);
+    }
+
+    return segDataLength;
+}
+
+uint32_t generate_audio_segment(byte *output_data, i2ctx **context, uint32_t* segmentTimestamp)
+{
+    uint32_t segDataLength;
+
+    segDataLength = 0;
+
+    if ((*context) == NULL) {
+        return I2ERROR_CONTEXT_NULL;
+    }
+    
+    if (output_data == NULL) {
+        return I2ERROR_DESTINATION_NULL;
+    }
+
+    if ((*context)->duration <= (*context)->ctxaudio->current_audio_duration) { 
+
+        segDataLength = segmentGenerator((*context)->ctxaudio->segment_data, (*context)->ctxaudio->segment_data_size, output_data, AUDIO_TYPE, context);
+
+        if (segDataLength <= I2ERROR_MAX) {
+            return segDataLength;
+        }
+
+        *segmentTimestamp = (*context)->ctxaudio->earliest_presentation_time;
+        context_refresh(context, AUDIO_TYPE);
+    }
+
+    return segDataLength;
+}
+
+uint32_t add_video_sample(byte *input_data, uint32_t input_data_length, uint32_t sample_duration, 
+                          uint32_t pts, uint32_t dts, uint32_t seqNumber, uint8_t is_intra, i2ctx **context)
+{
+    uint32_t samp_len;
+
+    if ((*context) == NULL) {
+        return I2ERROR_CONTEXT_NULL;
+    }
+    if (input_data == NULL) {
+        return I2ERROR_SOURCE_NULL;
+    }   
+    if (input_data_length < 1) {
+        return I2ERROR_SIZE_ZERO;
+    }
+    if (sample_duration < 1) {
+        return I2ERROR_DURATION_ZERO;
+    }
+    if ((is_intra != TRUE) && (is_intra != FALSE)) {
+        return I2ERROR_IS_INTRA;
+    }
+
+    // Add sample or Init new segmentation
+    i2ctx_sample *ctxSample = (*context)->ctxvideo->ctxsample;
+    
+    // Add segment data
+    memcpy((*context)->ctxvideo->segment_data + (*context)->ctxvideo->segment_data_size, input_data, input_data_length);
+    (*context)->ctxvideo->segment_data_size += input_data_length;
+
+    if(ctxSample->mdat_sample_length == 0) {
+        (*context)->ctxvideo->earliest_presentation_time = pts;
+        (*context)->ctxvideo->sequence_number = seqNumber;
+    }
+
+    (*context)->ctxvideo->current_video_duration += sample_duration;
+
+    // Add metadata
+    samp_len = ctxSample->mdat_sample_length;
+    ctxSample->mdat[samp_len].size = input_data_length;
+    ctxSample->mdat[samp_len].duration = sample_duration;
+    ctxSample->mdat[samp_len].presentation_timestamp = pts;
+    ctxSample->mdat[samp_len].decode_timestamp = dts;
+    ctxSample->mdat[samp_len].key = is_intra;
+    ctxSample->mdat_sample_length++;
+
+    return I2OK;
+}
+
+uint32_t add_audio_sample(byte *input_data, uint32_t input_data_length, uint32_t sample_duration, 
+                          uint32_t pts, uint32_t dts, uint32_t seqNumber, i2ctx **context)
+{
+    uint32_t samp_len;
+
+    if ((*context) == NULL) {
+        return I2ERROR_CONTEXT_NULL;
+    }
+    if (input_data == NULL) {
+        return I2ERROR_SOURCE_NULL;
+    }   
+    if (input_data_length < 1) {
+        return I2ERROR_SIZE_ZERO;
+    }
+    if (sample_duration < 1) {
+        return I2ERROR_DURATION_ZERO;
+    }
+
+    // Add sample or Init new segmentation
+    i2ctx_sample *ctxSample = (*context)->ctxaudio->ctxsample;
+    
+    // Add segment data
+    memcpy((*context)->ctxaudio->segment_data + (*context)->ctxaudio->segment_data_size, input_data, input_data_length);
+    (*context)->ctxaudio->segment_data_size += input_data_length;
+    
+    if(ctxSample->mdat_sample_length == 0) {
+        (*context)->ctxaudio->earliest_presentation_time = pts;
+        (*context)->ctxaudio->sequence_number = seqNumber;
+    }
+
+    (*context)->ctxaudio->current_audio_duration += sample_duration;
+
+    // Add metadata
+    samp_len = ctxSample->mdat_sample_length;
+    ctxSample->mdat[samp_len].size = input_data_length;
+    ctxSample->mdat[samp_len].duration = sample_duration;
+    ctxSample->mdat[samp_len].presentation_timestamp = pts;
+    ctxSample->mdat[samp_len].decode_timestamp = dts;
+    ctxSample->mdat[samp_len].key = 1;
+    ctxSample->mdat_sample_length++;
+
+    return I2OK;
+}
+
 uint32_t add_sample(byte *input_data, uint32_t size_input, uint32_t duration_sample, uint32_t pts, uint32_t dts, 
                     uint32_t seqNumber, uint32_t media_type, byte *output_data, uint8_t is_intra, i2ctx **context) 
 {

@@ -16,7 +16,7 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  *  Authors:  Marc Palau <marc.palau@i2cat.net>
- *            
+ *
  */
 
 #include <string>
@@ -33,8 +33,10 @@
 #include "modules/dasher/Dasher.hh"
 #include "FilterMockup.hh"
 
-#define SEG_DURATION 2000000
-#define BASE_NAME "testsData/modules/dasher/dasherTest/test"
+#define SEG_DURATION 2 //sec
+#define DASH_FOLDER "testsData/modules/dasher"
+#define BASE_NAME "test"
+#define MPD_LOCATION "http://localhost/testsData/modules/dasher/test.mpd"
 
 class DasherTest : public CppUnit::TestFixture
 {
@@ -66,6 +68,11 @@ protected:
 void DasherTest::setUp()
 {
     dasher = new Dasher();
+
+    if(!dasher->configure(DASH_FOLDER, BASE_NAME, SEG_DURATION, MPD_LOCATION)) {
+        CPPUNIT_FAIL("Dasher creation failed");
+    }
+
     h264Filter = new VideoFilterMockup(H264);
     vp8Filter = new VideoFilterMockup(VP8);
     aacFilter = new AudioFilterMockup(AAC);
@@ -87,21 +94,19 @@ void DasherTest::tearDown()
 
 void DasherTest::addSegmenter()
 {
-    CPPUNIT_ASSERT(!dasher->addSegmenter(h264ReaderId, "", SEG_DURATION));
-    CPPUNIT_ASSERT(!dasher->addSegmenter(h264ReaderId, BASE_NAME, 0));
-    CPPUNIT_ASSERT(!dasher->addSegmenter(nonExistanceReader, BASE_NAME, SEG_DURATION));
-    CPPUNIT_ASSERT(!dasher->addSegmenter(vp8ReaderId, BASE_NAME, SEG_DURATION));
-    CPPUNIT_ASSERT(!dasher->addSegmenter(mp3ReaderId, BASE_NAME, SEG_DURATION));
-    CPPUNIT_ASSERT(dasher->addSegmenter(h264ReaderId, BASE_NAME, SEG_DURATION));
-    CPPUNIT_ASSERT(dasher->addSegmenter(aacReaderId, BASE_NAME, SEG_DURATION));
-    CPPUNIT_ASSERT(!dasher->addSegmenter(h264ReaderId, BASE_NAME, SEG_DURATION));
-    CPPUNIT_ASSERT(!dasher->addSegmenter(aacReaderId, BASE_NAME, SEG_DURATION));
+    CPPUNIT_ASSERT(!dasher->addSegmenter(nonExistanceReader));
+    CPPUNIT_ASSERT(!dasher->addSegmenter(vp8ReaderId));
+    CPPUNIT_ASSERT(!dasher->addSegmenter(mp3ReaderId));
+    CPPUNIT_ASSERT(dasher->addSegmenter(h264ReaderId));
+    CPPUNIT_ASSERT(dasher->addSegmenter(aacReaderId));
+    CPPUNIT_ASSERT(!dasher->addSegmenter(h264ReaderId));
+    CPPUNIT_ASSERT(!dasher->addSegmenter(aacReaderId));
 }
 
 void DasherTest::removeSegmenter()
 {
-    dasher->addSegmenter(h264ReaderId, BASE_NAME, SEG_DURATION);
-    dasher->addSegmenter(aacReaderId, BASE_NAME, SEG_DURATION);
+    dasher->addSegmenter(h264ReaderId);
+    dasher->addSegmenter(aacReaderId);
     CPPUNIT_ASSERT(dasher->removeSegmenter(h264ReaderId));
     CPPUNIT_ASSERT(dasher->removeSegmenter(aacReaderId));
     CPPUNIT_ASSERT(!dasher->removeSegmenter(h264ReaderId));
@@ -119,8 +124,8 @@ int main(int argc, char* argv[])
     runner.addTest( CppUnit::TestFactoryRegistry::getRegistry().makeTest() );
     runner.run( "", false );
     outputter->write();
-    
+
     utils::printMood(runner.result().wasSuccessful());
 
     return runner.result().wasSuccessful() ? 0 : 1;
-} 
+}

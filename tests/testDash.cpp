@@ -9,7 +9,6 @@
 
 #include <csignal>
 #include <vector>
-#include <liveMedia.hh>
 #include <string>
 
 #define V_MEDIUM "video"
@@ -29,9 +28,11 @@
 
 #define OUT_A_CODEC AAC
 
-#define SEGMENT_DURATION 4000000 //us
-#define SEG_BASE_NAME1 "/home/palau/nginx_root/dashLMS/test1"
-#define SEG_BASE_NAME2 "/home/palau/nginx_root/dashLMS/test2"
+#define SEG_DURATION 4 //sec
+#define DASH_FOLDER "/home/palau/nginx_root/dashLMS"
+#define BASE_NAME "test"
+#define MPD_LOCATION "http://localhost/dashLMS/test.mpd"
+
 
 bool run = true;
 int dasherId = rand();
@@ -54,7 +55,12 @@ void setupDasher()
     Worker* worker = NULL;
     PipelineManager *pipe = Controller::getInstance()->pipelineManager();
     
-    dasher = new Dasher(SEGMENT_DURATION);
+    dasher = Dasher::createNew(DASH_FOLDER, BASE_NAME, SEG_DURATION, MPD_LOCATION);
+
+    if(!dasher) {
+        exit(1);
+    }
+
     pipe->addFilter(dasherId, dasher);
     worker = new Worker();
     worker->addProcessor(dasherId, dasher);
@@ -93,12 +99,12 @@ void addAudioSource(unsigned port, std::string codec = A_CODEC,
                                             A_BANDWITH, freq, port, channels);
     utils::infoMsg(sdp);
     
-    session = Session::createNew(*(receiver->envir()), sdp, sessionId);
+    session = Session::createNew(*(receiver->envir()), sdp, sessionId, receiver);
     if (!receiver->addSession(session)){
         utils::errorMsg("Could not add audio session");
         return;
     }
-    if (!session->initiateSession(receiver)){
+    if (!session->initiateSession()){
         utils::errorMsg("Could not initiate audio session");
         return;
     }
@@ -128,7 +134,7 @@ void addAudioSource(unsigned port, std::string codec = A_CODEC,
     pipe->addPath(port, path);       
     pipe->connectPath(path);
 
-    if (!dasher->addSegmenter(dstReader, SEG_BASE_NAME1, SEGMENT_DURATION)) {
+    if (!dasher->addSegmenter(dstReader)) {
         utils::errorMsg("Error adding segmenter");
     }
 
@@ -155,7 +161,7 @@ void addVideoSource(unsigned port, unsigned fps = FRAME_RATE, std::string codec 
     std::vector<int> slaveIds({enc2Id});
     std::string sessionId;
     std::string sdp;
-    
+
     VideoResampler *resampler1;
     VideoResampler *resampler2;
     VideoEncoderX264 *encoder1;
@@ -182,12 +188,12 @@ void addVideoSource(unsigned port, unsigned fps = FRAME_RATE, std::string codec 
                                             V_BANDWITH, V_TIME_STMP_FREQ, port);
     utils::infoMsg(sdp);
     
-    session = Session::createNew(*(receiver->envir()), sdp, sessionId);
+    session = Session::createNew(*(receiver->envir()), sdp, sessionId, receiver);
     if (!receiver->addSession(session)){
         utils::errorMsg("Could not add video session");
         return;
     }
-    if (!session->initiateSession(receiver)){
+    if (!session->initiateSession()){
         utils::errorMsg("Could not initiate video session");
         return;
     }
@@ -246,14 +252,11 @@ void addVideoSource(unsigned port, unsigned fps = FRAME_RATE, std::string codec 
     pipe->addPath(slavePathId, slavePath);       
     pipe->connectPath(slavePath);
 
-    std::cout << "Master reader: " << dstReader1 << std::endl;
-    std::cout << "Slave reader: " << dstReader2 << std::endl;
-
-    if (!dasher->addSegmenter(dstReader1, SEG_BASE_NAME1, SEGMENT_DURATION)) {
+    if (!dasher->addSegmenter(dstReader1)) {
         utils::errorMsg("Error adding segmenter");
     }
 
-    if (!dasher->addSegmenter(dstReader2, SEG_BASE_NAME2, SEGMENT_DURATION)) {
+    if (!dasher->addSegmenter(dstReader2)) {
         utils::errorMsg("Error adding segmenter");
     }
     

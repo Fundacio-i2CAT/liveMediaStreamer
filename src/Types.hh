@@ -18,6 +18,7 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  *  Authors:  Marc Palau <marc.palau@i2cat.net>
+ *            Gerard Castillo <gerard.castillo@i2cat.net>
  */
 
 #ifndef _TYPES_HH
@@ -35,6 +36,7 @@
 #define FRAMES_AUDIO_RAW 2000
 #define AUDIO_FRAME_TIME 100 //ms
 #define DEFAULT_FRAME_SAMPLES 960
+#define VIDEO_DEFAULT_FRAMERATE 25  /*!< Default frame rate in frames per second (fps). */
 
 enum VCodecType {VC_NONE = -1, H264, VP8, MJPEG, RAW};
 

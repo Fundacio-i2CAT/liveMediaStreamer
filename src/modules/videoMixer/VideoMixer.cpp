@@ -63,7 +63,7 @@ ManyToOneFilter(fRole_, sharedFrames, inputChannels, fTime, true)
     this->outputHeight = outputHeight;
     fType = VIDEO_MIXER;
     maxChannels = inputChannels;
-    setFrameTime(1000000/framerate);
+    setFrameTime(std::chrono::nanoseconds(std::nano::den/framerate));
 
     layoutImg = cv::Mat(outputHeight, outputWidth, CV_8UC3);
     initializeEventMap();

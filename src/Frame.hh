@@ -34,15 +34,15 @@ class Frame {
         Frame();
         virtual ~Frame() {};
 
-        void setPresentationTime(std::chrono::microseconds pTime);
+        void setPresentationTime(std::chrono::system_clock::time_point pTime);
         void newOriginTime();
         void setOriginTime(std::chrono::system_clock::time_point orgTime);
-        void setDuration(std::chrono::microseconds dur);
+        void setDuration(std::chrono::nanoseconds dur);
         void setSequenceNumber(size_t seqNum);
 
-        std::chrono::microseconds getPresentationTime() const {return presentationTime;};
+        std::chrono::system_clock::time_point getPresentationTime() const {return presentationTime;};
         std::chrono::system_clock::time_point getOriginTime() const {return originTime;};
-        virtual std::chrono::microseconds getDuration() const {return duration;};
+        virtual std::chrono::nanoseconds getDuration() const {return duration;};
         size_t getSequenceNumber() const {return sequenceNumber;}
 
         virtual unsigned char *getDataBuf() = 0;
@@ -53,9 +53,9 @@ class Frame {
         virtual bool isPlanar() = 0;
 
     protected:
-        std::chrono::microseconds presentationTime;
+        std::chrono::system_clock::time_point presentationTime;
         std::chrono::system_clock::time_point originTime;
-        std::chrono::microseconds duration;
+        std::chrono::nanoseconds duration;
         size_t sequenceNumber;
 };
 

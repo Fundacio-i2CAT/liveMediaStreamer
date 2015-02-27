@@ -57,7 +57,7 @@ public:
     * @param segDur Segment duration in milliseconds
     * @param segBaseName Base name for the segments. Segment names will be: segBaseName_<timestamp>.m4v and segBaseName_init.m4v
     */
-    DashVideoSegmenter(size_t segDur, std::string segBaseName);
+    DashVideoSegmenter(std::chrono::seconds segDur);
 
     /**
     * Class destructor
@@ -88,13 +88,6 @@ public:
     * @return true if succeeded and false if not
     */
     bool updateConfig();
-
-    /**
-    * It creates a DASH video segment using the remaining data in the segment internal buffer. The duration of this segment
-    * can be less than the defined segment duration, set on the constructor
-    * @return true if succeeded and false if not
-    */
-    bool finishSegment();
 
     /**
     * Returns the isIntra flag, set by the last execution of manageFrame method
@@ -130,7 +123,7 @@ public:
     * Return the presentation timestamp of the last NALU managed by manageFrame method
     * @return timestamp in milliseconds
     */
-    size_t getCurrentTimestamp() {return currTimestamp;};
+    std::chrono::system_clock::time_point getCurrentTimestamp() {return currTimestamp;};
 
     /**
     * Return the width of the last complete frame managed by manageFrame method
@@ -145,12 +138,6 @@ public:
     size_t getHeight() {return height;};
 
     /**
-    * Return the previous timestamp of the last NALU managed by manageFrame method
-    * @return timestamp in milliseconds
-    */
-    size_t getLastTs() {return lastTs;};
-
-    /**
     * Return the framerate, which is calculated by the difference between currtimestamp and lastTs
     * @return framerate in frames per second
     */
@@ -158,8 +145,8 @@ public:
 
 private:
     bool updateMetadata();
-    bool generateInitData();
-    bool appendFrameToDashSegment();
+    bool generateInitData(DashSegment* segment);
+    bool appendFrameToDashSegment(DashSegment* segment);
 
     bool setup(size_t segmentDuration, size_t timeBase, size_t sampleDuration, size_t width, size_t height, size_t framerate);
     bool parseNal(VideoFrame* nal, bool &newFrame);
@@ -169,18 +156,17 @@ private:
     void createMetadata();
     bool appendNalToFrame(unsigned char* nalData, unsigned nalDataLength, bool &newFrame);
     bool updateTimeValues();
-    size_t customTimestamp(size_t currentTimestamp);
 
     std::vector<unsigned char> frameData;
     std::vector<unsigned char> lastSPS;
     std::vector<unsigned char> lastPPS;
     bool updatedSPS;
     bool updatedPPS;
-    size_t lastTs;
     size_t frameRate;
     bool isIntra;
     bool isVCL;
-    size_t currTimestamp;
+    std::chrono::system_clock::time_point currTimestamp;
+    std::chrono::nanoseconds currDuration;
     size_t width;
     size_t height;
 };

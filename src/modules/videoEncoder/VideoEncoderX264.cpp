@@ -25,13 +25,20 @@
 #include "VideoEncoderX264.hh"
 
 VideoEncoderX264::VideoEncoderX264(FilterRole fRole_, bool sharedFrames, int framerate) : 
-OneToOneFilter(false, fRole_, sharedFrames, 1000000/framerate, true)
+OneToOneFilter(false, fRole_, sharedFrames)
 {
     fType = VIDEO_ENCODER;
 
     pts = 0;
-    fps = framerate;
 
+    if (framerate <= 0){
+        fps = VIDEO_DEFAULT_FRAMERATE;
+    } else {
+        fps = framerate;
+    }
+
+    setFrameTime(std::chrono::nanoseconds(std::nano::den/fps));
+    
     forceIntra = false;
     encoder = NULL;
     x264_picture_init(&picIn);
@@ -138,13 +145,13 @@ bool VideoEncoderX264::configure(int gop_, int bitrate_, int threads_, int fps_,
     threads = threads_;
     annexB = annexB_;
 
-    if (fps_ == 0) {
+    if (fps_ <= 0) {
         fps = VIDEO_DEFAULT_FRAMERATE;
     } else {
         fps = fps_;
     }
 
-    setFrameTime(1000000/fps);
+    setFrameTime(std::chrono::nanoseconds(std::nano::den/fps));
 
     needsConfig = true;
     return true;
@@ -179,13 +186,31 @@ bool VideoEncoderX264::reconfigure(VideoFrame* orgFrame, X264VideoFrame* x264Fra
         }
 
         x264_param_default_preset(&xparams, "ultrafast", "zerolatency");
+        x264_param_apply_profile(&xparams, "baseline");
+        
         xparams.i_threads = threads;
         xparams.i_fps_num = fps;
         xparams.i_fps_den = 1;
         xparams.b_intra_refresh = 0;
+        //xparams.b_intra_refresh = 1;
+        //xparams.i_frame_reference = 1;
+        xparams.b_repeat_headers = 1;
+        xparams.i_bframe = 0;
+        xparams.i_bframe_pyramid = 0;
+
         xparams.b_aud = 1;
-        xparams.i_keyint_max = std::round(1000.0*gop/getFrameTime().count());
+        xparams.i_keyint_max = gop;
+        
+        xparams.rc.i_rc_method = X264_RC_ABR;
         xparams.rc.i_bitrate = bitrate;
+        xparams.rc.i_lookahead = 1;
+        xparams.rc.f_ip_factor = 1.4f;
+        xparams.rc.f_pb_factor = 1.3f;
+        xparams.rc.f_qcompress = 1.0;
+        xparams.rc.i_qp_min = 20;//20;
+        xparams.rc.i_qp_max = 32;
+        xparams.rc.i_qp_step = 1;
+        
         if (annexB){
             xparams.b_annexb = 1;
             xparams.b_repeat_headers = 1;
@@ -201,9 +226,6 @@ bool VideoEncoderX264::reconfigure(VideoFrame* orgFrame, X264VideoFrame* x264Fra
                 needsConfig = false;
             }
         }
-        //TODO: set profile
-        x264_param_apply_profile(&xparams, "baseline");
-
 
         if (encoder == NULL){
             encoder = x264_encoder_open(&xparams);
@@ -278,5 +300,8 @@ void VideoEncoderX264::initializeEventMap()
 
 void VideoEncoderX264::doGetState(Jzon::Object &filterNode)
 {
-    //TODO
+    filterNode.Add("gop", std::to_string(gop));
+    filterNode.Add("bitrate", std::to_string(bitrate));
+    filterNode.Add("threads", std::to_string(threads));
+    filterNode.Add("fps", std::to_string(fps));
 }

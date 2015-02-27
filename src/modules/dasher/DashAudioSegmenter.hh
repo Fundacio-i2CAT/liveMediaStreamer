@@ -18,9 +18,9 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  *  Authors:  Marc Palau <marc.palau@i2cat.net>
- *            
+ *
  */
- 
+
 #ifndef _DASH_AUDIO_SEGMENTER_HH
 #define _DASH_AUDIO_SEGMENTER_HH
 
@@ -31,21 +31,21 @@
 #include "Dasher.hh"
 
 /*! Class responsible for managing DASH audio segments creation. It receives AAC frames appending them to create
-    complete segments. It also manages Init Segment creation, constructing MP4 metadata from AAC frames ADTS header*/ 
+    complete segments. It also manages Init Segment creation, constructing MP4 metadata from AAC frames ADTS header*/
 
 class DashAudioSegmenter : public DashSegmenter {
 
 public:
     /**
     * Class constructor
-    * @param segDur Segment duration in milliseconds 
+    * @param segDur Segment duration in milliseconds
     * @param segBaseName Base name for the segments. Segment names will be: segBaseName_<timestamp>.m4a and segBaseName_init.m4a
-    */ 
-    DashAudioSegmenter(size_t segDur, std::string segBasename);
+    */
+    DashAudioSegmenter(std::chrono::seconds segDur);
 
     /**
     * Class destructor
-    */ 
+    */
     ~DashAudioSegmenter();
 
     /**
@@ -63,23 +63,21 @@ public:
     bool updateConfig();
 
     /**
-    * It creates a DASH audio segment using the remaining data in the segment internal buffer. The duration of this segment
-    * can be less than the defined segment duration, set on the constructor
-    * @return true if succeeded and false if not
+    * It returns the last configured audio channels number
+    * @return number of audio channels
     */
-    bool finishSegment();
+    size_t getChannels();
 
     /**
-    * It returns the segment duration in audio timebase units, which was set on the constructor in milliseconds. 
-    * In this case, the time base corresponds to the sampling rate of the audio. 
-    * @return true if succeeded and false if not
+    * It returns the last configured sample rate
+    * @return sample rate in Hz
     */
-    size_t getCustomSegmentDuration() {return customSegmentDuration;};
+    size_t getSampleRate();
 
 private:
     bool updateMetadata();
-    bool generateInitData();
-    bool appendFrameToDashSegment();
+    bool generateInitData(DashSegment* segment);
+    bool appendFrameToDashSegment(DashSegment* segment);
 
     bool setup(size_t segmentDuration, size_t timeBase, size_t sampleDuration, size_t channels, size_t sampleRate, size_t bitsPerSample);
     unsigned char getProfileFromADTSHeader(unsigned char* adtsHeader);
@@ -87,14 +85,12 @@ private:
     unsigned char getChannelConfFromADTSHeader(unsigned char* adtsHeader);
     unsigned char getMetadata1stByte(unsigned char audioObjectType, unsigned char samplingFrequencyIndex);
     unsigned char getMetadata2ndByte(unsigned char samplingFrequencyIndex, unsigned char channelConfiguration);
-    bool updateTimeValues(size_t currentTimestamp, int sampleRate, int samples);
-    size_t customTimestamp(size_t currentTimestamp);
+    bool updateTimeValues(int sampleRate, int samples);
 
     unsigned char profile;
     unsigned char audioObjectType;
     unsigned char samplingFrequencyIndex;
     unsigned char channelConfiguration;
-    size_t customSegmentDuration;
     AudioFrame* aFrame;
 };
 

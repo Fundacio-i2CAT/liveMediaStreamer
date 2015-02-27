@@ -19,6 +19,7 @@
  *
  *  Authors:  Marc Palau <marc.palau@i2cat.net>,
  *            David Cassany <david.cassany@i2cat.net>
+ *            Gerard Castillo <gerard.castillo@i2cat.net>
  */
 
 #ifndef _PIPELINE_MANAGER_HH

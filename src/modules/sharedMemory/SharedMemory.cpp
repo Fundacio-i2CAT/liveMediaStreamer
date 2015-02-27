@@ -270,17 +270,18 @@ int SharedMemory::writeSharedMemoryRAW(uint8_t *buf, int buf_size)
 }
 
 void SharedMemory::writeFramePayload(InterleavedVideoFrame *frame) {
+    std::chrono::microseconds presentationTime; 
 
-	uint32_t tv_sec = frame->getPresentationTime().count() / 1000000;
-	uint32_t tv_usec = frame->getPresentationTime().count() % 1000000;
+    presentationTime = duration_cast<std::chrono::microseconds>(frame->getPresentationTime().time_since_epoch());
+
+    uint32_t tv_sec = presentationTime.count()/std::micro::den;
+    uint32_t tv_usec = presentationTime.count()%std::micro::den;
 	uint16_t width = frame->getWidth();
 	uint16_t height = frame->getHeight();
 	uint32_t length = frame->getLength();
 	uint16_t codec = getCodecFromVCodec(frame->getCodec());
 	uint16_t pixFmt = getPixelFormatFromPixType(frame->getPixelFormat());
-        uint16_t seqN = frame->getSequenceNumber();
-
-    utils::debugMsg("Writing Frame Payload: seqN = " + std::to_string(seqN) + " pixFmt = " + std::to_string(pixFmt) + " codec = "+ std::to_string(codec) + " size = " + std::to_string(width) + "x" + std::to_string(height) + " ts(sec) = " + std::to_string(tv_sec) + " ts(usec) = "+ std::to_string(tv_usec) + " length = " + std::to_string(length) +"");
+    uint16_t seqN = frame->getSequenceNumber();
 
 	memcpy(access+2, &seqN, sizeof(uint16_t));
 	memcpy(access+4, &pixFmt, sizeof(uint16_t));

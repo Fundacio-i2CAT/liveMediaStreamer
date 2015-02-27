@@ -241,8 +241,9 @@ void FilterFunctionalTest::tearDown()
 
 void FilterFunctionalTest::oneToOneMasterProcessFrame()
 {
-    size_t frameTime= 15000;
-    size_t processTime = 10000;
+    size_t frameTime = std::chrono::nanoseconds(15000000).count();
+    size_t processTime = std::chrono::nanoseconds(10000000).count();
+
     //TODO: this test should be done with HeadFilterMockup
     BaseFilter* filterToTest = new OneToOneFilterMockup(processTime, 4, false, frameTime, MASTER, false);
     BaseFilter* satelliteFilterFirst = new BaseFilterMockup(1,1);
@@ -253,7 +254,7 @@ void FilterFunctionalTest::oneToOneMasterProcessFrame()
     AVFramedQueueMock* frameQueue;
     size_t time;
 
-    CPPUNIT_ASSERT(filterToTest->processFrame() == RETRY);
+    CPPUNIT_ASSERT(filterToTest->processFrame() == std::chrono::nanoseconds(RETRY));
 
     filterMockup = dynamic_cast<OneToOneFilterMockup*>(filterToTest);
 
@@ -263,16 +264,16 @@ void FilterFunctionalTest::oneToOneMasterProcessFrame()
     reader = filterMockup->getReader(1);
     frameQueue = dynamic_cast<AVFramedQueueMock*>(reader->getQueue());
 
-    CPPUNIT_ASSERT(filterToTest->processFrame() == RETRY);
+    CPPUNIT_ASSERT(filterToTest->processFrame() == std::chrono::nanoseconds(RETRY));
 
     for (int i = 0; i < 10; i++){
         frameQueue->addFrame();
-        time = filterToTest->processFrame();
+        time = (unsigned)filterToTest->processFrame().count();
         utils::debugMsg("Time to sleep " + std::to_string(time));
         CPPUNIT_ASSERT(time > 0 && time >= processTime/2 && time < frameTime*1.5);
     }
 
-    CPPUNIT_ASSERT(filterToTest->processFrame() == RETRY);
+    CPPUNIT_ASSERT(filterToTest->processFrame() == std::chrono::nanoseconds(RETRY));
 
     delete filterToTest;
     CPPUNIT_ASSERT(satelliteFilterFirst->disconnectWriter(1));
@@ -289,7 +290,7 @@ void FilterFunctionalTest::oneToOneMasterProcessFrame()
     frameQueue = dynamic_cast<AVFramedQueueMock*>(reader->getQueue());
 
     frameQueue->addFrame();
-    CPPUNIT_ASSERT(filterToTest->processFrame() == RETRY);
+    CPPUNIT_ASSERT(filterToTest->processFrame() == std::chrono::nanoseconds(RETRY));
 
     delete filterToTest;
     delete satelliteFilterFirst;
@@ -316,12 +317,12 @@ void FilterFunctionalTest::oneToOneSlaveProcessFrame()
     frameQueue = dynamic_cast<AVFramedQueueMock*>(reader->getQueue());
 
     frameQueue->addFrame();
-    CPPUNIT_ASSERT(filterToTest->processFrame() == RETRY);
-    CPPUNIT_ASSERT(filterToTest->processFrame() == RETRY);
+    CPPUNIT_ASSERT(filterToTest->processFrame() == std::chrono::nanoseconds(RETRY));
+    CPPUNIT_ASSERT(filterToTest->processFrame() == std::chrono::nanoseconds(RETRY));
 
     frameQueue->addFrame();
     frameQueue->addFrame();
-    CPPUNIT_ASSERT(filterToTest->processFrame() == RETRY);
+    CPPUNIT_ASSERT(filterToTest->processFrame() == std::chrono::nanoseconds(RETRY));
 
     delete filterToTest;
     CPPUNIT_ASSERT(satelliteFilterFirst->disconnectWriter(1));
@@ -337,8 +338,8 @@ void FilterFunctionalTest::oneToOneSlaveProcessFrame()
     frameQueue = dynamic_cast<AVFramedQueueMock*>(reader->getQueue());
 
     frameQueue->addFrame();
-    CPPUNIT_ASSERT(filterToTest->processFrame() == RETRY);
-    CPPUNIT_ASSERT(filterToTest->processFrame() == RETRY);
+    CPPUNIT_ASSERT(filterToTest->processFrame() == std::chrono::nanoseconds(RETRY));
+    CPPUNIT_ASSERT(filterToTest->processFrame() == std::chrono::nanoseconds(RETRY));
 
     delete filterToTest;
     delete satelliteFilterFirst;

@@ -8,7 +8,6 @@
 #include "../src/modules/liveMediaInput/SourceManager.hh"
 #include "../src/modules/liveMediaOutput/SinkManager.hh"
 #include "../src/modules/dasher/Dasher.hh"
-#include "../src/modules/sharedMemory/SharedMemory.hh"
 #include "../src/AudioFrame.hh"
 #include "../src/Controller.hh"
 #include "../src/Utils.hh"
@@ -33,13 +32,14 @@
 #define A_TIME_STMP_FREQ 48000
 #define A_CHANNELS 2
 
-#define OUT_A_CODEC MP3
+#define OUT_A_CODEC AAC
 
 #define RETRIES 60
 
-#define SEGMENT_DURATION 4000000 //us
-#define SEG_BASE_NAME1 "adaptationSet1"
-#define SEG_BASE_NAME2 "adaptationSet2"
+#define SEG_DURATION 4 //sec
+#define DASH_FOLDER "./dashLMS"
+#define BASE_NAME "test"
+#define MPD_LOCATION "http://localhost/dash/test.mpd"
 
 bool run = true;
 
@@ -61,6 +61,10 @@ Dasher* setupDasher(int dasherId)
     PipelineManager *pipe = Controller::getInstance()->pipelineManager();
 
     dasher = new Dasher();
+    if(!dasher->configure(DASH_FOLDER, BASE_NAME, SEG_DURATION, MPD_LOCATION)) {
+        exit(1);
+    }
+
     pipe->addFilter(dasherId, dasher);
     worker = new Worker();
     worker->addProcessor(dasherId, dasher);
@@ -118,7 +122,7 @@ void addAudioPath(unsigned port, Dasher* dasher, int dasherId, int receiverID, i
     pipe->addPath(port, path);
     pipe->connectPath(path);
 
-    if (dasher != NULL && !dasher->addSegmenter(dstReader, SEG_BASE_NAME1, SEGMENT_DURATION)) {
+    if (dasher != NULL && !dasher->addSegmenter(dstReader)) {
         utils::errorMsg("Error adding segmenter");
     }
 
@@ -133,6 +137,7 @@ void addVideoPath(unsigned port, Dasher* dasher, int dasherId, int receiverID, i
     PipelineManager *pipe = Controller::getInstance()->pipelineManager();
 
     int wResId = rand();
+    int wResId2 = rand();
     int wEncId = rand();
     int wEncId2 = rand();
     int wDecId = rand();
@@ -167,12 +172,14 @@ void addVideoPath(unsigned port, Dasher* dasher, int dasherId, int receiverID, i
     std::string sdp;
 
     VideoResampler *resampler;
+    VideoResampler *resampler2;
     VideoEncoderX264 *encoder;
     VideoEncoderX264 *encoder2;
     VideoDecoderLibav *decoder;
 
     Worker* wDec;
     Worker* wRes;
+    Worker* wRes2;
     Worker* wEnc;
     Worker* wEnc2;
 
@@ -216,7 +223,7 @@ void addVideoPath(unsigned port, Dasher* dasher, int dasherId, int receiverID, i
     wEnc->addProcessor(encId, encoder);
     encoder->setWorkerId(wEncId);
     pipe->addWorker(wEncId, wEnc);
-
+    
     if(sharingMemoryKey > 0){
         shmEnc = SharedMemory::createNew(sharingMemoryKey + 1, H264);
         if(!shmEnc){
@@ -239,6 +246,16 @@ void addVideoPath(unsigned port, Dasher* dasher, int dasherId, int receiverID, i
     pipe->connectPath(path);
 
     if (dasher != NULL){
+        //NOTE: Adding resampler to pipeManager and handle worker
+        resampler2 = new VideoResampler(SLAVE);
+        pipe->addFilter(resId2, resampler2);
+        wRes2 = new Worker();
+        wRes2->addProcessor(resId2, resampler2);
+        resampler2->setWorkerId(wResId2);
+        resampler2->configure(640, 480, 0, YUV420P);
+        pipe->addWorker(wResId2, wRes2);
+        ((BaseFilter*)resampler)->addSlave(resId2, resampler2);
+
         //NOTE: Adding encoder to pipeManager and handle worker
         encoder2 = new VideoEncoderX264(SLAVE, VIDEO_DEFAULT_FRAMERATE, false);
         pipe->addFilter(encId2, encoder2);
@@ -246,9 +263,9 @@ void addVideoPath(unsigned port, Dasher* dasher, int dasherId, int receiverID, i
         wEnc2->addProcessor(encId2, encoder2);
         encoder2->setWorkerId(wEncId2);
         pipe->addWorker(wEncId2, wEnc2);
-        ((BaseFilter*)encoder)->addSlave(resId2, encoder2);
+        ((BaseFilter*)encoder)->addSlave(wEncId2, encoder2);
         
-        encoder2->configure(25, 500, 4, 25, true);
+        encoder2->configure(25, 250);
 
         //NOTE: add filter to path
         slavePath = pipe->createPath(resId2, dasherId, -1, dstReader2, slaveIds);
@@ -258,11 +275,11 @@ void addVideoPath(unsigned port, Dasher* dasher, int dasherId, int receiverID, i
         utils::infoMsg("Master reader: " + std::to_string(dstReader1));
         utils::infoMsg("Slave reader: " + std::to_string(dstReader2));
 
-        if (!dasher->addSegmenter(dstReader1, SEG_BASE_NAME1, SEGMENT_DURATION)) {
+        if (!dasher->addSegmenter(dstReader1)) {
             utils::errorMsg("Error adding segmenter");
         }
 
-        if (!dasher->addSegmenter(dstReader2, SEG_BASE_NAME2, SEGMENT_DURATION)) {
+        if (!dasher->addSegmenter(dstReader2)) {
             utils::errorMsg("Error adding segmenter");
         }
     }

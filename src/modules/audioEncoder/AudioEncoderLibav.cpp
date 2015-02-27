@@ -231,7 +231,7 @@ bool AudioEncoderLibav::codingConfig()
 
 
     samplesPerFrame = libavFrame->nb_samples;
-    setFrameTime((1000000*samplesPerFrame)/internalSampleRate);
+    setFrameTime(std::chrono::nanoseconds(std::nano::den*samplesPerFrame/internalSampleRate));
 
     if (av_frame_get_buffer(libavFrame, 0) < 0) {
         utils::errorMsg("Could not setup audio frame");

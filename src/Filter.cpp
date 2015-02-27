@@ -27,7 +27,7 @@
 
 #include <thread>
 
-#define WALL_CLOCK_THRESHOLD 100000 //us
+#define WALL_CLOCK_THRESHOLD 100 * 1000 * 1000 //100 ms in nanoseconds
 #define SLOW_MODIFIER 1.10
 #define FAST_MODIFIER 0.90
 
@@ -36,7 +36,7 @@ maxReaders(readersNum), maxWriters(writersNum), frameTime(fTime), fRole(fRole_),
 {
     frameTimeMod = 1;
     bufferStateFrameTimeMod = 1;
-    timestamp = std::chrono::microseconds(0);
+    timestamp = std::chrono::system_clock::now();
 }
 
 BaseFilter::~BaseFilter()
@@ -56,9 +56,9 @@ BaseFilter::~BaseFilter()
     rUpdates.clear();
 }
 
-void BaseFilter::setFrameTime(size_t fTime)
+void BaseFilter::setFrameTime(std::chrono::nanoseconds fTime)
 {
-    frameTime = std::chrono::microseconds(fTime);
+    frameTime = fTime;
 }
 
 Reader* BaseFilter::getReader(int id)
@@ -361,7 +361,7 @@ bool BaseFilter::hasFrames()
 }
 
 bool BaseFilter::updateTimestamp()
-{
+{   
     if (frameTime.count() == 0) {
         lastValidTimestamp = timestamp;
         timestamp = wallClock;
@@ -369,11 +369,8 @@ bool BaseFilter::updateTimestamp()
         return true;
     }
 
-    if (timestamp.count() == 0) {
-        timestamp = wallClock;
-    } else {
-        timestamp += frameTime;
-    }
+    timestamp += frameTime;
+
 
     lastDiffTime = diffTime;
     diffTime = wallClock - timestamp;
@@ -383,7 +380,7 @@ bool BaseFilter::updateTimestamp()
         utils::warningMsg("Wall clock deviations exceeded! Reseting values!");
         timestamp = wallClock;
         duration = frameTime + diffTime;
-        diffTime = std::chrono::microseconds(0);
+        diffTime = std::chrono::nanoseconds(0);
         frameTimeMod = 1;
     } else {
         lastValidTimestamp = timestamp;
@@ -403,27 +400,31 @@ bool BaseFilter::updateTimestamp()
     if (frameTimeMod < 0) {
         frameTimeMod = 0;
     }
-
+    
     return timestamp >= lastValidTimestamp;
 }
 
-size_t BaseFilter::processFrame()
+std::chrono::nanoseconds BaseFilter::processFrame()
 {
+    std::chrono::nanoseconds retValue;
+
     switch(fRole) {
         case MASTER:
-            return masterProcessFrame();
+            retValue = masterProcessFrame();
             break;
         case SLAVE:
-            return slaveProcessFrame();
+            retValue = slaveProcessFrame();
             break;
         case NETWORK:
-            return runDoProcessFrame();
+            runDoProcessFrame();
+            retValue = std::chrono::nanoseconds(0);
             break;
         default:
-            return RETRY;
+            retValue = std::chrono::nanoseconds(RETRY);
             break;
     }
-    return RETRY;
+
+    return retValue;
 }
 
 void BaseFilter::processAll()
@@ -470,18 +471,18 @@ bool BaseFilter::addSlave(int id, BaseFilter *slave)
     return true;
 }
 
-size_t BaseFilter::masterProcessFrame()
+std::chrono::nanoseconds BaseFilter::masterProcessFrame()
 {
-    size_t enlapsedTime;
-    size_t frameTime_;
+    std::chrono::nanoseconds enlapsedTime;
+    std::chrono::nanoseconds frameTime_;
+    size_t frameTime_value;
 
-    wallClock = std::chrono::duration_cast<std::chrono::microseconds>
-        (std::chrono::system_clock::now().time_since_epoch());
+    wallClock = std::chrono::system_clock::now();
 
     processEvent();
 
     if (!demandOriginFrames() || !demandDestinationFrames()) {
-            return RETRY;
+        return std::chrono::nanoseconds(RETRY);
     }
 
     processAll();
@@ -489,42 +490,44 @@ size_t BaseFilter::masterProcessFrame()
     runDoProcessFrame();
 
     while (runningSlaves()){
-        std::this_thread::sleep_for(std::chrono::microseconds(RETRY));
+        std::this_thread::sleep_for(std::chrono::nanoseconds(RETRY));
     }
 
     removeFrames();
 
     if (frameTime.count() == 0){
-        return RETRY;
+        return std::chrono::nanoseconds(RETRY);
     }
 
-    enlapsedTime = (std::chrono::duration_cast<std::chrono::microseconds>
-        (std::chrono::system_clock::now().time_since_epoch()) - wallClock).count();
+    enlapsedTime = (std::chrono::duration_cast<std::chrono::nanoseconds>
+        (std::chrono::system_clock::now() - wallClock));
 
-    frameTime_ = frameTime.count()*frameTimeMod*bufferStateFrameTimeMod;
+    frameTime_value = frameTime.count()*frameTimeMod*bufferStateFrameTimeMod;
 
+    frameTime_ = std::chrono::nanoseconds(frameTime_value);
+    
     if (enlapsedTime > frameTime_){
-        return 0;
+        return std::chrono::nanoseconds(0);
     }
 
     return frameTime_ - enlapsedTime;
 }
 
-size_t BaseFilter::slaveProcessFrame()
+std::chrono::nanoseconds BaseFilter::slaveProcessFrame()
 {
     if (!process) {
-        return RETRY;
+        return std::chrono::nanoseconds(RETRY);
     }
 
     processEvent();
 
     //TODO: decide policy to set run to true/false if retry
     if (!demandDestinationFrames()){
-        return RETRY;
+        return std::chrono::nanoseconds(RETRY);
     }
 
     if (!sharedFrames && !demandOriginFrames()) {
-        return RETRY;
+        return std::chrono::nanoseconds(RETRY);
     }
 
     runDoProcessFrame();
@@ -534,7 +537,7 @@ size_t BaseFilter::slaveProcessFrame()
     }
 
     process = false;
-    return RETRY;
+    return std::chrono::nanoseconds(RETRY);
 }
 
 void BaseFilter::updateFrames(std::map<int, Frame*> oFrames_)
@@ -591,7 +594,7 @@ bool OneToManyFilter::runDoProcessFrame()
 HeadFilter::HeadFilter(FilterRole fRole_, unsigned writersNum, size_t fTime) :
     BaseFilter(0,writersNum,fTime,fRole_,false,false)
 {
-
+    
 }
 
 void HeadFilter::pushEvent(Event e)

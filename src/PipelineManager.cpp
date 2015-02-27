@@ -533,9 +533,6 @@ void PipelineManager::createPathEvent(Jzon::Node* params, Jzon::Object &outputNo
         for (Jzon::Array::iterator it = jsonFiltersIds.begin(); it != jsonFiltersIds.end(); ++it) {
             filtersIds.push_back((*it).ToInt());
         }
-    } else {
-        outputNode.Add("error", "Error creating path. Invalid midfilters array...");
-        return;
     }
 
     path = createPath(orgFilterId, dstFilterId, orgWriterId, dstReaderId, filtersIds);

@@ -380,9 +380,7 @@ uint32_t generate_audio_segment(byte *output_data, i2ctx **context, uint32_t* se
 
 uint32_t force_generate_audio_segment(byte *output_data, i2ctx **context, uint32_t* segmentTimestamp, uint32_t* segmentDuration)
 {
-    uint32_t segDataLength;
-
-    segDataLength = 0;
+    uint32_t segDataLength = 0;
 
     if ((*context) == NULL) {
         return I2ERROR_CONTEXT_NULL;

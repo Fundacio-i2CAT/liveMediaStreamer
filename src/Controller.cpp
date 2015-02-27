@@ -148,7 +148,7 @@ void Controller::processRequest()
     Jzon::Object outputNode;
 
     if (!inputRootNode->Has("events")){
-        utils::wraningMsg("Invalid JSON, missing 'events' tag");
+        utils::warningMsg("Invalid JSON, missing 'events' tag");
         outputNode.Add("error", "Invalid JSON, missing 'events' tag");
         return;
     }

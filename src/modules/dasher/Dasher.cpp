@@ -329,7 +329,7 @@ bool Dasher::updateTimestampControl(std::map<int,DashSegment*> segments, size_t 
 
     for (auto seg : segments) {
 
-        if (seg.second->getTimestamp() <= 0 || seg.second->getTimestamp() <= 0) {
+        if (seg.second->getTimestamp() <= 0) {
             return false;
         }
 

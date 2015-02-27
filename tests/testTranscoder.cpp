@@ -46,12 +46,10 @@ bool run = true;
 void signalHandler( int signum )
 {
     utils::infoMsg("Interruption signal received");
-
-    PipelineManager *pipe = Controller::getInstance()->pipelineManager();
-    pipe->stop();
     run = false;
-
-    utils::infoMsg("Workers Stopped");
+    Controller::getInstance()->stopAndCloseSocket();
+    Controller::destroyInstance();
+    PipelineManager::destroyInstance();
 }
 
 Dasher* setupDasher(int dasherId)
@@ -139,10 +137,10 @@ void addVideoPath(unsigned port, Dasher* dasher, int dasherId, int receiverID, i
     int wEncId2 = rand();
     int wDecId = rand();
     int decId = rand();
-    int resId = rand();
-    int resId2 = rand();
-    int encId = rand();
-    int encId2 = rand();
+    int resId = 2000;
+    int resId2 = 2001;
+    int encId = 1000;
+    int encId2 = 1001;
     int dstReader1 = rand();
     int dstReader2 = rand();
     int slavePathId = rand();
@@ -218,6 +216,8 @@ void addVideoPath(unsigned port, Dasher* dasher, int dasherId, int receiverID, i
     wEnc->addProcessor(encId, encoder);
     encoder->setWorkerId(wEncId);
     pipe->addWorker(wEncId, wEnc);
+    
+    encoder->configure(25, 15000, 4, 25, true);
 
     if(sharingMemoryKey > 0){
         shmEnc = SharedMemory::createNew(sharingMemoryKey + 1, H264);
@@ -249,6 +249,8 @@ void addVideoPath(unsigned port, Dasher* dasher, int dasherId, int receiverID, i
         encoder2->setWorkerId(wEncId2);
         pipe->addWorker(wEncId2, wEnc2);
         ((BaseFilter*)encoder)->addSlave(resId2, encoder2);
+        
+        encoder2->configure(25, 500, 4, 25, true);
 
         //NOTE: add filter to path
         slavePath = pipe->createPath(resId2, dasherId, -1, dstReader2, slaveIds);
@@ -399,6 +401,7 @@ int main(int argc, char* argv[])
     int vPort = 0;
     int aPort = 0;
     int port = 0;
+    int cPort = 7777;
     std::string ip;
     std::string rtspUri;
     size_t sharingMemoryKey = 0;
@@ -442,6 +445,9 @@ int main(int argc, char* argv[])
         } else if (strcmp(argv[i],"-s")==0) {
             sharingMemoryKey = std::stoi(argv[i+1]);
             utils::infoMsg("sharing memory key set to: "+ std::to_string(sharingMemoryKey));
+        } else if (strcmp(argv[i],"-c")==0) {
+            cPort = std::stoi(argv[i+1]);
+            utils::infoMsg("audio input port: " + std::to_string(aPort));
         }
     }
 
@@ -511,8 +517,23 @@ int main(int argc, char* argv[])
         }
     }
 
+    Controller* ctrl = Controller::getInstance();
+
+    if (!ctrl->createSocket(cPort)) {
+        exit(1);
+    }
+
     while (run) {
-        sleep(1);
+        if (!ctrl->listenSocket()) {
+            continue;
+        }
+
+        if (!ctrl->readAndParse()) {
+            //TDODO: error msg
+            continue;
+        }
+
+        ctrl->processRequest();
     }
 
     return 0;

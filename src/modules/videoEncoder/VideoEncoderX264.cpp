@@ -225,7 +225,7 @@ bool VideoEncoderX264::reconfigure(VideoFrame* orgFrame, X264VideoFrame* x264Fra
 
 void VideoEncoderX264::configEvent(Jzon::Node* params, Jzon::Object &outputNode)
 {
-    int tmpGop, tmpBitrate, tmpThreads;
+    int tmpGop, tmpBitrate, tmpThreads, tmpFps;
     bool tmpAnnexB;
 
     if (!params) {
@@ -236,6 +236,7 @@ void VideoEncoderX264::configEvent(Jzon::Node* params, Jzon::Object &outputNode)
     tmpBitrate = bitrate;
     tmpThreads = threads;
     tmpAnnexB = annexB;
+    tmpFps = fps;
 
     if (params->Has("gop")){
         tmpGop = params->Get("gop").ToInt();
@@ -248,12 +249,16 @@ void VideoEncoderX264::configEvent(Jzon::Node* params, Jzon::Object &outputNode)
     if (params->Has("threads")){
         tmpThreads = params->Get("threads").ToInt();
     }
+    
+    if (params->Has("fps")){
+        tmpThreads = params->Get("fps").ToInt();
+    }
 
     if (params->Has("annexb")){
         tmpAnnexB = params->Get("annexb").ToBool();
     }
-
-    if (!configure(tmpGop, tmpBitrate, tmpThreads, tmpAnnexB)){
+    
+    if (!configure(tmpGop, tmpBitrate, tmpThreads, tmpFps, tmpAnnexB)){
         outputNode.Add("error", "Error configuring vide encoder");
     } else {
         outputNode.Add("error", Jzon::null);

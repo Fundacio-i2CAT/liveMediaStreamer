@@ -27,7 +27,7 @@
 
 #include <thread>
 
-#define WALL_CLOCK_THRESHOLD 3 //number of frames
+#define WALL_CLOCK_THRESHOLD 2.5 //number of frames
 #define SLOW_MODIFIER 1.10
 #define FAST_MODIFIER 0.90
 

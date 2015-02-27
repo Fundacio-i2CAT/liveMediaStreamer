@@ -527,14 +527,17 @@ void PipelineManager::createPathEvent(Jzon::Node* params, Jzon::Object &outputNo
     orgWriterId = params->Get("orgWriterId").ToInt();
     dstReaderId = params->Get("dstReaderId").ToInt();
     
-    if (params->Has("midFiltersIds") && params->Get("midFiltersIds").IsArray()){
-        Jzon::Array& jsonFiltersIds = params->Get("midFiltersIds").AsArray();
-
-        for (Jzon::Array::iterator it = jsonFiltersIds.begin(); it != jsonFiltersIds.end(); ++it) {
-            filtersIds.push_back((*it).ToInt());
-        }
+    if (!params->Has("midFiltersIds") || !params->Get("midFiltersIds").IsArray()){
+        outputNode.Add("error", "Invalid midfilters array");
+        return;
     }
 
+    Jzon::Array& jsonFiltersIds = params->Get("midFiltersIds").AsArray();
+
+    for (Jzon::Array::iterator it = jsonFiltersIds.begin(); it != jsonFiltersIds.end(); ++it) {
+        filtersIds.push_back((*it).ToInt());
+    }
+    
     path = createPath(orgFilterId, dstFilterId, orgWriterId, dstReaderId, filtersIds);
 
     if (!path) {

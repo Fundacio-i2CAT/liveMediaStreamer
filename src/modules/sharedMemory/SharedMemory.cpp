@@ -35,7 +35,7 @@ SharedMemory* SharedMemory::createNew(size_t key_, VCodecType codec, FilterRole 
 }
 
 SharedMemory::SharedMemory(size_t key_, VCodecType codec_, size_t fTime, FilterRole fRole_, bool force_, bool sharedFrames_):
-    OneToOneFilter(fRole_, fTime), enabled(true), newFrame(false), codec(codec_)
+    OneToOneFilter(true, fRole_, fTime), enabled(true), newFrame(false), codec(codec_)
 {
 
     if(!(codec == RAW || codec == H264)){

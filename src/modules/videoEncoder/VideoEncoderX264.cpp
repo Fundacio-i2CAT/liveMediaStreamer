@@ -25,7 +25,7 @@
 #include "VideoEncoderX264.hh"
 
 VideoEncoderX264::VideoEncoderX264(FilterRole fRole_, bool sharedFrames, int framerate) : 
-OneToOneFilter(fRole_, sharedFrames, 1000000/framerate, true)
+OneToOneFilter(false, fRole_, sharedFrames, 1000000/framerate, true)
 {
     fType = VIDEO_ENCODER;
 

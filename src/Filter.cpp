@@ -542,15 +542,19 @@ void BaseFilter::updateFrames(std::map<int, Frame*> oFrames_)
     oFrames = oFrames_;
 }
 
-OneToOneFilter::OneToOneFilter(FilterRole fRole_, bool sharedFrames_, size_t fTime, bool force_) :
-    BaseFilter(1,1,fTime,fRole_,force_,sharedFrames_)
+OneToOneFilter::OneToOneFilter(bool byPassTimestamp, FilterRole fRole_, bool sharedFrames_, size_t fTime, bool force_) :
+    BaseFilter(1,1,fTime,fRole_,force_,sharedFrames_), passTimestamp(byPassTimestamp)
 {
 }
 
 bool OneToOneFilter::runDoProcessFrame()
 {
     if (updateTimestamp() && doProcessFrame(oFrames.begin()->second, dFrames.begin()->second)) {
-        dFrames.begin()->second->setPresentationTime(timestamp);
+        if (passTimestamp){
+            dFrames.begin()->second->setPresentationTime(oFrames.begin()->second->getPresentationTime());
+        } else {
+            dFrames.begin()->second->setPresentationTime(timestamp);
+        }
         dFrames.begin()->second->setDuration(duration);
         dFrames.begin()->second->setSequenceNumber(oFrames.begin()->second->getSequenceNumber());
         addFrames();

@@ -147,6 +147,12 @@ void Controller::processRequest()
 {
     Jzon::Object outputNode;
 
+    if (!inputRootNode->Has("events")){
+        utils::wraningMsg("Invalid JSON, missing 'events' tag");
+        outputNode.Add("error", "Invalid JSON, missing 'events' tag");
+        return;
+    }
+    
     if (inputRootNode->Get("events").IsArray()) {
         const Jzon::Array &events = inputRootNode->Get("events").AsArray();
 
@@ -181,7 +187,7 @@ bool Controller::processEventArray(const Jzon::Array events)
 
 bool Controller::processEvent(Jzon::Object event, int socket)
 {
-    if (event.Get("filterID").ToInt() != 0) {
+    if (event.Has("filterID") && event.Get("filterID").ToInt() != 0) {
         return processFilterEvent(event, socket);
     }
 

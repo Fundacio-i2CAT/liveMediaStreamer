@@ -521,20 +521,21 @@ void PipelineManager::createPathEvent(Jzon::Node* params, Jzon::Object &outputNo
         return;
     }
 
-   if (!params->Has("midFiltersIds") || !params->Get("midFiltersIds").IsArray()) {
-      outputNode.Add("error", "Error creating path. Invalid JSON format...");
-      return;
-   }
-
-    Jzon::Array& jsonFiltersIds = params->Get("midFiltersIds").AsArray();
     id = params->Get("id").ToInt();
     orgFilterId = params->Get("orgFilterId").ToInt();
     dstFilterId = params->Get("dstFilterId").ToInt();
     orgWriterId = params->Get("orgWriterId").ToInt();
     dstReaderId = params->Get("dstReaderId").ToInt();
+    
+    if (params->Has("midFiltersIds") && params->Get("midFiltersIds").IsArray()){
+        Jzon::Array& jsonFiltersIds = params->Get("midFiltersIds").AsArray();
 
-    for (Jzon::Array::iterator it = jsonFiltersIds.begin(); it != jsonFiltersIds.end(); ++it) {
-        filtersIds.push_back((*it).ToInt());
+        for (Jzon::Array::iterator it = jsonFiltersIds.begin(); it != jsonFiltersIds.end(); ++it) {
+            filtersIds.push_back((*it).ToInt());
+        }
+    } else {
+        outputNode.Add("error", "Error creating path. Invalid midfilters array...");
+        return;
     }
 
     path = createPath(orgFilterId, dstFilterId, orgWriterId, dstReaderId, filtersIds);
@@ -675,7 +676,7 @@ void PipelineManager::addSlavesToFilterEvent(Jzon::Node* params, Jzon::Object &o
         return;
     }
 
-   for (Jzon::Array::iterator it = jsonSlavesIds.begin(); it != jsonSlavesIds.end(); ++it) {
+    for (Jzon::Array::iterator it = jsonSlavesIds.begin(); it != jsonSlavesIds.end(); ++it) {
        if ((slave = getFilter((*it).ToInt())) && slave->getRole() == SLAVE){
            if (!master->addSlave((*it).ToInt(), slave)){
                outputNode.Add("error", "Error, either master or slave do not have the appropriate role!");

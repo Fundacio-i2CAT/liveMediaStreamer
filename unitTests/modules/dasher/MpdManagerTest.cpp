@@ -16,6 +16,7 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  *  Authors:  Xavier Carol <xavier.carol@i2cat.net>
+ *            Marc Palau <marc.palau@i2cat.net>
  *
  *
  */

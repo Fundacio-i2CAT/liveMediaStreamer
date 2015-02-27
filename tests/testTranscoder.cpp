@@ -217,8 +217,6 @@ void addVideoPath(unsigned port, Dasher* dasher, int dasherId, int receiverID, i
     encoder->setWorkerId(wEncId);
     pipe->addWorker(wEncId, wEnc);
     
-    encoder->configure(25, 15000, 4, 25, true);
-
     if(sharingMemoryKey > 0){
         shmEnc = SharedMemory::createNew(sharingMemoryKey + 1, H264);
         if(!shmEnc){

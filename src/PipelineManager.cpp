@@ -193,6 +193,7 @@ bool PipelineManager::addFilter(int id, BaseFilter* filter)
 BaseFilter* PipelineManager::getFilter(int id)
 {
     if (filters.count(id) <= 0) {
+        utils::warningMsg("Could not find fitler ID: " + std::to_string(id));
         return NULL;
     }
 
@@ -676,7 +677,9 @@ void PipelineManager::addSlavesToFilterEvent(Jzon::Node* params, Jzon::Object &o
 
    for (Jzon::Array::iterator it = jsonSlavesIds.begin(); it != jsonSlavesIds.end(); ++it) {
        if ((slave = getFilter((*it).ToInt())) && slave->getRole() == SLAVE){
-           master->addSlave((*it).ToInt(), slave);
+           if (!master->addSlave((*it).ToInt(), slave)){
+               outputNode.Add("error", "Error, either master or slave do not have the appropriate role!");
+           }
        } else {
            outputNode.Add("error", "Error adding slaves to filter. Invalid Slave...");
        }

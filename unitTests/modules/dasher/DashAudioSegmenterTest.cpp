@@ -112,6 +112,7 @@ void DashAudioSegmenterTest::updateConfig()
     std::chrono::microseconds ts(std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now().time_since_epoch()));
     std::chrono::microseconds ts0(0);
 
+    CPPUNIT_ASSERT(!segmenter->updateConfig());
     modelFrame->setPresentationTime(std::chrono::system_clock::time_point(ts0));
     segmenter->manageFrame(modelFrame, newFrame);
     CPPUNIT_ASSERT(!segmenter->updateConfig());

@@ -94,7 +94,12 @@ bool Dasher::doProcessFrame(std::map<int, Frame*> orgFrames)
             continue;
         }
 
-        segmenter = segmenters[fr.first];
+        segmenter = getSegmenter(fr.first);
+
+        if (!segmenter) {
+            continue;
+        }
+
         if (!segmenter->manageFrame(fr.second, newFrame)) {
             utils::errorMsg("Error managing frame");
             continue;

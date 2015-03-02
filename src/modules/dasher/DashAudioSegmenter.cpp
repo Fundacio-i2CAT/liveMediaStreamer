@@ -24,7 +24,7 @@
  #include "DashAudioSegmenter.hh"
 
 DashAudioSegmenter::DashAudioSegmenter(std::chrono::seconds segDur) :
-DashSegmenter(segDur, 0)
+DashSegmenter(segDur, 0), aFrame(NULL)
 {
 
 }
@@ -90,6 +90,7 @@ bool DashAudioSegmenter::appendFrameToDashSegment(DashSegment* segment)
     dataLengthWithoutADTS = aFrame->getLength() - ADTS_HEADER_LENGTH;
 
     addSampleReturn = add_audio_sample(dataWithoutADTS, dataLengthWithoutADTS, frameDuration, theoricPts, theoricPts, segment->getSeqNumber(), &dashContext);
+    aFrame = NULL;
 
     if (addSampleReturn != I2OK) {
         utils::errorMsg("Error adding video sample. Code error: " + std::to_string(addSampleReturn));

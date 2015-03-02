@@ -329,7 +329,7 @@ void DashVideoSegmenterTest::generateSegment()
 
     CPPUNIT_ASSERT(!segmenter->generateSegment(segment));
 
-    while (!haveSegment) {
+    while (true) {
         strName = "testsData/modules/dasher/dashVideoSegmenterTest/nalModels/nal_" + std::to_string(nalCounter);
         dataLength = readFile(strName.c_str(), (char*)dummyNal->getDataBuf());
         dummyNal->setLength(dataLength);
@@ -348,7 +348,7 @@ void DashVideoSegmenterTest::generateSegment()
         ts += frameTime;
 
         if (segmenter->generateSegment(segment)) {
-            haveSegment = true;
+            break;
         }
 
         if(!segmenter->appendFrameToDashSegment(segment)) {

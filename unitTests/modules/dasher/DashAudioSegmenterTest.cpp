@@ -76,7 +76,6 @@ protected:
     void generateInitSegment();
     void appendFrameToDashSegment();
     void generateSegment();
-    void generateSegmentAndInitSegment();
 
     bool newFrame;
     DashAudioSegmenter* segmenter;
@@ -158,81 +157,52 @@ void DashAudioSegmenterTest::appendFrameToDashSegment()
 
     CPPUNIT_ASSERT(!segmenter->appendFrameToDashSegment(segment));
 
-    // segmenter->manageFrame(modelFrame, newFrame);
+    segmenter->manageFrame(modelFrame, newFrame);
 
-    // // if (!segmenter->updateConfig()) {
-    // //     CPPUNIT_FAIL("Segmenter updateConfig failed when testing general workflow\n");
-    // // }
+    if (!segmenter->updateConfig()) {
+        CPPUNIT_FAIL("Segmenter updateConfig failed when testing general workflow\n");
+    }
 
-    // // CPPUNIT_ASSERT(segmenter->appendFrameToDashSegment(segment));
-    // // CPPUNIT_ASSERT(!segmenter->appendFrameToDashSegment(segment));
+    CPPUNIT_ASSERT(segmenter->appendFrameToDashSegment(segment));
+    CPPUNIT_ASSERT(!segmenter->appendFrameToDashSegment(segment));
 }
 
 void DashAudioSegmenterTest::generateSegment()
 {
-    // char* initModel = new char[MAX_DAT];
-    // size_t initModelLength;
-    // DashSegment* initSegment = new DashSegment();
-    // std::chrono::system_clock::time_point ts = std::chrono::system_clock::now();
-    // bool newFrame;
+    char* segmentModel = new char[MAX_DAT];
+    size_t segmentModelLength;
+    std::string segName;
+    DashSegment* segment = new DashSegment();
 
-    // initModelLength = readFile("testsData/modules/dasher/dashAudioSegmenterTest/initModel.m4a", initModel);
-    // modelFrame->setSamples(AAC_FRAME_SAMPLES);
-    // modelFrame->setPresentationTime(ts);
+    bool newFrame;
+    std::chrono::system_clock::time_point ts(std::chrono::microseconds(1000));
+    std::chrono::microseconds frameTime(21333);
 
-    // segmenter->manageFrame(modelFrame, newFrame);
+    segmentModelLength = readFile("testsData/modules/dasher/dashAudioSegmenterTest/segmentModel.m4a", segmentModel);
 
-    // if (!segmenter->updateConfig()) {
-    //     CPPUNIT_FAIL("Segmenter updateConfig failed when testing general workflow\n");
-    // }
+    modelFrame->setSamples(AAC_FRAME_SAMPLES);
+    CPPUNIT_ASSERT(!segmenter->generateSegment(segment));
 
-    // CPPUNIT_ASSERT(segmenter->generateInitSegment(initSegment));
-    // CPPUNIT_ASSERT(!segmenter->generateInitSegment(initSegment));
-    // CPPUNIT_ASSERT(initModelLength == initSegment->getDataLength());
-    // CPPUNIT_ASSERT(memcmp(initModel, initSegment->getDataBuffer(), initSegment->getDataLength()) == 0);
-}
+    while (true) {
+        modelFrame->setPresentationTime(std::chrono::system_clock::time_point(ts));
+        segmenter->manageFrame(modelFrame, newFrame);
 
-void DashAudioSegmenterTest::generateSegmentAndInitSegment()
-{
-    // char* segmentModel = new char[MAX_DAT];
-    // size_t segmentModelLength;
-    // size_t orgTsValue = 1000;
-    // std::string segName;
-    // DashSegment* aSegment = new DashSegment();
-    // DashSegment* initSegment = new DashSegment();
+        if (!segmenter->updateConfig()) {
+            CPPUNIT_FAIL("Segmenter updateConfig failed when testing general workflow\n");
+        }
+        ts += frameTime;
 
-    // bool newFrame;
-    // bool haveInit = false;
-    // bool haveSegment = false;
-    // std::chrono::microseconds frameTime(21333);
-    // std::chrono::microseconds ts(orgTsValue);
+        if (segmenter->generateSegment(segment)) {
+            break;
+        }
 
-    // segmentModelLength = readFile("testsData/modules/dasher/dashAudioSegmenterTest/segmentModel.m4a", segmentModel);
+        if (!segmenter->appendFrameToDashSegment(segment)) {
+            CPPUNIT_FAIL("Segmenter appendFrameToDashSegment failed when testing general workflow\n");
+        }
+    }
 
-    // modelFrame->setSamples(AAC_FRAME_SAMPLES);
-
-    // while(!haveInit || !haveSegment) {
-    //     modelFrame->setPresentationTime(std::chrono::system_clock::time_point(ts));
-    //     segmenter->manageFrame(modelFrame, newFrame);
-
-    //     if(!segmenter->updateConfig()) {
-    //         CPPUNIT_FAIL("Segmenter updateConfig failed when testing general workflow\n");
-    //     }
-    //     ts += frameTime;
-
-    //     if (segmenter->generateInitSegment(initSegment)) {
-    //         haveInit = true;
-    //     }
-
-    //     if (segmenter->generateSegment(aSegment)) {
-    //         haveSegment = true;
-    //     }
-    // }
-
-    // CPPUNIT_ASSERT(initModelLength == initSegment->getDataLength());
-    // CPPUNIT_ASSERT(segmentModelLength == aSegment->getDataLength());
-
-    // CPPUNIT_ASSERT(memcmp(initModel, initSegment->getDataBuffer(), initSegment->getDataLength()) == 0);
+    CPPUNIT_ASSERT(segmentModelLength == segment->getDataLength());
+    CPPUNIT_ASSERT(memcmp(segmentModel, segment->getDataBuffer(), segment->getDataLength()) == 0);
 }
 
 CPPUNIT_TEST_SUITE_REGISTRATION(DashAudioSegmenterTest);

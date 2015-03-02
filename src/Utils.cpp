@@ -26,19 +26,24 @@
 #include <algorithm>
 #include <log4cplus/logger.h>
 #include <log4cplus/loggingmacros.h>
+#include <log4cplus/consoleappender.h>
 #include <log4cplus/configurator.h>
 #include <sys/time.h>
 #include <random>
 
 using namespace log4cplus;
+using namespace log4cplus::helpers;
 
 static bool logConfigured = false;
 
 namespace utils
 {
     void configureLog(){
-        BasicConfigurator config;
-        config.configure();
+        SharedObjectPtr<Appender> append_1(new ConsoleAppender());
+        append_1->setName(LOG4CPLUS_TEXT("First"));
+        log4cplus::tstring pattern = LOG4CPLUS_TEXT("%-5p [%l] - %m %n");
+        append_1->setLayout(std::auto_ptr<Layout>(new PatternLayout(pattern)));
+        Logger::getRoot().addAppender(append_1);
 
         logConfigured = true;
         Logger logger = Logger::getInstance(LOG4CPLUS_TEXT("main"));
@@ -68,7 +73,7 @@ namespace utils
         return sampleFormat;
     }
 
-    ACodecType getCodecFromString(std::string stringCodec)
+    ACodecType getAudioCodecFromString(std::string stringCodec)
     {
         ACodecType codec;
         if (stringCodec.compare("g711") == 0) {
@@ -89,6 +94,25 @@ namespace utils
 
         return codec;
     }
+       
+    VCodecType getVideoCodecFromString(std::string stringCodec)
+    {
+        VCodecType codec;
+        if (stringCodec.compare("H264") == 0) {
+            codec = H264;
+        } else if (stringCodec.compare("VP8") == 0) {
+            codec = VP8;
+        }  else if (stringCodec.compare("MJPEG") == 0) {
+            codec = MJPEG;
+        }  else if (stringCodec.compare("RAW") == 0) {
+            codec = RAW;
+        }  else {
+            codec = VC_NONE;
+        }
+
+        return codec;
+    }
+    
     std::string getVideoCodecAsString(VCodecType codec)
     {
        std::string stringCodec;
@@ -207,11 +231,53 @@ namespace utils
            fType = RECEIVER;
         }  else if (stringFilterType.compare("transmitter") == 0) {
            fType = TRANSMITTER;
+        }  else if (stringFilterType.compare("sharedMemory") == 0) {
+           fType = SHARED_MEMORY;
+        }  else if (stringFilterType.compare("dasher") == 0) {
+           fType = DASHER;
         }  else {
            fType = FT_NONE;
         }
 
         return fType;
+    }
+
+    FilterRole getRoleTypeFromString(std::string stringRoleType)
+    {
+        FilterRole fRole;
+
+        if (stringRoleType.compare("master") == 0) {
+           fRole = MASTER;
+        } else if (stringRoleType.compare("slave") == 0) {
+           fRole = SLAVE;
+        }  else if (stringRoleType.compare("network") == 0) {
+           fRole = NETWORK;
+        }  else {
+           fRole = FR_NONE;
+        }
+
+        return fRole;
+    }
+    std::string getRoleAsString(FilterRole role)
+    {
+        std::string stringRole;
+
+        switch(role) {
+            case MASTER:
+                stringRole = "master";
+                break;
+            case SLAVE:
+                stringRole = "slave";
+                break;
+            case NETWORK:
+                stringRole = "network";
+                break;
+            default:
+                stringRole = "";
+                break;
+        }
+
+        return stringRole;
     }
 
     std::string getSampleFormatAsString(SampleFmt sFormat)
@@ -255,11 +321,8 @@ namespace utils
                 stringWorker = "livemedia";
                 break;
             case WORKER:
-                stringWorker = "master";
+                stringWorker = "worker";
                 break;
-//            case SLAVE:
-//                stringWorker = "slave";
-//                break;
             default:
                 stringWorker = "";
                 break;

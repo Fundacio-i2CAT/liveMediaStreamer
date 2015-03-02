@@ -27,7 +27,7 @@
 
 #include <thread>
 
-#define WALL_CLOCK_THRESHOLD 100 * 1000 * 1000 //100 ms in nanoseconds
+#define WALL_CLOCK_THRESHOLD 2.5 //number of frames
 #define SLOW_MODIFIER 1.10
 #define FAST_MODIFIER 0.90
 
@@ -70,13 +70,13 @@ Reader* BaseFilter::getReader(int id)
     return readers[id];
 }
 
-Reader* BaseFilter::setReader(int readerID, FrameQueue* queue, bool sharedQueue)
+Reader* BaseFilter::setReader(int readerID, FrameQueue* queue)
 {
     if (readers.size() >= getMaxReaders() || readers.count(readerID) > 0 ) {
         return NULL;
     }
 
-    Reader* r = new Reader(sharedQueue);
+    Reader* r = new Reader();
     readers[readerID] = r;
 
     return r;
@@ -214,6 +214,7 @@ bool BaseFilter::connect(BaseFilter *R, int writerID, int readerID)
     }
 
     if (R->getReader(readerID) && R->getReader(readerID)->isConnected()){
+        utils::errorMsg("Reader " + std::to_string(readerID) + " null or already connected");
         return false;
     }
 
@@ -344,6 +345,7 @@ void BaseFilter::getState(Jzon::Object &filterNode)
 {
     eventQueueMutex.lock();
     filterNode.Add("type", utils::getFilterTypeAsString(fType));
+    filterNode.Add("role", utils::getRoleAsString(fRole));
     filterNode.Add("workerId", workerId);
     doGetState(filterNode);
     eventQueueMutex.unlock();
@@ -360,6 +362,8 @@ bool BaseFilter::hasFrames()
 
 bool BaseFilter::updateTimestamp()
 {   
+    int threshold = frameTime.count() * WALL_CLOCK_THRESHOLD;
+    
     if (frameTime.count() == 0) {
         lastValidTimestamp = timestamp;
         timestamp = wallClock;
@@ -367,17 +371,13 @@ bool BaseFilter::updateTimestamp()
         return true;
     }
 
-
     timestamp += frameTime;
 
-    // if (fType == VIDEO_ENCODER) {
-    //     std::cout << "Frame timestamp: " << std::chrono::duration_cast<std::chrono::nanoseconds>(timestamp.time_since_epoch()).count() << std::endl;
-    // }
 
     lastDiffTime = diffTime;
     diffTime = wallClock - timestamp;
 
-    if (diffTime.count() > WALL_CLOCK_THRESHOLD || diffTime.count() < (-WALL_CLOCK_THRESHOLD) ) {
+    if (diffTime.count() > threshold || diffTime.count() < (-threshold) ) {
         // reset timestamp value in order to realign with the wall clock
         utils::warningMsg("Wall clock deviations exceeded! Reseting values!");
         timestamp = wallClock;
@@ -547,15 +547,19 @@ void BaseFilter::updateFrames(std::map<int, Frame*> oFrames_)
     oFrames = oFrames_;
 }
 
-OneToOneFilter::OneToOneFilter(size_t fTime, FilterRole fRole_, bool force_, bool sharedFrames_) :
-    BaseFilter(1,1,fTime,fRole_,force_,sharedFrames_)
+OneToOneFilter::OneToOneFilter(bool byPassTimestamp, FilterRole fRole_, bool sharedFrames_, size_t fTime, bool force_) :
+    BaseFilter(1,1,fTime,fRole_,force_,sharedFrames_), passTimestamp(byPassTimestamp)
 {
 }
 
 bool OneToOneFilter::runDoProcessFrame()
 {
     if (updateTimestamp() && doProcessFrame(oFrames.begin()->second, dFrames.begin()->second)) {
-        dFrames.begin()->second->setPresentationTime(timestamp);
+        if (passTimestamp){
+            dFrames.begin()->second->setPresentationTime(oFrames.begin()->second->getPresentationTime());
+        } else {
+            dFrames.begin()->second->setPresentationTime(timestamp);
+        }
         dFrames.begin()->second->setDuration(duration);
         dFrames.begin()->second->setSequenceNumber(oFrames.begin()->second->getSequenceNumber());
         addFrames();
@@ -566,7 +570,7 @@ bool OneToOneFilter::runDoProcessFrame()
 }
 
 
-OneToManyFilter::OneToManyFilter(unsigned writersNum, size_t fTime, FilterRole fRole_, bool force_, bool sharedFrames_) :
+OneToManyFilter::OneToManyFilter(FilterRole fRole_, bool sharedFrames_, unsigned writersNum, size_t fTime, bool force_) :
     BaseFilter(1,writersNum,fTime,fRole_,force_,sharedFrames_)
 {
 }
@@ -589,7 +593,7 @@ bool OneToManyFilter::runDoProcessFrame()
 }
 
 //TODO: runDoProcessFrame to be implemented
-HeadFilter::HeadFilter(unsigned writersNum, size_t fTime, FilterRole fRole_) :
+HeadFilter::HeadFilter(FilterRole fRole_, unsigned writersNum, size_t fTime) :
     BaseFilter(0,writersNum,fTime,fRole_,false,false)
 {
     
@@ -613,8 +617,8 @@ void HeadFilter::pushEvent(Event e)
     e.sendAndClose(outputNode);
 }
 
-TailFilter::TailFilter(unsigned readersNum, size_t fTime, FilterRole fRole_, bool sharedFrames_) :
-    BaseFilter(readersNum,0,fTime,fRole_,false,sharedFrames_)
+TailFilter::TailFilter(FilterRole fRole_, bool sharedFrames_, unsigned readersNum, size_t fTime) :
+    BaseFilter(readersNum, 0, fTime, fRole_, false, sharedFrames_)
 {
 }
 
@@ -643,7 +647,7 @@ void TailFilter::pushEvent(Event e)
 }
 
 
-ManyToOneFilter::ManyToOneFilter(unsigned readersNum, size_t fTime, FilterRole fRole_, bool force_, bool sharedFrames_) :
+ManyToOneFilter::ManyToOneFilter(FilterRole fRole_, bool sharedFrames_, unsigned readersNum, size_t fTime, bool force_) :
     BaseFilter(readersNum,1,fTime,fRole_,force_,sharedFrames_)
 {
 }

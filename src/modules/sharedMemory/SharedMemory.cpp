@@ -22,7 +22,9 @@
 
 #include "SharedMemory.hh"
 
-SharedMemory* SharedMemory::createNew(size_t key_, VCodecType codec, size_t fTime, FilterRole fRole_, bool force_, bool sharedFrames_)
+static unsigned char const start_code[4] = {0x00, 0x00, 0x00, 0x01};
+
+SharedMemory* SharedMemory::createNew(size_t key_, VCodecType codec, FilterRole fRole_, size_t fTime, bool force_, bool sharedFrames_)
 {
     SharedMemory *shm = new SharedMemory(key_, codec, fTime, fRole_, force_, sharedFrames_);
 
@@ -33,8 +35,8 @@ SharedMemory* SharedMemory::createNew(size_t key_, VCodecType codec, size_t fTim
 }
 
 SharedMemory::SharedMemory(size_t key_, VCodecType codec_, size_t fTime, FilterRole fRole_, bool force_, bool sharedFrames_):
-    OneToOneFilter(fTime, fRole_), enabled(true), newFrame(false), codec(codec_)
-    {
+    OneToOneFilter(true, fRole_, fTime), enabled(true), newFrame(false), codec(codec_)
+{
 
     if(!(codec == RAW || codec == H264)){
         utils::errorMsg("SharedMemory::error - filter not created - only RAW and H264 codecs are supported");
@@ -69,6 +71,8 @@ SharedMemory::SharedMemory(size_t key_, VCodecType codec_, size_t fTime, FilterR
         //TODO get seqNum from incoming frame
         seqNum = 1;
     }
+    
+    fType = SHARED_MEMORY;
 }
 
 SharedMemory::~SharedMemory()
@@ -86,15 +90,10 @@ bool SharedMemory::doProcessFrame(Frame *org, Frame *dst)
     InterleavedVideoFrame* vframe = dynamic_cast<InterleavedVideoFrame*>(org);
     copyOrgToDstFrame(vframe,dynamic_cast<InterleavedVideoFrame*>(dst));
 
-    if(!setFrameObject(vframe)){
-        utils::errorMsg("SharedMemory::error - Unable to set frame object from incoming frame");
-        return true;
-    }
-
     if(!isWritable()){
         if(vframe->getCodec() == H264){
-            if(frame->getSequenceNumber() != seqNum && newFrame){
-                seqNum = frame->getSequenceNumber();
+            if(vframe->getSequenceNumber() != seqNum && newFrame){
+                seqNum = vframe->getSequenceNumber();
                 frameData.clear();
             }
             parseNal(vframe, newFrame);
@@ -104,17 +103,17 @@ bool SharedMemory::doProcessFrame(Frame *org, Frame *dst)
 
     switch(vframe->getCodec()){
         case H264:
-            if(frame->getSequenceNumber() != seqNum && newFrame){
-                writeFramePayload(seqNum);
+            if(vframe->getSequenceNumber() != seqNum && newFrame){
+                writeFramePayload(vframe);
                 writeSharedMemoryH264();
-                seqNum = frame->getSequenceNumber();
+                seqNum = vframe->getSequenceNumber();
                 frameData.clear();
             }
             parseNal(vframe, newFrame);
             break;
         case RAW:
-            writeFramePayload(vframe->getSequenceNumber());
-            writeSharedMemoryRAW(getFrameObject()->getDataBuf(), getFrameObject()->getLength());
+            writeFramePayload(vframe);
+            writeSharedMemoryRAW(vframe->getDataBuf(), vframe->getLength());
             break;
         default:
             utils::errorMsg("SharedMemory::error - only RAW and H264 frames are shareable");
@@ -172,10 +171,10 @@ void SharedMemory::writeSharedMemoryH264()
         return;
     }
 
-	*access = CHAR_WRITING;
+    *access = CHAR_WRITING;
     memcpy(access+20, &length, sizeof(uint32_t));
-	memcpy(buffer, data, sizeof(uint8_t) * dataLength);
-	*access = CHAR_READING;
+    memcpy(buffer, data, sizeof(uint8_t) * dataLength);
+    *access = CHAR_READING;
 }
 
 
@@ -253,7 +252,8 @@ bool SharedMemory::appendNalToFrame(unsigned char* nalData, unsigned nalDataLeng
     }
 
     if (nalType != AUD) {
-        frameData.insert(frameData.end(), nalData, nalData + nalDataLength);
+        frameData.insert(frameData.end(), start_code, start_code + sizeof(start_code));
+        frameData.insert(frameData.end(), nalData + startCodeOffset, nalData + nalDataLength);
     }
 
     return true;
@@ -269,7 +269,7 @@ int SharedMemory::writeSharedMemoryRAW(uint8_t *buf, int buf_size)
 	return 0;
 }
 
-void SharedMemory::writeFramePayload(uint16_t seqNum) {
+void SharedMemory::writeFramePayload(InterleavedVideoFrame *frame) {
     std::chrono::microseconds presentationTime; 
 
     presentationTime = duration_cast<std::chrono::microseconds>(frame->getPresentationTime().time_since_epoch());
@@ -281,10 +281,9 @@ void SharedMemory::writeFramePayload(uint16_t seqNum) {
 	uint32_t length = frame->getLength();
 	uint16_t codec = getCodecFromVCodec(frame->getCodec());
 	uint16_t pixFmt = getPixelFormatFromPixType(frame->getPixelFormat());
+    uint16_t seqN = frame->getSequenceNumber();
 
-    utils::debugMsg("Writing Frame Payload: seqNum = " + std::to_string(seqNum) + " pixFmt = " + std::to_string(pixFmt) + " codec = "+ std::to_string(codec) + " size = " + std::to_string(width) + "x" + std::to_string(height) + " ts(sec) = " + std::to_string(tv_sec) + " ts(usec) = "+ std::to_string(tv_usec) + " length = " + std::to_string(length) +"");
-
-	memcpy(access+2, &seqNum, sizeof(uint16_t));
+	memcpy(access+2, &seqN, sizeof(uint16_t));
 	memcpy(access+4, &pixFmt, sizeof(uint16_t));
 	memcpy(access+6, &codec, sizeof(uint16_t));
 	memcpy(access+8, &height, sizeof(uint16_t));
@@ -296,15 +295,6 @@ void SharedMemory::writeFramePayload(uint16_t seqNum) {
 
 bool SharedMemory::isWritable() {
 	return *access == CHAR_WRITING;
-}
-
-bool SharedMemory::setFrameObject(Frame* in_frame){
-	if((frame = dynamic_cast<InterleavedVideoFrame*>(in_frame))){
-		return true;
-	}else{
-		frame = NULL;
-		return false;
-	}
 }
 
 uint16_t SharedMemory::getCodecFromVCodec(VCodecType codec){

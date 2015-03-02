@@ -23,6 +23,17 @@
  */
 
 #include "PipelineManager.hh"
+#include "modules/audioEncoder/AudioEncoderLibav.hh"
+#include "modules/audioDecoder/AudioDecoderLibav.hh"
+#include "modules/audioMixer/AudioMixer.hh"
+#include "modules/videoEncoder/VideoEncoderX264.hh"
+#include "modules/videoDecoder/VideoDecoderLibav.hh"
+#include "modules/videoMixer/VideoMixer.hh"
+#include "modules/videoResampler/VideoResampler.hh"
+#include "modules/liveMediaInput/SourceManager.hh"
+#include "modules/liveMediaOutput/SinkManager.hh"
+#include "modules/dasher/Dasher.hh"
+#include "modules/sharedMemory/SharedMemory.hh"
 
 #define WORKER_DELETE_SLEEPING_TIME 1000 //us
 
@@ -47,57 +58,6 @@ void PipelineManager::destroyInstance()
         delete pipeMngrInstance;
         pipeMngrInstance = NULL;
     }
-}
-
-bool PipelineManager::start()
-{
-    receiverID = rand();
-    int receiverWorkerId = rand();
-    transmitterID = rand();
-    int transmitterWorkerId = rand();
-
-    SinkManager* transmitter = SinkManager::createNew();
-    SourceManager* receiver = new SourceManager();
-
-    if (!transmitter){
-        return false;
-    }
-
-    if (!addFilter(receiverID, receiver)) {
-        return false;
-    }
-
-    if (!addFilter(transmitterID, transmitter)) {
-        return false;
-    }
-
-    LiveMediaWorker *receiverWorker = new LiveMediaWorker();
-    LiveMediaWorker *transmitterWorker = new LiveMediaWorker();
-
-    if(!addWorker(receiverWorkerId, receiverWorker)) {
-        return false;
-    }
-
-    if(!addWorker(transmitterWorkerId, transmitterWorker)) {
-        return false;
-    }
-
-    if (!receiverWorker->addProcessor(receiverID, receiver)) {
-        return false;
-    }
-
-    receiver->setWorkerId(receiverWorkerId);
-
-    if (!transmitterWorker->addProcessor(transmitterID, transmitter)) {
-        return false;
-    }
-
-    transmitter->setWorkerId(transmitterWorkerId);
-
-    receiverWorker->start();
-    transmitterWorker->start();
-
-    return true;
 }
 
 bool PipelineManager::stop()
@@ -154,31 +114,62 @@ bool PipelineManager::addPath(int id, Path* path)
 BaseFilter* PipelineManager::createFilter(FilterType type, Jzon::Node* params)
 {
     BaseFilter* filter;
+    FilterRole role;
+    bool sharedFrames = true;
+
+    if (!params->Has("role")){
+        return NULL;
+    }
+    role = utils::getRoleTypeFromString(params->Get("role").ToString());
+    if (role != MASTER && role != SLAVE){
+        role = MASTER;
+    }
+
+    if (params->Has("sharedFrames")){
+        sharedFrames = params->Get("sharedFrames").ToBool();
+    }
+
+    //TODO: this shouldn't be here
+    int key = rand();
+    VCodecType codec = RAW;
 
     switch (type) {
+        case RECEIVER:
+            filter = new SourceManager();
+            break;
+        case TRANSMITTER:
+            filter = SinkManager::createNew();
+            break;
         case VIDEO_DECODER:
-            filter = new VideoDecoderLibav();
+            filter = new VideoDecoderLibav(role, sharedFrames);
             break;
         case VIDEO_ENCODER:
-            filter = new VideoEncoderX264();
+            filter = new VideoEncoderX264(role, sharedFrames);
+            break;
+         case VIDEO_RESAMPLER:
+            filter = new VideoResampler(role, sharedFrames);
             break;
         case VIDEO_MIXER:
-            filter = new VideoMixer();
-            break;
-        case VIDEO_RESAMPLER:
-            filter = new VideoResampler();
+            filter = new VideoMixer(role, sharedFrames);
             break;
         case AUDIO_DECODER:
-            filter = new AudioDecoderLibav();
+            filter = new AudioDecoderLibav(role, sharedFrames);
             break;
         case AUDIO_ENCODER:
-            filter = new AudioEncoderLibav();
+            filter = new AudioEncoderLibav(role, sharedFrames);
             break;
         case AUDIO_MIXER:
-            filter = new AudioMixer();
+            filter = new AudioMixer(role, sharedFrames);
+            break;
+        case SHARED_MEMORY:
+            if (params->Has("codec")){
+                codec = utils::getVideoCodecFromString(params->Get("codec").ToString());
+                key = params->Get("key").ToInt();
+            }
+            filter = SharedMemory::createNew(key, codec, role, sharedFrames);
             break;
         case DASHER:
-            filter = new Dasher();
+            filter = new Dasher(sharedFrames);
             break;
         default:
             utils::errorMsg("Unknown filter type");
@@ -203,6 +194,7 @@ bool PipelineManager::addFilter(int id, BaseFilter* filter)
 BaseFilter* PipelineManager::getFilter(int id)
 {
     if (filters.count(id) <= 0) {
+        utils::warningMsg("Could not find fitler ID: " + std::to_string(id));
         return NULL;
     }
 
@@ -422,6 +414,7 @@ void PipelineManager::startWorkers()
 {
     for (auto it : workers) {
         if (!it.second->isRunning()) {
+            utils::debugMsg("Worker " + std::to_string(it.first) + " starting");
             it.second->start();
             utils::debugMsg("Worker " + std::to_string(it.first) + " started");
         }
@@ -436,17 +429,6 @@ void PipelineManager::stopWorkers()
             utils::debugMsg("Worker " + std::to_string(it.first) + " stoped");
         }
     }
-}
-
-SourceManager* PipelineManager::getReceiver()
-{
-    return dynamic_cast<SourceManager*>(filters[receiverID]);
-}
-
-
-SinkManager* PipelineManager::getTransmitter()
-{
-    return dynamic_cast<SinkManager*>(filters[transmitterID]);
 }
 
 void PipelineManager::getStateEvent(Jzon::Node* params, Jzon::Object &outputNode)
@@ -550,22 +532,23 @@ void PipelineManager::createPathEvent(Jzon::Node* params, Jzon::Object &outputNo
         return;
     }
 
-   if (!params->Has("midFiltersIds") || !params->Get("midFiltersIds").IsArray()) {
-      outputNode.Add("error", "Error creating path. Invalid JSON format...");
-      return;
-   }
-
-    Jzon::Array& jsonFiltersIds = params->Get("midFiltersIds").AsArray();
     id = params->Get("id").ToInt();
     orgFilterId = params->Get("orgFilterId").ToInt();
     dstFilterId = params->Get("dstFilterId").ToInt();
     orgWriterId = params->Get("orgWriterId").ToInt();
     dstReaderId = params->Get("dstReaderId").ToInt();
+    
+    if (!params->Has("midFiltersIds") || !params->Get("midFiltersIds").IsArray()){
+        outputNode.Add("error", "Invalid midfilters array");
+        return;
+    }
+
+    Jzon::Array& jsonFiltersIds = params->Get("midFiltersIds").AsArray();
 
     for (Jzon::Array::iterator it = jsonFiltersIds.begin(); it != jsonFiltersIds.end(); ++it) {
         filtersIds.push_back((*it).ToInt());
     }
-
+    
     path = createPath(orgFilterId, dstFilterId, orgWriterId, dstReaderId, filtersIds);
 
     if (!path) {
@@ -654,7 +637,9 @@ void PipelineManager::addWorkerEvent(Jzon::Node* params, Jzon::Object &outputNod
     id = params->Get("id").ToInt();
     type = params->Get("type").ToString();
 
-    if (type.compare("master") == 0) {
+    if (type.compare("livemedia") == 0){
+        worker = new LiveMediaWorker();
+    } else {
         worker = new Worker();
     }
 
@@ -667,8 +652,6 @@ void PipelineManager::addWorkerEvent(Jzon::Node* params, Jzon::Object &outputNod
         outputNode.Add("error", "Error adding worker to filter. Check filter ID...");
         return;
     }
-
-    startWorkers();
 
     outputNode.Add("error", Jzon::null);
 }
@@ -704,15 +687,15 @@ void PipelineManager::addSlavesToFilterEvent(Jzon::Node* params, Jzon::Object &o
         return;
     }
 
-   for (Jzon::Array::iterator it = jsonSlavesIds.begin(); it != jsonSlavesIds.end(); ++it) {
+    for (Jzon::Array::iterator it = jsonSlavesIds.begin(); it != jsonSlavesIds.end(); ++it) {
        if ((slave = getFilter((*it).ToInt())) && slave->getRole() == SLAVE){
-           master->addSlave((*it).ToInt(), slave);
+           if (!master->addSlave((*it).ToInt(), slave)){
+               outputNode.Add("error", "Error, either master or slave do not have the appropriate role!");
+           }
        } else {
            outputNode.Add("error", "Error adding slaves to filter. Invalid Slave...");
        }
    }
-
-    startWorkers();
 
     outputNode.Add("error", Jzon::null);
 }
@@ -751,35 +734,10 @@ void PipelineManager::addFiltersToWorkerEvent(Jzon::Node* params, Jzon::Object &
     outputNode.Add("error", Jzon::null);
 }
 
-void PipelineManager::startEvent(Jzon::Node* params, Jzon::Object &outputNode)
-{
-    if (!start()) {
-        outputNode.Add("error", "Error starting pipe. Internal error...");
-        return;
-    }
-
-    outputNode.Add("error", Jzon::null);
-}
-
 void PipelineManager::stopEvent(Jzon::Node* params, Jzon::Object &outputNode)
 {
     if (!stop()) {
         outputNode.Add("error", "Error stopping pipe. Internal error...");
-        return;
-    }
-
-    outputNode.Add("error", Jzon::null);
-}
-
-void PipelineManager::resetEvent(Jzon::Node* params, Jzon::Object &outputNode)
-{
-    if (!stop()) {
-        outputNode.Add("error", "Error stopping pipe. Internal error...");
-        return;
-    }
-
-     if (!start()) {
-        outputNode.Add("error", "Error starting pipe. Internal error...");
         return;
     }
 

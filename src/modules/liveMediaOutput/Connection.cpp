@@ -223,8 +223,7 @@ std::string RTSPConnection::getURI()
     if (session == NULL){
         return "";
     }
-    
-    rtspServer->addServerMediaSession(session);
+
     return rtspServer->rtspURL(session);
 }
 
@@ -629,7 +628,6 @@ bool MpegTsConnection::addVideoSource(FramedSource* source, VCodecType codec, in
         utils::errorMsg("Error video reader ID was already set.");
         return false;
     }
-    
     
     startCodeInjector = H264StartCodeInjector::createNew(*fEnv, source);
     tsFramer->addNewVideoSource(startCodeInjector, 5/*mpegVersion: H.264*/);

@@ -37,7 +37,7 @@ extern "C" {
 class VideoResampler : public OneToOneFilter {
 
     public:
-        VideoResampler(FilterRole fRole_ = MASTER);
+        VideoResampler(FilterRole fRole_ = MASTER, bool sharedFrames = true);
         ~VideoResampler();
         bool doProcessFrame(Frame *org, Frame *dst);
         FrameQueue* allocQueue(int wId);

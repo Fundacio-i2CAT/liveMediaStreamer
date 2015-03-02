@@ -37,7 +37,7 @@
 #define A_BAND 192000
 
 Dasher::Dasher(int readersNum) :
-TailFilter(readersNum), hasVideo(false), videoStarted(false)
+TailFilter(MASTER, readersNum), hasVideo(false), videoStarted(false)
 {
     fType = DASHER;
     initializeEventMap();
@@ -88,7 +88,6 @@ bool Dasher::doProcessFrame(std::map<int, Frame*> orgFrames)
     bool newFrame;
 
     for (auto fr : orgFrames) {
-        //check if reader is associated to a segmenter
 
         if (!fr.second) {
             continue;

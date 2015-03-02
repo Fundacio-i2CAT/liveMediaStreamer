@@ -29,7 +29,7 @@ bool checkSampleFormat(AVCodec *codec, enum AVSampleFormat sampleFmt);
 bool checkSampleRateSupport(AVCodec *codec, int sampleRate);
 bool checkChannelLayoutSupport(AVCodec *codec, uint64_t channelLayout);
 
-AudioEncoderLibav::AudioEncoderLibav(FilterRole fRole_) : OneToOneFilter(0, fRole_), fCodec(AC_NONE), samplesPerFrame(0),
+AudioEncoderLibav::AudioEncoderLibav(FilterRole fRole_, bool sharedFrames) : OneToOneFilter(false, fRole_, sharedFrames), fCodec(AC_NONE), samplesPerFrame(0),
 internalChannels(0), internalSampleRate(0), internalSampleFmt(S_NONE), internalLibavSampleFmt(AV_SAMPLE_FMT_NONE),
 inputChannels(0), inputSampleRate(0), inputSampleFmt(S_NONE), inputLibavSampleFmt(AV_SAMPLE_FMT_NONE)
 {
@@ -47,6 +47,8 @@ inputChannels(0), inputSampleRate(0), inputSampleFmt(S_NONE), inputLibavSampleFm
     framerateMod = 1;
 
     currentTime = std::chrono::microseconds(0);
+
+    initializeEventMap();
 }
 
 AudioEncoderLibav::~AudioEncoderLibav()
@@ -111,7 +113,7 @@ bool AudioEncoderLibav::doProcessFrame(Frame *org, Frame *dst)
     return true;
 }
 
-Reader* AudioEncoderLibav::setReader(int readerID, FrameQueue* queue, bool sharedQueue)
+Reader* AudioEncoderLibav::setReader(int readerID, FrameQueue* queue)
 {
     if (readers.size() >= getMaxReaders() || readers.count(readerID) > 0 ) {
         return NULL;
@@ -122,7 +124,7 @@ Reader* AudioEncoderLibav::setReader(int readerID, FrameQueue* queue, bool share
         return NULL;
     }
 
-    Reader* r = new Reader(sharedQueue);
+    Reader* r = new Reader();
     readers[readerID] = r;
 
     dynamic_cast<AudioCircularBuffer*>(queue)->setOutputFrameSamples(samplesPerFrame);
@@ -130,10 +132,10 @@ Reader* AudioEncoderLibav::setReader(int readerID, FrameQueue* queue, bool share
     return r;
 }
 
-bool AudioEncoderLibav::setup(ACodecType codec, int codedAudioChannels, int codedAudioSampleRate)
+bool AudioEncoderLibav::configure(ACodecType codec, int codedAudioChannels, int codedAudioSampleRate)
 {
     if (fCodec != AC_NONE) {
-        utils::errorMsg("Auduo encoder is still configured");
+        utils::errorMsg("Audio encoder is already configured");
         return false;
     }
 
@@ -395,4 +397,42 @@ bool checkChannelLayoutSupport(AVCodec *codec, uint64_t channelLayout)
     }
 
     return false;
+}
+
+void AudioEncoderLibav::configEvent(Jzon::Node* params, Jzon::Object &outputNode)
+{
+    ACodecType codec; 
+    int codedAudioChannels;
+    int codedAudioSampleRate;
+
+    if (!params) {
+        return;
+    }
+
+    codec = fCodec;
+    codedAudioChannels = internalChannels;
+    codedAudioSampleRate = internalSampleRate;
+
+    if (params->Has("codec")){
+        codec = utils::getAudioCodecFromString(params->Get("codec").ToString());
+    }
+
+    if (params->Has("sampleRate")){
+        codedAudioSampleRate = params->Get("sampleRate").ToInt();
+    }
+
+    if (params->Has("channels")){
+        codedAudioChannels = params->Get("channels").ToInt();
+    }
+
+    if (!configure(codec, codedAudioChannels, codedAudioSampleRate)){
+        outputNode.Add("error", "Error configuring audio encoder");
+    } else {
+        outputNode.Add("error", Jzon::null);
+    }
+}
+
+void AudioEncoderLibav::initializeEventMap()
+{
+    eventMap["configure"] = std::bind(&AudioEncoderLibav::configEvent, this, std::placeholders::_1, std::placeholders::_2);
 }

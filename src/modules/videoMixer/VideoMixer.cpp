@@ -55,8 +55,9 @@ void ChannelConfig::config(float width, float height, float x, float y, int laye
 //                VideoMixer Class               //
 ///////////////////////////////////////////////////
 
-VideoMixer::VideoMixer(int framerate, int inputChannels, int outputWidth, int outputHeight, size_t fTime, FilterRole fRole_) :
-ManyToOneFilter(inputChannels, fTime, fRole_, true)
+VideoMixer::VideoMixer(FilterRole fRole_, bool sharedFrames, int framerate, int inputChannels, 
+                       int outputWidth, int outputHeight, size_t fTime) :
+ManyToOneFilter(fRole_, sharedFrames, inputChannels, fTime, true)
 {
     this->outputWidth = outputWidth;
     this->outputHeight = outputHeight;
@@ -171,7 +172,7 @@ Reader* VideoMixer::setReader(int readerID, FrameQueue* queue, bool sharedQueue)
         return NULL;
     }
 
-    Reader* r = new Reader(sharedQueue);
+    Reader* r = new Reader();
     readers[readerID] = r;
 
     channelsConfig[readerID] = new ChannelConfig(1, 1, 0, 0, 0);

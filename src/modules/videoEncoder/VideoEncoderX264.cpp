@@ -24,14 +24,21 @@
 #include <cmath>
 #include "VideoEncoderX264.hh"
 
-VideoEncoderX264::VideoEncoderX264(FilterRole fRole_, int framerate, bool shareFrames) : 
-OneToOneFilter(1000000/framerate, fRole_ , true, shareFrames)
+VideoEncoderX264::VideoEncoderX264(FilterRole fRole_, bool sharedFrames, int framerate) : 
+OneToOneFilter(false, fRole_, sharedFrames)
 {
     fType = VIDEO_ENCODER;
 
     pts = 0;
-    fps = framerate;
 
+    if (framerate <= 0){
+        fps = VIDEO_DEFAULT_FRAMERATE;
+    } else {
+        fps = framerate;
+    }
+
+    setFrameTime(std::chrono::nanoseconds(std::nano::den/fps));
+    
     forceIntra = false;
     encoder = NULL;
     x264_picture_init(&picIn);
@@ -43,7 +50,14 @@ OneToOneFilter(1000000/framerate, fRole_ , true, shareFrames)
 }
 
 VideoEncoderX264::~VideoEncoderX264(){
-	//TODO: delete encoder;
+	if (midFrame){
+            av_frame_free(&midFrame);
+        }
+        
+        if (encoder){
+            x264_picture_clean(&picIn);            
+            x264_encoder_close(encoder);
+        }
 }
 
 bool VideoEncoderX264::doProcessFrame(Frame *org, Frame *dst) {
@@ -131,7 +145,7 @@ bool VideoEncoderX264::configure(int gop_, int bitrate_, int threads_, int fps_,
     threads = threads_;
     annexB = annexB_;
 
-    if (fps_ == 0) {
+    if (fps_ <= 0) {
         fps = VIDEO_DEFAULT_FRAMERATE;
     } else {
         fps = fps_;
@@ -172,13 +186,31 @@ bool VideoEncoderX264::reconfigure(VideoFrame* orgFrame, X264VideoFrame* x264Fra
         }
 
         x264_param_default_preset(&xparams, "ultrafast", "zerolatency");
+        x264_param_apply_profile(&xparams, "baseline");
+        
         xparams.i_threads = threads;
         xparams.i_fps_num = fps;
         xparams.i_fps_den = 1;
         xparams.b_intra_refresh = 0;
+        //xparams.b_intra_refresh = 1;
+        //xparams.i_frame_reference = 1;
+        xparams.b_repeat_headers = 1;
+        xparams.i_bframe = 0;
+        xparams.i_bframe_pyramid = 0;
+
         xparams.b_aud = 1;
         xparams.i_keyint_max = gop;
+        
+        xparams.rc.i_rc_method = X264_RC_ABR;
         xparams.rc.i_bitrate = bitrate;
+        xparams.rc.i_lookahead = 1;
+        xparams.rc.f_ip_factor = 1.4f;
+        xparams.rc.f_pb_factor = 1.3f;
+        xparams.rc.f_qcompress = 1.0;
+        xparams.rc.i_qp_min = 20;//20;
+        xparams.rc.i_qp_max = 32;
+        xparams.rc.i_qp_step = 1;
+        
         if (annexB){
             xparams.b_annexb = 1;
             xparams.b_repeat_headers = 1;
@@ -194,9 +226,6 @@ bool VideoEncoderX264::reconfigure(VideoFrame* orgFrame, X264VideoFrame* x264Fra
                 needsConfig = false;
             }
         }
-        //TODO: set profile
-        x264_param_apply_profile(&xparams, "baseline");
-
 
         if (encoder == NULL){
             encoder = x264_encoder_open(&xparams);
@@ -218,7 +247,7 @@ bool VideoEncoderX264::reconfigure(VideoFrame* orgFrame, X264VideoFrame* x264Fra
 
 void VideoEncoderX264::configEvent(Jzon::Node* params, Jzon::Object &outputNode)
 {
-    int tmpGop, tmpBitrate, tmpThreads;
+    int tmpGop, tmpBitrate, tmpThreads, tmpFps;
     bool tmpAnnexB;
 
     if (!params) {
@@ -229,6 +258,7 @@ void VideoEncoderX264::configEvent(Jzon::Node* params, Jzon::Object &outputNode)
     tmpBitrate = bitrate;
     tmpThreads = threads;
     tmpAnnexB = annexB;
+    tmpFps = fps;
 
     if (params->Has("gop")){
         tmpGop = params->Get("gop").ToInt();
@@ -241,12 +271,16 @@ void VideoEncoderX264::configEvent(Jzon::Node* params, Jzon::Object &outputNode)
     if (params->Has("threads")){
         tmpThreads = params->Get("threads").ToInt();
     }
+    
+    if (params->Has("fps")){
+        tmpThreads = params->Get("fps").ToInt();
+    }
 
     if (params->Has("annexb")){
         tmpAnnexB = params->Get("annexb").ToBool();
     }
-
-    if (!configure(tmpGop, tmpBitrate, tmpThreads, tmpAnnexB)){
+    
+    if (!configure(tmpGop, tmpBitrate, tmpThreads, tmpFps, tmpAnnexB)){
         outputNode.Add("error", "Error configuring vide encoder");
     } else {
         outputNode.Add("error", Jzon::null);
@@ -260,11 +294,14 @@ void VideoEncoderX264::forceIntraEvent(Jzon::Node* params)
 
 void VideoEncoderX264::initializeEventMap()
 {
-	eventMap["forceIntra"] = std::bind(&VideoEncoderX264::forceIntraEvent, this, std::placeholders::_1);
+    eventMap["forceIntra"] = std::bind(&VideoEncoderX264::forceIntraEvent, this, std::placeholders::_1);
     eventMap["configure"] = std::bind(&VideoEncoderX264::configEvent, this, std::placeholders::_1, std::placeholders::_2);
 }
 
 void VideoEncoderX264::doGetState(Jzon::Object &filterNode)
 {
-    //TODO
+    filterNode.Add("gop", std::to_string(gop));
+    filterNode.Add("bitrate", std::to_string(bitrate));
+    filterNode.Add("threads", std::to_string(threads));
+    filterNode.Add("fps", std::to_string(fps));
 }

@@ -161,7 +161,7 @@ bool SinkManager::addRTSPConnection(std::vector<int> readers, int id, TxFormat t
 bool SinkManager::addRTPConnection(std::vector<int> inputReaders, int id, std::string ip, int port, TxFormat txFormat)
 {
     bool ret;
-
+    
     if (connections.count(id) > 0) {
         utils::errorMsg("Error creating RTP connection. Specified ID already in use");
         return false;
@@ -173,7 +173,7 @@ bool SinkManager::addRTPConnection(std::vector<int> inputReaders, int id, std::s
             return false;
         }
     }
-
+    
     switch (txFormat) {
         case STD_RTP:
             ret = addStdRTPConnection(inputReaders, id, ip, port);
@@ -205,18 +205,23 @@ bool SinkManager::addMpegTsRTPConnection(std::vector<int> inputReaders, int id, 
         utils::errorMsg("Error in MPEG-TS RTP connection setup. Only 1 or 2 readers are supported");
         return false;
     }
-
+    
     conn = new MpegTsConnection(envir(), ip, port);
 
     if (!conn) {
         utils::errorMsg("Error creating MpegTSRTPConnection");
         return false;
     }
-
+    
     for (auto inReader : inputReaders) {
 
         vQueue = dynamic_cast<VideoFrameQueue*>(getReader(inReader)->getQueue());
         aQueue = dynamic_cast<AudioFrameQueue*>(getReader(inReader)->getQueue());
+        
+        if (replicators.count(inReader) <= 0){
+            utils::errorMsg("Replicator is NULL for reader: " + std::to_string(inReader));
+            continue;
+        }
 
         if (vQueue && !hasVideo) {
             success = conn->addVideoSource(replicators[inReader]->createStreamReplica(), vQueue->getCodec(), inReader);
@@ -334,7 +339,7 @@ bool SinkManager::addUltraGridRTPConnection(std::vector<int> readers, int id, st
 }
 
 
-Reader *SinkManager::setReader(int readerId, FrameQueue* queue, bool sharedQueue)
+Reader *SinkManager::setReader(int readerId, FrameQueue* queue)
 {
     VideoFrameQueue *vQueue;
     AudioFrameQueue *aQueue;
@@ -465,7 +470,7 @@ void SinkManager::initializeEventMap()
 
 }
 
-void SinkManager::addRTPConnectionEvent(Jzon::Node* params, Jzon::Object &outputNode)
+void SinkManager::addRTSPConnectionEvent(Jzon::Node* params, Jzon::Object &outputNode)
 {
     int id;
     TxFormat txFormat;
@@ -495,11 +500,11 @@ void SinkManager::addRTPConnectionEvent(Jzon::Node* params, Jzon::Object &output
     txFormat = utils::getTxFormatFromString(strTxFormat);
     
     if (params->Has("info")){
-        info = params->Get("name").ToString();
+        info = params->Get("info").ToString();
     }
     
     if (params->Has("desc")){
-        desc = params->Get("name").ToString();
+        desc = params->Get("desc").ToString();
     }
 
     Jzon::Array jsonReaders = params->Get("readers").AsArray();
@@ -521,7 +526,7 @@ void SinkManager::addRTPConnectionEvent(Jzon::Node* params, Jzon::Object &output
     outputNode.Add("error", Jzon::null);
 }
 
-void SinkManager::addRTSPConnectionEvent(Jzon::Node* params, Jzon::Object &outputNode)
+void SinkManager::addRTPConnectionEvent(Jzon::Node* params, Jzon::Object &outputNode)
 {
     std::vector<int> readers;
     int connectionId;

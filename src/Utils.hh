@@ -34,9 +34,12 @@ enum DefinedLogLevel {ERROR, WARNING, DEBUG, INFO};
 namespace utils
 {
     SampleFmt getSampleFormatFromString(std::string stringSampleFmt);
-    ACodecType getCodecFromString(std::string stringCodec);
+    ACodecType getAudioCodecFromString(std::string stringCodec);
+    VCodecType getVideoCodecFromString(std::string stringCodec);
     FilterType getFilterTypeFromString(std::string stringFilterType);
     TxFormat getTxFormatFromString(std::string stringTxFormat);
+    FilterRole getRoleTypeFromString(std::string stringRoleType);
+    std::string getRoleAsString(FilterRole role);
     std::string getSampleFormatAsString(SampleFmt sFormat);
     std::string getAudioCodecAsString(ACodecType codec);
     std::string getVideoCodecAsString(VCodecType codec);

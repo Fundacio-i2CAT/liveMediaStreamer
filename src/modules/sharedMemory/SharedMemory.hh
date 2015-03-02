@@ -68,7 +68,7 @@ public:
     * @return SharedMemory object or NULL if any error while creating
     * @see OneToOneFilter to check the inherated input params
     */
-    static SharedMemory* createNew(size_t key_, VCodecType codec, size_t fTime = 0, FilterRole fRole_ = MASTER, bool force_ = false, bool sharedFrames_ = true);
+    static SharedMemory* createNew(size_t key_, VCodecType codec, FilterRole fRole_ = MASTER, size_t fTime = 0, bool force_ = false, bool sharedFrames_ = true);
     /**
     * Class destructor
     */
@@ -87,17 +87,12 @@ protected:
     bool parseNal(VideoFrame* nal, bool &newFrame);
     int detectStartCode(unsigned char const* ptr);
     int writeSharedMemoryRAW(uint8_t *buffer, int buffer_size);
-	void writeFramePayload(uint16_t seqNum);
-	bool isWritable();
-	Frame * getFrameObject() { return frame;};
-	bool setFrameObject(Frame* in_frame);
-	uint16_t getSeqNum() { return seqNum;};
+    void writeFramePayload(InterleavedVideoFrame *frame);
+    bool isWritable();
+    uint16_t getSeqNum() { return seqNum;};
     void setSeqNum(uint16_t seqNum_) { seqNum = seqNum_;};
     bool isNewFrame() { return newFrame;};
     void setNewFrame(bool newFrame_) { newFrame = newFrame_;};
-
-protected:
-	InterleavedVideoFrame 		*frame;
 
 private:
     bool doProcessFrame(Frame *org, Frame *dst);
@@ -108,21 +103,21 @@ private:
     void copyOrgToDstFrame(InterleavedVideoFrame *org, InterleavedVideoFrame *dst);
 
     uint16_t getCodecFromVCodec(VCodecType codec);
-	uint16_t getPixelFormatFromPixType(PixType pxlFrmt);
-	PixType getPixTypeFromPixelFormat(uint16_t pixType);
-	VCodecType getVCodecFromCodecType(uint16_t codecType);
+    uint16_t getPixelFormatFromPixType(PixType pxlFrmt);
+    PixType getPixTypeFromPixelFormat(uint16_t pixType);
+    VCodecType getVCodecFromCodecType(uint16_t codecType);
 
 private:
-	size_t 						SharedMemorykey;
-	size_t 						SharedMemoryID;
+    size_t 			SharedMemorykey;
+    size_t 			SharedMemoryID;
     uint8_t                     *SharedMemoryOrigin;
-	uint8_t 					*buffer;
-	uint8_t 					*access;
-	uint16_t 					seqNum;
+    uint8_t 			*buffer;
+    uint8_t 			*access;
     bool                        enabled;
     bool                        newFrame;
     std::vector<unsigned char>  frameData;
     VCodecType const            codec;
+    uint16_t                    seqNum;
 };
 
 #endif

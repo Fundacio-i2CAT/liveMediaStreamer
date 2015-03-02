@@ -30,30 +30,12 @@
 #include <utility>
 #include <cmath>
 
-AudioMixer::AudioMixer(int inputChannels) : ManyToOneFilter(inputChannels) {
+AudioMixer::AudioMixer(FilterRole role, bool sharedFrames, int inputChannels) : ManyToOneFilter(role, sharedFrames, inputChannels) {
     frameChannels = DEFAULT_CHANNELS;
     sampleRate = DEFAULT_SAMPLE_RATE;
     sampleFormat = S16P;
     maxChannels = inputChannels;
     fType = AUDIO_MIXER;
-
-    samples.resize(AudioFrame::getMaxSamples(sampleRate));
-    mixedSamples.resize(AudioFrame::getMaxSamples(sampleRate));
-
-    //TODO check frameTime processing...
-    //frameTime = std::chrono::microseconds(DEFAULT_FRAME_TIME);
-
-    initializeEventMap();
-
-    masterGain = DEFAULT_MASTER_GAIN;
-    th = COMPRESSION_THRESHOLD;
-    mAlg = LDRC;
-}
-
-AudioMixer::AudioMixer(int inputChannels, int frameChannels, int sampleRate) : ManyToOneFilter(inputChannels) {
-    this->frameChannels = frameChannels;
-    this->sampleRate = sampleRate;
-    sampleFormat = S16P;
 
     samples.resize(AudioFrame::getMaxSamples(sampleRate));
     mixedSamples.resize(AudioFrame::getMaxSamples(sampleRate));

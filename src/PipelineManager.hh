@@ -25,17 +25,7 @@
 #ifndef _PIPELINE_MANAGER_HH
 #define _PIPELINE_MANAGER_HH
 
-#include "modules/audioEncoder/AudioEncoderLibav.hh"
-#include "modules/audioDecoder/AudioDecoderLibav.hh"
-#include "modules/audioMixer/AudioMixer.hh"
-#include "modules/videoEncoder/VideoEncoderX264.hh"
-#include "modules/videoDecoder/VideoDecoderLibav.hh"
-#include "modules/videoMixer/VideoMixer.hh"
-#include "modules/videoResampler/VideoResampler.hh"
-#include "modules/liveMediaInput/SourceManager.hh"
-#include "modules/liveMediaOutput/SinkManager.hh"
-#include "modules/dasher/Dasher.hh"
-
+#include "Filter.hh"
 #include "Path.hh"
 #include "Worker.hh"
 
@@ -46,10 +36,7 @@ class PipelineManager {
 public:
     static PipelineManager* getInstance();
     static void destroyInstance();
-    int getReceiverID() {return receiverID;};
-    int getTransmitterID() {return transmitterID;};
 
-    bool start();
     bool stop();
 
     Path* createPath(int orgFilter, int dstFilter, int orgWriter,
@@ -62,8 +49,6 @@ public:
 
     BaseFilter* getFilter(int id);
     Worker* getWorker(int id);
-    SourceManager* getReceiver();
-    SinkManager* getTransmitter();
 
     Path* getPath(int id);
     std::map<int, Path*> getPaths() {return paths;};
@@ -81,8 +66,6 @@ public:
     void addSlavesToFilterEvent(Jzon::Node* params, Jzon::Object &outputNode);
     void addFiltersToWorkerEvent(Jzon::Node* params, Jzon::Object &outputNode);
     void stopEvent(Jzon::Node* params, Jzon::Object &outputNode);
-    void startEvent(Jzon::Node* params, Jzon::Object &outputNode);
-    void resetEvent(Jzon::Node* params, Jzon::Object &outputNode);
 
 private:
     PipelineManager();
@@ -96,8 +79,6 @@ private:
     std::map<int, Path*> paths;
     std::map<int, BaseFilter*> filters;
     std::map<int, Worker*> workers;
-    int receiverID;
-    int transmitterID;
 };
 
 #endif

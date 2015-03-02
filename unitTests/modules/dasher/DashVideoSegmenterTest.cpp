@@ -317,7 +317,6 @@ void DashVideoSegmenterTest::generateSegment()
     DashSegment* segment = new DashSegment();
 
     bool newFrame;
-    bool haveSegment = false;
     std::chrono::system_clock::time_point ts(std::chrono::microseconds(1000));
     size_t nalCounter = 0;
     size_t dataLength = 0;

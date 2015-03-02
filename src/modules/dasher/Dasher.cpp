@@ -37,7 +37,7 @@
 #define A_BAND 192000
 
 Dasher::Dasher(int readersNum) :
-TailFilter(MASTER, readersNum), hasVideo(false), videoStarted(false)
+TailFilter(MASTER, readersNum), mpdMngr(NULL), hasVideo(false), videoStarted(false)
 {
     fType = DASHER;
     initializeEventMap();
@@ -54,12 +54,17 @@ Dasher::~Dasher()
 bool Dasher::configure(std::string dashFolder, std::string baseName_, size_t segDurInSec, std::string mpdLocation)
 {
     if (access(dashFolder.c_str(), W_OK) != 0) {
-        utils::errorMsg("Error creating Dasher: provided folder is not writable");
+        utils::errorMsg("Error configuring Dasher: provided folder is not writable");
         return false;
     }
 
     if (dashFolder.back() != '/') {
         dashFolder.append("/");
+    }
+
+    if (baseName_.empty() || segDurInSec == 0 || mpdLocation.empty()){
+        utils::errorMsg("Error configuring Dasher: provided parameters are not valid");
+        return false;
     }
 
     basePath = dashFolder;
@@ -86,6 +91,11 @@ bool Dasher::doProcessFrame(std::map<int, Frame*> orgFrames)
 {
     DashSegmenter* segmenter;
     bool newFrame;
+
+    if (!mpdMngr) {
+        utils::errorMsg("Dasher MUST be configured in order to process frames");
+        return false;
+    }
 
     for (auto fr : orgFrames) {
 
@@ -484,6 +494,11 @@ bool Dasher::addSegmenter(int readerId)
     AudioFrameQueue *aQueue;
     Reader* r;
     std::string completeSegBasePath;
+
+    if (!mpdMngr) {
+        utils::errorMsg("Dasher MUST be configured in order to add a mew segmenter");
+        return false;
+    }
 
     r = getReader(readerId);
 

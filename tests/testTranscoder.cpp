@@ -37,7 +37,7 @@
 #define RETRIES 60
 
 #define SEG_DURATION 4 //sec
-#define DASH_FOLDER "./dash"
+#define DASH_FOLDER "/tmp/dashLMS"
 #define BASE_NAME "test"
 #define MPD_LOCATION "http://localhost/dash/test.mpd"
 
@@ -264,7 +264,7 @@ void addVideoPath(unsigned port, Dasher* dasher, int dasherId, int receiverID, i
         encoder2->setWorkerId(wEncId2);
         pipe->addWorker(wEncId2, wEnc2);
         ((BaseFilter*)encoder)->addSlave(wEncId2, encoder2);
-        
+
         encoder2->configure(25, 250);
 
         //NOTE: add filter to path
@@ -398,12 +398,12 @@ bool publishRTSPSession(std::vector<int> readers, SinkManager *transmitter)
 {
     std::string sessionId;
 
-    sessionId = utils::randomIdGenerator(ID_LENGTH);
+    sessionId = "plainrtp";
     if (!transmitter->addRTSPConnection(readers, 1, STD_RTP, sessionId)){
         return false;
     }
 
-    sessionId = utils::randomIdGenerator(ID_LENGTH);
+    sessionId = "mpegts";
     if (!transmitter->addRTSPConnection(readers, 2, MPEGTS, sessionId)){
         return false;
     }
@@ -467,7 +467,7 @@ int main(int argc, char* argv[])
     }
 
     if (vPort == 0 && aPort == 0 && rtspUri.length() == 0){
-        utils::errorMsg("Invalid parameters. Usage: testranscoder -v <video_input_port> -a <audio_input_port> -d <dst_ip> -P <dst_port> -r <rtsp_uri> -dash");
+        utils::errorMsg("invalid parameters");
         return 1;
     }
 
@@ -488,7 +488,7 @@ int main(int argc, char* argv[])
         pipe->addFilter(transmitterID, transmitter);
         pipe->addFilterToWorker(transWorkID, transmitterID);
     }
-    
+
     lW = new LiveMediaWorker();
     pipe->addWorker(receiWorkID, lW);
     pipe->addFilter(receiverID, receiver);

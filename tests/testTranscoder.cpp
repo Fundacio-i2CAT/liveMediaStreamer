@@ -33,6 +33,7 @@
 #define A_CHANNELS 2
 
 #define OUT_A_CODEC AAC
+#define OUT_A_FREQ 48000
 
 #define RETRIES 60
 
@@ -103,7 +104,7 @@ void addAudioPath(unsigned port, Dasher* dasher, int dasherId, int receiverID, i
 
     //NOTE: Adding encoder to pipeManager and handle worker
     encoder = new AudioEncoderLibav();
-    if (!encoder->configure(OUT_A_CODEC, A_CHANNELS, A_TIME_STMP_FREQ)) {
+    if (!encoder->configure(OUT_A_CODEC, A_CHANNELS, OUT_A_FREQ)) {
         utils::errorMsg("Error configuring audio encoder. Check provided parameters");
         return;
     }
@@ -140,15 +141,20 @@ void addVideoPath(unsigned port, Dasher* dasher, int dasherId, int receiverID, i
     int wResId2 = rand();
     int wEncId = rand();
     int wEncId2 = rand();
+    int wEncId3 = rand();
     int wDecId = rand();
     int decId = rand();
     int resId = 2000;
     int resId2 = 2001;
+    int resId3 = 2002;
     int encId = 1000;
     int encId2 = 1001;
+    int encId3 = 1002;
     int dstReader1 = rand();
     int dstReader2 = rand();
+    int dstReader3 = rand();
     int slavePathId = rand();
+    int slavePathId2 = rand();
     int shmId = rand();
     int wShmId = rand();
     SharedMemory *shm;
@@ -161,9 +167,10 @@ void addVideoPath(unsigned port, Dasher* dasher, int dasherId, int receiverID, i
     std::vector<int> ids;
 
     std::vector<int> slaveIds({encId2});
+    std::vector<int> slaveIds2({encId3});
 
     if(sharingMemoryKey > 0){
-        ids = {decId, resId, shmId, encId, shmEncId};
+        ids = {decId, shmId, resId, encId, shmEncId};
     } else {
         ids = {decId, resId, encId};
     }
@@ -173,8 +180,10 @@ void addVideoPath(unsigned port, Dasher* dasher, int dasherId, int receiverID, i
 
     VideoResampler *resampler;
     VideoResampler *resampler2;
+    VideoResampler *resampler3;
     VideoEncoderX264 *encoder;
     VideoEncoderX264 *encoder2;
+    VideoEncoderX264 *encoder3;
     VideoDecoderLibav *decoder;
 
     Worker* wDec;
@@ -182,6 +191,7 @@ void addVideoPath(unsigned port, Dasher* dasher, int dasherId, int receiverID, i
     Worker* wRes2;
     Worker* wEnc;
     Worker* wEnc2;
+    Worker* wEnc3;
 
     Path *path, *slavePath;
 
@@ -252,9 +262,16 @@ void addVideoPath(unsigned port, Dasher* dasher, int dasherId, int receiverID, i
         wRes2 = new Worker();
         wRes2->addProcessor(resId2, resampler2);
         resampler2->setWorkerId(wResId2);
-        resampler2->configure(640, 480, 0, YUV420P);
+        resampler2->configure(1280, 720, 0, YUV420P);
         pipe->addWorker(wResId2, wRes2);
         ((BaseFilter*)resampler)->addSlave(resId2, resampler2);
+        
+        resampler3 = new VideoResampler(SLAVE);
+        pipe->addFilter(resId3, resampler3);
+        wRes2->addProcessor(resId3, resampler3);
+        resampler3->setWorkerId(wResId2);
+        resampler3->configure(640, 480, 0, YUV420P);
+         ((BaseFilter*)resampler)->addSlave(resId3, resampler3);
 
         //NOTE: Adding encoder to pipeManager and handle worker
         encoder2 = new VideoEncoderX264(SLAVE, VIDEO_DEFAULT_FRAMERATE, false);
@@ -265,21 +282,37 @@ void addVideoPath(unsigned port, Dasher* dasher, int dasherId, int receiverID, i
         pipe->addWorker(wEncId2, wEnc2);
         ((BaseFilter*)encoder)->addSlave(wEncId2, encoder2);
         
-        encoder2->configure(25, 250);
+        encoder2->configure(25, 1000);
+        
+        encoder3 = new VideoEncoderX264(SLAVE, VIDEO_DEFAULT_FRAMERATE, false);
+        pipe->addFilter(encId3, encoder3);
+        wEnc3 = new Worker();
+        wEnc3->addProcessor(encId3, encoder3);
+        encoder3->setWorkerId(wEncId3);
+        pipe->addWorker(wEncId3, wEnc3);
+        ((BaseFilter*)encoder)->addSlave(wEncId3, encoder3);
+        
+        encoder3->configure(25, 250, 2);
 
         //NOTE: add filter to path
         slavePath = pipe->createPath(resId2, dasherId, -1, dstReader2, slaveIds);
         pipe->addPath(slavePathId, slavePath);
         pipe->connectPath(slavePath);
+        
+        slavePath = pipe->createPath(resId3, dasherId, -1, dstReader3, slaveIds2);
+        pipe->addPath(slavePathId2, slavePath);
+        pipe->connectPath(slavePath);
 
-        utils::infoMsg("Master reader: " + std::to_string(dstReader1));
-        utils::infoMsg("Slave reader: " + std::to_string(dstReader2));
 
         if (!dasher->addSegmenter(dstReader1)) {
             utils::errorMsg("Error adding segmenter");
         }
 
         if (!dasher->addSegmenter(dstReader2)) {
+            utils::errorMsg("Error adding segmenter");
+        }
+        
+        if (!dasher->addSegmenter(dstReader3)) {
             utils::errorMsg("Error adding segmenter");
         }
     }
@@ -398,12 +431,14 @@ bool publishRTSPSession(std::vector<int> readers, SinkManager *transmitter)
 {
     std::string sessionId;
 
-    sessionId = utils::randomIdGenerator(ID_LENGTH);
+    sessionId = "plainrtp";
+    utils::infoMsg("Adding plain RTP session...");
     if (!transmitter->addRTSPConnection(readers, 1, STD_RTP, sessionId)){
         return false;
     }
 
-    sessionId = utils::randomIdGenerator(ID_LENGTH);
+    sessionId = "mpegts";
+    utils::infoMsg("Adding plain MPEGTS session...");
     if (!transmitter->addRTSPConnection(readers, 2, MPEGTS, sessionId)){
         return false;
     }

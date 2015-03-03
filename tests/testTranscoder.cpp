@@ -38,7 +38,7 @@
 #define RETRIES 60
 
 #define SEG_DURATION 4 //sec
-#define DASH_FOLDER "./dashLMS"
+#define DASH_FOLDER "/tmp/dashLMS"
 #define BASE_NAME "test"
 #define MPD_LOCATION "http://localhost/dash/test.mpd"
 
@@ -150,9 +150,9 @@ void addVideoPath(unsigned port, Dasher* dasher, int dasherId, int receiverID, i
     int encId = 1000;
     int encId2 = 1001;
     int encId3 = 1002;
-    int dstReader1 = rand();
-    int dstReader2 = rand();
-    int dstReader3 = rand();
+    int dstReader1 = 3000;
+    int dstReader2 = 3001;
+    int dstReader3 = 3002;
     int slavePathId = rand();
     int slavePathId2 = rand();
     int shmId = rand();
@@ -233,7 +233,7 @@ void addVideoPath(unsigned port, Dasher* dasher, int dasherId, int receiverID, i
     wEnc->addProcessor(encId, encoder);
     encoder->setWorkerId(wEncId);
     pipe->addWorker(wEncId, wEnc);
-    
+
     if(sharingMemoryKey > 0){
         shmEnc = SharedMemory::createNew(sharingMemoryKey + 1, H264);
         if(!shmEnc){
@@ -265,7 +265,7 @@ void addVideoPath(unsigned port, Dasher* dasher, int dasherId, int receiverID, i
         resampler2->configure(1280, 720, 0, YUV420P);
         pipe->addWorker(wResId2, wRes2);
         ((BaseFilter*)resampler)->addSlave(resId2, resampler2);
-        
+
         resampler3 = new VideoResampler(SLAVE);
         pipe->addFilter(resId3, resampler3);
         wRes2->addProcessor(resId3, resampler3);
@@ -281,9 +281,9 @@ void addVideoPath(unsigned port, Dasher* dasher, int dasherId, int receiverID, i
         encoder2->setWorkerId(wEncId2);
         pipe->addWorker(wEncId2, wEnc2);
         ((BaseFilter*)encoder)->addSlave(wEncId2, encoder2);
-        
+
         encoder2->configure(25, 1000);
-        
+
         encoder3 = new VideoEncoderX264(SLAVE, VIDEO_DEFAULT_FRAMERATE, false);
         pipe->addFilter(encId3, encoder3);
         wEnc3 = new Worker();
@@ -291,14 +291,14 @@ void addVideoPath(unsigned port, Dasher* dasher, int dasherId, int receiverID, i
         encoder3->setWorkerId(wEncId3);
         pipe->addWorker(wEncId3, wEnc3);
         ((BaseFilter*)encoder)->addSlave(wEncId3, encoder3);
-        
+
         encoder3->configure(25, 250, 2);
 
         //NOTE: add filter to path
         slavePath = pipe->createPath(resId2, dasherId, -1, dstReader2, slaveIds);
         pipe->addPath(slavePathId, slavePath);
         pipe->connectPath(slavePath);
-        
+
         slavePath = pipe->createPath(resId3, dasherId, -1, dstReader3, slaveIds2);
         pipe->addPath(slavePathId2, slavePath);
         pipe->connectPath(slavePath);
@@ -309,13 +309,21 @@ void addVideoPath(unsigned port, Dasher* dasher, int dasherId, int receiverID, i
         if (!dasher->addSegmenter(dstReader1)) {
             utils::errorMsg("Error adding segmenter");
         }
+        if (!dasher->setDashSegmenterBitrate(dstReader1, 4000*1000)) {
+            utils::errorMsg("Error setting bitrate to segmenter");
+        }
 
         if (!dasher->addSegmenter(dstReader2)) {
             utils::errorMsg("Error adding segmenter");
         }
-        
+        if (!dasher->setDashSegmenterBitrate(dstReader2, 1000*1000)) {
+            utils::errorMsg("Error setting bitrate to segmenter");
+        }
         if (!dasher->addSegmenter(dstReader3)) {
             utils::errorMsg("Error adding segmenter");
+        }
+        if (!dasher->setDashSegmenterBitrate(dstReader3, 250*1000)) {
+            utils::errorMsg("Error setting bitrate to segmenter");
         }
     }
 
@@ -459,7 +467,7 @@ int main(int argc, char* argv[])
     size_t sharingMemoryKey = 0;
     bool dash = false;
     Dasher* dasher = NULL;
-    int dasherId = rand();
+    int dasherId = 4000;
     std::vector<int> readers;
 
     int transmitterID = rand();
@@ -525,7 +533,7 @@ int main(int argc, char* argv[])
         pipe->addFilter(transmitterID, transmitter);
         pipe->addFilterToWorker(transWorkID, transmitterID);
     }
-    
+
     lW = new LiveMediaWorker();
     pipe->addWorker(receiWorkID, lW);
     pipe->addFilter(receiverID, receiver);

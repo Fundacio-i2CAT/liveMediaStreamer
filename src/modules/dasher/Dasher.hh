@@ -110,6 +110,8 @@ public:
     */
     static std::string getInitSegmentName(std::string basePath, std::string baseName, size_t reprId, std::string ext);
 
+    bool setDashSegmenterBitrate(int id, size_t kbps);
+
 private:
     bool doProcessFrame(std::map<int, Frame*> orgFrames);
     void doGetState(Jzon::Object &filterNode);
@@ -126,6 +128,7 @@ private:
     void configureEvent(Jzon::Node* params, Jzon::Object &outputNode);
     void addSegmenterEvent(Jzon::Node* params, Jzon::Object &outputNode);
     void removeSegmenterEvent(Jzon::Node* params, Jzon::Object &outputNode);
+    void setBitrateEvent(Jzon::Node* params, Jzon::Object &outputNode);
 
     std::map<int, DashSegmenter*> segmenters;
     std::map<int, DashSegment*> vSegments;
@@ -220,6 +223,8 @@ public:
     size_t getSegDurInTimeBaseUnits() {return segDurInTimeBaseUnits;};
     virtual bool flushDashContext() = 0;
 
+    void setBitrate(size_t bps) {bitrateInBitsPerSec = bps;};
+    size_t getBitrate() {return bitrateInBitsPerSec;};
 
 protected:
     virtual bool updateMetadata() = 0;
@@ -238,6 +243,7 @@ protected:
     size_t frameDuration;
     std::vector<unsigned char> metadata;
     size_t theoricPts;
+    size_t bitrateInBitsPerSec;
 };
 
 /*! It represents a dash segment. It contains a buffer with the segment data (it allocates data) and its length. Moreover, it contains the

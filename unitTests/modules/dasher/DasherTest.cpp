@@ -44,6 +44,7 @@ class DasherTest : public CppUnit::TestFixture
     CPPUNIT_TEST(configure);
     CPPUNIT_TEST(addSegmenter);
     CPPUNIT_TEST(removeSegmenter);
+    CPPUNIT_TEST(setDashSegmenterBitrate);
     CPPUNIT_TEST_SUITE_END();
 
 public:
@@ -54,6 +55,7 @@ protected:
     void configure();
     void addSegmenter();
     void removeSegmenter();
+    void setDashSegmenterBitrate();
 
     Dasher* dasher;
     VideoFilterMockup* h264Filter = NULL;
@@ -119,7 +121,7 @@ void DasherTest::addSegmenter()
 void DasherTest::removeSegmenter()
 {
     if(!dasher->configure(DASH_FOLDER, BASE_NAME, SEG_DURATION, MPD_LOCATION)) {
-        CPPUNIT_FAIL("Dasher creation failed");
+        CPPUNIT_FAIL("Dasher configuration failed");
     }
 
     dasher->addSegmenter(h264ReaderId);
@@ -128,6 +130,14 @@ void DasherTest::removeSegmenter()
     CPPUNIT_ASSERT(dasher->removeSegmenter(aacReaderId));
     CPPUNIT_ASSERT(!dasher->removeSegmenter(h264ReaderId));
     CPPUNIT_ASSERT(!dasher->removeSegmenter(aacReaderId));
+}
+
+void DasherTest::setDashSegmenterBitrate() 
+{
+    dasher->configure(DASH_FOLDER, BASE_NAME, SEG_DURATION, MPD_LOCATION);
+    dasher->addSegmenter(h264ReaderId);
+    CPPUNIT_ASSERT(dasher->setDashSegmenterBitrate(h264ReaderId, 1000000));
+    CPPUNIT_ASSERT(!dasher->setDashSegmenterBitrate(aacReaderId, 1000000));
 }
 
 CPPUNIT_TEST_SUITE_REGISTRATION(DasherTest);

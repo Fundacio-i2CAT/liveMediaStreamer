@@ -33,9 +33,6 @@
 #include <unistd.h>
 #include <math.h>
 
-#define V_BAND 2000000
-#define A_BAND 192000
-
 Dasher::Dasher(int readersNum) :
 TailFilter(MASTER, readersNum), mpdMngr(NULL), hasVideo(false), videoStarted(false)
 {
@@ -229,7 +226,7 @@ bool Dasher::generateSegment(size_t id, DashSegmenter* segmenter)
 
         mpdMngr->updateVideoAdaptationSet(V_ADAPT_SET_ID, segmenters[id]->getTimeBase(), vSegTempl, vInitSegTempl);
         mpdMngr->updateVideoRepresentation(V_ADAPT_SET_ID, std::to_string(id), VIDEO_CODEC, vSeg->getWidth(),
-                                            vSeg->getHeight(), V_BAND, vSeg->getFramerate());
+                                            vSeg->getHeight(), vSeg->getBitrate(), vSeg->getFramerate());
 
         if (!updateTimestampControl(vSegments, refTimestamp, refDuration)) {
             return false;
@@ -260,7 +257,8 @@ bool Dasher::generateSegment(size_t id, DashSegmenter* segmenter)
         }
 
         mpdMngr->updateAudioAdaptationSet(A_ADAPT_SET_ID, segmenters[id]->getTimeBase(), aSegTempl, aInitSegTempl);
-        mpdMngr->updateAudioRepresentation(A_ADAPT_SET_ID, std::to_string(id), AUDIO_CODEC, aSeg->getSampleRate(), A_BAND, aSeg->getChannels());
+        mpdMngr->updateAudioRepresentation(A_ADAPT_SET_ID, std::to_string(id), AUDIO_CODEC, 
+                                            aSeg->getSampleRate(), aSeg->getBitrate(), aSeg->getChannels());
 
         if (!updateTimestampControl(aSegments, refTimestamp, refDuration)) {
             return false;
@@ -315,7 +313,8 @@ bool Dasher::forceAudioSegmentsGeneration()
         }
 
         mpdMngr->updateAudioAdaptationSet(A_ADAPT_SET_ID, segmenters[seg.first]->getTimeBase(), aSegTempl, aInitSegTempl);
-        mpdMngr->updateAudioRepresentation(A_ADAPT_SET_ID, std::to_string(seg.first), AUDIO_CODEC, aSeg->getSampleRate(), A_BAND, aSeg->getChannels());
+        mpdMngr->updateAudioRepresentation(A_ADAPT_SET_ID, std::to_string(seg.first), AUDIO_CODEC, 
+                                            aSeg->getSampleRate(), aSeg->getBitrate(), aSeg->getChannels());
 
          if (!updateTimestampControl(aSegments, refTimestamp, refDuration)) {
             continue;
@@ -403,12 +402,10 @@ bool Dasher::cleanSegments(std::map<int,DashSegment*> segments, size_t timestamp
 
 void Dasher::initializeEventMap()
 {
-     eventMap["configure"] = std::bind(&Dasher::configureEvent,
-                                                this, std::placeholders::_1, std::placeholders::_2);
-     eventMap["addSegmenter"] = std::bind(&Dasher::addSegmenterEvent,
-                                                this, std::placeholders::_1, std::placeholders::_2);
-     eventMap["removeSegmenter"] = std::bind(&Dasher::removeSegmenterEvent,
-                                                this, std::placeholders::_1, std::placeholders::_2);
+    eventMap["configure"] = std::bind(&Dasher::configureEvent, this, std::placeholders::_1, std::placeholders::_2);
+    eventMap["addSegmenter"] = std::bind(&Dasher::addSegmenterEvent, this, std::placeholders::_1, std::placeholders::_2);
+    eventMap["removeSegmenter"] = std::bind(&Dasher::removeSegmenterEvent, this, std::placeholders::_1, std::placeholders::_2);
+    eventMap["setBitrate"] = std::bind(&Dasher::setBitrateEvent, this, std::placeholders::_1, std::placeholders::_2);
 }
 
 void Dasher::doGetState(Jzon::Object &filterNode)
@@ -483,6 +480,28 @@ void Dasher::removeSegmenterEvent(Jzon::Node* params, Jzon::Object &outputNode)
 
     if (!removeSegmenter(id)) {
         outputNode.Add("error", "Error removing segmenter in Dasher. Check parameters!");
+    } else {
+        outputNode.Add("error", Jzon::null);
+    }
+}
+
+void Dasher::setBitrateEvent(Jzon::Node* params, Jzon::Object &outputNode)
+{
+    if (!params) {
+        outputNode.Add("error", "Error setting bitrate to DashSegmenter: params are necessary");
+        return;
+    }
+
+    if (!params->Has("id") || !params->Has("bitrate")) {
+        outputNode.Add("error", "Error setting bitrate to DashSegmenter: params are necessary");
+        return;
+    }
+
+    int id = params->Get("id").ToInt();
+    int bitrate = params->Get("bitrate").ToInt();
+
+    if(!setDashSegmenterBitrate(id, bitrate)) {
+        outputNode.Add("error", "Error setting bitrate to DashSegmenter: specified id is not valid");
     } else {
         outputNode.Add("error", Jzon::null);
     }
@@ -603,13 +622,27 @@ DashSegmenter* Dasher::getSegmenter(size_t id)
     return segmenters[id];
 }
 
+bool Dasher::setDashSegmenterBitrate(int id, size_t bps)
+{
+    DashSegmenter* segmenter;
+
+    segmenter = getSegmenter(id);
+
+    if (!segmenter) {
+        utils::errorMsg("Error setting bitrate. Provided id does not exist");
+        return false;
+    }
+
+    segmenter->setBitrate(bps);
+    return true;
+}
 
 ///////////////////
 // DashSegmenter //
 ///////////////////
 
 DashSegmenter::DashSegmenter(std::chrono::seconds segmentDuration, size_t tBase) :
-segDur(segmentDuration), dashContext(NULL), timeBase(tBase), frameDuration(0), theoricPts(0)
+segDur(segmentDuration), dashContext(NULL), timeBase(tBase), frameDuration(0), theoricPts(0), bitrateInBitsPerSec(0)
 {
     segDurInTimeBaseUnits = segDur.count()*timeBase;
 }

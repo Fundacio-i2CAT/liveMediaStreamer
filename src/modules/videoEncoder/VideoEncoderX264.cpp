@@ -24,7 +24,7 @@
 #include <cmath>
 #include "VideoEncoderX264.hh"
 
-VideoEncoderX264::VideoEncoderX264(FilterRole fRole_, bool sharedFrames, int framerate) : 
+VideoEncoderX264::VideoEncoderX264(FilterRole fRole_, bool sharedFrames, int framerate) :
 OneToOneFilter(false, fRole_, sharedFrames)
 {
     fType = VIDEO_ENCODER;
@@ -38,7 +38,7 @@ OneToOneFilter(false, fRole_, sharedFrames)
     }
 
     setFrameTime(std::chrono::nanoseconds(std::nano::den/fps));
-    
+
     forceIntra = false;
     encoder = NULL;
     x264_picture_init(&picIn);
@@ -53,9 +53,9 @@ VideoEncoderX264::~VideoEncoderX264(){
 	if (midFrame){
             av_frame_free(&midFrame);
         }
-        
+
         if (encoder){
-            x264_picture_clean(&picIn);            
+            x264_picture_clean(&picIn);
             x264_encoder_close(encoder);
         }
 }
@@ -92,7 +92,7 @@ bool VideoEncoderX264::doProcessFrame(Frame *org, Frame *dst) {
 
     x264Frame->setNals(&ppNal, piNal, frameLength);
     x264Frame->setSize(videoFrame->getWidth(), videoFrame->getHeight());
-    
+
     pts++;
 	return true;
 }
@@ -187,7 +187,7 @@ bool VideoEncoderX264::reconfigure(VideoFrame* orgFrame, X264VideoFrame* x264Fra
 
         x264_param_default_preset(&xparams, "ultrafast", "zerolatency");
         x264_param_apply_profile(&xparams, "baseline");
-        
+
         xparams.i_threads = threads;
         xparams.i_fps_num = fps;
         xparams.i_fps_den = 1;
@@ -200,7 +200,7 @@ bool VideoEncoderX264::reconfigure(VideoFrame* orgFrame, X264VideoFrame* x264Fra
 
         xparams.b_aud = 1;
         xparams.i_keyint_max = gop;
-        
+
         xparams.rc.i_rc_method = X264_RC_ABR;
         xparams.rc.i_bitrate = bitrate;
         xparams.rc.i_lookahead = 1;
@@ -210,7 +210,7 @@ bool VideoEncoderX264::reconfigure(VideoFrame* orgFrame, X264VideoFrame* x264Fra
         xparams.rc.i_qp_min = 20;//20;
         xparams.rc.i_qp_max = 32;
         xparams.rc.i_qp_step = 1;
-        
+
         if (annexB){
             xparams.b_annexb = 1;
             xparams.b_repeat_headers = 1;
@@ -271,15 +271,15 @@ void VideoEncoderX264::configEvent(Jzon::Node* params, Jzon::Object &outputNode)
     if (params->Has("threads")){
         tmpThreads = params->Get("threads").ToInt();
     }
-    
+
     if (params->Has("fps")){
-        tmpThreads = params->Get("fps").ToInt();
+        tmpFps = params->Get("fps").ToInt();
     }
 
     if (params->Has("annexb")){
         tmpAnnexB = params->Get("annexb").ToBool();
     }
-    
+
     if (!configure(tmpGop, tmpBitrate, tmpThreads, tmpFps, tmpAnnexB)){
         outputNode.Add("error", "Error configuring vide encoder");
     } else {

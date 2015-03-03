@@ -181,10 +181,8 @@ bool DashVideoSegmenter::generateInitData(DashSegment* segment)
 
 bool DashVideoSegmenter::appendFrameToDashSegment(DashSegment* segment)
 {
-    size_t segmentSize = 0;
     unsigned char* data;
     unsigned dataLength;
-    uint32_t segTimestamp;
     size_t addSampleReturn;
 
     if (frameData.empty()) {
@@ -198,8 +196,6 @@ bool DashVideoSegmenter::appendFrameToDashSegment(DashSegment* segment)
         return false;
     }
 
-    segmentSize = generate_video_segment(isIntra, segment->getDataBuffer(), &dashContext, &segTimestamp);
-
     theoricPts = customTimestamp(currTimestamp);
 
     addSampleReturn = add_video_sample(data, dataLength, frameDuration, theoricPts, theoricPts, segment->getSeqNumber(), isIntra, &dashContext);
@@ -210,12 +206,38 @@ bool DashVideoSegmenter::appendFrameToDashSegment(DashSegment* segment)
         return false;
     }
 
+    return true;
+}
+
+bool DashVideoSegmenter::generateSegment(DashSegment* segment)
+{
+    size_t segmentSize = 0;
+    uint32_t segTimestamp;
+    uint32_t segDuration;
+
+    if (frameData.empty()) {
+        return false;
+    }
+
+    segmentSize = generate_video_segment(isIntra, segment->getDataBuffer(), &dashContext, &segTimestamp, &segDuration);
+
     if (segmentSize <= I2ERROR_MAX) {
         return false;
     }
     
     segment->setTimestamp(segTimestamp);
+    segment->setDuration(segDuration);
     segment->setDataLength(segmentSize);
+    return true;
+}
+
+bool DashVideoSegmenter::flushDashContext()
+{
+    if (!dashContext) {
+        return false;
+    }
+
+    context_refresh(&dashContext, VIDEO_TYPE);
     return true;
 }
 

@@ -120,6 +120,20 @@ unsigned MpdManager::updateAdaptationSetTimestamp(std::string id, unsigned ts, u
     return removedTimestamp;
 }
 
+bool MpdManager::flushAdaptationSetTimestamps(std::string id)
+{
+    AdaptationSet* adSet;
+
+    adSet = getAdaptationSet(id);
+
+    if (!adSet) {
+        return false;
+    }
+
+    adSet->flushTimestamps();
+    return true;
+}
+
 void MpdManager::updateVideoAdaptationSet(std::string id, int timescale, std::string segmentTempl, std::string initTempl)
 {
     AdaptationSet* adSet;
@@ -227,6 +241,11 @@ unsigned AdaptationSet::updateTimestamp(unsigned ts, unsigned duration)
 
     timestamps.push_back(std::pair<int,int>(ts, duration));
     return removedTimestamp;
+}
+
+void AdaptationSet::flushTimestamps()
+{
+    timestamps.clear();
 }
 
 void AdaptationSet::update(int segTimescale, std::string segTempl, std::string initTempl)

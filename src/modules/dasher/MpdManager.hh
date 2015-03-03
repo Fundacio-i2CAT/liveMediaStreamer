@@ -159,6 +159,14 @@ public:
     */
     bool removeRepresentation(std::string adSetId, std::string reprId);
 
+    /**
+    * Flushes stored timestamps from an existing adaptation set 
+    * @param adSetId Adaptation set Id
+    * @return true on success and false on fail
+    */
+    bool flushAdaptationSetTimestamps(std::string id);
+
+
 private:
     bool addAdaptationSet(std::string id, AdaptationSet* adaptationSet);
     AdaptationSet* getAdaptationSet(std::string id);
@@ -226,6 +234,8 @@ public:
     * @see MpdManager::removeRepresentation 
     */
     virtual bool removeRepresentation(std::string id) = 0;
+
+    void flushTimestamps();
     
 protected:
 

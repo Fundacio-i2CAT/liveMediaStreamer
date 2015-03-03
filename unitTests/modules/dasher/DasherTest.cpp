@@ -41,6 +41,7 @@
 class DasherTest : public CppUnit::TestFixture
 {
     CPPUNIT_TEST_SUITE(DasherTest);
+    CPPUNIT_TEST(configure);
     CPPUNIT_TEST(addSegmenter);
     CPPUNIT_TEST(removeSegmenter);
     CPPUNIT_TEST_SUITE_END();
@@ -50,6 +51,7 @@ public:
     void tearDown();
 
 protected:
+    void configure();
     void addSegmenter();
     void removeSegmenter();
 
@@ -68,11 +70,6 @@ protected:
 void DasherTest::setUp()
 {
     dasher = new Dasher();
-
-    if(!dasher->configure(DASH_FOLDER, BASE_NAME, SEG_DURATION, MPD_LOCATION)) {
-        CPPUNIT_FAIL("Dasher creation failed");
-    }
-
     h264Filter = new VideoFilterMockup(H264);
     vp8Filter = new VideoFilterMockup(VP8);
     aacFilter = new AudioFilterMockup(AAC);
@@ -92,8 +89,24 @@ void DasherTest::tearDown()
     delete mp3Filter;
 }
 
+void DasherTest::configure()
+{
+    std::string invalidFolder("nonExistance");
+    CPPUNIT_ASSERT(!dasher->configure(invalidFolder, BASE_NAME, SEG_DURATION, MPD_LOCATION));
+    CPPUNIT_ASSERT(!dasher->configure(DASH_FOLDER, "", SEG_DURATION, MPD_LOCATION));
+    CPPUNIT_ASSERT(!dasher->configure(DASH_FOLDER, BASE_NAME, 0, MPD_LOCATION));
+    CPPUNIT_ASSERT(!dasher->configure(DASH_FOLDER, BASE_NAME, SEG_DURATION, ""));
+    CPPUNIT_ASSERT(dasher->configure(DASH_FOLDER, BASE_NAME, SEG_DURATION, MPD_LOCATION));
+}
+
 void DasherTest::addSegmenter()
 {
+    CPPUNIT_ASSERT(!dasher->addSegmenter(h264ReaderId));
+
+    if(!dasher->configure(DASH_FOLDER, BASE_NAME, SEG_DURATION, MPD_LOCATION)) {
+        CPPUNIT_FAIL("Dasher creation failed");
+    }
+
     CPPUNIT_ASSERT(!dasher->addSegmenter(nonExistanceReader));
     CPPUNIT_ASSERT(!dasher->addSegmenter(vp8ReaderId));
     CPPUNIT_ASSERT(!dasher->addSegmenter(mp3ReaderId));
@@ -105,6 +118,10 @@ void DasherTest::addSegmenter()
 
 void DasherTest::removeSegmenter()
 {
+    if(!dasher->configure(DASH_FOLDER, BASE_NAME, SEG_DURATION, MPD_LOCATION)) {
+        CPPUNIT_FAIL("Dasher creation failed");
+    }
+
     dasher->addSegmenter(h264ReaderId);
     dasher->addSegmenter(aacReaderId);
     CPPUNIT_ASSERT(dasher->removeSegmenter(h264ReaderId));

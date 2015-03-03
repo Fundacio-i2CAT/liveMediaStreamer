@@ -303,6 +303,8 @@ void addVideoPath(unsigned port, Dasher* dasher, int dasherId, int receiverID, i
         pipe->addPath(slavePathId2, slavePath);
         pipe->connectPath(slavePath);
 
+        utils::infoMsg("Master reader: " + std::to_string(dstReader1));
+        utils::infoMsg("Slave reader: " + std::to_string(dstReader2));
 
         if (!dasher->addSegmenter(dstReader1)) {
             utils::errorMsg("Error adding segmenter");

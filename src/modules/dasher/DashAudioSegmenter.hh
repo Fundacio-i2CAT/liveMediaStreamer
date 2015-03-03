@@ -74,10 +74,14 @@ public:
     */
     size_t getSampleRate();
 
+    bool appendFrameToDashSegment(DashSegment* segment);
+    bool generateSegment(DashSegment* segment);
+    bool forceGenerateSegment(DashSegment* segment);
+    bool flushDashContext();
+
 private:
     bool updateMetadata();
     bool generateInitData(DashSegment* segment);
-    bool appendFrameToDashSegment(DashSegment* segment);
 
     bool setup(size_t segmentDuration, size_t timeBase, size_t sampleDuration, size_t channels, size_t sampleRate, size_t bitsPerSample);
     unsigned char getProfileFromADTSHeader(unsigned char* adtsHeader);

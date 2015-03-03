@@ -25,8 +25,6 @@
 #include "i2libdash.h"
 
 // PRIVATE FUNCTIONS DECLARATION
-void context_refresh(i2ctx **context, uint32_t media_type);
-
 void audio_context_initializer(i2ctx **context);
 
 void audio_sample_context_initializer(i2ctx_audio **ctxAudio);
@@ -317,7 +315,7 @@ uint32_t init_audio_handler(byte *input_data, uint32_t size_input, byte *output_
     return initAudio;
 }
 
-uint32_t generate_video_segment(uint8_t nextFrameIsIntra, byte *output_data, i2ctx **context, uint32_t* segmentTimestamp)
+uint32_t generate_video_segment(uint8_t nextFrameIsIntra, byte *output_data, i2ctx **context, uint32_t* segmentTimestamp, uint32_t* segmentDuration)
 {
     uint32_t segDataLength;
 
@@ -342,6 +340,7 @@ uint32_t generate_video_segment(uint8_t nextFrameIsIntra, byte *output_data, i2c
             return segDataLength;
         }
 
+        *segmentDuration = (*context)->ctxvideo->current_video_duration;
         *segmentTimestamp = (*context)->ctxvideo->earliest_presentation_time;
         context_refresh(context, VIDEO_TYPE);
     }
@@ -349,7 +348,7 @@ uint32_t generate_video_segment(uint8_t nextFrameIsIntra, byte *output_data, i2c
     return segDataLength;
 }
 
-uint32_t generate_audio_segment(byte *output_data, i2ctx **context, uint32_t* segmentTimestamp)
+uint32_t generate_audio_segment(byte *output_data, i2ctx **context, uint32_t* segmentTimestamp, uint32_t* segmentDuration)
 {
     uint32_t segDataLength;
 
@@ -371,12 +370,41 @@ uint32_t generate_audio_segment(byte *output_data, i2ctx **context, uint32_t* se
             return segDataLength;
         }
 
+        *segmentDuration = (*context)->ctxaudio->current_audio_duration;
         *segmentTimestamp = (*context)->ctxaudio->earliest_presentation_time;
         context_refresh(context, AUDIO_TYPE);
     }
 
     return segDataLength;
 }
+
+uint32_t force_generate_audio_segment(byte *output_data, i2ctx **context, uint32_t* segmentTimestamp, uint32_t* segmentDuration)
+{
+    uint32_t segDataLength;
+
+    segDataLength = 0;
+
+    if ((*context) == NULL) {
+        return I2ERROR_CONTEXT_NULL;
+    }
+    
+    if (output_data == NULL) {
+        return I2ERROR_DESTINATION_NULL;
+    }
+
+    segDataLength = segmentGenerator((*context)->ctxaudio->segment_data, (*context)->ctxaudio->segment_data_size, output_data, AUDIO_TYPE, context);
+
+    if (segDataLength <= I2ERROR_MAX) {
+        return segDataLength;
+    }
+
+    *segmentDuration = (*context)->ctxaudio->current_audio_duration;
+    *segmentTimestamp = (*context)->ctxaudio->earliest_presentation_time;
+    context_refresh(context, AUDIO_TYPE);
+
+    return segDataLength;
+}
+
 
 uint32_t add_video_sample(byte *input_data, uint32_t input_data_length, uint32_t sample_duration, 
                           uint32_t pts, uint32_t dts, uint32_t seqNumber, uint8_t is_intra, i2ctx **context)
@@ -386,22 +414,30 @@ uint32_t add_video_sample(byte *input_data, uint32_t input_data_length, uint32_t
     if ((*context) == NULL) {
         return I2ERROR_CONTEXT_NULL;
     }
+    
     if (input_data == NULL) {
         return I2ERROR_SOURCE_NULL;
-    }   
+    }
+
     if (input_data_length < 1) {
         return I2ERROR_SIZE_ZERO;
     }
+
     if (sample_duration < 1) {
         return I2ERROR_DURATION_ZERO;
     }
+
     if ((is_intra != TRUE) && (is_intra != FALSE)) {
         return I2ERROR_IS_INTRA;
     }
 
-    // Add sample or Init new segmentation
+
     i2ctx_sample *ctxSample = (*context)->ctxvideo->ctxsample;
-    
+
+    if (ctxSample->mdat_sample_length == 0 && is_intra != TRUE) {
+        return I2ERROR_IS_INTRA;
+    }
+
     // Add segment data
     memcpy((*context)->ctxvideo->segment_data + (*context)->ctxvideo->segment_data_size, input_data, input_data_length);
     (*context)->ctxvideo->segment_data_size += input_data_length;

@@ -159,10 +159,6 @@ void addVideoPath(unsigned port, Dasher* dasher, int dasherId, int receiverID, i
     int wShmId = rand();
     SharedMemory *shm;
     Worker* wShm;
-    int shmEncId = rand();
-    int wEncShmId = rand();
-    SharedMemory *shmEnc;
-    Worker* wEncShm;
 
     std::vector<int> ids;
 
@@ -170,7 +166,7 @@ void addVideoPath(unsigned port, Dasher* dasher, int dasherId, int receiverID, i
     std::vector<int> slaveIds2({encId3});
 
     if(sharingMemoryKey > 0){
-        ids = {decId, shmId, resId, encId, shmEncId};
+        ids = {decId, shmId, resId, encId};
     } else {
         ids = {decId, resId, encId};
     }
@@ -233,19 +229,6 @@ void addVideoPath(unsigned port, Dasher* dasher, int dasherId, int receiverID, i
     wEnc->addProcessor(encId, encoder);
     encoder->setWorkerId(wEncId);
     pipe->addWorker(wEncId, wEnc);
-
-    if(sharingMemoryKey > 0){
-        shmEnc = SharedMemory::createNew(sharingMemoryKey + 1, H264);
-        if(!shmEnc){
-            utils::errorMsg("Could not initiate sharedMemory filter");
-            exit(1);
-        }
-        pipe->addFilter(shmEncId, shmEnc);
-        wEncShm = new Worker();
-        wEncShm->addProcessor(shmId, shmEnc);
-        shmEnc->setWorkerId(wEncShmId);
-        pipe->addWorker(wEncShmId, wEncShm);
-    }
 
     if (dasher != NULL){
         path = pipe->createPath(receiverID, dasherId, port, dstReader1, ids);

@@ -40,7 +40,7 @@
 #define SEG_DURATION 4 //sec
 #define DASH_FOLDER "/tmp/dashLMS"
 #define BASE_NAME "test"
-#define MPD_LOCATION "http://10.204.20.121/dash/test.mpd"
+#define MPD_LOCATION "http://localhost/dash/test.mpd"
 
 bool run = true;
 
@@ -249,12 +249,12 @@ void addVideoPath(unsigned port, Dasher* dasher, int dasherId, int receiverID, i
         pipe->addWorker(wResId2, wRes2);
         ((BaseFilter*)resampler)->addSlave(resId2, resampler2);
 
-        /*resampler3 = new VideoResampler(SLAVE);
+        resampler3 = new VideoResampler(SLAVE);
         pipe->addFilter(resId3, resampler3);
         wRes2->addProcessor(resId3, resampler3);
         resampler3->setWorkerId(wResId2);
         resampler3->configure(640, 480, 0, YUV420P);
-         ((BaseFilter*)resampler)->addSlave(resId3, resampler3);*/
+         ((BaseFilter*)resampler)->addSlave(resId3, resampler3);
 
         //NOTE: Adding encoder to pipeManager and handle worker
         encoder2 = new VideoEncoderX264(SLAVE, VIDEO_DEFAULT_FRAMERATE, false);
@@ -267,24 +267,24 @@ void addVideoPath(unsigned port, Dasher* dasher, int dasherId, int receiverID, i
 
         encoder2->configure(25, 1000);
 
-        /*encoder3 = new VideoEncoderX264(SLAVE, VIDEO_DEFAULT_FRAMERATE, false);
+        encoder3 = new VideoEncoderX264(SLAVE, VIDEO_DEFAULT_FRAMERATE, false);
         pipe->addFilter(encId3, encoder3);
         wEnc3 = new Worker();
         wEnc3->addProcessor(encId3, encoder3);
         encoder3->setWorkerId(wEncId3);
         pipe->addWorker(wEncId3, wEnc3);
-        ((BaseFilter*)encoder)->addSlave(wEncId3, encoder3);*/
+        ((BaseFilter*)encoder)->addSlave(wEncId3, encoder3);
 
-        /*encoder3->configure(25, 250, 2);*/
+        encoder3->configure(25, 250, 2);
 
         //NOTE: add filter to path
         slavePath = pipe->createPath(resId2, dasherId, -1, dstReader2, slaveIds);
         pipe->addPath(slavePathId, slavePath);
         pipe->connectPath(slavePath);
 
-        /*slavePath = pipe->createPath(resId3, dasherId, -1, dstReader3, slaveIds2);
+        slavePath = pipe->createPath(resId3, dasherId, -1, dstReader3, slaveIds2);
         pipe->addPath(slavePathId2, slavePath);
-        pipe->connectPath(slavePath);*/
+        pipe->connectPath(slavePath);
 
         utils::infoMsg("Master reader: " + std::to_string(dstReader1));
         utils::infoMsg("Slave reader: " + std::to_string(dstReader2));
@@ -302,12 +302,12 @@ void addVideoPath(unsigned port, Dasher* dasher, int dasherId, int receiverID, i
         if (!dasher->setDashSegmenterBitrate(dstReader2, 1000*1000)) {
             utils::errorMsg("Error setting bitrate to segmenter");
         }
-        /*if (!dasher->addSegmenter(dstReader3)) {
+        if (!dasher->addSegmenter(dstReader3)) {
             utils::errorMsg("Error adding segmenter");
         }
         if (!dasher->setDashSegmenterBitrate(dstReader3, 250*1000)) {
             utils::errorMsg("Error setting bitrate to segmenter");
-        }*/
+        }
     }
 
     pipe->startWorkers();

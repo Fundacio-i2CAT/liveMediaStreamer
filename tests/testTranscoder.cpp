@@ -40,7 +40,7 @@
 #define SEG_DURATION 4 //sec
 #define DASH_FOLDER "/tmp/dashLMS"
 #define BASE_NAME "test"
-#define MPD_LOCATION "http://localhost/dash/test.mpd"
+#define MPD_LOCATION "http://10.204.20.120/dash/test.mpd"
 
 bool run = true;
 
@@ -219,7 +219,7 @@ void addVideoPath(unsigned port, Dasher* dasher, int dasherId, int receiverID, i
     wRes = new Worker();
     wRes->addProcessor(resId, resampler);
     resampler->setWorkerId(wResId);
-    resampler->configure(width, height, 0, YUV420P);
+    resampler->configure(1280, 720, 0, YUV420P);
     pipe->addWorker(wResId, wRes);
 
     //NOTE: Adding encoder to pipeManager and handle worker
@@ -229,6 +229,8 @@ void addVideoPath(unsigned port, Dasher* dasher, int dasherId, int receiverID, i
     wEnc->addProcessor(encId, encoder);
     encoder->setWorkerId(wEncId);
     pipe->addWorker(wEncId, wEnc);
+
+    encoder->configure(25, 4000);
 
     if (dasher != NULL){
         path = pipe->createPath(receiverID, dasherId, port, dstReader1, ids);
@@ -253,7 +255,7 @@ void addVideoPath(unsigned port, Dasher* dasher, int dasherId, int receiverID, i
         pipe->addFilter(resId3, resampler3);
         wRes2->addProcessor(resId3, resampler3);
         resampler3->setWorkerId(wResId2);
-        resampler3->configure(640, 480, 0, YUV420P);
+        resampler3->configure(1280, 720, 0, YUV420P);
          ((BaseFilter*)resampler)->addSlave(resId3, resampler3);
 
         //NOTE: Adding encoder to pipeManager and handle worker

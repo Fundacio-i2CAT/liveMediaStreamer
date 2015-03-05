@@ -166,11 +166,12 @@ void VideoMixer::pasteToLayout(int frameID, VideoFrame* vFrame)
     }
 }
 
-Reader* VideoMixer::setReader(int readerID, FrameQueue* queue, bool sharedQueue)
+Reader* VideoMixer::setReader(int readerID, FrameQueue* queue)
 {
     if (readers.count(readerID) < 0) {
         return NULL;
     }
+    std::cout << "Channel config!" << std::endl;
 
     Reader* r = new Reader();
     readers[readerID] = r;

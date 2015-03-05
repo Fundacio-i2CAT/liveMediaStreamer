@@ -148,6 +148,7 @@ BaseFilter* PipelineManager::createFilter(FilterType type, Jzon::Node* params)
             break;
          case VIDEO_RESAMPLER:
             filter = new VideoResampler(role, sharedFrames);
+            std::cout << "Creating video resampler " << filter << " as " << role << " and sharedFrames: " << sharedFrames << std::endl;
             break;
         case VIDEO_MIXER:
             filter = new VideoMixer(role, sharedFrames);

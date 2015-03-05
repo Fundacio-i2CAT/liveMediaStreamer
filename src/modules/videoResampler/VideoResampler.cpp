@@ -103,10 +103,11 @@ bool VideoResampler::reconfigure(VideoFrame* orgFrame)
 
 bool VideoResampler::doProcessFrame(Frame *org, Frame *dst)
 {
-    VideoFrame* dstFrame = dynamic_cast<VideoFrame*>(dst);
-    VideoFrame* orgFrame = dynamic_cast<VideoFrame*>(org);
     int outWidth, outHeight;
     int height;
+
+    VideoFrame* dstFrame = dynamic_cast<VideoFrame*>(dst);
+    VideoFrame* orgFrame = dynamic_cast<VideoFrame*>(org);
 
     if (!reconfigure(orgFrame)){
         return false;

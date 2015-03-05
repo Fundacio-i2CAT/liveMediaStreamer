@@ -32,7 +32,7 @@
 #define FAST_MODIFIER 0.90
 
 BaseFilter::BaseFilter(unsigned readersNum, unsigned writersNum, size_t fTime, FilterRole fRole_, bool force_, bool sharedFrames_):
-maxReaders(readersNum), maxWriters(writersNum), frameTime(fTime), fRole(fRole_), force(force_), sharedFrames(sharedFrames_)
+process(false), maxReaders(readersNum), maxWriters(writersNum),  frameTime(fTime), fRole(fRole_), force(force_), sharedFrames(sharedFrames_)
 {
     frameTimeMod = 1;
     bufferStateFrameTimeMod = 1;
@@ -431,7 +431,7 @@ std::chrono::nanoseconds BaseFilter::processFrame()
 
 void BaseFilter::processAll()
 {
-    for (auto it : slaves){
+    for (auto it : slaves) {
         if (sharedFrames){
             it.second->updateFrames(oFrames);
         }

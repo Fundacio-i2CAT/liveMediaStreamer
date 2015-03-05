@@ -48,9 +48,10 @@ void signalHandler( int signum )
 {
     utils::infoMsg("Interruption signal received");
     run = false;
-    Controller::getInstance()->stopAndCloseSocket();
+    Controller::getInstance()->pipelineManager()->stop();
     Controller::destroyInstance();
     PipelineManager::destroyInstance();
+    exit(0);
 }
 
 Dasher* setupDasher(int dasherId)

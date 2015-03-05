@@ -89,9 +89,13 @@ void SinkManager::stop()
     }
     replicators.clear();
     
-    if (rtspServer){
-        Medium::close(rtspServer);
-    }
+    // NOTE: this crashes because rtsp sessions are destroyed inside each RTSP connection and 
+    // Medium::close(rtspServer) seemms to do this internally, generating a segFault. Check deeper 
+    // if not closing RTSP server is the best solution (port binding has been checked and it works
+    // properly -- no port binding when stopping)
+    // if (rtspServer){
+    //     Medium::close(rtspServer);
+    // }
 
     watch = 1;
 }

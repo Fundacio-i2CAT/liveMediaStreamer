@@ -68,6 +68,7 @@ class AudioMixer : public ManyToOneFilter {
 
         int frameChannels;
         int sampleRate;
+        int samplesPerFrame;
         SampleFmt sampleFormat;
         std::map<int,float> gains;
         float masterGain;

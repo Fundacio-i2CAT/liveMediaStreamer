@@ -1,3 +1,16 @@
+#IP-AVMixer - 1.0
+
+IP-AVMixer is an audio and video IP stream mixer, which is based in LiveMediaStreamer (LMS), a real-time streaming multimedia framework developed by i2CAT Audiovisual Unit.
+
+i2CAT is a non-profit technology centre which promotes R+D+i activities in the field of Information and Communication Technologies and Future Internet. The centre invests in a new model of innovation based on collaboration between companies, public administration, the academic world and end-users, through an open innovation environment that is characteristic of the Internet culture.
+
+Both IP-AVMixer and LMS are licensed under GPL
+
+Information about setup, deployment and usage can be found below
+
+Thank you for downloading this software. For any doubt, question or suggestion please contact to: support.ua@i2cat.net
+
+
 Third-party dependencies
 ========================
 
@@ -67,4 +80,9 @@ Basic Installation
   make
   sudo make install
 
-   
+Deployment
+==========
+  In order to start de LiveMediaStreamer core it is only necessary to execute the compiled binary. 
+  This binary uses one argument: the TCP port to communicate with any control middleware. It must be configured accordingly to this middleware, which is 7777 by default.
+
+  $ livemediastreamer <port>

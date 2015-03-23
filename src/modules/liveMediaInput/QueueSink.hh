@@ -24,7 +24,7 @@
 #ifndef _QUEUE_SINK_HH
 #define _QUEUE_SINK_HH
 
-#include <liveMedia/liveMedia.hh>
+#include <liveMedia.hh>
 
 #include "../../Frame.hh"
 #include "../../IOInterface.hh"

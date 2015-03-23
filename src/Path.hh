@@ -25,7 +25,7 @@
 #ifndef _PATH_HH
 #define _PATH_HH
 
-#include "Filter.hh"
+#include <vector>
 
 class Path {
 public:
@@ -37,7 +37,6 @@ public:
     const int getOrgWriterID() const {return orgWriterID;};
     const int getOriginFilterID() const {return originFilterID;};
     const int getDestinationFilterID() const {return destinationFilterID;};
-    void addWorker(Worker* worker);
     std::vector<int> getFilters(){return filterIDs;};
 	bool getShared(){return shared;};
 

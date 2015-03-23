@@ -24,7 +24,7 @@
 #ifndef _H264_SERVER_MEDIA_SUBSESSION_HH
 #define _H264_SERVER_MEDIA_SUBSESSION_HH
 
-#include <liveMedia/liveMedia.hh>
+#include <liveMedia.hh>
 #include "QueueServerMediaSubsession.hh"
 
 class H264QueueServerMediaSubsession: public QueueServerMediaSubsession {
@@ -33,19 +33,19 @@ public:
   createNew(UsageEnvironment& env, StreamReplicator* replicator, 
             int readerId, Boolean reuseFirstSource);
 
-  // Used to implement "getAuxSDPLine()":
+
   void checkForAuxSDPLine1();
   void afterPlayingDummy1();
 
 protected:
   H264QueueServerMediaSubsession(UsageEnvironment& env, StreamReplicator* replicator, 
                                  int readerId, Boolean reuseFirstSource);
-      // called only by createNew();
+
   virtual ~H264QueueServerMediaSubsession();
 
   void setDoneFlag() { fDoneFlag = ~0; }
 
-protected: // redefined virtual functions
+protected: 
   char const* getAuxSDPLine(RTPSink* rtpSink,
                     FramedSource* inputSource);
   FramedSource* createNewStreamSource(unsigned clientSessionId,
@@ -56,8 +56,8 @@ protected: // redefined virtual functions
 
 private:
   char* fAuxSDPLine;
-  char fDoneFlag; // used when setting up "fAuxSDPLine"
-  RTPSink* fDummyRTPSink; // ditto
+  char fDoneFlag; 
+  RTPSink* fDummyRTPSink;
 };
 
 #endif

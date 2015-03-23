@@ -111,10 +111,12 @@ bool PipelineManager::stop()
     }
 
     paths.clear();
-    
+
+
     for (auto it : filters) {
         delete it.second;
     }
+
 
     filters.clear();
 

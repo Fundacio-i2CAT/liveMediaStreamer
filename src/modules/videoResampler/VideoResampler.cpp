@@ -138,7 +138,7 @@ bool VideoResampler::doProcessFrame(Frame *org, Frame *dst)
     dstFrame->setLength(avpicture_get_size (libavOutPixFmt, outWidth, outHeight));
     dstFrame->setSize(outWidth, outHeight);
     dstFrame->setPixelFormat(outPixFmt);
-    
+
     if (!setAVFrame(outFrame, dstFrame, libavOutPixFmt)){
         return false;
     }

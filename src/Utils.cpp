@@ -77,8 +77,8 @@ namespace utils
             codec = OPUS;
         }  else if (stringCodec.compare("pcm") == 0) {
             codec = PCM;
-        }  else if (stringCodec.compare("mpeg4-generic") == 0) {
-            codec = MPEG4_GENERIC;
+        }  else if (stringCodec.compare("aac") == 0) {
+            codec = AAC;
         }  else if (stringCodec.compare("mp3") == 0) {
             codec = MP3;
         }  else {
@@ -105,8 +105,8 @@ namespace utils
             case PCM:
                 stringCodec = "pcm";
                 break;
-            case MPEG4_GENERIC:
-                stringCodec = "mpeg4-generic";
+            case AAC:
+                stringCodec = "aac";
                 break;
             case MP3:
                 stringCodec = "mp3";
@@ -242,6 +242,44 @@ namespace utils
         return stringWorker;
     }
 
+    TxFormat getTxFormatFromString(std::string stringTxFormat)
+    {
+        TxFormat format;
+        
+        if (stringTxFormat.compare("std") == 0) {
+           format = STD_RTP;
+        } else if (stringTxFormat.compare("ultragrid") == 0) {
+           format = ULTRAGRID;
+        }  else if (stringTxFormat.compare("mpegts") == 0) {
+           format = MPEGTS;
+        }  else {
+           format = TX_NONE;
+        }
+
+        return format;
+    }
+
+    std::string getTxFormatAsString(TxFormat format)
+    {
+        std::string stringFormat;
+
+        switch(format) {
+            case STD_RTP:
+                stringFormat = "std";
+                break;
+            case ULTRAGRID:
+                stringFormat = "ultragrid";
+                break;
+            case MPEGTS:
+                stringFormat = "mpegts";
+                break;
+            default:
+                stringFormat = "";
+                break;
+        }
+
+        return stringFormat;
+    }
     
     char randAlphaNum()
     {

@@ -97,7 +97,7 @@ bool MPEGTSQueueServerMediaSubsession::addAudioSource(ACodecType codec, StreamRe
     if (aReaderId == -1){
         aReaderId = readerId;
     } else {
-        utils::errorMsg("Error video reader ID was already set.");
+        utils::errorMsg("Error audio reader ID was already set.");
         return false;
     }
 
@@ -124,7 +124,7 @@ FramedSource* MPEGTSQueueServerMediaSubsession::createNewStreamSource(unsigned c
     }
     
     if (aReplicator){
-        tsFramer->addNewVideoSource(aReplicator->createStreamReplica(), 4/*mpegVersion: AAC*/);
+        tsFramer->addNewAudioSource(aReplicator->createStreamReplica(), 4/*mpegVersion: AAC*/);
     }
        
     return tsFramer;

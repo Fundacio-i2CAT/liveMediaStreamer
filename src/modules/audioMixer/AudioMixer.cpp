@@ -39,9 +39,8 @@ AudioMixer::AudioMixer(FilterRole role, bool sharedFrames, int inputChannels) : 
 
     samples.resize(AudioFrame::getMaxSamples(sampleRate));
     mixedSamples.resize(AudioFrame::getMaxSamples(sampleRate));
-
-    //TODO check frameTime processing...
-    //frameTime = std::chrono::microseconds(DEFAULT_FRAME_TIME);
+    samplesPerFrame = AudioFrame::getDefaultSamples(sampleRate);
+    setFrameTime(std::chrono::nanoseconds(samplesPerFrame*std::nano::den/sampleRate));
 
     initializeEventMap();
 
@@ -100,6 +99,7 @@ void AudioMixer::mixNonEmptyFrames(std::map<int, Frame*> orgFrames, std::vector<
 
         std::fill(mixedSamples.begin(), mixedSamples.end(), 0);
     }
+    
 }
 
 void AudioMixer::applyMixAlgorithm(std::vector<float> &fSamples, int totalFrameNumber, int realFrameNumber)
@@ -133,7 +133,7 @@ void AudioMixer::sumValues(std::vector<float> fSamples, std::vector<float> &mixe
     }
 }
 
-Reader* AudioMixer::setReader(int readerID, FrameQueue* queue, bool sharedQueue)
+Reader* AudioMixer::setReader(int readerID, FrameQueue* queue)
 {
     if (readers.count(readerID) > 0) {
         return NULL;
@@ -141,6 +141,8 @@ Reader* AudioMixer::setReader(int readerID, FrameQueue* queue, bool sharedQueue)
 
     Reader* r = new Reader();
     readers[readerID] = r;
+
+    dynamic_cast<AudioCircularBuffer*>(queue)->setOutputFrameSamples(samplesPerFrame);
 
     gains[readerID] = DEFAULT_CHANNEL_GAIN;
 

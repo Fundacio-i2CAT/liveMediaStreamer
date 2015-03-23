@@ -41,7 +41,7 @@ int main(int argc, char *argv[]) {
 
     Controller* ctrl = Controller::getInstance();
 
-    utils::setLogLevel(DEBUG);
+    utils::setLogLevel(INFO);
 
     port = atoi(argv[1]);
     if (!ctrl->createSocket(port)) {

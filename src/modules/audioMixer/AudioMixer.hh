@@ -48,7 +48,7 @@ class AudioMixer : public ManyToOneFilter {
         bool doProcessFrame(std::map<int, Frame*> orgFrames, Frame *dst);
 
     protected:
-        Reader *setReader(int readerID, FrameQueue* queue, bool sharedQueue = false);
+        Reader *setReader(int readerID, FrameQueue* queue);
         void doGetState(Jzon::Object &filterNode);
 
     private:
@@ -68,6 +68,7 @@ class AudioMixer : public ManyToOneFilter {
 
         int frameChannels;
         int sampleRate;
+        int samplesPerFrame;
         SampleFmt sampleFormat;
         std::map<int,float> gains;
         float masterGain;

@@ -39,17 +39,61 @@
 
 class Reader;
 
+/*! Writer class is an IOInterface dedicated to write frames to an specific queue.
+*/
 class Writer {
 
 public:
+    /**
+    * Creates a writer object
+    */
     Writer();
     ~Writer();
+
+    /**
+    * Connects specific Reader to its queue and sets queue as connected
+    * @param pointer to Reader object to connect with through specific queue
+    * @return true if success on connecting, otherwise returns false
+    */
     bool connect(Reader *reader) const;
+
+    /**
+    * Disconnects specific Reader and itself from queue
+    * @param pointer to Reader object to disconnect from specific queue
+    * @return true if success on disconnecting, otherwise returns false
+    */
     bool disconnect(Reader *reader) const;
+
+    /**
+    * Check if writer has its queue connected
+    * @return true if connected, otherwise returns false
+    */
     bool isConnected() const;
+
+    /**
+    * Sets writer's queue
+    * @param pointer to FrameQueue object
+    */
     void setQueue(FrameQueue *queue) const;
+
+    /**
+    * Gets rear frame object from queue if possible. If force is set to true and
+    * frame is NULL this will flush queue until having a frame object from rear
+    * @param bool to force having frame object or not (default set to false)
+    * @return Frame object from its queue
+    */
     Frame* getFrame(bool force = false) const;
+
+    /**
+    * Adds a frame element to its queue
+    */
     void addFrame() const;
+
+    /**
+    * Disconnects from its queue (sets queue disconnected) or deletes the queue
+    * if it is not connected
+    * @return true if successful disconnecting, otherwise returns false
+    */
     bool disconnect() const;
 
 protected:
@@ -57,17 +101,60 @@ protected:
 
 };
 
-
+/*! Reader class is an IOInterface dedicated to read frames from an specific queue.
+*/
 class Reader {
 public:
+    /**
+    * Creates a reader object
+    */
     Reader();
     ~Reader();
+
+    /**
+    * Sets reader's pointer to FrameQueue object
+    * @param FramQueue object pointer
+    */
     void setQueue(FrameQueue *queue);
+
+    /**
+    * Checks if has a queue and if it is connected to
+    * @return true if connected, otherwise return false
+    */
     bool isConnected();
+
+    /**
+    * Gets front frame object from queue if possible. If force is set to true and
+    * frame is NULL this will flush queue until having a frame object from front
+    * @param QueueState object pointer to set queue state
+    * @param bool to check if there is a newFrame or not
+    * @param bool to force having frame object or not (default set to false)
+    * @return Frame object from its queue
+    */
     Frame* getFrame(QueueState &state, bool &newFrame, bool force = false);
+
+    /**
+    * Removes frame element from queue
+    */
     void removeFrame();
+
+    /**
+    * Sets queue to connect to
+    * @param FrameQueue object pointer to connect to
+    */
     void setConnection(FrameQueue *queue);
+
+    /**
+    * Get FrameQueue object pointer
+    * @return FrameQueue object pointer
+    */
     FrameQueue* getQueue() const {return queue;};
+
+    /**
+    * Disconnects from its queue (sets queue disconnected) or deletes the queue
+    * if it is not connected
+    * @return true if successful disconnecting, otherwise returns false
+    */
     bool disconnect();
 
 protected:

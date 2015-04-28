@@ -29,67 +29,72 @@
 
 #include "Utils.hh"
 
+/*! Runnable class is an interface implemented by BaseFilter, which has some
+    basic methods in order to process a single frame of the filter.
+*/
 class Runnable {
-    
+
 public:
     virtual ~Runnable(){};
-    
+
     /**
     * This method runs the pure virtual method processFrame and sets the next time value
-    * when processFrame should run 
+    * when processFrame should run
     */
     bool runProcessFrame();
     virtual bool isEnabled() = 0;
-    
+
     /**
-    * This method stop the filter if, and just if, this is a liveMediaFilter
+    * This is a pure virtual method to be implemented by its inheriting filters and if required to do some stop stuff
     */
     virtual void stop() = 0;
-    
+
     /**
     * This method tests if enough time went through since last processFrame
     * @return True if last processFrame execution started more than one frame time ago
     */
     bool ready();
-    
+
     /**
     * This method sleeps until processFrame is executable
     */
     void sleepUntilReady();
-    
+
     /**
+    * Get runnable object Id
     * @return Id of the runnable object
     */
     int getId() {return id;};
-    
+
     /**
-    * sets the Runnable object id
+    * Sets the Runnable object id
     * @param Id of the runnable object
     */
     void setId(int id_) {id = id_;};
     //TODO: setId should be private
-    
+
     /**
     * Operator definition to make Runnable objects comparable
-    * @param Id of the runnable object
+    * @param pointer to left side runnable object
+    * @param pointer to right side runnable object
     */
     bool operator()(const Runnable* lhs, const Runnable* rhs);
-    
+
     /**
-    * Operator definition to make Runnable objects comparable
+    * Get next time point of processFrame execution
     * @return time point of the next execution of processFrame
     */
     std::chrono::system_clock::time_point getTime() const {return time;};
-    
+
 protected:
     virtual std::chrono::nanoseconds processFrame() = 0;
     std::chrono::system_clock::time_point time;
-    
+
 private:
     int id;
 };
 
-struct RunnableLess : public std::binary_function<Runnable*, Runnable*, bool>                                                                                     
+struct RunnableLess : public std::binary_function<Runnable*, Runnable*, bool>
 {
   bool operator()(const Runnable* lhs, const Runnable* rhs) const
   {

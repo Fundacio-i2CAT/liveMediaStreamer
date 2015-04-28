@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- *  Authors: David Cassany <david.cassany@i2cat.net> 
+ *  Authors: David Cassany <david.cassany@i2cat.net>
  *           Marc Palau <marc.palau@i2cat.net>
  */
 
@@ -41,22 +41,80 @@ using namespace std::chrono;
 
 enum QueueState{SLOW, FAST};
 
+/*! FrameQueue class is pure abstract class that represents buffering structure
+    of the pipeline
+*/
 class FrameQueue {
 
 public:
+    /**
+    * Creates a frame object
+    */
     FrameQueue();
     virtual ~FrameQueue() {};
+
+    /**
+    * Returns frame object from queue's rear
+    * @return frame object
+    */
     virtual Frame *getRear() = 0;
+
+    /**
+    * Returns frame object from queue's front
+    * @return frame object
+    */
     virtual Frame *getFront(bool &newFrame) = 0;
+
+    /**
+    * Adds frame to queue elements
+    */
     virtual void addFrame() = 0;
+
+    /**
+    * Removes frame from queue elements
+    */
     virtual void removeFrame() = 0;
+
+    /**
+    * Flushes the queue
+    */
     virtual void flush() = 0;
+
+    /**
+    * Forces getting frame from queue's rear
+    * @return frame object
+    */
     virtual Frame *forceGetRear() = 0;
+
+    /**
+    * Forces getting frame from queue's front
+    * @param boolean returning true if there is a new frame from queue's front
+    * @return frame object
+    */
     virtual Frame *forceGetFront(bool &newFrame) = 0;
+
+    /**
+    * To know if there is a new frame to read
+    * @return true if there is a new frame or false if not
+    */
     virtual bool frameToRead() = 0;
+
+    /**
+    * Get queue's state
+    * @return queuestate object
+    */
     virtual QueueState getState() = 0;
 
+    /**
+    * To know if the queue is connected with a reader and a writer
+    * @return true if connected and false if not
+    */
     bool isConnected() {return connected;};
+
+    /**
+    * Sets the queue as connected when it has a reader and a writer
+    * @param boolean to set connected to true or false
+    */
     void setConnected(bool conn) {connected = conn;};
 
 protected:
@@ -68,7 +126,7 @@ protected:
     std::atomic<unsigned> elements;
     std::atomic<bool> connected;
     std::atomic<bool> firstFrame;
-    
+
 };
 
 #endif

@@ -40,7 +40,7 @@
 #define DEFAULT_ID 1                /*!< Default ID for unique filter's readers and/or writers. */
 #define MAX_WRITERS 16              /*!< Default maximum writers for a filter. */
 #define MAX_READERS 16              /*!< Default maximum readers for a filter. */
-#define RETRY 500000                   /*!< Default retry time in nanoseconds (ns). */
+#define RETRY 500000                /*!< Default retry time in nanoseconds (ns). */
 
 /*! Generic filter class methods. It is an interface to different specific filters
     so it cannot be instantiated
@@ -54,6 +54,7 @@ public:
     * @return True if succeeded and false if not
     */
     bool connectOneToOne(BaseFilter *R);
+
     /**
     * Creates a many to one connection from specific writer to an available reader
     * @param BaseFilter pointer of the filter to be connected
@@ -61,6 +62,7 @@ public:
     * @return True if succeeded and false if not
     */
     bool connectManyToOne(BaseFilter *R, int writerID);
+
     /**
     * Creates a one to many connection from an available writer to specific reader
     * @param BaseFilter pointer of the filter to be connected
@@ -68,6 +70,7 @@ public:
     * @return True if succeeded and false if not
     */
     bool connectOneToMany(BaseFilter *R, int readerID);
+
     /**
     * Creates a many to many connection from specific reader to specific writer
     * @param BaseFilter pointer of the filter to be connected
@@ -83,12 +86,14 @@ public:
     * @return True if succeeded and false if not
     */
     bool disconnectWriter(int writerId);
+
     /**
     * Disconnects and cleans specified reader
     * @param Integer reader ID
     * @return True if succeeded and false if not
     */
     bool disconnectReader(int readerId);
+
     /**
     * Disconnects and cleans all readers and writers
     */
@@ -107,6 +112,7 @@ public:
     * @return filter type
     */
     FilterType getType() {return fType;};
+
     /**
     * Filter role getter
     * @return filter role
@@ -118,41 +124,49 @@ public:
     * @return filter role
     */
     int generateReaderID();
+
     /**
     * Generates a new and random writer ID
     * @return filter role
     */
     int generateWriterID();
+
     /**
     * Maximum writers getter
     * @return maximum number of possible writers for this filter
     */
     const unsigned getMaxWriters() const {return maxWriters;};
+
     /**
     * Maximum readers getter
     * @return maximum number of possible readers for this filter
     */
     const unsigned getMaxReaders() const {return maxReaders;};
+
     /**
     * Adds a new event to the event queue from this filter
     * @param new event
     */
     virtual void pushEvent(Event e);
+
     /**
     * Get the state for this filter node
     * @param filter node pointer
     */
     void getState(Jzon::Object &filterNode);
+
     /**
     * Returns its worker ID
     * @return Integer worker ID
     */
     int getWorkerId(){return workerId;};
+
     /**
     * Sets the filter's worker ID
     * @param Integer worker ID
     */
     void setWorkerId(int id){workerId = id;};
+
     /**
     * Returns true if filter is enabled or false if not
     * @return Bool enabled
@@ -169,11 +183,13 @@ public:
     * @param refWallClock reference wall clock
     */
     void setWallClock(std::chrono::system_clock::time_point refWallClock) {wallClock = refWallClock;};
-    //NOTE: these are public just for testing purposes
+
+    //NOTE: following methods are public just for testing purposes
     /**
     * Processes frames as a function of its role
     */
     std::chrono::nanoseconds processFrame();
+
     /**
     * Sets filter frame time
     * @param size_t frame time
@@ -341,7 +357,7 @@ protected:
     using BaseFilter::setFrameTime;
     using BaseFilter::getFrameTime;
 
-private:   
+private:
     using BaseFilter::demandOriginFrames;
     using BaseFilter::demandDestinationFrames;
     using BaseFilter::addFrames;
@@ -413,7 +429,7 @@ protected:
     using BaseFilter::setFrameTime;
     using BaseFilter::getFrameTime;
 
-private:   
+private:
     bool runDoProcessFrame();
     using BaseFilter::demandOriginFrames;
     using BaseFilter::demandDestinationFrames;
@@ -474,7 +490,7 @@ private:
 
     using BaseFilter::maxReaders;
     using BaseFilter::maxWriters;
-    
+
 };
 
 #endif

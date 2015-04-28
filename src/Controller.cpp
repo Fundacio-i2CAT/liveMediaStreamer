@@ -152,7 +152,7 @@ void Controller::processRequest()
         outputNode.Add("error", "Invalid JSON, missing 'events' tag");
         return;
     }
-    
+
     if (inputRootNode->Get("events").IsArray()) {
         const Jzon::Array &events = inputRootNode->Get("events").AsArray();
 
@@ -269,7 +269,7 @@ void Controller::initializeEventMap()
                                             std::placeholders::_1, std::placeholders::_2);
     eventMap["addFiltersToWorker"] = std::bind(&PipelineManager::addFiltersToWorkerEvent, pipeMngrInstance,
                                             std::placeholders::_1, std::placeholders::_2);
-    eventMap["stop"] = std::bind(&PipelineManager::stopEvent, pipeMngrInstance, 
+    eventMap["stop"] = std::bind(&PipelineManager::stopEvent, pipeMngrInstance,
                                             std::placeholders::_1, std::placeholders::_2);
 
 }

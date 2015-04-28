@@ -40,7 +40,7 @@
 #define SEG_DURATION 4 //sec
 #define DASH_FOLDER "/tmp/dashLMS"
 #define BASE_NAME "test"
-#define MPD_LOCATION "http://10.204.20.120/dash/test.mpd"
+#define MPD_LOCATION "http://localhost/dash/test.mpd"
 
 bool run = true;
 

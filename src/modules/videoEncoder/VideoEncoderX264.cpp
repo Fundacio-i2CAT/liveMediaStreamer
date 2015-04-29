@@ -147,6 +147,8 @@ bool VideoEncoderX264::reconfigure(VideoFrame* orgFrame, VideoFrame* dstFrame)
     }
 
     picIn.img.i_csp = colorspace;
+    x264_param_default_preset(&xparams, preset.c_str(), NULL);
+    x264_param_apply_profile(&xparams, "high");
 
     xparams.i_threads = threads;
     xparams.i_fps_num = fps;
@@ -156,14 +158,12 @@ bool VideoEncoderX264::reconfigure(VideoFrame* orgFrame, VideoFrame* dstFrame)
     xparams.i_keyint_max = gop;
     xparams.rc.i_bitrate = bitrate;
     xparams.b_repeat_headers = 0;
+    xparams.i_bframe = 0;
 
     if (annexB) {
         xparams.b_annexb = 1;
         xparams.b_repeat_headers = 1;
     }
-        
-    x264_param_default_preset(&xparams, preset.c_str(), NULL);
-    x264_param_apply_profile(&xparams, "baseline");
 
     if (orgFrame->getWidth() != xparams.i_width || orgFrame->getHeight() != xparams.i_height) {
         xparams.i_width = orgFrame->getWidth();

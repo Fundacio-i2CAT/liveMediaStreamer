@@ -6,6 +6,7 @@ liblivemediastreamer_la_SOURCES = modules/audioDecoder/AudioDecoderLibav.cpp \
                                   modules/audioMixer/AudioMixer.cpp \
                                   modules/videoDecoder/VideoDecoderLibav.cpp \
                                   modules/videoEncoder/VideoEncoderX264.cpp \
+                                  modules/videoEncoder/VideoEncoderX264or5.cpp \
                                   modules/videoMixer/VideoMixer.cpp \
                                   modules/videoResampler/VideoResampler.cpp \
                                   modules/dasher/Dasher.cpp \

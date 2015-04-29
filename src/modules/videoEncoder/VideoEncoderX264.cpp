@@ -74,8 +74,6 @@ bool VideoEncoderX264::encodeFrame(VideoFrame* codedFrame)
     picIn.i_pts = pts;
     frameLength = x264_encoder_encode(encoder, &ppNal, &piNal, &picIn, &picOut);
 
-    std::cout << "Return from encoder encode frame length: " << frameLength << std::endl;
-
     if (frameLength < 1) {
         utils::errorMsg("Could not encode video frame");
         return false;

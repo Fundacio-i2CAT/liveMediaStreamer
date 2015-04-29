@@ -61,6 +61,8 @@ bool VideoEncoderX264or5::doProcessFrame(Frame *org, Frame *dst)
         return false;
     }
 
+    std::cout << "Raw frame length: " << rawFrame->getLength() << std::endl;
+
     if (!fill_x264or5_picture(rawFrame)){
         utils::errorMsg("Could not fill x264_picture_t from frame");
         return false;

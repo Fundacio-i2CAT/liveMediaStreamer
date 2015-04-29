@@ -27,6 +27,7 @@
 VideoEncoderX264::VideoEncoderX264(FilterRole fRole, bool sharedFrames, int framerate) :
 VideoEncoderX264or5(fRole, sharedFrames, framerate), encoder(NULL)
 {
+    pts = 0;
     encoder = NULL;
     x264_picture_init(&picIn);
     x264_picture_init(&picOut);
@@ -55,7 +56,6 @@ bool VideoEncoderX264::encodeFrame(VideoFrame* codedFrame)
 {
     int frameLength;
     int piNal;
-    x264_nal_t *ppNal;
 
     X264VideoFrame* x264Frame = dynamic_cast<X264VideoFrame*> (codedFrame);
 
@@ -71,13 +71,17 @@ bool VideoEncoderX264::encodeFrame(VideoFrame* codedFrame)
         picIn.i_type = X264_TYPE_AUTO;
     }
 
+    picIn.i_pts = pts;
     frameLength = x264_encoder_encode(encoder, &ppNal, &piNal, &picIn, &picOut);
+
+    std::cout << "Return from encoder encode frame length: " << frameLength << std::endl;
 
     if (frameLength < 1) {
         utils::errorMsg("Could not encode video frame");
         return false;
     }
 
+    pts++;
     x264Frame->setNals(&ppNal, piNal, frameLength);
     return true;
 }
@@ -161,7 +165,7 @@ bool VideoEncoderX264::reconfigure(VideoFrame* orgFrame, VideoFrame* dstFrame)
     }
         
     x264_param_default_preset(&xparams, preset.c_str(), NULL);
-    x264_param_apply_profile(&xparams, "high");
+    x264_param_apply_profile(&xparams, "baseline");
 
     if (orgFrame->getWidth() != xparams.i_width || orgFrame->getHeight() != xparams.i_height) {
         xparams.i_width = orgFrame->getWidth();

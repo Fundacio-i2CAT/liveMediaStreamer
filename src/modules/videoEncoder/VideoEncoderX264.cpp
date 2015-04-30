@@ -24,8 +24,8 @@
 #include <cmath>
 #include "VideoEncoderX264.hh"
 
-VideoEncoderX264::VideoEncoderX264(FilterRole fRole, bool sharedFrames, int framerate) :
-VideoEncoderX264or5(fRole, sharedFrames, framerate), encoder(NULL)
+VideoEncoderX264::VideoEncoderX264(FilterRole fRole, bool sharedFrames) :
+VideoEncoderX264or5(fRole, sharedFrames), encoder(NULL)
 {
     pts = 0;
     encoder = NULL;
@@ -151,7 +151,6 @@ bool VideoEncoderX264::reconfigure(VideoFrame* orgFrame, VideoFrame* dstFrame)
     x264_param_default_preset(&xparams, preset.c_str(), NULL);
     x264_param_apply_profile(&xparams, "high");
     
-    setFrameTime(std::chrono::nanoseconds(std::nano::den/fps));
     x264_param_parse(&xparams, "keyint", std::to_string(gop).c_str());
     x264_param_parse(&xparams, "fps", std::to_string(fps).c_str());
     x264_param_parse(&xparams, "intra-refresh", std::to_string(0).c_str());

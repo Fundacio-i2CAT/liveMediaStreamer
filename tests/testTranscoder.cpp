@@ -261,7 +261,7 @@ void addVideoPath(unsigned port, Dasher* dasher, int dasherId, int receiverID, i
          ((BaseFilter*)resampler)->addSlave(resId3, resampler3);
 
         //NOTE: Adding encoder to pipeManager and handle worker
-        encoder2 = new VideoEncoderX264(SLAVE, VIDEO_DEFAULT_FRAMERATE, false);
+        encoder2 = new VideoEncoderX264(SLAVE, false);
         pipe->addFilter(encId2, encoder2);
         wEnc2 = new Worker();
         wEnc2->addProcessor(encId2, encoder2);
@@ -271,7 +271,7 @@ void addVideoPath(unsigned port, Dasher* dasher, int dasherId, int receiverID, i
 
         encoder2->configure(1000, 25, 25, 25, 4, false, "superfast");
 
-        encoder3 = new VideoEncoderX264(SLAVE, VIDEO_DEFAULT_FRAMERATE, false);
+        encoder3 = new VideoEncoderX264(SLAVE, false);
         pipe->addFilter(encId3, encoder3);
         wEnc3 = new Worker();
         wEnc3->addProcessor(encId3, encoder3);

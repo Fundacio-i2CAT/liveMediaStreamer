@@ -44,7 +44,7 @@ extern "C" {
 class VideoEncoderX264 : public VideoEncoderX264or5 {
 
 public:
-	VideoEncoderX264(FilterRole fRole = MASTER, bool sharedFrames = true, int framerate = VIDEO_DEFAULT_FRAMERATE);
+	VideoEncoderX264(FilterRole fRole = MASTER, bool sharedFrames = true);
 	~VideoEncoderX264();
 	FrameQueue* allocQueue(int wId);
 

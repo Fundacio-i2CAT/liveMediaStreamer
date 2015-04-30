@@ -46,7 +46,7 @@ extern "C" {
 
 class VideoEncoderX264or5 : public OneToOneFilter {
     public:
-        VideoEncoderX264or5(FilterRole fRole, bool sharedFrames, int framerate);
+        VideoEncoderX264or5(FilterRole fRole, bool sharedFrames);
         virtual ~VideoEncoderX264or5();
         bool doProcessFrame(Frame *org, Frame *dst);
         bool configure(int bitrate_, int fps_, int gop_, int lookahead_, int threads_, bool annexB_, std::string preset_);

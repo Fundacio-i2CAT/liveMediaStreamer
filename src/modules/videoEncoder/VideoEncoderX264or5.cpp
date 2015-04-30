@@ -23,20 +23,11 @@
 
 #include "VideoEncoderX264or5.hh"
 
-VideoEncoderX264or5::VideoEncoderX264or5(FilterRole fRole_, bool sharedFrames, int framerate) :
-OneToOneFilter(false, fRole_, sharedFrames), annexB(false), forceIntra(false), bitrate(0), gop(0), threads(0), needsConfig(false)
+VideoEncoderX264or5::VideoEncoderX264or5(FilterRole fRole_, bool sharedFrames) :
+OneToOneFilter(false, fRole_, sharedFrames), annexB(false), forceIntra(false), fps(0), bitrate(0), gop(0), threads(0), needsConfig(false)
 {
     fType = VIDEO_ENCODER;
-
-    if (framerate <= 0){
-        fps = VIDEO_DEFAULT_FRAMERATE;
-    } else {
-        fps = framerate;
-    }
-
-    setFrameTime(std::chrono::nanoseconds(std::nano::den/fps));
     midFrame = av_frame_alloc();
-
     initializeEventMap();
 }
 

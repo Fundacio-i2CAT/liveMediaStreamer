@@ -64,7 +64,6 @@ private:
     bool encodeFrame(VideoFrame* codedFrame);
     bool reconfigure(VideoFrame *orgFrame, VideoFrame* dstFrame);
     bool encodeHeadersFrame(X264VideoFrame* x264Frame);
-    bool fill_x264_picture(VideoFrame* videoFrame);
 };
 
 #endif

@@ -40,6 +40,11 @@ VideoEncoderX264or5::~VideoEncoderX264or5()
 
 bool VideoEncoderX264or5::doProcessFrame(Frame *org, Frame *dst) 
 {
+    if (!org || !dst) {
+        utils::errorMsg("Error encoding video frame: org or dst are NULL");
+        return false;
+    }
+
     VideoFrame* rawFrame = dynamic_cast<VideoFrame*> (org);
     VideoFrame* codedFrame = dynamic_cast<VideoFrame*> (dst);
 
@@ -84,6 +89,11 @@ bool VideoEncoderX264or5::fill_x264or5_picture(VideoFrame* videoFrame)
 
 bool VideoEncoderX264or5::configure(int bitrate_, int fps_, int gop_, int lookahead_, int threads_, bool annexB_, std::string preset_)
 {
+    if (bitrate_ <= 0 || gop_ <= 0 || lookahead_ < 0 || threads_ < 0 || preset.empty()) {
+        utils::errorMsg("Error configuring VideoEncoderX264or5: invalid configuration values");
+        return false;
+    }
+
     bitrate = bitrate_;
     gop = gop_;
     lookahead = lookahead_;

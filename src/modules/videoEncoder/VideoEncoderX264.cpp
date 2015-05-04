@@ -76,8 +76,11 @@ bool VideoEncoderX264::encodeFrame(VideoFrame* codedFrame)
 
     pts++;
 
-    if (frameLength < 1) {
+    if (frameLength < 0) {
         utils::errorMsg("Could not encode video frame");
+        return false;
+    } else if (frameLength == 1) {
+        utils::debugMsg("X264 Encoder: NAL not retrieved after encoding");
         return false;
     }
 

@@ -26,13 +26,13 @@
 #include "Utils.hh"
 #include <cstring>
 
-X264VideoFrame* X264VideoFrame::createNew(unsigned int width, unsigned height, PixType pixelFormat)
+X264VideoFrame* X264VideoFrame::createNew(unsigned maxLength)
 {
-    return new X264VideoFrame(width, height, pixelFormat);
+    return new X264VideoFrame(maxLength);
 }
 
-X264VideoFrame::X264VideoFrame(unsigned int width, unsigned height, PixType pixelFormat) :
-InterleavedVideoFrame(H264, width, height, pixelFormat), nalsNum(0), hdrNalsNum(0)
+X264VideoFrame::X264VideoFrame(unsigned maxLength) :
+InterleavedVideoFrame(H264, maxLength), nalsNum(0), hdrNalsNum(0)
 {   
     hdrNals = (x264_nal_t**)malloc(sizeof(x264_nal_t*) * MAX_HEADER_NALS); 
     for (int i = 0; i < MAX_HEADER_NALS; i++) {

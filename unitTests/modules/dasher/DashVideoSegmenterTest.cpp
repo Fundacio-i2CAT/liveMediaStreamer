@@ -104,16 +104,15 @@ void DashVideoSegmenterTest::setUp()
     frameTime = std::chrono::microseconds(40000);
     nanoFrameTime = std::chrono::duration_cast<std::chrono::nanoseconds>(frameTime);
 
-
     segmenter = new DashVideoSegmenter(std::chrono::seconds(SEG_DURATION));
-    dummyNal = InterleavedVideoFrame::createNew(H264, LENGTH_H264);
+    dummyNal = InterleavedVideoFrame::createNew(H264, MAX_H264_OR_5_NAL_SIZE);
 
-    spsNal = InterleavedVideoFrame::createNew(H264, LENGTH_H264);
-    ppsNal = InterleavedVideoFrame::createNew(H264, LENGTH_H264);
-    seiNal = InterleavedVideoFrame::createNew(H264, LENGTH_H264);
-    audNal = InterleavedVideoFrame::createNew(H264, LENGTH_H264);
-    idrNal = InterleavedVideoFrame::createNew(H264, LENGTH_H264);
-    nonIdrNal = InterleavedVideoFrame::createNew(H264, LENGTH_H264);
+    spsNal = InterleavedVideoFrame::createNew(H264, MAX_H264_OR_5_NAL_SIZE);
+    ppsNal = InterleavedVideoFrame::createNew(H264, MAX_H264_OR_5_NAL_SIZE);
+    seiNal = InterleavedVideoFrame::createNew(H264, MAX_H264_OR_5_NAL_SIZE);
+    audNal = InterleavedVideoFrame::createNew(H264, MAX_H264_OR_5_NAL_SIZE);
+    idrNal = InterleavedVideoFrame::createNew(H264, MAX_H264_OR_5_NAL_SIZE);
+    nonIdrNal = InterleavedVideoFrame::createNew(H264, MAX_H264_OR_5_NAL_SIZE);
 
     dataLength = readFile("testsData/modules/dasher/dashVideoSegmenterTest/nalModels/nal_sps", (char*)spsNal->getDataBuf());
     spsNal->setLength(dataLength);

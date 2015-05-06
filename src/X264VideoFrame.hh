@@ -32,12 +32,11 @@ extern "C" {
 
 #define MAX_HEADER_NALS 8
 #define MAX_NALS_PER_FRAME 16
-#define MAX_HEADER_NAL_SIZE 4096
 
 class X264VideoFrame : public InterleavedVideoFrame {
 
 public:
-	static X264VideoFrame* createNew(unsigned int width, unsigned int height, PixType pixelFormat);
+	static X264VideoFrame* createNew(unsigned maxLength);
 	~X264VideoFrame();
 
     x264_nal_t** getNals() {return nals;};
@@ -52,7 +51,7 @@ public:
     int getHdrNalsNum() {return hdrNalsNum;};
         
 private:
-	X264VideoFrame(unsigned int width, unsigned height, PixType pixelFormat);
+	X264VideoFrame(unsigned maxLength);
         
     x264_nal_t **nals;
     x264_nal_t **hdrNals;

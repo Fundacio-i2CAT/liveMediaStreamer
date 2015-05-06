@@ -23,6 +23,23 @@
 
  #include "VideoFrame.hh"
 
+VideoFrame::VideoFrame(VCodecType codec_) : 
+Frame(), codec(codec_), width(0), height(0), pixelFormat(P_NONE)
+{
+
+}
+
+VideoFrame::VideoFrame(VCodecType codec_, int width_, int height_, PixType pixFormat)
+: Frame(), codec(codec_), width(width_), height(height_), pixelFormat(pixFormat)
+{
+
+}
+
+VideoFrame::~VideoFrame()
+{
+
+}
+
 void VideoFrame::setSize(int width, int height)
 {
     this->width = width;
@@ -49,22 +66,15 @@ InterleavedVideoFrame* InterleavedVideoFrame::createNew(VCodecType codec, int wi
 }
 
 InterleavedVideoFrame::InterleavedVideoFrame(VCodecType codec, unsigned int maxLength)
+: VideoFrame(codec), bufferLen(0)
 {
-    width = 0;
-    height = 0;
-    bufferLen = 0;
     bufferMaxLen = maxLength;
     frameBuff = new unsigned char [bufferMaxLen]();
-    this->codec = codec;
 }
 
 InterleavedVideoFrame::InterleavedVideoFrame(VCodecType codec, int width, int height, PixType pixelFormat)
+: VideoFrame(codec, width, height, pixelFormat), bufferLen(0)
 {
-    this->width = width;
-    this->height = height;
-    this->pixelFormat = pixelFormat;
-    this->codec = codec;
-
     int bytesPerPixel;
 
     switch (pixelFormat) {
@@ -81,7 +91,7 @@ InterleavedVideoFrame::InterleavedVideoFrame(VCodecType codec, int width, int he
             bytesPerPixel = DEFAULT_BYTES_PER_PIXEL;
             break;
     }
-    bufferLen = 0;
+
     bufferMaxLen = width * height * bytesPerPixel;
     frameBuff = new unsigned char [bufferMaxLen]();
 }
@@ -89,5 +99,26 @@ InterleavedVideoFrame::InterleavedVideoFrame(VCodecType codec, int width, int he
 InterleavedVideoFrame::~InterleavedVideoFrame()
 {
     delete[] frameBuff;
+}
+
+/////////////////////////
+// X264or5 VIDEO FRAME //
+/////////////////////////
+
+X264or5VideoFrame::X264or5VideoFrame(VCodecType codec) : 
+VideoFrame(codec), nalsNum(0), hdrNalsNum(0)
+{
+
+}
+
+X264or5VideoFrame::~X264or5VideoFrame()
+{
+    
+}
+
+void X264or5VideoFrame::clearNalNum()
+{
+    nalsNum = 0; 
+    hdrNalsNum = 0;
 }
 

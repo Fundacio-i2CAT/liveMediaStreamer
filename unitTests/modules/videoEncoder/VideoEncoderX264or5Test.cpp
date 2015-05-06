@@ -90,7 +90,7 @@ void VideoEncoderX264or5Test::tearDown()
 
 void VideoEncoderX264or5Test::doProcessFrameNullFrames()
 {
-    VideoFrame* frame = X264VideoFrame::createNew(MAX_H264_OR_5_NAL_SIZE);
+    VideoFrame* frame = X264VideoFrame::createNew();
 
     // CPPUNIT_ASSERT(!encoder->doProcessFrame(NULL, NULL));
     // CPPUNIT_ASSERT(!encoder->doProcessFrame(frame, NULL));
@@ -99,7 +99,7 @@ void VideoEncoderX264or5Test::doProcessFrameNullFrames()
 
 void VideoEncoderX264or5Test::doProcessFrameNotVideoFrames()
 {
-    VideoFrame* vFrame = X264VideoFrame::createNew(MAX_H264_OR_5_NAL_SIZE);
+    VideoFrame* vFrame = X264VideoFrame::createNew();
     AudioFrame* aFrame = InterleavedAudioFrame::createNew(2, 48000, AudioFrame::getMaxSamples(48000), AAC, S16);
 
     // CPPUNIT_ASSERT(!encoder->doProcessFrame(vFrame, aFrame));
@@ -109,8 +109,8 @@ void VideoEncoderX264or5Test::doProcessFrameNotVideoFrames()
 
 void VideoEncoderX264or5Test::doProcessFrameReconfigureFalse()
 {
-    VideoFrame* vFrame1 = X264VideoFrame::createNew(MAX_H264_OR_5_NAL_SIZE);
-    VideoFrame* vFrame2 = X264VideoFrame::createNew(MAX_H264_OR_5_NAL_SIZE);
+    VideoFrame* vFrame1 = X264VideoFrame::createNew();
+    VideoFrame* vFrame2 = X264VideoFrame::createNew();
 
     encoder->setReconfigureRetVal(false);
     
@@ -119,8 +119,8 @@ void VideoEncoderX264or5Test::doProcessFrameReconfigureFalse()
 
 void VideoEncoderX264or5Test::doProcessFrameFillPicturePlanesFail()
 {
-    VideoFrame* vFrame1 = X264VideoFrame::createNew(MAX_H264_OR_5_NAL_SIZE);
-    VideoFrame* vFrame2 = X264VideoFrame::createNew(MAX_H264_OR_5_NAL_SIZE);
+    VideoFrame* vFrame1 = X264VideoFrame::createNew();
+    VideoFrame* vFrame2 = X264VideoFrame::createNew();
 
     encoder->setReconfigureRetVal(true);
     encoder->setFillPicturePlanesRetVal(false);
@@ -130,8 +130,8 @@ void VideoEncoderX264or5Test::doProcessFrameFillPicturePlanesFail()
 
 void VideoEncoderX264or5Test::doProcessFrameEncodeFrameFail()
 {
-    VideoFrame* vFrame1 = X264VideoFrame::createNew(MAX_H264_OR_5_NAL_SIZE);
-    VideoFrame* vFrame2 = X264VideoFrame::createNew(MAX_H264_OR_5_NAL_SIZE);
+    VideoFrame* vFrame1 = X264VideoFrame::createNew();
+    VideoFrame* vFrame2 = X264VideoFrame::createNew();
 
     encoder->setReconfigureRetVal(true);
     encoder->setFillPicturePlanesRetVal(true);
@@ -142,8 +142,8 @@ void VideoEncoderX264or5Test::doProcessFrameEncodeFrameFail()
 
 void VideoEncoderX264or5Test::doProcessFrameSuccess()
 {
-    VideoFrame* vFrame1 = X264VideoFrame::createNew(MAX_H264_OR_5_NAL_SIZE);
-    VideoFrame* vFrame2 = X264VideoFrame::createNew(MAX_H264_OR_5_NAL_SIZE);
+    VideoFrame* vFrame1 = X264VideoFrame::createNew();
+    VideoFrame* vFrame2 = X264VideoFrame::createNew();
 
     encoder->setReconfigureRetVal(true);
     encoder->setFillPicturePlanesRetVal(true);

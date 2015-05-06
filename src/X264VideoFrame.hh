@@ -19,6 +19,7 @@
  *
  *  Authors: Martin German <martin.german@i2cat.net>
  *           David Cassany <david.cassany@i2cat.net>
+ *           Marc Palau <marc.palau@i2cat.net>
  */
 
 #ifndef _X264_VIDEO_FRAME_HH
@@ -27,37 +28,23 @@
 #include "VideoFrame.hh"
 
 extern "C" {
-	#include <x264.h>
+    #include <x264.h>
 }
 
-#define MAX_HEADER_NALS 8
-#define MAX_NALS_PER_FRAME 16
-
-class X264VideoFrame : public InterleavedVideoFrame {
+class X264VideoFrame : public X264or5VideoFrame {
 
 public:
-	static X264VideoFrame* createNew(unsigned maxLength);
-	~X264VideoFrame();
+    static X264VideoFrame* createNew();
+    ~X264VideoFrame();
 
     x264_nal_t** getNals() {return nals;};
-	x264_nal_t** getHdrNals() {return hdrNals;};
-    void clearNalNum();
+    x264_nal_t** getHdrNals() {return hdrNals;};
 
-
-    void setNalNum(int num) {nalsNum = num;};
-    int getNalsNum() {return nalsNum;};
-
-    void setHdrNalNum(int num) {hdrNalsNum = num;};
-    int getHdrNalsNum() {return hdrNalsNum;};
-        
 private:
-	X264VideoFrame(unsigned maxLength);
-        
+    X264VideoFrame();
+
     x264_nal_t **nals;
     x264_nal_t **hdrNals;
-        
-    int nalsNum;
-    int hdrNalsNum;
 };
 
 #endif

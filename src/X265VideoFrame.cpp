@@ -1,5 +1,5 @@
 /*
- *  X264VideoFrame - X264 Video frame structure
+ *  X265VideoFrame - X265 Video frame structure
  *  Copyright (C) 2013  Fundació i2CAT, Internet i Innovació digital a Catalunya
  *
  *  This file is part of media-streamer.
@@ -17,32 +17,30 @@
  *  You should have received a copy of the GNU General Public License
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- *  Authors: Martin German <martin.german@i2cat.net>
- *           David Cassany <david.cassany@i2cat.net>
- *           Marc Palau <marc.palau@i2cat.net>
+ *  Authors: Marc Palau <marc.palau@i2cat.net>
  */
 
-#include "X264VideoFrame.hh"
+#include "X265VideoFrame.hh"
 
-X264VideoFrame* X264VideoFrame::createNew()
+X265VideoFrame* X265VideoFrame::createNew()
 {
-    return new X264VideoFrame();
+    return new X265VideoFrame();
 }
 
-X264VideoFrame::X264VideoFrame() : X264or5VideoFrame(H264)
+X265VideoFrame::X265VideoFrame() : X264or5VideoFrame(H265)
 {   
-    hdrNals = (x264_nal_t**)malloc(sizeof(x264_nal_t*) * MAX_HEADER_NALS); 
+    hdrNals = (x265_nal**)malloc(sizeof(x265_nal*) * MAX_HEADER_NALS); 
     for (int i = 0; i < MAX_HEADER_NALS; i++) {
-        hdrNals[i] = (x264_nal_t*)malloc(sizeof(x264_nal_t));
+        hdrNals[i] = (x265_nal*)malloc(sizeof(x265_nal));
     }
 
-    nals = (x264_nal_t**)malloc(sizeof(x264_nal_t*) * MAX_NALS_PER_FRAME); 
+    nals = (x265_nal**)malloc(sizeof(x265_nal*) * MAX_NALS_PER_FRAME); 
     for (int i = 0; i < MAX_NALS_PER_FRAME; i++) {
-        nals[i] = (x264_nal_t*)malloc(sizeof(x264_nal_t));
+        nals[i] = (x265_nal*)malloc(sizeof(x265_nal));
     }
 }
 
-X264VideoFrame::~X264VideoFrame()
+X265VideoFrame::~X265VideoFrame()
 {
     delete[] hdrNals;
     delete[] nals;

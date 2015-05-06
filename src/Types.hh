@@ -38,7 +38,7 @@
 #define DEFAULT_FRAME_SAMPLES 960
 #define VIDEO_DEFAULT_FRAMERATE 25  /*!< Default frame rate in frames per second (fps). */
 
-enum VCodecType {VC_NONE = -1, H264, VP8, MJPEG, RAW};
+enum VCodecType {VC_NONE = -1, H264, H265, VP8, MJPEG, RAW};
 
 enum PixType {P_NONE = -1, RGB24, RGB32, YUV420P, YUV422P, YUV444P, YUYV422, YUVJ420P};
 

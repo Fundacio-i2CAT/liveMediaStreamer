@@ -63,7 +63,7 @@ X264VideoCircularBuffer::X264VideoCircularBuffer(): VideoFrameQueue(H264, YUYV42
 
 bool X264VideoCircularBuffer::config()
 {
-    inputFrame = X264VideoFrame::createNew(MAX_H264_OR_5_NAL_SIZE);
+    inputFrame = X264VideoFrame::createNew();
     return true;
 }
 

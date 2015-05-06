@@ -40,42 +40,49 @@ extern "C" {
 #include <libavformat/avformat.h>
 }
 
-#define DEFAULT_ENCODER_THREADS 4
-#define DEFAULT_GOP 2000 //ms
-#define DEFAULT_BITRATE 2000
+/*! Base class for VideoEncoderX264 and VideoEncoderX265. It implements common methods, basically configure and doProcessFrame */
 
 class VideoEncoderX264or5 : public OneToOneFilter {
-    public:
-        VideoEncoderX264or5(FilterRole fRole, bool sharedFrames);
-        virtual ~VideoEncoderX264or5();
-        bool doProcessFrame(Frame *org, Frame *dst);
-        bool configure(int bitrate_, int fps_, int gop_, int lookahead_, int threads_, bool annexB_, std::string preset_);
-        void setIntra(){forceIntra = true;};
+    
+public:
+    /**
+    * Class constructor
+    * @param fRole Filter role (NETWORK, MASTER, SLAVE)
+    * @param sharedFrames If true and fRole is MASTER, it will share input frames with its slave filters
+    */
+    VideoEncoderX264or5(FilterRole fRole, bool sharedFrames);
 
-    protected:
-        void initializeEventMap();      
+    /**
+    * Class destructor
+    */
+    virtual ~VideoEncoderX264or5();
 
-        AVPixelFormat libavInPixFmt;
-        AVFrame *midFrame;
-        
-        PixType inPixFmt;
-        bool annexB;
-        bool forceIntra;
-        int fps;
-        int bitrate;
-        int gop;
-        int threads;
-        int lookahead;
-        bool needsConfig;
-        std::string preset;
-        
-        virtual bool fillPicturePlanes(unsigned char** data, int* linesize) = 0;
-        virtual bool encodeFrame(VideoFrame* codedFrame) = 0;
-        virtual bool reconfigure(VideoFrame* orgFrame, VideoFrame* dstFrame) = 0;
-        bool fill_x264or5_picture(VideoFrame* videoFrame);
-        void forceIntraEvent(Jzon::Node* params);
-        void configEvent(Jzon::Node* params, Jzon::Object &outputNode);
-        void doGetState(Jzon::Object &filterNode);
+    bool configure(int bitrate_, int fps_, int gop_, int lookahead_, int threads_, bool annexB_, std::string preset_);
+protected:
+    AVPixelFormat libavInPixFmt;
+    AVFrame *midFrame;
+    
+    PixType inPixFmt;
+    bool annexB;
+    bool forceIntra;
+    int fps;
+    int bitrate;
+    int gop;
+    int threads;
+    int lookahead;
+    bool needsConfig;
+    std::string preset;
+    
+    bool doProcessFrame(Frame *org, Frame *dst);
+    void initializeEventMap();      
+    virtual bool fillPicturePlanes(unsigned char** data, int* linesize) = 0;
+    virtual bool encodeFrame(VideoFrame* codedFrame) = 0;
+    virtual bool reconfigure(VideoFrame* orgFrame, VideoFrame* dstFrame) = 0;
+    void setIntra(){forceIntra = true;};
+    bool fill_x264or5_picture(VideoFrame* videoFrame);
+    void forceIntraEvent(Jzon::Node* params);
+    void configEvent(Jzon::Node* params, Jzon::Object &outputNode);
+    void doGetState(Jzon::Object &filterNode);
 };
 
 #endif

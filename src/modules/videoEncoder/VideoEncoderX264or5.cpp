@@ -54,6 +54,7 @@ bool VideoEncoderX264or5::doProcessFrame(Frame *org, Frame *dst)
     }
 
     if (!reconfigure(rawFrame, codedFrame)) {
+        utils::errorMsg("Error encoding video frame: reconfigure failed");
         return false;
     }
 
@@ -89,7 +90,7 @@ bool VideoEncoderX264or5::fill_x264or5_picture(VideoFrame* videoFrame)
 
 bool VideoEncoderX264or5::configure(int bitrate_, int fps_, int gop_, int lookahead_, int threads_, bool annexB_, std::string preset_)
 {
-    if (bitrate_ <= 0 || gop_ <= 0 || lookahead_ < 0 || threads_ < 0 || preset.empty()) {
+    if (bitrate_ <= 0 || gop_ <= 0 || lookahead_ < 0 || threads_ <= 0 || preset_.empty()) {
         utils::errorMsg("Error configuring VideoEncoderX264or5: invalid configuration values");
         return false;
     }
@@ -183,8 +184,11 @@ void VideoEncoderX264or5::initializeEventMap()
 
 void VideoEncoderX264or5::doGetState(Jzon::Object &filterNode)
 {
-    filterNode.Add("gop", std::to_string(gop));
     filterNode.Add("bitrate", std::to_string(bitrate));
-    filterNode.Add("threads", std::to_string(threads));
     filterNode.Add("fps", std::to_string(fps));
+    filterNode.Add("gop", std::to_string(gop));
+    filterNode.Add("lookahead", std::to_string(lookahead));
+    filterNode.Add("threads", std::to_string(threads));
+    filterNode.Add("annexb", std::to_string(annexB));
+    filterNode.Add("preset", preset);
 }

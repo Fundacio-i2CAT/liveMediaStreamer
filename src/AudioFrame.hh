@@ -82,8 +82,10 @@ class InterleavedAudioFrame : public AudioFrame {
         void fillBufferWithFloatSamples(std::vector<float> samples, int channel) {};
         void setDummy();
 
-    private:
+    protected:
         InterleavedAudioFrame(int ch, int sRate, int maxSamples, ACodecType codec, SampleFmt sFmt);
+
+    private:
         unsigned char *frameBuff;
         unsigned int bufferLen;
         unsigned int bufferMaxLen;

@@ -122,16 +122,9 @@ QueueState AVFramedQueue::getState()
 //VIDEO FRAME QUEUE METHODS IMPLEMENTATION//
 ////////////////////////////////////////////
 
-VideoFrameQueue* VideoFrameQueue::createNew(VCodecType codec, PixType pixelFormat)
+VideoFrameQueue::VideoFrameQueue(VCodecType codec_, PixType pixelFormat_) :
+AVFramedQueue(), codec(codec_), pixelFormat(pixelFormat_)
 {
-    return new VideoFrameQueue(codec, pixelFormat);
-}
-
-VideoFrameQueue::VideoFrameQueue(VCodecType codec, PixType pixelFormat)
-{
-    this->codec = codec;
-    this->pixelFormat = pixelFormat;
-
     config();
 }
 

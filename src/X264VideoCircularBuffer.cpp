@@ -19,46 +19,21 @@
  *
  *  Authors:  Martin German <martin.german@i2cat.net>
  *            David Cassany <david.cassany@i2cat.net>
+ *            Marc Palau <marc.palau@i2cat.net>
  */
 
 #include "X264VideoCircularBuffer.hh"
-#include <cstring>
-#include <string>
-#include <sys/time.h>
 #include "Utils.hh"
+#include <cstring>
 
-X264VideoCircularBuffer* X264VideoCircularBuffer::createNew()
+X264VideoCircularBuffer::X264VideoCircularBuffer() : X264or5VideoCircularBuffer(H264)
 {
-    return new X264VideoCircularBuffer();
+    //TODO: implement destructor
 }
 
 X264VideoCircularBuffer::~X264VideoCircularBuffer()
 {
     //TODO: implement destructor
-}
-
-Frame* X264VideoCircularBuffer::getRear()
-{
-    if (elements >= max) {
-        return NULL;
-    }
-    
-    return inputFrame;
-}
-
-void X264VideoCircularBuffer::addFrame()
-{
-    forcePushBack();
-}
-
-Frame* X264VideoCircularBuffer::forceGetRear()
-{
-    return inputFrame;
-}
-
-X264VideoCircularBuffer::X264VideoCircularBuffer(): VideoFrameQueue(H264, YUYV422)
-{
-    config();
 }
 
 bool X264VideoCircularBuffer::config()
@@ -118,32 +93,3 @@ bool X264VideoCircularBuffer::pushBack()
 	
     return true;
 }   
-
-bool X264VideoCircularBuffer::forcePushBack()
-{
-    return pushBack();
-}
-
-Frame* X264VideoCircularBuffer::innerGetRear() 
-{
-    if (elements >= max) {
-        return NULL;
-    }
-    return frames[rear];
-}
-
-Frame* X264VideoCircularBuffer::innerForceGetRear()
-{
-    Frame *frame;
-    while ((frame = innerGetRear()) == NULL) {
-        utils::debugMsg("Frame discarted by X264 Circular Buffer");
-        flush();
-    }
-    return frame;
-}
-
-void X264VideoCircularBuffer::innerAddFrame() 
-{
-    rear =  (rear + 1) % max;
-    ++elements;
-}

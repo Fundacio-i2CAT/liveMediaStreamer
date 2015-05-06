@@ -1,6 +1,6 @@
 /*
- *  X264VideoCircularBuffer - Video circular buffer
- *  Copyright (C) 2013  Fundació i2CAT, Internet i Innovació digital a Catalunya
+ *  X264or5VideoCircularBuffer - Video circular buffer for x264 and x265
+ *  Copyright (C) 2015  Fundació i2CAT, Internet i Innovació digital a Catalunya
  *
  *  This file is part of media-streamer.
  *
@@ -17,36 +17,33 @@
  *  You should have received a copy of the GNU General Public License
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- *  Authors:  Martin German <martin.german@i2cat.net>
- *            David Cassany <david.cassany@i2cat.net>
- *            Marc Palau <marc.palau@i2cat.net>
+ *  Authors:  Marc Palau <marc.palau@i2cat.net>
  */
 
-#ifndef _VIDEO_CIRCULAR_BUFFER_HH
-#define _VIDEO_CIRCULAR_BUFFER_HH
+#ifndef _X264_OR_5_VIDEO_CIRCULAR_BUFFER_HH
+#define _X264_OR_5_VIDEO_CIRCULAR_BUFFER_HH
 
 #define MAX_NALS 100
 
-#include <atomic>
 #include "Types.hh"
-#include "X264or5VideoCircularBuffer.hh"
-#include "X264VideoFrame.hh"
+#include "AVFramedQueue.hh"
 
-extern "C" {
-	#include <x264.h>
-}
-
- class X264VideoCircularBuffer : public X264or5VideoCircularBuffer {
+ class X264or5VideoCircularBuffer : public VideoFrameQueue {
 
     public:
-        X264VideoCircularBuffer();
-        ~X264VideoCircularBuffer();
+        X264or5VideoCircularBuffer(VCodecType codec);
+        ~X264or5VideoCircularBuffer();
 
-    private:
-        bool config();
-        bool pushBack();
+        Frame *getRear();
+        void addFrame();
+        Frame *forceGetRear();
 
-        X264VideoFrame* inputFrame;
+    protected:
+        virtual bool pushBack() = 0;
+        Frame *innerGetRear();
+        Frame *innerForceGetRear();
+        bool forcePushBack();
+        void innerAddFrame();
 };
 
 #endif

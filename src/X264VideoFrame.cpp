@@ -32,46 +32,27 @@ X264VideoFrame* X264VideoFrame::createNew(unsigned int width, unsigned height, P
 }
 
 X264VideoFrame::X264VideoFrame(unsigned int width, unsigned height, PixType pixelFormat) :
-    InterleavedVideoFrame(H264, width, height, pixelFormat)
+InterleavedVideoFrame(H264, width, height, pixelFormat), nalsNum(0), hdrNalsNum(0)
 {   
-    this->hNalsNum = 0;
-    this->headerLength = 0;
-    
-    for(int i = 0; i < MAX_HEADER_NALS; i++) {
-        headerNals[i] = (unsigned char *) malloc(sizeof(unsigned char)*MAX_HEADER_NAL_SIZE);
+    hdrNals = (x264_nal_t**)malloc(sizeof(x264_nal_t*) * MAX_HEADER_NALS); 
+    for (int i = 0; i < MAX_HEADER_NALS; i++) {
+        hdrNals[i] = (x264_nal_t*)malloc(sizeof(x264_nal_t));
+    }
+
+    nals = (x264_nal_t**)malloc(sizeof(x264_nal_t*) * MAX_NALS_PER_FRAME); 
+    for (int i = 0; i < MAX_NALS_PER_FRAME; i++) {
+        nals[i] = (x264_nal_t*)malloc(sizeof(x264_nal_t));
     }
 }
 
 X264VideoFrame::~X264VideoFrame()
 {
-    clearNals();
-    for(int i = 0; i < MAX_HEADER_NALS; i++){
-    	delete[] headerNals[i];
-    }
+    delete[] hdrNals;
+    delete[] nals;
 }
 
-void X264VideoFrame::setNals(x264_nal_t **nals, int num, int frameSize)
+void X264VideoFrame::clearNalNum()
 {
-    ppNals = nals;
-    nalsNum = num;
-    frameLength = frameSize;
-}
-
-void X264VideoFrame::setHeaderNals(x264_nal_t **nals, int num, int headerSize)
-{
-    hNalsNum = num;
-    headerLength = headerSize;
-    
-    for(int i = 0; i < hNalsNum; i++){       
-        memcpy(headerNals[i], (*nals)[i].p_payload, (*nals)[i].i_payload);
-        hNalSize[i] = (*nals)[i].i_payload;
-    }
-}
-
-void X264VideoFrame::clearNals()
-{
-    hNalsNum = 0; 
-    headerLength = 0;
-    nalsNum = 0;
-    frameLength = 0;
+    nalsNum = 0; 
+    hdrNalsNum = 0;
 }

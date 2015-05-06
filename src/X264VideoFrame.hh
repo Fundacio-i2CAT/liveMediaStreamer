@@ -31,34 +31,34 @@ extern "C" {
 }
 
 #define MAX_HEADER_NALS 8
+#define MAX_NALS_PER_FRAME 16
 #define MAX_HEADER_NAL_SIZE 4096
 
 class X264VideoFrame : public InterleavedVideoFrame {
 
-    public:
+public:
 	static X264VideoFrame* createNew(unsigned int width, unsigned int height, PixType pixelFormat);
 	~X264VideoFrame();
-	void setNals(x264_nal_t **nals, int num, int frameSize);
-    void setHeaderNals(x264_nal_t **nals, int num, int headerSize);
-	x264_nal_t** getNals() {return ppNals;};
-    int getNalsNum() {return nalsNum;};
-    unsigned char** getHeaderNals() {return headerNals;};
-    int getHeaderNalsNum() {return hNalsNum;};
-    int* getHeaderNalsSize() {return hNalSize;};
 
-        void clearNals();
+    x264_nal_t** getNals() {return nals;};
+	x264_nal_t** getHdrNals() {return hdrNals;};
+    void clearNalNum();
+
+
+    void setNalNum(int num) {nalsNum = num;};
+    int getNalsNum() {return nalsNum;};
+
+    void setHdrNalNum(int num) {hdrNalsNum = num;};
+    int getHdrNalsNum() {return hdrNalsNum;};
         
-    private:
+private:
 	X264VideoFrame(unsigned int width, unsigned height, PixType pixelFormat);
         
-        x264_nal_t **ppNals;
-        int nalsNum;
-        int frameLength;
-
-        int hNalsNum;
-        unsigned char *headerNals[MAX_HEADER_NALS];
-        int hNalSize[MAX_HEADER_NALS];
-        int headerLength;
+    x264_nal_t **nals;
+    x264_nal_t **hdrNals;
+        
+    int nalsNum;
+    int hdrNalsNum;
 };
 
 #endif

@@ -73,34 +73,32 @@ bool X264VideoCircularBuffer::pushBack()
     VideoFrame* vFrame;
     int nalsNum;
     x264_nal_t** nals;
-    unsigned char** hNals;
-    int* hNalSize;
-    
-    if ((nalsNum = inputFrame->getHeaderNalsNum()) > 0){       
-        hNals = inputFrame->getHeaderNals();
-        hNalSize = inputFrame->getHeaderNalsSize();
-        
-        for (int i=0; i<nalsNum; i++) {
-            if ((frame = innerGetRear()) == NULL){
-                frame = innerForceGetRear();
-            }
-            
-            vFrame = dynamic_cast<VideoFrame*>(frame);
-            vFrame->setSequenceNumber(inputFrame->getSequenceNumber());
 
-            memcpy(vFrame->getDataBuf(), hNals[i], hNalSize[i]);
-            vFrame->setLength(hNalSize[i]);
-            vFrame->setPresentationTime(inputFrame->getPresentationTime());
-            vFrame->setSize(inputFrame->getWidth(), inputFrame->getHeight());
-            vFrame->setDuration(inputFrame->getDuration());
-            innerAddFrame();
+    nalsNum = inputFrame->getHdrNalsNum();
+    nals = inputFrame->getHdrNals();
+
+    for (int i=0; i<nalsNum; i++) {
+
+        if ((frame = innerGetRear()) == NULL){
+            frame = innerForceGetRear();
         }
+        
+        vFrame = dynamic_cast<VideoFrame*>(frame);
+        vFrame->setSequenceNumber(inputFrame->getSequenceNumber());
+
+        memcpy(vFrame->getDataBuf(), (*nals)[i].p_payload, (*nals)[i].i_payload);
+        vFrame->setLength((*nals)[i].i_payload);
+        vFrame->setPresentationTime(inputFrame->getPresentationTime());
+        vFrame->setSize(inputFrame->getWidth(), inputFrame->getHeight());
+        vFrame->setDuration(inputFrame->getDuration());
+        innerAddFrame();
     }
-    
+
     nalsNum = inputFrame->getNalsNum();
     nals = inputFrame->getNals();
 
     for (int i=0; i<nalsNum; i++) {
+
         if ((frame = innerGetRear()) == NULL){
             frame = innerForceGetRear();
         }
@@ -116,7 +114,7 @@ bool X264VideoCircularBuffer::pushBack()
 		innerAddFrame();
 	}
 	
-	inputFrame->clearNals();
+	inputFrame->clearNalNum();
 	
     return true;
 }   

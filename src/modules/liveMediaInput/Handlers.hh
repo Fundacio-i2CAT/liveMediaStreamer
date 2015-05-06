@@ -27,6 +27,8 @@
 #include <liveMedia.hh>
 #include <string>
 
+#define DEFAULT_SESSION_TIMEOUT 30
+
 namespace handlers
 {
     void continueAfterDESCRIBE(RTSPClient* rtspClient, int resultCode, char* resultString);

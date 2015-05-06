@@ -37,9 +37,12 @@ namespace handlers
     void continueAfterSETUP(RTSPClient* rtspClient, int resultCode, char* resultString);
     void continueAfterPLAY(RTSPClient* rtspClient, int resultCode, char* resultString);
     void setupNextSubsession(RTSPClient* rtspClient);
-    void streamTimerHandler(void* clientData);
+    void getOptions(RTSPClient* rtspClient, RTSPClient::responseHandler* afterFunc);
+    void getParameterCommand(RTSPClient* rtspClient, RTSPClient::responseHandler* afterFunc);
     void shutdownStream(RTSPClient* rtspClient);
     std::string modifySessionName(std::string sdp, std::string sessionName);
+    void streamTimerHandler(void* clientData);
+    void checkSessionTimeoutBrokenServer(void* clientData);
 
     void continueAfterDESCRIBE(RTSPClient* rtspClient, int resultCode, char* resultString)
     {
@@ -97,7 +100,7 @@ namespace handlers
     void continueAfterSETUP(RTSPClient* rtspClient, int resultCode, char* resultString)
     {
         QueueSink *queueSink;
-        
+
         do {
             UsageEnvironment& env = rtspClient->envir();
             StreamClientState& scs = *(((ExtendedRTSPClient*)rtspClient)->getScs());
@@ -115,16 +118,18 @@ namespace handlers
                 utils::errorMsg("Failed linking subsession and QueueSink");
                 scs.subsession->deInitiate();
             }
-            
+
             if(!(queueSink = dynamic_cast<QueueSink *>(scs.subsession->sink))){
                 utils::errorMsg("Failed to initiate subsession sink");
                 scs.subsession->deInitiate();
             }
-            
+
             if (!scs.addWriterToMngr(queueSink->getPort(), queueSink->getWriter())){
                 utils::errorMsg("Failed adding writer in SourceManager");
                 scs.subsession->deInitiate();
             }
+
+            scs.sessionTimeoutParameter = rtspClient->sessionTimeoutParameter();
 
         } while (0);
         delete[] resultString;
@@ -157,6 +162,13 @@ namespace handlers
                 env << " (for up to " << scs.duration << " seconds)";
             }
             env << "...\n";
+
+            scs.sessionTimeoutBrokenServerTask = NULL;
+            unsigned sessionTimeout = scs.sessionTimeoutParameter == 0 ? 60/*default*/ : scs.sessionTimeoutParameter;
+            unsigned secondsUntilNextKeepAlive = sessionTimeout <= 5 ? 1 : sessionTimeout - 5;
+            scs.sessionTimeoutBrokenServerTask
+                        = env.taskScheduler().scheduleDelayedTask(secondsUntilNextKeepAlive*1000000,
+                    		 (TaskFunc*)checkSessionTimeoutBrokenServer, rtspClient);
 
             success = True;
         } while (0);
@@ -194,6 +206,16 @@ namespace handlers
         }
     }
 
+    void getOptions(RTSPClient* rtspClient, RTSPClient::responseHandler* afterFunc)
+    {
+        rtspClient->sendOptionsCommand(afterFunc/*, Authenticator*/);
+    }
+
+    void getParameterCommand(RTSPClient* rtspClient, RTSPClient::responseHandler* afterFunc)
+    {
+        StreamClientState& scs = *(((ExtendedRTSPClient*)rtspClient)->getScs());
+        rtspClient->sendGetParameterCommand(*scs.session, afterFunc, /*extraParams*/NULL/*, Authenticator*/);
+    }
 
     void streamTimerHandler(void* clientData)
     {
@@ -201,8 +223,27 @@ namespace handlers
         StreamClientState& scs = *(((ExtendedRTSPClient*)rtspClient)->getScs());
 
         scs.streamTimerTask = NULL;
-
         shutdownStream(rtspClient);
+    }
+
+    void checkSessionTimeoutBrokenServer(void* clientData)
+    {
+        ExtendedRTSPClient* rtspClient = (ExtendedRTSPClient*)clientData;
+        UsageEnvironment& env = rtspClient->envir();
+        StreamClientState& scs = *(((ExtendedRTSPClient*)rtspClient)->getScs());
+
+        if (!scs.sendKeepAlivesToBrokenServers) return;
+
+        if (scs.sessionTimeoutBrokenServerTask != NULL) {
+            getParameterCommand(rtspClient, NULL);
+        }
+
+        unsigned sessionTimeout = scs.sessionTimeoutParameter == 0 ? DEFAULT_SESSION_TIMEOUT : scs.sessionTimeoutParameter;
+        unsigned secondsUntilNextKeepAlive = sessionTimeout <= 5 ? 1 : sessionTimeout - 5;
+
+        scs.sessionTimeoutBrokenServerTask
+            = env.taskScheduler().scheduleDelayedTask(secondsUntilNextKeepAlive*1000000,
+        		 (TaskFunc*)checkSessionTimeoutBrokenServer, rtspClient);
     }
 
     void shutdownStream(RTSPClient* rtspClient)

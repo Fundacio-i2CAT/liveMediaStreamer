@@ -38,7 +38,7 @@
 #define RETRIES 60
 
 #define SEG_DURATION 4 //sec
-#define DASH_FOLDER "/tmp/dashLMS"
+#define DASH_FOLDER "/tmp/dashSegmentsLMS"
 #define BASE_NAME "test"
 #define MPD_LOCATION "http://localhost/dash/test.mpd"
 

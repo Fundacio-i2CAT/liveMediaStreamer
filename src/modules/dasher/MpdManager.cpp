@@ -80,10 +80,11 @@ void MpdManager::writeToDisk(const char* fileName)
     el->InsertFirstChild(title);
     root->InsertEndChild(el);
 
+    /*TODO LOCATION IS NOT MANDATORY, COULD IMPLY CROSS-DOMAIN ISSUES
     el = doc.NewElement("Location");
     text = doc.NewText(location.c_str());
     el->InsertFirstChild(text);
-    root->InsertEndChild(el);
+    root->InsertEndChild(el);*/
 
     period = doc.NewElement("Period");
     period->SetAttribute("id", PERIOD_ID);
@@ -227,7 +228,7 @@ AdaptationSet::AdaptationSet(int segTimescale, std::string segTempl, std::string
 }
 
 AdaptationSet::~AdaptationSet()
-{ 
+{
 }
 
 unsigned AdaptationSet::updateTimestamp(unsigned ts, unsigned duration)
@@ -271,7 +272,7 @@ VideoAdaptationSet::~VideoAdaptationSet()
     }
 }
 
-bool VideoAdaptationSet::removeRepresentation(std::string id) 
+bool VideoAdaptationSet::removeRepresentation(std::string id)
 {
     if (representations.count(id) <= 0) {
         return false;
@@ -383,7 +384,7 @@ AudioAdaptationSet::~AudioAdaptationSet()
     }
 }
 
-bool AudioAdaptationSet::removeRepresentation(std::string id) 
+bool AudioAdaptationSet::removeRepresentation(std::string id)
 {
     if (representations.count(id) <= 0) {
         return false;
@@ -519,4 +520,3 @@ void AudioRepresentation::update(std::string aCodec, int aSampleRate, int aBandw
     bandwidth = aBandwidth;
     audioChannelConfigValue = channels;
 }
-

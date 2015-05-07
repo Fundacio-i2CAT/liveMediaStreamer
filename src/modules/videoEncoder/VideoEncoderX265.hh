@@ -44,20 +44,19 @@ extern "C" {
 class VideoEncoderX265 : public VideoEncoderX264or5 {
 
 public:
-	VideoEncoderX265(FilterRole fRole = MASTER, bool sharedFrames = true);
+    VideoEncoderX265(FilterRole fRole = MASTER, bool sharedFrames = true);
 	~VideoEncoderX265();
 	FrameQueue* allocQueue(int wId);
 
 private:
 	void initializeEventMap();
 
-    x265_picture *picIn;
-    x265_picture *picOut;
-	x265_param *xparams;
-    x265_encoder* encoder;
-    x265_nal *ppNal;
+    x265_picture    *picIn;
+    x265_picture    *picOut;
+	x265_param      *xparams;
+    x265_encoder*   encoder;
 
-    int64_t pts;
+    int64_t         pts;
 
     bool fillPicturePlanes(unsigned char** data, int* linesize);
     bool encodeFrame(VideoFrame* codedFrame);

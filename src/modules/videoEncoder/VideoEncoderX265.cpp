@@ -61,6 +61,7 @@ bool VideoEncoderX265::encodeFrame(VideoFrame* codedFrame)
 {
     int frameLength;
     uint32_t piNal;
+    x265_nal* nals;
 
     X265VideoFrame* x265Frame = dynamic_cast<X265VideoFrame*> (codedFrame);
 
@@ -77,7 +78,7 @@ bool VideoEncoderX265::encodeFrame(VideoFrame* codedFrame)
     }
 
     picIn->pts = pts;
-    frameLength = x265_encoder_encode(encoder, x265Frame->getNals(), &piNal, picIn, picOut);
+    frameLength = x265_encoder_encode(encoder, &nals, &piNal, picIn, picOut);
 
     pts++;
 
@@ -88,7 +89,7 @@ bool VideoEncoderX265::encodeFrame(VideoFrame* codedFrame)
         utils::debugMsg("X265 Encoder: NAL not retrieved after encoding");
         return false;
     }
-
+    x265Frame->setNals(nals);
     x265Frame->setNalNum(piNal);
     x265Frame->setLength(frameLength);
     return true;
@@ -98,14 +99,16 @@ bool VideoEncoderX265::encodeHeadersFrame(X265VideoFrame* x265Frame)
 {
     int encodeSize;
     uint32_t piNal;
+    x265_nal* nals;
 
-    encodeSize = x265_encoder_headers(encoder, x265Frame->getHdrNals(), &piNal);
+    encodeSize = x265_encoder_headers(encoder, &nals, &piNal);
 
     if (encodeSize < 0) {
         utils::errorMsg("Could not encode headers");
         return false;
     }
 
+    x265Frame->setHdrNals(nals);
     x265Frame->setHdrNalNum(piNal);
     return true;
 }

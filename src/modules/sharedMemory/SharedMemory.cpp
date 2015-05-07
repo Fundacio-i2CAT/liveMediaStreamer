@@ -125,7 +125,15 @@ bool SharedMemory::doProcessFrame(Frame *org, Frame *dst)
 
 FrameQueue* SharedMemory::allocQueue(int wId)
 {
-    return VideoFrameQueue::createNew(codec, RGB24);
+    if (codec == H264) {
+        return VideoFrameQueue::createNew(codec);
+
+    } else if (codec == RAW) {
+        return VideoFrameQueue::createNew(codec, DEFAULT_VIDEO_FRAMES, RGB24);
+        
+    } else {
+        return NULL;
+    }
 }
 
 //TODO to be implemented

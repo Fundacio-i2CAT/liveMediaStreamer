@@ -50,9 +50,6 @@
         int getFreeSamples();
         QueueState getState();
 
-    protected:
-        bool config();
-
     private:
         AudioCircularBuffer(int ch, int sRate, int maxSamples, SampleFmt sFmt);
 
@@ -62,6 +59,7 @@
         bool forcePushBack(unsigned char **buffer, int samplesRequested);
         bool popFront(unsigned char **buffer, int samplesRequested);
         void fillOutputBuffers(unsigned char **buffer, int bytesRequested);
+        bool setup();
 
         int channels;
         int sampleRate;

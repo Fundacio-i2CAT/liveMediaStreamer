@@ -23,8 +23,6 @@
 #ifndef _X264_OR_5_VIDEO_CIRCULAR_BUFFER_HH
 #define _X264_OR_5_VIDEO_CIRCULAR_BUFFER_HH
 
-#define MAX_NALS 100
-
 #include "Types.hh"
 #include "AVFramedQueue.hh"
 
@@ -40,14 +38,14 @@
 
     protected:
         virtual bool pushBack() = 0;
+        virtual Frame* getInputFrame() = 0;
+
         Frame *innerGetRear();
         Frame *innerForceGetRear();
         bool forcePushBack();
         void innerAddFrame();
-
         bool setup();
 
-        Frame* inputFrame;
 };
 
 #endif

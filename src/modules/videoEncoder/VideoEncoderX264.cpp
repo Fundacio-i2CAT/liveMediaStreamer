@@ -56,6 +56,13 @@ bool VideoEncoderX264::encodeFrame(VideoFrame* codedFrame)
 {
     int frameLength;
     int piNal;
+    x264_nal_t** nals;
+
+    nals = (x264_nal_t**)malloc(sizeof(x264_nal_t*) * MAX_NALS_PER_FRAME); 
+    for (int i = 0; i < MAX_NALS_PER_FRAME; i++) {
+        nals[i] = (x264_nal_t*)malloc(sizeof(x264_nal_t));
+        printf("NAl %d before pointer: %p\n", i, nals[i]);
+    }
 
     X264VideoFrame* x264Frame = dynamic_cast<X264VideoFrame*> (codedFrame);
 
@@ -72,9 +79,18 @@ bool VideoEncoderX264::encodeFrame(VideoFrame* codedFrame)
     }
 
     picIn.i_pts = pts;
-    frameLength = x264_encoder_encode(encoder, x264Frame->getNals(), &piNal, &picIn, &picOut);
+    // frameLength = x264_encoder_encode(encoder, x264Frame->getNals(), &piNal, &picIn, &picOut);
+    frameLength = x264_encoder_encode(encoder, nals, &piNal, &picIn, &picOut);
 
     pts++;
+
+    std::cout << "Frame length: " << frameLength << std::endl; 
+    std::cout << "piNal : " << piNal << std::endl; 
+
+    for (int i = 0; i < piNal; i++) {
+        printf("NAl %d after pointer: %p\n", i, nals[i]);
+        std::cout << "Nal length: " << nals[i]->i_payload << std::endl;   
+    }
 
     if (frameLength < 0) {
         utils::errorMsg("Could not encode video frame");
@@ -86,6 +102,7 @@ bool VideoEncoderX264::encodeFrame(VideoFrame* codedFrame)
 
     x264Frame->setNalNum(piNal);
     x264Frame->setLength(frameLength);
+    std::cout << "Out of encoder" << std::endl;
     return true;
 }
 

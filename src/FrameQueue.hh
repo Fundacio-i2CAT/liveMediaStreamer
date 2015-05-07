@@ -44,7 +44,7 @@ enum QueueState{SLOW, FAST};
 class FrameQueue {
 
 public:
-    FrameQueue();
+    FrameQueue() : rear(0), front(0), elements(0), connected(false), firstFrame(false), state(SLOW) {};
     virtual ~FrameQueue() {};
     virtual Frame *getRear() = 0;
     virtual Frame *getFront(bool &newFrame) = 0;
@@ -60,12 +60,12 @@ public:
     void setConnected(bool conn) {connected = conn;};
 
 protected:
-    QueueState state;
     std::atomic<unsigned> rear;
     std::atomic<unsigned> front;
     std::atomic<unsigned> elements;
     std::atomic<bool> connected;
     std::atomic<bool> firstFrame;
+    QueueState state;
     
 };
 

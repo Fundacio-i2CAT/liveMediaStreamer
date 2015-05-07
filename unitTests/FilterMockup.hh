@@ -90,8 +90,7 @@ private:
 class AVFramedQueueMock : public AVFramedQueue
 {
 public:
-    AVFramedQueueMock(unsigned max_) : AVFramedQueue() {
-        max = max_;
+    AVFramedQueueMock(unsigned max) : AVFramedQueue(max) {
         config();
     };
 

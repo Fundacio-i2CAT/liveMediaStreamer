@@ -1,5 +1,5 @@
 /*
- *  FrameQueue.cpp - A FIFO queue for frames
+ *  X265VideoCircularBuffer - X265 Video circular buffer
  *  Copyright (C) 2013  Fundació i2CAT, Internet i Innovació digital a Catalunya
  *
  *  This file is part of media-streamer.
@@ -17,18 +17,29 @@
  *  You should have received a copy of the GNU General Public License
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- *  Authors: David Cassany <david.cassany@i2cat.net> 
- *           Marc Palau <marc.palau@i2cat.net>
+ *  Authors:  Marc Palau <marc.palau@i2cat.net>
+ *
  */
 
-#include "FrameQueue.hh"
+#ifndef _X265_VIDEO_CIRCULAR_BUFFER_HH
+#define _X265_VIDEO_CIRCULAR_BUFFER_HH
 
-FrameQueue::FrameQueue()
-{
-    rear = 0;
-    front = 0;
-    elements = 0;
-    connected = false;
-    firstFrame = false;
-    state = SLOW;
-}
+#include "Types.hh"
+#include "X264or5VideoCircularBuffer.hh"
+#include "X265VideoFrame.hh"
+
+ class X265VideoCircularBuffer : public X264or5VideoCircularBuffer {
+
+    public:
+        static X265VideoCircularBuffer* createNew();
+        ~X265VideoCircularBuffer();
+
+    private:
+        X265VideoCircularBuffer();
+        bool pushBack();
+        Frame* getInputFrame() {return inputFrame;};
+
+        X265VideoFrame* inputFrame;
+};
+
+#endif

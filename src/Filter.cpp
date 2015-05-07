@@ -592,11 +592,25 @@ bool OneToManyFilter::runDoProcessFrame()
     return false;
 }
 
-//TODO: runDoProcessFrame to be implemented
-HeadFilter::HeadFilter(FilterRole fRole_, unsigned writersNum, size_t fTime) :
-    BaseFilter(0,writersNum,fTime,fRole_,false,false)
+
+HeadFilter::HeadFilter(FilterRole fRole_, size_t fTime) :
+    BaseFilter(0, 1, fTime, fRole_, false, false)
 {
     
+}
+
+bool HeadFilter::runDoProcessFrame()
+{
+    if (updateTimestamp() && doProcessFrame(dFrames.begin()->second)) {
+        dFrames.begin()->second->setPresentationTime(timestamp);
+        dFrames.begin()->second->setDuration(duration);
+        seqNums[dFrames.begin()->first]++;
+        dFrames.begin()->second->setSequenceNumber(seqNums[dFrames.begin()->first]);
+        addFrames();
+        return true;
+    }
+
+    return false;
 }
 
 void HeadFilter::pushEvent(Event e)

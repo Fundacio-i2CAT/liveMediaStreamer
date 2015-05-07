@@ -109,6 +109,7 @@ fi
 AC_CHECK_LIB([opencv_core], [main], [], AC_MSG_ERROR([cannot find opencv_core]))
 AC_CHECK_LIB([opencv_imgproc], [main], [], AC_MSG_ERROR([cannot find opencv_imgproc]))
 AC_CHECK_LIB([x264], [x264_encoder_encode], [], AC_MSG_ERROR([cannot find x264]))
+AC_CHECK_LIB([x265], [x265_encoder_encode], [], AC_MSG_ERROR([cannot find x265]))
 AC_CHECK_LIB([log4cplus], [main], [], AC_MSG_ERROR([cannot find log4cplus]))
 AC_CHECK_LIB([cppunit], [main], [], AC_MSG_ERROR([cannot find cppunit]))
 AC_CHECK_LIB([tinyxml2], [main], [], AC_MSG_ERROR([cannot find tinyxml2]))

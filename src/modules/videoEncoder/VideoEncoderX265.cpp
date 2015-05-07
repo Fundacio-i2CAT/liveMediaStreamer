@@ -1,5 +1,5 @@
 /*
- *  VideoEncoderX265 - Video Encoder X264
+ *  VideoEncoderX265 - Video Encoder X265
  *  Copyright (C) 2013  Fundació i2CAT, Internet i Innovació digital a Catalunya
  *
  *  This file is part of media-streamer.
@@ -17,293 +17,202 @@
  *  You should have received a copy of the GNU General Public License
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- *  Authors:  Martin German <martin.german@i2cat.net>
+ *  Authors:  Marc Palau <marc.palau@i2cat.net>
  *            David Cassany <david.cassany@i2cat.net>
+ *			  Gerard Castillo <gerard.castillo@i2cat.net>
  */
 
 #include <cmath>
 #include "VideoEncoderX265.hh"
 
-VideoEncoderX265::VideoEncoderX265(FilterRole fRole_, bool sharedFrames, int framerate) :
-OneToOneFilter(false, fRole_, sharedFrames)
+VideoEncoderX265::VideoEncoderX265(FilterRole fRole, bool sharedFrames) :
+VideoEncoderX264or5(fRole, sharedFrames), encoder(NULL)
 {
-    fType = VIDEO_ENCODER;
-
     pts = 0;
-
-    if (framerate <= 0){
-        fps = VIDEO_DEFAULT_FRAMERATE;
-    } else {
-        fps = framerate;
-    }
-
-    setFrameTime(std::chrono::nanoseconds(std::nano::den/fps));
-
-    forceIntra = false;
-    encoder = NULL;
-
-    param = x265_param_alloc();
-    x265pic = x265_picture_alloc();
-    midFrame = av_frame_alloc();
-
-    initializeEventMap();
+    xparams = x265_param_alloc();
+    picIn = x265_picture_alloc();
+    picOut = x265_picture_alloc();
 }
 
 VideoEncoderX265::~VideoEncoderX265()
 {
-    if (midFrame) {
-        av_frame_free(&midFrame);
-    }
-
-    if (encoder){
-        x264_picture_clean(&x265pic);
-        x264_encoder_close(encoder);
-    }
+    /*if (encoder){
+        x265_picture_clean(&x265pic) or x265_picture_free(&x265pic)?
+        x265_encoder_close(encoder);
+    }*/
+    //TODO check for x265_cleanup()?
 }
 
-bool VideoEncoderX265::doProcessFrame(Frame *org, Frame *dst) 
+bool VideoEncoderX265::fillPicturePlanes(unsigned char** data, int* linesize)
 {
-    VideoFrame* videoFrame = dynamic_cast<VideoFrame*> (org);
-    X264VideoFrame* x264Frame = dynamic_cast<X264VideoFrame*> (dst);
-    int frameLength;
-    int piNal;
-    picIn.i_pts = pts;
+    if ( picIn->planes == NULL){
+        return false;
+    }
 
-    if (!reconfigure(videoFrame, x264Frame)) {
+    for(int i = 0; i < MAX_PLANES_PER_PICTURE; i++){
+        picIn->stride[i] = linesize[i];
+        picIn->planes[i] = data[i];
+    }
+
+    return true;
+}
+
+bool VideoEncoderX265::encodeFrame(VideoFrame* codedFrame)
+{
+    int frameLength;
+    uint32_t piNal;
+
+    X265VideoFrame* x265Frame = dynamic_cast<X265VideoFrame*> (codedFrame);
+
+    if (!x265Frame || !encoder) {
+        utils::errorMsg("Could not encode x265 video frame. Target frame or encoder are NULL");
         return false;
     }
 
     if (forceIntra) {
-        picIn.i_type = X264_TYPE_I;
+        picIn->sliceType = X265_TYPE_I;
         forceIntra = false;
     } else {
-        picIn.i_type = X264_TYPE_AUTO;
+        picIn->sliceType = X265_TYPE_AUTO;
     }
 
-    if (!fill_x264_picture(videoFrame)){
-        utils::errorMsg("Could not fill x264_picture_t from frame");
-        return false;
-    }
-
-    frameLength = x264_encoder_encode(encoder, &ppNal, &piNal, &picIn, &picOut);
-
-    if (frameLength < 1) {
-        utils::errorMsg("Could not encode video frame");
-        return false;
-    }
-
-    x264Frame->setNals(&ppNal, piNal, frameLength);
-    x264Frame->setSize(videoFrame->getWidth(), videoFrame->getHeight());
+    picIn->pts = pts;
+    frameLength = x265_encoder_encode(encoder, x265Frame->getNals(), &piNal, picIn, picOut);
 
     pts++;
-    return true;
-}
 
-bool VideoEncoderX265::fill_x264_picture(VideoFrame* videoFrame)
-{
-    if (avpicture_fill((AVPicture *) midFrame, videoFrame->getDataBuf(),
-            (AVPixelFormat) libavInPixFmt, videoFrame->getWidth(),
-            videoFrame->getHeight()) <= 0){
-        utils::errorMsg("Could not feed AVFrame");
+    if (frameLength < 0) {
+        utils::errorMsg("Could not encode video frame");
+        return false;
+    } else if (frameLength == 1) {
+        utils::debugMsg("X265 Encoder: NAL not retrieved after encoding");
         return false;
     }
-    picIn.img.i_csp = colorspace;
 
-    for(int i = 0; i < 4; i++){
-        picIn.img.i_stride[i] = midFrame->linesize[i];
-        picIn.img.plane[i] = midFrame->data[i];
-    }
-
+    x265Frame->setNalNum(piNal);
+    x265Frame->setLength(frameLength);
     return true;
 }
 
-bool VideoEncoderX265::encodeHeadersFrame(X264VideoFrame* x264Frame)
+bool VideoEncoderX265::encodeHeadersFrame(X265VideoFrame* x265Frame)
 {
     int encodeSize;
-    int piNal;
-    x264_nal_t *ppNal;
+    uint32_t piNal;
 
-    encodeSize = x264_encoder_headers(encoder, &ppNal, &piNal);
+    encodeSize = x265_encoder_headers(encoder, x265Frame->getHdrNals(), &piNal);
 
     if (encodeSize < 0) {
         utils::errorMsg("Could not encode headers");
         return false;
     }
 
-    x264Frame->setHeaderNals(&ppNal, piNal, encodeSize);
-
+    x265Frame->setHdrNalNum(piNal);
     return true;
 }
 
-FrameQueue* VideoEncoderX265::allocQueue(int wId) {
-    return X264VideoCircularBuffer::createNew();
+FrameQueue* VideoEncoderX265::allocQueue(int wId)
+{
+    //return X265VideoCircularBuffer::createNew();
+    return NULL;
 }
 
-bool VideoEncoderX265::configure(int gop_, int bitrate_, int threads_, int fps_, bool annexB_)
+bool VideoEncoderX265::reconfigure(VideoFrame* orgFrame, VideoFrame* dstFrame)
 {
-    //TODO: validate inputs
-    gop = gop_;
-    bitrate = bitrate_;
-    threads = threads_;
-    annexB = annexB_;
+    int colorspace;
+    X265VideoFrame* x265Frame;
 
-    if (fps_ <= 0) {
-        fps = VIDEO_DEFAULT_FRAMERATE;
+    if (!needsConfig && orgFrame->getWidth() == xparams->sourceWidth &&
+        orgFrame->getHeight() == xparams->sourceHeight && orgFrame->getPixelFormat() == inPixFmt) {
+        return true;
+    }
+
+    x265Frame = dynamic_cast<X265VideoFrame*> (dstFrame);
+
+    if (!x265Frame) {
+        utils::errorMsg("Error reconfiguring x265VideoEncoder. DstFrame MUST be a x265VideoFrame");
+        return false;
+    }
+
+    inPixFmt = orgFrame->getPixelFormat();
+    switch (inPixFmt) {
+        case YUV420P:
+            libavInPixFmt = AV_PIX_FMT_YUV420P;
+            colorspace = X265_CSP_I420;
+            break;
+        /*TODO X265_CSP_I422 not supported yet. Continue checking x265 library releases for its support.
+        case YUV422P:
+            libavInPixFmt = AV_PIX_FMT_YUV422P;
+            colorspace = X265_CSP_I422;
+            break;*/
+        case YUV444P:
+            libavInPixFmt = AV_PIX_FMT_YUV444P;
+            colorspace = X265_CSP_I444;
+            break;
+        default:
+            utils::debugMsg("Uncompatibe input pixel format");
+            libavInPixFmt = AV_PIX_FMT_NONE;
+            /*TODO X265_CSP_NONE is not implemented. Continue checking x265 library releases for its support*/
+            colorspace = -1;
+            return false;
+            break;
+    }
+
+    picIn->colorSpace = colorspace;
+    x265_param_default_preset(xparams, preset.c_str(), NULL);
+    /*TODO check with NULL profile*/
+    x265_param_apply_profile(xparams, "main");
+
+    x265_param_parse(xparams, "keyint", std::to_string(gop).c_str());
+    x265_param_parse(xparams, "fps", std::to_string(fps).c_str());
+
+    //TODO check same management for intra-refresh like x264
+    //x265_param_parse(xparams, "intra-refresh", std::to_string(0).c_str());
+
+    x265_param_parse(xparams, "frame-threads", std::to_string(threads).c_str());
+    x265_param_parse(xparams, "aud", std::to_string(1).c_str());
+    x265_param_parse(xparams, "bitrate", std::to_string(bitrate).c_str());
+    x265_param_parse(xparams, "bframes", std::to_string(0).c_str());
+    x265_param_parse(xparams, "repeat-headers", std::to_string(0).c_str());
+    x265_param_parse(xparams, "vbv-maxrate", std::to_string(bitrate*1.05).c_str());
+    x265_param_parse(xparams, "vbv-bufsize", std::to_string(bitrate*2).c_str());
+    x265_param_parse(xparams, "rc-lookahead", std::to_string(lookahead).c_str());
+
+    if (annexB) {
+        x265_param_parse(xparams, "repeat-headers", std::to_string(1).c_str());
+        x265_param_parse(xparams, "annexb", std::to_string(1).c_str());
+    }
+
+    if (orgFrame->getWidth() != xparams->sourceWidth || orgFrame->getHeight() != xparams->sourceHeight) {
+        xparams->sourceWidth = orgFrame->getWidth();
+        xparams->sourceHeight = orgFrame->getHeight();
+
+        if (encoder != NULL){
+            x265_encoder_close(encoder);
+            encoder = NULL;
+        }
+    }
+
+    if (!encoder) {
+        encoder = x265_encoder_open(xparams);
     } else {
-        fps = fps_;
+        /*TODO reimplement it when a reconfigure method appear*/
+        x265_encoder_close(encoder);
+        encoder = x265_encoder_open(xparams);
     }
 
-    setFrameTime(std::chrono::nanoseconds(std::nano::den/fps));
+    if (!encoder) {
+        utils::errorMsg("Error reconfiguring x265 encoder. At this point encoder should not be NULL...");
+        return false;
+    }
 
-    needsConfig = true;
-    return true;
-}
+    x265_picture_init(xparams, picIn);
+    x265_picture_init(xparams, picOut);
 
-bool VideoEncoderX265::reconfigure(VideoFrame* orgFrame, X264VideoFrame* x264Frame)
-{
-    if (needsConfig || orgFrame->getWidth() != xparams.i_width ||
-        orgFrame->getHeight() != xparams.i_height ||
-        orgFrame->getPixelFormat() != inPixFmt)
-    {
-        inPixFmt = orgFrame->getPixelFormat();
-        switch (inPixFmt) {
-            case YUV420P:
-                libavInPixFmt = AV_PIX_FMT_YUV420P;
-                colorspace = X264_CSP_I420;
-                break;
-            case YUV422P:
-                libavInPixFmt = AV_PIX_FMT_YUV422P;
-                colorspace = X264_CSP_I422;
-                break;
-            case YUV444P:
-                libavInPixFmt = AV_PIX_FMT_YUV444P;
-                colorspace = X264_CSP_I444;
-                break;
-            default:
-                utils::debugMsg("Uncompatibe input pixel format");
-                libavInPixFmt = AV_PIX_FMT_NONE;
-                colorspace = X264_CSP_NONE;
-                return false;
-                break;
-        }
+    needsConfig = false;
 
-        x264_param_default_preset(&xparams, "ultrafast", "zerolatency");
-        x264_param_apply_profile(&xparams, "baseline");
-
-        xparams.i_threads = threads;
-        xparams.i_fps_num = fps;
-        xparams.i_fps_den = 1;
-        xparams.b_intra_refresh = 0;
-        //xparams.b_intra_refresh = 1;
-        //xparams.i_frame_reference = 1;
-        xparams.b_repeat_headers = 1;
-        xparams.i_bframe = 0;
-        xparams.i_bframe_pyramid = 0;
-
-        xparams.b_aud = 1;
-        xparams.i_keyint_max = gop;
-
-        xparams.rc.i_rc_method = X264_RC_ABR;
-        xparams.rc.i_bitrate = bitrate;
-        xparams.rc.i_lookahead = 1;
-        xparams.rc.f_ip_factor = 1.4f;
-        xparams.rc.f_pb_factor = 1.3f;
-        xparams.rc.f_qcompress = 1.0;
-        xparams.rc.i_qp_min = 20;//20;
-        xparams.rc.i_qp_max = 32;
-        xparams.rc.i_qp_step = 1;
-
-        if (annexB){
-            xparams.b_annexb = 1;
-            xparams.b_repeat_headers = 1;
-        }
-
-        if (orgFrame->getWidth() != xparams.i_width ||
-            orgFrame->getHeight() != xparams.i_height){
-            xparams.i_width = orgFrame->getWidth();
-            xparams.i_height = orgFrame->getHeight();
-            if (encoder != NULL){
-                x264_encoder_close(encoder);
-                encoder = x264_encoder_open(&xparams);
-                needsConfig = false;
-            }
-        }
-
-        if (encoder == NULL){
-            encoder = x264_encoder_open(&xparams);
-        } else if (needsConfig && x264_encoder_reconfig(encoder, &xparams) < 0){
-            utils::errorMsg("Could not reconfigure encoder, closing and opening again");
-            x264_encoder_close(encoder);
-            encoder = x264_encoder_open(&xparams);
-        }
-
-        needsConfig = false;
-
-        if (!annexB){
-            return encodeHeadersFrame(x264Frame);
-        }
+    if (!annexB) {
+        return encodeHeadersFrame(x265Frame);
     }
 
     return true;
-}
-
-void VideoEncoderX265::configEvent(Jzon::Node* params, Jzon::Object &outputNode)
-{
-    int tmpGop, tmpBitrate, tmpThreads, tmpFps;
-    bool tmpAnnexB;
-
-    if (!params) {
-        return;
-    }
-
-    tmpGop = gop;
-    tmpBitrate = bitrate;
-    tmpThreads = threads;
-    tmpAnnexB = annexB;
-    tmpFps = fps;
-
-    if (params->Has("gop")){
-        tmpGop = params->Get("gop").ToInt();
-    }
-
-    if (params->Has("bitrate")){
-        tmpBitrate = params->Get("bitrate").ToInt();
-    }
-
-    if (params->Has("threads")){
-        tmpThreads = params->Get("threads").ToInt();
-    }
-
-    if (params->Has("fps")){
-        tmpFps = params->Get("fps").ToInt();
-    }
-
-    if (params->Has("annexb")){
-        tmpAnnexB = params->Get("annexb").ToBool();
-    }
-
-    if (!configure(tmpGop, tmpBitrate, tmpThreads, tmpFps, tmpAnnexB)){
-        outputNode.Add("error", "Error configuring vide encoder");
-    } else {
-        outputNode.Add("error", Jzon::null);
-    }
-}
-
-void VideoEncoderX265::forceIntraEvent(Jzon::Node* params)
-{
-    forceIntra = true;
-}
-
-void VideoEncoderX265::initializeEventMap()
-{
-    eventMap["forceIntra"] = std::bind(&VideoEncoderX265::forceIntraEvent, this, std::placeholders::_1);
-    eventMap["configure"] = std::bind(&VideoEncoderX265::configEvent, this, std::placeholders::_1, std::placeholders::_2);
-}
-
-void VideoEncoderX265::doGetState(Jzon::Object &filterNode)
-{
-    filterNode.Add("gop", std::to_string(gop));
-    filterNode.Add("bitrate", std::to_string(bitrate));
-    filterNode.Add("threads", std::to_string(threads));
-    filterNode.Add("fps", std::to_string(fps));
 }

@@ -22,15 +22,16 @@
 
 #include "X264or5VideoCircularBuffer.hh"
 #include "Utils.hh"
+#include "VideoFrame.hh"
 
 X264or5VideoCircularBuffer::X264or5VideoCircularBuffer(VCodecType codec) : VideoFrameQueue(codec)
 {
-    config();
+
 }
 
 X264or5VideoCircularBuffer::~X264or5VideoCircularBuffer()
 {
-    //TODO: implement destructor
+    delete inputFrame;
 }
 
 Frame* X264or5VideoCircularBuffer::getRear()
@@ -80,3 +81,20 @@ void X264or5VideoCircularBuffer::innerAddFrame()
     rear =  (rear + 1) % max;
     ++elements;
 }
+
+bool X264or5VideoCircularBuffer::setup()
+{
+    if (codec != H264 && codec != H265) {
+        return false;
+    }
+
+    max = DEFAULT_VIDEO_FRAMES;
+    
+    for (unsigned i=0; i<max; i++) {
+        frames[i] = InterleavedVideoFrame::createNew(codec, MAX_H264_OR_5_NAL_SIZE);
+    }
+
+    return true;
+}
+
+

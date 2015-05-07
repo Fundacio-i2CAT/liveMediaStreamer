@@ -39,14 +39,15 @@ extern "C" {
  class X264VideoCircularBuffer : public X264or5VideoCircularBuffer {
 
     public:
-        X264VideoCircularBuffer();
+        static X264VideoCircularBuffer* createNew();
+
         ~X264VideoCircularBuffer();
 
     private:
+        X264VideoCircularBuffer();
+        
         bool config();
         bool pushBack();
-
-        X264VideoFrame* inputFrame;
 };
 
 #endif

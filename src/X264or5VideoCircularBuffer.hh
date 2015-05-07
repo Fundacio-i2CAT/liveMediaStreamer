@@ -32,7 +32,7 @@
 
     public:
         X264or5VideoCircularBuffer(VCodecType codec);
-        ~X264or5VideoCircularBuffer();
+        virtual ~X264or5VideoCircularBuffer();
 
         Frame *getRear();
         void addFrame();
@@ -44,6 +44,10 @@
         Frame *innerForceGetRear();
         bool forcePushBack();
         void innerAddFrame();
+
+        bool setup();
+
+        Frame* inputFrame;
 };
 
 #endif

@@ -60,8 +60,6 @@ public:
     void setConnected(bool conn) {connected = conn;};
 
 protected:
-    virtual bool config() = 0;
-
     QueueState state;
     std::atomic<unsigned> rear;
     std::atomic<unsigned> front;

@@ -19,6 +19,7 @@
  *
  *  Authors:  Martin German <martin.german@i2cat.net>
  *            David Cassany <david.cassany@i2cat.net>
+ *            Marc Palau <marc.palau@i2cat.net>
  */
 
 #ifndef _VIDEO_CIRCULAR_BUFFER_HH
@@ -28,36 +29,25 @@
 
 #include <atomic>
 #include "Types.hh"
-#include "AVFramedQueue.hh"
+#include "X264or5VideoCircularBuffer.hh"
 #include "X264VideoFrame.hh"
 
 extern "C" {
 	#include <x264.h>
 }
 
- class X264VideoCircularBuffer : public VideoFrameQueue {
+ class X264VideoCircularBuffer : public X264or5VideoCircularBuffer {
 
     public:
         static X264VideoCircularBuffer* createNew();
+
         ~X264VideoCircularBuffer();
-
-        Frame *getRear();
-        void addFrame();
-        Frame *forceGetRear();
-
-    protected:
-        bool config();
 
     private:
         X264VideoCircularBuffer();
-        bool pushBack();
-        bool forcePushBack();
         
-        Frame *innerGetRear();
-        void innerAddFrame();
-        Frame *innerForceGetRear();
-
-        X264VideoFrame* inputFrame;
+        bool config();
+        bool pushBack();
 };
 
 #endif

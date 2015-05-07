@@ -19,63 +19,49 @@
  *
  *  Authors:  Martin German <martin.german@i2cat.net>
  *            David Cassany <david.cassany@i2cat.net>
+ *            Marc Palau <marc.palau@i2cat.net>
  */
 
 #include "X264VideoCircularBuffer.hh"
-#include <cstring>
-#include <string>
-#include <sys/time.h>
 #include "Utils.hh"
+#include <cstring>
 
 X264VideoCircularBuffer* X264VideoCircularBuffer::createNew()
 {
-    return new X264VideoCircularBuffer();
+    X264VideoCircularBuffer* b = new X264VideoCircularBuffer();
+
+    if (!b->setup()) {
+        utils::errorMsg("X264VideoCircularBuffer setup error");
+        delete b;
+        return NULL;
+    }
+
+    return b;
+}
+
+
+X264VideoCircularBuffer::X264VideoCircularBuffer() : X264or5VideoCircularBuffer(H264)
+{
+    inputFrame = X264VideoFrame::createNew();
 }
 
 X264VideoCircularBuffer::~X264VideoCircularBuffer()
 {
-    //TODO: implement destructor
-}
 
-Frame* X264VideoCircularBuffer::getRear()
-{
-    if (elements >= max) {
-        return NULL;
-    }
-    
-    return inputFrame;
-}
-
-void X264VideoCircularBuffer::addFrame()
-{
-    forcePushBack();
-}
-
-Frame* X264VideoCircularBuffer::forceGetRear()
-{
-    return inputFrame;
-}
-
-X264VideoCircularBuffer::X264VideoCircularBuffer(): VideoFrameQueue(H264, YUYV422)
-{
-    config();
-}
-
-bool X264VideoCircularBuffer::config()
-{
-    inputFrame = X264VideoFrame::createNew();
-    return true;
 }
 
 bool X264VideoCircularBuffer::pushBack() 
 {
     Frame* frame;
     VideoFrame* vFrame;
+    X264VideoFrame* x264inputFrame;
     int nalsNum;
     x264_nal_t** nals;
 
-    nalsNum = inputFrame->getHdrNalsNum();
-    nals = inputFrame->getHdrNals();
+    x264inputFrame = dynamic_cast<X264VideoFrame*>(inputFrame);
+
+    nalsNum = x264inputFrame->getHdrNalsNum();
+    nals = x264inputFrame->getHdrNals();
 
     for (int i=0; i<nalsNum; i++) {
 
@@ -84,18 +70,18 @@ bool X264VideoCircularBuffer::pushBack()
         }
         
         vFrame = dynamic_cast<VideoFrame*>(frame);
-        vFrame->setSequenceNumber(inputFrame->getSequenceNumber());
+        vFrame->setSequenceNumber(x264inputFrame->getSequenceNumber());
 
         memcpy(vFrame->getDataBuf(), (*nals)[i].p_payload, (*nals)[i].i_payload);
         vFrame->setLength((*nals)[i].i_payload);
-        vFrame->setPresentationTime(inputFrame->getPresentationTime());
-        vFrame->setSize(inputFrame->getWidth(), inputFrame->getHeight());
-        vFrame->setDuration(inputFrame->getDuration());
+        vFrame->setPresentationTime(x264inputFrame->getPresentationTime());
+        vFrame->setSize(x264inputFrame->getWidth(), x264inputFrame->getHeight());
+        vFrame->setDuration(x264inputFrame->getDuration());
         innerAddFrame();
     }
 
-    nalsNum = inputFrame->getNalsNum();
-    nals = inputFrame->getNals();
+    nalsNum = x264inputFrame->getNalsNum();
+    nals = x264inputFrame->getNals();
 
     for (int i=0; i<nalsNum; i++) {
 
@@ -104,46 +90,17 @@ bool X264VideoCircularBuffer::pushBack()
         }
 
         vFrame = dynamic_cast<VideoFrame*>(frame);
-        vFrame->setSequenceNumber(inputFrame->getSequenceNumber());
+        vFrame->setSequenceNumber(x264inputFrame->getSequenceNumber());
 
         memcpy(vFrame->getDataBuf(), (*nals)[i].p_payload, (*nals)[i].i_payload);
         vFrame->setLength((*nals)[i].i_payload);
-        vFrame->setPresentationTime(inputFrame->getPresentationTime());
-        vFrame->setSize(inputFrame->getWidth(), inputFrame->getHeight());
-        vFrame->setDuration(inputFrame->getDuration());
+        vFrame->setPresentationTime(x264inputFrame->getPresentationTime());
+        vFrame->setSize(x264inputFrame->getWidth(), x264inputFrame->getHeight());
+        vFrame->setDuration(x264inputFrame->getDuration());
 		innerAddFrame();
 	}
 	
-	inputFrame->clearNalNum();
+	x264inputFrame->clearNalNum();
 	
     return true;
 }   
-
-bool X264VideoCircularBuffer::forcePushBack()
-{
-    return pushBack();
-}
-
-Frame* X264VideoCircularBuffer::innerGetRear() 
-{
-    if (elements >= max) {
-        return NULL;
-    }
-    return frames[rear];
-}
-
-Frame* X264VideoCircularBuffer::innerForceGetRear()
-{
-    Frame *frame;
-    while ((frame = innerGetRear()) == NULL) {
-        utils::debugMsg("Frame discarted by X264 Circular Buffer");
-        flush();
-    }
-    return frame;
-}
-
-void X264VideoCircularBuffer::innerAddFrame() 
-{
-    rear =  (rear + 1) % max;
-    ++elements;
-}

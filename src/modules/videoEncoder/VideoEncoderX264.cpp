@@ -106,7 +106,7 @@ bool VideoEncoderX264::encodeHeadersFrame(X264VideoFrame* x264Frame)
 
 FrameQueue* VideoEncoderX264::allocQueue(int wId)
 {
-	return X264VideoCircularBuffer::createNew();
+    return X264VideoCircularBuffer::createNew();
 }
 
 bool VideoEncoderX264::reconfigure(VideoFrame* orgFrame, VideoFrame* dstFrame)

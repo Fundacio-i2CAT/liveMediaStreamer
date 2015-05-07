@@ -122,20 +122,27 @@ QueueState AVFramedQueue::getState()
 //VIDEO FRAME QUEUE METHODS IMPLEMENTATION//
 ////////////////////////////////////////////
 
-VideoFrameQueue* VideoFrameQueue::createNew(VCodecType codec, PixType pixelFormat)
+VideoFrameQueue* VideoFrameQueue::createNew(VCodecType codec, PixType pixelFormat) 
 {
-    return new VideoFrameQueue(codec, pixelFormat);
+    VideoFrameQueue* q = new VideoFrameQueue(codec, pixelFormat);
+
+    if (!q->setup()) {
+        utils::errorMsg("VideoFrameQueue setup error!");
+        delete q;
+        return NULL;
+    }
+
+    return q;
 }
 
-VideoFrameQueue::VideoFrameQueue(VCodecType codec, PixType pixelFormat)
-{
-    this->codec = codec;
-    this->pixelFormat = pixelFormat;
 
-    config();
+VideoFrameQueue::VideoFrameQueue(VCodecType codec_, PixType pixelFormat_) :
+AVFramedQueue(), codec(codec_), pixelFormat(pixelFormat_)
+{
+
 }
 
-bool VideoFrameQueue::config()
+bool VideoFrameQueue::setup()
 {
     switch(codec) {
         case H264:
@@ -150,9 +157,6 @@ bool VideoFrameQueue::config()
                 frames[i] = InterleavedVideoFrame::createNew(codec, LENGTH_VP8);
             }
             break;
-        case MJPEG:
-            //TODO: implement this initialization
-            break;
         case RAW:
             if (pixelFormat == P_NONE) {
                 utils::errorMsg("No pixel fromat defined");
@@ -166,7 +170,6 @@ bool VideoFrameQueue::config()
         default:
             utils::errorMsg("[Video Frame Queue] Codec not supported!");
             return false;
-            break;
     }
 
     return true;

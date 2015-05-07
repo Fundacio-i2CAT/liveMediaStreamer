@@ -45,7 +45,6 @@ public:
     virtual ~AVFramedQueue();
 
 protected:
-
     Frame* frames[MAX_FRAMES];
     unsigned max;
     
@@ -55,14 +54,16 @@ class VideoFrameQueue : public AVFramedQueue {
 
 public:
     static VideoFrameQueue* createNew(VCodecType codec, PixType pixelFormat = P_NONE);
-    
+
     const VCodecType getCodec() const {return codec;};
 
 protected:
-    VideoFrameQueue(VCodecType codec, PixType pixelFormat);
+    VideoFrameQueue(VCodecType codec, PixType pixelFormat = P_NONE);
     VCodecType codec;
     PixType pixelFormat;
-    bool config();
+
+private:
+    bool setup();
 
 };
 

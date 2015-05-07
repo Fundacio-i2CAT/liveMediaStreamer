@@ -53,6 +53,7 @@ liblivemediastreamer_la_SOURCES = modules/audioDecoder/AudioDecoderLibav.cpp \
                                   Runnable.cpp \
                                   Worker.cpp \
                                   X264VideoCircularBuffer.cpp \
+                                  X264or5VideoCircularBuffer.cpp \
                                   X264VideoFrame.cpp \
                                   X265VideoFrame.cpp
 

@@ -24,7 +24,7 @@
 #include "VideoEncoderX264or5.hh"
 
 VideoEncoderX264or5::VideoEncoderX264or5(FilterRole fRole_, bool sharedFrames) :
-OneToOneFilter(false, fRole_, sharedFrames), annexB(false), forceIntra(false), fps(0), bitrate(0), gop(0), threads(0), needsConfig(false)
+OneToOneFilter(false, fRole_, sharedFrames), inPixFmt(P_NONE), annexB(false), forceIntra(false), fps(0), bitrate(0), gop(0), threads(0), needsConfig(false)
 {
     fType = VIDEO_ENCODER;
     midFrame = av_frame_alloc();
@@ -38,7 +38,7 @@ VideoEncoderX264or5::~VideoEncoderX264or5()
     }
 }
 
-bool VideoEncoderX264or5::doProcessFrame(Frame *org, Frame *dst) 
+bool VideoEncoderX264or5::doProcessFrame(Frame *org, Frame *dst)
 {
     if (!org || !dst) {
         utils::errorMsg("Error encoding video frame: org or dst are NULL");
@@ -115,12 +115,12 @@ bool VideoEncoderX264or5::configure(int bitrate_, int fps_, int gop_, int lookah
 
 void VideoEncoderX264or5::configEvent(Jzon::Node* params, Jzon::Object &outputNode)
 {
-    int tmpBitrate; 
-    int tmpFps; 
-    int tmpGop; 
-    int tmpLookahead; 
-    int tmpThreads; 
-    bool tmpAnnexB; 
+    int tmpBitrate;
+    int tmpFps;
+    int tmpGop;
+    int tmpLookahead;
+    int tmpThreads;
+    bool tmpAnnexB;
     std::string tmpPreset;
 
     if (!params) {
@@ -128,12 +128,12 @@ void VideoEncoderX264or5::configEvent(Jzon::Node* params, Jzon::Object &outputNo
         return;
     }
 
-    tmpBitrate = bitrate; 
-    tmpFps = fps; 
-    tmpGop = gop; 
-    tmpLookahead = lookahead; 
-    tmpThreads = threads; 
-    tmpAnnexB = annexB; 
+    tmpBitrate = bitrate;
+    tmpFps = fps;
+    tmpGop = gop;
+    tmpLookahead = lookahead;
+    tmpThreads = threads;
+    tmpAnnexB = annexB;
     tmpPreset = preset;
 
     if (params->Has("bitrate")) {

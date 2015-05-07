@@ -56,7 +56,6 @@ private:
     x264_param_t xparams;
     x264_t* encoder;
 
-    PixType inPixFmt;
     int64_t pts;
 
     bool fillPicturePlanes(unsigned char** data, int* linesize);

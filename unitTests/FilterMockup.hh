@@ -29,6 +29,7 @@
 #include <thread>
 #include <chrono>
 #include <random>
+#include <cstring>
 
 #include "Filter.hh"
 #include "AVFramedQueue.hh"
@@ -252,5 +253,88 @@ private:
     ACodecType codec;
 };
 
+class VideoHeadFilterMockup : public HeadFilter
+{
+public:
+    VideoHeadFilterMockup(VCodecType c, PixType pix = P_NONE) :
+        HeadFilter(), srcFrame(NULL), codec(c), pixFormat(pix){};
+
+    bool inject(InterleavedVideoFrame* frame){
+        if (! frame || frame->getCodec() != codec || 
+            frame->getPixelFormat() != pixFormat){
+            return false;
+        }
+        
+        srcFrame = frame;
+        
+        return true;
+    }
+    
+protected:
+    bool doProcessFrame(Frame *dst) {
+        InterleavedVideoFrame *dstFrame;
+        
+        if ((dstFrame = dynamic_cast<InterleavedVideoFrame*>(dst)) != NULL){
+            memmove(dstFrame->getDataBuf(), srcFrame->getDataBuf(), sizeof(unsigned char)*srcFrame->getLength());
+            
+            dstFrame->setLength(srcFrame->getLength());
+            dstFrame->setSize(srcFrame->getWidth(), srcFrame->getHeight());
+            dstFrame->setPresentationTime(std::chrono::system_clock::now());
+            dstFrame->setOriginTime(srcFrame->getOriginTime());
+            dstFrame->setPixelFormat(srcFrame->getPixelFormat());
+            
+            return true;
+        }
+        
+        return false;
+    }
+    
+
+private:
+    FrameQueue *allocQueue(int wId) {return VideoFrameQueue::createNew(codec, pixFormat);};
+
+    InterleavedVideoFrame* srcFrame;
+    VCodecType codec;
+    PixType pixFormat;
+};
+
+class VideoTailFilterMockup : public TailFilter
+{
+public:
+    VideoTailFilterMockup(): TailFilter(), oFrame(NULL){};
+
+    InterleavedVideoFrame* extract(){   
+        return oFrame;
+    }
+    
+protected:
+    bool doProcessFrame(Frame *org) {
+        InterleavedVideoFrame *orgFrame;
+        
+        if ((orgFrame = dynamic_cast<InterleavedVideoFrame*>(org)) != NULL){
+            if (!oFrame){
+                oFrame = InterleavedVideoFrame::createNew(orgFrame->getCodec(), 
+                                                          DEFAULT_WIDTH, DEFAULT_HEIGHT, orgFrame->getPixelFormat());
+            }
+            
+            memmove(oFrame->getDataBuf(), orgFrame->getDataBuf(), sizeof(unsigned char)*orgFrame->getLength());
+            
+            oFrame->setLength(orgFrame->getLength());
+            oFrame->setSize(orgFrame->getWidth(), orgFrame->getHeight());
+            oFrame->setPresentationTime(orgFrame->getPresentationTime());
+            oFrame->setOriginTime(orgFrame->getOriginTime());
+            oFrame->setPixelFormat(orgFrame->getPixelFormat());
+            oFrame->setSequenceNumber(orgFrame->getSequenceNumber());
+            
+            return true;
+        }
+        
+        return false;
+    }
+    
+
+private:
+    InterleavedVideoFrame* oFrame;
+};
 
 #endif

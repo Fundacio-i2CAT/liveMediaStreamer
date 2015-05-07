@@ -172,6 +172,7 @@ public:
     //NOTE: these are public just for testing purposes
     /**
     * Processes frames as a function of its role
+    * @return time to wait until next frame should be processed in nanoseconds.
     */
     std::chrono::nanoseconds processFrame();
     /**
@@ -332,16 +333,18 @@ private:
 
 class HeadFilter : public BaseFilter {
 public:
-    //TODO:implement this function
     void pushEvent(Event e);
 
 protected:
-    HeadFilter(FilterRole fRole_ = MASTER, unsigned writersNum = MAX_WRITERS, size_t fTime = 0);
+    HeadFilter(FilterRole fRole_ = MASTER, size_t fTime = 0);
+    virtual bool doProcessFrame(Frame *dst) = 0;
+    
     int getNullWriterID();
     using BaseFilter::setFrameTime;
     using BaseFilter::getFrameTime;
 
-private:   
+private: 
+    bool runDoProcessFrame();
     using BaseFilter::demandOriginFrames;
     using BaseFilter::demandDestinationFrames;
     using BaseFilter::addFrames;
@@ -379,7 +382,7 @@ protected:
 private:
     FrameQueue *allocQueue(int wId) {return NULL;};
     bool runDoProcessFrame();
-    virtual bool doProcessFrame(std::map<int, Frame *> orgFrames) = 0;
+    virtual bool doProcessFrame(std::map<int, Frame *> dstFrames) = 0;
     using BaseFilter::demandOriginFrames;
     using BaseFilter::demandDestinationFrames;
     using BaseFilter::addFrames;

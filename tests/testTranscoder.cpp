@@ -38,7 +38,7 @@
 #define RETRIES 60
 
 #define SEG_DURATION 4 //sec
-#define DASH_FOLDER "/tmp/dashSegmentsLMS"
+#define DASH_FOLDER "dash"
 #define BASE_NAME "test"
 #define MPD_LOCATION "http://localhost/dash/test.mpd"
 
@@ -220,7 +220,7 @@ void addVideoPath(unsigned port, Dasher* dasher, int dasherId, int receiverID, i
     wRes = new Worker();
     wRes->addProcessor(resId, resampler);
     resampler->setWorkerId(wResId);
-    resampler->configure(1280, 720, 0, YUV420P);
+    resampler->configure(1920, 1080, 0, YUV420P);
     pipe->addWorker(wResId, wRes);
 
     //NOTE: Adding encoder to pipeManager and handle worker
@@ -256,7 +256,7 @@ void addVideoPath(unsigned port, Dasher* dasher, int dasherId, int receiverID, i
         pipe->addFilter(resId3, resampler3);
         wRes2->addProcessor(resId3, resampler3);
         resampler3->setWorkerId(wResId2);
-        resampler3->configure(1280, 720, 0, YUV420P);
+        resampler3->configure(640, 360, 0, YUV420P);
          ((BaseFilter*)resampler)->addSlave(resId3, resampler3);
 
         //NOTE: Adding encoder to pipeManager and handle worker

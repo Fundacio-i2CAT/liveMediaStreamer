@@ -48,18 +48,21 @@ public:
     /*
     * @return A pointer to x265_nal array
     */
-    x265_nal** getNals() {return nals;};
+    x265_nal* getNals() {return nals;};
     
     /*
     * @return A pointer to x265_nal header array (contains non-VCL NALUs such as SPS, PPS, etc.)
     */
-    x265_nal** getHdrNals() {return hdrNals;};
+    x265_nal* getHdrNals() {return hdrNals;};
+
+    void setNals(x265_nal* n){nals = n;};
+    void setHdrNals(x265_nal* n){hdrNals = n;};
         
 private:
     X265VideoFrame();
         
-    x265_nal **nals;
-    x265_nal **hdrNals;
+    x265_nal *nals;
+    x265_nal *hdrNals;
 };
 
 #endif

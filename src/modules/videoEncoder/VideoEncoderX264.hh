@@ -55,7 +55,6 @@ private:
 	x264_picture_t picOut;
     x264_param_t xparams;
     x264_t* encoder;
-    x264_nal_t *ppNal;
 
     PixType inPixFmt;
     int64_t pts;

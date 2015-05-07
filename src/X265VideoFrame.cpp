@@ -29,15 +29,7 @@ X265VideoFrame* X265VideoFrame::createNew()
 
 X265VideoFrame::X265VideoFrame() : X264or5VideoFrame(H265)
 {   
-    hdrNals = (x265_nal**)malloc(sizeof(x265_nal*) * MAX_HEADER_NALS); 
-    for (int i = 0; i < MAX_HEADER_NALS; i++) {
-        hdrNals[i] = (x265_nal*)malloc(sizeof(x265_nal));
-    }
 
-    nals = (x265_nal**)malloc(sizeof(x265_nal*) * MAX_NALS_PER_FRAME); 
-    for (int i = 0; i < MAX_NALS_PER_FRAME; i++) {
-        nals[i] = (x265_nal*)malloc(sizeof(x265_nal));
-    }
 }
 
 X265VideoFrame::~X265VideoFrame()

@@ -28,7 +28,6 @@
 
 AVFramedQueue::AVFramedQueue(unsigned maxFrames) : FrameQueue(), max(maxFrames)
 {
-    std::cout << "AVFramedQueue max: " << max << std::endl;
 
 }
 
@@ -131,8 +130,6 @@ QueueState AVFramedQueue::getState()
 VideoFrameQueue* VideoFrameQueue::createNew(VCodecType codec, unsigned maxFrames, PixType pixelFormat)
 {
     VideoFrameQueue* q = new VideoFrameQueue(codec, maxFrames, pixelFormat);
-    std::cout << "VideoFrameQueue max: " << maxFrames << std::endl;
-
 
     if (!q->setup()) {
         utils::errorMsg("VideoFrameQueue setup error!");

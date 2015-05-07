@@ -55,7 +55,7 @@ bool X265VideoCircularBuffer::pushBack()
     VideoFrame* vFrame;
     X265VideoFrame* x265inputFrame;
     int nalsNum;
-    x265_nal** nals;
+    x265_nal* nals;
 
     x265inputFrame = dynamic_cast<X265VideoFrame*>(inputFrame);
 
@@ -71,8 +71,8 @@ bool X265VideoCircularBuffer::pushBack()
         vFrame = dynamic_cast<VideoFrame*>(frame);
         vFrame->setSequenceNumber(x265inputFrame->getSequenceNumber());
 
-        memcpy(vFrame->getDataBuf(), nals[i]->payload, nals[i]->sizeBytes);
-        vFrame->setLength(nals[i]->sizeBytes);
+        memcpy(vFrame->getDataBuf(), nals[i].payload, nals[i].sizeBytes);
+        vFrame->setLength(nals[i].sizeBytes);
         vFrame->setPresentationTime(x265inputFrame->getPresentationTime());
         vFrame->setSize(x265inputFrame->getWidth(), x265inputFrame->getHeight());
         vFrame->setDuration(x265inputFrame->getDuration());
@@ -91,8 +91,8 @@ bool X265VideoCircularBuffer::pushBack()
         vFrame = dynamic_cast<VideoFrame*>(frame);
         vFrame->setSequenceNumber(x265inputFrame->getSequenceNumber());
 
-        memcpy(vFrame->getDataBuf(), nals[i]->payload, nals[i]->sizeBytes);
-        vFrame->setLength(nals[i]->sizeBytes);
+        memcpy(vFrame->getDataBuf(), nals[i].payload, nals[i].sizeBytes);
+        vFrame->setLength(nals[i].sizeBytes);
         vFrame->setPresentationTime(x265inputFrame->getPresentationTime());
         vFrame->setSize(x265inputFrame->getWidth(), x265inputFrame->getHeight());
         vFrame->setDuration(x265inputFrame->getDuration());

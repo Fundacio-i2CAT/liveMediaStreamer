@@ -37,18 +37,10 @@ X264or5VideoCircularBuffer::~X264or5VideoCircularBuffer()
 
 Frame* X264or5VideoCircularBuffer::getRear()
 {
-    Frame* fr;
-    X264VideoFrame* xfr;
-
     if (elements >= max) {
         return NULL;
     }
 
-    fr = getInputFrame();
-    xfr = dynamic_cast<X264VideoFrame*>(fr);
-
-    printf("Frame nals: %p\n", xfr->getNals());
-    
     return getInputFrame();
 }
 

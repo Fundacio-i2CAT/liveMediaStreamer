@@ -37,14 +37,16 @@ public:
     static X264VideoFrame* createNew();
     ~X264VideoFrame();
 
-    x264_nal_t** getNals() {return nals;};
-    x264_nal_t** getHdrNals() {return hdrNals;};
+    x264_nal_t* getNals() {return nals;};
+    x264_nal_t* getHdrNals() {return hdrNals;};
+    void setNals(x264_nal_t* n){nals = n;};
+    void setHdrNals(x264_nal_t* n){hdrNals = n;};
 
 private:
     X264VideoFrame();
 
-    x264_nal_t **nals;
-    x264_nal_t **hdrNals;
+    x264_nal_t *nals;
+    x264_nal_t *hdrNals;
 };
 
 #endif

@@ -33,7 +33,6 @@
 
     public:
         static X264VideoCircularBuffer* createNew();
-
         ~X264VideoCircularBuffer();
 
     private:

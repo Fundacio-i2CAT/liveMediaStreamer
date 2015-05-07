@@ -31,13 +31,30 @@ extern "C" {
     #include <x264.h>
 }
 
+/* This class represents an x264 video frame. It has an array of x264_nal structures, which are the output of x264 encoder and represent (each one) a NALU. */
+
 class X264VideoFrame : public X264or5VideoFrame {
 
 public:
+    /*
+    * Class constructor wrapper. It checks if maxLength is valid
+    * @return Pointer to new x264VideoFrame or NULL if failed allocating it
+    */
     static X264VideoFrame* createNew();
+
+    /*
+    * Class destructor
+    */
     ~X264VideoFrame();
 
+    /*
+    * @return A pointer to x264_nal array
+    */
     x264_nal_t** getNals() {return nals;};
+
+    /*
+    * @return A pointer to x264_nal header array (contains non-VCL NALUs such as SPS, PPS, etc.)
+    */
     x264_nal_t** getHdrNals() {return hdrNals;};
 
 private:

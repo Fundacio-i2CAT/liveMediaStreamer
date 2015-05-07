@@ -28,7 +28,6 @@ VideoEncoderX264::VideoEncoderX264(FilterRole fRole, bool sharedFrames) :
 VideoEncoderX264or5(fRole, sharedFrames), encoder(NULL)
 {
     pts = 0;
-    encoder = NULL;
     x264_picture_init(&picIn);
     x264_picture_init(&picOut);
 }
@@ -89,11 +88,11 @@ bool VideoEncoderX264::encodeFrame(VideoFrame* codedFrame)
     return true;
 }
 
-bool VideoEncoderX264::encodeHeadersFrame(X264VideoFrame* x264Frame) 
+bool VideoEncoderX264::encodeHeadersFrame(X264VideoFrame* x264Frame)
 {
 	int encodeSize;
     int piNal;
-	
+
 	encodeSize = x264_encoder_headers(encoder, x264Frame->getHdrNals(), &piNal);
 
 	if (encodeSize < 0) {
@@ -105,13 +104,13 @@ bool VideoEncoderX264::encodeHeadersFrame(X264VideoFrame* x264Frame)
     return true;
 }
 
-FrameQueue* VideoEncoderX264::allocQueue(int wId) 
+FrameQueue* VideoEncoderX264::allocQueue(int wId)
 {
     return X264VideoCircularBuffer::createNew();
 }
 
 bool VideoEncoderX264::reconfigure(VideoFrame* orgFrame, VideoFrame* dstFrame)
-{   
+{
     int colorspace;
     X264VideoFrame* x264Frame;
 
@@ -152,7 +151,7 @@ bool VideoEncoderX264::reconfigure(VideoFrame* orgFrame, VideoFrame* dstFrame)
     picIn.img.i_csp = colorspace;
     x264_param_default_preset(&xparams, preset.c_str(), NULL);
     x264_param_apply_profile(&xparams, "high");
-    
+
     x264_param_parse(&xparams, "keyint", std::to_string(gop).c_str());
     x264_param_parse(&xparams, "fps", std::to_string(fps).c_str());
     x264_param_parse(&xparams, "intra-refresh", std::to_string(0).c_str());
@@ -194,10 +193,10 @@ bool VideoEncoderX264::reconfigure(VideoFrame* orgFrame, VideoFrame* dstFrame)
     }
 
     needsConfig = false;
-    
+
     if (!annexB) {
         return encodeHeadersFrame(x264Frame);
     }
-    
+
     return true;
 }

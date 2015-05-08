@@ -62,7 +62,7 @@ AudioEncoderLibav::~AudioEncoderLibav()
 
 FrameQueue* AudioEncoderLibav::allocQueue(int wId)
 {
-    return AudioFrameQueue::createNew(fCodec, internalSampleRate, internalChannels, internalSampleFmt);
+    return AudioFrameQueue::createNew(fCodec, DEFAULT_AUDIO_FRAMES, internalSampleRate, internalChannels, internalSampleFmt);
 }
 
 bool AudioEncoderLibav::doProcessFrame(Frame *org, Frame *dst)

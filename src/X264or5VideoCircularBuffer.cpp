@@ -25,7 +25,7 @@
 #include "VideoFrame.hh"
 #include "X264VideoFrame.hh"
 
-X264or5VideoCircularBuffer::X264or5VideoCircularBuffer(VCodecType codec) : VideoFrameQueue(codec)
+X264or5VideoCircularBuffer::X264or5VideoCircularBuffer(VCodecType codec) : VideoFrameQueue(codec, DEFAULT_VIDEO_FRAMES)
 {
 
 }

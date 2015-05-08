@@ -31,15 +31,7 @@ X264VideoFrame* X264VideoFrame::createNew()
 
 X264VideoFrame::X264VideoFrame() : X264or5VideoFrame(H264)
 {   
-    hdrNals = (x264_nal_t**)malloc(sizeof(x264_nal_t*) * MAX_HEADER_NALS); 
-    for (int i = 0; i < MAX_HEADER_NALS; i++) {
-        hdrNals[i] = (x264_nal_t*)malloc(sizeof(x264_nal_t));
-    }
 
-    nals = (x264_nal_t**)malloc(sizeof(x264_nal_t*) * MAX_NALS_PER_FRAME); 
-    for (int i = 0; i < MAX_NALS_PER_FRAME; i++) {
-        nals[i] = (x264_nal_t*)malloc(sizeof(x264_nal_t));
-    }
 }
 
 X264VideoFrame::~X264VideoFrame()

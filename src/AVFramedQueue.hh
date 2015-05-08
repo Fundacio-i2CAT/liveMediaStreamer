@@ -30,7 +30,7 @@
 class AVFramedQueue : public FrameQueue {
 
 public:
-    AVFramedQueue() : FrameQueue() {};
+    AVFramedQueue(unsigned maxFrames);
     virtual Frame *getRear();
     Frame *getFront(bool &newFrame);
     virtual void addFrame();
@@ -53,12 +53,12 @@ protected:
 class VideoFrameQueue : public AVFramedQueue {
 
 public:
-    static VideoFrameQueue* createNew(VCodecType codec, PixType pixelFormat = P_NONE);
+    static VideoFrameQueue* createNew(VCodecType codec, unsigned maxFrames, PixType pixelFormat = P_NONE);
 
     const VCodecType getCodec() const {return codec;};
 
 protected:
-    VideoFrameQueue(VCodecType codec, PixType pixelFormat = P_NONE);
+    VideoFrameQueue(VCodecType codec, unsigned maxFrames, PixType pixelFormat = P_NONE);
     VCodecType codec;
     PixType pixelFormat;
 
@@ -70,7 +70,8 @@ private:
 class AudioFrameQueue : public AVFramedQueue {
 
 public:
-    static AudioFrameQueue* createNew(ACodecType codec, unsigned sampleRate = DEFAULT_SAMPLE_RATE, unsigned channels = DEFAULT_CHANNELS, SampleFmt sFmt = S16);
+    static AudioFrameQueue* createNew(ACodecType codec, unsigned maxFrames, unsigned sampleRate = DEFAULT_SAMPLE_RATE, 
+                                       unsigned channels = DEFAULT_CHANNELS, SampleFmt sFmt = S16);
     
     unsigned getSampleRate() const {return sampleRate;};
     unsigned getChannels() const {return channels;};
@@ -78,13 +79,15 @@ public:
     const SampleFmt getSampleFmt() const {return sampleFormat;};
 
 protected:
-    AudioFrameQueue(ACodecType codec, SampleFmt sFmt, unsigned sampleRate, unsigned channels);
+    AudioFrameQueue(ACodecType codec, unsigned maxFrames, SampleFmt sFmt, unsigned sampleRate, unsigned channels);
 
     ACodecType codec;
     SampleFmt sampleFormat;
     unsigned sampleRate;
     unsigned channels;
-    bool config();
+
+private:
+    bool setup();
 
 };
 

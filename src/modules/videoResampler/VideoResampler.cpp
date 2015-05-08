@@ -57,7 +57,7 @@ VideoResampler::~VideoResampler()
 
 FrameQueue* VideoResampler::allocQueue(int wId)
 {
-    return VideoFrameQueue::createNew(RAW, outPixFmt);
+    return VideoFrameQueue::createNew(RAW, DEFAULT_RAW_VIDEO_FRAMES, outPixFmt);
 }
 
 bool VideoResampler::reconfigure(VideoFrame* orgFrame)

@@ -1,5 +1,5 @@
 /*
- *  X264VideoCircularBuffer - Video circular buffer
+ *  X264VideoCircularBuffer - X264 Video circular buffer
  *  Copyright (C) 2013  Fundació i2CAT, Internet i Innovació digital a Catalunya
  *
  *  This file is part of media-streamer.
@@ -22,32 +22,25 @@
  *            Marc Palau <marc.palau@i2cat.net>
  */
 
-#ifndef _VIDEO_CIRCULAR_BUFFER_HH
-#define _VIDEO_CIRCULAR_BUFFER_HH
+#ifndef _X264_VIDEO_CIRCULAR_BUFFER_HH
+#define _X264_VIDEO_CIRCULAR_BUFFER_HH
 
-#define MAX_NALS 100
-
-#include <atomic>
 #include "Types.hh"
 #include "X264or5VideoCircularBuffer.hh"
 #include "X264VideoFrame.hh"
-
-extern "C" {
-	#include <x264.h>
-}
 
  class X264VideoCircularBuffer : public X264or5VideoCircularBuffer {
 
     public:
         static X264VideoCircularBuffer* createNew();
-
         ~X264VideoCircularBuffer();
 
     private:
         X264VideoCircularBuffer();
-        
-        bool config();
         bool pushBack();
+        Frame* getInputFrame() {return inputFrame;};
+
+        X264VideoFrame* inputFrame;
 };
 
 #endif

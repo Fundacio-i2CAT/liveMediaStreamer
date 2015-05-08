@@ -312,7 +312,7 @@ FrameQueue* createVideoQueue(char const* codecName)
         return NULL;
     }
 
-    return VideoFrameQueue::createNew(codec);
+    return VideoFrameQueue::createNew(codec, DEFAULT_VIDEO_FRAMES);
 }
 
 FrameQueue* createAudioQueue(unsigned char rtpPayloadFormat, char const* codecName, unsigned channels, unsigned sampleRate)
@@ -321,32 +321,32 @@ FrameQueue* createAudioQueue(unsigned char rtpPayloadFormat, char const* codecNa
     //is this one neeeded? in should be implicit in PCMU case
     if (rtpPayloadFormat == 0) {
         codec = G711;
-        return AudioFrameQueue::createNew(codec);
+        return AudioFrameQueue::createNew(codec, DEFAULT_AUDIO_FRAMES);
     }
 
     if (strcmp(codecName, "OPUS") == 0) {
         codec = OPUS;
-        return AudioFrameQueue::createNew(codec, sampleRate);
+        return AudioFrameQueue::createNew(codec, DEFAULT_AUDIO_FRAMES, sampleRate);
     }
 
     if (strcmp(codecName, "MPEG4-GENERIC") == 0) {
         codec = AAC;
-        return AudioFrameQueue::createNew(codec, sampleRate);
+        return AudioFrameQueue::createNew(codec, DEFAULT_AUDIO_FRAMES, sampleRate);
     }
 
     if (strcmp(codecName, "MPA") == 0) {
         codec = MP3;
-        return AudioFrameQueue::createNew(codec, sampleRate);
+        return AudioFrameQueue::createNew(codec, DEFAULT_AUDIO_FRAMES, sampleRate);
     }
 
     if (strcmp(codecName, "PCMU") == 0) {
         codec = PCMU;
-         return AudioFrameQueue::createNew(codec, sampleRate, channels);
+         return AudioFrameQueue::createNew(codec, DEFAULT_AUDIO_FRAMES, sampleRate, channels);
     }
 
     if (strcmp(codecName, "PCM") == 0) {
         codec = PCM;
-        return AudioFrameQueue::createNew(codec, sampleRate, channels);
+        return AudioFrameQueue::createNew(codec, DEFAULT_AUDIO_FRAMES, sampleRate, channels);
     }
 
     //TODO: error msg codec not supported

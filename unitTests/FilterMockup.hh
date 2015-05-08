@@ -91,8 +91,7 @@ private:
 class AVFramedQueueMock : public AVFramedQueue
 {
 public:
-    AVFramedQueueMock(unsigned max_) : AVFramedQueue() {
-        max = max_;
+    AVFramedQueueMock(unsigned max) : AVFramedQueue(max) {
         config();
     };
 
@@ -232,7 +231,7 @@ public:
     };
 
 protected:
-    FrameQueue *allocQueue(int wId) {return VideoFrameQueue::createNew(codec);};
+    FrameQueue *allocQueue(int wId) {return VideoFrameQueue::createNew(codec, DEFAULT_VIDEO_FRAMES);};
 
 private:
     VCodecType codec;
@@ -247,7 +246,7 @@ public:
     };
 
 protected:
-    FrameQueue *allocQueue(int wId) {return AudioFrameQueue::createNew(codec);};
+    FrameQueue *allocQueue(int wId) {return AudioFrameQueue::createNew(codec, DEFAULT_AUDIO_FRAMES);};
 
 private:
     ACodecType codec;

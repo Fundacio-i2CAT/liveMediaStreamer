@@ -80,7 +80,7 @@ VideoMixer::~VideoMixer()
 
 FrameQueue* VideoMixer::allocQueue(int wId)
 {
-    return VideoFrameQueue::createNew(RAW, RGB24);
+    return VideoFrameQueue::createNew(RAW, DEFAULT_RAW_VIDEO_FRAMES, RGB24);
 }
 
 bool VideoMixer::doProcessFrame(std::map<int, Frame*> orgFrames, Frame *dst)

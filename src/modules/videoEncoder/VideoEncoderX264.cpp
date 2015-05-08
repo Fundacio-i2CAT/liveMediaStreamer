@@ -55,6 +55,7 @@ bool VideoEncoderX264::encodeFrame(VideoFrame* codedFrame)
 {
     int frameLength;
     int piNal;
+    x264_nal_t* nals;
 
     X264VideoFrame* x264Frame = dynamic_cast<X264VideoFrame*> (codedFrame);
 
@@ -71,7 +72,7 @@ bool VideoEncoderX264::encodeFrame(VideoFrame* codedFrame)
     }
 
     picIn.i_pts = pts;
-    frameLength = x264_encoder_encode(encoder, x264Frame->getNals(), &piNal, &picIn, &picOut);
+    frameLength = x264_encoder_encode(encoder, &nals, &piNal, &picIn, &picOut);
 
     pts++;
 
@@ -83,6 +84,7 @@ bool VideoEncoderX264::encodeFrame(VideoFrame* codedFrame)
         return false;
     }
 
+    x264Frame->setNals(nals);
     x264Frame->setNalNum(piNal);
     x264Frame->setLength(frameLength);
     return true;
@@ -92,14 +94,16 @@ bool VideoEncoderX264::encodeHeadersFrame(X264VideoFrame* x264Frame)
 {
 	int encodeSize;
     int piNal;
+    x264_nal_t* nals;
 
-	encodeSize = x264_encoder_headers(encoder, x264Frame->getHdrNals(), &piNal);
+	encodeSize = x264_encoder_headers(encoder, &nals, &piNal);
 
 	if (encodeSize < 0) {
 		utils::errorMsg("Could not encode headers");
         return false;
 	}
 
+    x264Frame->setHdrNals(nals);
     x264Frame->setHdrNalNum(piNal);
     return true;
 }

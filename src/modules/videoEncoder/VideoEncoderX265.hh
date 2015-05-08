@@ -17,9 +17,9 @@
  *  You should have received a copy of the GNU General Public License
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- *  Authors:  Martin German <martin.german@i2cat.net>
- *            David Cassany <david.cassany@i2cat.net>
+ *  Authors:  David Cassany <david.cassany@i2cat.net>
  *            Marc Palau <marc.palau@i2cat.net>
+ *			  Gerard Castillo <gerard.castillo@i2cat.net>
  */
 
 #ifndef _VIDEO_ENCODER_X264_HH
@@ -29,39 +29,39 @@
 #include <stdint.h>
 #include "../../Utils.hh"
 #include "../../VideoFrame.hh"
-#include "../../X264VideoFrame.hh"
+#include "../../X265VideoFrame.hh"
 #include "../../Filter.hh"
 #include "../../FrameQueue.hh"
-#include "../../X264VideoCircularBuffer.hh"
+//#include "../../X265VideoCircularBuffer.hh"
 #include "../../Types.hh"
 
 extern "C" {
-#include <x264.h>
+#include <x265.h>
 }
 
-#define MAX_PLANES_PER_PICTURE 4
+#define MAX_PLANES_PER_PICTURE 3
 
-class VideoEncoderX264 : public VideoEncoderX264or5 {
+class VideoEncoderX265 : public VideoEncoderX264or5 {
 
 public:
-	VideoEncoderX264(FilterRole fRole = MASTER, bool sharedFrames = true);
-	~VideoEncoderX264();
+    VideoEncoderX265(FilterRole fRole = MASTER, bool sharedFrames = true);
+	~VideoEncoderX265();
 	FrameQueue* allocQueue(int wId);
 
 private:
 	void initializeEventMap();
 
-    x264_picture_t picIn;
-	x264_picture_t picOut;
-    x264_param_t xparams;
-    x264_t* encoder;
+    x265_picture    *picIn;
+    x265_picture    *picOut;
+	x265_param      *xparams;
+    x265_encoder*   encoder;
 
-    int64_t pts;
+    int64_t         pts;
 
     bool fillPicturePlanes(unsigned char** data, int* linesize);
     bool encodeFrame(VideoFrame* codedFrame);
     bool reconfigure(VideoFrame *orgFrame, VideoFrame* dstFrame);
-    bool encodeHeadersFrame(X264VideoFrame* x264Frame);
+    bool encodeHeadersFrame(X265VideoFrame* x265Frame);
 };
 
 #endif

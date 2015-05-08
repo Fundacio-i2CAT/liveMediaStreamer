@@ -51,6 +51,51 @@ private:
     bool reconfigureRetVal;
 };
 
+class VideoEncoderX264or5FunctionalTest : public CppUnit::TestFixture
+{
+    CPPUNIT_TEST_SUITE(VideoEncoderX264or5FunctionalTest);
+    CPPUNIT_TEST(runNFrames);
+    CPPUNIT_TEST_SUITE_END();
+
+public:
+    void setUp();
+    void tearDown();
+
+protected:
+    void runNFrames();
+
+    OneToOneVideoScenarioMockup* scenario;
+    VideoEncoderX264or5Mock* encoder;
+};
+
+void VideoEncoderX264or5FunctionalTest::setUp()
+{
+    encoder = new VideoEncoderX264or5Mock();
+    encoder->setFillPicturePlanesRetVal(true);
+    encoder->setEncodeFrameRetVal(true);
+    encoder->setReconfigureRetVal(true);
+    
+    scenario = new OneToOneVideoScenarioMockup(encoder, RAW, YUV420P);
+    CPPUNIT_ASSERT(scenario->connectFilter());
+}
+
+void VideoEncoderX264or5FunctionalTest::tearDown()
+{
+    scenario->disconnectFilter();
+    delete scenario;
+    delete encoder;
+}
+
+void VideoEncoderX264or5FunctionalTest::runNFrames()
+{
+    InterleavedVideoFrame *frame, *filteredFrame;
+    
+    frame = InterleavedVideoFrame::createNew(RAW, DEFAULT_WIDTH, DEFAULT_HEIGHT, YUV420P);
+    for(int i = 0; i < 50; i++){
+        scenario->processFrame(frame, filteredFrame);
+    }
+}
+
 class VideoEncoderX264or5Test : public CppUnit::TestFixture
 {
     CPPUNIT_TEST_SUITE(VideoEncoderX264or5Test);
@@ -182,6 +227,7 @@ void VideoEncoderX264or5Test::configureTest()
 }
 
 CPPUNIT_TEST_SUITE_REGISTRATION(VideoEncoderX264or5Test);
+CPPUNIT_TEST_SUITE_REGISTRATION(VideoEncoderX264or5FunctionalTest);
 
 int main(int argc, char* argv[])
 {

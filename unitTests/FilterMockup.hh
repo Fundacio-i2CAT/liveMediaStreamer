@@ -292,7 +292,9 @@ protected:
     
 
 private:
-    FrameQueue *allocQueue(int wId) {return VideoFrameQueue::createNew(codec, pixFormat);};
+    FrameQueue *allocQueue(int wId) {
+        return VideoFrameQueue::createNew(codec, 10, pixFormat);
+    };
 
     InterleavedVideoFrame* srcFrame;
     VCodecType codec;

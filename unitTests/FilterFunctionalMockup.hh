@@ -48,6 +48,13 @@ public:
         tailF = new VideoTailFilterMockup();
     };
     
+    ~OneToOneVideoScenarioMockup(){
+        disconnectFilter();
+        delete headF;
+        delete tailF;
+        delete filterToTest;
+    }
+    
     bool connectFilter(){
         if (filterToTest == NULL){
             return false;
@@ -63,6 +70,12 @@ public:
         
         return true;
     };
+    
+    bool disconnectFilter(){
+        headF->disconnectAll();
+        filterToTest->disconnectAll();
+        tailF->disconnectAll();
+    }
     
     std::chrono::nanoseconds processFrame(InterleavedVideoFrame* srcFrame, InterleavedVideoFrame* filteredFrame){
         std::chrono::nanoseconds ret;

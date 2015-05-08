@@ -108,7 +108,7 @@ bool VideoDecoderLibav::inputConfig()
             libavCodecId = AV_CODEC_ID_MJPEG;
             break;
         case RAW:
-            //TODO: set raw video codec
+            libavCodecId = AV_CODEC_ID_RAWVIDEO ;
         default:
             utils::errorMsg("Codec not supported");
             return false;

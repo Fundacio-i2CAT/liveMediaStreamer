@@ -31,6 +31,7 @@
 #include <cppunit/XmlOutputter.h>
 
 #include "modules/videoEncoder/VideoEncoderX264or5.hh"
+#include "FilterFunctionalMockup.hh"
 
 class VideoEncoderX264or5Mock : public VideoEncoderX264or5 
 {

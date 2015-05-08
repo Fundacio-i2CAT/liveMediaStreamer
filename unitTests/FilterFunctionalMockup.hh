@@ -30,13 +30,16 @@
 extern "C"{
     #include <libavcodec/avcodec.h>
     #include <libavformat/avformat.h>
-    #include <libavutil/file.h>
+    #include <libavutil/avutil.h>
+    #include <libavutil/pixdesc.h>
 }
 
 #include "Filter.hh"
 #include "VideoFrame.hh"
 #include "FilterMockup.hh"
 
+static AVPixelFormat getPixelFormat(PixType format);
+static AVCodecID getCodec(VCodecType codec);
 
 class OneToOneVideoScenarioMockup {
 public: 
@@ -83,7 +86,7 @@ private:
     VideoHeadFilterMockup *headF;
     VideoTailFilterMockup *tailF;
     OneToOneFilter *filterToTest;
-}
+};
 
 class InterleavedFramesWriter {
 public:
@@ -100,7 +103,7 @@ public:
     
     bool writeInterleavedFrame(InterleavedVideoFrame *frame){
         if (outfile.is_open() && frame != NULL){
-            outfile.write(frame->getDataBuf(), frame->getLenght());
+            outfile.write((char*)frame->getDataBuf(), frame->getLength());
             return true;
         }
         
@@ -109,7 +112,7 @@ public:
     
 private:
     std::ofstream outfile;
-}
+};
 
 class AVFramesReader {
 public:
@@ -119,6 +122,7 @@ public:
     
     bool openFile(std::string file, VCodecType c, PixType pix, 
                   unsigned int width = 0, unsigned int height = 0){
+        int ret;
         if (fmtCtx){
             return false;
         }
@@ -131,7 +135,7 @@ public:
             std::string videoSize = std::to_string(width) + "x" + std::to_string(height);
             av_dict_set(&options, "video_size", videoSize.c_str(), 0);
         }
-        av_dict_set(&options, "pixel_format", av_get_bits_per_pixel(getPixelFormat(pix)), 0);
+        av_dict_set(&options, "pixel_format", av_get_pix_fmt_name(getPixelFormat(pix)), 0);
         
         ret = avformat_open_input(&fmtCtx, file.c_str(), inputFormat, &options);
         if (ret < 0) {
@@ -142,9 +146,9 @@ public:
         }
         
         if (width != 0 && height != 0){
-            frame = InterleavedVideoFrame::createNew(c, width, height, pixelFormat);
+            frame = InterleavedVideoFrame::createNew(c, width, height, pix);
         } else {
-            frame = InterleavedVideoFrame::createNew(c, DEFAULT_WIDTH, DEFAULT_HEIGHT, pixelFormat);
+            frame = InterleavedVideoFrame::createNew(c, DEFAULT_WIDTH, DEFAULT_HEIGHT, pix);
         }
         
         av_init_packet(&pkt);
@@ -156,7 +160,7 @@ public:
     
     void close(){
         if (fmtCtx){
-            avformat_close_input(fmtCtx);
+            avformat_close_input(&fmtCtx);
         }
         
         if (frame){
@@ -172,7 +176,7 @@ public:
             return NULL;
         }
         
-        if (av_read_frame(fmt_ctx, &pkt) >= 0){
+        if (av_read_frame(fmtCtx, &pkt) >= 0){
             memmove(frame->getDataBuf(), pkt.data, sizeof(unsigned char)*pkt.size);
             frame->setLength(pkt.size);
             return frame;
@@ -185,7 +189,7 @@ private:
     AVFormatContext *fmtCtx;
     AVPacket pkt;
     InterleavedVideoFrame* frame;
-}
+};
 
 static AVPixelFormat getPixelFormat(PixType format)
 {
@@ -221,7 +225,7 @@ static AVPixelFormat getPixelFormat(PixType format)
 
 static AVCodecID getCodec(VCodecType codec)
 {
-    switch(fCodec){
+    switch(codec){
         case H264:
             return AV_CODEC_ID_H264;
             break;
@@ -239,6 +243,6 @@ static AVCodecID getCodec(VCodecType codec)
     }
     
     return AV_CODEC_ID_NONE;
-}
+};
 
 #endif

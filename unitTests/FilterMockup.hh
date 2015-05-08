@@ -269,6 +269,8 @@ public:
         return true;
     }
     
+    void doGetState(Jzon::Object &filterNode){};
+    
 protected:
     bool doProcessFrame(Frame *dst) {
         InterleavedVideoFrame *dstFrame;
@@ -306,11 +308,13 @@ public:
         return oFrame;
     }
     
+    void doGetState(Jzon::Object &filterNode){};
+    
 protected:
-    bool doProcessFrame(Frame *org) {
+    bool doProcessFrame(std::map<int, Frame*> orgFrames) {
         InterleavedVideoFrame *orgFrame;
         
-        if ((orgFrame = dynamic_cast<InterleavedVideoFrame*>(org)) != NULL){
+        if ((orgFrame = dynamic_cast<InterleavedVideoFrame*>(orgFrames.begin()->second)) != NULL){
             if (!oFrame){
                 oFrame = InterleavedVideoFrame::createNew(orgFrame->getCodec(), 
                                                           DEFAULT_WIDTH, DEFAULT_HEIGHT, orgFrame->getPixelFormat());

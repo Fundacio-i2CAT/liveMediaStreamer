@@ -41,13 +41,13 @@ public:
     void setPixelFormat(PixType pixelFormat);
     
     VCodecType getCodec() {return codec;};
-    unsigned int getWidth() {return width;};
-    unsigned int getHeight() {return height;};
+    int getWidth() {return width;};
+    int getHeight() {return height;};
     PixType getPixelFormat() {return pixelFormat;};
 
 protected:
     VCodecType codec;
-    unsigned int width, height;
+    int width, height;
     PixType pixelFormat;
 };
 

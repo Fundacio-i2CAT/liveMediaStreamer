@@ -368,6 +368,8 @@ private:
 
     using BaseFilter::maxReaders;
     using BaseFilter::maxWriters;
+    
+    void stop() {};
 };
 
 class TailFilter : public BaseFilter {
@@ -382,7 +384,7 @@ protected:
 private:
     FrameQueue *allocQueue(int wId) {return NULL;};
     bool runDoProcessFrame();
-    virtual bool doProcessFrame(std::map<int, Frame *> dstFrames) = 0;
+    virtual bool doProcessFrame(std::map<int, Frame*> orgFrames) = 0;
     using BaseFilter::demandOriginFrames;
     using BaseFilter::demandDestinationFrames;
     using BaseFilter::addFrames;

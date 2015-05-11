@@ -53,12 +53,6 @@ private:
 class VideoEncoderX264or5Test : public CppUnit::TestFixture
 {
     CPPUNIT_TEST_SUITE(VideoEncoderX264or5Test);
-    CPPUNIT_TEST(doProcessFrameNullFrames);
-    CPPUNIT_TEST(doProcessFrameNotVideoFrames);
-    CPPUNIT_TEST(doProcessFrameReconfigureFalse);
-    CPPUNIT_TEST(doProcessFrameFillPicturePlanesFail);
-    CPPUNIT_TEST(doProcessFrameEncodeFrameFail);
-    CPPUNIT_TEST(doProcessFrameSuccess);
     CPPUNIT_TEST(configureTest);
     CPPUNIT_TEST_SUITE_END();
 
@@ -67,12 +61,6 @@ public:
     void tearDown();
 
 protected:
-    void doProcessFrameNullFrames();
-    void doProcessFrameNotVideoFrames();
-    void doProcessFrameReconfigureFalse();
-    void doProcessFrameFillPicturePlanesFail();
-    void doProcessFrameEncodeFrameFail();
-    void doProcessFrameSuccess();
     void configureTest();
 
     VideoEncoderX264or5Mock* encoder;
@@ -86,70 +74,6 @@ void VideoEncoderX264or5Test::setUp()
 void VideoEncoderX264or5Test::tearDown()
 {
     delete encoder;
-}
-
-void VideoEncoderX264or5Test::doProcessFrameNullFrames()
-{
-    VideoFrame* frame = X264VideoFrame::createNew();
-
-    // CPPUNIT_ASSERT(!encoder->doProcessFrame(NULL, NULL));
-    // CPPUNIT_ASSERT(!encoder->doProcessFrame(frame, NULL));
-    // CPPUNIT_ASSERT(!encoder->doProcessFrame(NULL, frame));
-}
-
-void VideoEncoderX264or5Test::doProcessFrameNotVideoFrames()
-{
-    VideoFrame* vFrame = X264VideoFrame::createNew();
-    AudioFrame* aFrame = InterleavedAudioFrame::createNew(2, 48000, AudioFrame::getMaxSamples(48000), AAC, S16);
-
-    // CPPUNIT_ASSERT(!encoder->doProcessFrame(vFrame, aFrame));
-    // CPPUNIT_ASSERT(!encoder->doProcessFrame(aFrame, vFrame));
-    // CPPUNIT_ASSERT(!encoder->doProcessFrame(aFrame, aFrame));
-}
-
-void VideoEncoderX264or5Test::doProcessFrameReconfigureFalse()
-{
-    VideoFrame* vFrame1 = X264VideoFrame::createNew();
-    VideoFrame* vFrame2 = X264VideoFrame::createNew();
-
-    encoder->setReconfigureRetVal(false);
-    
-    // CPPUNIT_ASSERT(!encoder->doProcessFrame(vFrame1, vFrame2));
-}
-
-void VideoEncoderX264or5Test::doProcessFrameFillPicturePlanesFail()
-{
-    VideoFrame* vFrame1 = X264VideoFrame::createNew();
-    VideoFrame* vFrame2 = X264VideoFrame::createNew();
-
-    encoder->setReconfigureRetVal(true);
-    encoder->setFillPicturePlanesRetVal(false);
-    
-    // CPPUNIT_ASSERT(!encoder->doProcessFrame(vFrame1, vFrame2));
-}
-
-void VideoEncoderX264or5Test::doProcessFrameEncodeFrameFail()
-{
-    VideoFrame* vFrame1 = X264VideoFrame::createNew();
-    VideoFrame* vFrame2 = X264VideoFrame::createNew();
-
-    encoder->setReconfigureRetVal(true);
-    encoder->setFillPicturePlanesRetVal(true);
-    encoder->setEncodeFrameRetVal(false);
-    
-    // CPPUNIT_ASSERT(!encoder->doProcessFrame(vFrame1, vFrame2));
-}
-
-void VideoEncoderX264or5Test::doProcessFrameSuccess()
-{
-    VideoFrame* vFrame1 = X264VideoFrame::createNew();
-    VideoFrame* vFrame2 = X264VideoFrame::createNew();
-
-    encoder->setReconfigureRetVal(true);
-    encoder->setFillPicturePlanesRetVal(true);
-    encoder->setEncodeFrameRetVal(true);
-    
-    // CPPUNIT_ASSERT(encoder->doProcessFrame(vFrame1, vFrame2));
 }
 
 void VideoEncoderX264or5Test::configureTest()

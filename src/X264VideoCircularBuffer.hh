@@ -29,18 +29,27 @@
 #include "X264or5VideoCircularBuffer.hh"
 #include "X264VideoFrame.hh"
 
- class X264VideoCircularBuffer : public X264or5VideoCircularBuffer {
+/*! Video circular buffer, which has an X264VideoFrame as input interface and dumps each 
+    NAL unit into an internal VideoFrameQueue, which is its output interface */
+
+class X264VideoCircularBuffer : public X264or5VideoCircularBuffer {
 
     public:
-        static X264VideoCircularBuffer* createNew();
+        /**
+        * Class constructor wrapper
+        * @param maxFrames internal frame queue size 
+        * @return NULL if wrong input parameters or wrong init and pointer to new object if success
+        */
+        static X264VideoCircularBuffer* createNew(unsigned maxFrames);
+
+        /**
+        * Class destructor
+        */
         ~X264VideoCircularBuffer();
 
     private:
-        X264VideoCircularBuffer();
+        X264VideoCircularBuffer(unsigned maxFrames);
         bool pushBack();
-        Frame* getInputFrame() {return inputFrame;};
-
-        X264VideoFrame* inputFrame;
 };
 
 #endif

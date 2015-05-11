@@ -57,15 +57,16 @@ public:
     Frame *forceGetRear();
 
 protected:
-    X264or5VideoCircularBuffer(VCodecType codec);
+    X264or5VideoCircularBuffer(VCodecType codec, unsigned maxFrames);
 
     virtual bool pushBack() = 0;
-    virtual Frame* getInputFrame() = 0;
 
     Frame *innerGetRear();
     Frame *innerForceGetRear();
     void innerAddFrame();
     bool setup();
+
+    Frame* inputFrame;
 
 };
 

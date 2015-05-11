@@ -55,7 +55,16 @@ public:
     */
     x265_nal* getHdrNals() {return hdrNals;};
 
+    /*
+    * Sets nals array to the specified pointer
+    * @param n pointer to a valid array of x265_nal structs
+    */
     void setNals(x265_nal* n){nals = n;};
+
+    /*
+    * Sets hdrNals array to the specified pointer
+    * @param n pointer to a valid array of x265_nal structs
+    */
     void setHdrNals(x265_nal* n){hdrNals = n;};
         
 private:

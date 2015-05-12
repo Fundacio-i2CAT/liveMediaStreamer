@@ -101,6 +101,9 @@ bool VideoDecoderLibav::inputConfig()
         case H264:
             libavCodecId = AV_CODEC_ID_H264;
             break;
+        case H265:
+            libavCodecId = AV_CODEC_ID_HEVC;
+            break;
         case VP8: 
             libavCodecId = AV_CODEC_ID_VP8;
             break;

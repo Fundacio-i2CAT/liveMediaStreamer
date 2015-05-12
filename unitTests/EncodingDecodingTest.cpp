@@ -35,7 +35,7 @@
 #include "modules/videoEncoder/VideoEncoderX265.hh"
 #include "modules/videoDecoder/VideoDecoderLibav.hh"
 
-#define VIDEO_FRAMES    340
+#define VIDEO_FRAMES    1000
 #define BITS_X_BYTE     8
 
 class VideoEncoderDecoderFunctionalTest : public CppUnit::TestFixture
@@ -55,10 +55,11 @@ protected:
     void test2000();
     void test4000();
 
-    OneToOneVideoScenarioMockup *x264encodingSce, *x265encodingSce, *decodingSce;
+    OneToOneVideoScenarioMockup *x264encodingSce, *x265encodingSce, *x264decodingSce, *x265decodingSce;
     VideoEncoderX264or5* x264encoder;
     VideoEncoderX264or5* x265encoder;
-    VideoDecoderLibav* decoder;
+    VideoDecoderLibav* x264decoder;
+    VideoDecoderLibav* x265decoder;
     AVFramesReader* reader;
     InterleavedFramesWriter* writer;
 };
@@ -67,13 +68,16 @@ void VideoEncoderDecoderFunctionalTest::setUp()
 {
     x264encoder = new VideoEncoderX264();
     x265encoder = new VideoEncoderX265();
-    decoder = new VideoDecoderLibav();
+    x264decoder = new VideoDecoderLibav();
+    x265decoder = new VideoDecoderLibav();
     x264encodingSce = new OneToOneVideoScenarioMockup(x264encoder, RAW, YUV420P);
     x265encodingSce = new OneToOneVideoScenarioMockup(x265encoder, RAW, YUV420P);
-    decodingSce = new OneToOneVideoScenarioMockup(decoder, H264);
+    x264decodingSce = new OneToOneVideoScenarioMockup(x264decoder, H264);
+    x265decodingSce = new OneToOneVideoScenarioMockup(x265decoder, H265);
     CPPUNIT_ASSERT(x264encodingSce->connectFilter());
     CPPUNIT_ASSERT(x265encodingSce->connectFilter());
-    CPPUNIT_ASSERT(decodingSce->connectFilter());
+    CPPUNIT_ASSERT(x264decodingSce->connectFilter());
+    CPPUNIT_ASSERT(x265decodingSce->connectFilter());
     reader = new AVFramesReader();
     writer = new InterleavedFramesWriter();
 }
@@ -82,13 +86,16 @@ void VideoEncoderDecoderFunctionalTest::tearDown()
 {
     x264encodingSce->disconnectFilter();
     x265encodingSce->disconnectFilter();
-    decodingSce->disconnectFilter();
+    x264decodingSce->disconnectFilter();
+    x265decodingSce->disconnectFilter();
     delete x264encodingSce;
     delete x265encodingSce;
-    delete decodingSce;
+    delete x264decodingSce;
+    delete x265decodingSce;
     delete x264encoder;
     delete x265encoder;
-    delete decoder;
+    delete x264decoder;
+    delete x265decoder;
     delete reader;
     delete writer;
 }
@@ -110,8 +117,8 @@ void VideoEncoderDecoderFunctionalTest::test500()
     CPPUNIT_ASSERT(writer->openFile("testsData/videoVectorTest_out_500kbps.h264"));
     
     while((frame = reader->getFrame())!=NULL){
-        decodingSce->processFrame(frame);
-        while ((midFrame = decodingSce->extractFrame())){
+        x264decodingSce->processFrame(frame);
+        while ((midFrame = x264decodingSce->extractFrame())){
             x264encodingSce->processFrame(midFrame);
             while((filteredFrame = x264encodingSce->extractFrame())){
                 CPPUNIT_ASSERT(filteredFrame->getWidth() == midFrame->getWidth() 
@@ -127,8 +134,8 @@ void VideoEncoderDecoderFunctionalTest::test500()
         
     CPPUNIT_ASSERT((fileSize = writer->getFileSize()) > 0);
     
-    CPPUNIT_ASSERT(VIDEO_FRAMES/VIDEO_DEFAULT_FRAMERATE*500*1000*1.05 > fileSize*BITS_X_BYTE &&
-        VIDEO_FRAMES/VIDEO_DEFAULT_FRAMERATE*500*1000*0.95 < fileSize*BITS_X_BYTE
+    CPPUNIT_ASSERT(VIDEO_FRAMES/VIDEO_DEFAULT_FRAMERATE*500*1000*1.1 > fileSize*BITS_X_BYTE &&
+        VIDEO_FRAMES/VIDEO_DEFAULT_FRAMERATE*500*1000*0.9 < fileSize*BITS_X_BYTE
     );
     
     CPPUNIT_ASSERT(milestone);
@@ -142,8 +149,8 @@ void VideoEncoderDecoderFunctionalTest::test500()
     CPPUNIT_ASSERT(writer->openFile("testsData/videoVectorTest_out_500kbps.h265"));
 
     while((frame = reader->getFrame())!=NULL){
-        decodingSce->processFrame(frame);
-        while ((midFrame = decodingSce->extractFrame())){
+        x264decodingSce->processFrame(frame);
+        while ((midFrame = x264decodingSce->extractFrame())){
             x265encodingSce->processFrame(midFrame);
             while((filteredFrame = x265encodingSce->extractFrame())){
                 CPPUNIT_ASSERT(filteredFrame->getWidth() == midFrame->getWidth() 
@@ -159,8 +166,8 @@ void VideoEncoderDecoderFunctionalTest::test500()
         
     CPPUNIT_ASSERT((fileSize = writer->getFileSize()) > 0);
     
-    CPPUNIT_ASSERT(VIDEO_FRAMES/VIDEO_DEFAULT_FRAMERATE*500*1000*1.05 > fileSize*BITS_X_BYTE &&
-        VIDEO_FRAMES/VIDEO_DEFAULT_FRAMERATE*500*1000*0.95 < fileSize*BITS_X_BYTE
+    CPPUNIT_ASSERT(VIDEO_FRAMES/VIDEO_DEFAULT_FRAMERATE*500*1000*1.1 > fileSize*BITS_X_BYTE &&
+        VIDEO_FRAMES/VIDEO_DEFAULT_FRAMERATE*500*1000*0.9 < fileSize*BITS_X_BYTE
     );
     
     CPPUNIT_ASSERT(milestone);
@@ -175,17 +182,18 @@ void VideoEncoderDecoderFunctionalTest::test2000()
     bool milestone = false;
     size_t fileSize;
     
+    //TODO test with lookahead = 2xDEFAULT_GOP --> to implement flush encoder method!
     CPPUNIT_ASSERT(x264encoder->configure(2000, 0, DEFAULT_GOP, DEFAULT_GOP, 
                        DEFAULT_THREADS, DEFAULT_ANNEXB, DEFAULT_PRESET));
     CPPUNIT_ASSERT(x265encoder->configure(2000, 0, DEFAULT_GOP, DEFAULT_GOP, 
                        DEFAULT_THREADS, DEFAULT_ANNEXB, DEFAULT_PRESET));
     
-    CPPUNIT_ASSERT(reader->openFile("testsData/videoVectorTest.h264", H264));
+    CPPUNIT_ASSERT(reader->openFile("testsData/videoVectorTest.hevc", H265));
     CPPUNIT_ASSERT(writer->openFile("testsData/videoVectorTest_out_2000kbps.h264"));
     
     while((frame = reader->getFrame())!=NULL){
-        decodingSce->processFrame(frame);
-        while ((midFrame = decodingSce->extractFrame())){
+        x265decodingSce->processFrame(frame);
+        while ((midFrame = x265decodingSce->extractFrame())){
             x264encodingSce->processFrame(midFrame);
             while((filteredFrame = x264encodingSce->extractFrame())){
                 CPPUNIT_ASSERT(filteredFrame->getWidth() == midFrame->getWidth() 
@@ -201,8 +209,8 @@ void VideoEncoderDecoderFunctionalTest::test2000()
         
     CPPUNIT_ASSERT((fileSize = writer->getFileSize()) > 0);
     
-    CPPUNIT_ASSERT(VIDEO_FRAMES/VIDEO_DEFAULT_FRAMERATE*2000*1000*1.05 > fileSize*BITS_X_BYTE &&
-        VIDEO_FRAMES/VIDEO_DEFAULT_FRAMERATE*2000*1000*0.95 < fileSize*BITS_X_BYTE
+    CPPUNIT_ASSERT(VIDEO_FRAMES/VIDEO_DEFAULT_FRAMERATE*2000*1000*1.1 > fileSize*BITS_X_BYTE &&
+        VIDEO_FRAMES/VIDEO_DEFAULT_FRAMERATE*2000*1000*0.9 < fileSize*BITS_X_BYTE
     );
     
     CPPUNIT_ASSERT(milestone);
@@ -216,8 +224,8 @@ void VideoEncoderDecoderFunctionalTest::test2000()
     CPPUNIT_ASSERT(writer->openFile("testsData/videoVectorTest_out_2000kbps.h265"));
 
     while((frame = reader->getFrame())!=NULL){
-        decodingSce->processFrame(frame);
-        while ((midFrame = decodingSce->extractFrame())){
+        x264decodingSce->processFrame(frame);
+        while ((midFrame = x264decodingSce->extractFrame())){
             x265encodingSce->processFrame(midFrame);
             while((filteredFrame = x265encodingSce->extractFrame())){
                 CPPUNIT_ASSERT(filteredFrame->getWidth() == midFrame->getWidth() 
@@ -233,8 +241,8 @@ void VideoEncoderDecoderFunctionalTest::test2000()
         
     CPPUNIT_ASSERT((fileSize = writer->getFileSize()) > 0);
     
-    CPPUNIT_ASSERT(VIDEO_FRAMES/VIDEO_DEFAULT_FRAMERATE*2000*1000*1.05 > fileSize*BITS_X_BYTE &&
-        VIDEO_FRAMES/VIDEO_DEFAULT_FRAMERATE*2000*1000*0.95 < fileSize*BITS_X_BYTE
+    CPPUNIT_ASSERT(VIDEO_FRAMES/VIDEO_DEFAULT_FRAMERATE*2000*1000*1.1 > fileSize*BITS_X_BYTE &&
+        VIDEO_FRAMES/VIDEO_DEFAULT_FRAMERATE*2000*1000*0.9 < fileSize*BITS_X_BYTE
     );
     
     CPPUNIT_ASSERT(milestone);
@@ -257,8 +265,8 @@ void VideoEncoderDecoderFunctionalTest::test4000()
     CPPUNIT_ASSERT(writer->openFile("testsData/videoVectorTest_out_4000kbps.h264"));
     
     while((frame = reader->getFrame())!=NULL){
-        decodingSce->processFrame(frame);
-        while ((midFrame = decodingSce->extractFrame())){
+        x264decodingSce->processFrame(frame);
+        while ((midFrame = x264decodingSce->extractFrame())){
             x264encodingSce->processFrame(midFrame);
             while((filteredFrame = x264encodingSce->extractFrame())){
                 CPPUNIT_ASSERT(filteredFrame->getWidth() == midFrame->getWidth() 
@@ -274,8 +282,8 @@ void VideoEncoderDecoderFunctionalTest::test4000()
         
     CPPUNIT_ASSERT((fileSize = writer->getFileSize()) > 0);
     
-    CPPUNIT_ASSERT(VIDEO_FRAMES/VIDEO_DEFAULT_FRAMERATE*4000*1000*1.05 > fileSize*BITS_X_BYTE &&
-        VIDEO_FRAMES/VIDEO_DEFAULT_FRAMERATE*4000*1000*0.95 < fileSize*BITS_X_BYTE
+    CPPUNIT_ASSERT(VIDEO_FRAMES/VIDEO_DEFAULT_FRAMERATE*4000*1000*1.1 > fileSize*BITS_X_BYTE &&
+        VIDEO_FRAMES/VIDEO_DEFAULT_FRAMERATE*4000*1000*0.9 < fileSize*BITS_X_BYTE
     );
     
     CPPUNIT_ASSERT(milestone);
@@ -289,8 +297,8 @@ void VideoEncoderDecoderFunctionalTest::test4000()
     CPPUNIT_ASSERT(writer->openFile("testsData/videoVectorTest_out_4000kbps.h265"));
 
     while((frame = reader->getFrame())!=NULL){
-        decodingSce->processFrame(frame);
-        while ((midFrame = decodingSce->extractFrame())){
+        x264decodingSce->processFrame(frame);
+        while ((midFrame = x264decodingSce->extractFrame())){
             x265encodingSce->processFrame(midFrame);
             while((filteredFrame = x265encodingSce->extractFrame())){
                 CPPUNIT_ASSERT(filteredFrame->getWidth() == midFrame->getWidth() 
@@ -306,8 +314,8 @@ void VideoEncoderDecoderFunctionalTest::test4000()
         
     CPPUNIT_ASSERT((fileSize = writer->getFileSize()) > 0);
     
-    CPPUNIT_ASSERT(VIDEO_FRAMES/VIDEO_DEFAULT_FRAMERATE*4000*1000*1.05 > fileSize*BITS_X_BYTE &&
-        VIDEO_FRAMES/VIDEO_DEFAULT_FRAMERATE*4000*1000*0.95 < fileSize*BITS_X_BYTE
+    CPPUNIT_ASSERT(VIDEO_FRAMES/VIDEO_DEFAULT_FRAMERATE*4000*1000*1.1 > fileSize*BITS_X_BYTE &&
+        VIDEO_FRAMES/VIDEO_DEFAULT_FRAMERATE*4000*1000*0.9 < fileSize*BITS_X_BYTE
     );
     
     CPPUNIT_ASSERT(milestone);

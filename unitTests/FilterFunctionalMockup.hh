@@ -82,6 +82,7 @@ public:
         std::chrono::nanoseconds ret;
         
         if (! headF->inject(srcFrame)){
+            printf("It cannot happen2!!\n");
             return std::chrono::nanoseconds(0);
         }
         headF->processFrame();
@@ -101,17 +102,34 @@ private:
 
 class InterleavedFramesWriter {
 public:
-    InterleavedFramesWriter(){};
+    InterleavedFramesWriter(): file(""){};
     
     bool openFile(std::string fileName){
         outfile.open(fileName, std::ofstream::binary);
-        return outfile.is_open();
+        if(outfile.is_open()){
+            file = fileName;
+            return true;
+        }
+        
+        return false;
     }
     
     void closeFile(){
         if (outfile.is_open()){
             outfile.close();
         }
+    }
+    
+    size_t getFileSize(){
+        struct stat buffer;
+        int rc;
+        
+        if (!file.empty()){
+            rc = stat(file.c_str(), &buffer);
+            return rc == 0 ? buffer.st_size : 0;
+        }
+        
+        return 0;
     }
     
     bool writeInterleavedFrame(InterleavedVideoFrame *frame){
@@ -125,6 +143,7 @@ public:
     
 private:
     std::ofstream outfile;
+    std::string file;
 };
 
 class AVFramesReader {

@@ -482,7 +482,7 @@ std::chrono::nanoseconds BaseFilter::masterProcessFrame()
     wallClock = std::chrono::system_clock::now();
 
     processEvent();
-    
+      
     if (!demandOriginFrames() || !demandDestinationFrames()) {
         return std::chrono::nanoseconds(RETRY);
     }

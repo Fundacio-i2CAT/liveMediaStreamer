@@ -37,7 +37,7 @@ class X264VideoFrame : public X264or5VideoFrame {
 
 public:
     /*
-    * Class constructor wrapper. It checks if maxLength is valid
+    * Class constructor wrapper
     * @return Pointer to new x264VideoFrame or NULL if failed allocating it
     */
     static X264VideoFrame* createNew();
@@ -56,7 +56,17 @@ public:
     * @return A pointer to x264_nal header array (contains non-VCL NALUs such as SPS, PPS, etc.)
     */
     x264_nal_t* getHdrNals() {return hdrNals;};
+
+    /*
+    * Sets nals array to the specified pointer
+    * @param n pointer to a valid array of x264_nal_t structs
+    */
     void setNals(x264_nal_t* n){nals = n;};
+
+    /*
+    * Sets hdrNals array to the specified pointer
+    * @param n pointer to a valid array of x264_nal_t structs
+    */
     void setHdrNals(x264_nal_t* n){hdrNals = n;};
 
 private:

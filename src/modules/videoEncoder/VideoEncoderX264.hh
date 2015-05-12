@@ -32,7 +32,6 @@
 #include "../../X264VideoFrame.hh"
 #include "../../Filter.hh"
 #include "../../FrameQueue.hh"
-#include "../../X264VideoCircularBuffer.hh"
 #include "../../Types.hh"
 
 extern "C" {

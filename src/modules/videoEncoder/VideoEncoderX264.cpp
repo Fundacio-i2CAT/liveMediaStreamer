@@ -23,6 +23,7 @@
 
 #include <cmath>
 #include "VideoEncoderX264.hh"
+#include "../../X264VideoCircularBuffer.hh"
 
 VideoEncoderX264::VideoEncoderX264(FilterRole fRole, bool sharedFrames) :
 VideoEncoderX264or5(fRole, sharedFrames), encoder(NULL)
@@ -110,7 +111,7 @@ bool VideoEncoderX264::encodeHeadersFrame(X264VideoFrame* x264Frame)
 
 FrameQueue* VideoEncoderX264::allocQueue(int wId)
 {
-    return X264VideoCircularBuffer::createNew();
+    return X264VideoCircularBuffer::createNew(DEFAULT_VIDEO_FRAMES);
 }
 
 bool VideoEncoderX264::reconfigure(VideoFrame* orgFrame, VideoFrame* dstFrame)

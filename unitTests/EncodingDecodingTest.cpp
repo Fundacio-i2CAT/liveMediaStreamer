@@ -72,11 +72,14 @@ void VideoEncoderDecoderFunctionalTest::setUp()
 
 void VideoEncoderDecoderFunctionalTest::tearDown()
 {
-    /*encodingSce->disconnectFilter();
+    decodingSce->disconnectFilter();
+    delete decodingSce;
+    delete decoder;
+    encodingSce->disconnectFilter();
     delete encodingSce;
     delete encoder;
     delete reader;
-    delete writer;*/
+    delete writer;
 }
 
 void VideoEncoderDecoderFunctionalTest::h264Test()

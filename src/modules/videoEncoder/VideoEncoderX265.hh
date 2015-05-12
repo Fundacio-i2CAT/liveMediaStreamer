@@ -45,11 +45,11 @@ class VideoEncoderX265 : public VideoEncoderX264or5 {
 
 public:
     VideoEncoderX265(FilterRole fRole = MASTER, bool sharedFrames = true);
-    ~VideoEncoderX265();
-    FrameQueue* allocQueue(int wId);
+	~VideoEncoderX265();
 
 private:
-    void initializeEventMap();
+    FrameQueue* allocQueue(int wId);
+	void initializeEventMap();
 
     x265_picture    *picIn;
     x265_picture    *picOut;

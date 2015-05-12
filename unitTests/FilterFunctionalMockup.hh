@@ -254,6 +254,9 @@ static AVCodecID getCodec(VCodecType codec)
         case H264:
             return AV_CODEC_ID_H264;
             break;
+        case H265:
+            return AV_CODEC_ID_HEVC;
+            break;
         case VP8: 
             return AV_CODEC_ID_VP8;
             break;

@@ -44,7 +44,7 @@ bool VideoEncoderX264::fillPicturePlanes(unsigned char** data, int* linesize)
         return false;
     }
 
-    for(int i = 0; i < MAX_PLANES_PER_PICTURE; i++){
+    for(int i = 0; i < MAX_PLANES_PER_PICTURE_X264; i++){
         picIn.img.i_stride[i] = linesize[i];
         picIn.img.plane[i] = data[i];
     }

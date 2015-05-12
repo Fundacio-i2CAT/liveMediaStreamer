@@ -19,11 +19,11 @@
  *
  *  Authors:  David Cassany <david.cassany@i2cat.net>
  *            Marc Palau <marc.palau@i2cat.net>
- *	      Gerard Castillo <gerard.castillo@i2cat.net>
+ *	          Gerard Castillo <gerard.castillo@i2cat.net>
  */
 
-#ifndef _VIDEO_ENCODER_X264_HH
-#define _VIDEO_ENCODER_X264_HH
+#ifndef _VIDEO_ENCODER_X265_HH
+#define _VIDEO_ENCODER_X265_HH
 
 #include "VideoEncoderX264or5.hh"
 #include <stdint.h>
@@ -32,14 +32,13 @@
 #include "../../X265VideoFrame.hh"
 #include "../../Filter.hh"
 #include "../../FrameQueue.hh"
-//#include "../../X265VideoCircularBuffer.hh"
 #include "../../Types.hh"
 
 extern "C" {
 #include <x265.h>
 }
 
-#define MAX_PLANES_PER_PICTURE 3
+#define MAX_PLANES_PER_PICTURE_X265 3
 
 class VideoEncoderX265 : public VideoEncoderX264or5 {
 

@@ -50,7 +50,7 @@ bool VideoEncoderX265::fillPicturePlanes(unsigned char** data, int* linesize)
         return false;
     }
 
-    for(int i = 0; i < MAX_PLANES_PER_PICTURE; i++){
+    for(int i = 0; i < MAX_PLANES_PER_PICTURE_X265; i++){
         picIn->stride[i] = linesize[i];
         picIn->planes[i] = data[i];
     }
@@ -66,8 +66,13 @@ bool VideoEncoderX265::encodeFrame(VideoFrame* codedFrame)
 
     X265VideoFrame* x265Frame = dynamic_cast<X265VideoFrame*> (codedFrame);
 
-    if (!x265Frame || !encoder) {
-        utils::errorMsg("Could not encode x265 video frame. Target frame or encoder are NULL");
+    if (!x265Frame) {
+        utils::errorMsg("Could not encode x265 video frame. Target frame is NULL");
+        return false;
+    }
+    
+    if (!encoder) {
+        utils::errorMsg("Could not encode x265 video frame. Encoder is NULL");
         return false;
     }
 
@@ -86,13 +91,13 @@ bool VideoEncoderX265::encodeFrame(VideoFrame* codedFrame)
     if (frameLength < 0) {
         utils::errorMsg("Could not encode video frame");
         return false;
-    } else if (frameLength == 1) {
+    } else if (frameLength == 0) {
         utils::debugMsg("X265 Encoder: NAL not retrieved after encoding");
         return false;
     }
     x265Frame->setNals(nals);
     x265Frame->setNalNum(piNal);
-    x265Frame->setLength(frameLength);
+    x265Frame->setSize(xparams->sourceWidth, xparams->sourceHeight);
     return true;
 }
 
@@ -167,6 +172,7 @@ bool VideoEncoderX265::reconfigure(VideoFrame* orgFrame, VideoFrame* dstFrame)
 
     x265_param_parse(xparams, "keyint", std::to_string(gop).c_str());
     x265_param_parse(xparams, "fps", std::to_string(fps).c_str());
+    x265_param_parse(xparams, "input-res", (std::to_string(orgFrame->getWidth()) + 'x' + std::to_string(orgFrame->getHeight())).c_str());
 
     //TODO check same management for intra-refresh like x264
     //x265_param_parse(xparams, "intra-refresh", std::to_string(0).c_str());
@@ -183,16 +189,6 @@ bool VideoEncoderX265::reconfigure(VideoFrame* orgFrame, VideoFrame* dstFrame)
     if (annexB) {
         x265_param_parse(xparams, "repeat-headers", std::to_string(1).c_str());
         x265_param_parse(xparams, "annexb", std::to_string(1).c_str());
-    }
-
-    if (orgFrame->getWidth() != xparams->sourceWidth || orgFrame->getHeight() != xparams->sourceHeight) {
-        xparams->sourceWidth = orgFrame->getWidth();
-        xparams->sourceHeight = orgFrame->getHeight();
-
-        if (encoder != NULL){
-            x265_encoder_close(encoder);
-            encoder = NULL;
-        }
     }
 
     if (!encoder) {

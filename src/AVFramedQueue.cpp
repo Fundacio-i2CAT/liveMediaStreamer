@@ -155,6 +155,11 @@ bool VideoFrameQueue::setup()
                 frames[i] = InterleavedVideoFrame::createNew(codec, MAX_H264_OR_5_NAL_SIZE);
             }
             break;
+        case H265:
+            for (unsigned i=0; i<max; i++) {
+                frames[i] = InterleavedVideoFrame::createNew(codec, MAX_H264_OR_5_NAL_SIZE);
+            }
+            break;
         case VP8:
             for (unsigned i=0; i<max; i++) {
                 frames[i] = InterleavedVideoFrame::createNew(codec, LENGTH_VP8);

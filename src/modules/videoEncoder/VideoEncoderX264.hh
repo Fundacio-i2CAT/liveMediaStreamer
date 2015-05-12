@@ -51,7 +51,7 @@ private:
 	void initializeEventMap();
 
     x264_picture_t picIn;
-	x264_picture_t picOut;
+    x264_picture_t picOut;
     x264_param_t xparams;
     x264_t* encoder;
 

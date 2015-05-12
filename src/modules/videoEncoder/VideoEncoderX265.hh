@@ -19,7 +19,7 @@
  *
  *  Authors:  David Cassany <david.cassany@i2cat.net>
  *            Marc Palau <marc.palau@i2cat.net>
- *			  Gerard Castillo <gerard.castillo@i2cat.net>
+ *	      Gerard Castillo <gerard.castillo@i2cat.net>
  */
 
 #ifndef _VIDEO_ENCODER_X264_HH
@@ -53,7 +53,7 @@ private:
 
     x265_picture    *picIn;
     x265_picture    *picOut;
-	x265_param      *xparams;
+    x265_param      *xparams;
     x265_encoder*   encoder;
 
     int64_t         pts;

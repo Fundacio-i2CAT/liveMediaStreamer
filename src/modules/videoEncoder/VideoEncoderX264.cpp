@@ -35,7 +35,7 @@ VideoEncoderX264or5(fRole, sharedFrames), encoder(NULL)
 
 VideoEncoderX264::~VideoEncoderX264()
 {
-	// x264_picture_clean(picIn);
+    x264_picture_clean(&picIn);
 }
 
 bool VideoEncoderX264::fillPicturePlanes(unsigned char** data, int* linesize)
@@ -59,9 +59,14 @@ bool VideoEncoderX264::encodeFrame(VideoFrame* codedFrame)
     x264_nal_t* nals;
 
     X264VideoFrame* x264Frame = dynamic_cast<X264VideoFrame*> (codedFrame);
-
-    if (!x264Frame || !encoder) {
-        utils::errorMsg("Could not encode x264 video frame. Target frame or encoder are NULL");
+    
+    if (!x264Frame) {
+        utils::errorMsg("Could not encode x264 video frame. Target frame is NULL");
+        return false;
+    }
+    
+    if (!encoder) {
+        utils::errorMsg("Could not encode x264 video frame. Encoder is NULL");
         return false;
     }
 
@@ -71,12 +76,12 @@ bool VideoEncoderX264::encodeFrame(VideoFrame* codedFrame)
     } else {
         picIn.i_type = X264_TYPE_AUTO;
     }
-
+    
     picIn.i_pts = pts;
     frameLength = x264_encoder_encode(encoder, &nals, &piNal, &picIn, &picOut);
 
     pts++;
-
+   
     if (frameLength < 0) {
         utils::errorMsg("Could not encode video frame");
         return false;
@@ -84,25 +89,26 @@ bool VideoEncoderX264::encodeFrame(VideoFrame* codedFrame)
         utils::debugMsg("X264 Encoder: NAL not retrieved after encoding");
         return false;
     }
-
+    
     x264Frame->setNals(nals);
     x264Frame->setNalNum(piNal);
     x264Frame->setLength(frameLength);
+    x264Frame->setSize(xparams.i_width, xparams.i_height);
     return true;
 }
 
 bool VideoEncoderX264::encodeHeadersFrame(X264VideoFrame* x264Frame)
 {
-	int encodeSize;
+    int encodeSize;
     int piNal;
     x264_nal_t* nals;
 
-	encodeSize = x264_encoder_headers(encoder, &nals, &piNal);
+    encodeSize = x264_encoder_headers(encoder, &nals, &piNal);
 
-	if (encodeSize < 0) {
-		utils::errorMsg("Could not encode headers");
+    if (encodeSize < 0) {
+        utils::errorMsg("Could not encode headers");
         return false;
-	}
+    }
 
     x264Frame->setHdrNals(nals);
     x264Frame->setHdrNalNum(piNal);
@@ -192,6 +198,7 @@ bool VideoEncoderX264::reconfigure(VideoFrame* orgFrame, VideoFrame* dstFrame)
         encoder = x264_encoder_open(&xparams);
     }
 
+    
     if (!encoder) {
         utils::errorMsg("Error reconfiguring x264 encoder. At this point encoder should not be NULL...");
         return false;

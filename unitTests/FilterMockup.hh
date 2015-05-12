@@ -269,6 +269,8 @@ public:
         return true;
     }
     
+    void doGetState(Jzon::Object &filterNode){};
+    
 protected:
     bool doProcessFrame(Frame *dst) {
         InterleavedVideoFrame *dstFrame;
@@ -290,7 +292,9 @@ protected:
     
 
 private:
-    FrameQueue *allocQueue(int wId) {return VideoFrameQueue::createNew(codec, pixFormat);};
+    FrameQueue *allocQueue(int wId) {
+        return VideoFrameQueue::createNew(codec, 10, pixFormat);
+    };
 
     InterleavedVideoFrame* srcFrame;
     VCodecType codec;
@@ -300,17 +304,24 @@ private:
 class VideoTailFilterMockup : public TailFilter
 {
 public:
-    VideoTailFilterMockup(): TailFilter(), oFrame(NULL){};
+    VideoTailFilterMockup(): TailFilter(), oFrame(NULL), newFrame(false){};
 
     InterleavedVideoFrame* extract(){   
-        return oFrame;
+        if (newFrame){
+            newFrame = false;
+            return oFrame;
+        } else {
+            return NULL;
+        }
     }
     
+    void doGetState(Jzon::Object &filterNode){};
+    
 protected:
-    bool doProcessFrame(Frame *org) {
+    bool doProcessFrame(std::map<int, Frame*> orgFrames) {
         InterleavedVideoFrame *orgFrame;
         
-        if ((orgFrame = dynamic_cast<InterleavedVideoFrame*>(org)) != NULL){
+        if ((orgFrame = dynamic_cast<InterleavedVideoFrame*>(orgFrames.begin()->second)) != NULL){
             if (!oFrame){
                 oFrame = InterleavedVideoFrame::createNew(orgFrame->getCodec(), 
                                                           DEFAULT_WIDTH, DEFAULT_HEIGHT, orgFrame->getPixelFormat());
@@ -325,6 +336,8 @@ protected:
             oFrame->setPixelFormat(orgFrame->getPixelFormat());
             oFrame->setSequenceNumber(orgFrame->getSequenceNumber());
             
+            newFrame = true;
+            
             return true;
         }
         
@@ -334,6 +347,7 @@ protected:
 
 private:
     InterleavedVideoFrame* oFrame;
+    bool newFrame;
 };
 
 #endif

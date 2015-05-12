@@ -25,11 +25,22 @@
 #define _FILTER_FUNCTIONAL_MOCKUP_HH
 
 #include <chrono>
+#include <fstream>
+#include <sys/stat.h>
+
+extern "C"{
+    #include <libavcodec/avcodec.h>
+    #include <libavformat/avformat.h>
+    #include <libavutil/avutil.h>
+    #include <libavutil/pixdesc.h>
+}
 
 #include "Filter.hh"
 #include "VideoFrame.hh"
 #include "FilterMockup.hh"
 
+static AVPixelFormat getPixelFormat(PixType format);
+static AVCodecID getCodec(VCodecType codec);
 
 class OneToOneVideoScenarioMockup {
 public: 
@@ -37,6 +48,13 @@ public:
         headF = new VideoHeadFilterMockup(c, pix);
         tailF = new VideoTailFilterMockup();
     };
+    
+    ~OneToOneVideoScenarioMockup(){
+        disconnectFilter();
+        delete headF;
+        delete tailF;
+        delete filterToTest;
+    }
     
     bool connectFilter(){
         if (filterToTest == NULL){
@@ -54,31 +72,202 @@ public:
         return true;
     };
     
-    std::chrono::nanoseconds processFrame(InterleavedVideoFrame* srcFrame, InterleavedVideoFrame* filteredFrame){
+    void disconnectFilter(){
+        headF->disconnectAll();
+        filterToTest->disconnectAll();
+        tailF->disconnectAll();
+    }
+    
+    std::chrono::nanoseconds processFrame(InterleavedVideoFrame* srcFrame){
         std::chrono::nanoseconds ret;
         
         if (! headF->inject(srcFrame)){
             return std::chrono::nanoseconds(0);
         }
         headF->processFrame();
-        ret = filterToTest->processFrame();
+        return filterToTest->processFrame();
+    }
+    
+    InterleavedVideoFrame *extractFrame(){
         tailF->processFrame();
-        filteredFrame = tailF->extract();
-        
-        if (! filteredFrame){
-            return std::chrono::nanoseconds(0);
-        }
-        
-        return ret;
+        return tailF->extract();
     }
     
 private:
     VideoHeadFilterMockup *headF;
     VideoTailFilterMockup *tailF;
-    OneToOneFilter* filterToTest;
+    OneToOneFilter *filterToTest;
+};
+
+class InterleavedFramesWriter {
+public:
+    InterleavedFramesWriter(){};
+    
+    bool openFile(std::string fileName){
+        outfile.open(fileName, std::ofstream::binary);
+        return outfile.is_open();
+    }
+    
+    void closeFile(){
+        if (outfile.is_open()){
+            outfile.close();
+        }
+    }
+    
+    bool writeInterleavedFrame(InterleavedVideoFrame *frame){
+        if (outfile.is_open() && frame != NULL){
+            outfile.write((char*)frame->getDataBuf(), frame->getLength());
+            return true;
+        }
+        
+        return false;
+    }
+    
+private:
+    std::ofstream outfile;
+};
+
+class AVFramesReader {
+public:
+    AVFramesReader(): fmtCtx(NULL), frame(NULL){
+        av_register_all();
+    };
+    
+    bool openFile(std::string file, VCodecType c, PixType pix = P_NONE, 
+                  unsigned int width = 0, unsigned int height = 0){
+        int ret;
+        struct stat buffer;
+        
+        if (stat (file.c_str(), &buffer) != 0){
+            return false;
+        }
+        
+        if (fmtCtx){
+            return false;
+        }
+        
+        fmtCtx = avformat_alloc_context();
+        
+        AVInputFormat* inputFormat = av_find_input_format(avcodec_get_name(getCodec(c)));
+        if (!inputFormat){
+            return false;
+        }
+        
+        AVDictionary *options = NULL;
+        if (width != 0 && height != 0){
+            std::string videoSize = std::to_string(width) + "x" + std::to_string(height);
+            av_dict_set(&options, "video_size", videoSize.c_str(), 0);
+        }
+        if (pix != P_NONE){
+            av_dict_set(&options, "pixel_format", av_get_pix_fmt_name(getPixelFormat(pix)), 0);
+        }
+        
+        ret = avformat_open_input(&fmtCtx, file.c_str(), inputFormat, &options);
+        if (ret < 0) {
+            av_dict_free(&options);
+            avformat_free_context(fmtCtx);
+            fmtCtx = NULL;
+            return false;
+        }
+        
+        if (width != 0 && height != 0){
+            frame = InterleavedVideoFrame::createNew(c, width, height, pix);
+        } else {
+            frame = InterleavedVideoFrame::createNew(c, DEFAULT_WIDTH, DEFAULT_HEIGHT, pix);
+        }
+        
+        av_init_packet(&pkt);
+        pkt.data = NULL;
+        pkt.size = 0;
+        
+        return true;
+    };
+    
+    void close(){
+        if (fmtCtx){
+            avformat_close_input(&fmtCtx);
+        }
+        
+        if (frame){
+            delete frame;
+            frame = NULL;
+        }
+        
+        av_free_packet(&pkt);
+    }
+    
+    InterleavedVideoFrame* getFrame(){
+        if (!fmtCtx || !frame){
+            return NULL;
+        }
+        
+        if (av_read_frame(fmtCtx, &pkt) >= 0){
+            memmove(frame->getDataBuf(), pkt.data, sizeof(unsigned char)*pkt.size);
+            frame->setLength(pkt.size);
+            return frame;
+        } 
+        
+        return NULL;
+    }
+    
+private:
+    AVFormatContext *fmtCtx;
+    AVPacket pkt;
+    InterleavedVideoFrame* frame;
+};
+
+static AVPixelFormat getPixelFormat(PixType format)
+{
+    switch(format){
+        case RGB24:
+            return AV_PIX_FMT_RGB24;
+            break;
+        case RGB32:
+            return AV_PIX_FMT_RGB32;
+            break;
+        case YUYV422:
+            return AV_PIX_FMT_YUYV422;
+            break;
+        case YUV420P:
+            return AV_PIX_FMT_YUV420P;
+            break;
+        case YUV422P:
+            return AV_PIX_FMT_YUV422P;
+            break;
+        case YUV444P:
+            return AV_PIX_FMT_YUV444P;
+            break;
+        case YUVJ420P:
+            return AV_PIX_FMT_YUVJ420P;
+            break;
+        default:
+            utils::errorMsg("Unknown output pixel format");
+            break;
+    }
+    
+    return AV_PIX_FMT_NONE;
 }
 
-
-
+static AVCodecID getCodec(VCodecType codec)
+{
+    switch(codec){
+        case H264:
+            return AV_CODEC_ID_H264;
+            break;
+        case VP8: 
+            return AV_CODEC_ID_VP8;
+            break;
+        case MJPEG: //TODO
+            return AV_CODEC_ID_MJPEG;
+            break;
+        case RAW:
+            return AV_CODEC_ID_RAWVIDEO ;
+        default:
+            utils::errorMsg("Codec not supported");
+            break;
+    }
+    
+    return AV_CODEC_ID_NONE;
+};
 
 #endif

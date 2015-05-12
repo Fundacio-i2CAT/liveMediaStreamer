@@ -29,6 +29,8 @@ OneToOneFilter(false, fRole_, sharedFrames), inPixFmt(P_NONE), annexB(false), fo
     fType = VIDEO_ENCODER;
     midFrame = av_frame_alloc();
     initializeEventMap();
+    configure(DEFAULT_BITRATE, VIDEO_DEFAULT_FRAMERATE, DEFAULT_GOP, 
+              DEFAULT_LOOKAHEAD, DEFAULT_THREADS, DEFAULT_ANNEXB, DEFAULT_PRESET);
 }
 
 VideoEncoderX264or5::~VideoEncoderX264or5()

@@ -197,7 +197,6 @@ bool VideoEncoderX264::reconfigure(VideoFrame* orgFrame, VideoFrame* dstFrame)
         x264_encoder_close(encoder);
         encoder = x264_encoder_open(&xparams);
     }
-
     
     if (!encoder) {
         utils::errorMsg("Error reconfiguring x264 encoder. At this point encoder should not be NULL...");

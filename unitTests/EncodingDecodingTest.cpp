@@ -21,6 +21,7 @@
 
 #include <string>
 #include <iostream>
+#include <chrono>
 
 #include <cppunit/extensions/TestFactoryRegistry.h>
 #include <cppunit/extensions/HelperMacros.h>
@@ -33,6 +34,9 @@
 #include "modules/videoEncoder/VideoEncoderX264.hh"
 #include "modules/videoEncoder/VideoEncoderX265.hh"
 #include "modules/videoDecoder/VideoDecoderLibav.hh"
+
+#define VIDEO_FRAMES 340
+#define BITS_X_BYTE 8
 
 class VideoEncoderDecoderFunctionalTest : public CppUnit::TestFixture
 {
@@ -81,6 +85,10 @@ void VideoEncoderDecoderFunctionalTest::h264Test()
     InterleavedVideoFrame *midFrame = NULL;
     InterleavedVideoFrame *filteredFrame = NULL;
     bool milestone = false;
+    size_t fileSize;
+    
+    encoder->configure(4000, 0, DEFAULT_GOP, 0, 
+                       DEFAULT_THREADS, DEFAULT_ANNEXB, DEFAULT_PRESET);
     
     CPPUNIT_ASSERT(reader->openFile("testsData/videoVectorTest.h264", H264));
     CPPUNIT_ASSERT(writer->openFile("testsData/videoVectorTest_out.h264"));
@@ -96,12 +104,16 @@ void VideoEncoderDecoderFunctionalTest::h264Test()
                 milestone = true;
             }
         }
-    }
-    
-    //TODO: totally dump encoder
+    }  
     
     writer->closeFile();
     reader->close();
+        
+    CPPUNIT_ASSERT((fileSize = writer->getFileSize()) > 0);
+    
+    CPPUNIT_ASSERT(VIDEO_FRAMES/VIDEO_DEFAULT_FRAMERATE*4000*1000*1.05 > fileSize*BITS_X_BYTE &&
+        VIDEO_FRAMES/VIDEO_DEFAULT_FRAMERATE*4000*1000*0.95 < fileSize*BITS_X_BYTE
+    );
     
     CPPUNIT_ASSERT(milestone);
 }

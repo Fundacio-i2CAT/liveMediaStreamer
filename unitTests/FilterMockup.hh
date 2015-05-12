@@ -304,10 +304,15 @@ private:
 class VideoTailFilterMockup : public TailFilter
 {
 public:
-    VideoTailFilterMockup(): TailFilter(), oFrame(NULL){};
+    VideoTailFilterMockup(): TailFilter(), oFrame(NULL), newFrame(false){};
 
     InterleavedVideoFrame* extract(){   
-        return oFrame;
+        if (newFrame){
+            newFrame = false;
+            return oFrame;
+        } else {
+            return NULL;
+        }
     }
     
     void doGetState(Jzon::Object &filterNode){};
@@ -331,6 +336,8 @@ protected:
             oFrame->setPixelFormat(orgFrame->getPixelFormat());
             oFrame->setSequenceNumber(orgFrame->getSequenceNumber());
             
+            newFrame = true;
+            
             return true;
         }
         
@@ -340,6 +347,7 @@ protected:
 
 private:
     InterleavedVideoFrame* oFrame;
+    bool newFrame;
 };
 
 #endif

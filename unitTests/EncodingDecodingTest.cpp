@@ -52,12 +52,11 @@ protected:
     VideoDecoderLibav* decoder;
     AVFramesReader* reader;
     InterleavedFramesWriter* writer;
-    InterleavedFramesWriter* rawWriter;
 };
 
 void VideoEncoderDecoderFunctionalTest::setUp()
 {
-    encoder = new VideoEncoderX264();   
+    encoder = new VideoEncoderX264();
     decoder = new VideoDecoderLibav();
     encodingSce = new OneToOneVideoScenarioMockup(encoder, RAW, YUV420P);
     decodingSce = new OneToOneVideoScenarioMockup(decoder, H264);
@@ -65,7 +64,6 @@ void VideoEncoderDecoderFunctionalTest::setUp()
     CPPUNIT_ASSERT(decodingSce->connectFilter());
     reader = new AVFramesReader();
     writer = new InterleavedFramesWriter();
-    rawWriter = new InterleavedFramesWriter();
 }
 
 void VideoEncoderDecoderFunctionalTest::tearDown()
@@ -86,14 +84,12 @@ void VideoEncoderDecoderFunctionalTest::h264Test()
     
     CPPUNIT_ASSERT(reader->openFile("testsData/videoVectorTest.h264", H264));
     CPPUNIT_ASSERT(writer->openFile("testsData/videoVectorTest_out.h264"));
-    CPPUNIT_ASSERT(rawWriter->openFile("testsData/videoVectorTest_out.raw"));
     
     while((frame = reader->getFrame())!=NULL){
-        decodingSce->processFrame(frame, midFrame);
-        if (midFrame){
-            CPPUNIT_ASSERT(rawWriter->writeInterleavedFrame(midFrame));
-            encodingSce->processFrame(midFrame, filteredFrame);
-            if (filteredFrame){
+        decodingSce->processFrame(frame);
+        while ((midFrame = decodingSce->extractFrame())){
+            encodingSce->processFrame(midFrame);
+            while((filteredFrame = encodingSce->extractFrame())){
                 CPPUNIT_ASSERT(filteredFrame->getWidth() == midFrame->getWidth() 
                     && filteredFrame->getHeight() == midFrame->getHeight());
                 CPPUNIT_ASSERT(writer->writeInterleavedFrame(filteredFrame));
@@ -105,7 +101,6 @@ void VideoEncoderDecoderFunctionalTest::h264Test()
     //TODO: totally dump encoder
     
     writer->closeFile();
-    rawWriter->closeFile();
     reader->close();
     
     CPPUNIT_ASSERT(milestone);

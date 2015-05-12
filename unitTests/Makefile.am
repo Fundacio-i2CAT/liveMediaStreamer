@@ -1,6 +1,21 @@
 AUTOMAKE_OPTIONS = foreign
 
-bin_PROGRAMS = connectionTest sinkManagerTest filterTest workerTest dasherTest dashAudioSegmenterTest dashVideoSegmenterTest mpdManagerTest videoEncoderX264or5Test encodingDecodingTest
+bin_PROGRAMS = connectionTest sinkManagerTest filterTest workerTest dasherTest dashAudioSegmenterTest dashVideoSegmenterTest mpdManagerTest videoEncoderX264or5Test x264or5VideoCircularBufferTest x264VideoCircularBufferTest x265VideoCircularBufferTest encodingDecodingTest
+
+x265VideoCircularBufferTest_SOURCES = X265VideoCircularBufferTest.cpp ../src/X265VideoCircularBuffer.cpp ../src/X264or5VideoCircularBuffer.cpp ../src/AVFramedQueue.cpp ../src/Frame.cpp ../src/Jzon.cpp ../src/Utils.cpp ../src/VideoFrame.cpp ../src/AudioFrame.cpp ../src/X265VideoFrame.cpp
+x265VideoCircularBufferTest_CPPFLAGS = -g -Wall -D__STDC_CONSTANT_MACROS -I../src/
+x265VideoCircularBufferTest_CXXFLAGS = -std=c++11
+x265VideoCircularBufferTest_LDFLAGS = -L../src -lcppunit
+
+x264VideoCircularBufferTest_SOURCES = X264VideoCircularBufferTest.cpp ../src/X264VideoCircularBuffer.cpp ../src/X264or5VideoCircularBuffer.cpp ../src/AVFramedQueue.cpp ../src/Frame.cpp ../src/Jzon.cpp ../src/Utils.cpp ../src/VideoFrame.cpp ../src/AudioFrame.cpp ../src/X264VideoFrame.cpp
+x264VideoCircularBufferTest_CPPFLAGS = -g -Wall -D__STDC_CONSTANT_MACROS -I../src/
+x264VideoCircularBufferTest_CXXFLAGS = -std=c++11
+x264VideoCircularBufferTest_LDFLAGS = -L../src -lcppunit
+
+x264or5VideoCircularBufferTest_SOURCES = X264or5VideoCircularBufferTest.cpp ../src/X264or5VideoCircularBuffer.cpp ../src/AVFramedQueue.cpp ../src/Frame.cpp ../src/Jzon.cpp ../src/Utils.cpp ../src/VideoFrame.cpp ../src/AudioFrame.cpp
+x264or5VideoCircularBufferTest_CPPFLAGS = -g -Wall -D__STDC_CONSTANT_MACROS -I../src/
+x264or5VideoCircularBufferTest_CXXFLAGS = -std=c++11
+x264or5VideoCircularBufferTest_LDFLAGS = -L../src -lcppunit
 
 videoEncoderX264or5Test_SOURCES = modules/videoEncoder/VideoEncoderX264or5Test.cpp ../src/modules/videoEncoder/VideoEncoderX264or5.cpp ../src/AVFramedQueue.cpp ../src/IOInterface.cpp ../src/Event.cpp ../src/Frame.cpp ../src/VideoFrame.cpp ../src/AudioFrame.cpp ../src/Jzon.cpp ../src/Utils.cpp ../src/Filter.cpp ../src/X264VideoFrame.cpp
 videoEncoderX264or5Test_CPPFLAGS = -g -Wall -D__STDC_CONSTANT_MACROS -I../src/

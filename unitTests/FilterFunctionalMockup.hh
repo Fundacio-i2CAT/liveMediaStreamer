@@ -78,22 +78,19 @@ public:
         tailF->disconnectAll();
     }
     
-    std::chrono::nanoseconds processFrame(InterleavedVideoFrame* srcFrame, InterleavedVideoFrame *&filteredFrame){
+    std::chrono::nanoseconds processFrame(InterleavedVideoFrame* srcFrame){
         std::chrono::nanoseconds ret;
         
         if (! headF->inject(srcFrame)){
             return std::chrono::nanoseconds(0);
         }
         headF->processFrame();
-        ret = filterToTest->processFrame();
+        return filterToTest->processFrame();
+    }
+    
+    InterleavedVideoFrame *extractFrame(){
         tailF->processFrame();
-        filteredFrame = tailF->extract();
-        
-        if (! filteredFrame){
-            return std::chrono::nanoseconds(0);
-        }
-        
-        return ret;
+        return tailF->extract();
     }
     
 private:

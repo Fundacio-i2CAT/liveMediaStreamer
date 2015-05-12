@@ -26,26 +26,47 @@
 #include "Types.hh"
 #include "AVFramedQueue.hh"
 
- class X264or5VideoCircularBuffer : public VideoFrameQueue {
+/*! Virtual interface for X264VideoCircularBuffer and X265VideoCircularBuffer. In is a child class from VideoFrameQueue, modifying its 
+    input behaviour. */
 
-    public:
-        //NOTE: it should be private according to X264 queue criteria
-        X264or5VideoCircularBuffer(VCodecType codec);
-        virtual ~X264or5VideoCircularBuffer();
+class X264or5VideoCircularBuffer : public VideoFrameQueue {
 
-        Frame *getRear();
-        void addFrame();
-        Frame *forceGetRear();
+public:
+    /**
+    * Class destructor
+    */
+    virtual ~X264or5VideoCircularBuffer();
 
-    protected:
-        virtual bool pushBack() = 0;
-        virtual Frame* getInputFrame() = 0;
+    /**
+    * It returns the input frame
+    * @return input frame pointer or NULL if internal buffer is full
+    */
+    Frame *getRear();
 
-        Frame *innerGetRear();
-        Frame *innerForceGetRear();
-        bool forcePushBack();
-        void innerAddFrame();
-        bool setup();
+    /**
+    * It dumps input frame data into internal VideoFrameQueue. Each NAL unit stored in input frame is copied
+    * into a VideoFrame structure.
+    * @return input frame pointer or NULL if internal buffer is full
+    */
+    void addFrame();
+
+    /**
+    * It returns the input frame, flushing the internal buffer if the internal buffer is full. It may cause data loss.
+    * @return input frame pointer
+    */
+    Frame *forceGetRear();
+
+protected:
+    X264or5VideoCircularBuffer(VCodecType codec, unsigned maxFrames);
+
+    virtual bool pushBack() = 0;
+
+    Frame *innerGetRear();
+    Frame *innerForceGetRear();
+    void innerAddFrame();
+    bool setup();
+
+    Frame* inputFrame;
 
 };
 

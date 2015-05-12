@@ -36,6 +36,5 @@ X264VideoFrame::X264VideoFrame() : X264or5VideoFrame(H264)
 
 X264VideoFrame::~X264VideoFrame()
 {
-    delete[] hdrNals;
-    delete[] nals;
+
 }

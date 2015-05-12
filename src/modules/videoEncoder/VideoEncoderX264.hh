@@ -38,8 +38,6 @@ extern "C" {
 #include <x264.h>
 }
 
-#define MAX_PLANES_PER_PICTURE 4
-
 class VideoEncoderX264 : public VideoEncoderX264or5 {
 
 public:

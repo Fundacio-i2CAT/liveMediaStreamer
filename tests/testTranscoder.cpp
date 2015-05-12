@@ -2,6 +2,7 @@
 #include "../src/modules/audioDecoder/AudioDecoderLibav.hh"
 #include "../src/modules/audioMixer/AudioMixer.hh"
 #include "../src/modules/videoEncoder/VideoEncoderX264.hh"
+#include "../src/modules/videoEncoder/VideoEncoderX265.hh"
 #include "../src/modules/videoDecoder/VideoDecoderLibav.hh"
 #include "../src/modules/videoMixer/VideoMixer.hh"
 #include "../src/modules/videoResampler/VideoResampler.hh"
@@ -178,7 +179,8 @@ void addVideoPath(unsigned port, Dasher* dasher, int dasherId, int receiverID, i
     VideoResampler *resampler;
     VideoResampler *resampler2;
     VideoResampler *resampler3;
-    VideoEncoderX264 *encoder;
+    // VideoEncoderX264 *encoder;
+    VideoEncoderX265 *encoder;
     VideoEncoderX264 *encoder2;
     VideoEncoderX264 *encoder3;
     VideoDecoderLibav *decoder;
@@ -224,7 +226,8 @@ void addVideoPath(unsigned port, Dasher* dasher, int dasherId, int receiverID, i
     pipe->addWorker(wResId, wRes);
 
     //NOTE: Adding encoder to pipeManager and handle worker
-    encoder = new VideoEncoderX264();
+    // encoder = new VideoEncoderX264();
+    encoder = new VideoEncoderX265();
     pipe->addFilter(encId, encoder);
     wEnc = new Worker();
     wEnc->addProcessor(encId, encoder);
@@ -434,11 +437,11 @@ bool publishRTSPSession(std::vector<int> readers, SinkManager *transmitter)
         return false;
     }
 
-    sessionId = "mpegts";
-    utils::infoMsg("Adding plain MPEGTS session...");
-    if (!transmitter->addRTSPConnection(readers, 2, MPEGTS, sessionId)){
-        return false;
-    }
+    // sessionId = "mpegts";
+    // utils::infoMsg("Adding plain MPEGTS session...");
+    // if (!transmitter->addRTSPConnection(readers, 2, MPEGTS, sessionId)){
+    //     return false;
+    // }
 
     return true;
 }

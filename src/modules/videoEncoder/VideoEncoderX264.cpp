@@ -25,6 +25,8 @@
 #include "VideoEncoderX264.hh"
 #include "../../X264VideoCircularBuffer.hh"
 
+#define MAX_PLANES_PER_PICTURE 4
+
 VideoEncoderX264::VideoEncoderX264(FilterRole fRole, bool sharedFrames) :
 VideoEncoderX264or5(fRole, sharedFrames), encoder(NULL)
 {
@@ -78,7 +80,7 @@ bool VideoEncoderX264::encodeFrame(VideoFrame* codedFrame)
     pts++;
 
     if (frameLength < 0) {
-        utils::errorMsg("Could not encode video frame");
+        utils::errorMsg("X264 Encoder: Could not encode video frame");
         return false;
     } else if (frameLength == 1) {
         utils::debugMsg("X264 Encoder: NAL not retrieved after encoding");

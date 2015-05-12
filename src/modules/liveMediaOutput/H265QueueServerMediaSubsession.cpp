@@ -53,5 +53,5 @@ FramedSource* H265QueueServerMediaSubsession::createNewStreamSource(unsigned /*c
 RTPSink* H265QueueServerMediaSubsession::createNewRTPSink(Groupsock* rtpGroupsock,
            unsigned char rtpPayloadTypeIfDynamic, FramedSource* /*inputSource*/) 
 {
-      return H265VideoRTPSink::createNew(envir(), rtpGroupsock, rtpPayloadTypeIfDynamic);
+    return H265VideoRTPSink::createNew(envir(), rtpGroupsock, rtpPayloadTypeIfDynamic);
 }

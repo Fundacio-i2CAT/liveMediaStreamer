@@ -73,6 +73,7 @@ void H264or5QueueSource::doGetNextFrame() {
         return;
     }
 
+
     size = frame->getLength();
     buff = frame->getDataBuf();
     

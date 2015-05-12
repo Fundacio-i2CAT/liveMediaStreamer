@@ -26,6 +26,8 @@
 #include "VideoEncoderX265.hh"
 #include "../../X265VideoCircularBuffer.hh"
 
+#define MAX_PLANES_PER_PICTURE 3
+
 VideoEncoderX265::VideoEncoderX265(FilterRole fRole, bool sharedFrames) :
 VideoEncoderX264or5(fRole, sharedFrames), encoder(NULL)
 {
@@ -60,7 +62,7 @@ bool VideoEncoderX265::fillPicturePlanes(unsigned char** data, int* linesize)
 
 bool VideoEncoderX265::encodeFrame(VideoFrame* codedFrame)
 {
-    int frameLength;
+    int success;
     uint32_t piNal;
     x265_nal* nals;
 
@@ -79,20 +81,19 @@ bool VideoEncoderX265::encodeFrame(VideoFrame* codedFrame)
     }
 
     picIn->pts = pts;
-    frameLength = x265_encoder_encode(encoder, &nals, &piNal, picIn, picOut);
+    success = x265_encoder_encode(encoder, &nals, &piNal, picIn, picOut);
 
     pts++;
 
-    if (frameLength < 0) {
-        utils::errorMsg("Could not encode video frame");
+    if (success < 0) {
+        utils::errorMsg("X265 Encoder: Could not encode video frame");
         return false;
-    } else if (frameLength == 1) {
+    } else if (success == 0) {
         utils::debugMsg("X265 Encoder: NAL not retrieved after encoding");
         return false;
     }
     x265Frame->setNals(nals);
     x265Frame->setNalNum(piNal);
-    x265Frame->setLength(frameLength);
     return true;
 }
 

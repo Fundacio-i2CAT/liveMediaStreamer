@@ -22,8 +22,8 @@
  *			  Gerard Castillo <gerard.castillo@i2cat.net>
  */
 
-#ifndef _VIDEO_ENCODER_X264_HH
-#define _VIDEO_ENCODER_X264_HH
+#ifndef _VIDEO_ENCODER_X265_HH
+#define _VIDEO_ENCODER_X265_HH
 
 #include "VideoEncoderX264or5.hh"
 #include <stdint.h>
@@ -37,8 +37,6 @@
 extern "C" {
 #include <x265.h>
 }
-
-#define MAX_PLANES_PER_PICTURE 3
 
 class VideoEncoderX265 : public VideoEncoderX264or5 {
 

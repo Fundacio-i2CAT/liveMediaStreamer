@@ -45,7 +45,7 @@ X265VideoCircularBuffer* X265VideoCircularBuffer::createNew(unsigned maxFrames)
 }
 
 
-X265VideoCircularBuffer::X265VideoCircularBuffer(unsigned maxFrames) : X264or5VideoCircularBuffer(H264, maxFrames)
+X265VideoCircularBuffer::X265VideoCircularBuffer(unsigned maxFrames) : X264or5VideoCircularBuffer(H265, maxFrames)
 {
     inputFrame = X265VideoFrame::createNew();
 }

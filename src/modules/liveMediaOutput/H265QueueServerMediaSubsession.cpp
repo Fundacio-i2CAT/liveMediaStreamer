@@ -1,6 +1,6 @@
 /*
- *  H264QueueServerMediaSubsession.hh - It consumes NAL units from the frame queue on demand
- *  Copyright (C) 2014  Fundació i2CAT, Internet i Innovació digital a Catalunya
+ *  H265QueueServerMediaSubsession.hh - It consumes NAL units from the frame queue on demand
+ *  Copyright (C) 2015  Fundació i2CAT, Internet i Innovació digital a Catalunya
  *
  *  This file is part of liveMediaStreamer.
  *
@@ -17,42 +17,41 @@
  *  You should have received a copy of the GNU General Public License
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- *  Authors:  David Cassany <david.cassany@i2cat.net>,
- *            Marc Palau <marc.palau@i2cat.net>
+ *  Authors: Marc Palau <marc.palau@i2cat.net>
  *            
  */
 
-#include "H264QueueServerMediaSubsession.hh"
+#include "H265QueueServerMediaSubsession.hh"
 
-H264QueueServerMediaSubsession*
-H264QueueServerMediaSubsession::createNew(UsageEnvironment& env,
+H265QueueServerMediaSubsession*
+H265QueueServerMediaSubsession::createNew(UsageEnvironment& env,
                           StreamReplicator* replica, int readerId,
                           Boolean reuseFirstSource) 
 {
-    return new H264QueueServerMediaSubsession(env, replica, readerId, reuseFirstSource);
+    return new H265QueueServerMediaSubsession(env, replica, readerId, reuseFirstSource);
 }
 
-H264QueueServerMediaSubsession::H264QueueServerMediaSubsession(UsageEnvironment& env,
+H265QueueServerMediaSubsession::H265QueueServerMediaSubsession(UsageEnvironment& env,
                           StreamReplicator* replica, int readerId, Boolean reuseFirstSource)
 : H264or5QueueServerMediaSubsession(env, replica, readerId, reuseFirstSource)
 {
 
 }
 
-H264QueueServerMediaSubsession::~H264QueueServerMediaSubsession() 
+H265QueueServerMediaSubsession::~H265QueueServerMediaSubsession() 
 {
 
 }
 
-FramedSource* H264QueueServerMediaSubsession::createNewStreamSource(unsigned /*clientSessionId*/, unsigned& estBitrate) {
+FramedSource* H265QueueServerMediaSubsession::createNewStreamSource(unsigned /*clientSessionId*/, unsigned& estBitrate) {
     //TODO: WTF
     estBitrate = 2000; // kbps, estimate
     
-    return H264VideoStreamDiscreteFramer::createNew(envir(), replicator->createStreamReplica());
+    return H265VideoStreamDiscreteFramer::createNew(envir(), replicator->createStreamReplica());
 }
 
-RTPSink* H264QueueServerMediaSubsession::createNewRTPSink(Groupsock* rtpGroupsock,
+RTPSink* H265QueueServerMediaSubsession::createNewRTPSink(Groupsock* rtpGroupsock,
            unsigned char rtpPayloadTypeIfDynamic, FramedSource* /*inputSource*/) 
 {
-	  return H264VideoRTPSink::createNew(envir(), rtpGroupsock, rtpPayloadTypeIfDynamic);
+      return H265VideoRTPSink::createNew(envir(), rtpGroupsock, rtpPayloadTypeIfDynamic);
 }

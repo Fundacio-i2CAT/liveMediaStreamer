@@ -1,5 +1,5 @@
 /*
- *  H264QueueSource - A live 555 source which consumes frames from a LMS H264 queue
+ *  H264or5QueueSource - A live 555 source which consumes frames from a LMS H264 queue
  *  Copyright (C) 2013  Fundació i2CAT, Internet i Innovació digital a Catalunya
  *
  *  This file is part of media-streamer.
@@ -21,7 +21,7 @@
  *           Marc Palau <marc.palau@i2cat.net>
  */
 
-#include "H264QueueSource.hh"
+#include "H264or5QueueSource.hh"
 #include "../../VideoFrame.hh"
 #include "../../Utils.hh"
 #include <stdio.h>
@@ -31,12 +31,12 @@
 #define LONG_START_LENGTH 4
 
 
-H264QueueSource* H264QueueSource::createNew(UsageEnvironment& env, Reader *reader, int readerId) 
+H264or5QueueSource* H264or5QueueSource::createNew(UsageEnvironment& env, Reader *reader, int readerId) 
 {
-  return new H264QueueSource(env, reader, readerId);
+  return new H264or5QueueSource(env, reader, readerId);
 }
 
-H264QueueSource::H264QueueSource(UsageEnvironment& env, Reader *reader, int readerId)
+H264or5QueueSource::H264or5QueueSource(UsageEnvironment& env, Reader *reader, int readerId)
 : QueueSource(env, reader, readerId) {
 }
 
@@ -52,7 +52,7 @@ uint8_t startOffset(unsigned char const* ptr) {
     return 0;
 }
 
-void H264QueueSource::doGetNextFrame() {
+void H264or5QueueSource::doGetNextFrame() {
     unsigned char* buff;
     unsigned int size;
     uint8_t offset;

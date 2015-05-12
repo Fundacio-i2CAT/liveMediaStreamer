@@ -18,26 +18,21 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  *  Authors:  David Cassany <david.cassany@i2cat.net>,
+ *            Marc Palau <marc.palau@i2cat.net>
  *            
  */
 
 #ifndef _H264_SERVER_MEDIA_SUBSESSION_HH
 #define _H264_SERVER_MEDIA_SUBSESSION_HH
 
-#include <liveMedia.hh>
-#include "QueueServerMediaSubsession.hh"
+#include "H264or5QueueServerMediaSubsession.hh"
 
-class H264QueueServerMediaSubsession: public QueueServerMediaSubsession {
+class H264QueueServerMediaSubsession: public H264or5QueueServerMediaSubsession {
+    
 public:
     static H264QueueServerMediaSubsession*
         createNew(UsageEnvironment& env, StreamReplicator* replica, 
                   int readerId, Boolean reuseFirstSource);
-
-
-    void checkForAuxSDPLine1();
-    void afterPlayingDummy1();
-    
-    std::vector<int> getReaderIds();
 
 protected:
     H264QueueServerMediaSubsession(UsageEnvironment& env, StreamReplicator* replica, 
@@ -45,24 +40,9 @@ protected:
 
     virtual ~H264QueueServerMediaSubsession();
 
-    void setDoneFlag() { fDoneFlag = ~0; }
-
 protected: 
-    char const* getAuxSDPLine(RTPSink* rtpSink,
-                    FramedSource* inputSource);
-    FramedSource* createNewStreamSource(unsigned clientSessionId,
-                          unsigned& estBitrate);
-    RTPSink* createNewRTPSink(Groupsock* rtpGroupsock,
-                                    unsigned char rtpPayloadTypeIfDynamic,
-                    FramedSource* inputSource);
-
-private:
-    StreamReplicator* replicator;
-    int reader;
-    
-    char* fAuxSDPLine;
-    char fDoneFlag; 
-    RTPSink* fDummyRTPSink;
+    FramedSource* createNewStreamSource(unsigned clientSessionId, unsigned& estBitrate);
+    RTPSink* createNewRTPSink(Groupsock* rtpGroupsock, unsigned char rtpPayloadTypeIfDynamic, FramedSource* inputSource);
 };
 
 #endif

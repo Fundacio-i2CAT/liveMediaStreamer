@@ -163,6 +163,7 @@ bool VideoFrameQueue::setup()
         case RAW:
             if (pixelFormat == P_NONE) {
                 utils::errorMsg("No pixel fromat defined");
+                return false;
                 break;
             }
             for (unsigned i=0; i<max; i++) {

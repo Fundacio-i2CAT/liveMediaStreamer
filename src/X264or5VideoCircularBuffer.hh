@@ -29,6 +29,7 @@
  class X264or5VideoCircularBuffer : public VideoFrameQueue {
 
     public:
+        //NOTE: it should be private according to X264 queue criteria
         X264or5VideoCircularBuffer(VCodecType codec);
         virtual ~X264or5VideoCircularBuffer();
 

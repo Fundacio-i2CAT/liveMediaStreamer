@@ -16,6 +16,7 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  *  Authors:  Marc Palau <marc.palau@i2cat.net>
+ *            David Cassany <david.cassany@i2cat.net>
  *
  */
 
@@ -31,12 +32,13 @@
 #include <cppunit/XmlOutputter.h>
 
 #include "modules/videoEncoder/VideoEncoderX264or5.hh"
-#include "FilterFunctionalMockup.hh"
+#include "modules/videoEncoder/VideoEncoderX264.hh"
 
 class VideoEncoderX264or5Mock : public VideoEncoderX264or5 
 {
 public:
     VideoEncoderX264or5Mock() : VideoEncoderX264or5(MASTER, true) {};
+    ~VideoEncoderX264or5Mock(){};
     bool fillPicturePlanes(unsigned char** data, int* linesize) {return fillPicturePlanesRetVal;};
     bool encodeFrame(VideoFrame* codedFrame) {return encodeFrameRetVal;};
     bool reconfigure(VideoFrame* orgFrame, VideoFrame* dstFrame) {return reconfigureRetVal;};
@@ -50,51 +52,6 @@ private:
     bool encodeFrameRetVal;
     bool reconfigureRetVal;
 };
-
-class VideoEncoderX264or5FunctionalTest : public CppUnit::TestFixture
-{
-    CPPUNIT_TEST_SUITE(VideoEncoderX264or5FunctionalTest);
-    CPPUNIT_TEST(runNFrames);
-    CPPUNIT_TEST_SUITE_END();
-
-public:
-    void setUp();
-    void tearDown();
-
-protected:
-    void runNFrames();
-
-    OneToOneVideoScenarioMockup* scenario;
-    VideoEncoderX264or5Mock* encoder;
-};
-
-void VideoEncoderX264or5FunctionalTest::setUp()
-{
-    encoder = new VideoEncoderX264or5Mock();
-    encoder->setFillPicturePlanesRetVal(true);
-    encoder->setEncodeFrameRetVal(true);
-    encoder->setReconfigureRetVal(true);
-    
-    scenario = new OneToOneVideoScenarioMockup(encoder, RAW, YUV420P);
-    CPPUNIT_ASSERT(scenario->connectFilter());
-}
-
-void VideoEncoderX264or5FunctionalTest::tearDown()
-{
-    scenario->disconnectFilter();
-    delete scenario;
-    delete encoder;
-}
-
-void VideoEncoderX264or5FunctionalTest::runNFrames()
-{
-    InterleavedVideoFrame *frame, *filteredFrame;
-    
-    frame = InterleavedVideoFrame::createNew(RAW, DEFAULT_WIDTH, DEFAULT_HEIGHT, YUV420P);
-    for(int i = 0; i < 50; i++){
-        scenario->processFrame(frame, filteredFrame);
-    }
-}
 
 class VideoEncoderX264or5Test : public CppUnit::TestFixture
 {
@@ -227,7 +184,6 @@ void VideoEncoderX264or5Test::configureTest()
 }
 
 CPPUNIT_TEST_SUITE_REGISTRATION(VideoEncoderX264or5Test);
-CPPUNIT_TEST_SUITE_REGISTRATION(VideoEncoderX264or5FunctionalTest);
 
 int main(int argc, char* argv[])
 {

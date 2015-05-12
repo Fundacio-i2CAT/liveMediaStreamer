@@ -26,6 +26,7 @@
 
 #include <chrono>
 #include <fstream>
+#include <sys/stat.h>
 
 extern "C"{
     #include <libavcodec/avcodec.h>
@@ -71,13 +72,13 @@ public:
         return true;
     };
     
-    bool disconnectFilter(){
+    void disconnectFilter(){
         headF->disconnectAll();
         filterToTest->disconnectAll();
         tailF->disconnectAll();
     }
     
-    std::chrono::nanoseconds processFrame(InterleavedVideoFrame* srcFrame, InterleavedVideoFrame* filteredFrame){
+    std::chrono::nanoseconds processFrame(InterleavedVideoFrame* srcFrame, InterleavedVideoFrame *&filteredFrame){
         std::chrono::nanoseconds ret;
         
         if (! headF->inject(srcFrame)){
@@ -103,6 +104,8 @@ private:
 
 class InterleavedFramesWriter {
 public:
+    InterleavedFramesWriter(){};
+    
     bool openFile(std::string fileName){
         outfile.open(fileName, std::ofstream::binary);
         return outfile.is_open();
@@ -133,9 +136,15 @@ public:
         av_register_all();
     };
     
-    bool openFile(std::string file, VCodecType c, PixType pix, 
+    bool openFile(std::string file, VCodecType c, PixType pix = P_NONE, 
                   unsigned int width = 0, unsigned int height = 0){
         int ret;
+        struct stat buffer;
+        
+        if (stat (file.c_str(), &buffer) != 0){
+            return false;
+        }
+        
         if (fmtCtx){
             return false;
         }
@@ -143,12 +152,18 @@ public:
         fmtCtx = avformat_alloc_context();
         
         AVInputFormat* inputFormat = av_find_input_format(avcodec_get_name(getCodec(c)));
+        if (!inputFormat){
+            return false;
+        }
+        
         AVDictionary *options = NULL;
         if (width != 0 && height != 0){
             std::string videoSize = std::to_string(width) + "x" + std::to_string(height);
             av_dict_set(&options, "video_size", videoSize.c_str(), 0);
         }
-        av_dict_set(&options, "pixel_format", av_get_pix_fmt_name(getPixelFormat(pix)), 0);
+        if (pix != P_NONE){
+            av_dict_set(&options, "pixel_format", av_get_pix_fmt_name(getPixelFormat(pix)), 0);
+        }
         
         ret = avformat_open_input(&fmtCtx, file.c_str(), inputFormat, &options);
         if (ret < 0) {

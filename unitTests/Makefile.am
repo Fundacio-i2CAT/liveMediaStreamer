@@ -2,7 +2,7 @@ AUTOMAKE_OPTIONS = foreign
 
 bin_PROGRAMS = connectionTest sinkManagerTest filterTest workerTest dasherTest dashAudioSegmenterTest dashVideoSegmenterTest mpdManagerTest videoEncoderX264or5Test
 
-videoEncoderX264or5Test_SOURCES = modules/videoEncoder/VideoEncoderX264or5Test.cpp ../src/modules/videoEncoder/VideoEncoderX264or5.cpp ../src/AVFramedQueue.cpp ../src/IOInterface.cpp ../src/Event.cpp ../src/Frame.cpp ../src/VideoFrame.cpp ../src/AudioFrame.cpp ../src/Jzon.cpp ../src/Utils.cpp ../src/Filter.cpp ../src/X264VideoFrame.cpp
+videoEncoderX264or5Test_SOURCES = modules/videoEncoder/VideoEncoderX264or5Test.cpp ../src/modules/videoEncoder/VideoEncoderX264or5.cpp ../src/AVFramedQueue.cpp ../src/IOInterface.cpp ../src/Event.cpp ../src/Frame.cpp ../src/VideoFrame.cpp ../src/AudioFrame.cpp ../src/Jzon.cpp ../src/Utils.cpp ../src/Filter.cpp ../src/X264VideoFrame.cpp ../src/X265VideoFrame.cpp
 videoEncoderX264or5Test_CPPFLAGS = -g -Wall -D__STDC_CONSTANT_MACROS -I../src/
 videoEncoderX264or5Test_CXXFLAGS = -std=c++11
 videoEncoderX264or5Test_LDFLAGS = -L../src -lcppunit

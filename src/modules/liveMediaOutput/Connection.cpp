@@ -28,6 +28,7 @@
 #include "H264VideoStreamSampler.hh"
 #include "H264StartCodeInjector.hh"
 #include "H264QueueServerMediaSubsession.hh"
+#include "H265QueueServerMediaSubsession.hh"
 #include "VP8QueueServerMediaSubsession.hh"
 #include "AudioQueueServerMediaSubsession.hh"
 #include <GroupsockHelper.hh>
@@ -131,6 +132,9 @@ bool RTSPConnection::addRawVideoSubsession(VCodecType codec, StreamReplicator* r
     switch(codec){
         case H264:
             sSession = H264QueueServerMediaSubsession::createNew(*fEnv, replicator, readerId, False);
+            break;
+        case H265:
+            sSession = H265QueueServerMediaSubsession::createNew(*fEnv, replicator, readerId, False);
             break;
         case VP8:
             sSession =  VP8QueueServerMediaSubsession::createNew(*fEnv, replicator, readerId, False);
@@ -432,6 +436,10 @@ bool VideoConnection::additionalSetup()
         case H264:
             fSink = H264VideoRTPSink::createNew(*fEnv, rtpGroupsock, 96);
             fSource = H264VideoStreamDiscreteFramer::createNew(*fEnv, fSource);
+            break;
+        case H265:
+            fSink = H265VideoRTPSink::createNew(*fEnv, rtpGroupsock, 96);
+            fSource = H265VideoStreamDiscreteFramer::createNew(*fEnv, fSource);
             break;
         case VP8:
             fSink = VP8VideoRTPSink::createNew(*fEnv, rtpGroupsock, 96);

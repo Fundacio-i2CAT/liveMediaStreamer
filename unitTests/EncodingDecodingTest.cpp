@@ -175,9 +175,9 @@ void VideoEncoderDecoderFunctionalTest::test2000()
     bool milestone = false;
     size_t fileSize;
     
-    CPPUNIT_ASSERT(x264encoder->configure(2000, 0, DEFAULT_GOP, 2*DEFAULT_GOP, 
+    CPPUNIT_ASSERT(x264encoder->configure(2000, 0, DEFAULT_GOP, DEFAULT_GOP, 
                        DEFAULT_THREADS, DEFAULT_ANNEXB, DEFAULT_PRESET));
-    CPPUNIT_ASSERT(x265encoder->configure(2000, 0, DEFAULT_GOP, 2*DEFAULT_GOP, 
+    CPPUNIT_ASSERT(x265encoder->configure(2000, 0, DEFAULT_GOP, DEFAULT_GOP, 
                        DEFAULT_THREADS, DEFAULT_ANNEXB, DEFAULT_PRESET));
     
     CPPUNIT_ASSERT(reader->openFile("testsData/videoVectorTest.h264", H264));

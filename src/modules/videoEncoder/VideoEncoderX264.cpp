@@ -35,7 +35,10 @@ VideoEncoderX264or5(fRole, sharedFrames), encoder(NULL)
 
 VideoEncoderX264::~VideoEncoderX264()
 {
-    x264_picture_clean(&picIn);
+    if (encoder != NULL){
+        x264_encoder_close(encoder);
+        encoder = NULL;
+    }
 }
 
 bool VideoEncoderX264::fillPicturePlanes(unsigned char** data, int* linesize)

@@ -53,7 +53,6 @@ public:
         disconnectFilter();
         delete headF;
         delete tailF;
-        delete filterToTest;
     }
     
     bool connectFilter(){

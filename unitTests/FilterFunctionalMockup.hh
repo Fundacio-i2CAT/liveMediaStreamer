@@ -81,7 +81,6 @@ public:
         std::chrono::nanoseconds ret;
         
         if (! headF->inject(srcFrame)){
-            printf("It cannot happen2!!\n");
             return std::chrono::nanoseconds(0);
         }
         headF->processFrame();

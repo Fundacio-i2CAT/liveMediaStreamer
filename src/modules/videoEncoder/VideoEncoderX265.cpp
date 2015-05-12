@@ -37,11 +37,12 @@ VideoEncoderX264or5(fRole, sharedFrames), encoder(NULL)
 
 VideoEncoderX265::~VideoEncoderX265()
 {
-    /*if (encoder){
-        x265_picture_clean(&x265pic) or x265_picture_free(&x265pic)?
+    if (encoder != NULL){
         x265_encoder_close(encoder);
-    }*/
+        encoder = NULL;
+    }
     //TODO check for x265_cleanup()?
+    //TODO add x265_picture_clean(&x265pic) or x265_picture_free(&x265pic)?
 }
 
 bool VideoEncoderX265::fillPicturePlanes(unsigned char** data, int* linesize)

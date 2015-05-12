@@ -261,7 +261,6 @@ public:
     bool inject(InterleavedVideoFrame* frame){
         if (! frame || frame->getCodec() != codec || 
             frame->getPixelFormat() != pixFormat){
-            printf("It cannot happen!!\n");
             return false;
         }
         

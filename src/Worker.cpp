@@ -120,26 +120,22 @@ void Worker::stop()
 void Worker::process()
 {
     Runnable* currentJob = NULL;
-
-    while(!processors.empty() && run) {
-        {
-            std::lock_guard<std::mutex> guard(mtx);
-            if (processors.empty()){
-                break;
-            }
-            
-            currentJob = processors.top();
-        }
+    
+    mtx.lock();
+    while(run && !processors.empty()) {    
+        currentJob = processors.top();
+        
+        mtx.unlock();
         
         currentJob->sleepUntilReady();
         currentJob->runProcessFrame();
+            
+        mtx.lock();
         
-        {
-            std::lock_guard<std::mutex> guard(mtx);
-            processors.pop();
-            processors.push(currentJob);
-        }
+        processors.pop();
+        processors.push(currentJob);
     }
+    mtx.unlock();
     
     thread.detach();
 }

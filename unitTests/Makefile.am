@@ -1,6 +1,6 @@
 AUTOMAKE_OPTIONS = foreign
 
-bin_PROGRAMS = connectionTest sinkManagerTest filterTest workerTest dasherTest dashAudioSegmenterTest dashVideoSegmenterTest mpdManagerTest videoEncoderX264or5Test x264or5VideoCircularBufferTest x264VideoCircularBufferTest x265VideoCircularBufferTest encodingDecodingTest
+bin_PROGRAMS = connectionTest sinkManagerTest filterTest workerTest dasherTest dashAudioSegmenterTest dashVideoSegmenterTest mpdManagerTest videoEncoderX264or5Test x264or5VideoCircularBufferTest x264VideoCircularBufferTest x265VideoCircularBufferTest encodingDecodingTest sharedMemoryTest
 
 x265VideoCircularBufferTest_SOURCES = X265VideoCircularBufferTest.cpp ../src/X265VideoCircularBuffer.cpp ../src/X264or5VideoCircularBuffer.cpp ../src/AVFramedQueue.cpp ../src/Frame.cpp ../src/Jzon.cpp ../src/Utils.cpp ../src/VideoFrame.cpp ../src/AudioFrame.cpp ../src/X265VideoFrame.cpp
 x265VideoCircularBufferTest_CPPFLAGS = -g -Wall -D__STDC_CONSTANT_MACROS -I../src/
@@ -26,6 +26,10 @@ encodingDecodingTest_SOURCES = EncodingDecodingTest.cpp ../src/modules/videoEnco
 encodingDecodingTest_CPPFLAGS = -g -Wall -D__STDC_CONSTANT_MACROS -I../src/
 encodingDecodingTest_CXXFLAGS = -std=c++11
 encodingDecodingTest_LDFLAGS = -L../src -lcppunit
+
+sharedMemoryTest_SOURCES = modules/sharedMemory/SharedMemoryTest.cpp ../src/modules/sharedMemory/SharedMemory.cpp FilterMockup.hh modules/sharedMemory/SharedMemoryDummyReader.cpp ../src/AVFramedQueue.cpp ../src/IOInterface.cpp ../src/Event.cpp ../src/Frame.cpp  ../src/VideoFrame.cpp ../src/Runnable.cpp ../src/AudioFrame.cpp ../src/Jzon.cpp ../src/Utils.cpp ../src/Filter.cpp ../src/Worker.cpp
+sharedMemoryTest_CPPFLAGS = -std=c++11 -g -Wall -g -D__STDC_CONSTANT_MACROS -I../src -I.
+sharedMemoryTest_LDFLAGS =  -L../src -lcppunit -lpthread
 
 mpdManagerTest_SOURCES = modules/dasher/MpdManagerTest.cpp ../src/modules/dasher/MpdManager.cpp
 mpdManagerTest_CPPFLAGS = -g -Wall -D__STDC_CONSTANT_MACROS -I../src/
@@ -68,6 +72,3 @@ workerTest_CPPFLAGS = -g -Wall -g -D__STDC_CONSTANT_MACROS -I../src -I.
 workerTest_CXXFLAGS = -std=c++11
 workerTest_LDFLAGS = -llog4cplus -lcppunit -lpthread
 
-sharedMemoryTest_SOURCES = modules/sharedMemory/SharedMemoryTest.cpp ../src/modules/sharedMemory/SharedMemory.cpp FilterMockup.hh modules/sharedMemory/SharedMemoryDummyReader.cpp ../src/AVFramedQueue.cpp ../src/IOInterface.cpp ../src/Event.cpp ../src/Frame.cpp  ../src/VideoFrame.cpp ../src/Runnable.cpp ../src/AudioFrame.cpp ../src/Jzon.cpp ../src/Utils.cpp ../src/Filter.cpp ../src/Worker.cpp
-sharedMemoryTest_CPPFLAGS = -std=c++11 -g -Wall -g -D__STDC_CONSTANT_MACROS -I../src -I.
-sharedMemoryTest_LDFLAGS = -llog4cplus -lcppunit -lpthread

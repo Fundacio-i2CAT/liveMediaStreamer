@@ -115,53 +115,7 @@ void SharedMemoryFunctionalTest::tearDown()
 
 void SharedMemoryFunctionalTest::sharedMemoryFilterWithDummyReader()
 {
-    SharedMemoryFilterMockup* sharedMemoryFilter = new SharedMemoryFilterMockup(KEY, RAW);
-    CPPUNIT_ASSERT(!(sharedMemoryFilter == NULL));
-    BaseFilter* satelliteFilterHead = new BaseFilterMockup(0,1);
-    BaseFilter* satelliteFilterTail = new BaseFilterMockup(1,0);
-    VideoFrameMock* frameMockup = VideoFrameMock::createNew();
-    uint16_t seqNum = 1;
-    std::chrono::microseconds fakeTimeStamp;
-    std::chrono::system_clock::time_point startPoint;
-
-    BaseFilter* sharedMemoryFilterB = dynamic_cast<BaseFilter*>(sharedMemoryFilter);
-
-    CPPUNIT_ASSERT(sharedMemoryFilterB->processFrame() == RETRY);
-
-    CPPUNIT_ASSERT(satelliteFilterHead->connectOneToOne(sharedMemoryFilter));
-    CPPUNIT_ASSERT(sharedMemoryFilter->connectOneToOne(satelliteFilterTail));
-
-    SharedMemoryDummyReader* dummyReader = new SharedMemoryDummyReader(sharedMemoryFilter->getSharedMemoryID(), RAW);
-
-    std::thread dReader(SharedMemoryDummyReader::dummyReaderThread, dummyReader);
-
-    CPPUNIT_ASSERT(sharedMemoryFilter->isEnabled());
-    CPPUNIT_ASSERT(sharedMemoryFilter->isWritable());
-    //sharedMemoryFilter->setFrameObject(frameMockup);
-    startPoint = std::chrono::system_clock::now();
-
-    for(int i = 0; i<10; i++){
-        usleep(150000);
-        fakeTimeStamp = std::chrono::duration_cast<std::chrono::microseconds>(
-                    std::chrono::system_clock::now() - startPoint);
-        if(sharedMemoryFilter->isWritable()){
-            //sharedMemoryFilter->writeFramePayload(seqNum++);
-            //sharedMemoryFilter->getFrameObject()->setPresentationTime(fakeTimeStamp);
-            sharedMemoryFilter->writeSharedMemoryRAW(frameMockup->getDataBuf(),frameMockup->getLength());
-        }
-    }
-
-    dummyReader->setDisabled();
-    dReader.join();
-
-    CPPUNIT_ASSERT(dummyReader->getReadFrames() == 10);
-
-    sharedMemoryFilter->disconnectAll();
-
-    delete sharedMemoryFilterB;
-    delete dummyReader;
-    delete satelliteFilterHead;
-    delete satelliteFilterTail;
+    
 }
 
 CPPUNIT_TEST_SUITE_REGISTRATION(SharedMemoryFunctionalTest);

@@ -119,28 +119,24 @@ void Worker::stop()
 
 void Worker::process()
 {
-    Runnable* currentJob;
+    Runnable* currentJob = NULL;
 
     while(!processors.empty() && run) {
-        mtx.lock();
-
-        while (!processors.empty() && processors.top()->ready()){
+        {
+            std::lock_guard<std::mutex> guard(mtx);
+            if (processors.empty()){
+                break;
+            }
+            
             currentJob = processors.top();
-            processors.pop();
-            //TODO: remove/rethink enable feature from filters
-            currentJob->runProcessFrame();
-            processors.push(currentJob);
+            
+            if (currentJob->ready()){
+                processors.pop();
+                currentJob->runProcessFrame();
+                processors.push(currentJob);
+            }
         }
-
-        if (!processors.empty()){
-            currentJob = processors.top();
-
-            mtx.unlock();
-
-            currentJob->sleepUntilReady();
-        } else {
-            mtx.unlock();
-        }
+        processors.top()->sleepUntilReady();
     }
 
     thread.detach();

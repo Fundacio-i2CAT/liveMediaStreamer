@@ -29,7 +29,6 @@
 #include <stdint.h>
 #include "../../Utils.hh"
 #include "../../VideoFrame.hh"
-#include "../../X264VideoFrame.hh"
 #include "../../Filter.hh"
 #include "../../FrameQueue.hh"
 #include "../../Types.hh"
@@ -58,7 +57,7 @@ private:
     bool fillPicturePlanes(unsigned char** data, int* linesize);
     bool encodeFrame(VideoFrame* codedFrame);
     bool reconfigure(VideoFrame *orgFrame, VideoFrame* dstFrame);
-    bool encodeHeadersFrame(X264VideoFrame* x264Frame);
+    bool encodeHeadersFrame(VideoFrame* frame);
 };
 
 #endif

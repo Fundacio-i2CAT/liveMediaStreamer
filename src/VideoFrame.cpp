@@ -22,6 +22,7 @@
  */
 
  #include "VideoFrame.hh"
+ #include <string.h>
 
 VideoFrame::VideoFrame(VCodecType codec_) : 
 Frame(), codec(codec_), width(0), height(0), pixelFormat(P_NONE)
@@ -105,20 +106,80 @@ InterleavedVideoFrame::~InterleavedVideoFrame()
 // X264or5 VIDEO FRAME //
 /////////////////////////
 
-X264or5VideoFrame::X264or5VideoFrame(VCodecType codec) : 
-VideoFrame(codec), nalsNum(0), hdrNalsNum(0)
+SlicedVideoFrame* SlicedVideoFrame::createNew(VCodecType codec, unsigned copiedSlicesMaxSize) 
+{
+    if (copiedSlicesMaxSize <= 0) {
+        utils::errorMsg("Error creating slicedFrame: copiedSlicesMaxSize negative or 0");
+        return NULL;
+    }
+
+    return new SlicedVideoFrame(codec, copiedSlicesMaxSize);
+}
+
+SlicedVideoFrame::SlicedVideoFrame(VCodecType codec, unsigned copiedSlicesMaxSize_) :
+VideoFrame(codec), pointedSliceNum(0), copiedSliceNum(0), copiedSlicesMaxSize(copiedSlicesMaxSize_) 
+{
+    for (int i = 0; i < MAX_COPIED_SLICES; i++) {
+        copiedSlices[i].allocData(copiedSlicesMaxSize);
+    }
+}
+
+SlicedVideoFrame::~SlicedVideoFrame()
+{
+    for (int i = 0; i < MAX_COPIED_SLICES; i++) {
+        copiedSlices[i].releaseData();
+    }
+}
+
+void SlicedVideoFrame::clear()
+{
+    pointedSliceNum = 0; 
+    copiedSliceNum = 0;
+}
+
+bool SlicedVideoFrame::setSlice(unsigned char *data, unsigned size)
+{
+    if (pointedSliceNum >= MAX_SLICES) {
+        return false;
+    }
+
+    pointedSlices[pointedSliceNum].setData(data);
+    pointedSlices[pointedSliceNum].setDataSize(size);
+
+    pointedSliceNum++;
+    return true;
+}
+
+bool SlicedVideoFrame::copySlice(unsigned char *data, unsigned size)
+{
+    if (copiedSliceNum >= MAX_COPIED_SLICES || size > copiedSlicesMaxSize) {
+        return false;
+    }
+
+    copiedSlices[copiedSliceNum].copyData(data, size);
+
+    copiedSliceNum++;
+    return true;
+}
+
+Slice::Slice() : data(NULL), dataSize(0)
 {
 
 }
 
-X264or5VideoFrame::~X264or5VideoFrame()
+void Slice::allocData(unsigned size)
 {
-    
+    data = new unsigned char [size]();
 }
 
-void X264or5VideoFrame::clearNalNum()
+void Slice::releaseData()
 {
-    nalsNum = 0; 
-    hdrNalsNum = 0;
+    delete data;
+}
+
+void Slice::copyData(unsigned char *p, unsigned s)
+{
+    memcpy(data, p, s);
+    dataSize = s;
 }
 

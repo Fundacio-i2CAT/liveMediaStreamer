@@ -24,7 +24,7 @@
 
 #include <cmath>
 #include "VideoEncoderX265.hh"
-#include "../../X265VideoCircularBuffer.hh"
+#include "../../SlicedVideoFrameQueue.hh"
 
 #define MAX_PLANES_PER_PICTURE 3
 
@@ -63,12 +63,13 @@ bool VideoEncoderX265::fillPicturePlanes(unsigned char** data, int* linesize)
 bool VideoEncoderX265::encodeFrame(VideoFrame* codedFrame)
 {
     int success;
-    uint32_t piNal;
+    unsigned piNal;
     x265_nal* nals;
+    SlicedVideoFrame* slicedFrame;
 
-    X265VideoFrame* x265Frame = dynamic_cast<X265VideoFrame*> (codedFrame);
+    slicedFrame = dynamic_cast<SlicedVideoFrame*> (codedFrame);
 
-    if (!x265Frame || !encoder) {
+    if (!slicedFrame || !encoder) {
         utils::errorMsg("Could not encode x265 video frame. Target frame or encoder are NULL");
         return false;
     }
@@ -92,16 +93,23 @@ bool VideoEncoderX265::encodeFrame(VideoFrame* codedFrame)
         utils::debugMsg("X265 Encoder: NAL not retrieved after encoding");
         return false;
     }
-    x265Frame->setNals(nals);
-    x265Frame->setNalNum(piNal);
+
+    for (unsigned i = 0; i < piNal; i++) {
+        if (!slicedFrame->setSlice(nals[i].payload, nals[i].sizeBytes)) {
+            utils::errorMsg("X265 Encoder: too many NALs for one slicedFrame");
+            return false;
+        }
+    }
+
     return true;
 }
 
-bool VideoEncoderX265::encodeHeadersFrame(X265VideoFrame* x265Frame)
+bool VideoEncoderX265::encodeHeadersFrame(VideoFrame* frame)
 {
     int encodeSize;
-    uint32_t piNal;
+    unsigned piNal;
     x265_nal* nals;
+    SlicedVideoFrame *slicedFrame;
 
     encodeSize = x265_encoder_headers(encoder, &nals, &piNal);
 
@@ -110,31 +118,35 @@ bool VideoEncoderX265::encodeHeadersFrame(X265VideoFrame* x265Frame)
         return false;
     }
 
-    x265Frame->setHdrNals(nals);
-    x265Frame->setHdrNalNum(piNal);
+    slicedFrame = dynamic_cast<SlicedVideoFrame*> (frame);
+
+    if (!slicedFrame) {
+        utils::errorMsg("Error reconfiguring x265VideoEncoder. DstFrame MUST be a SlicedVideoFrame");
+        return false;
+    }
+
+    for (unsigned i = 0; i < piNal; i++) {
+        if (!slicedFrame->copySlice(nals[i].payload, nals[i].sizeBytes)) {
+            utils::errorMsg("X265 Encoder: too many NALs for one slicedFrame or ");
+            return false;
+        }
+    }
+
     return true;
 }
 
 FrameQueue* VideoEncoderX265::allocQueue(int wId)
 {
-    return X265VideoCircularBuffer::createNew(DEFAULT_VIDEO_FRAMES);
+    return SlicedVideoFrameQueue::createNew(H265, DEFAULT_VIDEO_FRAMES, MAX_H264_OR_5_NAL_SIZE);
 }
 
 bool VideoEncoderX265::reconfigure(VideoFrame* orgFrame, VideoFrame* dstFrame)
 {
     int colorspace;
-    X265VideoFrame* x265Frame;
 
     if (!needsConfig && orgFrame->getWidth() == xparams->sourceWidth &&
         orgFrame->getHeight() == xparams->sourceHeight && orgFrame->getPixelFormat() == inPixFmt) {
         return true;
-    }
-
-    x265Frame = dynamic_cast<X265VideoFrame*> (dstFrame);
-
-    if (!x265Frame) {
-        utils::errorMsg("Error reconfiguring x265VideoEncoder. DstFrame MUST be a x265VideoFrame");
-        return false;
     }
 
     inPixFmt = orgFrame->getPixelFormat();
@@ -215,7 +227,7 @@ bool VideoEncoderX265::reconfigure(VideoFrame* orgFrame, VideoFrame* dstFrame)
     needsConfig = false;
 
     if (!annexB) {
-        return encodeHeadersFrame(x265Frame);
+        return encodeHeadersFrame(dstFrame);
     }
 
     return true;

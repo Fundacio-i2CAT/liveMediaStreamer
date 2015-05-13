@@ -26,9 +26,12 @@
 
 #include "Frame.hh"
 #include "Types.hh"
+#include "Utils.hh"
 
 #define MAX_HEADER_NALS 8
 #define MAX_NALS_PER_FRAME 16
+#define MAX_COPIED_SLICES 8
+#define MAX_SLICES 16
 
 class VideoFrame : public Frame {
 
@@ -75,18 +78,37 @@ private:
     unsigned int bufferMaxLen;
 };
 
-class X264or5VideoFrame : public VideoFrame {
+class Slice {
 
 public:
-    X264or5VideoFrame(VCodecType codec);
-    virtual ~X264or5VideoFrame();
-    void clearNalNum();
+    Slice();
+    unsigned char* getData() {return data;};
+    unsigned getDataSize() {return dataSize;};
+    void setData(unsigned char *p) {data = p;};
+    void setDataSize(unsigned s) {dataSize = s;};
+    void allocData(unsigned size);
+    void releaseData();
+    void copyData(unsigned char *p, unsigned s);
 
-    void setNalNum(int num) {nalsNum = num;};
-    int getNalsNum() {return nalsNum;};
+private:
+    unsigned char *data;
+    unsigned dataSize;
+};
 
-    void setHdrNalNum(int num) {hdrNalsNum = num;};
-    int getHdrNalsNum() {return hdrNalsNum;};
+class SlicedVideoFrame : public VideoFrame {
+
+public:
+    static SlicedVideoFrame* createNew(VCodecType codec, unsigned copiedSlicesMaxSize);
+    virtual ~SlicedVideoFrame();
+    void clear();
+
+    Slice* getSlices() {return pointedSlices;};
+    Slice* getCopiedSlices() {return copiedSlices;};
+    bool setSlice(unsigned char *data, unsigned size);
+    bool copySlice(unsigned char *data, unsigned size);
+
+    int getSliceNum() {return pointedSliceNum;};
+    int getCopiedSliceNum() {return copiedSliceNum;};
 
     unsigned char *getDataBuf() {return NULL;};
     unsigned char **getPlanarDataBuf() {return NULL;};
@@ -96,8 +118,17 @@ public:
     bool isPlanar() {return false;};
 
 private:
-    int nalsNum;
-    int hdrNalsNum;
+    SlicedVideoFrame(VCodecType codec, unsigned copiedSlicesMaxSize);
+
+    Slice pointedSlices[MAX_SLICES];
+    Slice copiedSlices[MAX_COPIED_SLICES];
+
+    int pointedSliceNum;
+    int copiedSliceNum;
+    unsigned copiedSlicesMaxSize;
 };
+
+
+
 
 #endif

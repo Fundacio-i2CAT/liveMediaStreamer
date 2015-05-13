@@ -103,12 +103,9 @@ public:
 protected:
     void sharedMemoryFilterWithDummyReader();
 
-    OneToOneVideoScenarioMockup *x264encodingSce, *x264decodingSce, *sharedMemorySce;
-    VideoEncoderX264or5* x264encoder;
-    VideoDecoderLibav* x264decoder;
+    OneToOneVideoScenarioMockup *sharedMemorySce;
     AVFramesReader* reader;
-    InterleavedFramesWriter* writer;
-    BaseFilter* sharedMemoryFilter;
+    SharedMemory* sharedMemoryFilter;
     SharedMemoryDummyReader* dummyReader;
 };
 
@@ -116,70 +113,52 @@ void SharedMemoryFunctionalTest::setUp()
 {
     sharedMemoryFilter = SharedMemory::createNew(KEY, RAW);
     dummyReader = new SharedMemoryDummyReader((dynamic_cast<SharedMemory*>(sharedMemoryFilter))->getSharedMemoryID(), RAW);
-    
     sharedMemorySce = new OneToOneVideoScenarioMockup((dynamic_cast<OneToOneFilter*>(sharedMemoryFilter)), RAW, YUV420P);
-
-    x264encoder = new VideoEncoderX264();
-    x264decoder = new VideoDecoderLibav();
-    x264encodingSce = new OneToOneVideoScenarioMockup(x264encoder, RAW, YUV420P);
-    x264decodingSce = new OneToOneVideoScenarioMockup(x264decoder, H264);
-    CPPUNIT_ASSERT(x264encodingSce->connectFilter());
-    CPPUNIT_ASSERT(x264decodingSce->connectFilter());
+    CPPUNIT_ASSERT(sharedMemorySce->connectFilter());
     reader = new AVFramesReader();
-    writer = new InterleavedFramesWriter();
 }
 
 void SharedMemoryFunctionalTest::tearDown()
 {
     sharedMemoryFilter->disconnectAll();
     delete sharedMemoryFilter;
-
-    x264encodingSce->disconnectFilter();
-    x264decodingSce->disconnectFilter();
-    delete x264encodingSce;
-    delete x264decodingSce;
-    delete x264encoder;
-    delete x264decoder;
+    sharedMemorySce->disconnectFilter();
     delete reader;
-    delete writer;
 }
 
 void SharedMemoryFunctionalTest::sharedMemoryFilterWithDummyReader()
 {
     InterleavedVideoFrame *frame = NULL;
     InterleavedVideoFrame *midFrame = NULL;
-    InterleavedVideoFrame *filteredFrame = NULL;
-    bool milestone = false;
-    size_t fileSize;
 
-    CPPUNIT_ASSERT(reader->openFile("testsData/videoVectorTest.h264", H264));
+    CPPUNIT_ASSERT(reader->openFile("testsData/videoVectorTest.h264", RAW, YUV420P, 1280, 720));
 
     while((frame = reader->getFrame())!=NULL){
-        x264decodingSce->processFrame(frame);
-        while ((midFrame = x264decodingSce->extractFrame())){
-            sharedMemorySce->processFrame(midFrame);
+        sharedMemorySce->processFrame(frame);
+        while ((midFrame = sharedMemorySce->extractFrame())){
             if(dummyReader->isEnabled() && dummyReader->isReadable()){
                 dummyReader->readFramePayload();
-                if(dummyReader->writeFrameToFile(dummyReader->readSharedFrame(), dummyReader->getFrameObject()->getLength(), dummyReader->getSeqNum()) < 0){
-                    utils::errorMsg("Error, could not open output file");
-                }
-            }
-            x264encodingSce->processFrame(midFrame);
-            while((filteredFrame = x264encodingSce->extractFrame())){
-                CPPUNIT_ASSERT(filteredFrame->getWidth() == midFrame->getWidth() 
-                    && filteredFrame->getHeight() == midFrame->getHeight());
-                CPPUNIT_ASSERT(writer->writeInterleavedFrame(filteredFrame));
-                milestone = true;
+                CPPUNIT_ASSERT(memcmp(frame->getDataBuf(), dummyReader->readSharedFrame(), dummyReader->getFrameObject()->getLength()) == 0);
             }
         }
     }
     
-    writer->closeFile();
     reader->close();
-        
-    CPPUNIT_ASSERT((fileSize = writer->getFileSize()) > 0);
-     
-    CPPUNIT_ASSERT(milestone);
+
+    CPPUNIT_ASSERT(reader->openFile("testsData/videoVectorTest.h264", H264));
+
+    while((frame = reader->getFrame())!=NULL){
+        sharedMemorySce->processFrame(frame);
+        while ((midFrame = sharedMemorySce->extractFrame())){
+            if(dummyReader->isEnabled() && dummyReader->isReadable()){
+                dummyReader->readFramePayload();
+                CPPUNIT_ASSERT(memcmp(frame->getDataBuf(), dummyReader->readSharedFrame(), dummyReader->getFrameObject()->getLength()) == 0);
+            }
+        }
+    }
+    
+    reader->close();
+
 }
 
 CPPUNIT_TEST_SUITE_REGISTRATION(SharedMemoryFunctionalTest);

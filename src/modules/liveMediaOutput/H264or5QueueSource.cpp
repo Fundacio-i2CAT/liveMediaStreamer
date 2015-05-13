@@ -76,6 +76,9 @@ void H264or5QueueSource::doGetNextFrame() {
 
     size = frame->getLength();
     buff = frame->getDataBuf();
+
+
+    // std::cout << "Queue source NAL size: " << size << std::endl;
     
     offset = startOffset(buff);
     

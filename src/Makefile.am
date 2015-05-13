@@ -40,6 +40,7 @@ liblivemediastreamer_la_SOURCES = modules/audioDecoder/AudioDecoderLibav.cpp \
                                   modules/sharedMemory/SharedMemory.cpp \
                                   AVFramedQueue.cpp \
                                   AudioCircularBuffer.cpp \
+                                  SlicedVideoFrameQueue.cpp \
                                   AudioFrame.cpp \
                                   Controller.cpp \
                                   Event.cpp \
@@ -52,12 +53,7 @@ liblivemediastreamer_la_SOURCES = modules/audioDecoder/AudioDecoderLibav.cpp \
                                   Utils.cpp \
                                   VideoFrame.cpp \
                                   Runnable.cpp \
-                                  Worker.cpp \
-                                  X264VideoCircularBuffer.cpp \
-                                  X265VideoCircularBuffer.cpp \
-                                  X264or5VideoCircularBuffer.cpp \
-                                  X264VideoFrame.cpp \
-                                  X265VideoFrame.cpp
+                                  Worker.cpp 
 
 liblivemediastreamer_la_CPPFLAGS = -g -D__STDC_CONSTANT_MACROS -Wall
 

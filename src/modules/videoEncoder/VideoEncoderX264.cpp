@@ -23,7 +23,7 @@
 
 #include <cmath>
 #include "VideoEncoderX264.hh"
-#include "../../X264VideoCircularBuffer.hh"
+#include "../../SlicedVideoFrameQueue.hh"
 
 #define MAX_PLANES_PER_PICTURE 4
 
@@ -59,19 +59,15 @@ bool VideoEncoderX264::fillPicturePlanes(unsigned char** data, int* linesize)
 
 bool VideoEncoderX264::encodeFrame(VideoFrame* codedFrame)
 {
-    int frameLength;
+    int success;
     int piNal;
     x264_nal_t* nals;
+    SlicedVideoFrame* slicedFrame;
 
-    X264VideoFrame* x264Frame = dynamic_cast<X264VideoFrame*> (codedFrame);
-    
-    if (!x264Frame) {
-        utils::errorMsg("Could not encode x264 video frame. Target frame is NULL");
-        return false;
-    }
-    
-    if (!encoder) {
-        utils::errorMsg("Could not encode x264 video frame. Encoder is NULL");
+    slicedFrame = dynamic_cast<SlicedVideoFrame*> (codedFrame);
+
+    if (!slicedFrame || !encoder) {
+        utils::errorMsg("Could not encode x264 video frame. Target frame or encoder are NULL");
         return false;
     }
 
@@ -81,65 +77,75 @@ bool VideoEncoderX264::encodeFrame(VideoFrame* codedFrame)
     } else {
         picIn.i_type = X264_TYPE_AUTO;
     }
-    
+
     picIn.i_pts = pts;
-    frameLength = x264_encoder_encode(encoder, &nals, &piNal, &picIn, &picOut);
+    success = x264_encoder_encode(encoder, &nals, &piNal, &picIn, &picOut);
 
     pts++;
-   
-    if (frameLength < 0) {
+
+    if (success < 0) {
         utils::errorMsg("X264 Encoder: Could not encode video frame");
         return false;
-    } else if (frameLength == 1) {
+    } else if (success == 1) {
         utils::debugMsg("X264 Encoder: NAL not retrieved after encoding");
         return false;
     }
-    
-    x264Frame->setNals(nals);
-    x264Frame->setNalNum(piNal);
-    x264Frame->setLength(frameLength);
-    x264Frame->setSize(xparams.i_width, xparams.i_height);
+
+    for (int i = 0; i < piNal; i++) {
+
+        if (!slicedFrame->setSlice(nals[i].p_payload, nals[i].i_payload)) {
+            utils::errorMsg("X265 Encoder: too many NALs for one slicedFrame");
+            return false;
+        }
+    }
+
     return true;
 }
 
-bool VideoEncoderX264::encodeHeadersFrame(X264VideoFrame* x264Frame)
+bool VideoEncoderX264::encodeHeadersFrame(VideoFrame* frame)
 {
-    int encodeSize;
+	int encodeSize;
     int piNal;
     x264_nal_t* nals;
+    SlicedVideoFrame *slicedFrame;
 
-    encodeSize = x264_encoder_headers(encoder, &nals, &piNal);
+	encodeSize = x264_encoder_headers(encoder, &nals, &piNal);
 
-    if (encodeSize < 0) {
-        utils::errorMsg("Could not encode headers");
+	if (encodeSize < 0) {
+		utils::errorMsg("Could not encode headers");
+        return false;
+	}
+
+    slicedFrame = dynamic_cast<SlicedVideoFrame*> (frame);
+
+    if (!slicedFrame) {
+        utils::errorMsg("Error reconfiguring x265VideoEncoder. DstFrame MUST be a SlicedVideoFrame");
         return false;
     }
 
-    x264Frame->setHdrNals(nals);
-    x264Frame->setHdrNalNum(piNal);
+    for (int i = 0; i < piNal; i++) {
+
+        if (!slicedFrame->copySlice(nals[i].p_payload, nals[i].i_payload)) {
+            utils::errorMsg("X265 Encoder: too many NALs for one slicedFrame or ");
+            return false;
+        }
+    }
+
     return true;
 }
 
 FrameQueue* VideoEncoderX264::allocQueue(int wId)
 {
-    return X264VideoCircularBuffer::createNew(DEFAULT_VIDEO_FRAMES);
+    return SlicedVideoFrameQueue::createNew(H264, DEFAULT_VIDEO_FRAMES, MAX_H264_OR_5_NAL_SIZE);
 }
 
 bool VideoEncoderX264::reconfigure(VideoFrame* orgFrame, VideoFrame* dstFrame)
 {
     int colorspace;
-    X264VideoFrame* x264Frame;
 
     if (!needsConfig && orgFrame->getWidth() == xparams.i_width &&
         orgFrame->getHeight() == xparams.i_height && orgFrame->getPixelFormat() == inPixFmt) {
         return true;
-    }
-
-    x264Frame = dynamic_cast<X264VideoFrame*> (dstFrame);
-
-    if (!x264Frame) {
-        utils::errorMsg("Error reconfiguring x264VideoEncoder. DstFrame MUST be a x264VideoFrame");
-        return false;
     }
 
     inPixFmt = orgFrame->getPixelFormat();
@@ -202,7 +208,7 @@ bool VideoEncoderX264::reconfigure(VideoFrame* orgFrame, VideoFrame* dstFrame)
         x264_encoder_close(encoder);
         encoder = x264_encoder_open(&xparams);
     }
-    
+
     if (!encoder) {
         utils::errorMsg("Error reconfiguring x264 encoder. At this point encoder should not be NULL...");
         return false;
@@ -211,7 +217,7 @@ bool VideoEncoderX264::reconfigure(VideoFrame* orgFrame, VideoFrame* dstFrame)
     needsConfig = false;
 
     if (!annexB) {
-        return encodeHeadersFrame(x264Frame);
+        return encodeHeadersFrame(dstFrame);
     }
 
     return true;

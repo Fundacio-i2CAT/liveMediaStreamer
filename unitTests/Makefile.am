@@ -1,33 +1,18 @@
 AUTOMAKE_OPTIONS = foreign
 
-bin_PROGRAMS = connectionTest sinkManagerTest filterTest workerTest dasherTest dashAudioSegmenterTest dashVideoSegmenterTest mpdManagerTest videoEncoderX264or5Test x264or5VideoCircularBufferTest x264VideoCircularBufferTest x265VideoCircularBufferTest encodingDecodingTest sharedMemoryTest
+bin_PROGRAMS = connectionTest sinkManagerTest filterTest workerTest dasherTest dashAudioSegmenterTest dashVideoSegmenterTest mpdManagerTest encodingDecodingTest sharedMemoryTest slicedVideoFrameQueueTest
 
-x265VideoCircularBufferTest_SOURCES = X265VideoCircularBufferTest.cpp ../src/X265VideoCircularBuffer.cpp ../src/X264or5VideoCircularBuffer.cpp ../src/AVFramedQueue.cpp ../src/Frame.cpp ../src/Jzon.cpp ../src/Utils.cpp ../src/VideoFrame.cpp ../src/AudioFrame.cpp ../src/X265VideoFrame.cpp
-x265VideoCircularBufferTest_CPPFLAGS = -g -Wall -D__STDC_CONSTANT_MACROS -I../src/
-x265VideoCircularBufferTest_CXXFLAGS = -std=c++11
-x265VideoCircularBufferTest_LDFLAGS = -L../src -lcppunit
+slicedVideoFrameQueueTest_SOURCES = SlicedVideoFrameQueueTest.cpp ../src/SlicedVideoFrameQueue.cpp ../src/VideoFrame.cpp ../src/AVFramedQueue.cpp ../src/Jzon.cpp ../src/Utils.cpp ../src/Frame.cpp ../src/AudioFrame.cpp
+slicedVideoFrameQueueTest_CPPFLAGS = -g -Wall -D__STDC_CONSTANT_MACROS -I../src/
+slicedVideoFrameQueueTest_CXXFLAGS = -std=c++11
+slicedVideoFrameQueueTest_LDFLAGS = -L../src -lcppunit
 
-x264VideoCircularBufferTest_SOURCES = X264VideoCircularBufferTest.cpp ../src/X264VideoCircularBuffer.cpp ../src/X264or5VideoCircularBuffer.cpp ../src/AVFramedQueue.cpp ../src/Frame.cpp ../src/Jzon.cpp ../src/Utils.cpp ../src/VideoFrame.cpp ../src/AudioFrame.cpp ../src/X264VideoFrame.cpp
-x264VideoCircularBufferTest_CPPFLAGS = -g -Wall -D__STDC_CONSTANT_MACROS -I../src/
-x264VideoCircularBufferTest_CXXFLAGS = -std=c++11
-x264VideoCircularBufferTest_LDFLAGS = -L../src -lcppunit
-
-x264or5VideoCircularBufferTest_SOURCES = X264or5VideoCircularBufferTest.cpp ../src/X264or5VideoCircularBuffer.cpp ../src/AVFramedQueue.cpp ../src/Frame.cpp ../src/Jzon.cpp ../src/Utils.cpp ../src/VideoFrame.cpp ../src/AudioFrame.cpp
-x264or5VideoCircularBufferTest_CPPFLAGS = -g -Wall -D__STDC_CONSTANT_MACROS -I../src/
-x264or5VideoCircularBufferTest_CXXFLAGS = -std=c++11
-x264or5VideoCircularBufferTest_LDFLAGS = -L../src -lcppunit
-
-videoEncoderX264or5Test_SOURCES = modules/videoEncoder/VideoEncoderX264or5Test.cpp ../src/modules/videoEncoder/VideoEncoderX264or5.cpp ../src/AVFramedQueue.cpp ../src/IOInterface.cpp ../src/Event.cpp ../src/Frame.cpp ../src/VideoFrame.cpp ../src/AudioFrame.cpp ../src/Jzon.cpp ../src/Utils.cpp ../src/Filter.cpp ../src/X264VideoFrame.cpp ../src/X265VideoFrame.cpp
-videoEncoderX264or5Test_CPPFLAGS = -g -Wall -D__STDC_CONSTANT_MACROS -I../src/
-videoEncoderX264or5Test_CXXFLAGS = -std=c++11
-videoEncoderX264or5Test_LDFLAGS = -L../src -lcppunit
-
-encodingDecodingTest_SOURCES = EncodingDecodingTest.cpp ../src/modules/videoEncoder/VideoEncoderX264or5.cpp ../src/modules/videoEncoder/VideoEncoderX264.cpp ../src/modules/videoEncoder/VideoEncoderX265.cpp ../src/modules/videoDecoder/VideoDecoderLibav.cpp ../src/AVFramedQueue.cpp ../src/IOInterface.cpp ../src/Event.cpp ../src/Frame.cpp ../src/VideoFrame.cpp ../src/Jzon.cpp ../src/Utils.cpp ../src/Filter.cpp ../src/X264VideoFrame.cpp ../src/X265VideoFrame.cpp ../src/X264or5VideoCircularBuffer.cpp ../src/X264VideoCircularBuffer.cpp ../src/X265VideoCircularBuffer.cpp ../src/AudioFrame.cpp
+encodingDecodingTest_SOURCES = EncodingDecodingTest.cpp ../src/modules/videoEncoder/VideoEncoderX264or5.cpp ../src/modules/videoEncoder/VideoEncoderX264.cpp ../src/modules/videoEncoder/VideoEncoderX265.cpp ../src/modules/videoDecoder/VideoDecoderLibav.cpp ../src/AVFramedQueue.cpp ../src/IOInterface.cpp ../src/Event.cpp ../src/Frame.cpp ../src/VideoFrame.cpp ../src/Jzon.cpp ../src/Utils.cpp ../src/Filter.cpp ../src/AudioFrame.cpp ../src/SlicedVideoFrameQueue.cpp
 encodingDecodingTest_CPPFLAGS = -g -Wall -D__STDC_CONSTANT_MACROS -I../src/
 encodingDecodingTest_CXXFLAGS = -std=c++11
 encodingDecodingTest_LDFLAGS = -L../src -lcppunit
 
-sharedMemoryTest_SOURCES = modules/sharedMemory/SharedMemoryTest.cpp ../src/modules/sharedMemory/SharedMemory.cpp FilterMockup.hh modules/sharedMemory/SharedMemoryDummyReader.cpp ../src/modules/videoEncoder/VideoEncoderX264or5.cpp ../src/modules/videoEncoder/VideoEncoderX264.cpp ../src/modules/videoEncoder/VideoEncoderX265.cpp ../src/modules/videoDecoder/VideoDecoderLibav.cpp ../src/AVFramedQueue.cpp ../src/IOInterface.cpp ../src/Event.cpp ../src/Frame.cpp ../src/VideoFrame.cpp ../src/Jzon.cpp ../src/Utils.cpp ../src/Filter.cpp ../src/X264VideoFrame.cpp ../src/X265VideoFrame.cpp ../src/X264or5VideoCircularBuffer.cpp ../src/X264VideoCircularBuffer.cpp ../src/X265VideoCircularBuffer.cpp ../src/AudioFrame.cpp
+sharedMemoryTest_SOURCES = modules/sharedMemory/SharedMemoryTest.cpp ../src/modules/sharedMemory/SharedMemory.cpp FilterMockup.hh modules/sharedMemory/SharedMemoryDummyReader.cpp ../src/modules/videoEncoder/VideoEncoderX264or5.cpp ../src/modules/videoEncoder/VideoEncoderX264.cpp ../src/modules/videoEncoder/VideoEncoderX265.cpp ../src/modules/videoDecoder/VideoDecoderLibav.cpp ../src/AVFramedQueue.cpp ../src/IOInterface.cpp ../src/Event.cpp ../src/Frame.cpp ../src/VideoFrame.cpp ../src/Jzon.cpp ../src/Utils.cpp ../src/Filter.cpp ../src/SlicedVideoFrameQueue.cpp ../src/AudioFrame.cpp
 sharedMemoryTest_CPPFLAGS = -std=c++11 -g -Wall -g -D__STDC_CONSTANT_MACROS -I../src -I.
 sharedMemoryTest_LDFLAGS =  -L../src -lcppunit -lpthread
 

@@ -1,5 +1,5 @@
 /*
- *  X264or5VideoCircularBuffer - Video circular buffer for x264 and x265
+ *  SlicedVideoFrameQueue - Video circular buffer for x264 and x265
  *  Copyright (C) 2015  Fundació i2CAT, Internet i Innovació digital a Catalunya
  *
  *  This file is part of media-streamer.
@@ -20,22 +20,30 @@
  *  Authors:  Marc Palau <marc.palau@i2cat.net>
  */
 
-#ifndef _X264_OR_5_VIDEO_CIRCULAR_BUFFER_HH
-#define _X264_OR_5_VIDEO_CIRCULAR_BUFFER_HH
+#ifndef _SLICED_VIDEO_FRAME_QUEUE_HH
+#define _SLICED_VIDEO_FRAME_QUEUE_HH
 
 #include "Types.hh"
 #include "AVFramedQueue.hh"
+#include "VideoFrame.hh"
 
 /*! Virtual interface for X264VideoCircularBuffer and X265VideoCircularBuffer. In is a child class from VideoFrameQueue, modifying its 
     input behaviour. */
 
-class X264or5VideoCircularBuffer : public VideoFrameQueue {
+class SlicedVideoFrameQueue : public VideoFrameQueue {
 
 public:
     /**
+    * Class constructor wrapper
+    * @param maxFrames internal frame queue size 
+    * @return NULL if wrong input parameters or wrong init and pointer to new object if success
+    */
+    static SlicedVideoFrameQueue* createNew(VCodecType codec, unsigned maxFrames, unsigned maxSliceSize);
+
+    /**
     * Class destructor
     */
-    virtual ~X264or5VideoCircularBuffer();
+    virtual ~SlicedVideoFrameQueue();
 
     /**
     * It returns the input frame
@@ -56,17 +64,16 @@ public:
     */
     Frame *forceGetRear();
 
-protected:
-    X264or5VideoCircularBuffer(VCodecType codec, unsigned maxFrames);
+private:
+    SlicedVideoFrameQueue(VCodecType codec, unsigned maxFrames);
 
-    virtual bool pushBack() = 0;
-
+    bool pushBack();
     Frame *innerGetRear();
     Frame *innerForceGetRear();
     void innerAddFrame();
-    bool setup();
+    bool setup(unsigned maxSliceSize);
 
-    Frame* inputFrame;
+    SlicedVideoFrame* inputFrame;
 
 };
 

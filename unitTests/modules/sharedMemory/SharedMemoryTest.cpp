@@ -23,7 +23,6 @@
 #include <iostream>
 #include <fstream>
 #include <chrono>
-#include <thread>
 #include <cppunit/extensions/TestFactoryRegistry.h>
 #include <cppunit/extensions/HelperMacros.h>
 #include <cppunit/ui/text/TextTestRunner.h>
@@ -136,10 +135,14 @@ void SharedMemoryFunctionalTest::sharedMemoryFilterWithDummyReader()
     while((frame = reader->getFrame())!=NULL){
         sharedMemorySce->processFrame(frame);
         while ((midFrame = sharedMemorySce->extractFrame())){
-            if(dummyReader->isEnabled() && dummyReader->isReadable()){
-                dummyReader->readFramePayload();
-                CPPUNIT_ASSERT(memcmp(frame->getDataBuf(), dummyReader->readSharedFrame(), dummyReader->getFrameObject()->getLength()) == 0);
-            }
+            CPPUNIT_ASSERT(memcmp(midFrame->getDataBuf(), frame->getDataBuf(), midFrame->getLength()) == 0);
+            CPPUNIT_ASSERT(dummyReader->isEnabled());
+            CPPUNIT_ASSERT(dummyReader->isReadable());
+            dummyReader->readFramePayload();
+            CPPUNIT_ASSERT(memcmp(frame->getDataBuf(), dummyReader->readSharedFrame(), dummyReader->getFrameObject()->getLength()) == 0);
+            CPPUNIT_ASSERT((dynamic_cast<VideoFrame*>(dummyReader->getFrameObject()))->getWidth() == (dynamic_cast<VideoFrame*>(frame))->getWidth());
+            CPPUNIT_ASSERT((dynamic_cast<VideoFrame*>(dummyReader->getFrameObject()))->getPixelFormat() == (dynamic_cast<VideoFrame*>(frame))->getPixelFormat());
+            CPPUNIT_ASSERT((dynamic_cast<VideoFrame*>(dummyReader->getFrameObject()))->getCodec() == (dynamic_cast<VideoFrame*>(frame))->getCodec());
         }
     }
     
@@ -150,11 +153,14 @@ void SharedMemoryFunctionalTest::sharedMemoryFilterWithDummyReader()
     while((frame = reader->getFrame())!=NULL){
         sharedMemorySce->processFrame(frame);
         while ((midFrame = sharedMemorySce->extractFrame())){
-            if(dummyReader->isEnabled() && dummyReader->isReadable()){
-                dummyReader->readFramePayload();
-                CPPUNIT_ASSERT(memcmp(frame->getDataBuf(), dummyReader->readSharedFrame(), dummyReader->getFrameObject()->getLength()) == 0);
-            }
-        }
+            CPPUNIT_ASSERT(memcmp(midFrame->getDataBuf(), frame->getDataBuf(), midFrame->getLength()) == 0);
+            CPPUNIT_ASSERT(dummyReader->isEnabled());
+            CPPUNIT_ASSERT(dummyReader->isReadable());
+            dummyReader->readFramePayload();
+            CPPUNIT_ASSERT(memcmp(frame->getDataBuf(), dummyReader->readSharedFrame(), dummyReader->getFrameObject()->getLength()) == 0);
+            CPPUNIT_ASSERT((dynamic_cast<VideoFrame*>(dummyReader->getFrameObject()))->getWidth() == (dynamic_cast<VideoFrame*>(frame))->getWidth());
+            CPPUNIT_ASSERT((dynamic_cast<VideoFrame*>(dummyReader->getFrameObject()))->getPixelFormat() == (dynamic_cast<VideoFrame*>(frame))->getPixelFormat());
+            CPPUNIT_ASSERT((dynamic_cast<VideoFrame*>(dummyReader->getFrameObject()))->getCodec() == (dynamic_cast<VideoFrame*>(frame))->getCodec());        }
     }
     
     reader->close();

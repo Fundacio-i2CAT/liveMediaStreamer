@@ -77,10 +77,10 @@ public:
     * Returns the shared memory ID of this filter
     * @return SharedMemoryID of its sharedMemory filter
     */
+    size_t getSharedMemoryID() { return SharedMemoryID;};
 
 protected:
     SharedMemory(size_t key_, VCodecType codec_, size_t fTime = 0, FilterRole fRole_ = MASTER, bool force_ = false, bool sharedFrames_ = true);
-    size_t getSharedMemoryID() { return SharedMemoryID;};
     bool isEnabled() {return enabled;};
     void writeSharedMemoryH264();
     bool appendNalToFrame(unsigned char* nalData, unsigned nalDataLength, int startCodeOffset, bool &newFrame);
@@ -108,16 +108,16 @@ private:
     VCodecType getVCodecFromCodecType(uint16_t codecType);
 
 private:
-    size_t 			SharedMemorykey;
-    size_t 			SharedMemoryID;
-    uint8_t                     *SharedMemoryOrigin;
-    uint8_t 			*buffer;
-    uint8_t 			*access;
-    bool                        enabled;
-    bool                        newFrame;
-    std::vector<unsigned char>  frameData;
-    VCodecType const            codec;
-    uint16_t                    seqNum;
+    size_t 			              SharedMemorykey;
+    size_t 			              SharedMemoryID;
+    uint8_t                       *SharedMemoryOrigin;
+    uint8_t 			          *buffer;
+    uint8_t 			          *access;
+    bool                          enabled;
+    bool                          newFrame;
+    std::vector<unsigned char>    frameData;
+    VCodecType const              codec;
+    uint16_t                      seqNum;
 };
 
 #endif

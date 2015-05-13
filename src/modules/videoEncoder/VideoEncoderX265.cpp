@@ -39,11 +39,12 @@ VideoEncoderX264or5(fRole, sharedFrames), encoder(NULL)
 
 VideoEncoderX265::~VideoEncoderX265()
 {
-    /*if (encoder){
-        x265_picture_clean(&x265pic) or x265_picture_free(&x265pic)?
+    if (encoder != NULL){
         x265_encoder_close(encoder);
-    }*/
+        encoder = NULL;
+    }
     //TODO check for x265_cleanup()?
+    //TODO add x265_picture_clean(&x265pic) or x265_picture_free(&x265pic)?
 }
 
 bool VideoEncoderX265::fillPicturePlanes(unsigned char** data, int* linesize)
@@ -68,8 +69,13 @@ bool VideoEncoderX265::encodeFrame(VideoFrame* codedFrame)
 
     X265VideoFrame* x265Frame = dynamic_cast<X265VideoFrame*> (codedFrame);
 
-    if (!x265Frame || !encoder) {
-        utils::errorMsg("Could not encode x265 video frame. Target frame or encoder are NULL");
+    if (!x265Frame) {
+        utils::errorMsg("Could not encode x265 video frame. Target frame is NULL");
+        return false;
+    }
+    
+    if (!encoder) {
+        utils::errorMsg("Could not encode x265 video frame. Encoder is NULL");
         return false;
     }
 
@@ -168,6 +174,7 @@ bool VideoEncoderX265::reconfigure(VideoFrame* orgFrame, VideoFrame* dstFrame)
 
     x265_param_parse(xparams, "keyint", std::to_string(gop).c_str());
     x265_param_parse(xparams, "fps", std::to_string(fps).c_str());
+    x265_param_parse(xparams, "input-res", (std::to_string(orgFrame->getWidth()) + 'x' + std::to_string(orgFrame->getHeight())).c_str());
 
     //TODO check same management for intra-refresh like x264
     //x265_param_parse(xparams, "intra-refresh", std::to_string(0).c_str());
@@ -184,16 +191,6 @@ bool VideoEncoderX265::reconfigure(VideoFrame* orgFrame, VideoFrame* dstFrame)
 
     if (annexB) {
         x265_param_parse(xparams, "repeat-headers", std::to_string(1).c_str());
-    }
-
-    if (orgFrame->getWidth() != xparams->sourceWidth || orgFrame->getHeight() != xparams->sourceHeight) {
-        xparams->sourceWidth = orgFrame->getWidth();
-        xparams->sourceHeight = orgFrame->getHeight();
-
-        if (encoder != NULL){
-            x265_encoder_close(encoder);
-            encoder = NULL;
-        }
     }
 
     if (!encoder) {

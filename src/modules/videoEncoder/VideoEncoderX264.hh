@@ -41,12 +41,12 @@ extern "C" {
 class VideoEncoderX264 : public VideoEncoderX264or5 {
 
 public:
-	VideoEncoderX264(FilterRole fRole = MASTER, bool sharedFrames = true);
-	~VideoEncoderX264();
-	FrameQueue* allocQueue(int wId);
+    VideoEncoderX264(FilterRole fRole = MASTER, bool sharedFrames = true);
+    ~VideoEncoderX264();
 
 private:
-	void initializeEventMap();
+    FrameQueue* allocQueue(int wId);
+    void initializeEventMap();
 
     x264_picture_t picIn;
 	x264_picture_t picOut;

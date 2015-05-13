@@ -29,6 +29,8 @@ OneToOneFilter(false, fRole_, sharedFrames), inPixFmt(P_NONE), annexB(false), fo
     fType = VIDEO_ENCODER;
     midFrame = av_frame_alloc();
     initializeEventMap();
+    configure(DEFAULT_BITRATE, VIDEO_DEFAULT_FRAMERATE, DEFAULT_GOP, 
+              DEFAULT_LOOKAHEAD, DEFAULT_THREADS, DEFAULT_ANNEXB, DEFAULT_PRESET);
 }
 
 VideoEncoderX264or5::~VideoEncoderX264or5()
@@ -40,7 +42,7 @@ VideoEncoderX264or5::~VideoEncoderX264or5()
 
 bool VideoEncoderX264or5::doProcessFrame(Frame *org, Frame *dst)
 {
-    if (!org || !dst) {
+    if (!(org && dst)) {
         utils::errorMsg("Error encoding video frame: org or dst are NULL");
         return false;
     }
@@ -104,11 +106,12 @@ bool VideoEncoderX264or5::configure(int bitrate_, int fps_, int gop_, int lookah
 
     if (fps_ <= 0) {
         fps = VIDEO_DEFAULT_FRAMERATE;
+        setFrameTime(std::chrono::nanoseconds(0));
     } else {
         fps = fps_;
+        setFrameTime(std::chrono::nanoseconds(std::nano::den/fps));
     }
 
-    setFrameTime(std::chrono::nanoseconds(std::nano::den/fps));
     needsConfig = true;
     return true;
 }

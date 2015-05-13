@@ -48,7 +48,7 @@ bool Runnable::runProcessFrame()
     std::chrono::nanoseconds ret;
     
     ret = processFrame();
-
+   
     if (ret.count() < 0){
         return false;
     }

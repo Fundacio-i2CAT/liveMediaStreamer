@@ -40,6 +40,13 @@ extern "C" {
 #include <libavformat/avformat.h>
 }
 
+#define DEFAULT_BITRATE 2000
+#define DEFAULT_GOP 25
+#define DEFAULT_LOOKAHEAD 25
+#define DEFAULT_THREADS 4
+#define DEFAULT_ANNEXB true
+#define DEFAULT_PRESET "veryfast"
+
 /*! Base class for VideoEncoderX264 and VideoEncoderX265. It implements common methods, basically configure and doProcessFrame */
 
 class VideoEncoderX264or5 : public OneToOneFilter {

@@ -119,7 +119,7 @@ void WorkerTest::runningProcessor()
     std::this_thread::sleep_for(std::chrono::seconds(1));
     
     CPPUNIT_ASSERT(worker->removeProcessor(2));
-    
+
     std::this_thread::sleep_for(std::chrono::seconds(1));
     
     CPPUNIT_ASSERT(worker->isRunning());

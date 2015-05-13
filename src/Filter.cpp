@@ -478,17 +478,17 @@ std::chrono::nanoseconds BaseFilter::masterProcessFrame()
     std::chrono::nanoseconds enlapsedTime;
     std::chrono::nanoseconds frameTime_;
     size_t frameTime_value;
-
+    
     wallClock = std::chrono::system_clock::now();
 
     processEvent();
-
+      
     if (!demandOriginFrames() || !demandDestinationFrames()) {
         return std::chrono::nanoseconds(RETRY);
     }
-
+    
     processAll();
-
+    
     runDoProcessFrame();
 
     while (runningSlaves()){

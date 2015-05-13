@@ -119,30 +119,24 @@ void Worker::stop()
 
 void Worker::process()
 {
-    Runnable* currentJob;
-
-    while(!processors.empty() && run) {
+    Runnable* currentJob = NULL;
+    
+    mtx.lock();
+    while(run && !processors.empty()) {    
+        currentJob = processors.top();
+        
+        mtx.unlock();
+        
+        currentJob->sleepUntilReady();
+        currentJob->runProcessFrame();
+            
         mtx.lock();
-
-        while (!processors.empty() && processors.top()->ready()){
-            currentJob = processors.top();
-            processors.pop();
-            //TODO: remove/rethink enable feature from filters
-            currentJob->runProcessFrame();
-            processors.push(currentJob);
-        }
-
-        if (!processors.empty()){
-            currentJob = processors.top();
-
-            mtx.unlock();
-
-            currentJob->sleepUntilReady();
-        } else {
-            mtx.unlock();
-        }
+        
+        processors.pop();
+        processors.push(currentJob);
     }
-
+    mtx.unlock();
+    
     thread.detach();
 }
 

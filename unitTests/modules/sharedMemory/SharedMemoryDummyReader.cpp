@@ -96,7 +96,7 @@ void SharedMemoryDummyReader::readFramePayload() {
 	frame->setSize(width, height);
 	frame->setPixelFormat(getPixTypeFromPixelFormat(pixFmt));
 	frame->setLength(length);
-	frame->setPresentationTime(std::chrono::milliseconds(1000000 * tv_sec + tv_usec));
+	frame->setPresentationTime(std::chrono::system_clock::from_time_t(1000000 * tv_sec + tv_usec));
 
 	utils::debugMsg("Reading Frame Payload: seqNum = " + std::to_string(seqNum) + " pixFmt = " + std::to_string(pixFmt) + " codec = "+ std::to_string(codec) + " size = " + std::to_string(width) + "x" + std::to_string(height) + " ts(sec) = " + std::to_string(tv_sec) + " ts(usec) = "+ std::to_string(tv_usec) + " length = " + std::to_string(length) +"");
 }
@@ -121,38 +121,6 @@ bool SharedMemoryDummyReader::setFrameObject(Frame* in_frame){
 
 uint16_t SharedMemoryDummyReader::getSeqNum(){
 	return seqNum;
-}
-
-int SharedMemoryDummyReader::writeFrameToFile(unsigned char const * const buff, size_t length, size_t seqNum)
-{
-	std::string fileName = "frame" + std::to_string(seqNum);
-	utils::debugMsg("Got frame: " + fileName );
-	readFrames++;
-	/*
-	std::ofstream fs;
-	fs.open (fileName, std::ostream::out | std::ofstream::app | std::ofstream::binary);
-
-	if (fs.is_open()){
-		fs.write(reinterpret_cast<char const * const>(buff), length);
-	} else {
-		return -1;
-	}
-	fs.close();
-	*/
-	return 0;
-}
-
-void SharedMemoryDummyReader::dummyReaderThread(SharedMemoryDummyReader* dummyReader){
-
-    while(dummyReader->isEnabled()){
-    	usleep(1000);
-    	if(dummyReader->isReadable()){
-    		dummyReader->readFramePayload();
-			if(dummyReader->writeFrameToFile(dummyReader->readSharedFrame(), dummyReader->getFrameObject()->getLength(), dummyReader->getSeqNum()) < 0){
-				utils::errorMsg("Error, could not open output file");
-			}
-    	}
-    }
 }
 
 uint16_t SharedMemoryDummyReader::getCodecFromVCodec(VCodecType codec){

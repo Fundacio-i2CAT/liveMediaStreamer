@@ -178,13 +178,8 @@ void SharedMemoryFunctionalTest::sharedMemoryFilterWithDummyReader()
     reader->close();
         
     CPPUNIT_ASSERT((fileSize = writer->getFileSize()) > 0);
-    
-/*    CPPUNIT_ASSERT(VIDEO_FRAMES/VIDEO_DEFAULT_FRAMERATE*500*1000*1.1 > fileSize*BITS_X_BYTE &&
-        VIDEO_FRAMES/VIDEO_DEFAULT_FRAMERATE*500*1000*0.9 < fileSize*BITS_X_BYTE
-    );
-  */  
+     
     CPPUNIT_ASSERT(milestone);
-
 }
 
 CPPUNIT_TEST_SUITE_REGISTRATION(SharedMemoryFunctionalTest);

@@ -130,17 +130,7 @@ int SharedMemoryDummyReader::writeFrameToFile(unsigned char const * const buff, 
 	std::string fileName = "frame" + std::to_string(seqNum);
 	utils::debugMsg("Got frame: " + fileName );
 	readFrames++;
-	/*NOTE: it should not be here, commented code ois *always* disturbing, please use git to keep code history
-	std::ofstream fs;
-	fs.open (fileName, std::ostream::out | std::ofstream::app | std::ofstream::binary);
 
-	if (fs.is_open()){
-		fs.write(reinterpret_cast<char const * const>(buff), length);
-	} else {
-		return -1;
-	}
-	fs.close();
-	*/
 	return 0;
 }
 

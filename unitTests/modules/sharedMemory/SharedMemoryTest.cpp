@@ -31,8 +31,10 @@
 #include <cppunit/TestResultCollector.h>
 #include <cppunit/XmlOutputter.h>
 
-#include "FilterMockup.hh"
-#include "Worker.hh"
+#include "FilterFunctionalMockup.hh"
+#include "modules/videoEncoder/VideoEncoderX264.hh"
+#include "modules/videoEncoder/VideoEncoderX265.hh"
+#include "modules/videoDecoder/VideoDecoderLibav.hh"
 #include "modules/sharedMemory/SharedMemory.hh"
 #include "SharedMemoryDummyReader.hh"
 
@@ -48,29 +50,35 @@ public:
 
 protected:
     void connectWithSharedMemory();
+
+    BaseFilter* sharedMemoryFilter;
+    BaseFilter* sharedMemoryFilterErr;
+    BaseFilter* satelliteFilterHead;
+    BaseFilter* satelliteFilterTail;
 };
 
 void SharedMemoryTest::setUp()
 {
-
+    sharedMemoryFilter = SharedMemory::createNew(KEY, RAW);
+    sharedMemoryFilterErr = SharedMemory::createNew(KEY, RAW);
+    satelliteFilterHead = new BaseFilterMockup(0,1);
+    satelliteFilterTail = new BaseFilterMockup(1,0);
 }
 
 void SharedMemoryTest::tearDown()
 {
-
+    sharedMemoryFilter->disconnectAll();
+    delete sharedMemoryFilter;
+    delete sharedMemoryFilterErr;
+    delete satelliteFilterHead;
+    delete satelliteFilterTail;
 }
 
 void SharedMemoryTest::connectWithSharedMemory()
 {
-    BaseFilter* sharedMemoryFilter = SharedMemory::createNew(KEY, RAW);
     CPPUNIT_ASSERT(!(sharedMemoryFilter == NULL));
 
-    BaseFilter* satelliteFilterHead = new BaseFilterMockup(0,1);
-    BaseFilter* satelliteFilterTail = new BaseFilterMockup(1,0);
-
-    BaseFilter* sharedMemoryFilterErr = SharedMemory::createNew(KEY, RAW);
     CPPUNIT_ASSERT(sharedMemoryFilterErr == NULL);
-    delete sharedMemoryFilterErr;
 
     CPPUNIT_ASSERT(satelliteFilterHead->connectOneToOne(sharedMemoryFilter));
     CPPUNIT_ASSERT(sharedMemoryFilter->connectOneToOne(satelliteFilterTail));
@@ -79,12 +87,6 @@ void SharedMemoryTest::connectWithSharedMemory()
     CPPUNIT_ASSERT(sharedMemoryFilter->disconnectReader(1));
     CPPUNIT_ASSERT(satelliteFilterHead->disconnectWriter(1));
     CPPUNIT_ASSERT(satelliteFilterTail->disconnectReader(1));
-
-    sharedMemoryFilter->disconnectAll();
-
-    delete sharedMemoryFilter;
-    delete satelliteFilterHead;
-    delete satelliteFilterTail;
 }
 
 
@@ -99,23 +101,90 @@ public:
     void tearDown();
 
 protected:
-
     void sharedMemoryFilterWithDummyReader();
+
+    OneToOneVideoScenarioMockup *x264encodingSce, *x264decodingSce, *sharedMemorySce;
+    VideoEncoderX264or5* x264encoder;
+    VideoDecoderLibav* x264decoder;
+    AVFramesReader* reader;
+    InterleavedFramesWriter* writer;
+    BaseFilter* sharedMemoryFilter;
+    SharedMemoryDummyReader* dummyReader;
 };
 
 void SharedMemoryFunctionalTest::setUp()
 {
+    sharedMemoryFilter = SharedMemory::createNew(KEY, RAW);
+    dummyReader = new SharedMemoryDummyReader((dynamic_cast<SharedMemory*>(sharedMemoryFilter))->getSharedMemoryID(), RAW);
+    
+    sharedMemorySce = new OneToOneVideoScenarioMockup((dynamic_cast<OneToOneFilter*>(sharedMemoryFilter)), RAW, YUV420P);
 
+    x264encoder = new VideoEncoderX264();
+    x264decoder = new VideoDecoderLibav();
+    x264encodingSce = new OneToOneVideoScenarioMockup(x264encoder, RAW, YUV420P);
+    x264decodingSce = new OneToOneVideoScenarioMockup(x264decoder, H264);
+    CPPUNIT_ASSERT(x264encodingSce->connectFilter());
+    CPPUNIT_ASSERT(x264decodingSce->connectFilter());
+    reader = new AVFramesReader();
+    writer = new InterleavedFramesWriter();
 }
 
 void SharedMemoryFunctionalTest::tearDown()
 {
+    sharedMemoryFilter->disconnectAll();
+    delete sharedMemoryFilter;
 
+    x264encodingSce->disconnectFilter();
+    x264decodingSce->disconnectFilter();
+    delete x264encodingSce;
+    delete x264decodingSce;
+    delete x264encoder;
+    delete x264decoder;
+    delete reader;
+    delete writer;
 }
 
 void SharedMemoryFunctionalTest::sharedMemoryFilterWithDummyReader()
 {
+    InterleavedVideoFrame *frame = NULL;
+    InterleavedVideoFrame *midFrame = NULL;
+    InterleavedVideoFrame *filteredFrame = NULL;
+    bool milestone = false;
+    size_t fileSize;
+
+    CPPUNIT_ASSERT(reader->openFile("testsData/videoVectorTest.h264", H264));
+
+    while((frame = reader->getFrame())!=NULL){
+        x264decodingSce->processFrame(frame);
+        while ((midFrame = x264decodingSce->extractFrame())){
+            sharedMemorySce->processFrame(midFrame);
+            if(dummyReader->isEnabled() && dummyReader->isReadable()){
+                dummyReader->readFramePayload();
+                if(dummyReader->writeFrameToFile(dummyReader->readSharedFrame(), dummyReader->getFrameObject()->getLength(), dummyReader->getSeqNum()) < 0){
+                    utils::errorMsg("Error, could not open output file");
+                }
+            }
+            x264encodingSce->processFrame(midFrame);
+            while((filteredFrame = x264encodingSce->extractFrame())){
+                CPPUNIT_ASSERT(filteredFrame->getWidth() == midFrame->getWidth() 
+                    && filteredFrame->getHeight() == midFrame->getHeight());
+                CPPUNIT_ASSERT(writer->writeInterleavedFrame(filteredFrame));
+                milestone = true;
+            }
+        }
+    }
     
+    writer->closeFile();
+    reader->close();
+        
+    CPPUNIT_ASSERT((fileSize = writer->getFileSize()) > 0);
+    
+/*    CPPUNIT_ASSERT(VIDEO_FRAMES/VIDEO_DEFAULT_FRAMERATE*500*1000*1.1 > fileSize*BITS_X_BYTE &&
+        VIDEO_FRAMES/VIDEO_DEFAULT_FRAMERATE*500*1000*0.9 < fileSize*BITS_X_BYTE
+    );
+  */  
+    CPPUNIT_ASSERT(milestone);
+
 }
 
 CPPUNIT_TEST_SUITE_REGISTRATION(SharedMemoryFunctionalTest);

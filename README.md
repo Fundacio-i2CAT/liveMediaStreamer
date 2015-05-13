@@ -8,5 +8,8 @@ LMS is licensed under GPL
 
 Information about setup, deployment, usage and features can be checked in our [Wiki](http://github.com/ua-i2cat/liveMediaStreamer/wiki)
 
+For extended usefull documentation about LMS and related softwares just follow next [link](https://drive.google.com/folderview?id=0Byv9XisHsDOQfnp3Zl9paEUtQ3UtX3BVWkdQMUdjcksxdlRxc0dwM2pTWlNxNXZLNGVOSG8&usp=sharing)
+
+
 Thank you for downloading Live Media Streamer. For any doubt, question or suggestion please contact to: support.ua@i2cat.net
 

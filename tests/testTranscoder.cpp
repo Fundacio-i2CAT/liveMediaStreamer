@@ -235,7 +235,7 @@ void addVideoPath(unsigned port, Dasher* dasher, int dasherId, int receiverID, i
     pipe->addWorker(wEncId, wEnc);
 
     //bitrate, fps, gop, lookahead, threads, annexB, preset
-    encoder->configure(4000, 25, 25, 25, 2, false, "veryfast");
+    encoder->configure(4000, 5, 25, 25, 2, false, "veryfast");
 
     if (dasher != NULL){
         path = pipe->createPath(receiverID, dasherId, port, dstReader1, ids);

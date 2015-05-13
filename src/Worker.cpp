@@ -129,16 +129,18 @@ void Worker::process()
             }
             
             currentJob = processors.top();
-            
-            if (currentJob->ready()){
-                processors.pop();
-                currentJob->runProcessFrame();
-                processors.push(currentJob);
-            }
         }
-        processors.top()->sleepUntilReady();
+        
+        currentJob->sleepUntilReady();
+        currentJob->runProcessFrame();
+        
+        {
+            std::lock_guard<std::mutex> guard(mtx);
+            processors.pop();
+            processors.push(currentJob);
+        }
     }
-
+    
     thread.detach();
 }
 

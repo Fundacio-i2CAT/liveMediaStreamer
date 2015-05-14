@@ -70,6 +70,8 @@ bool VideoEncoderX264or5::doProcessFrame(Frame *org, Frame *dst)
         return false;
     }
 
+    codedFrame->setSize(rawFrame->getWidth(), rawFrame->getHeight());
+
     return true;
 }
 

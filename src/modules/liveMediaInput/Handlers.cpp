@@ -291,7 +291,7 @@ namespace handlers
         writer = new Writer();
         wId = subsession->clientPortNum();
 
-        if (strcmp(subsession->codecName(), "H264") == 0) {
+        if (strcmp(subsession->codecName(), "H264") == 0 || strcmp(subsession->codecName(), "H265") == 0) {
             sink = H264QueueSink::createNew(env, writer, wId, subsession->fmtp_spropparametersets());
         } else {
             sink = QueueSink::createNew(env, writer, wId);

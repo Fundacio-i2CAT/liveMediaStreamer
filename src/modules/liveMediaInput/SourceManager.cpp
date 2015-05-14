@@ -304,6 +304,8 @@ FrameQueue* createVideoQueue(char const* codecName)
 
     if (strcmp(codecName, "H264") == 0) {
         codec = H264;
+    } else if (strcmp(codecName, "H265") == 0) {
+        codec = H265;
     } else if (strcmp(codecName, "VP8") == 0) {
         codec = VP8;
     } else if (strcmp(codecName, "MJPEG") == 0) {

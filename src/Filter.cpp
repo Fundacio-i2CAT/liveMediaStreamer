@@ -295,7 +295,7 @@ void BaseFilter::disconnectAll()
 
 void BaseFilter::processEvent()
 {
-    eventQueueMutex.lock();
+    std::lock_guard<std::mutex> guard(eventQueueMutex);
 
     while(newEvent()) {
 
@@ -316,8 +316,6 @@ void BaseFilter::processEvent()
 
         eventQueue.pop();
     }
-
-    eventQueueMutex.unlock();
 }
 
 bool BaseFilter::newEvent()
@@ -336,19 +334,17 @@ bool BaseFilter::newEvent()
 
 void BaseFilter::pushEvent(Event e)
 {
-    eventQueueMutex.lock();
+    std::lock_guard<std::mutex> guard(eventQueueMutex);
     eventQueue.push(e);
-    eventQueueMutex.unlock();
 }
 
 void BaseFilter::getState(Jzon::Object &filterNode)
 {
-    eventQueueMutex.lock();
+    std::lock_guard<std::mutex> guard(eventQueueMutex);
     filterNode.Add("type", utils::getFilterTypeAsString(fType));
     filterNode.Add("role", utils::getRoleAsString(fRole));
     filterNode.Add("workerId", workerId);
     doGetState(filterNode);
-    eventQueueMutex.unlock();
 }
 
 bool BaseFilter::hasFrames()

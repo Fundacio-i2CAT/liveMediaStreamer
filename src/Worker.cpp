@@ -121,7 +121,7 @@ void Worker::process()
 {
     Runnable* currentJob = NULL;
     
-    mtx.lock();
+    std::lock_guard<std::mutex> guard(mtx);
     while(run && !processors.empty()) {    
         currentJob = processors.top();
         
@@ -135,8 +135,7 @@ void Worker::process()
         processors.pop();
         processors.push(currentJob);
     }
-    mtx.unlock();
-    
+   
     thread.detach();
 }
 

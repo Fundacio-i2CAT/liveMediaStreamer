@@ -80,10 +80,10 @@ void MpdManager::writeToDisk(const char* fileName)
     el->InsertFirstChild(title);
     root->InsertEndChild(el);
 
-    el = doc.NewElement("Location");
+    /*el = doc.NewElement("Location");
     text = doc.NewText(location.c_str());
     el->InsertFirstChild(text);
-    root->InsertEndChild(el);
+    root->InsertEndChild(el);*/
 
     period = doc.NewElement("Period");
     period->SetAttribute("id", PERIOD_ID);

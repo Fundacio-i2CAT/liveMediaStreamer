@@ -185,6 +185,7 @@ bool VideoEncoderX264::reconfigure(VideoFrame* orgFrame, VideoFrame* dstFrame)
     x264_param_parse(&xparams, "vbv-maxrate", std::to_string(bitrate*1.05).c_str());
     x264_param_parse(&xparams, "vbv-bufsize", std::to_string(bitrate*2).c_str());
     x264_param_parse(&xparams, "rc-lookahead", std::to_string(lookahead).c_str());
+    x264_param_parse(&xparams, "scenecut", std::to_string(0).c_str());
 
     if (annexB) {
         x264_param_parse(&xparams, "repeat-headers", std::to_string(1).c_str());

@@ -128,15 +128,12 @@ bool RTSPConnection::addAudioSubsession(ACodecType codec, StreamReplicator* repl
 
 bool RTSPConnection::addRawVideoSubsession(VCodecType codec, StreamReplicator* replicator, int readerId)
 {
-            std::cout << "CREATED SESSION asdfasdfasd: " << codec << std::endl;
-
     ServerMediaSubsession *sSession = NULL;
     switch(codec){
         case H264:
             sSession = H264QueueServerMediaSubsession::createNew(*fEnv, replicator, readerId, False);
             break;
         case H265:
-            std::cout << "CREATED SESSION H265" << std::endl;
             sSession = H265QueueServerMediaSubsession::createNew(*fEnv, replicator, readerId, False);
             break;
         case VP8:

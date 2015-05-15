@@ -33,7 +33,7 @@ liblivemediastreamer_la_SOURCES = modules/audioDecoder/AudioDecoderLibav.cpp \
                                   modules/liveMediaOutput/VP8QueueServerMediaSubsession.cpp \
                                   modules/liveMediaOutput/Connection.cpp \
                                   modules/liveMediaOutput/H264VideoStreamSampler.cpp \
-                                  modules/liveMediaOutput/H264StartCodeInjector.cpp \
+                                  modules/liveMediaOutput/H264or5StartCodeInjector.cpp \
                                   modules/liveMediaOutput/UltraGridAudioRTPSink.cpp \
                                   modules/liveMediaOutput/UltraGridVideoRTPSink.cpp \
                                   modules/liveMediaOutput/SPSparser/h264_stream.c \

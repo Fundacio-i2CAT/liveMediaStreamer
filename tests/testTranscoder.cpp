@@ -2,7 +2,6 @@
 #include "../src/modules/audioDecoder/AudioDecoderLibav.hh"
 #include "../src/modules/audioMixer/AudioMixer.hh"
 #include "../src/modules/videoEncoder/VideoEncoderX264.hh"
-#include "../src/modules/videoEncoder/VideoEncoderX265.hh"
 #include "../src/modules/videoDecoder/VideoDecoderLibav.hh"
 #include "../src/modules/videoMixer/VideoMixer.hh"
 #include "../src/modules/videoResampler/VideoResampler.hh"
@@ -179,8 +178,7 @@ void addVideoPath(unsigned port, Dasher* dasher, int dasherId, int receiverID, i
     VideoResampler *resampler;
     VideoResampler *resampler2;
     VideoResampler *resampler3;
-    // VideoEncoderX264 *encoder;
-    VideoEncoderX265 *encoder;
+    VideoEncoderX264 *encoder;
     VideoEncoderX264 *encoder2;
     VideoEncoderX264 *encoder3;
     VideoDecoderLibav *decoder;
@@ -226,8 +224,7 @@ void addVideoPath(unsigned port, Dasher* dasher, int dasherId, int receiverID, i
     pipe->addWorker(wResId, wRes);
 
     //NOTE: Adding encoder to pipeManager and handle worker
-    // encoder = new VideoEncoderX264();
-    encoder = new VideoEncoderX265();
+    encoder = new VideoEncoderX264();
     pipe->addFilter(encId, encoder);
     wEnc = new Worker();
     wEnc->addProcessor(encId, encoder);
@@ -235,7 +232,7 @@ void addVideoPath(unsigned port, Dasher* dasher, int dasherId, int receiverID, i
     pipe->addWorker(wEncId, wEnc);
 
     //bitrate, fps, gop, lookahead, threads, annexB, preset
-    encoder->configure(4000, 5, 25, 25, 2, false, "veryfast");
+    encoder->configure(4000, 25, 25, 25, 4, true, "superfast");
 
     if (dasher != NULL){
         path = pipe->createPath(receiverID, dasherId, port, dstReader1, ids);
@@ -272,7 +269,7 @@ void addVideoPath(unsigned port, Dasher* dasher, int dasherId, int receiverID, i
         pipe->addWorker(wEncId2, wEnc2);
         ((BaseFilter*)encoder)->addSlave(wEncId2, encoder2);
 
-        encoder2->configure(1000, 25, 25, 25, 4, false, "superfast");
+        encoder2->configure(1000, 25, 25, 25, 4, true, "superfast");
 
         encoder3 = new VideoEncoderX264(SLAVE, false);
         pipe->addFilter(encId3, encoder3);
@@ -282,7 +279,7 @@ void addVideoPath(unsigned port, Dasher* dasher, int dasherId, int receiverID, i
         pipe->addWorker(wEncId3, wEnc3);
         ((BaseFilter*)encoder)->addSlave(wEncId3, encoder3);
 
-        encoder3->configure(250, 25, 25, 25, 4, false, "superfast");
+        encoder3->configure(250, 25, 25, 25, 4, true, "superfast");
 
         //NOTE: add filter to path
         slavePath = pipe->createPath(resId2, dasherId, -1, dstReader2, slaveIds);
@@ -437,11 +434,11 @@ bool publishRTSPSession(std::vector<int> readers, SinkManager *transmitter)
         return false;
     }
 
-    // sessionId = "mpegts";
-    // utils::infoMsg("Adding plain MPEGTS session...");
-    // if (!transmitter->addRTSPConnection(readers, 2, MPEGTS, sessionId)){
-    //     return false;
-    // }
+    sessionId = "mpegts";
+    utils::infoMsg("Adding plain MPEGTS session...");
+    if (!transmitter->addRTSPConnection(readers, 2, MPEGTS, sessionId)){
+        return false;
+    }
 
     return true;
 }

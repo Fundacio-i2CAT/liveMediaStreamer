@@ -1,5 +1,5 @@
 /*
- *  H264StartCodeInjector.cpp - H264 NAL Unit start code injector.
+ *  H264or5StartCodeInjector.cpp - H264 NAL Unit start code injector.
  *  Copyright (C) 2014  Fundació i2CAT, Internet i Innovació digital a Catalunya
  *
  *  This file is part of liveMediaStreamer.
@@ -20,65 +20,79 @@
  *  Authors:  Marc Palau <marc.palau@i2cat.net>
  */
 
- #include "H264StartCodeInjector.hh"
+#include "H264or5StartCodeInjector.hh"
+#include <iostream>
 
-H264StartCodeInjector* H264StartCodeInjector::createNew(UsageEnvironment& env, FramedSource* inputSource)
+H264or5StartCodeInjector* H264or5StartCodeInjector::createNew(UsageEnvironment& env, FramedSource* inputSource, VCodecType codec)
 {
-    return new H264StartCodeInjector(env, inputSource);
+    int hNumber = 0;
+    H264or5StartCodeInjector* injector;
+
+    if (codec == H264) {
+        hNumber = 264;
+    } else if (codec == H265) {
+        hNumber = 265;
+    }
+
+    if (hNumber == 0) {
+        injector = NULL;
+    } else {
+        injector = new H264or5StartCodeInjector(env, inputSource, hNumber);
+    }
+
+    return injector;
 }
 
- H264StartCodeInjector
-::H264StartCodeInjector(UsageEnvironment& env, FramedSource* inputSource)
-  : H264or5VideoStreamFramer(264, env, inputSource, False/*don't create a parser*/, False)
+ H264or5StartCodeInjector
+::H264or5StartCodeInjector(UsageEnvironment& env, FramedSource* inputSource, int hNumber)
+  : H264or5VideoStreamFramer(hNumber, env, inputSource, False/*don't create a parser*/, False)
 {
 }
 
-H264StartCodeInjector::~H264StartCodeInjector() {
+H264or5StartCodeInjector::~H264or5StartCodeInjector() {
 }
 
-void H264StartCodeInjector::doGetNextFrame() {
+void H264or5StartCodeInjector::doGetNextFrame() {
     fInputSource->getNextFrame(fTo + NAL_START_SIZE, fMaxSize - NAL_START_SIZE,
                                afterGettingFrame, this, FramedSource::handleClosure, this);
 }
 
-void H264StartCodeInjector
+void H264or5StartCodeInjector
 ::afterGettingFrame(void* clientData, unsigned frameSize,
                     unsigned numTruncatedBytes,
                     struct timeval presentationTime,
                     unsigned durationInMicroseconds) {
-  H264StartCodeInjector* source = (H264StartCodeInjector*)clientData;
+  H264or5StartCodeInjector* source = (H264or5StartCodeInjector*)clientData;
   source->afterGettingFrame1(frameSize, numTruncatedBytes, presentationTime, durationInMicroseconds);
 }
 
-void H264StartCodeInjector
+void H264or5StartCodeInjector
 ::afterGettingFrame1(unsigned frameSize, unsigned numTruncatedBytes,
                      struct timeval presentationTime,
                      unsigned durationInMicroseconds) 
 {
-    unsigned char* NALstartPtr = fTo + NAL_START_SIZE;
+    u_int8_t nal_unit_type;
+    unsigned char* NALstartPtr;
+
+    NALstartPtr = fTo + NAL_START_SIZE;
 
     fTo[0] = 0;
     fTo[1] = 0;
     fTo[2] = 0;
     fTo[3] = 1;
 
-    u_int8_t nal_unit_type;
-    if (frameSize >= 1) {
+    if (fHNumber == 264 && frameSize >= 1) {
         nal_unit_type = NALstartPtr[0]&0x1F;
+    } else if (fHNumber == 265 && frameSize >= 2) {
+        nal_unit_type = (NALstartPtr[0]&0x7E)>>1;
     } else {
-        // This is too short to be a valid NAL unit, so just assume a bogus nal_unit_type
+    // This is too short to be a valid NAL unit, so just assume a bogus nal_unit_type
         nal_unit_type = 0xFF;
     }
 
-    if (frameSize >= 4 && NALstartPtr[0] == 0 && NALstartPtr[1] == 0 && ((NALstartPtr[2] == 0 && NALstartPtr[3] == 1) || NALstartPtr[2] == 1)) {
-        envir() << "H264StartCodeInjector error: MPEG 'start code' seen in the input\n";
-    } else if (isSPS(nal_unit_type)) { // Sequence parameter set (SPS)
-        saveCopyOfSPS(NALstartPtr, frameSize);
-    } else if (isPPS(nal_unit_type)) { // Picture parameter set (PPS)
-        saveCopyOfPPS(NALstartPtr, frameSize);
+    if (isVCL(nal_unit_type)) {
+        fPictureEndMarker = True;
     }
-
-    if (isVCL(nal_unit_type)) fPictureEndMarker = True;
 
     // Finally, complete delivery to the client:
     fFrameSize = frameSize + NAL_START_SIZE;

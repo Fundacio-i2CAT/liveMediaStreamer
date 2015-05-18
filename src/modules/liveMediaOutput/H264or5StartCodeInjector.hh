@@ -20,19 +20,20 @@
  *  Authors:  Marc Palau <marc.palau@i2cat.net>
  */
 
-#ifndef _H264_START_CODE_INJECTOR_HH
-#define _H264_START_CODE_INJECTOR_HH
+#ifndef _H264_OR_5_START_CODE_INJECTOR_HH
+#define _H264_OR_5_START_CODE_INJECTOR_HH
 
 #include "H264or5VideoStreamFramer.hh"
+#include "../../Types.hh"
 #define NAL_START_SIZE 4
 
-class H264StartCodeInjector: public H264or5VideoStreamFramer {
+class H264or5StartCodeInjector: public H264or5VideoStreamFramer {
 public:
-    static H264StartCodeInjector* createNew(UsageEnvironment& env, FramedSource* inputSource);
+    static H264or5StartCodeInjector* createNew(UsageEnvironment& env, FramedSource* inputSource, VCodecType codec);
 
 protected:
-    H264StartCodeInjector(UsageEnvironment& env, FramedSource* inputSource);
-    virtual ~H264StartCodeInjector();
+    H264or5StartCodeInjector(UsageEnvironment& env, FramedSource* inputSource, int hNumber);
+    virtual ~H264or5StartCodeInjector();
 
 protected:
     void doGetNextFrame();

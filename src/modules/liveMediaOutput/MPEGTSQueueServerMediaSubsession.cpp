@@ -22,7 +22,7 @@
  */
 
 #include "MPEGTSQueueServerMediaSubsession.hh"
-#include "H264StartCodeInjector.hh"
+#include "H264or5StartCodeInjector.hh"
 #include "../../Utils.hh"
 
 MPEGTSQueueServerMediaSubsession::MPEGTSQueueServerMediaSubsession(
@@ -54,12 +54,11 @@ std::vector<int> MPEGTSQueueServerMediaSubsession::getReaderIds()
     
     return readers;
 }
-
  
 bool MPEGTSQueueServerMediaSubsession::addVideoSource(VCodecType codec, StreamReplicator* replicator, int readerId)
 {  
-    if (codec != H264) {
-        utils::errorMsg("Error creating MPEG-TS Connection. Only H264 video codec is valid");
+    if (codec != H264 && codec != H265) {
+        utils::errorMsg("Error creating MPEG-TS Connection. Only H264 adn H265 video codec are valid");
         return false;
     }
 
@@ -75,7 +74,7 @@ bool MPEGTSQueueServerMediaSubsession::addVideoSource(VCodecType codec, StreamRe
         return false;
     }
     
-    
+    vCodec = codec;
     vReplicator = replicator;
     
     return true;
@@ -101,12 +100,11 @@ bool MPEGTSQueueServerMediaSubsession::addAudioSource(ACodecType codec, StreamRe
         return false;
     }
 
+    aCodec = codec;
     aReplicator = replicator;
     
     return true;
 }
-
-
 
 FramedSource* MPEGTSQueueServerMediaSubsession::createNewStreamSource(unsigned clientSessionId,
                                                                       unsigned& estBitrate)
@@ -119,7 +117,7 @@ FramedSource* MPEGTSQueueServerMediaSubsession::createNewStreamSource(unsigned c
     tsFramer = MPEG2TransportStreamFromESSource::createNew(envir());
     
     if (vReplicator){
-        startCodeInjector = H264StartCodeInjector::createNew(envir(), vReplicator->createStreamReplica());
+        startCodeInjector = H264or5StartCodeInjector::createNew(envir(), vReplicator->createStreamReplica(), vCodec);
         tsFramer->addNewVideoSource(startCodeInjector, 5/*mpegVersion: H.264*/);
     }
     

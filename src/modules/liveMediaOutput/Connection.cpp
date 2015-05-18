@@ -26,7 +26,7 @@
 #include "UltraGridAudioRTPSink.hh"
 #include "UltraGridVideoRTPSink.hh"
 #include "H264VideoStreamSampler.hh"
-#include "H264StartCodeInjector.hh"
+#include "H264or5StartCodeInjector.hh"
 #include "H264QueueServerMediaSubsession.hh"
 #include "H265QueueServerMediaSubsession.hh"
 #include "VP8QueueServerMediaSubsession.hh"
@@ -615,8 +615,8 @@ bool MpegTsConnection::addVideoSource(FramedSource* source, VCodecType codec, in
 {
     FramedSource* startCodeInjector;
     
-    if (codec != H264) {
-        utils::errorMsg("Error creating MPEG-TS Connection. Only H264 video codec is valid");
+    if (codec != H264 && codec != H265) {
+        utils::errorMsg("Error creating MPEG-TS Connection. Only H264 and H265 video codecs are valid");
         return false;
     }
 
@@ -637,7 +637,7 @@ bool MpegTsConnection::addVideoSource(FramedSource* source, VCodecType codec, in
         return false;
     }
     
-    startCodeInjector = H264StartCodeInjector::createNew(*fEnv, source);
+    startCodeInjector = H264or5StartCodeInjector::createNew(*fEnv, source, codec);
     tsFramer->addNewVideoSource(startCodeInjector, 5/*mpegVersion: H.264*/);
 
     return true;

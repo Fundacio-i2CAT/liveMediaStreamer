@@ -28,7 +28,7 @@
 #include "../../AVFramedQueue.hh"
 #include "../../AudioCircularBuffer.hh"
 #include "QueueSource.hh"
-#include "H264QueueSource.hh"
+#include "H264or5QueueSource.hh"
 #include "Types.hh"
 #include "Connection.hh"
 #include "../../Types.hh"
@@ -371,7 +371,8 @@ void SinkManager::createVideoQueueSource(VCodecType codec, Reader *reader, int r
     FramedSource *source;
     switch(codec){
         case H264:
-            source = H264QueueSource::createNew(*(envir()), reader, readerId);
+        case H265:
+            source = H264or5QueueSource::createNew(*(envir()), reader, readerId);
             replicators[readerId] = StreamReplicator::createNew(*(envir()), source, False);
             break;
         case VP8:

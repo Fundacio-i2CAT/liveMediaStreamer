@@ -101,7 +101,6 @@ bool AudioDecoderLibav::doProcessFrame(Frame *org, Frame *dst)
     pkt.size = org->getLength();
     pkt.data = org->getDataBuf();
 
-
     while (pkt.size > 0) {
         len = avcodec_decode_audio4(codecCtx, inFrame, &gotFrame, &pkt);
 

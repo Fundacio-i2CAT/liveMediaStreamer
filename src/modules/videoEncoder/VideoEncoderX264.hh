@@ -19,75 +19,45 @@
  *
  *  Authors:  Martin German <martin.german@i2cat.net>
  *            David Cassany <david.cassany@i2cat.net>
+ *            Marc Palau <marc.palau@i2cat.net>
  */
 
 #ifndef _VIDEO_ENCODER_X264_HH
 #define _VIDEO_ENCODER_X264_HH
 
+#include "VideoEncoderX264or5.hh"
 #include <stdint.h>
-#include <chrono>
 #include "../../Utils.hh"
 #include "../../VideoFrame.hh"
-#include "../../X264VideoFrame.hh"
 #include "../../Filter.hh"
 #include "../../FrameQueue.hh"
-#include "../../X264VideoCircularBuffer.hh"
 #include "../../Types.hh"
 
 extern "C" {
 #include <x264.h>
-#include <libswscale/swscale.h>
-#include <libavcodec/avcodec.h>
-#include <libavformat/avformat.h>
 }
 
-#define DEFAULT_ENCODER_THREADS 4
-#define DEFAULT_GOP 25 //frames
-#define DEFAULT_BITRATE 4000
+class VideoEncoderX264 : public VideoEncoderX264or5 {
 
-class VideoEncoderX264: public OneToOneFilter {
-	public:
-	VideoEncoderX264(FilterRole fRole_ = MASTER, bool sharedFrames = true, int framerate = VIDEO_DEFAULT_FRAMERATE);
-	~VideoEncoderX264();
-	bool doProcessFrame(Frame *org, Frame *dst);
-        
-        bool configure(int gop_ = DEFAULT_GOP,
-                       int bitrate_ = DEFAULT_BITRATE, int threads_ = DEFAULT_ENCODER_THREADS, 
-                       int fps_ = VIDEO_DEFAULT_FRAMERATE, bool annexB_ = false);
-        
-	void setIntra(){forceIntra = true;};
-	FrameQueue* allocQueue(int wId);
+public:
+    VideoEncoderX264(FilterRole fRole = MASTER, bool sharedFrames = true);
+    ~VideoEncoderX264();
 
-    private:
-	void initializeEventMap();
+private:
+    FrameQueue* allocQueue(int wId);
+    void initializeEventMap();
 
-	x264_picture_t picIn;
+    x264_picture_t picIn;
 	x264_picture_t picOut;
-        x264_nal_t *ppNal;
-        x264_param_t xparams;
-        x264_t* encoder;
+    x264_param_t xparams;
+    x264_t* encoder;
 
-        AVPixelFormat libavInPixFmt;
-        AVFrame *midFrame;
+    int64_t pts;
 
-        PixType inPixFmt;
-        bool annexB;
-	bool forceIntra;
-	bool firstTime;
-	bool needsConfig;
-	int fps;
-	int pts;
-	int bitrate;
-	int colorspace;
-	int gop; //ms
-        int threads;
-
-        bool reconfigure(VideoFrame *orgFrame, X264VideoFrame* x264Frame);
-        bool encodeHeadersFrame(X264VideoFrame* x264Frame);
-        bool fill_x264_picture(VideoFrame* videoFrame);
-	void forceIntraEvent(Jzon::Node* params);
-        void configEvent(Jzon::Node* params, Jzon::Object &outputNode);
-	void doGetState(Jzon::Object &filterNode);
+    bool fillPicturePlanes(unsigned char** data, int* linesize);
+    bool encodeFrame(VideoFrame* codedFrame);
+    bool reconfigure(VideoFrame *orgFrame, VideoFrame* dstFrame);
+    bool encodeHeadersFrame(VideoFrame* frame);
 };
 
 #endif

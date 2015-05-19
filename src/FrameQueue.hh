@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- *  Authors: David Cassany <david.cassany@i2cat.net>
+ *  Authors: David Cassany <david.cassany@i2cat.net> 
  *           Marc Palau <marc.palau@i2cat.net>
  */
 
@@ -50,7 +50,7 @@ public:
     /**
     * Creates a frame object
     */
-    FrameQueue();
+    FrameQueue() : state(SLOW), rear(0), front(0), elements(0), connected(false), firstFrame(false) {};
     virtual ~FrameQueue() {};
 
     /**
@@ -118,15 +118,13 @@ public:
     void setConnected(bool conn) {connected = conn;};
 
 protected:
-    virtual bool config() = 0;
-
     QueueState state;
     std::atomic<unsigned> rear;
     std::atomic<unsigned> front;
     std::atomic<unsigned> elements;
     std::atomic<bool> connected;
     std::atomic<bool> firstFrame;
-
+    
 };
 
 #endif

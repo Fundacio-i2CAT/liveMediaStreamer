@@ -100,6 +100,8 @@ namespace utils
         VCodecType codec;
         if (stringCodec.compare("H264") == 0) {
             codec = H264;
+        } else if (stringCodec.compare("H265") == 0) {
+            codec = H265;
         } else if (stringCodec.compare("VP8") == 0) {
             codec = VP8;
         }  else if (stringCodec.compare("MJPEG") == 0) {
@@ -120,6 +122,9 @@ namespace utils
         switch(codec) {
             case H264:
                 stringCodec = "H264";
+                break;
+            case H265:
+                stringCodec = "H265";
                 break;
             case RAW:
                 stringCodec = "RAW";

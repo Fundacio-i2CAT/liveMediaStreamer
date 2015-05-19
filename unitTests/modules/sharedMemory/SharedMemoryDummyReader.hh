@@ -65,10 +65,8 @@ public:
 	bool setFrameObject(Frame* in_frame);
 	uint16_t getSeqNum();
 	void setDisabled() {enabled = false;};
-	int writeFrameToFile(unsigned char const * const buff, size_t length, size_t seqNum);
     size_t getSharedMemoryID() { return SharedMemoryID;};
 	bool isEnabled() {return enabled;};
-	static void dummyReaderThread(SharedMemoryDummyReader* dummyReader);
 	size_t getReadFrames() {return readFrames;};
 
     uint16_t getCodecFromVCodec(VCodecType codec);

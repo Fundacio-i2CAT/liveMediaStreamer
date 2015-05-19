@@ -295,7 +295,7 @@ void BaseFilter::disconnectAll()
 
 void BaseFilter::processEvent()
 {
-    eventQueueMutex.lock();
+    std::lock_guard<std::mutex> guard(eventQueueMutex);
 
     while(newEvent()) {
 
@@ -316,8 +316,6 @@ void BaseFilter::processEvent()
 
         eventQueue.pop();
     }
-
-    eventQueueMutex.unlock();
 }
 
 bool BaseFilter::newEvent()
@@ -336,19 +334,17 @@ bool BaseFilter::newEvent()
 
 void BaseFilter::pushEvent(Event e)
 {
-    eventQueueMutex.lock();
+    std::lock_guard<std::mutex> guard(eventQueueMutex);
     eventQueue.push(e);
-    eventQueueMutex.unlock();
 }
 
 void BaseFilter::getState(Jzon::Object &filterNode)
 {
-    eventQueueMutex.lock();
+    std::lock_guard<std::mutex> guard(eventQueueMutex);
     filterNode.Add("type", utils::getFilterTypeAsString(fType));
     filterNode.Add("role", utils::getRoleAsString(fRole));
     filterNode.Add("workerId", workerId);
     doGetState(filterNode);
-    eventQueueMutex.unlock();
 }
 
 bool BaseFilter::hasFrames()
@@ -478,17 +474,17 @@ std::chrono::nanoseconds BaseFilter::masterProcessFrame()
     std::chrono::nanoseconds enlapsedTime;
     std::chrono::nanoseconds frameTime_;
     size_t frameTime_value;
-
+    
     wallClock = std::chrono::system_clock::now();
 
     processEvent();
-
+      
     if (!demandOriginFrames() || !demandDestinationFrames()) {
         return std::chrono::nanoseconds(RETRY);
     }
-
+    
     processAll();
-
+    
     runDoProcessFrame();
 
     while (runningSlaves()){
@@ -592,11 +588,25 @@ bool OneToManyFilter::runDoProcessFrame()
     return false;
 }
 
-//TODO: runDoProcessFrame to be implemented
-HeadFilter::HeadFilter(FilterRole fRole_, unsigned writersNum, size_t fTime) :
-    BaseFilter(0,writersNum,fTime,fRole_,false,false)
+
+HeadFilter::HeadFilter(FilterRole fRole_, size_t fTime) :
+    BaseFilter(0, 1, fTime, fRole_, false, false)
 {
     
+}
+
+bool HeadFilter::runDoProcessFrame()
+{
+    if (updateTimestamp() && doProcessFrame(dFrames.begin()->second)) {
+        dFrames.begin()->second->setPresentationTime(timestamp);
+        dFrames.begin()->second->setDuration(duration);
+        seqNums[dFrames.begin()->first]++;
+        dFrames.begin()->second->setSequenceNumber(seqNums[dFrames.begin()->first]);
+        addFrames();
+        return true;
+    }
+
+    return false;
 }
 
 void HeadFilter::pushEvent(Event e)

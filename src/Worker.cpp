@@ -45,7 +45,7 @@ bool Worker::addProcessor(int id, Runnable *processor)
     std::map<int, Runnable*> runnables;
     Runnable* current;
 
-    mtx.lock();
+    std::lock_guard<std::mutex> guard(mtx);
 
     while (!processors.empty()){
         current = processors.top();
@@ -64,7 +64,6 @@ bool Worker::addProcessor(int id, Runnable *processor)
         processors.push(it.second);
     }
 
-    mtx.unlock();
     return ret;
 }
 
@@ -74,7 +73,7 @@ bool Worker::removeProcessor(int id)
     std::map<int, Runnable*> runnables;
     Runnable* current;
 
-    mtx.lock();
+    std::lock_guard<std::mutex> guard(mtx);
 
     while (!processors.empty()){
         current = processors.top();
@@ -91,7 +90,6 @@ bool Worker::removeProcessor(int id)
         processors.push(it.second);
     }
 
-    mtx.unlock();
     return ret;
 }
 
@@ -121,22 +119,21 @@ void Worker::process()
 {
     Runnable* currentJob = NULL;
     
-    mtx.lock();
+    std::unique_lock<std::mutex> guard(mtx);
     while(run && !processors.empty()) {    
         currentJob = processors.top();
         
-        mtx.unlock();
+        guard.unlock();
         
         currentJob->sleepUntilReady();
         currentJob->runProcessFrame();
             
-        mtx.lock();
+        guard.lock();
         
         processors.pop();
         processors.push(currentJob);
     }
-    mtx.unlock();
-    
+   
     thread.detach();
 }
 
@@ -147,19 +144,20 @@ void Worker::getState(Jzon::Object &workerNode)
     std::map<int, Runnable*> runnables;
     Runnable* current;
 
-    mtx.lock();
+    {
+        std::lock_guard<std::mutex> guard(mtx);
 
-    while (!processors.empty()){
-        current = processors.top();
-        processors.pop();
-        runnables[current->getId()] = current;
+        while (!processors.empty()){
+            current = processors.top();
+            processors.pop();
+            runnables[current->getId()] = current;
+        }
+
+        for (auto it : runnables){
+            processors.push(it.second);
+        }
+
     }
-
-    for (auto it : runnables){
-        processors.push(it.second);
-    }
-
-    mtx.unlock();
 
     for (auto it : runnables) {
         pList.Add(it.first);

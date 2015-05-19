@@ -56,7 +56,7 @@ VideoDecoderLibav::~VideoDecoderLibav()
 
 FrameQueue* VideoDecoderLibav::allocQueue(int wId)
 {
-    return VideoFrameQueue::createNew(RAW, RGB24);
+    return VideoFrameQueue::createNew(RAW, DEFAULT_RAW_VIDEO_FRAMES, RGB24);
 }
 
 bool VideoDecoderLibav::doProcessFrame(Frame *org, Frame *dst)
@@ -101,6 +101,9 @@ bool VideoDecoderLibav::inputConfig()
         case H264:
             libavCodecId = AV_CODEC_ID_H264;
             break;
+        case H265:
+            libavCodecId = AV_CODEC_ID_HEVC;
+            break;
         case VP8: 
             libavCodecId = AV_CODEC_ID_VP8;
             break;
@@ -108,7 +111,7 @@ bool VideoDecoderLibav::inputConfig()
             libavCodecId = AV_CODEC_ID_MJPEG;
             break;
         case RAW:
-            //TODO: set raw video codec
+            libavCodecId = AV_CODEC_ID_RAWVIDEO ;
         default:
             utils::errorMsg("Codec not supported");
             return false;

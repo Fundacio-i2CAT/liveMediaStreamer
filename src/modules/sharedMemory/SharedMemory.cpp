@@ -125,7 +125,15 @@ bool SharedMemory::doProcessFrame(Frame *org, Frame *dst)
 
 FrameQueue* SharedMemory::allocQueue(int wId)
 {
-    return VideoFrameQueue::createNew(codec, RGB24);
+    if (codec == H264) {
+        return VideoFrameQueue::createNew(codec, DEFAULT_VIDEO_FRAMES);
+
+    } else if (codec == RAW) {
+        return VideoFrameQueue::createNew(codec, DEFAULT_RAW_VIDEO_FRAMES, RGB24);
+        
+    } else {
+        return NULL;
+    }
 }
 
 //TODO to be implemented
@@ -262,11 +270,11 @@ bool SharedMemory::appendNalToFrame(unsigned char* nalData, unsigned nalDataLeng
 int SharedMemory::writeSharedMemoryRAW(uint8_t *buf, int buf_size)
 {
 
-	*access = CHAR_WRITING;
-	memcpy(buffer, buf, sizeof(uint8_t) * buf_size);
-	*access = CHAR_READING;
+    *access = CHAR_WRITING;
+    memcpy(buffer, buf, sizeof(uint8_t) * buf_size);
+    *access = CHAR_READING;
 
-	return 0;
+    return 0;
 }
 
 void SharedMemory::writeFramePayload(InterleavedVideoFrame *frame) {
@@ -276,133 +284,133 @@ void SharedMemory::writeFramePayload(InterleavedVideoFrame *frame) {
 
     uint32_t tv_sec = presentationTime.count()/std::micro::den;
     uint32_t tv_usec = presentationTime.count()%std::micro::den;
-	uint16_t width = frame->getWidth();
-	uint16_t height = frame->getHeight();
-	uint32_t length = frame->getLength();
-	uint16_t codec = getCodecFromVCodec(frame->getCodec());
-	uint16_t pixFmt = getPixelFormatFromPixType(frame->getPixelFormat());
+    uint16_t width = frame->getWidth();
+    uint16_t height = frame->getHeight();
+    uint32_t length = frame->getLength();
+    uint16_t codec = getCodecFromVCodec(frame->getCodec());
+    uint16_t pixFmt = getPixelFormatFromPixType(frame->getPixelFormat());
     uint16_t seqN = frame->getSequenceNumber();
 
-	memcpy(access+2, &seqN, sizeof(uint16_t));
-	memcpy(access+4, &pixFmt, sizeof(uint16_t));
-	memcpy(access+6, &codec, sizeof(uint16_t));
-	memcpy(access+8, &height, sizeof(uint16_t));
-	memcpy(access+10, &width, sizeof(uint16_t));
-	memcpy(access+12, &tv_sec, sizeof(uint32_t));
-	memcpy(access+16, &tv_usec, sizeof(uint32_t));
-	memcpy(access+20, &length, sizeof(uint32_t));
+    memcpy(access+2, &seqN, sizeof(uint16_t));
+    memcpy(access+4, &pixFmt, sizeof(uint16_t));
+    memcpy(access+6, &codec, sizeof(uint16_t));
+    memcpy(access+8, &height, sizeof(uint16_t));
+    memcpy(access+10, &width, sizeof(uint16_t));
+    memcpy(access+12, &tv_sec, sizeof(uint32_t));
+    memcpy(access+16, &tv_usec, sizeof(uint32_t));
+    memcpy(access+20, &length, sizeof(uint32_t));
 }
 
 bool SharedMemory::isWritable() {
-	return *access == CHAR_WRITING;
+    return *access == CHAR_WRITING;
 }
 
 uint16_t SharedMemory::getCodecFromVCodec(VCodecType codec){
-	uint16_t val = 0;
-	switch(codec) {
-		case H264:
-			val= 1;
-			break;
-		case VP8:
-			val= 2;
-			break;
-		case MJPEG:
-			val= 3;
-			break;
-		case RAW:
-			val= 4;
-			break;
-		default:
-			utils::errorMsg("[Video Frame Queue] Codec not supported!");
-			val= 0;
-			break;
-	}
-	return val;
+    uint16_t val = 0;
+    switch(codec) {
+        case H264:
+            val= 1;
+            break;
+        case VP8:
+            val= 2;
+            break;
+        case MJPEG:
+            val= 3;
+            break;
+        case RAW:
+            val= 4;
+            break;
+        default:
+            utils::errorMsg("[Video Frame Queue] Codec not supported!");
+            val= 0;
+            break;
+    }
+    return val;
 }
 
 VCodecType SharedMemory::getVCodecFromCodecType(uint16_t codecType){
-	VCodecType codec = VC_NONE;
-	switch(codecType) {
-		case 1:
-			codec= H264;
-			break;
-		case 2:
-			codec= VP8;
-			break;
-		case 3:
-			codec= MJPEG;
-			break;
-		case 4:
-			codec= RAW;
-			break;
-		default:
-			utils::errorMsg("[Video Frame Queue] Codec not supported!");
-			codec= VC_NONE;
-			break;
-	}
-	return codec;
+    VCodecType codec = VC_NONE;
+    switch(codecType) {
+        case 1:
+            codec= H264;
+            break;
+        case 2:
+            codec= VP8;
+            break;
+        case 3:
+            codec= MJPEG;
+            break;
+        case 4:
+            codec= RAW;
+            break;
+        default:
+            utils::errorMsg("[Video Frame Queue] Codec not supported!");
+            codec= VC_NONE;
+            break;
+    }
+    return codec;
 }
 
 uint16_t SharedMemory::getPixelFormatFromPixType(PixType pxlFrmt){
-	uint16_t val = 0;
-	switch(pxlFrmt){
-		case RGB24:
-			val= 1;
-			break;
-		case RGB32:
-			val= 2;
-			break;
-		case YUV420P:
-			val= 3;
-			break;
-		case YUV422P:
-			val= 4;
-			break;
-		case YUV444P:
-			val= 5;
-			break;
-		case YUYV422:
-			val= 6;
-			break;
-		case YUVJ420P:
-			val= 7;
-			break;
-		default:
-			utils::errorMsg("[Resampler] Unknown output pixel format");
-			val= 0;
-			break;
-	}
-	return val;
+    uint16_t val = 0;
+    switch(pxlFrmt){
+        case RGB24:
+            val= 1;
+            break;
+        case RGB32:
+            val= 2;
+            break;
+        case YUV420P:
+            val= 3;
+            break;
+        case YUV422P:
+            val= 4;
+            break;
+        case YUV444P:
+            val= 5;
+            break;
+        case YUYV422:
+            val= 6;
+            break;
+        case YUVJ420P:
+            val= 7;
+            break;
+        default:
+            utils::errorMsg("[Resampler] Unknown output pixel format");
+            val= 0;
+            break;
+    }
+    return val;
 }
 
 PixType SharedMemory::getPixTypeFromPixelFormat(uint16_t pixType){
-	PixType pxlFrmt = P_NONE;
-	switch(pixType){
-		case 1:
-			pxlFrmt = RGB24;
-			break;
-		case 2:
-			pxlFrmt= RGB32;
-			break;
-		case 3:
-			pxlFrmt= YUV420P;
-			break;
-		case 4:
-			pxlFrmt= YUV422P;
-			break;
-		case 5:
-			pxlFrmt= YUV444P;
-			break;
-		case 6:
-			pxlFrmt= YUYV422;
-			break;
-		case 7:
-			pxlFrmt= YUVJ420P;
-			break;
-		default:
-			utils::errorMsg("[Resampler] Unknown output pixel format");
-			pxlFrmt= P_NONE;
-			break;
-	}
-	return pxlFrmt;
+    PixType pxlFrmt = P_NONE;
+    switch(pixType){
+        case 1:
+            pxlFrmt = RGB24;
+            break;
+        case 2:
+            pxlFrmt= RGB32;
+            break;
+        case 3:
+            pxlFrmt= YUV420P;
+            break;
+        case 4:
+            pxlFrmt= YUV422P;
+            break;
+        case 5:
+            pxlFrmt= YUV444P;
+            break;
+        case 6:
+            pxlFrmt= YUYV422;
+            break;
+        case 7:
+            pxlFrmt= YUVJ420P;
+            break;
+        default:
+            utils::errorMsg("[Resampler] Unknown output pixel format");
+            pxlFrmt= P_NONE;
+            break;
+    }
+    return pxlFrmt;
 }

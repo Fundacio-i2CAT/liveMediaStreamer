@@ -74,6 +74,9 @@ protected:
 private:
     StreamReplicator* aReplicator;
     StreamReplicator* vReplicator;
+
+    VCodecType vCodec;
+    ACodecType aCodec;
     
     int aReaderId;
     int vReaderId;

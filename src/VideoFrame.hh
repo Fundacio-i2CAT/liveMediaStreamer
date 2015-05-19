@@ -26,44 +26,107 @@
 
 #include "Frame.hh"
 #include "Types.hh"
+#include "Utils.hh"
+
+#define MAX_COPIED_SLICES 8
+#define MAX_SLICES 16
 
 class VideoFrame : public Frame {
 
-    public:
-        void setSize(int width, int height);
-        void setPixelFormat(PixType pixelFormat);
-        VCodecType getCodec() {return codec;};
-        int getWidth() {return width;};
-        int getHeight() {return height;};
-        PixType getPixelFormat() {return pixelFormat;};
+public:
+    VideoFrame(VCodecType codec_);
+    VideoFrame(VCodecType codec_, int width_, int height_, PixType pixFormat);
+    virtual ~VideoFrame();
 
-    protected:
-        int width, height;
-        PixType pixelFormat;
-        VCodecType codec;
+    void setSize(int width, int height);
+    void setPixelFormat(PixType pixelFormat);
+    
+    VCodecType getCodec() {return codec;};
+    int getWidth() {return width;};
+    int getHeight() {return height;};
+    PixType getPixelFormat() {return pixelFormat;};
+
+protected:
+    VCodecType codec;
+    int width, height;
+    PixType pixelFormat;
 };
 
 class InterleavedVideoFrame : public VideoFrame {
-    public:
-        static InterleavedVideoFrame* createNew(VCodecType codec, unsigned int maxLength);
-        static InterleavedVideoFrame* createNew(VCodecType codec, int width, int height, PixType pixelFormat);
-        ~InterleavedVideoFrame();
+    
+public:
+    static InterleavedVideoFrame* createNew(VCodecType codec, unsigned int maxLength);
+    static InterleavedVideoFrame* createNew(VCodecType codec, int width, int height, PixType pixelFormat);
+    ~InterleavedVideoFrame();
 
-        unsigned char **getPlanarDataBuf() {return NULL;};
-        unsigned char* getDataBuf() {return frameBuff;};
-        unsigned int getLength() {return bufferLen;};
-        unsigned int getMaxLength() {return bufferMaxLen;};
-        void setLength(unsigned int length) {bufferLen = length;};
-        bool isPlanar() {return false;};
+    unsigned char **getPlanarDataBuf() {return NULL;};
+    unsigned char* getDataBuf() {return frameBuff;};
+    unsigned int getLength() {return bufferLen;};
+    unsigned int getMaxLength() {return bufferMaxLen;};
+    void setLength(unsigned int length) {bufferLen = length;};
+    bool isPlanar() {return false;};
 
-    protected:
-        InterleavedVideoFrame(VCodecType codec, unsigned int maxLength);
-        InterleavedVideoFrame(VCodecType codec, int width, int height, PixType pixelFormat);
+protected:
+    InterleavedVideoFrame(VCodecType codec, unsigned int maxLength);
+    InterleavedVideoFrame(VCodecType codec, int width, int height, PixType pixelFormat);
 
-    private:
-        unsigned char *frameBuff;
-        unsigned int bufferLen;
-        unsigned int bufferMaxLen;
+private:
+    unsigned char *frameBuff;
+    unsigned int bufferLen;
+    unsigned int bufferMaxLen;
 };
+
+class Slice {
+
+public:
+    Slice();
+    unsigned char* getData() {return data;};
+    unsigned getDataSize() {return dataSize;};
+    void setData(unsigned char *p) {data = p;};
+    void setDataSize(unsigned s) {dataSize = s;};
+    void allocData(unsigned size);
+    void releaseData();
+    void copyData(unsigned char *p, unsigned s);
+
+private:
+    unsigned char *data;
+    unsigned dataSize;
+};
+
+class SlicedVideoFrame : public VideoFrame {
+
+public:
+    static SlicedVideoFrame* createNew(VCodecType codec, unsigned copiedSlicesMaxSize);
+    virtual ~SlicedVideoFrame();
+    void clear();
+
+    Slice* getSlices() {return pointedSlices;};
+    Slice* getCopiedSlices() {return copiedSlices;};
+    bool setSlice(unsigned char *data, unsigned size);
+    bool copySlice(unsigned char *data, unsigned size);
+
+    int getSliceNum() {return pointedSliceNum;};
+    int getCopiedSliceNum() {return copiedSliceNum;};
+
+    unsigned char *getDataBuf() {return NULL;};
+    unsigned char **getPlanarDataBuf() {return NULL;};
+    unsigned int getLength() {return 0;};
+    unsigned int getMaxLength() {return 0;};
+    void setLength(unsigned int length) {};
+    bool isPlanar() {return false;};
+
+private:
+    SlicedVideoFrame(VCodecType codec, unsigned copiedSlicesMaxSize);
+
+    Slice pointedSlices[MAX_SLICES];
+    Slice copiedSlices[MAX_COPIED_SLICES];
+
+    int pointedSliceNum;
+    int copiedSliceNum;
+    unsigned copiedSlicesMaxSize;
+};
+
+
+
 
 #endif

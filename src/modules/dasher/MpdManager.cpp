@@ -20,13 +20,15 @@
  */
 
 #include <fstream>
-#include <tinyxml2.h>
 #include <iostream>
+#include <ctime>
+#include <chrono> 
 
 #include "MpdManager.hh"
 
 MpdManager::MpdManager()
 {
+    started = false;
 }
 
 MpdManager::~MpdManager()
@@ -59,6 +61,13 @@ void MpdManager::writeToDisk(const char* fileName)
     tinyxml2::XMLElement* el;
     tinyxml2::XMLElement* title;
     tinyxml2::XMLText* text;
+    
+    if (!started){
+        std::time_t tt = std::chrono::system_clock::to_time_t (std::chrono::system_clock::now());
+        struct std::tm *ptm = std::gmtime(&tt);
+        std::strftime(availabilityStartTime, AVAILABILITY_START_TIME, "%FT%T", ptm);
+        started = true;
+    }
 
     root = doc.NewElement("MPD");
     root->SetAttribute("xmlns:xsi", XMLNS_XSI);
@@ -68,9 +77,9 @@ void MpdManager::writeToDisk(const char* fileName)
     root->SetAttribute("profiles", PROFILES);
     root->SetAttribute("type", TYPE_DYNAMIC);
     root->SetAttribute("minimumUpdatePeriod", minimumUpdatePeriod.c_str());
-    root->SetAttribute("availabilityStartTime", AVAILABILITY_START_TIME);
     root->SetAttribute("timeShiftBufferDepth", timeShiftBufferDepth.c_str());
     root->SetAttribute("minBufferTime", minBufferTime.c_str());
+    root->SetAttribute("availabilityStartTime", availabilityStartTime);
     doc.InsertFirstChild(root);
 
     el = doc.NewElement("ProgramInformation");
@@ -228,7 +237,7 @@ AdaptationSet::AdaptationSet(int segTimescale, std::string segTempl, std::string
 }
 
 AdaptationSet::~AdaptationSet()
-{
+{ 
 }
 
 unsigned AdaptationSet::updateTimestamp(unsigned ts, unsigned duration)
@@ -272,7 +281,7 @@ VideoAdaptationSet::~VideoAdaptationSet()
     }
 }
 
-bool VideoAdaptationSet::removeRepresentation(std::string id)
+bool VideoAdaptationSet::removeRepresentation(std::string id) 
 {
     if (representations.count(id) <= 0) {
         return false;
@@ -384,7 +393,7 @@ AudioAdaptationSet::~AudioAdaptationSet()
     }
 }
 
-bool AudioAdaptationSet::removeRepresentation(std::string id)
+bool AudioAdaptationSet::removeRepresentation(std::string id) 
 {
     if (representations.count(id) <= 0) {
         return false;
@@ -520,3 +529,4 @@ void AudioRepresentation::update(std::string aCodec, int aSampleRate, int aBandw
     bandwidth = aBandwidth;
     audioChannelConfigValue = channels;
 }
+

@@ -29,6 +29,7 @@
 #include <thread>
 #include <chrono>
 #include <random>
+#include <cstring>
 
 #include "Filter.hh"
 #include "AVFramedQueue.hh"
@@ -90,8 +91,7 @@ private:
 class AVFramedQueueMock : public AVFramedQueue
 {
 public:
-    AVFramedQueueMock(unsigned max_) : AVFramedQueue() {
-        max = max_;
+    AVFramedQueueMock(unsigned max) : AVFramedQueue(max) {
         config();
     };
 
@@ -231,7 +231,7 @@ public:
     };
 
 protected:
-    FrameQueue *allocQueue(int wId) {return VideoFrameQueue::createNew(codec);};
+    FrameQueue *allocQueue(int wId) {return VideoFrameQueue::createNew(codec, DEFAULT_VIDEO_FRAMES);};
 
 private:
     VCodecType codec;
@@ -246,11 +246,108 @@ public:
     };
 
 protected:
-    FrameQueue *allocQueue(int wId) {return AudioFrameQueue::createNew(codec);};
+    FrameQueue *allocQueue(int wId) {return AudioFrameQueue::createNew(codec, DEFAULT_AUDIO_FRAMES);};
 
 private:
     ACodecType codec;
 };
 
+class VideoHeadFilterMockup : public HeadFilter
+{
+public:
+    VideoHeadFilterMockup(VCodecType c, PixType pix = P_NONE) :
+        HeadFilter(), srcFrame(NULL), codec(c), pixFormat(pix){};
+
+    bool inject(InterleavedVideoFrame* frame){
+        if (! frame || frame->getCodec() != codec || 
+            frame->getPixelFormat() != pixFormat){
+            return false;
+        }
+        
+        srcFrame = frame;
+        
+        return true;
+    }
+    
+    void doGetState(Jzon::Object &filterNode){};
+    
+protected:
+    bool doProcessFrame(Frame *dst) {
+        InterleavedVideoFrame *dstFrame;
+        
+        if ((dstFrame = dynamic_cast<InterleavedVideoFrame*>(dst)) != NULL){
+            memmove(dstFrame->getDataBuf(), srcFrame->getDataBuf(), sizeof(unsigned char)*srcFrame->getLength());
+            
+            dstFrame->setLength(srcFrame->getLength());
+            dstFrame->setSize(srcFrame->getWidth(), srcFrame->getHeight());
+            dstFrame->setPresentationTime(std::chrono::system_clock::now());
+            dstFrame->setOriginTime(srcFrame->getOriginTime());
+            dstFrame->setPixelFormat(srcFrame->getPixelFormat());
+            
+            return true;
+        }
+        
+        return false;
+    }
+    
+
+private:
+    FrameQueue *allocQueue(int wId) {
+        return VideoFrameQueue::createNew(codec, 10, pixFormat);
+    };
+
+    InterleavedVideoFrame* srcFrame;
+    VCodecType codec;
+    PixType pixFormat;
+};
+
+class VideoTailFilterMockup : public TailFilter
+{
+public:
+    VideoTailFilterMockup(): TailFilter(), oFrame(NULL), newFrame(false){};
+
+    InterleavedVideoFrame* extract(){   
+        if (newFrame){
+            newFrame = false;
+            return oFrame;
+        } else {
+            return NULL;
+        }
+    }
+    
+    void doGetState(Jzon::Object &filterNode){};
+    
+protected:
+    bool doProcessFrame(std::map<int, Frame*> orgFrames) {
+        InterleavedVideoFrame *orgFrame;
+        
+        if ((orgFrame = dynamic_cast<InterleavedVideoFrame*>(orgFrames.begin()->second)) != NULL){
+            if (!oFrame){
+                oFrame = InterleavedVideoFrame::createNew(orgFrame->getCodec(), 
+                                                          DEFAULT_WIDTH, DEFAULT_HEIGHT, orgFrame->getPixelFormat());
+            }
+            
+            memmove(oFrame->getDataBuf(), orgFrame->getDataBuf(), sizeof(unsigned char)*orgFrame->getLength());
+            
+            oFrame->setLength(orgFrame->getLength());
+            oFrame->setSize(orgFrame->getWidth(), orgFrame->getHeight());
+            oFrame->setPresentationTime(orgFrame->getPresentationTime());
+            oFrame->setOriginTime(orgFrame->getOriginTime());
+            oFrame->setPixelFormat(orgFrame->getPixelFormat());
+            oFrame->setSequenceNumber(orgFrame->getSequenceNumber());
+            
+            newFrame = true;
+            
+            return true;
+        }
+        
+        return false;
+    }
+    
+
+private:
+    InterleavedVideoFrame* oFrame;
+    bool newFrame;
+};
 
 #endif

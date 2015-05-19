@@ -26,8 +26,9 @@
 #include "UltraGridAudioRTPSink.hh"
 #include "UltraGridVideoRTPSink.hh"
 #include "H264VideoStreamSampler.hh"
-#include "H264StartCodeInjector.hh"
+#include "H264or5StartCodeInjector.hh"
 #include "H264QueueServerMediaSubsession.hh"
+#include "H265QueueServerMediaSubsession.hh"
 #include "VP8QueueServerMediaSubsession.hh"
 #include "AudioQueueServerMediaSubsession.hh"
 #include <GroupsockHelper.hh>
@@ -131,6 +132,9 @@ bool RTSPConnection::addRawVideoSubsession(VCodecType codec, StreamReplicator* r
     switch(codec){
         case H264:
             sSession = H264QueueServerMediaSubsession::createNew(*fEnv, replicator, readerId, False);
+            break;
+        case H265:
+            sSession = H265QueueServerMediaSubsession::createNew(*fEnv, replicator, readerId, False);
             break;
         case VP8:
             sSession =  VP8QueueServerMediaSubsession::createNew(*fEnv, replicator, readerId, False);
@@ -433,6 +437,10 @@ bool VideoConnection::additionalSetup()
             fSink = H264VideoRTPSink::createNew(*fEnv, rtpGroupsock, 96);
             fSource = H264VideoStreamDiscreteFramer::createNew(*fEnv, fSource);
             break;
+        case H265:
+            fSink = H265VideoRTPSink::createNew(*fEnv, rtpGroupsock, 96);
+            fSource = H265VideoStreamDiscreteFramer::createNew(*fEnv, fSource);
+            break;
         case VP8:
             fSink = VP8VideoRTPSink::createNew(*fEnv, rtpGroupsock, 96);
             break;
@@ -607,8 +615,8 @@ bool MpegTsConnection::addVideoSource(FramedSource* source, VCodecType codec, in
 {
     FramedSource* startCodeInjector;
     
-    if (codec != H264) {
-        utils::errorMsg("Error creating MPEG-TS Connection. Only H264 video codec is valid");
+    if (codec != H264 && codec != H265) {
+        utils::errorMsg("Error creating MPEG-TS Connection. Only H264 and H265 video codecs are valid");
         return false;
     }
 
@@ -629,7 +637,7 @@ bool MpegTsConnection::addVideoSource(FramedSource* source, VCodecType codec, in
         return false;
     }
     
-    startCodeInjector = H264StartCodeInjector::createNew(*fEnv, source);
+    startCodeInjector = H264or5StartCodeInjector::createNew(*fEnv, source, codec);
     tsFramer->addNewVideoSource(startCodeInjector, 5/*mpegVersion: H.264*/);
 
     return true;

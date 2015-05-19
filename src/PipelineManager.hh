@@ -31,40 +31,174 @@
 
 #include <map>
 
+/*! PipelineManager class is a singleton class that presents the relation
+    between the data flow, control and execution layers. It has all related
+    information to existing filters, paths and their interconnections.
+*/
 class PipelineManager {
 
 public:
+    /**
+    * Gets the PipelineManger object pointer of the instance. Creates a new
+    * instance for first time or returns the same instance if it already exists.
+    * @return PipelineManager instance pointer
+    */
     static PipelineManager* getInstance();
+
+    /**
+    * If PipelineManager instance exists it is destroyed.
+    */
     static void destroyInstance();
 
+    /**
+    * Stops and clears all pipeline workes, destoys all paths and all realated filters
+    */
     bool stop();
 
+    /**
+    * Creates a path
+    * @param origin filter Id
+    * @param destination filter Id
+    * @param origin writer Id
+    * @param destination reader Id
+    * @param list of middle id filters
+    */
     Path* createPath(int orgFilter, int dstFilter, int orgWriter,
                      int dstReader, std::vector<int> midFilters);
+
+    /**
+    * Gets filter Id by filter type, check Types.hh
+    * @param FilterType type to search
+    * @return Filter Id from the FilterType specified
+    */
     int searchFilterIDByType(FilterType type);
+
+    /**
+    * Adds a worker by specifing its Id and the worker object
+    * @param Id of the worker to add
+    * @param worker object pointer
+    * @return return true if succes, otherwise returns false
+    */
     bool addWorker(int id, Worker* worker);
+
+    /**
+    * Adds a path by specifing its Id and the path object
+    * @param Id of the path to add
+    * @param path object pointer
+    * @return return true if succes, otherwise returns false
+    */
     bool addPath(int id, Path* path);
+
+    /**
+    * Adds a filter by specifing its Id and the filter object
+    * @param Id of the filter to add
+    * @param filter object pointer
+    * @return return true if succes, otherwise returns false
+    */
     bool addFilter(int id, BaseFilter* filter);
+
+    /**
+    * Adds a filter to a specifi worker by specifing both Ids
+    * @param Id of the worker
+    * @param Id of the filter
+    * @return return true if succes, otherwise returns false
+    */
     bool addFilterToWorker(int workerId, int filterId);
 
+    /**
+    * Gets a filter by its Id
+    * @param filter Id
+    * @return filter object
+    */
     BaseFilter* getFilter(int id);
+
+    /**
+    * Gets a worker by its Id
+    * @param worker Id
+    * @return worker object
+    */
     Worker* getWorker(int id);
 
+    /**
+    * Gets a path by its Id
+    * @param path Id
+    * @return path object
+    */
     Path* getPath(int id);
+
+    /**
+    * Gets PipelineManager's paths
+    * @return a map with all path objects
+    */
     std::map<int, Path*> getPaths() {return paths;};
+
+    /**
+    * Manage and carries out a path connection: connectManyToMany, connectManyToOne,
+    * connectOneToOne and connectOneToMany
+    * @return true if success, otherwise return false
+    */
     bool connectPath(Path* path);
-    bool addWorkerToPath(Path *path, Worker* worker = NULL);
+
+    /**
+    * Starts running all workers
+    */
     void startWorkers();
+
+    /**
+    * Stops all workers running
+    */
     void stopWorkers();
 
+    /**
+    * Sets outputNode jzon object by getting pipeline state
+    */
     void getStateEvent(Jzon::Node* params, Jzon::Object &outputNode);
+
+    /**
+    * Sets outputNode jzon object with the results coming from filter event
+    * filled by incoming jzon object params
+    */
     void createFilterEvent(Jzon::Node* params, Jzon::Object &outputNode);
+
+    /**
+    * Sets outputNode jzon object with the results coming from path event
+    * filled by incoming jzon object params
+    */
     void createPathEvent(Jzon::Node* params, Jzon::Object &outputNode);
+
+    /**
+    * Sets outputNode jzon object with the results coming from remove path event
+    * filled by incoming jzon object params
+    */
     void removePathEvent(Jzon::Node* params, Jzon::Object &outputNode);
+
+    /**
+    * Sets outputNode jzon object with the results coming from add worker event
+    * filled by incoming jzon object params
+    */
     void addWorkerEvent(Jzon::Node* params, Jzon::Object &outputNode);
+
+    /**
+    * Sets outputNode jzon object with the results coming from remove worker event
+    * filled by incoming jzon object params
+    */
     void removeWorkerEvent(Jzon::Node* params, Jzon::Object &outputNode);
+
+    /**
+    * Sets outputNode jzon object with the results coming from add slave to filter
+    * event filled by incoming jzon object params
+    */
     void addSlavesToFilterEvent(Jzon::Node* params, Jzon::Object &outputNode);
+
+    /**
+    * Sets outputNode jzon object with the results coming from add filter to worker
+    * event filled by incoming jzon object params
+    */
     void addFiltersToWorkerEvent(Jzon::Node* params, Jzon::Object &outputNode);
+
+    /**
+    * Sets outputNode jzon object with results of pipeline stop event
+    */
     void stopEvent(Jzon::Node* params, Jzon::Object &outputNode);
 
 private:

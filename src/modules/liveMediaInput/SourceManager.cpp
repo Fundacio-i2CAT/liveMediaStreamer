@@ -470,12 +470,14 @@ MediaSubsession* Session::getSubsessionByPort(int port)
 // Implementation of "StreamClientState":
 
 StreamClientState::StreamClientState(std::string id_, SourceManager *const  manager) :
-    mngr(manager), iter(NULL), session(NULL), subsession(NULL), 
-    streamTimerTask(NULL), duration(0.0), id(id_)
+    mngr(manager), iter(NULL), session(NULL), subsession(NULL),
+    streamTimerTask(NULL), duration(0.0), sessionTimeoutBrokenServerTask(NULL),
+    sendKeepAlivesToBrokenServers(True), // Send periodic 'keep-alive' requests to keep broken server sessions alive
+    sessionTimeoutParameter(0), id(id_)
 {
 }
 
-StreamClientState::~StreamClientState() 
+StreamClientState::~StreamClientState()
 {
     delete iter;
     if (session != NULL) {
@@ -483,6 +485,7 @@ StreamClientState::~StreamClientState()
         UsageEnvironment& env = session->envir();
 
         env.taskScheduler().unscheduleDelayedTask(streamTimerTask);
+        env.taskScheduler().unscheduleDelayedTask(sessionTimeoutBrokenServerTask);
         Medium::close(session);
     }
 }

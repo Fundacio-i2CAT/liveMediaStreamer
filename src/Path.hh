@@ -19,7 +19,7 @@
  *
  *  Authors:  Marc Palau <marc.palau@i2cat.net>
  *            David Cassany <david.cassany@i2cat.net>
- *	      Martin German <martin.german@i2cat.net>
+ *	          Martin German <martin.german@i2cat.net>
  */
 
 #ifndef _PATH_HH
@@ -27,16 +27,64 @@
 
 #include <vector>
 
+/*! Path class determines the pipeline configuration, filters interconnections
+    and data paths.
+*/
 class Path {
 public:
-    Path(int originFilterID, int orgWriterID); 
-    Path(int originFilterID, int destinationFilterID, int orgWriterID, 
-            int dstReaderID, std::vector<int> midFiltersIDs); 
+    /**
+    * Creates a path object
+    * @param origin filter Id
+    * @param origin writer Id
+    */
+    Path(int originFilterID, int orgWriterID);
+
+    /**
+    * Creates a path object
+    * @param origin filter Id
+    * @param destination filter Id
+    * @param origin writer Id
+    * @param destination reader Id
+    * @param list of middle id filters
+    */
+    Path(int originFilterID, int destinationFilterID, int orgWriterID,
+            int dstReaderID, std::vector<int> midFiltersIDs);
+
+    /**
+    * Sets destination fitler
+    * @param Destination filter Id
+    * @param Destination reader Id
+    */
     void setDestinationFilter(int destinationFilterID, int dstReaderID);
+
+    /**
+    * Gets destination reader Id
+    * @return destination reader Id
+    */
     const int getDstReaderID() const {return dstReaderID;};
+
+    /**
+    * Gets origin writer Id
+    * @return origin writer Id
+    */
     const int getOrgWriterID() const {return orgWriterID;};
+
+    /**
+    * Gets origin filter Id
+    * @return origin filter Id
+    */
     const int getOriginFilterID() const {return originFilterID;};
+
+    /**
+    * Gets destination filter Id
+    * @return destination filter Id
+    */
     const int getDestinationFilterID() const {return destinationFilterID;};
+
+    /**
+    * Gets middle filters Ids
+    * @return middle filters Ids
+    */
     std::vector<int> getFilters(){return filterIDs;};
 
 protected:

@@ -46,17 +46,20 @@ public:
     virtual ~StreamClientState();
 
     std::string getId(){return id;};
-    
+
     bool addWriterToMngr(unsigned id, Writer* writer);
 
 public:
     SourceManager *const mngr;
-    
+
     MediaSubsessionIterator* iter;
     MediaSession* session;
     MediaSubsession* subsession;
     TaskToken streamTimerTask;
     double duration;
+    TaskToken sessionTimeoutBrokenServerTask;
+    bool sendKeepAlivesToBrokenServers;
+    unsigned sessionTimeoutParameter;
 
 private:
     std::string id;

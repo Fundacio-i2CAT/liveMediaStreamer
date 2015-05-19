@@ -32,35 +32,79 @@
 
 #define MSG_BUFFER_MAX_LENGTH 4096*4
 
+/*! Controller class is a singleton class defines the control protocol
+    by events and through sockets
+*/
 class Controller {
 public:
+    /**
+    * Gets the Controller object pointer of the instance. Creates a new
+    * instance for first time or returns the same instance if it already exists.
+    * @return Controller instance pointer
+    */
     static Controller* getInstance();
+
+    /**
+    * If PipelineManager instance exists it is destroyed.
+    */
     static void destroyInstance();
+
+    /**
+    * Returns the pipelinemanager object of the controller
+    */
     PipelineManager* pipelineManager();
 
+    /**
+    * Creates a TCP socket from incoming port
+    * @param port to set the TCP socket
+    * @return true if succes, otherwise returns false
+    */
     bool createSocket(int port);
+
+    /**
+    * Listens incoming data from socket
+    * @return true if succes, otherwise returns false
+    */
     bool listenSocket();
+
+    /**
+    * Stops and closes socket
+    */
     void stopAndCloseSocket();
+
+    /**
+    * Reads and parses incoming data from socket
+    * @return true if succes, otherwise returns false
+    */
     bool readAndParse();
+
+    /**
+    * Returns running status
+    * @return true if controller object is properly created, otherwise return false
+    */
     bool run() {return runFlag;};
-    void processRequest(); 
+
+    /**
+    * Processes the incoming requests from socket
+    */
+    void processRequest();
 
 protected:
     void initializeEventMap();
-    
+
 private:
     Controller();
-    bool processFilterEvent(Jzon::Object event, int socket); 
-    bool processInternalEvent(Jzon::Object event, int socket); 
+    bool processFilterEvent(Jzon::Object event, int socket);
+    bool processInternalEvent(Jzon::Object event, int socket);
     bool processEventArray(const Jzon::Array events);
-    bool processEvent(Jzon::Object event, int socket); 
+    bool processEvent(Jzon::Object event, int socket);
 
     int listeningSocket, connectionSocket;
     char inBuffer[MSG_BUFFER_MAX_LENGTH];
     Jzon::Object* inputRootNode;
     Jzon::Parser* parser;
     std::map<std::string, std::function<void(Jzon::Node* params, Jzon::Object &outputNode)> > eventMap;
-    bool runFlag; 
+    bool runFlag;
 
     static Controller* ctrlInstance;
     PipelineManager* pipeMngrInstance;

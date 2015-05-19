@@ -77,7 +77,6 @@ void MpdManager::writeToDisk(const char* fileName)
     root->SetAttribute("profiles", PROFILES);
     root->SetAttribute("type", TYPE_DYNAMIC);
     root->SetAttribute("minimumUpdatePeriod", minimumUpdatePeriod.c_str());
-    root->SetAttribute("availabilityStartTime", AVAILABILITY_START_TIME);
     root->SetAttribute("timeShiftBufferDepth", timeShiftBufferDepth.c_str());
     root->SetAttribute("minBufferTime", minBufferTime.c_str());
     root->SetAttribute("availabilityStartTime", availabilityStartTime);
@@ -90,7 +89,8 @@ void MpdManager::writeToDisk(const char* fileName)
     el->InsertFirstChild(title);
     root->InsertEndChild(el);
 
-    /*el = doc.NewElement("Location");
+    /*TODO LOCATION IS NOT MANDATORY, COULD IMPLY CROSS-DOMAIN ISSUES
+    el = doc.NewElement("Location");
     text = doc.NewText(location.c_str());
     el->InsertFirstChild(text);
     root->InsertEndChild(el);*/

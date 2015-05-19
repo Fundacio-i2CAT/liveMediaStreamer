@@ -31,9 +31,6 @@
 #include <cppunit/XmlOutputter.h>
 
 #include "FilterFunctionalMockup.hh"
-#include "modules/videoEncoder/VideoEncoderX264.hh"
-#include "modules/videoEncoder/VideoEncoderX265.hh"
-#include "modules/videoDecoder/VideoDecoderLibav.hh"
 #include "modules/sharedMemory/SharedMemory.hh"
 #include "SharedMemoryDummyReader.hh"
 
@@ -180,5 +177,6 @@ int main(int argc, char* argv[])
     runner.run( "", false );
     outputter->write();
 
+    utils::printMood(runner.result().wasSuccessful());
     return runner.result().wasSuccessful() ? 0 : 1;
 }

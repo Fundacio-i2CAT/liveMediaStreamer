@@ -32,7 +32,7 @@
 #define XMLNS_XLINK "http://www.w3.org/1999/xlink"
 #define XSI_SCHEMA_LOCATION "urn:mpeg:DASH:schema:MPD:2011 http://standards.iso.org/ittf/PubliclyAvailableStandards/MPEG-DASH_schema_files/DASH-MPD.xsd"
 #define PROFILES "urn:mpeg:dash:profile:isoff-live:2011"
-#define AVAILABILITY_START_TIME "2014-10-29T03:07:39"
+#define AVAILABILITY_START_TIME 64
 #define TYPE_DYNAMIC "dynamic"
 #define PERIOD_ID 0
 #define PERIOD_START "PT0.0S"
@@ -176,7 +176,9 @@ private:
     std::string suggestedPresentationDelay;
     std::string minBufferTime;
     std::string location;
-
+    char availabilityStartTime[AVAILABILITY_START_TIME];
+    bool started;
+    
     std::map<std::string, AdaptationSet*> adaptationSets;
 };
 

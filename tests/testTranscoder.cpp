@@ -38,7 +38,7 @@
 #define RETRIES 60
 
 #define SEG_DURATION 4 //sec
-#define DASH_FOLDER "/tmp/dashLMS"
+#define DASH_FOLDER "/tmp/dash"
 #define BASE_NAME "test"
 #define MPD_LOCATION "http://10.204.20.120/dash/test.mpd"
 
@@ -243,6 +243,13 @@ void addVideoPath(unsigned port, Dasher* dasher, int dasherId, int receiverID, i
     pipe->connectPath(path);
 
     if (dasher != NULL){
+        if (!dasher->addSegmenter(dstReader1)) {
+            utils::errorMsg("Error adding segmenter");
+        }
+        if (!dasher->setDashSegmenterBitrate(dstReader1, 4000*1000)) {
+            utils::errorMsg("Error setting bitrate to segmenter");
+        } 
+
         //NOTE: Adding resampler to pipeManager and handle worker
         resampler2 = new VideoResampler(SLAVE);
         pipe->addFilter(resId2, resampler2);
@@ -292,13 +299,6 @@ void addVideoPath(unsigned port, Dasher* dasher, int dasherId, int receiverID, i
 
         utils::infoMsg("Master reader: " + std::to_string(dstReader1));
         utils::infoMsg("Slave reader: " + std::to_string(dstReader2));
-
-        if (!dasher->addSegmenter(dstReader1)) {
-            utils::errorMsg("Error adding segmenter");
-        }
-        if (!dasher->setDashSegmenterBitrate(dstReader1, 4000*1000)) {
-            utils::errorMsg("Error setting bitrate to segmenter");
-        }
 
         if (!dasher->addSegmenter(dstReader2)) {
             utils::errorMsg("Error adding segmenter");

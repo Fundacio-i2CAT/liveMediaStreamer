@@ -280,19 +280,6 @@ namespace handlers
     }
 
     //TODO: static method of SourceManager?
-    std::string makeSessionSDP(std::string sessionName, std::string sessionDescription)
-    {
-        std::stringstream sdp;
-        sdp << "v=0\n";
-        sdp << "o=- 0 0 IN IP4 127.0.0.1\n";
-        sdp << "s=" << sessionName << "\n";
-        sdp << "i=" << sessionDescription << "\n";
-        sdp << "t= 0 0\n";
-
-        return sdp.str();
-    }
-
-    //TODO: static method of SourceManager?
     bool addSubsessionSink(UsageEnvironment& env, MediaSubsession *subsession)
     {
         int wId;

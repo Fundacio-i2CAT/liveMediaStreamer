@@ -26,11 +26,6 @@
 #include <functional>
 #include <fstream>
 
-std::chrono::system_clock::time_point previousPoint;
-std::chrono::system_clock::time_point now;
-std::chrono::microseconds enlapsedTime;
-
-
 AVSampleFormat getAVSampleFormatFromtIntCode(int id)
 {
     AVSampleFormat sampleFmt = AV_SAMPLE_FMT_NONE;
@@ -96,38 +91,48 @@ bool AudioDecoderLibav::doProcessFrame(Frame *org, Frame *dst)
     AudioFrame* aCodedFrame = dynamic_cast<AudioFrame*>(org);
     AudioFrame* aDecodedFrame = dynamic_cast<AudioFrame*>(dst);
 
-    reconfigureDecoder(aCodedFrame);
+    if (!reconfigureDecoder(aCodedFrame)) {
+        utils::errorMsg("Error reconfiguring decoder: check input frame params");
+        return false;
+    }
 
     pkt.size = org->getLength();
     pkt.data = org->getDataBuf();
+
+    if (pkt.size <= 0) {
+        utils::errorMsg("Error decoding audio frame: pkt.size <= 0");
+        return false;
+    }   
 
     while (pkt.size > 0) {
         len = avcodec_decode_audio4(codecCtx, inFrame, &gotFrame, &pkt);
 
         if(len < 0) {
-            //TODO: error
+            utils::errorMsg("Error decoding audio frame");
             return false;
         }
 
-        if (gotFrame) {
-            now = std::chrono::system_clock::now();
-            enlapsedTime = std::chrono::duration_cast<std::chrono::microseconds>(now - previousPoint);
-            previousPoint = now;
+        if (!gotFrame) {
 
-            checkInputParams(inFrame->format, inFrame->channels, inFrame->sample_rate);
-
-            if (resample(inFrame, aDecodedFrame)) {
-                return true;
+            if (pkt.data) {
+                pkt.size -= len;
+                pkt.data += len;
             }
+
+            continue;
         }
 
-        if(pkt.data) {
-            pkt.size -= len;
-            pkt.data += len;
+        checkSampleFormat(inFrame->format);
+
+        if (!resample(inFrame, aDecodedFrame)) {
+            utils::errorMsg("Error resampling audio frame");
+            return false;
         }
+
+        return true;
     }
 
-    return false;
+    return true;
 }
 
 bool AudioDecoderLibav::configure(SampleFmt sampleFormat, int channels, int sampleRate)
@@ -278,18 +283,15 @@ bool AudioDecoderLibav::resample(AVFrame* src, AudioFrame* dst)
     return true;
 }
 
-void AudioDecoderLibav::checkInputParams(int sampleFormatCode, int channels, int sampleRate)
+void AudioDecoderLibav::checkSampleFormat(int sampleFormatCode)
 {
     AVSampleFormat sampleFormat = getAVSampleFormatFromtIntCode(sampleFormatCode);
 
-
-    if (inLibavSampleFmt == sampleFormat && inChannels == channels && inSampleRate == sampleRate) {
+    if (inLibavSampleFmt == sampleFormat) {
         return;
     }
 
     inLibavSampleFmt = sampleFormat;
-    inChannels = channels;
-    inSampleRate = sampleRate;
 
     switch(inLibavSampleFmt) {
         case AV_SAMPLE_FMT_U8:
@@ -363,28 +365,42 @@ void AudioDecoderLibav::doGetState(Jzon::Object &filterNode)
 
 bool AudioDecoderLibav::reconfigureDecoder(AudioFrame* frame)
 {
-    if (frame->getCodec() == fCodec ) {
+    AVCodecID codecId;
+
+    if (frame->getChannels() <= 0 || frame->getSampleRate() <= 0) {
+        utils::errorMsg("Error reconfiguring audio decoder: input channels or sample rate values not valid");
+        return false;
+    }
+
+    if (frame->getCodec() == fCodec && frame->getChannels() == inChannels && frame->getSampleRate() == inSampleRate) {
         return true;
     }
 
     fCodec = frame->getCodec();
+    inChannels = frame->getChannels();
+    inSampleRate = frame->getSampleRate();
 
     switch(fCodec) {
         case PCMU:
-            codecID = AV_CODEC_ID_PCM_MULAW;
+            codecId = AV_CODEC_ID_PCM_MULAW;
             break;
         case OPUS:
-            codecID = AV_CODEC_ID_OPUS;
+            codecId = AV_CODEC_ID_OPUS;
             break;
         case AAC:
-            codecID = AV_CODEC_ID_AAC;
+            codecId = AV_CODEC_ID_AAC;
             break;
         case MP3:
-            codecID = AV_CODEC_ID_MP3;
+            codecId = AV_CODEC_ID_MP3;
             break;
         default:
-            codecID = AV_CODEC_ID_NONE;
+            codecId = AV_CODEC_ID_NONE;
             break;
+    }
+
+    if (codecId == AV_CODEC_ID_NONE) {
+        utils::errorMsg("Error reconfiguring audio decoder: input codec not supported");
+        return false;
     }
 
     av_frame_unref(inFrame);
@@ -394,7 +410,7 @@ bool AudioDecoderLibav::reconfigureDecoder(AudioFrame* frame)
         av_free(codecCtx);
     }
 
-    codec = avcodec_find_decoder(codecID);
+    codec = avcodec_find_decoder(codecId);
 
     if (codec == NULL) {
         utils::errorMsg("[DECODER] Error finding codec!");

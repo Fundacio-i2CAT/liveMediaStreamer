@@ -27,7 +27,7 @@
 
 #define A_MEDIUM "audio"
 #define A_PAYLOAD 97
-#define A_CODEC "OPUS"
+#define A_CODEC "MPEG4-GENERIC"
 #define A_BANDWITH 128
 #define A_TIME_STMP_FREQ 48000
 #define A_CHANNELS 2

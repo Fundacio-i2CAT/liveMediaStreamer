@@ -95,7 +95,7 @@ RTPSink* AudioQueueServerMediaSubsession
      if (fCodec == MP3){
         return MPEG1or2AudioRTPSink::createNew(envir(), rtpGroupsock);
     }
-    
+
     return SimpleRTPSink
     ::createNew(envir(), rtpGroupsock, payloadType,
                 fSampleRate, "audio", 

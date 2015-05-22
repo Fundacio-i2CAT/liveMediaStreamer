@@ -559,7 +559,7 @@ int main(int argc, char* argv[])
     }
 
     if (!dash && port != 0 && !ip.empty()){
-        if (transmitter->addRTPConnection(readers, rand(), ip, port, MPEGTS)) {
+        if (transmitter->addRTPConnection(readers, rand(), ip, port, STD_RTP)) {
             utils::infoMsg("added connection for " + ip + ":" + std::to_string(port));
         }
     }

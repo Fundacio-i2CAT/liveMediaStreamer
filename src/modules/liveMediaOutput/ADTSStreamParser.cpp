@@ -65,7 +65,6 @@ void ADTSStreamParser
         utils::errorMsg("Error parsing ADTS header: cannot update AAC SDP config string");
     }
 
-    // Finally, complete delivery to the client:
     fFrameSize = frameSize;
     fNumTruncatedBytes = numTruncatedBytes;
     fPresentationTime = presentationTime;
@@ -84,7 +83,7 @@ bool ADTSStreamParser::updateConfigString(unsigned char* data, unsigned size)
         utils::errorMsg("ADTS header not valid - check data buffer and its header length");
         return false;
     }
-    
+
     if (data[0] != ADTS_FIRST_RESERVED_BYTE || data[1] != ADTS_SECOND_RESERVED_BYTE) {
         utils::errorMsg("ADTS header not valid - check reserved bytes");
         return false;

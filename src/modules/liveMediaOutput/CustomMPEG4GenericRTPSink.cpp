@@ -60,10 +60,7 @@ CustomMPEG4GenericRTPSink
 
 CustomMPEG4GenericRTPSink::~CustomMPEG4GenericRTPSink() 
 {
-    delete[] fFmtpSDPLine;
-    delete[] (char*)fConfigString;
-    delete[] (char*)fMPEG4Mode;
-    delete[] (char*)fSDPMediaTypeString;
+
 }
 
 CustomMPEG4GenericRTPSink*
@@ -89,7 +86,6 @@ void CustomMPEG4GenericRTPSink
              struct timeval framePresentationTime,
              unsigned numRemainingBytes) 
 {
-
   unsigned fullFrameSize = fragmentationOffset + numBytesInFrame + numRemainingBytes;
   unsigned char headers[4];
   headers[0] = 0; headers[1] = 16 /* bits */; // AU-headers-length

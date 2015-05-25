@@ -25,9 +25,21 @@
 
 #include "FramedFilter.hh"
 
+/*! An AAC ADTS header parser, which constructs the Audio Specific Config string from extracted information */
+
 class ADTSStreamParser: public FramedFilter {
 public:
+    /**
+    * Constructor wrapper
+    * @param env Live555 environement
+    * @param inputSource Input source, which contains AAC frames
+    * @return Pointer to the object if succeded and NULL if not
+    */
     static ADTSStreamParser* createNew(UsageEnvironment& env, FramedSource* inputSource);
+
+    /**
+    * @return Audio Specific Config string
+    */
     const char* getConfigString(){return configString;};
 
 protected:

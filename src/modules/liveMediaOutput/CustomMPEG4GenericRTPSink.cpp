@@ -28,6 +28,40 @@
 #include <ctype.h> 
 #include <iostream> 
 
+CustomMPEG4GenericRTPSink*
+CustomMPEG4GenericRTPSink::createNew(UsageEnvironment& env, Groupsock* RTPgs, u_int8_t rtpPayloadFormat,
+                                      u_int32_t rtpTimestampFrequency, char const* sdpMediaTypeString,
+                                       char const* mpeg4Mode, unsigned numChannels) 
+{
+    if (sdpMediaTypeString == NULL || strcmp(sdpMediaTypeString, "audio") != 0) {
+        env << "Only audio is supported for now using CustomMPEG4GenericRTPSink";
+        return NULL;
+    }
+    
+    if (mpeg4Mode == NULL) {
+        env << "CustomMPEG4GenericRTPSink error: NULL \"mpeg4Mode\" parameter\n";
+        return NULL;
+    }
+
+    size_t const len = strlen(mpeg4Mode) + 1;
+    char* m = new char[len];
+
+    Locale l("POSIX");
+
+    for (size_t i = 0; i < len; ++i) {
+        m[i] = tolower(mpeg4Mode[i]);
+    } 
+
+    if (strcmp(m, "aac-hbr") != 0) {
+        env << "CustomMPEG4GenericRTPSink error: Unknown \"mpeg4Mode\" parameter: \"" << mpeg4Mode << "\"\n";
+    }
+  
+    delete[] m;
+  
+    return new CustomMPEG4GenericRTPSink(env, RTPgs, rtpPayloadFormat, rtpTimestampFrequency,
+                                          sdpMediaTypeString, mpeg4Mode, numChannels);
+}
+
 CustomMPEG4GenericRTPSink
 ::CustomMPEG4GenericRTPSink(UsageEnvironment& env, Groupsock* RTPgs, u_int8_t rtpPayloadFormat,
                              u_int32_t rtpTimestampFrequency, char const* sdpMediaTypeString,
@@ -35,41 +69,12 @@ CustomMPEG4GenericRTPSink
 : MultiFramedRTPSink(env, RTPgs, rtpPayloadFormat, rtpTimestampFrequency, "MPEG4-GENERIC", numChannels),
   fSDPMediaTypeString(strDup(sdpMediaTypeString)), fMPEG4Mode(strDup(mpeg4Mode)), fConfigString(NULL) 
 {
-
-  if (mpeg4Mode == NULL) {
-      env << "CustomMPEG4GenericRTPSink error: NULL \"mpeg4Mode\" parameter\n";
-  
-  } else {
-      size_t const len = strlen(mpeg4Mode) + 1;
-      char* m = new char[len];
-
-      Locale l("POSIX");
-
-      for (size_t i = 0; i < len; ++i) {
-          m[i] = tolower(mpeg4Mode[i]);
-      } 
-
-      if (strcmp(m, "aac-hbr") != 0) {
-          env << "CustomMPEG4GenericRTPSink error: Unknown \"mpeg4Mode\" parameter: \"" << mpeg4Mode << "\"\n";
-      }
-      
-      delete[] m;
-  }
-
+    
 }
 
 CustomMPEG4GenericRTPSink::~CustomMPEG4GenericRTPSink() 
 {
 
-}
-
-CustomMPEG4GenericRTPSink*
-CustomMPEG4GenericRTPSink::createNew(UsageEnvironment& env, Groupsock* RTPgs, u_int8_t rtpPayloadFormat,
-                                      u_int32_t rtpTimestampFrequency, char const* sdpMediaTypeString,
-                                       char const* mpeg4Mode, unsigned numChannels) 
-{
-    return new CustomMPEG4GenericRTPSink(env, RTPgs, rtpPayloadFormat, rtpTimestampFrequency,
-                                          sdpMediaTypeString, mpeg4Mode, numChannels);
 }
 
 Boolean CustomMPEG4GenericRTPSink

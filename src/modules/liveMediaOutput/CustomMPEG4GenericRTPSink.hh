@@ -26,9 +26,23 @@
 
 #include "MultiFramedRTPSink.hh"
 
+/*! An RTP Sink which consumes AAC ADTS frames. It must be associated to a ADTSStreamParser 
+    in order to construct the specific SDP line */
+
 class CustomMPEG4GenericRTPSink: public MultiFramedRTPSink {
 
 public:
+    /**
+    * Constructor wrapper
+    * @param env Live555 environement
+    * @param RTPgs Live555 RTP groupsock
+    * @param rtpPayloadFormat RTP payload format
+    * @param rtpTimestampFrequency RTP timestamp frequency in Hz
+    * @param sdpMediaTypeString Only "audio" is supported
+    * @param mpeg4Mode Input source, which contains AAC frames
+    * @param numChannels Input source, which contains AAC frames
+    * @return Pointer to the object if succeded and NULL if not
+    */
     static CustomMPEG4GenericRTPSink* 
     createNew(UsageEnvironment& env, Groupsock* RTPgs,
         u_int8_t rtpPayloadFormat, u_int32_t rtpTimestampFrequency,

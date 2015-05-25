@@ -36,7 +36,7 @@ ADTSStreamParser* ADTSStreamParser::createNew(UsageEnvironment& env, FramedSourc
 ADTSStreamParser::ADTSStreamParser(UsageEnvironment& env, FramedSource* inputSource) : 
 FramedFilter(env, inputSource)
 {
-    configString = new unsigned char[2]();
+
 }
 
 ADTSStreamParser::~ADTSStreamParser() {
@@ -94,8 +94,12 @@ bool ADTSStreamParser::updateConfigString(unsigned char* data, unsigned size)
     samplingFrequencyIndex = getSamplingFreqIdxFromADTSHeader(data);
     channelConfiguration = getChannelConfFromADTSHeader(data);
 
-    configString[0] = getMetadata1stByte(audioObjectType, samplingFrequencyIndex);
-    configString[1] = getMetadata2ndByte(samplingFrequencyIndex, channelConfiguration);
+    sprintf(configString, "%02X%02x", 
+            getMetadata1stByte(audioObjectType, samplingFrequencyIndex), 
+            getMetadata2ndByte(samplingFrequencyIndex, channelConfiguration));
+    
+    // configString[0] = getMetadata1stByte(audioObjectType, samplingFrequencyIndex);
+    // configString[1] = getMetadata2ndByte(samplingFrequencyIndex, channelConfiguration);
 
     return true;
 }

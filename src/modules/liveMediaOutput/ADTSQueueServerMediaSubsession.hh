@@ -26,15 +26,34 @@
 
 #include "QueueServerMediaSubsession.hh"
 
-class ADTSQueueServerMediaSubsession: public QueueServerMediaSubsession {
+/*! An onDemand RTSP subsession for audio AAC codec (with ADTS headers) */
+
+class ADTSQueueServerMediaSubsession : public QueueServerMediaSubsession {
     
 public:
+    /**
+    * Constructor wrapper
+    * @param env Live555 environement
+    * @param replica It is the replicator from where the source is created
+    * @param readerId It is the id of the reader associated with this replicator
+    * @param channels Audio channels
+    * @param sampleRate Audio sampling rate
+    * @param reuseFirstSource If True, the same source is used for each request to the subssession
+    * @return Pointer to the object if succeded and NULL if not
+    */
     static ADTSQueueServerMediaSubsession*
         createNew(UsageEnvironment& env, StreamReplicator* replica, int readerId, 
                   unsigned channels, unsigned sampleRate, Boolean reuseFirstSource);
 
+    /**
+    * It gets extra SDP line from its associated sink (because it must be obtained from sink consumed frames)
+    */
     void checkForAuxSDPLine1();
     void afterPlayingDummy1();
+
+    /**
+    * @return A vector with readers Id associated to the subsession
+    */
     std::vector<int> getReaderIds();
 
 protected:

@@ -250,8 +250,6 @@ std::string SourceManager::makeSubsessionSDP(std::string mediumName, std::string
         return sdp.str();
     }
 
-    //TODO: change MPEG4-GEneric to AAC
-
     sdp << "a=rtpmap:" << RTPPayloadFormat << " ";
     sdp << codecName << "/" << RTPTimestampFrequency;
     if (channels != 0) {
@@ -263,9 +261,8 @@ std::string SourceManager::makeSubsessionSDP(std::string mediumName, std::string
         sdp << "a=fmtp:" << RTPPayloadFormat << " packetization-mode=1\n";
     }
 
-    //TODO: test if necessary
-    if (codecName.compare("MPEG4-GENERIC") == 0) {
-        sdp << "a=fmtp:" << RTPPayloadFormat << "  profile-level-id=1;mode=AAC-hbr;sizelength=13;indexlength=3;indexdeltalength=3\n";
+    if (codecName.compare("MPEG4-GENERIC") == 0 && mediumName.compare("audio") == 0) {
+        sdp << "a=fmtp:" << RTPPayloadFormat << " streamtype=5;profile-level-id=1;mode=AAC-hbr;sizelength=13;indexlength=3;indexdeltalength=3\n";
     }
 
     return sdp.str();

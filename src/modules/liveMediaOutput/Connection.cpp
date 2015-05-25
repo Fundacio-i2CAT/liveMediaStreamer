@@ -640,9 +640,8 @@ bool MpegTsConnection::addVideoSource(FramedSource* source, VCodecType codec, in
     }
         
     startCodeInjector = H264or5StartCodeInjector::createNew(*fEnv, source, codec);
-    if(codec == H264) tsFramer->addNewVideoSource(startCodeInjector, 5/*mpegVersion: H.264*/);
-    else if (codec == H265) tsFramer->addNewVideoSource(startCodeInjector, 6/*mpegVersion: H.265*/);
-    else return false;
+    if (codec == H264) tsFramer->addNewVideoSource(startCodeInjector, 5/*mpegVersion: H.264*/);
+    if (codec == H265) tsFramer->addNewVideoSource(startCodeInjector, 6/*mpegVersion: H.265*/);
 
     return true;
 }
@@ -671,9 +670,8 @@ bool MpegTsConnection::addAudioSource(FramedSource* source, ACodecType codec, in
         return false;
     }
 
-    if(codec == AAC) tsFramer->addNewAudioSource(source, 4/*mpegVersion: AAC*/);
-    else if (codec == MP3) tsFramer->addNewAudioSource(source, 1/*mpegVersion: MP3*/);
-    else return false;
+    if (codec == AAC) tsFramer->addNewAudioSource(source, 4/*mpegVersion: AAC*/);
+    if (codec == MP3) tsFramer->addNewAudioSource(source, 1/*mpegVersion: MP3*/);
     
     return true;
 }

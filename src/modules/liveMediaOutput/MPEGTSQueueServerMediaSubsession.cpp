@@ -119,16 +119,12 @@ FramedSource* MPEGTSQueueServerMediaSubsession::createNewStreamSource(unsigned c
     if (vReplicator){
         startCodeInjector = H264or5StartCodeInjector::createNew(envir(), vReplicator->createStreamReplica(), vCodec);
         if (vCodec == H264) tsFramer->addNewVideoSource(startCodeInjector, 5/*mpegVersion: H.264*/);
-        else if (vCodec == H265) tsFramer->addNewVideoSource(startCodeInjector, 6 /* mpegVersion: H.265*/);
-        //TODO check error
-        else return NULL;
+        if (vCodec == H265) tsFramer->addNewVideoSource(startCodeInjector, 6 /* mpegVersion: H.265*/);
     }
     
     if (aReplicator){
-        if(aCodec == AAC) tsFramer->addNewAudioSource(aReplicator->createStreamReplica(), 4/*mpegVersion: AAC*/);
-        else if (aCodec == MP3) tsFramer->addNewAudioSource(aReplicator->createStreamReplica(), 1/*mpegVersion: MP3*/);
-        //TODO check error
-        else return NULL;
+        if (aCodec == AAC) tsFramer->addNewAudioSource(aReplicator->createStreamReplica(), 4/*mpegVersion: AAC*/);
+        if (aCodec == MP3) tsFramer->addNewAudioSource(aReplicator->createStreamReplica(), 1/*mpegVersion: MP3*/);
     }
        
     return tsFramer;

@@ -638,17 +638,19 @@ bool MpegTsConnection::addVideoSource(FramedSource* source, VCodecType codec, in
         utils::errorMsg("Error video reader ID was already set.");
         return false;
     }
-    
+        
     startCodeInjector = H264or5StartCodeInjector::createNew(*fEnv, source, codec);
-    tsFramer->addNewVideoSource(startCodeInjector, 5/*mpegVersion: H.264*/);
+    if(codec == H264) tsFramer->addNewVideoSource(startCodeInjector, 5/*mpegVersion: H.264*/);
+    else if (codec == H265) tsFramer->addNewVideoSource(startCodeInjector, 6/*mpegVersion: H.265*/);
+    else return false;
 
     return true;
 }
 
 bool MpegTsConnection::addAudioSource(FramedSource* source, ACodecType codec, int readerId)
 {
-    if (codec != AAC) {
-        utils::errorMsg("Error creating MPEG-TS Connection. Only AAC audio codec is valid");
+    if (codec != AAC && codec != MP3) {
+        utils::errorMsg("Error creating MPEG-TS Connection. Only AAC and MP3 audio codecs are valid");
         return false;
     }
 
@@ -669,7 +671,10 @@ bool MpegTsConnection::addAudioSource(FramedSource* source, ACodecType codec, in
         return false;
     }
 
-    tsFramer->addNewAudioSource(source, 4/*mpegVersion: AAC*/);
+    if(codec == AAC) tsFramer->addNewAudioSource(source, 4/*mpegVersion: AAC*/);
+    else if (codec == MP3) tsFramer->addNewAudioSource(source, 1/*mpegVersion: MP3*/);
+    else return false;
+    
     return true;
 }
     

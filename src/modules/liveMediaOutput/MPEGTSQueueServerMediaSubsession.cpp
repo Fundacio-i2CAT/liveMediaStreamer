@@ -83,8 +83,8 @@ bool MPEGTSQueueServerMediaSubsession::addVideoSource(VCodecType codec, StreamRe
 bool MPEGTSQueueServerMediaSubsession::addAudioSource(ACodecType codec, StreamReplicator* replicator,
                                                       int readerId)
 {
-    if (codec != AAC) {
-        utils::errorMsg("Error creating MPEG-TS Connection. Only AAC audio codec is valid");
+    if (codec != AAC && codec != MP3) {
+        utils::errorMsg("Error creating MPEG-TS Connection. Only AAC or MP3 audio codecs are valid");
         return false;
     }
     
@@ -118,11 +118,17 @@ FramedSource* MPEGTSQueueServerMediaSubsession::createNewStreamSource(unsigned c
     
     if (vReplicator){
         startCodeInjector = H264or5StartCodeInjector::createNew(envir(), vReplicator->createStreamReplica(), vCodec);
-        tsFramer->addNewVideoSource(startCodeInjector, 5/*mpegVersion: H.264*/);
+        if (vCodec == H264) tsFramer->addNewVideoSource(startCodeInjector, 5/*mpegVersion: H.264*/);
+        else if (vCodec == H265) tsFramer->addNewVideoSource(startCodeInjector, 6 /* mpegVersion: H.265*/);
+        //TODO check error
+        else return NULL;
     }
     
     if (aReplicator){
-        tsFramer->addNewAudioSource(aReplicator->createStreamReplica(), 4/*mpegVersion: AAC*/);
+        if(aCodec == AAC) tsFramer->addNewAudioSource(aReplicator->createStreamReplica(), 4/*mpegVersion: AAC*/);
+        else if (aCodec == MP3) tsFramer->addNewAudioSource(aReplicator->createStreamReplica(), 1/*mpegVersion: MP3*/);
+        //TODO check error
+        else return NULL;
     }
        
     return tsFramer;

@@ -28,7 +28,7 @@
 class ADTSStreamParser: public FramedFilter {
 public:
     static ADTSStreamParser* createNew(UsageEnvironment& env, FramedSource* inputSource);
-    unsigned char* getConfigString(){return configString;};
+    const char* getConfigString(){return configString;};
 
 protected:
     ADTSStreamParser(UsageEnvironment& env, FramedSource* inputSource);
@@ -54,7 +54,7 @@ private:
     unsigned char getMetadata1stByte(unsigned char audioObjectType, unsigned char samplingFrequencyIndex);
     unsigned char getMetadata2ndByte(unsigned char samplingFrequencyIndex, unsigned char channelConfiguration);
     
-    unsigned char* configString;
+    char configString[2];
 
 };
 

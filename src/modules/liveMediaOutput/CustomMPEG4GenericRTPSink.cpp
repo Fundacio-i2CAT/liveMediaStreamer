@@ -124,7 +124,7 @@ char const* CustomMPEG4GenericRTPSink::auxSDPLine()
       return NULL;
     }
 
-    fConfigString = (char*)adts->getConfigString();
+    fConfigString = adts->getConfigString();
 
     if (!fConfigString) {
         return NULL;

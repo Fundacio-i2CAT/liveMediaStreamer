@@ -310,6 +310,7 @@ bool RTSPConnection::specificSetup()
 RTPConnection::RTPConnection(UsageEnvironment* env, FramedSource* source,
                              std::string ip, unsigned port) :
                              Connection(env), fIp(ip), fPort(port), 
+                             rtcp(NULL), rtpGroupsock(NULL), rtcpGroupsock(NULL),   
                              fSource(source), fSink(NULL)
 { 
 

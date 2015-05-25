@@ -142,7 +142,6 @@ void RTSPConnectionTest::addAudioSTD()
     CPPUNIT_ASSERT(conn->addAudioSubsession(AAC, aReplicator, CHANNELS, SAMPLERATE, S16, 1));
     CPPUNIT_ASSERT(!conn->addAudioSubsession(AAC, aReplicator, CHANNELS, SAMPLERATE, S16, 1));
     CPPUNIT_ASSERT(conn->addAudioSubsession(MP3, aReplicator, CHANNELS, SAMPLERATE, S16, 2));
-    CPPUNIT_ASSERT(!conn->addAudioSubsession(AAC, aReplicator, CHANNELS, SAMPLERATE, S16, 2));
 
     CPPUNIT_ASSERT(conn->setup());
 }
@@ -155,10 +154,9 @@ void RTSPConnectionTest::addVideoSTD()
     CPPUNIT_ASSERT(framer != NULL);
 
     CPPUNIT_ASSERT(!conn->addVideoSubsession(H264, NULL, 1));
-    CPPUNIT_ASSERT(conn->addVideoSubsession(H264, vReplicator, 1));
-    CPPUNIT_ASSERT(!conn->addVideoSubsession(H265, vReplicator, 1));
-    CPPUNIT_ASSERT(conn->addVideoSubsession(H265, vReplicator, 2));
-    CPPUNIT_ASSERT(!conn->addVideoSubsession(H264, vReplicator, 2));
+    CPPUNIT_ASSERT(conn->addVideoSubsession(H265, vReplicator, 1));
+    CPPUNIT_ASSERT(!conn->addVideoSubsession(H264, vReplicator, 1));
+    CPPUNIT_ASSERT(conn->addVideoSubsession(H264, vReplicator, 2));
     
     CPPUNIT_ASSERT(conn->setup());
 }
@@ -185,8 +183,7 @@ void RTSPConnectionTest::addVideoMPEGTS()
 
     CPPUNIT_ASSERT(!conn->addVideoSubsession(H264, NULL, 1));
     CPPUNIT_ASSERT(!conn->addVideoSubsession(VP8, vReplicator, 1));
-    CPPUNIT_ASSERT(conn->addVideoSubsession(H265, vReplicator, 1));
-    CPPUNIT_ASSERT(!conn->addVideoSubsession(H264, vReplicator, 1));
+    CPPUNIT_ASSERT(conn->addVideoSubsession(H264, vReplicator, 1));
 
     CPPUNIT_ASSERT(conn->setup());
 }

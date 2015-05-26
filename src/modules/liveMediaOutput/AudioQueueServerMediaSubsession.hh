@@ -54,13 +54,15 @@ protected:
   ~AudioQueueServerMediaSubsession();
 
 protected: // redefined virtual functions
-  FramedSource* createNewStreamSource(unsigned clientSessionId,
+    virtual FramedSource* createNewStreamSource(unsigned clientSessionId,
                           unsigned& estBitrate);
-  RTPSink* createNewRTPSink(Groupsock* rtpGroupsock,
-                                    unsigned char rtpPayloadTypeIfDynamic,
-                    FramedSource* inputSource);
-private:
+    virtual RTPSink* createNewRTPSink(Groupsock* rtpGroupsock,
+                                      unsigned char rtpPayloadTypeIfDynamic,
+                                      FramedSource* inputSource);
+
     StreamReplicator* replicator;
+
+private:
     int reader;
     
     ACodecType fCodec;

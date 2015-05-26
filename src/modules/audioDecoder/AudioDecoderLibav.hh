@@ -46,7 +46,7 @@ private:
 
     void initializeEventMap();
     bool resample(AVFrame* src, AudioFrame* dst);
-    void checkInputParams(int sampleFormat, int channels, int sampleRate);
+    void checkSampleFormat(int sampleFormat);
     bool inputConfig();
     bool outputConfig();
     bool reconfigureDecoder(AudioFrame* frame);
@@ -61,7 +61,6 @@ private:
     AVPacket            pkt;
     int                 gotFrame;
     SwrContext          *resampleCtx;
-    AVCodecID           codecID;
     AVSampleFormat      inLibavSampleFmt;
     AVSampleFormat      outLibavSampleFmt;
 

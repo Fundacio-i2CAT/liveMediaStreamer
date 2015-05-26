@@ -44,7 +44,7 @@ void QueueSource::doGetNextFrame()
     
     memcpy(fTo, frame->getDataBuf(), fFrameSize);
     fReader->removeFrame();
-    
+
     afterGetting(this);
 }
 

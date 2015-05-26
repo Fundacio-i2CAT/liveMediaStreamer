@@ -36,6 +36,9 @@ liblivemediastreamer_la_SOURCES = modules/audioDecoder/AudioDecoderLibav.cpp \
                                   modules/liveMediaOutput/H264or5StartCodeInjector.cpp \
                                   modules/liveMediaOutput/UltraGridAudioRTPSink.cpp \
                                   modules/liveMediaOutput/UltraGridVideoRTPSink.cpp \
+                                  modules/liveMediaOutput/ADTSQueueServerMediaSubsession.cpp \
+                                  modules/liveMediaOutput/ADTSStreamParser.cpp \
+                                  modules/liveMediaOutput/CustomMPEG4GenericRTPSink.cpp \
                                   modules/liveMediaOutput/SPSparser/h264_stream.c \
                                   modules/sharedMemory/SharedMemory.cpp \
                                   AVFramedQueue.cpp \

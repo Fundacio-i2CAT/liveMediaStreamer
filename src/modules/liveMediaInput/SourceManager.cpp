@@ -256,8 +256,13 @@ std::string SourceManager::makeSubsessionSDP(std::string mediumName, std::string
         sdp << "/" << channels;
     }
     sdp << "\n";
+    
     if (codecName.compare("H264") == 0){
         sdp << "a=fmtp:" << RTPPayloadFormat << " packetization-mode=1\n";
+    }
+
+    if (codecName.compare("MPEG4-GENERIC") == 0 && mediumName.compare("audio") == 0) {
+        sdp << "a=fmtp:" << RTPPayloadFormat << " streamtype=5;profile-level-id=1;mode=AAC-hbr;sizelength=13;indexlength=3;indexdeltalength=3\n";
     }
 
     return sdp.str();
@@ -328,12 +333,12 @@ FrameQueue* createAudioQueue(unsigned char rtpPayloadFormat, char const* codecNa
 
     if (strcmp(codecName, "OPUS") == 0) {
         codec = OPUS;
-        return AudioFrameQueue::createNew(codec, DEFAULT_AUDIO_FRAMES, sampleRate);
+        return AudioFrameQueue::createNew(codec, DEFAULT_AUDIO_FRAMES, sampleRate, channels);
     }
 
     if (strcmp(codecName, "MPEG4-GENERIC") == 0) {
         codec = AAC;
-        return AudioFrameQueue::createNew(codec, DEFAULT_AUDIO_FRAMES, sampleRate);
+        return AudioFrameQueue::createNew(codec, DEFAULT_AUDIO_FRAMES, sampleRate, channels);
     }
 
     if (strcmp(codecName, "MPA") == 0) {
@@ -351,7 +356,7 @@ FrameQueue* createAudioQueue(unsigned char rtpPayloadFormat, char const* codecNa
         return AudioFrameQueue::createNew(codec, DEFAULT_AUDIO_FRAMES, sampleRate, channels);
     }
 
-    //TODO: error msg codec not supported
+    utils::errorMsg("Error creating audio queue in SourceManager: codec " + std::string(codecName) + " not supported");
     return NULL;
 }
 

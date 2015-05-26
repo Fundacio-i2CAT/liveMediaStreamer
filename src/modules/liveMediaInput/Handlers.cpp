@@ -280,49 +280,6 @@ namespace handlers
     }
 
     //TODO: static method of SourceManager?
-    std::string makeSessionSDP(std::string sessionName, std::string sessionDescription)
-    {
-        std::stringstream sdp;
-        sdp << "v=0\n";
-        sdp << "o=- 0 0 IN IP4 127.0.0.1\n";
-        sdp << "s=" << sessionName << "\n";
-        sdp << "i=" << sessionDescription << "\n";
-        sdp << "t= 0 0\n";
-
-        return sdp.str();
-    }
-
-    std::string makeSubsessionSDP(std::string mediumName, std::string protocolName,
-                                  unsigned int RTPPayloadFormat,
-                                  std::string codecName, unsigned int bandwidth,
-                                  unsigned int RTPTimestampFrequency,
-                                  unsigned int clientPortNum,
-                                  unsigned int channels)
-    {
-        std::stringstream sdp;
-        sdp << "m=" << mediumName << " " << clientPortNum;
-        sdp << " RTP/AVP " << RTPPayloadFormat << "\n";
-        sdp << "c=IN IP4 127.0.0.1\n";
-        sdp << "b=AS:" << bandwidth << "\n";
-
-        if (RTPPayloadFormat < 96) {
-            return sdp.str();
-        }
-
-        sdp << "a=rtpmap:" << RTPPayloadFormat << " ";
-        sdp << codecName << "/" << RTPTimestampFrequency;
-        if (channels > 0) {
-            sdp << "/" << channels;
-        }
-        sdp << "\n";
-        if (codecName.compare("H264") == 0){
-            sdp << "a=fmtp:" << RTPPayloadFormat << " packetization-mode=1\n";
-        }
-
-        return sdp.str();
-    }
-
-    //TODO: static method of SourceManager?
     bool addSubsessionSink(UsageEnvironment& env, MediaSubsession *subsession)
     {
         int wId;

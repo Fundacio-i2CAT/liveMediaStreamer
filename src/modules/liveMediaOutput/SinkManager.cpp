@@ -386,15 +386,9 @@ void SinkManager::createVideoQueueSource(VCodecType codec, Reader *reader, int r
 void SinkManager::createAudioQueueSource(ACodecType codec, Reader *reader, int readerId)
 {
     QueueSource *source;
-    switch(codec){
-       // case MPEG4_GENERIC:
-            //TODO
-            //break;
-        default:
-            source = QueueSource::createNew(*(envir()), reader, readerId);
-            replicators[readerId] = StreamReplicator::createNew(*(envir()), source, False);
-            break;
-    }
+    
+    source = QueueSource::createNew(*(envir()), reader, readerId);
+    replicators[readerId] = StreamReplicator::createNew(*(envir()), source, False);
 }
 
 bool SinkManager::addSubsessionByReader(RTSPConnection* connection ,int readerId)

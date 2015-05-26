@@ -582,7 +582,7 @@ void FilterFunctionalTest::liveMediaSourceFilterTest()
     BaseFilter* headFilterToTest = new LiveMediaFilterMockup(0,10000,4,true);
     BaseFilter* satelliteFilter1 = new BaseFilterMockup(1,1);
     BaseFilter* satelliteFilter2 = new BaseFilterMockup(1,1);
-    Worker *masterW = new Worker();
+    Worker *masterW = new LiveMediaWorker();
 
     CPPUNIT_ASSERT(headFilterToTest->connectManyToOne(satelliteFilter1,1));
     CPPUNIT_ASSERT(headFilterToTest->connectManyToOne(satelliteFilter2,2));

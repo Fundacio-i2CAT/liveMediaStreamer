@@ -54,20 +54,13 @@ class Dasher : public TailFilter {
 
 public:
     /**
-    * Class constructor. It only initializes filter type parameter and events map.
-    * @see configure method to completely initialize dasher filter.
-    */
-    Dasher(int readersNum = MAX_READERS);
-
-    /**
-    * Configures the dasher filter with next required parameters:
+    * Constructor wrapper. It also configures the dasher filter with next required parameters:
     * @param dashFolder is the system folder where the segmenter is going to work with
-    * @param baseName_ is the file base name for all generated and required files
+    * @param baseName is the file base name for all generated and required files
     * @param segDurInSeconds is the time duration in seconds
-    * @param mpdLocation is the URI where the MPD is going to be served from
-    * @return true if suceeded and false if not
+    * @return Pointer to the object if succeded and NULL if not
     */
-    bool configure(std::string dashFolder, std::string baseName_, size_t segDurInSeconds, std::string mpdLocation);
+    static Dasher* createNew(std::string dashFolder, std::string baseName, size_t segDurInSeconds, int readersNum = MAX_READERS);
 
     /**
     * Class destructor
@@ -113,6 +106,8 @@ public:
     bool setDashSegmenterBitrate(int id, size_t kbps);
 
 private:
+    Dasher(int readersNum);
+    bool configure(std::string dashFolder, std::string baseName_, size_t segDurInSeconds);
     bool doProcessFrame(std::map<int, Frame*> orgFrames);
     void doGetState(Jzon::Object &filterNode);
     void initializeEventMap();

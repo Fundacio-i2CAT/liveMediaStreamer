@@ -89,12 +89,6 @@ void MpdManager::writeToDisk(const char* fileName)
     el->InsertFirstChild(title);
     root->InsertEndChild(el);
 
-    /*TODO LOCATION IS NOT MANDATORY, COULD IMPLY CROSS-DOMAIN ISSUES
-    el = doc.NewElement("Location");
-    text = doc.NewText(location.c_str());
-    el->InsertFirstChild(text);
-    root->InsertEndChild(el);*/
-
     period = doc.NewElement("Period");
     period->SetAttribute("id", PERIOD_ID);
     period->SetAttribute("start", PERIOD_START);
@@ -108,11 +102,6 @@ void MpdManager::writeToDisk(const char* fileName)
 
     root->InsertEndChild(period);
     doc.SaveFile(fileName);
-}
-
-void MpdManager::setLocation(std::string loc)
-{
-    location = loc;
 }
 
 unsigned MpdManager::updateAdaptationSetTimestamp(std::string id, unsigned ts, unsigned duration)

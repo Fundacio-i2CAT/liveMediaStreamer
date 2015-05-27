@@ -36,7 +36,6 @@ class MpdManagerTest : public CppUnit::TestFixture
 {
     CPPUNIT_TEST_SUITE(MpdManagerTest);
     CPPUNIT_TEST(writeToDisk);
-    CPPUNIT_TEST(setLocation);
     CPPUNIT_TEST(setMinimumUpdatePeriod);
     CPPUNIT_TEST(setMinBufferTime);
     CPPUNIT_TEST(setTimeShiftBufferDepth);
@@ -54,7 +53,6 @@ public:
 
 protected:
     void writeToDisk();
-    void setLocation();
     void setMinimumUpdatePeriod();
     void setMinBufferTime();
     void setTimeShiftBufferDepth();
@@ -110,27 +108,6 @@ void MpdManagerTest::writeToDisk()
     CPPUNIT_ASSERT(xmlElement->FindAttribute("start") != NULL);
 
     CPPUNIT_ASSERT((xmlElement = (const tinyxml2::XMLElement*)xmlElement->FirstChildElement("AdaptationSet")) == NULL);
-
-    CPPUNIT_ASSERT((xmlElement = (const tinyxml2::XMLElement*)xmlRoot->FirstChildElement("Location")) != NULL);
-    CPPUNIT_ASSERT((xmlElement->FirstChild()) == NULL);
-}
-
-void MpdManagerTest::setLocation()
-{
-    tinyxml2::XMLDocument doc;
-    const tinyxml2::XMLElement *xmlRoot;
-    const tinyxml2::XMLElement *xmlElement;
-    const std::string location = "one-location";
-
-    manager->setLocation(location);
-    manager->writeToDisk(FILE_NAME);
-
-    CPPUNIT_ASSERT(doc.LoadFile(FILE_NAME) == tinyxml2::XML_SUCCESS);
-
-    CPPUNIT_ASSERT((xmlRoot = (const tinyxml2::XMLElement*)doc.FirstChildElement("MPD")) != NULL);
-    CPPUNIT_ASSERT((xmlElement = (const tinyxml2::XMLElement*)xmlRoot->FirstChildElement("Location")) != NULL);
-
-    CPPUNIT_ASSERT(xmlElement->FirstChild()->Value() == location);
 }
 
 void MpdManagerTest::setMinimumUpdatePeriod()

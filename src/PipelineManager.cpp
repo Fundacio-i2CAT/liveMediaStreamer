@@ -168,9 +168,10 @@ BaseFilter* PipelineManager::createFilter(FilterType type, Jzon::Node* params)
             }
             filter = SharedMemory::createNew(key, codec, role, sharedFrames);
             break;
-        case DASHER:
-            filter = new Dasher(sharedFrames);
-            break;
+        // TODO: think about extra parameters necesary to create filters like Dasher
+        // case DASHER:
+        //     filter = new Dasher(sharedFrames);
+        //     break;
         default:
             utils::errorMsg("Unknown filter type");
             filter = NULL;

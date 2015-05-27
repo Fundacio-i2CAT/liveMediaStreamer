@@ -77,12 +77,6 @@ public:
     void writeToDisk(const char* fileName);
 
     /**
-    * Sets MPD <Location> tag, which represents the MPD file location (must be a URI)
-    * @param loc MPD location (e.g. "http://localhost/dash/test.mpd")
-    */
-    void setLocation(std::string loc);
-
-    /**
     * Sets <MPD> tag attribute 'minimumUpdatePeriod', which represents the MPD file refresh period 
     * @param seconds Value in seconds in seconds
     */

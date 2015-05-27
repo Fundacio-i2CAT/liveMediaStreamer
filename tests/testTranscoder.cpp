@@ -40,7 +40,6 @@
 #define SEG_DURATION 4 //sec
 #define DASH_FOLDER "/tmp/dash"
 #define BASE_NAME "test"
-#define MPD_LOCATION "http://localhost/dash/test.mpd"
 
 bool run = true;
 
@@ -56,14 +55,16 @@ void signalHandler( int signum )
 
 Dasher* setupDasher(int dasherId)
 {
-    Dasher* dasher;
+    Dasher* dasher = NULL;
 
     int workerId = rand();
     Worker* worker = NULL;
     PipelineManager *pipe = Controller::getInstance()->pipelineManager();
 
-    dasher = new Dasher();
-    if(!dasher->configure(DASH_FOLDER, BASE_NAME, SEG_DURATION, MPD_LOCATION)) {
+    dasher = Dasher::createNew(std::string(DASH_FOLDER), std::string(BASE_NAME), SEG_DURATION);
+
+    if(!dasher) {
+        utils::errorMsg("Error configure dasher: exist testTranscoder");
         exit(1);
     }
 
@@ -256,7 +257,7 @@ void addVideoPath(unsigned port, Dasher* dasher, int dasherId, int receiverID, i
         wRes2 = new Worker();
         wRes2->addProcessor(resId2, resampler2);
         resampler2->setWorkerId(wResId2);
-        resampler2->configure(1280, 720, 0, YUV420P);
+        resampler2->configure(640, 360, 0, YUV420P);
         pipe->addWorker(wResId2, wRes2);
         ((BaseFilter*)resampler)->addSlave(resId2, resampler2);
 

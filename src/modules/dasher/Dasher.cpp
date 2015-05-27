@@ -33,6 +33,22 @@
 #include <unistd.h>
 #include <math.h>
 
+Dasher* Dasher::createNew(std::string dashFolder, std::string baseName, size_t segDurInSeconds, int readersNum)
+{
+    Dasher* dasher = NULL;
+
+    dasher = new Dasher(readersNum);
+
+    if (!dasher->configure(dashFolder, baseName, segDurInSeconds)) {
+        utils::errorMsg("Error configuring Dasher");
+        delete dasher;
+        return NULL;
+    }
+
+    return dasher;
+}
+
+
 Dasher::Dasher(int readersNum) :
 TailFilter(MASTER, readersNum), mpdMngr(NULL), hasVideo(false), videoStarted(false)
 {
@@ -48,7 +64,7 @@ Dasher::~Dasher()
     delete mpdMngr;
 }
 
-bool Dasher::configure(std::string dashFolder, std::string baseName_, size_t segDurInSec, std::string mpdLocation)
+bool Dasher::configure(std::string dashFolder, std::string baseName_, size_t segDurInSec)
 {
     if (access(dashFolder.c_str(), W_OK) != 0) {
         utils::errorMsg("Error configuring Dasher: provided folder is not writable");
@@ -59,7 +75,7 @@ bool Dasher::configure(std::string dashFolder, std::string baseName_, size_t seg
         dashFolder.append("/");
     }
 
-    if (baseName_.empty() || segDurInSec == 0 || mpdLocation.empty()){
+    if (baseName_.empty() || segDurInSec == 0) {
         utils::errorMsg("Error configuring Dasher: provided parameters are not valid");
         return false;
     }
@@ -73,7 +89,6 @@ bool Dasher::configure(std::string dashFolder, std::string baseName_, size_t seg
     aInitSegTempl = baseName + "_$RepresentationID$_init.m4a";
 
     mpdMngr = new MpdManager();
-    mpdMngr->setLocation(mpdLocation);
     mpdMngr->setMinBufferTime(segDurInSec*(MAX_SEGMENTS_IN_MPD/2));
     mpdMngr->setMinimumUpdatePeriod(segDurInSec);
     mpdMngr->setTimeShiftBufferDepth(segDurInSec*MAX_SEGMENTS_IN_MPD);
@@ -425,18 +440,16 @@ void Dasher::configureEvent(Jzon::Node* params, Jzon::Object &outputNode)
         return;
     }
 
-    if (!params->Has("folder") || !params->Has("baseName") || !params->Has("segDurInSec") ||
-            !params->Has("mpdURI")) {
-
+    if (!params->Has("folder") || !params->Has("baseName") || !params->Has("segDurInSec")) {
         outputNode.Add("error", "Error configuring Dasher. Check parameters!");
         return;
     }
+
     std::string dashFolder = params->Get("folder").ToString();
     std::string baseName = params->Get("baseName").ToString();
     size_t segDurInSec = params->Get("segDurInSec").ToInt();
-    std::string mpdLocation = params->Get("mpdURI").ToString();
 
-    if (!configure(dashFolder, baseName, segDurInSec, mpdLocation)) {
+    if (!configure(dashFolder, baseName, segDurInSec)) {
         outputNode.Add("error", "Error configuring Dasher. Check parameters!");
     } else {
         outputNode.Add("error", Jzon::null);

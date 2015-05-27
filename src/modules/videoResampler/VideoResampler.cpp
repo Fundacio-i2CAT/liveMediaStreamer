@@ -123,7 +123,7 @@ bool VideoResampler::doProcessFrame(Frame *org, Frame *dst)
     if (!setAVFrame(inFrame, orgFrame, libavInPixFmt)){
         return false;
     }
-        
+
     if (outputWidth == 0){
         outWidth = orgFrame->getWidth();
     } else {

@@ -34,6 +34,7 @@
 
 #define OUT_A_CODEC AAC
 #define OUT_A_FREQ 48000
+#define OUT_A_BITRATE 192000
 
 #define RETRIES 60
 
@@ -106,10 +107,11 @@ void addAudioPath(unsigned port, Dasher* dasher, int dasherId, int receiverID, i
 
     //NOTE: Adding encoder to pipeManager and handle worker
     encoder = new AudioEncoderLibav();
-    if (!encoder->configure(OUT_A_CODEC, A_CHANNELS, OUT_A_FREQ)) {
+    if (!encoder->configure(OUT_A_CODEC, A_CHANNELS, OUT_A_FREQ, OUT_A_BITRATE)) {
         utils::errorMsg("Error configuring audio encoder. Check provided parameters");
         return;
     }
+
     pipe->addFilter(encId, encoder);
     aEnc = new Worker();
     aEnc->addProcessor(encId, encoder);
@@ -128,6 +130,10 @@ void addAudioPath(unsigned port, Dasher* dasher, int dasherId, int receiverID, i
     if (dasher != NULL && !dasher->addSegmenter(dstReader)) {
         utils::errorMsg("Error adding segmenter");
     }
+
+    if (dasher != NULL && !dasher->setDashSegmenterBitrate(dstReader, OUT_A_BITRATE)) {
+        utils::errorMsg("Error setting bitrate to segmenter");
+    } 
 
     pipe->startWorkers();
 

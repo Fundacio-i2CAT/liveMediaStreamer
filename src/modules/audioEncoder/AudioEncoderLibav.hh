@@ -46,7 +46,7 @@ public:
     int getSamplesPerFrame(){ return samplesPerFrame;};
     ACodecType getCodec() {return fCodec;};
 
-    bool configure(ACodecType codec, int codedAudioChannels, int codedAudioSampleRate);
+    bool configure(ACodecType codec, int codedAudioChannels, int codedAudioSampleRate, int bitrate);
     Reader* setReader(int readerID, FrameQueue* queue);
 
 private:
@@ -56,7 +56,7 @@ private:
     int resample(AudioFrame* src, AVFrame* dst);
     bool reconfigure(AudioFrame* frame);
     bool resamplingConfig();
-    bool codingConfig(); 
+    bool codingConfig(AVCodecID codecId); 
 
 
     void configEvent(Jzon::Node* params, Jzon::Object &outputNode);
@@ -67,7 +67,6 @@ private:
     AVFrame             *libavFrame;
     AVPacket            pkt;
     SwrContext          *resampleCtx;
-    AVCodecID           codecID;
     int                 gotFrame;
 
     ACodecType          fCodec;
@@ -77,6 +76,7 @@ private:
     int                 internalSampleRate;
     SampleFmt           internalSampleFmt;
     AVSampleFormat      internalLibavSampleFmt;
+    int                 outputBitrate;
 
     int                 inputChannels;
     int                 inputSampleRate;

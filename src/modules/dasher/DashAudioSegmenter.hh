@@ -63,16 +63,16 @@ public:
     bool updateConfig();
 
     /**
-    * It returns the last configured audio channels number
-    * @return number of audio channels
-    */
-    size_t getChannels();
-
-    /**
     * It returns the last configured sample rate
     * @return sample rate in Hz
     */
-    size_t getSampleRate();
+    size_t getSampleRate() {return lastSeenSampleRate;};
+    
+    /**
+    * It returns the last configured audio channels number
+    * @return number of audio channels
+    */
+    size_t getChannels() {return lastSeenChannels;};
 
     bool appendFrameToDashSegment(DashSegment* segment);
     bool generateSegment(DashSegment* segment);
@@ -96,6 +96,9 @@ private:
     unsigned char samplingFrequencyIndex;
     unsigned char channelConfiguration;
     AudioFrame* aFrame;
+
+    size_t lastSeenSampleRate;
+    size_t lastSeenChannels;
 };
 
 #endif

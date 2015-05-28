@@ -24,7 +24,7 @@
  #include "DashAudioSegmenter.hh"
 
 DashAudioSegmenter::DashAudioSegmenter(std::chrono::seconds segDur) :
-DashSegmenter(segDur, 0), aFrame(NULL)
+DashSegmenter(segDur, 0), aFrame(NULL), lastSeenSampleRate(0), lastSeenChannels(0)
 {
 
 }
@@ -260,25 +260,9 @@ bool DashAudioSegmenter::setup(size_t segmentDuration, size_t timeBase, size_t s
         return false;
     }
 
+    lastSeenSampleRate = sampleRate;
+    lastSeenChannels = channels;
     set_segment_duration(segmentDuration, &dashContext);
+
     return true;
-}
-
-
-size_t DashAudioSegmenter::getChannels()
-{
-    if (!aFrame) {
-        return 0;
-    }
-
-    return aFrame->getChannels();
-}
-
-size_t DashAudioSegmenter::getSampleRate()
-{
-    if (!aFrame) {
-        return 0;
-    }
-
-    return aFrame->getSampleRate();
 }

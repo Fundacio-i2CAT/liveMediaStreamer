@@ -77,7 +77,7 @@ class VideoMixer : public ManyToOneFilter {
         void pasteToLayout(int frameID, VideoFrame* vFrame);
         bool configChannel(int id, float width, float height, float x, float y, int layer, bool enabled, float opacity);
 
-        void configChannelEvent(Jzon::Node* params, Jzon::Object &outputNode);
+        bool configChannelEvent(Jzon::Node* params);
 
         std::map<int, ChannelConfig*> channelsConfig;
         int outputWidth;

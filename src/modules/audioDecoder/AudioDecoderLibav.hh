@@ -50,7 +50,7 @@ private:
     bool inputConfig();
     bool outputConfig();
     bool reconfigureDecoder(AudioFrame* frame);
-    void configEvent(Jzon::Node* params, Jzon::Object &outputNode);
+    bool configEvent(Jzon::Node* params);
     void doGetState(Jzon::Object &filterNode);
 
 

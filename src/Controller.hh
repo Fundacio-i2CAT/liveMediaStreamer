@@ -94,10 +94,10 @@ protected:
 
 private:
     Controller();
-    bool processFilterEvent(Jzon::Object event, int socket);
-    bool processInternalEvent(Jzon::Object event, int socket);
-    bool processEventArray(const Jzon::Array events);
-    bool processEvent(Jzon::Object event, int socket);
+    bool processEvent(Jzon::Object event);
+    void processFilterEvent(Jzon::Object event, Jzon::Object &outputNode);
+    void processInternalEvent(Jzon::Object event, Jzon::Object &outputNode);
+    void sendAndClose(Jzon::Object outputNode, int socket);
 
     int listeningSocket, connectionSocket;
     char inBuffer[MSG_BUFFER_MAX_LENGTH];

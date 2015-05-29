@@ -171,7 +171,6 @@ Reader* VideoMixer::setReader(int readerID, FrameQueue* queue)
     if (readers.count(readerID) < 0) {
         return NULL;
     }
-    std::cout << "Channel config!" << std::endl;
 
     Reader* r = new Reader();
     readers[readerID] = r;
@@ -183,24 +182,20 @@ Reader* VideoMixer::setReader(int readerID, FrameQueue* queue)
 
 void VideoMixer::initializeEventMap()
 {
-     eventMap["configChannel"] = std::bind(&VideoMixer::configChannelEvent,
-                                                this, std::placeholders::_1, std::placeholders::_2);
-
+    eventMap["configChannel"] = std::bind(&VideoMixer::configChannelEvent, this, std::placeholders::_1);
 }
 
-void VideoMixer::configChannelEvent(Jzon::Node* params, Jzon::Object &outputNode)
+bool VideoMixer::configChannelEvent(Jzon::Node* params)
 {
     if (!params) {
-        outputNode.Add("error", "Error changing master volume");
-        return;
+        return false;
     }
 
     if (!params->Has("id") || !params->Has("width") || !params->Has("height") ||
             !params->Has("x") || !params->Has("y") || !params->Has("layer") ||
                 !params->Has("enabled") || !params->Has("opacity")) {
 
-        outputNode.Add("error", "Error configure channel. Check parameters!");
-        return;
+        return false;
     }
 
     int id = params->Get("id").ToInt();
@@ -212,11 +207,7 @@ void VideoMixer::configChannelEvent(Jzon::Node* params, Jzon::Object &outputNode
     bool enabled = params->Get("enabled").ToBool();
     float opacity = params->Get("opacity").ToFloat();
 
-    if (!configChannel(id, width, height, x, y, layer, enabled, opacity)) {
-        outputNode.Add("error", "Error configurating channel. Check parameters!");
-    } else {
-        outputNode.Add("error", Jzon::null);
-    }
+    return configChannel(id, width, height, x, y, layer, enabled, opacity);
 }
 
 void VideoMixer::doGetState(Jzon::Object &filterNode)

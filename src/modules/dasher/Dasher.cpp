@@ -417,107 +417,95 @@ bool Dasher::cleanSegments(std::map<int,DashSegment*> segments, size_t timestamp
 
 void Dasher::initializeEventMap()
 {
-    eventMap["configure"] = std::bind(&Dasher::configureEvent, this, std::placeholders::_1, std::placeholders::_2);
-    eventMap["addSegmenter"] = std::bind(&Dasher::addSegmenterEvent, this, std::placeholders::_1, std::placeholders::_2);
-    eventMap["removeSegmenter"] = std::bind(&Dasher::removeSegmenterEvent, this, std::placeholders::_1, std::placeholders::_2);
-    eventMap["setBitrate"] = std::bind(&Dasher::setBitrateEvent, this, std::placeholders::_1, std::placeholders::_2);
+    eventMap["configure"] = std::bind(&Dasher::configureEvent, this, std::placeholders::_1);
+    eventMap["addSegmenter"] = std::bind(&Dasher::addSegmenterEvent, this, std::placeholders::_1);
+    eventMap["removeSegmenter"] = std::bind(&Dasher::removeSegmenterEvent, this, std::placeholders::_1);
+    eventMap["setBitrate"] = std::bind(&Dasher::setBitrateEvent, this, std::placeholders::_1);
 }
 
 void Dasher::doGetState(Jzon::Object &filterNode)
 {
-    //TODO: to add more parameters?
     filterNode.Add("folder", basePath);
     filterNode.Add("baseName", baseName);
     filterNode.Add("mpdURI", mpdPath);
     filterNode.Add("segDurInSec", std::to_string(segDur.count()));
-
 }
 
-void Dasher::configureEvent(Jzon::Node* params, Jzon::Object &outputNode)
+bool Dasher::configureEvent(Jzon::Node* params)
 {
+    std::string dashFolder = basePath;
+    std::string bName = baseName;
+    size_t segDurInSec = segDur.count();
+
     if (!params) {
-        outputNode.Add("error", "Error configuring Dasher");
-        return;
+        return false;
     }
 
-    if (!params->Has("folder") || !params->Has("baseName") || !params->Has("segDurInSec")) {
-        outputNode.Add("error", "Error configuring Dasher. Check parameters!");
-        return;
+    if (params->Has("folder")) {
+        dashFolder = params->Get("folder").ToString();
     }
 
-    std::string dashFolder = params->Get("folder").ToString();
-    std::string baseName = params->Get("baseName").ToString();
-    size_t segDurInSec = params->Get("segDurInSec").ToInt();
-
-    if (!configure(dashFolder, baseName, segDurInSec)) {
-        outputNode.Add("error", "Error configuring Dasher. Check parameters!");
-    } else {
-        outputNode.Add("error", Jzon::null);
+    if (params->Has("baseName")) {
+        baseName = params->Get("baseName").ToString();
     }
+
+    if (params->Has("segDurInSec")) {
+        segDurInSec = params->Get("segDurInSec").ToInt();
+    }
+
+    return configure(dashFolder, baseName, segDurInSec);
 }
 
-void Dasher::addSegmenterEvent(Jzon::Node* params, Jzon::Object &outputNode)
+bool Dasher::addSegmenterEvent(Jzon::Node* params)
 {
+    int id;
+
     if (!params) {
-        outputNode.Add("error", "Error adding segmenter in Dasher");
-        return;
+        return false;
     }
 
     if (!params->Has("id")){
-        outputNode.Add("error", "Error adding segmenter in Dasher. Check parameters!");
-        return;
+        return false;
     }
 
-    int id = params->Get("id").ToInt();
+    id = params->Get("id").ToInt();
 
-    if (!addSegmenter(id)) {
-        outputNode.Add("error", "Error adding segmenter in Dasher. Check parameters!");
-    } else {
-        outputNode.Add("error", Jzon::null);
-    }
+    return addSegmenter(id);
 }
 
-void Dasher::removeSegmenterEvent(Jzon::Node* params, Jzon::Object &outputNode)
+bool Dasher::removeSegmenterEvent(Jzon::Node* params)
 {
+    int id;
+
     if (!params) {
-        outputNode.Add("error", "Error removing segmenter in Dasher");
-        return;
+        return false;
     }
 
     if (!params->Has("id")){
-        outputNode.Add("error", "Error removing segmenter in Dasher. Check parameters!");
-        return;
+        return false;
     }
 
-    int id = params->Get("id").ToInt();
+    id = params->Get("id").ToInt();
 
-    if (!removeSegmenter(id)) {
-        outputNode.Add("error", "Error removing segmenter in Dasher. Check parameters!");
-    } else {
-        outputNode.Add("error", Jzon::null);
-    }
+    return removeSegmenter(id);
 }
 
-void Dasher::setBitrateEvent(Jzon::Node* params, Jzon::Object &outputNode)
+bool Dasher::setBitrateEvent(Jzon::Node* params)
 {
+    int id, bitrate;
+
     if (!params) {
-        outputNode.Add("error", "Error setting bitrate to DashSegmenter: params are necessary");
-        return;
+        return false;
     }
 
     if (!params->Has("id") || !params->Has("bitrate")) {
-        outputNode.Add("error", "Error setting bitrate to DashSegmenter: params are necessary");
-        return;
+        return false;
     }
 
-    int id = params->Get("id").ToInt();
-    int bitrate = params->Get("bitrate").ToInt();
+    id = params->Get("id").ToInt();
+    bitrate = params->Get("bitrate").ToInt();
 
-    if(!setDashSegmenterBitrate(id, bitrate)) {
-        outputNode.Add("error", "Error setting bitrate to DashSegmenter: specified id is not valid");
-    } else {
-        outputNode.Add("error", Jzon::null);
-    }
+    return setDashSegmenterBitrate(id, bitrate);
 }
 
 bool Dasher::addSegmenter(int readerId)

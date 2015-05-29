@@ -30,7 +30,8 @@
 #include <utility>
 #include <cmath>
 
-AudioMixer::AudioMixer(FilterRole role, bool sharedFrames, int inputChannels) : ManyToOneFilter(role, sharedFrames, inputChannels) {
+AudioMixer::AudioMixer(FilterRole role, bool sharedFrames, int inputChannels) : ManyToOneFilter(role, sharedFrames, inputChannels) 
+{
     frameChannels = DEFAULT_CHANNELS;
     sampleRate = DEFAULT_SAMPLE_RATE;
     sampleFormat = S16P;
@@ -51,7 +52,8 @@ AudioMixer::AudioMixer(FilterRole role, bool sharedFrames, int inputChannels) : 
 
 AudioMixer::~AudioMixer() {}
 
-FrameQueue *AudioMixer::allocQueue(int wId) {
+FrameQueue *AudioMixer::allocQueue(int wId) 
+{
     return AudioCircularBuffer::createNew(frameChannels, sampleRate, AudioFrame::getMaxSamples(sampleRate), sampleFormat);
 }
 
@@ -165,72 +167,68 @@ void AudioMixer::LDRCMixAlgorithm(std::vector<float> &fSamples, int frameNumber)
     }
 }
 
-void AudioMixer::changeChannelVolumeEvent(Jzon::Node* params, Jzon::Object &outputNode)
+bool AudioMixer::changeChannelVolumeEvent(Jzon::Node* params)
 {
+    int id;
+    float volume;
+
     if (!params) {
-        outputNode.Add("error", "Error changing audio channel volume");
-        return;
+        return false;
     }
 
     if (!params->Has("id") || !params->Has("volume")) {
-        outputNode.Add("error", "Error changing audio channel volume");
-        return;
+        return false;
     }
 
-    int id = params->Get("id").ToInt();
-    float volume = params->Get("volume").ToFloat();
+    id = params->Get("id").ToInt();
+    volume = params->Get("volume").ToFloat();
 
     if (gains.count(id) <= 0) {
-        outputNode.Add("error", "Error changing audio channel volume");
-        return;
+        return false;
     }
 
     gains[id] = volume;
-
-    outputNode.Add("error", Jzon::null);
+    return true;
 }
 
-void AudioMixer::muteChannelEvent(Jzon::Node* params, Jzon::Object &outputNode)
+bool AudioMixer::muteChannelEvent(Jzon::Node* params)
 {
+    int id;
+
     if (!params) {
-        outputNode.Add("error", "Error muting audio channel");
-        return;
+        return false;
     }
 
     if (!params->Has("id")) {
-        outputNode.Add("error", "Error muting audio channel");
-        return;
+        return false;
     }
 
-    int id = params->Get("id").ToInt();
+    id = params->Get("id").ToInt();
 
     if (gains.count(id) <= 0) {
-        outputNode.Add("error", "Error muting audio channel");
-        return;
+        return false;
     }
 
     gains[id] = 0;
-
-    outputNode.Add("error", Jzon::null);
+    return true;
 }
 
-void AudioMixer::soloChannelEvent(Jzon::Node* params, Jzon::Object &outputNode)
+bool AudioMixer::soloChannelEvent(Jzon::Node* params)
 {
+    int id;
+
     if (!params) {
-        outputNode.Add("error", "Error applying solo to audio channel");
-        return;
+        return false;
     }
 
     if (!params->Has("id")) {
-        outputNode.Add("error", "Error applying solo to audio channel");
-        return;
+        return false;
     }
 
-    int id = params->Get("id").ToInt();
+    id = params->Get("id").ToInt();
 
     if (gains.count(id) <= 0) {
-        outputNode.Add("error", "Error applying solo to audio channel");
-        return;
+        return false;
     }
 
     for (auto &it : gains) {
@@ -241,51 +239,49 @@ void AudioMixer::soloChannelEvent(Jzon::Node* params, Jzon::Object &outputNode)
         }
     }
 
-    outputNode.Add("error", Jzon::null);
+    return true;
 }
 
-void AudioMixer::changeMasterVolumeEvent(Jzon::Node* params, Jzon::Object &outputNode)
+bool AudioMixer::changeMasterVolumeEvent(Jzon::Node* params)
 {
+    float volume;
+
     if (!params) {
-        outputNode.Add("error", "Error changing master volume");
-        return;
+        return false;
     }
 
     if (!params->Has("volume")) {
-        outputNode.Add("error", "Error changing master volume");
-        return;
+        return false;
     }
 
-    float volume = params->Get("volume").ToFloat();
-
+    volume = params->Get("volume").ToFloat();
     masterGain = volume;
 
-    outputNode.Add("error", Jzon::null);
+    return true;
 }
 
-void AudioMixer::muteMasterEvent(Jzon::Node* params, Jzon::Object &outputNode)
+bool AudioMixer::muteMasterEvent(Jzon::Node* params)
 {
     masterGain = 0;
-
-    outputNode.Add("error", Jzon::null);
+    return true;
 }
 
 void AudioMixer::initializeEventMap()
 {
     eventMap["changeChannelVolume"] = std::bind(&AudioMixer::changeChannelVolumeEvent,
-                                                 this, std::placeholders::_1, std::placeholders::_2);
+                                                 this, std::placeholders::_1);
 
     eventMap["muteChannel"] = std::bind(&AudioMixer::muteChannelEvent, this,
-                                         std::placeholders::_1, std::placeholders::_2);
+                                         std::placeholders::_1);
 
     eventMap["soloChannel"] = std::bind(&AudioMixer::soloChannelEvent, this,
-                                         std::placeholders::_1, std::placeholders::_2);
+                                         std::placeholders::_1);
 
     eventMap["changeMasterVolume"] = std::bind(&AudioMixer::changeMasterVolumeEvent, this,
-                                                std::placeholders::_1, std::placeholders::_2);
+                                                std::placeholders::_1);
 
     eventMap["muteMaster"] = std::bind(&AudioMixer::muteMasterEvent, this,
-                                        std::placeholders::_1, std::placeholders::_2);
+                                        std::placeholders::_1);
 }
 
 void AudioMixer::doGetState(Jzon::Object &filterNode)

@@ -403,7 +403,7 @@ bool checkChannelLayoutSupport(AVCodec *codec, uint64_t channelLayout)
     return false;
 }
 
-void AudioEncoderLibav::configEvent(Jzon::Node* params, Jzon::Object &outputNode)
+bool AudioEncoderLibav::configEvent(Jzon::Node* params)
 {
     ACodecType codec; 
     int codedAudioChannels;
@@ -411,7 +411,7 @@ void AudioEncoderLibav::configEvent(Jzon::Node* params, Jzon::Object &outputNode
     int bitrate;
 
     if (!params) {
-        return;
+        return false;
     }
 
     codec = fCodec;
@@ -435,14 +435,10 @@ void AudioEncoderLibav::configEvent(Jzon::Node* params, Jzon::Object &outputNode
         bitrate = params->Get("bitrate").ToInt();
     }
 
-    if (!configure(codec, codedAudioChannels, codedAudioSampleRate, bitrate)) {
-        outputNode.Add("error", "Error configuring audio encoder");
-    } else {
-        outputNode.Add("error", Jzon::null);
-    }
+    return configure(codec, codedAudioChannels, codedAudioSampleRate, bitrate);
 }
 
 void AudioEncoderLibav::initializeEventMap()
 {
-    eventMap["configure"] = std::bind(&AudioEncoderLibav::configEvent, this, std::placeholders::_1, std::placeholders::_2);
+    eventMap["configure"] = std::bind(&AudioEncoderLibav::configEvent, this, std::placeholders::_1);
 }

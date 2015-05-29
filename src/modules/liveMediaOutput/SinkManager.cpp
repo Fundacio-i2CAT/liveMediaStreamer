@@ -462,14 +462,11 @@ bool SinkManager::deleteReader(int id)
 
 void SinkManager::initializeEventMap()
 {
-    eventMap["addRTSPConnection"] = std::bind(&SinkManager::addRTSPConnectionEvent, this,
-                                        std::placeholders::_1,  std::placeholders::_2);
-    eventMap["addRTPConnection"] = std::bind(&SinkManager::addRTPConnectionEvent, this,
-                                        std::placeholders::_1,  std::placeholders::_2);
-
+    eventMap["addRTSPConnection"] = std::bind(&SinkManager::addRTSPConnectionEvent, this, std::placeholders::_1);
+    eventMap["addRTPConnection"] = std::bind(&SinkManager::addRTPConnectionEvent, this, std::placeholders::_1);
 }
 
-void SinkManager::addRTSPConnectionEvent(Jzon::Node* params, Jzon::Object &outputNode)
+bool SinkManager::addRTSPConnectionEvent(Jzon::Node* params)
 {
     int id;
     TxFormat txFormat;
@@ -479,18 +476,15 @@ void SinkManager::addRTSPConnectionEvent(Jzon::Node* params, Jzon::Object &outpu
     std::vector<int> readers;
 
     if (!params) {
-        outputNode.Add("error", "Error adding session. No parameters!");
-        return;
+        return false;
     }
 
     if (!params->Has("id") || !params->Has("txFormat") || !params->Has("name")) {
-        outputNode.Add("error", "Error adding connection. Wrong parameters!");
-        return;
+        return false;
     }
 
     if (!params->Has("readers") || !params->Get("readers").IsArray()) {
-        outputNode.Add("error", "Error adding connection. Readers does not exist or is not an array!");
-        return;
+        return false;
     }
 
     id = params->Get("id").ToInt();
@@ -498,11 +492,11 @@ void SinkManager::addRTSPConnectionEvent(Jzon::Node* params, Jzon::Object &outpu
     strTxFormat = params->Get("txFormat").ToString();
     txFormat = utils::getTxFormatFromString(strTxFormat);
     
-    if (params->Has("info")){
+    if (params->Has("info")) {
         info = params->Get("info").ToString();
     }
     
-    if (params->Has("desc")){
+    if (params->Has("desc")) {
         desc = params->Get("desc").ToString();
     }
 
@@ -513,19 +507,13 @@ void SinkManager::addRTSPConnectionEvent(Jzon::Node* params, Jzon::Object &outpu
     }
 
     if (readers.empty()) {
-        outputNode.Add("error", "Error adding RTSP connection. Readers array is empty!");
-        return;
+        return false;
     }
 
-    if(!addRTSPConnection(readers, id, txFormat, name, info, desc)) {
-        outputNode.Add("error", "Error adding RTSP connection. Internal error!");
-        return;
-    }
-
-    outputNode.Add("error", Jzon::null);
+    return addRTSPConnection(readers, id, txFormat, name, info, desc);
 }
 
-void SinkManager::addRTPConnectionEvent(Jzon::Node* params, Jzon::Object &outputNode)
+bool SinkManager::addRTPConnectionEvent(Jzon::Node* params)
 {
     std::vector<int> readers;
     int connectionId;
@@ -535,18 +523,15 @@ void SinkManager::addRTPConnectionEvent(Jzon::Node* params, Jzon::Object &output
     TxFormat txFormat;
 
     if (!params) {
-        outputNode.Add("error", "Error adding session. No parameters!");
-        return;
+        return false;
     }
 
     if (!params->Has("id") || !params->Has("port") || !params->Has("ip") || !params->Has("txFormat")) {
-        outputNode.Add("error", "Error adding connection. Wrong parameters!");
-        return;
+        return false;
     }
 
     if (!params->Has("readers") || !params->Get("readers").IsArray()) {
-        outputNode.Add("error", "Error adding connection. Readers does not exist or is not an array!");
-        return;
+        return false;
     }
 
     connectionId = params->Get("id").ToInt();
@@ -562,16 +547,10 @@ void SinkManager::addRTPConnectionEvent(Jzon::Node* params, Jzon::Object &output
     }
 
     if (readers.empty()) {
-        outputNode.Add("error", "Error adding session. Readers array is empty!");
-        return;
+        return false;
     }
 
-    if(!addRTPConnection(readers, connectionId, ip, port, txFormat)) {
-        outputNode.Add("error", "Error adding session. Internal error!");
-        return;
-    }
-
-    outputNode.Add("error", Jzon::null);
+    return addRTPConnection(readers, connectionId, ip, port, txFormat);
 }
 
 void SinkManager::doGetState(Jzon::Object &filterNode)

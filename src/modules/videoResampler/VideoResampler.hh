@@ -45,7 +45,7 @@ class VideoResampler : public OneToOneFilter {
         
     private:
         void initializeEventMap();
-        void configEvent(Jzon::Node* params, Jzon::Object &outputNode);
+        bool configEvent(Jzon::Node* params);
         void doGetState(Jzon::Object &filterNode);
         bool reconfigure(VideoFrame* orgFrame);
         bool setAVFrame(AVFrame *aFrame, VideoFrame* vFrame, AVPixelFormat format);

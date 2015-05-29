@@ -58,8 +58,7 @@ private:
     bool resamplingConfig();
     bool codingConfig(AVCodecID codecId); 
 
-
-    void configEvent(Jzon::Node* params, Jzon::Object &outputNode);
+    bool configEvent(Jzon::Node* params);
     void doGetState(Jzon::Object &filterNode);
    
     AVCodec             *codec;
@@ -82,9 +81,6 @@ private:
     int                 inputSampleRate;
     SampleFmt           inputSampleFmt;
     AVSampleFormat      inputLibavSampleFmt;
-
-    unsigned char **dst_data;
-    int linesize;
 
     std::chrono::microseconds currentTime;
     std::chrono::microseconds frameDuration;

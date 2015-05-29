@@ -120,10 +120,10 @@ private:
     bool updateTimestampControl(std::map<int,DashSegment*> segments, size_t &timestamp, size_t &duration);
     bool writeSegmentsToDisk(std::map<int,DashSegment*> segments, size_t timestamp, std::string segExt);
     bool cleanSegments(std::map<int,DashSegment*> segments, size_t timestamp, std::string segExt);
-    void configureEvent(Jzon::Node* params, Jzon::Object &outputNode);
-    void addSegmenterEvent(Jzon::Node* params, Jzon::Object &outputNode);
-    void removeSegmenterEvent(Jzon::Node* params, Jzon::Object &outputNode);
-    void setBitrateEvent(Jzon::Node* params, Jzon::Object &outputNode);
+    bool configureEvent(Jzon::Node* params);
+    bool addSegmenterEvent(Jzon::Node* params);
+    bool removeSegmenterEvent(Jzon::Node* params);
+    bool setBitrateEvent(Jzon::Node* params);
 
     std::map<int, DashSegmenter*> segmenters;
     std::map<int, DashSegment*> vSegments;

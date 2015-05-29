@@ -34,8 +34,6 @@
 Controller* Controller::ctrlInstance = NULL;
 PipelineManager* PipelineManager::pipeMngrInstance = NULL;
 
-void sendAndClose(Jzon::Object outputNode, int socket);
-
 Controller::Controller()
 {
     ctrlInstance = this;
@@ -72,7 +70,6 @@ PipelineManager* Controller::pipelineManager()
 
 bool Controller::createSocket(int port)
 {
-
     struct sockaddr_in serv_addr;
     int yes=1;
 
@@ -136,7 +133,7 @@ bool Controller::readAndParse()
     parser->SetJson(inBuffer);
 
     if (!parser->Parse()) {
-        //TODO: error
+        utils::errorMsg("Error parsing JSON");
         return false;
     }
 
@@ -147,108 +144,70 @@ void Controller::processRequest()
 {
     Jzon::Object outputNode;
 
-    if (!inputRootNode->Has("events")){
+    if (!inputRootNode->Has("events") || !inputRootNode->Get("events").IsArray()) {
         utils::warningMsg("Invalid JSON, missing 'events' tag");
         outputNode.Add("error", "Invalid JSON, missing 'events' tag");
+        sendAndClose(outputNode, connectionSocket);
         return;
     }
 
-    if (inputRootNode->Get("events").IsArray()) {
-        const Jzon::Array &events = inputRootNode->Get("events").AsArray();
+    const Jzon::Array &events = inputRootNode->Get("events").AsArray();
 
-        if (!processEventArray(events)) {
-            outputNode.Add("error", "Error while processing event array...");
-        } else {
-            outputNode.Add("error", Jzon::null);
-        }
-
-        sendAndClose(outputNode, connectionSocket);
-
-    } else if (inputRootNode->Get("events").IsObject()) {
-        processEvent(inputRootNode->Get("events"), connectionSocket);
-
-    } else {
-        outputNode.Add("error", "Error while processing event. INvalid JSON format...");
-        sendAndClose(outputNode, connectionSocket);
-    }
-
-}
-
-bool Controller::processEventArray(const Jzon::Array events)
-{
     for (Jzon::Array::const_iterator it = events.begin(); it != events.end(); ++it) {
-        if(!processEvent((*it), -1)) {
-            return false;
+        if ((*it).Has("filterId")) {
+            processFilterEvent(*it, outputNode);
+        } else {
+            processInternalEvent(*it, outputNode);
         }
     }
 
-    return true;
+    sendAndClose(outputNode, connectionSocket);
 }
 
-bool Controller::processEvent(Jzon::Object event, int socket)
+void Controller::processFilterEvent(Jzon::Object event, Jzon::Object &outputNode)
 {
-    if (event.Has("filterID") && event.Get("filterID").ToInt() != 0) {
-        return processFilterEvent(event, socket);
-    }
-
-    return processInternalEvent(event, socket);
-}
-
-bool Controller::processFilterEvent(Jzon::Object event, int socket)
-{
-    int filterID = -1;
-    int delay = 0;
+    int filterId;
+    int delay = -1;
     BaseFilter *filter = NULL;
-    Jzon::Object outputNode;
 
     if (!event.Has("action") || !event.Has("params")) {
-        outputNode.Add("error", "Error while processing event. Invalid JSON format...");
-        sendAndClose(outputNode, socket);
-        return false;
+        outputNode.Add("error", "Error processing filter event. Invalid JSON format...");
+        return ;
     }
 
-    filterID = event.Get("filterID").ToInt();
-    filter = pipeMngrInstance->getFilter(filterID);
+    filterId = event.Get("filterId").ToInt();
+    filter = pipeMngrInstance->getFilter(filterId);
 
     if (!filter) {
         outputNode.Add("error", "Error while processing event. There is no filter with this ID...");
-        sendAndClose(outputNode, socket);
-        return false;
+        return;
     }
 
-    if (socket < 0 && event.Has("delay")) {
+    if (event.Has("delay")) {
         delay = event.Get("delay").ToInt();
     }
 
-    Event e(event, std::chrono::system_clock::now(), socket, delay);
+    Event e(event, std::chrono::system_clock::now(), delay);
     filter->pushEvent(e);
-
-    return true;
+    outputNode.Add("error", Jzon::null);
 }
 
-bool Controller::processInternalEvent(Jzon::Object event, int socket)
+void Controller::processInternalEvent(Jzon::Object event, Jzon::Object &outputNode)
 {
-    Jzon::Object outputNode;
-
     if (!event.Has("action") || !event.Has("params")) {
-        outputNode.Add("error", "Error while processing event. Invalid JSON format...");
-        sendAndClose(outputNode, socket);
-        return false;
+        outputNode.Add("error", "Error processing internal event. Invalid JSON format...");
+        return;
     }
 
     std::string action = event.Get("action").ToString();
     Jzon::Object params = event.Get("params");
 
     if (eventMap.count(action) <= 0) {
-        outputNode.Add("error", "Error while processing event. The action does not exist...");
-        sendAndClose(outputNode, socket);
-        return false;
+        outputNode.Add("error", "Error processing internal event. Invalid action...");
+        return;
     }
 
     eventMap[action](&params, outputNode);
-    sendAndClose(outputNode, socket);
-
-    return true;
 }
 
 void Controller::initializeEventMap()
@@ -274,12 +233,7 @@ void Controller::initializeEventMap()
 
 }
 
-
-/////////////////////////////////
-/////////////////////////////////
-/////////////////////////////////
-
-void sendAndClose(Jzon::Object outputNode, int socket)
+void Controller::sendAndClose(Jzon::Object outputNode, int socket)
 {
     Jzon::Writer writer(outputNode, Jzon::NoFormat);
     writer.Write();

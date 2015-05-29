@@ -630,8 +630,8 @@ void PipelineManager::addWorkerEvent(Jzon::Node* params, Jzon::Object &outputNod
         return;
     }
 
-    if (!params->Has("id") || !params->Has("type") || !params->Has("fps")) {
-        outputNode.Add("error", "Error creating path. Invalid JSON format...");
+    if (!params->Has("id") || !params->Has("type")) {
+        outputNode.Add("error", "Error creating worker. Invalid JSON format...");
         return;
     }
 

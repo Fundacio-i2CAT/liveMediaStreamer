@@ -295,25 +295,27 @@ void BaseFilter::disconnectAll()
 
 void BaseFilter::processEvent()
 {
+    std::string action;
+    Jzon::Node* params;
+
     std::lock_guard<std::mutex> guard(eventQueueMutex);
 
     while(newEvent()) {
 
         Event e = eventQueue.top();
-        std::string action = e.getAction();
-        Jzon::Node* params = e.getParams();
-        Jzon::Object outputNode;
+        action = e.getAction();
+        params = e.getParams();
 
         if (action.empty() || eventMap.count(action) <= 0) {
-            outputNode.Add("error", "Error while processing event. Wrong action...");
-            e.sendAndClose(outputNode);
+            utils::errorMsg("Wrong action name while processing event in filter");
             eventQueue.pop();
-            break;
+            continue;
         }
 
-        eventMap[action](params, outputNode);
-        e.sendAndClose(outputNode);
-
+        if (!eventMap[action](params)) {
+            utils::errorMsg("Error executing filter event");
+        }
+        
         eventQueue.pop();
     }
 }
@@ -623,8 +625,9 @@ void HeadFilter::pushEvent(Event e)
         return;
     }
 
-    eventMap[action](params, outputNode);
-    e.sendAndClose(outputNode);
+    if (!eventMap[action](params)) {
+        utils::errorMsg("Error executing filter event");
+    }
 }
 
 TailFilter::TailFilter(FilterRole fRole_, bool sharedFrames_, unsigned readersNum, size_t fTime) :
@@ -652,8 +655,9 @@ void TailFilter::pushEvent(Event e)
         return;
     }
 
-    eventMap[action](params, outputNode);
-    e.sendAndClose(outputNode);
+    if (!eventMap[action](params)) {
+        utils::errorMsg("Error executing filter event");
+    }
 }
 
 
@@ -695,6 +699,7 @@ void LiveMediaFilter::pushEvent(Event e)
         return;
     }
 
-    eventMap[action](params, outputNode);
-    e.sendAndClose(outputNode);
+    if (!eventMap[action](params)) {
+        utils::errorMsg("Error executing filter event");
+    }
 }

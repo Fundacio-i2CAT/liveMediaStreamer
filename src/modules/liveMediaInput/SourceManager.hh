@@ -36,8 +36,6 @@
 
 #define PROTOCOL "RTP"
 
-
-
 class SourceManager;
 
 class StreamClientState {
@@ -113,7 +111,7 @@ private:
     void initializeEventMap();
     friend bool handlers::addSubsessionSink(UsageEnvironment& env, MediaSubsession *subsession);
     void doGetState(Jzon::Object &filterNode);
-    void addSessionEvent(Jzon::Node* params, Jzon::Object &outputNode);
+    bool addSessionEvent(Jzon::Node* params);
 
     friend bool Session::initiateSession();
     friend bool StreamClientState::addWriterToMngr(unsigned port, Writer* writer);

@@ -160,11 +160,10 @@ FrameQueue *SourceManager::allocQueue(int wId)
 
 void SourceManager::initializeEventMap()
 {
-    eventMap["addSession"] = std::bind(&SourceManager::addSessionEvent, this,
-                                        std::placeholders::_1,  std::placeholders::_2);
+    eventMap["addSession"] = std::bind(&SourceManager::addSessionEvent, this, std::placeholders::_1);
 }
 
-void SourceManager::addSessionEvent(Jzon::Node* params, Jzon::Object &outputNode)
+bool SourceManager::addSessionEvent(Jzon::Node* params)
 {
     std::string sessionId = utils::randomIdGenerator(ID_LENGTH);
     std::string sdp, medium, codec;
@@ -172,8 +171,7 @@ void SourceManager::addSessionEvent(Jzon::Node* params, Jzon::Object &outputNode
     Session* session;
 
     if (!params) {
-        outputNode.Add("error", "Error adding session. Wrong parameters!");
-        return;
+        return false;
     }
 
     if (params->Has("uri") && params->Has("progName") && params->Has("id")) {
@@ -199,8 +197,7 @@ void SourceManager::addSessionEvent(Jzon::Node* params, Jzon::Object &outputNode
             payload = utils::getPayloadFromCodec(codec);
 
             if (payload < 0) {
-                outputNode.Add("error", "Payload type is not valid!!");
-                return;
+                return false;
             }
 
             sdp += makeSubsessionSDP(medium, PROTOCOL, payload, codec, bandwidth,
@@ -210,15 +207,14 @@ void SourceManager::addSessionEvent(Jzon::Node* params, Jzon::Object &outputNode
         session = Session::createNew(*env, sdp, sessionId, this);
 
     } else {
-        outputNode.Add("error", "Error adding session. Wrong parameters!");
-        return;
+        return false;
     }
 
     if (addSession(session)) {
         session->initiateSession();
     }
 
-    outputNode.Add("error", Jzon::null);
+    return true;
 }
 
 std::string SourceManager::makeSessionSDP(std::string sessionName, std::string sessionDescription)

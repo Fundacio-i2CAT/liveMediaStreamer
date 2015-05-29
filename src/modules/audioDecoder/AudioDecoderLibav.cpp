@@ -320,15 +320,14 @@ void AudioDecoderLibav::checkSampleFormat(int sampleFormatCode)
     inputConfig();
 }
 
-void AudioDecoderLibav::configEvent(Jzon::Node* params, Jzon::Object &outputNode)
+bool AudioDecoderLibav::configEvent(Jzon::Node* params)
 {
     SampleFmt newSampleFmt = outSampleFmt;
     int newChannels = outChannels;
     int newSampleRate = outSampleRate;
 
     if (!params) {
-        outputNode.Add("error", "Error configuring audio decoder");
-        return;
+        return false;
     }
 
     if (params->Has("sampleRate")) {
@@ -343,16 +342,12 @@ void AudioDecoderLibav::configEvent(Jzon::Node* params, Jzon::Object &outputNode
         newSampleFmt = utils::getSampleFormatFromString(params->Get("sampleFormat").ToString());
     }
 
-    if (!configure(newSampleFmt, newChannels, newSampleRate)) {
-        outputNode.Add("error", "Error configuring audio decoder");
-    } else {
-        outputNode.Add("error", Jzon::null);
-    }
+    return configure(newSampleFmt, newChannels, newSampleRate);
 }
 
 void AudioDecoderLibav::initializeEventMap()
 {
-    eventMap["configure"] = std::bind(&AudioDecoderLibav::configEvent, this, std::placeholders::_1, std::placeholders::_2);
+    eventMap["configure"] = std::bind(&AudioDecoderLibav::configEvent, this, std::placeholders::_1);
 }
 
 void AudioDecoderLibav::doGetState(Jzon::Object &filterNode)

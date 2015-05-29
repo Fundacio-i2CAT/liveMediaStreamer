@@ -202,7 +202,7 @@ protected:
     virtual void doGetState(Jzon::Object &filterNode) = 0;
 
     bool updateTimestamp();
-    std::map<std::string, std::function<void(Jzon::Node* params, Jzon::Object &outputNode)> > eventMap;
+    std::map<std::string, std::function<bool(Jzon::Node* params)> > eventMap;
 
     virtual bool runDoProcessFrame() = 0;
 

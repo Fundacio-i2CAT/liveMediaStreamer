@@ -118,7 +118,7 @@ bool VideoEncoderX264or5::configure(int bitrate_, int fps_, int gop_, int lookah
     return true;
 }
 
-void VideoEncoderX264or5::configEvent(Jzon::Node* params, Jzon::Object &outputNode)
+bool VideoEncoderX264or5::configEvent(Jzon::Node* params)
 {
     int tmpBitrate;
     int tmpFps;
@@ -129,8 +129,7 @@ void VideoEncoderX264or5::configEvent(Jzon::Node* params, Jzon::Object &outputNo
     std::string tmpPreset;
 
     if (!params) {
-        outputNode.Add("error", "Error configuring video encoder. Params node not found");
-        return;
+        return false;
     }
 
     tmpBitrate = bitrate;
@@ -169,22 +168,19 @@ void VideoEncoderX264or5::configEvent(Jzon::Node* params, Jzon::Object &outputNo
         tmpPreset = params->Get("preset").ToString();
     }
 
-    if (!configure(tmpBitrate, tmpFps, tmpGop, tmpLookahead, tmpThreads, tmpAnnexB, tmpPreset)) {
-        outputNode.Add("error", "Error configuring video encoder");
-    } else {
-        outputNode.Add("error", Jzon::null);
-    }
+    return configure(tmpBitrate, tmpFps, tmpGop, tmpLookahead, tmpThreads, tmpAnnexB, tmpPreset);
 }
 
-void VideoEncoderX264or5::forceIntraEvent(Jzon::Node* params)
+bool VideoEncoderX264or5::forceIntraEvent(Jzon::Node* params)
 {
     forceIntra = true;
+    return true;
 }
 
 void VideoEncoderX264or5::initializeEventMap()
 {
     eventMap["forceIntra"] = std::bind(&VideoEncoderX264or5::forceIntraEvent, this, std::placeholders::_1);
-    eventMap["configure"] = std::bind(&VideoEncoderX264or5::configEvent, this, std::placeholders::_1, std::placeholders::_2);
+    eventMap["configure"] = std::bind(&VideoEncoderX264or5::configEvent, this, std::placeholders::_1);
 }
 
 void VideoEncoderX264or5::doGetState(Jzon::Object &filterNode)

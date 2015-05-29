@@ -85,8 +85,9 @@ protected:
     virtual bool reconfigure(VideoFrame* orgFrame, VideoFrame* dstFrame) = 0;
     void setIntra(){forceIntra = true;};
     bool fill_x264or5_picture(VideoFrame* videoFrame);
-    void forceIntraEvent(Jzon::Node* params);
-    void configEvent(Jzon::Node* params, Jzon::Object &outputNode);
+
+    bool forceIntraEvent(Jzon::Node* params);
+    bool configEvent(Jzon::Node* params);
     void doGetState(Jzon::Object &filterNode);
 };
 

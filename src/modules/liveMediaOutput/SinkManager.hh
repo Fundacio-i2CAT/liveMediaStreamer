@@ -92,8 +92,8 @@ private:
     bool removeConnectionByReaderId(int readerId);
     bool deleteReader(int id);
     
-    void addRTSPConnectionEvent(Jzon::Node* params, Jzon::Object &outputNode);
-    void addRTPConnectionEvent(Jzon::Node* params, Jzon::Object &outputNode);
+    bool addRTSPConnectionEvent(Jzon::Node* params);
+    bool addRTPConnectionEvent(Jzon::Node* params);
     
     Reader *setReader(int readerID, FrameQueue* queue);
 

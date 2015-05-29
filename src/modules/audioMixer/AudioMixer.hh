@@ -42,7 +42,6 @@ class AudioMixer : public ManyToOneFilter {
 
     public:
         AudioMixer(FilterRole fRole_ = MASTER, bool sharedFrames = true, int inputChannels = AMIXER_MAX_CHANNELS);
-        //AudioMixer(int inputChannels, int frameChannels, int sampleRate);
         ~AudioMixer();
         FrameQueue *allocQueue(int wId);
         bool doProcessFrame(std::map<int, Frame*> orgFrames, Frame *dst);
@@ -60,11 +59,11 @@ class AudioMixer : public ManyToOneFilter {
         void LAMixAlgorithm(std::vector<float> &fSamples, int frameNumber);
         void LDRCMixAlgorithm(std::vector<float> &fSamples, int frameNumber);
 
-        void changeChannelVolumeEvent(Jzon::Node* params, Jzon::Object &outputNode);
-        void muteChannelEvent(Jzon::Node* params, Jzon::Object &outputNode);
-        void soloChannelEvent(Jzon::Node* params, Jzon::Object &outputNode);
-        void changeMasterVolumeEvent(Jzon::Node* params, Jzon::Object &outputNode);
-        void muteMasterEvent(Jzon::Node* params, Jzon::Object &outputNode);
+        bool changeChannelVolumeEvent(Jzon::Node* params);
+        bool muteChannelEvent(Jzon::Node* params);
+        bool soloChannelEvent(Jzon::Node* params);
+        bool changeMasterVolumeEvent(Jzon::Node* params);
+        bool muteMasterEvent(Jzon::Node* params);
 
         int frameChannels;
         int sampleRate;

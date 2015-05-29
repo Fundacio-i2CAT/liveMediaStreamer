@@ -57,7 +57,6 @@ bool Worker::addProcessor(int id, Runnable *processor)
         processor->setId(id);
         runnables[id] = processor;
         ret = true;
-
     }
 
     for (auto it : runnables){
@@ -120,8 +119,9 @@ void Worker::process()
     Runnable* currentJob = NULL;
     
     std::unique_lock<std::mutex> guard(mtx);
-    while(run && !processors.empty()) {    
+    while(run && !processors.empty()) { 
         currentJob = processors.top();
+        processors.pop();
         
         guard.unlock();
         
@@ -130,7 +130,6 @@ void Worker::process()
             
         guard.lock();
         
-        processors.pop();
         processors.push(currentJob);
     }
    

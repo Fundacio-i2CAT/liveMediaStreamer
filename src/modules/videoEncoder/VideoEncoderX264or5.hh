@@ -43,7 +43,7 @@ extern "C" {
 #define DEFAULT_LOOKAHEAD 25
 #define DEFAULT_THREADS 4
 #define DEFAULT_ANNEXB true
-#define DEFAULT_PRESET "veryfast"
+#define DEFAULT_PRESET "ultrafast"
 
 /*! Base class for VideoEncoderX264 and VideoEncoderX265. It implements common methods, basically configure and doProcessFrame */
 

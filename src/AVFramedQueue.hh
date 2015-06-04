@@ -47,7 +47,6 @@ public:
 protected:
     Frame* frames[MAX_FRAMES];
     unsigned max;
-    
 };
 
 class VideoFrameQueue : public AVFramedQueue {

@@ -33,6 +33,7 @@
 #include <string>
 #include <liveMedia.hh>
 #include <BasicUsageEnvironment.hh>
+#include <GroupsockHelper.hh>
 
 #define PROTOCOL "RTP"
 

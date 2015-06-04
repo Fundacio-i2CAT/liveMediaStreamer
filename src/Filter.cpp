@@ -371,12 +371,12 @@ bool BaseFilter::updateTimestamp()
 
     timestamp += frameTime;
 
-
     lastDiffTime = diffTime;
     diffTime = wallClock - timestamp;
 
     if (diffTime.count() > threshold || diffTime.count() < (-threshold) ) {
         // reset timestamp value in order to realign with the wall clock
+	std::cout << "Filter " << this << "is type " << fType << std::endl;
         utils::warningMsg("Wall clock deviations exceeded! Reseting values!");
         timestamp = wallClock;
         duration = frameTime + diffTime;
@@ -495,8 +495,8 @@ std::chrono::nanoseconds BaseFilter::masterProcessFrame()
 
     removeFrames();
 
-    if (frameTime.count() == 0){
-        return std::chrono::nanoseconds(RETRY);
+    if (frameTime.count() == 0) {
+	return std::chrono::nanoseconds(0);
     }
 
     enlapsedTime = (std::chrono::duration_cast<std::chrono::nanoseconds>
@@ -507,6 +507,7 @@ std::chrono::nanoseconds BaseFilter::masterProcessFrame()
     frameTime_ = std::chrono::nanoseconds(frameTime_value);
     
     if (enlapsedTime > frameTime_){
+        utils::warningMsg("Your computer is too slow");
         return std::chrono::nanoseconds(0);
     }
 

@@ -29,7 +29,7 @@
 #include <sstream>
 
 #define RTSP_CLIENT_VERBOSITY_LEVEL 1
-#define FILE_SINK_RECEIVE_BUFFER_SIZE 200000
+#define RTP_RECEIVE_BUFFER_SIZE 2000000
 
 FrameQueue* createVideoQueue(char const* codecName);
 FrameQueue* createAudioQueue(unsigned char rtpPayloadFormat,
@@ -418,8 +418,12 @@ bool Session::initiateSession()
                     return false;
                 }
             }
-            subsession = scs->iter->next();
+	   
+            increaseReceiveBufferTo(env, subsession->rtpSource()->RTPgs()->socketNum(), RTP_RECEIVE_BUFFER_SIZE);
+
+           subsession = scs->iter->next();
         }
+
         return true;
     } else if (client != NULL){
         unsigned ret = client->sendDescribeCommand(handlers::continueAfterDESCRIBE);

@@ -376,7 +376,6 @@ bool BaseFilter::updateTimestamp()
 
     if (diffTime.count() > threshold || diffTime.count() < (-threshold) ) {
         // reset timestamp value in order to realign with the wall clock
-	std::cout << "Filter " << this << "is type " << fType << std::endl;
         utils::warningMsg("Wall clock deviations exceeded! Reseting values!");
         timestamp = wallClock;
         duration = frameTime + diffTime;

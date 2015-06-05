@@ -1,4 +1,4 @@
-#liveMediaStreamer - 0.0.1
+#liveMediaStreamer - 0.2
 
 Live Media Streamer (LMS) is a real-time streaming multimedia framework. 
 

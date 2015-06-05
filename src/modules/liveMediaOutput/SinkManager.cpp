@@ -146,6 +146,7 @@ bool SinkManager::addRTSPConnection(std::vector<int> readers, int id, TxFormat t
 
     for (auto & reader : readers){
         if (!addSubsessionByReader(connection, reader)) {
+            utils::errorMsg("Error adding subsession by reader in RTSP Connection");
             delete connection;
             return false;
         }
@@ -158,7 +159,6 @@ bool SinkManager::addRTSPConnection(std::vector<int> readers, int id, TxFormat t
     }
 
     connections[id] = connection;
-
     return true;
 }
 

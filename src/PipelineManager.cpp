@@ -317,10 +317,7 @@ bool PipelineManager::connectPath(Path* path)
     std::vector<int> pathFilters = path->getFilters();
 
     if (pathFilters.empty()) {
-        if (filters[orgFilterId]->connectManyToMany(filters[dstFilterId],
-                                                    path->getDstReaderID(),
-                                                    path->getOrgWriterID()))
-        {
+        if (filters[orgFilterId]->connectManyToMany(filters[dstFilterId], path->getDstReaderID(), path->getOrgWriterID())) {
             return true;
         } else {
             utils::errorMsg("Connecting head to tail!");
@@ -342,6 +339,7 @@ bool PipelineManager::connectPath(Path* path)
 
     if (!filters[pathFilters.back()]->connectOneToMany(filters[dstFilterId], path->getDstReaderID())) {
         utils::errorMsg("Connecting path last filter to path tail!");
+
         return false;
     }
 

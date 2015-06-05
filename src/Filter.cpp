@@ -484,9 +484,9 @@ std::chrono::nanoseconds BaseFilter::masterProcessFrame()
     if (!demandOriginFrames() || !demandDestinationFrames()) {
         return std::chrono::nanoseconds(RETRY);
     }
-    
+
     processAll();
-    
+
     runDoProcessFrame();
 
     while (runningSlaves()){
@@ -496,7 +496,7 @@ std::chrono::nanoseconds BaseFilter::masterProcessFrame()
     removeFrames();
 
     if (frameTime.count() == 0) {
-	return std::chrono::nanoseconds(0);
+        return std::chrono::nanoseconds(0);
     }
 
     enlapsedTime = (std::chrono::duration_cast<std::chrono::nanoseconds>

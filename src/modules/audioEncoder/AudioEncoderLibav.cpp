@@ -228,14 +228,11 @@ bool AudioEncoderLibav::codingConfig(AVCodecID codecId)
         libavFrame->nb_samples = AudioFrame::getDefaultSamples(inputSampleRate);
     }
 
-    std::cout << "Bitrate: " << codecCtx->bit_rate << std::endl;
-
     libavFrame->format = codecCtx->sample_fmt;
     libavFrame->channel_layout = codecCtx->channel_layout;
     libavFrame->channels = internalChannels;
 
     samplesPerFrame = libavFrame->nb_samples;
-    setFrameTime(std::chrono::nanoseconds(std::nano::den*samplesPerFrame/internalSampleRate));
 
     if (av_frame_get_buffer(libavFrame, 0) < 0) {
         utils::errorMsg("Could not setup audio frame");

@@ -27,8 +27,10 @@
 
 MPEGTSQueueServerMediaSubsession::MPEGTSQueueServerMediaSubsession(
     UsageEnvironment& env, Boolean reuseFirstSource) : 
-    QueueServerMediaSubsession(env, reuseFirstSource), aReaderId(-1), vReaderId(-1)
+QueueServerMediaSubsession(env, reuseFirstSource), aReplicator(NULL), 
+vReplicator(NULL), aReaderId(-1), vReaderId(-1)
 {
+
 }
 
 MPEGTSQueueServerMediaSubsession* MPEGTSQueueServerMediaSubsession::createNew(
@@ -102,7 +104,6 @@ bool MPEGTSQueueServerMediaSubsession::addAudioSource(ACodecType codec, StreamRe
 
     aCodec = codec;
     aReplicator = replicator;
-    
     return true;
 }
 
@@ -126,7 +127,7 @@ FramedSource* MPEGTSQueueServerMediaSubsession::createNewStreamSource(unsigned c
         if (aCodec == AAC) tsFramer->addNewAudioSource(aReplicator->createStreamReplica(), 4/*mpegVersion: AAC*/);
         if (aCodec == MP3) tsFramer->addNewAudioSource(aReplicator->createStreamReplica(), 1/*mpegVersion: MP3*/);
     }
-       
+    
     return tsFramer;
 }
 

@@ -399,7 +399,7 @@ namespace utils
         if (codec.compare("pcmu") == 0 ||
             codec.compare("opus") == 0 ||
             codec.compare("pcm") == 0 ||
-            codec.compare("mpeg4-generic") == 0) {
+            codec.compare("MPEG4-GENERIC") == 0) {
             payload = 97;
         } else if (codec.compare("mp3") == 0) {
             payload = 14;

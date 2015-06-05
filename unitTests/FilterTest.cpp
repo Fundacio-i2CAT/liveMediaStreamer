@@ -290,6 +290,7 @@ void FilterFunctionalTest::oneToOneMasterProcessFrame()
     frameQueue = dynamic_cast<AVFramedQueueMock*>(reader->getQueue());
 
     frameQueue->addFrame();
+    CPPUNIT_ASSERT(filterToTest->processFrame() == std::chrono::nanoseconds(0));
     CPPUNIT_ASSERT(filterToTest->processFrame() == std::chrono::nanoseconds(RETRY));
 
     delete filterToTest;

@@ -38,52 +38,49 @@ extern "C" {
 class AudioEncoderLibav : public OneToOneFilter {
 
 public:
-    AudioEncoderLibav();
+    AudioEncoderLibav(FilterRole fRole_ = MASTER, bool sharedFrames = true);
     ~AudioEncoderLibav();
     
     bool doProcessFrame(Frame *org, Frame *dst);
-    FrameQueue* allocQueue(int wId);
 
     int getSamplesPerFrame(){ return samplesPerFrame;};
-    int getChannels(){ return channels;};
-    int getSampleRate() {return sampleRate;};
-    SampleFmt getSampleFmt() {return sampleFmt;};
     ACodecType getCodec() {return fCodec;};
-    void configure(ACodecType codec, int internalChannels = DEFAULT_CHANNELS, int internalSampleRate = DEFAULT_SAMPLE_RATE);
 
-    Reader* setReader(int readerID, FrameQueue* queue, bool sharedQueue = false);
+    bool configure(ACodecType codec, int codedAudioChannels, int codedAudioSampleRate, int bitrate);
+    Reader* setReader(int readerID, FrameQueue* queue);
 
 private:
+    FrameQueue* allocQueue(int wId);
+    
     void initializeEventMap();
     int resample(AudioFrame* src, AVFrame* dst);
     bool reconfigure(AudioFrame* frame);
-    bool config();
-    void configEvent(Jzon::Node* params, Jzon::Object &outputNode);
+    bool resamplingConfig();
+    bool codingConfig(AVCodecID codecId); 
+
+    bool configEvent(Jzon::Node* params);
     void doGetState(Jzon::Object &filterNode);
    
     AVCodec             *codec;
     AVCodecContext      *codecCtx;
     AVFrame             *libavFrame;
     AVPacket            pkt;
-    AVSampleFormat      internalLibavSampleFormat;
     SwrContext          *resampleCtx;
-    AVCodecID           codecID;
-    AVSampleFormat      libavSampleFmt;
     int                 gotFrame;
-    bool                needsConfig;
 
     ACodecType          fCodec;
-    SampleFmt           sampleFmt;
-    SampleFmt           internalSampleFmt;
-
-    int                 channels;
-    int                 internalChannels;
-    int                 sampleRate;
-    int                 internalSampleRate;
     int                 samplesPerFrame;
 
-    unsigned char **dst_data;
-    int linesize;
+    int                 internalChannels;
+    int                 internalSampleRate;
+    SampleFmt           internalSampleFmt;
+    AVSampleFormat      internalLibavSampleFmt;
+    int                 outputBitrate;
+
+    int                 inputChannels;
+    int                 inputSampleRate;
+    SampleFmt           inputSampleFmt;
+    AVSampleFormat      inputLibavSampleFmt;
 
     std::chrono::microseconds currentTime;
     std::chrono::microseconds frameDuration;

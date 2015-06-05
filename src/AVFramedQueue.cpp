@@ -26,9 +26,14 @@
 #include "AudioFrame.hh"
 #include "Utils.hh"
 
+AVFramedQueue::AVFramedQueue(unsigned maxFrames) : FrameQueue(), max(maxFrames)
+{
+
+}
+
 AVFramedQueue::~AVFramedQueue()
 {
-    for (int i = 0; i<max; i++) {
+    for (unsigned i = 0; i<max; i++) {
         delete frames[i];
     }
 }
@@ -77,7 +82,7 @@ Frame* AVFramedQueue::forceGetRear()
 {
     Frame *frame;
     while ((frame = getRear()) == NULL) {
-        utils::debugMsg("Frame discarted by AVFramedQueue");
+        utils::errorMsg("Frame discarted by AVFramedQueue");
         flush();
     }
     return frame;
@@ -86,10 +91,8 @@ Frame* AVFramedQueue::forceGetRear()
 Frame* AVFramedQueue::forceGetFront(bool &newFrame)
 {
     if (!firstFrame) {
-        utils::debugMsg("Forcing front without any frame. Undefined behaviour");
-        //TODO: WHY ??
-        //return dummy frame
-       // return NULL;
+        // utils::debugMsg("Forcing front without any frame. Returning NULL pointer");
+        return NULL;
     }
 
     return frames[(front + (max - 1)) % max]; 
@@ -124,51 +127,53 @@ QueueState AVFramedQueue::getState()
 //VIDEO FRAME QUEUE METHODS IMPLEMENTATION//
 ////////////////////////////////////////////
 
-VideoFrameQueue* VideoFrameQueue::createNew(VCodecType codec, PixType pixelFormat)
+VideoFrameQueue* VideoFrameQueue::createNew(VCodecType codec, unsigned maxFrames, PixType pixelFormat)
 {
-    return new VideoFrameQueue(codec, pixelFormat);
+    VideoFrameQueue* q = new VideoFrameQueue(codec, maxFrames, pixelFormat);
+
+    if (!q->setup()) {
+        utils::errorMsg("VideoFrameQueue setup error!");
+        delete q;
+        return NULL;
+    }
+
+    return q;
 }
 
-VideoFrameQueue::VideoFrameQueue(VCodecType codec, PixType pixelFormat)
-{
-    this->codec = codec;
-    this->pixelFormat = pixelFormat;
 
-    config();
+VideoFrameQueue::VideoFrameQueue(VCodecType codec_, unsigned maxFrames, PixType pixelFormat_) :
+AVFramedQueue(maxFrames), codec(codec_), pixelFormat(pixelFormat_)
+{
+
 }
 
-bool VideoFrameQueue::config()
+bool VideoFrameQueue::setup()
 {
     switch(codec) {
         case H264:
-            max = DEFAULT_VIDEO_FRAMES;
-            for (int i=0; i<max; i++) {
-                frames[i] = InterleavedVideoFrame::createNew(codec, LENGTH_H264);
+        case H265:
+            for (unsigned i=0; i<max; i++) {
+                frames[i] = InterleavedVideoFrame::createNew(codec, MAX_H264_OR_5_NAL_SIZE);
             }
             break;
         case VP8:
-            max = DEFAULT_VIDEO_FRAMES;
-            for (int i=0; i<max; i++) {
+            for (unsigned i=0; i<max; i++) {
                 frames[i] = InterleavedVideoFrame::createNew(codec, LENGTH_VP8);
             }
-            break;
-        case MJPEG:
-            //TODO: implement this initialization
             break;
         case RAW:
             if (pixelFormat == P_NONE) {
                 utils::errorMsg("No pixel fromat defined");
+                return false;
                 break;
             }
-            max = DEFAULT_RAW_FRAMES;
-            for (int i=0; i<max; i++) {
+            for (unsigned i=0; i<max; i++) {
                 frames[i] = InterleavedVideoFrame::createNew(codec, DEFAULT_WIDTH, DEFAULT_HEIGHT, pixelFormat);
             }
             break;
         default:
             utils::errorMsg("[Video Frame Queue] Codec not supported!");
             return false;
-            break;
     }
 
     return true;
@@ -180,73 +185,62 @@ bool VideoFrameQueue::config()
 
 unsigned getMaxSamples(unsigned sampleRate);
 
-AudioFrameQueue* AudioFrameQueue::createNew(ACodecType codec, unsigned sampleRate, unsigned channels, SampleFmt sFmt)
+AudioFrameQueue* AudioFrameQueue::createNew(ACodecType codec, unsigned maxFrames, unsigned sampleRate, unsigned channels, SampleFmt sFmt)
 {
-    return new AudioFrameQueue(codec, sFmt, sampleRate, channels);
+    AudioFrameQueue* q = new AudioFrameQueue(codec, maxFrames, sFmt, sampleRate, channels);
+
+    if (!q->setup()) {
+        utils::errorMsg("AudioFrameQueue setup error!");
+        delete q;
+        return NULL;
+    }
+
+    return q;
 }
 
-AudioFrameQueue::AudioFrameQueue(ACodecType codec, SampleFmt sFmt, unsigned sampleRate, unsigned channels)
+AudioFrameQueue::AudioFrameQueue(ACodecType codec_, unsigned maxFrames, SampleFmt sFmt, unsigned sampleRate_, unsigned channels_)
+: AVFramedQueue(maxFrames), codec(codec_), sampleFormat(sFmt), sampleRate(sampleRate_), channels(channels_)
 {
-    this->codec = codec;
-    this->sampleFormat = sFmt;
-    this->channels = channels;
-    this->sampleRate = sampleRate;
 
-    config();
 }
 
-bool AudioFrameQueue::config()
+bool AudioFrameQueue::setup()
 {
     switch(codec) {
         case OPUS:
-            max = FRAMES_OPUS;
-            sampleFormat = S16;
-            for (int i=0; i<max; i++) {
-                frames[i] = InterleavedAudioFrame::createNew(channels, sampleRate, AudioFrame::getMaxSamples(sampleRate), codec, sampleFormat);
-            }
-            break;
         case AAC:
-            max = FRAMES_OPUS;//??
-            sampleFormat = S16;
-            for (int i=0; i<max; i++) {
-                frames[i] = InterleavedAudioFrame::createNew(channels, sampleRate, AudioFrame::getMaxSamples(sampleRate), codec, sampleFormat);
-            }
-            break;
         case MP3:
-            max = FRAMES_OPUS;
             sampleFormat = S16;
-            for (int i=0; i<max; i++) {
+            for (unsigned i=0; i<max; i++) {
                 frames[i] = InterleavedAudioFrame::createNew(channels, sampleRate, AudioFrame::getMaxSamples(sampleRate), codec, sampleFormat);
             }
             break;
         case PCMU:
         case PCM:
-            max = FRAMES_AUDIO_RAW;
             if (sampleFormat == U8 || sampleFormat == S16 || sampleFormat == FLT) {
-                for (int i=0; i<max; i++) {
+                for (unsigned i=0; i<max; i++) {
                     frames[i] = InterleavedAudioFrame::createNew(channels, sampleRate, AudioFrame::getMaxSamples(sampleRate), codec, sampleFormat);
                 }
             } else if (sampleFormat == U8P || sampleFormat == S16P || sampleFormat == FLTP) {
-                for (int i=0; i<max; i++) {
+                for (unsigned i=0; i<max; i++) {
                     frames[i] = PlanarAudioFrame::createNew(channels, sampleRate, AudioFrame::getMaxSamples(sampleRate), codec, sampleFormat);
                 }
             } else {
-                //TODO: error
+                 utils::errorMsg("[Audio Frame Queue] Sample format not supported!");
+                 return false;
             }
             break;
         case G711:
             channels = 1;
             sampleRate = 8000;
             sampleFormat = U8;
-            max = FRAMES_AUDIO_RAW;
-            for (int i=0; i<max; i++) {
+            for (unsigned i=0; i<max; i++) {
                 frames[i] = InterleavedAudioFrame::createNew(channels, sampleRate, AudioFrame::getMaxSamples(sampleRate), codec, sampleFormat);
             }
             break;
         default:
             utils::errorMsg("[Audio Frame Queue] Codec not supported!");
             return false;
-            break;
     }
 
     return true;

@@ -19,49 +19,157 @@
  *
  *  Authors:  David Cassany <david.cassany@i2cat.net>
  *            Marc Palau <marc.palau@i2cat.net>
- *            
+ *
  */
 
 #ifndef _CONNECTION_HH
 #define _CONNECTION_HH
 
 #include <string>
+#include <vector>
 #include <BasicUsageEnvironment.hh>
 #include <liveMedia.hh>
 #include <Groupsock.hh>
+
 #include "../../Types.hh"
+#include "MPEGTSQueueServerMediaSubsession.hh"
 
 #define TTL 255
 #define INITIAL_SERVER_PORT 6970
 
 /*! Each connection represents a RTP/RTSP transmission. It is an interface to different specific connections
-    so it cannot be instantiated */ 
+    so it cannot be instantiated */
 
 class Connection {
-    
+
 public:
     /**
     * Class destructor. It stops the transmission if still playing
-    */ 
+    */
     virtual ~Connection();
 
     /**
     * It configures the connection and start the transmission
     * @return true if succeeded and false if not
-    */ 
+    */
     bool setup();
     
-protected:
-    Connection(UsageEnvironment* env, FramedSource *source);
+    /**
+    * It returns the list of associated readers of this connection
+    * @return return a vector with the readers Ids in this connection
+    */
+    virtual std::vector<int> getReaders() = 0;
     
-    bool startPlaying();
-    void stopPlaying();
+    /**
+    * Stops transmitting this connection
+    */
+    virtual void stopPlaying() = 0;
+
+protected:
+    Connection(UsageEnvironment* env);
+
+    virtual bool startPlaying() = 0;
     static void afterPlaying(void* clientData);
     virtual bool specificSetup() = 0;
 
     UsageEnvironment* fEnv;
-    FramedSource* fSource;
-    MediaSink* fSink;
+};
+
+////////////////////
+// RTSP CONNECTION //
+////////////////////
+
+/*! It represents an RTSP connection, which is defined by a name, format and former readers */
+
+class RTSPConnection : public Connection {
+
+public:
+    
+    /**
+    * Class destructor
+    */
+    RTSPConnection(UsageEnvironment* env, TxFormat txformat, RTSPServer* server,
+                   std::string name_, std::string info = "", std::string desc = "");
+    
+    /**
+    * Class destructor
+    */
+    ~RTSPConnection();
+    
+    /**
+    * Adds a video source to the connection
+    * @param codec represents the video codec of the source to add
+    * @param replicator it is the replicator from where the source is created
+    * @param readerId it is the id of the reader associated with this replicator
+    * @return True if succeded and false if not
+    */
+    bool addVideoSubsession(VCodecType codec, StreamReplicator* replicator, int readerId);
+    
+    /**
+    * Adds an audio source to the connection
+    * @param codec represents the audio codec of the source to add
+    * @param replicator it is the replicator from where the source is created
+    * @param channels it is the number of audio channels of this source
+    * @param smapleRate it is the sample rate of this source
+    * @param sampleFormat it is the format of this source samples
+    * @param readerId it is the id of the reader associated with this replicator
+    * @return True if succeded and false if not
+    */
+    bool addAudioSubsession(ACodecType codec, StreamReplicator* replicator,
+                            unsigned channels, unsigned sampleRate, 
+                            SampleFmt sampleFormat, int readerId);
+    
+    /**
+    * Adds a video source to the connection
+    * @param codec represents the video codec of the source to add
+    * @param replicator it is the replicator from where the source is created
+    * @param readerId it is the id of the reader associated with this replicator
+    * @return True if succeded and false if not
+    */
+    std::string getURI();
+    
+    /**
+    * @return it returns the RTSPConnection name
+    */
+    std::string getName() const {return name;};
+    
+    /**
+    * It returns the list of associated readers of this connection
+    * @return return a vector with the readers Ids in this connection
+    */
+    std::vector<int> getReaders();
+    
+    /**
+    * Stops transmitting this connection
+    */
+    void stopPlaying();
+
+protected:
+
+    bool startPlaying();
+    bool specificSetup();
+
+private:
+    bool addRawVideoSubsession(VCodecType codec, StreamReplicator* replicator, int readerId);
+    
+    bool addRawAudioSubsession(ACodecType codec, StreamReplicator* replicator,
+                            unsigned channels, unsigned sampleRate, 
+                            SampleFmt sampleFormat, int readerId);
+    
+    bool addMPEGTSVideo(VCodecType codec, StreamReplicator* replicator, int readerId);
+    
+    bool addMPEGTSAudio(ACodecType codec, StreamReplicator* replicator, int readerId);
+    
+    ServerMediaSession* session;
+    //TODO: this should be const
+    RTSPServer* const rtspServer;
+    std::string name;
+    
+    MPEGTSQueueServerMediaSubsession* subsession;
+    
+    TxFormat format;
+    bool addedSub;
+    bool started;
 };
 
 ////////////////////
@@ -69,112 +177,116 @@ protected:
 ////////////////////
 
 /*! It represents an RTP connection, which is defined by a destination IP and port. It is an interface so it
-    cannot be instantiated */ 
+    cannot be instantiated */
 
 class RTPConnection : public Connection {
-    
+
 public:
     /**
     * Class destructor
-    */ 
+    */
     virtual ~RTPConnection();
     
+    bool startPlaying();
+    void stopPlaying();
+    
+    std::string getIP() const {return fIp;};
+    unsigned getPort() const {return fPort;};
+
 protected:
-    RTPConnection(UsageEnvironment* env, FramedSource* source, 
+    RTPConnection(UsageEnvironment* env, FramedSource* source,
                   std::string ip, unsigned port);
-    
-    bool specificSetup(); 
+
+    bool specificSetup();
     virtual bool additionalSetup() = 0;
-    
+
     std::string fIp;
     unsigned fPort;
     struct in_addr destinationAddress;
     RTCPInstance* rtcp;
     Groupsock *rtpGroupsock;
     Groupsock *rtcpGroupsock;
+    
+    FramedSource* fSource;
+    MediaSink* fSink;
 
 private:
     bool firstStepSetup();
     bool finalRTCPSetup();
 };
 
-/////////////////////
-// DASH CONNECTION //
-/////////////////////
-
-class DASHConnection : public Connection {
-    
-public:
-    virtual ~DASHConnection();
-    
-protected:
-    DASHConnection(UsageEnvironment* env, FramedSource* source, std::string fileName,
-                   std::string quality, bool reInit, uint32_t segmentTime, uint32_t initSegment);
-    bool specificSetup();
-    virtual bool additionalSetup() = 0; 
-    
-    std::string fFileName;
-    std::string quality;
-    bool fReInit;
-    uint32_t fSegmentTime;
-    uint32_t fInitSegment;
-};
-
 /////////////////////////
 // RAW RTP CONNECTIONS //
 /////////////////////////
 
-class VideoConnection : public RTPConnection {   
+class VideoConnection : public RTPConnection {
 public:
-    VideoConnection(UsageEnvironment* env, FramedSource *source, 
-                    std::string ip, unsigned port, VCodecType codec);
+    VideoConnection(UsageEnvironment* env, FramedSource *source,
+                    std::string ip, unsigned port, VCodecType codec, int readerId);
+    
+    std::vector<int> getReaders();
+    
 protected:
     bool additionalSetup();
 
 private:
     VCodecType fCodec;
+    
+    int reader;
 };
 
 
 class AudioConnection : public RTPConnection {
 public:
-    AudioConnection(UsageEnvironment* env, FramedSource *source, 
+    AudioConnection(UsageEnvironment* env, FramedSource *source,
                     std::string ip, unsigned port, ACodecType codec,
-                    unsigned channels, unsigned sampleRate, SampleFmt sampleFormat);
+                    unsigned channels, unsigned sampleRate, SampleFmt sampleFormat, int readerId);
+    
+    std::vector<int> getReaders();
+    
 protected:
     bool additionalSetup();
-    
+
 private:
     ACodecType fCodec;
     unsigned fChannels;
     unsigned fSampleRate;
     SampleFmt fSampleFormat;
+    
+    int reader;
 };
 
 ///////////////////////////////
 // ULTRAGRID RTP CONNECTIONS //
 ///////////////////////////////
 
-class UltraGridVideoConnection : public RTPConnection {   
+class UltraGridVideoConnection : public RTPConnection {
 public:
     UltraGridVideoConnection(UsageEnvironment* env,
-                             FramedSource *source, 
-                             std::string ip, unsigned port, VCodecType codec);
+                             FramedSource *source,
+                             std::string ip, unsigned port, VCodecType codec, int readerId);
+
+    std::vector<int> getReaders();
     
 protected:
     bool additionalSetup();
 
 private:
     VCodecType fCodec;
+    
+    int reader;
 };
 
 
 class UltraGridAudioConnection : public RTPConnection {
 public:
     UltraGridAudioConnection(UsageEnvironment* env,
-                             FramedSource *source, 
+                             FramedSource *source,
                              std::string ip, unsigned port, ACodecType codec,
-                             unsigned channels, unsigned sampleRate, SampleFmt sampleFormat);
+                             unsigned channels, unsigned sampleRate, SampleFmt sampleFormat, int readerId);
+    
+    std::vector<int> getReaders();
+    
 protected:
     bool additionalSetup();
 
@@ -183,83 +295,55 @@ private:
     unsigned fChannels;
     unsigned fSampleRate;
     SampleFmt fSampleFormat;
+    
+    int reader;
 };
 
 ////////////////////////
 // MPEG-TS CONNECTION //
 ////////////////////////
 
-/*! It represents an RTP connection using MPEGTS container to mux the streams. 
-*   It is limited to one video stream and/or one audio stream. 
-*   Only H264 (for video) and AAC (for audio) codecs are supported 
-*/ 
+/*! It represents an RTP connection using MPEGTS container to mux the streams.
+*   It is limited to one video stream and/or one audio stream.
+*   Only H264 (for video) and AAC (for audio) codecs are supported
+*/
 
-class MpegTsConnection : public RTPConnection {   
+class MpegTsConnection : public RTPConnection {
 public:
     /**
     * Class constructor
-    * @param env Live555 UsageEnvironement 
+    * @param env Live555 UsageEnvironement
     * @param ip Destination IP
     * @param port Destination port
-    */ 
+    */
     MpegTsConnection(UsageEnvironment* env, std::string ip, unsigned port);
 
     /**
     * Adds a video source to the connection, which will be muxed in MPEGTS packets
-    * @param source Stream source, which must be a children of Live555 FramedSource class 
+    * @param source Stream source, which must be a children of Live555 FramedSource class
     * @param codec Video stream codec. Only H264 is supported
     * @return True if succeeded and false if not
-    */ 
-    bool addVideoSource(FramedSource* source, VCodecType codec);
-    
+    */
+    bool addVideoSource(FramedSource* source, VCodecType codec, int readerId);
+
     /**
     * Adds an audio source to the connection, which will be muxed in MPEGTS packets
-    * @param source Stream source, which must be a children of Live555 FramedSource class 
+    * @param source Stream source, which must be a children of Live555 FramedSource class
     * @param codec Audio stream codec. Only AAC is supported
     * @return True if succeeded and false if not
-    */ 
-    bool addAudioSource(FramedSource* source, ACodecType codec);
+    */
+    bool addAudioSource(FramedSource* source, ACodecType codec, int readerId);
     
+    std::vector<int> getReaders();
+
 protected:
     bool additionalSetup();
 
 private:
     MPEG2TransportStreamFromESSource* tsFramer;
-};
-
-//////////////////////////
-// DASH CONNECTIONS //
-//////////////////////////
-
-class DashVideoConnection : public DASHConnection {   
-public:
-    DashVideoConnection(UsageEnvironment* env, FramedSource *source, 
-                        std::string fileName, std::string quality, 
-                        bool reInit, uint32_t segmentTime, uint32_t initSegment, 
-                        VCodecType codec, uint32_t fps);
-protected:
-    bool additionalSetup();
-
-private:
-    VCodecType fCodec;
-    uint32_t fFps;
-};
-
-class DashAudioConnection : public DASHConnection {
-public:
-    DashAudioConnection(UsageEnvironment* env, FramedSource *source, 
-                        std::string fileName, std::string quality, 
-                        bool reInit, uint32_t segmentTime, uint32_t initSegment, 
-                        ACodecType codec, unsigned channels, 
-                        unsigned sampleRate, SampleFmt sampleFormat);
-protected:
-    bool additionalSetup();
     
-private:
-    ACodecType fCodec;
-    unsigned fChannels;
-    unsigned fSampleRate;
-    SampleFmt fSampleFormat;
+    int audioReader;
+    int videoReader;
 };
 
 #endif

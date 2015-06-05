@@ -26,21 +26,18 @@
 #define _QUEUE_SERVER_MEDIA_SUBSESSION_HH
 
 #include <liveMedia.hh>
+#include <vector>
 #include "../../IOInterface.hh"
 
 
 class QueueServerMediaSubsession: public OnDemandServerMediaSubsession {
 public:
-    int getReaderId() {return fReaderId;};
-    virtual ~QueueServerMediaSubsession();
+    ~QueueServerMediaSubsession();
+    
+    virtual std::vector<int> getReaderIds() = 0;
     
 protected: 
-    QueueServerMediaSubsession(UsageEnvironment& env, StreamReplicator* replicator,
-                               int readerId, Boolean reuseFirstSource);
-
-protected:
-    StreamReplicator* fReplicator;
-    int fReaderId;
+    QueueServerMediaSubsession(UsageEnvironment& env, Boolean reuseFirstSource);
 };
 
 #endif

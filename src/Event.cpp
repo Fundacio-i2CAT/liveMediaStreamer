@@ -31,19 +31,16 @@ bool Event::operator<(const Event& e) const
     return timestamp > e.timestamp;
 }
 
-Event::Event(Jzon::Object rootNode, std::chrono::system_clock::time_point timestamp, int socket, int delay) 
+Event::Event(Jzon::Object rootNode, std::chrono::system_clock::time_point timestamp, int delay) 
 {
     inputRootNode = new Jzon::Object(rootNode);
     this->timestamp = timestamp;
-    this->socket = socket;
     this->delay = std::chrono::milliseconds(delay);
 }
 
 Event::~Event()
 {
-    //if (inputRootNode) {
-    //    delete inputRootNode;
-    //}
+
 }
 
 bool Event::canBeExecuted(std::chrono::system_clock::time_point currentTime)
@@ -71,24 +68,7 @@ Jzon::Node* Event::getParams()
     return NULL;
 }
 
-void Event::sendAndClose(Jzon::Object outputNode)
-{
-    if (socket < 0) {
-        return;
-    }
 
-    Jzon::Writer writer(outputNode, Jzon::NoFormat);
-    writer.Write();
-    std::string result = writer.GetResult();
-    const char* res = result.c_str();
-    int ret = write(socket, res, result.size());
-
-    if (ret < 0) {
-        utils::errorMsg("Error writing socket");
-    }
-
-    close(socket);
-} 
 
 
 

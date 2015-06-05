@@ -27,7 +27,7 @@
 
 AVPixelFormat getLibavPixFmt(PixType pixType);
 
-VideoResampler::VideoResampler()
+VideoResampler::VideoResampler(FilterRole fRole_, bool sharedFrames) : OneToOneFilter(true, fRole_, sharedFrames)
 {
     fType = VIDEO_RESAMPLER;
 
@@ -57,7 +57,7 @@ VideoResampler::~VideoResampler()
 
 FrameQueue* VideoResampler::allocQueue(int wId)
 {
-    return VideoFrameQueue::createNew(RAW, outPixFmt);
+    return VideoFrameQueue::createNew(RAW, DEFAULT_RAW_VIDEO_FRAMES, outPixFmt);
 }
 
 bool VideoResampler::reconfigure(VideoFrame* orgFrame)
@@ -103,10 +103,11 @@ bool VideoResampler::reconfigure(VideoFrame* orgFrame)
 
 bool VideoResampler::doProcessFrame(Frame *org, Frame *dst)
 {
-    VideoFrame* dstFrame = dynamic_cast<VideoFrame*>(dst);
-    VideoFrame* orgFrame = dynamic_cast<VideoFrame*>(org);
     int outWidth, outHeight;
     int height;
+
+    VideoFrame* dstFrame = dynamic_cast<VideoFrame*>(dst);
+    VideoFrame* orgFrame = dynamic_cast<VideoFrame*>(org);
 
     if (!reconfigure(orgFrame)){
         return false;
@@ -122,7 +123,7 @@ bool VideoResampler::doProcessFrame(Frame *org, Frame *dst)
     if (!setAVFrame(inFrame, orgFrame, libavInPixFmt)){
         return false;
     }
-        
+
     if (outputWidth == 0){
         outWidth = orgFrame->getWidth();
     } else {
@@ -175,13 +176,13 @@ bool VideoResampler::configure(int width, int height, int period, PixType pixelF
     return true;
 }
 
-void VideoResampler::configEvent(Jzon::Node* params, Jzon::Object &outputNode)
+bool VideoResampler::configEvent(Jzon::Node* params)
 {
     int width, height, period;
     PixType pixelType;
        
     if (!params) {
-        return;
+        return false;
     }
     
     width = outputWidth;
@@ -204,22 +205,17 @@ void VideoResampler::configEvent(Jzon::Node* params, Jzon::Object &outputNode)
     if (params->Has("pixelFormat")){
         int pixel = params->Get("pixelFormat").ToInt();
         if ((pixel < P_NONE) || (pixel > YUYV422)) {
-            return;
+            return false;
         }
         pixelType = static_cast<PixType> (pixel);
     }
-    
-    
-    if (!configure(width, height, period, pixelType)){
-        outputNode.Add("error", "Error configuring video resampler");
-    } else {
-        outputNode.Add("error", Jzon::null);
-    }
+
+    return configure(width, height, period, pixelType);
 }
 
 void VideoResampler::initializeEventMap()
 {
-    eventMap["configure"] = std::bind(&VideoResampler::configEvent, this, std::placeholders::_1, std::placeholders::_2);
+    eventMap["configure"] = std::bind(&VideoResampler::configEvent, this, std::placeholders::_1);
 }
 
 void VideoResampler::doGetState(Jzon::Object &filterNode)

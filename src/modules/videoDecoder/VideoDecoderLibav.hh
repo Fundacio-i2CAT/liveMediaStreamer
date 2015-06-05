@@ -38,18 +38,17 @@ extern "C" {
 class VideoDecoderLibav : public OneToOneFilter {
 
     public:
-        VideoDecoderLibav();
+        VideoDecoderLibav(FilterRole fRole_ = MASTER, bool sharedFrames = true);
         ~VideoDecoderLibav();
         bool doProcessFrame(Frame *org, Frame *dst);
-        FrameQueue* allocQueue(int wId);
-        bool configure(int width, int height, PixType pixelFormat);
         
     private:
-		void initializeEventMap();
+        void initializeEventMap();
+        FrameQueue* allocQueue(int wId);
         bool toBuffer(VideoFrame *decodedFrame, VideoFrame *codedFrame);
         bool reconfigure(VCodecType codec);
         bool inputConfig();
-		void doGetState(Jzon::Object &filterNode);
+        void doGetState(Jzon::Object &filterNode);
         
         AVCodec             *codec;
         AVCodecContext      *codecCtx;

@@ -33,7 +33,6 @@
 #define MAX_FRAME_TIME 100 //ms
 #define DEFAULT_FRAME_TIME 20000 //us
 
-
 class AudioFrame : public Frame {
     
     public:
@@ -60,7 +59,7 @@ class AudioFrame : public Frame {
         static int getDefaultSamples(int sampleRate);
         static SampleFmt getSampleFormatFromString(std::string stringSampleFmt);
         static ACodecType getCodecFromString(std::string stringCodec);
-
+        std::chrono::nanoseconds getDuration() const;
               
     protected:
         int channels, sampleRate, samples, maxSamples, bytesPerSample; 
@@ -72,7 +71,8 @@ class InterleavedAudioFrame : public AudioFrame {
     public:
         static InterleavedAudioFrame* createNew(int ch, int sRate, int maxSamples, ACodecType codec, SampleFmt sFmt);
         ~InterleavedAudioFrame();
-
+        
+        unsigned char **getPlanarDataBuf() {return NULL;};
         unsigned char* getDataBuf() {return frameBuff;};
         unsigned int getLength() {return bufferLen;};
         unsigned int getMaxLength() {return bufferMaxLen;};
@@ -82,8 +82,10 @@ class InterleavedAudioFrame : public AudioFrame {
         void fillBufferWithFloatSamples(std::vector<float> samples, int channel) {};
         void setDummy();
 
-    private:
+    protected:
         InterleavedAudioFrame(int ch, int sRate, int maxSamples, ACodecType codec, SampleFmt sFmt);
+
+    private:
         unsigned char *frameBuff;
         unsigned int bufferLen;
         unsigned int bufferMaxLen;
@@ -94,6 +96,7 @@ class PlanarAudioFrame : public AudioFrame {
         static PlanarAudioFrame* createNew(int ch, int sRate, int maxSamples, ACodecType codec, SampleFmt sFmt);
         ~PlanarAudioFrame();
 
+        unsigned char *getDataBuf() {return NULL;};
         unsigned char** getPlanarDataBuf() {return frameBuff;};
         unsigned int getLength() {return bufferLen;};
         unsigned int getMaxLength() {return bufferMaxLen;};

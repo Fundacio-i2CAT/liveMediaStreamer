@@ -18,88 +18,41 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  *  Authors:  David Cassany <david.cassany@i2cat.net>,
+ *            Marc Palau <marc.palau@i2cat.net>
  *            
  */
 
-#include "H264QueueSource.hh"
 #include "H264QueueServerMediaSubsession.hh"
-#include <string>
 
 H264QueueServerMediaSubsession*
 H264QueueServerMediaSubsession::createNew(UsageEnvironment& env,
-                          StreamReplicator* replicator, int readerId,
-                          Boolean reuseFirstSource) {
-    return new H264QueueServerMediaSubsession(env, replicator, readerId, reuseFirstSource);
+                          StreamReplicator* replica, int readerId,
+                          Boolean reuseFirstSource) 
+{
+    return new H264QueueServerMediaSubsession(env, replica, readerId, reuseFirstSource);
 }
 
 H264QueueServerMediaSubsession::H264QueueServerMediaSubsession(UsageEnvironment& env,
-                          StreamReplicator* replicator, int readerId, Boolean reuseFirstSource)
-: QueueServerMediaSubsession(env, replicator, readerId, reuseFirstSource),
-    fAuxSDPLine(NULL), fDoneFlag(0), fDummyRTPSink(NULL) {
+                          StreamReplicator* replica, int readerId, Boolean reuseFirstSource)
+: H264or5QueueServerMediaSubsession(env, replica, readerId, reuseFirstSource)
+{
+
 }
 
-H264QueueServerMediaSubsession::~H264QueueServerMediaSubsession() {
-  delete[] fAuxSDPLine;
-}
+H264QueueServerMediaSubsession::~H264QueueServerMediaSubsession() 
+{
 
-static void afterPlayingDummy(void* clientData) {
-  H264QueueServerMediaSubsession* subsess = (H264QueueServerMediaSubsession*)clientData;
-  subsess->afterPlayingDummy1();
-}
-
-void H264QueueServerMediaSubsession::afterPlayingDummy1() {
-  envir().taskScheduler().unscheduleDelayedTask(nextTask());
-  setDoneFlag();
-}
-
-static void checkForAuxSDPLine(void* clientData) {
-  H264QueueServerMediaSubsession* subsess = (H264QueueServerMediaSubsession*)clientData;
-  subsess->checkForAuxSDPLine1();
-}
-
-void H264QueueServerMediaSubsession::checkForAuxSDPLine1() {
-  char const* dasl;
-
-  if (fAuxSDPLine != NULL) {
-    
-    setDoneFlag();
-  } else if (fDummyRTPSink != NULL && (dasl = fDummyRTPSink->auxSDPLine()) != NULL) {
-    fAuxSDPLine = strDup(dasl);
-    fDummyRTPSink = NULL;
-
-    
-    setDoneFlag();
-  } else {
-    
-    int uSecsToDelay = 100000; 
-    nextTask() = envir().taskScheduler().scheduleDelayedTask(uSecsToDelay,
-                  (TaskFunc*)checkForAuxSDPLine, this);
-  }
-}
-
-char const* H264QueueServerMediaSubsession::getAuxSDPLine(RTPSink* rtpSink, FramedSource* inputSource) {
-    if (fAuxSDPLine != NULL) return fAuxSDPLine; 
-
-    if (fDummyRTPSink == NULL) {
-        fDummyRTPSink = rtpSink;
-        fDummyRTPSink->startPlaying(*inputSource, afterPlayingDummy, this);
-        checkForAuxSDPLine(this);
-    }
-
-    envir().taskScheduler().doEventLoop(&fDoneFlag);
-    return fAuxSDPLine;
 }
 
 FramedSource* H264QueueServerMediaSubsession::createNewStreamSource(unsigned /*clientSessionId*/, unsigned& estBitrate) {
     //TODO: WTF
     estBitrate = 2000; // kbps, estimate
     
-    return H264VideoStreamDiscreteFramer::createNew(envir(), fReplicator->createStreamReplica());
+    return H264VideoStreamDiscreteFramer::createNew(envir(), replicator->createStreamReplica());
 }
 
-RTPSink* H264QueueServerMediaSubsession
-::createNewRTPSink(Groupsock* rtpGroupsock,
-           unsigned char rtpPayloadTypeIfDynamic,
-           FramedSource* /*inputSource*/) {
-	return H264VideoRTPSink::createNew(envir(), rtpGroupsock, rtpPayloadTypeIfDynamic);
+RTPSink* H264QueueServerMediaSubsession::createNewRTPSink(Groupsock* rtpGroupsock,
+           unsigned char rtpPayloadTypeIfDynamic, FramedSource* /*inputSource*/) 
+{
+	  return H264VideoRTPSink::createNew(envir(), rtpGroupsock, rtpPayloadTypeIfDynamic);
 }

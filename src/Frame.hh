@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- *  Authors: David Cassany <david.cassany@i2cat.net> 
+ *  Authors: David Cassany <david.cassany@i2cat.net>
  *           Marc Palau <marc.palau@i2cat.net>
  */
 
@@ -29,29 +29,107 @@
 #include "Types.hh"
 #include <iostream>
 
-using namespace std::chrono;
-
+/*! Frame is an abstract class that handles byte array of a video or audio frame
+    and frame related information
+*/
 class Frame {
-    public:
-        Frame();
-        virtual ~Frame() {};
-              
-        void setPresentationTime(microseconds pTime);
-        void newOriginTime();
-        void setOriginTime(system_clock::time_point orgTime);
-        
-        microseconds getPresentationTime();
-        system_clock::time_point getOriginTime();
-        virtual unsigned char *getDataBuf() {return NULL;};
-        virtual unsigned char **getPlanarDataBuf() {return NULL;};
-        virtual unsigned int getLength() {return 0;}
-        virtual unsigned int getMaxLength() {return 0;};
-        virtual void setLength(unsigned int length) {};
-        virtual bool isPlanar() {return false;};
-        
-    protected:
-        microseconds              	presentationTime;
-        system_clock::time_point    originTime;
+public:
+    /**
+    * Creates a frame object
+    */
+    Frame();
+    virtual ~Frame() {};
+
+    /**
+    * Set frame presentation time
+    * @param system_clock::time_point to set as presentation time
+    */
+    void setPresentationTime(std::chrono::system_clock::time_point pTime);
+
+    /**
+    * Sets a new origin frame time from system_clock::now
+    */
+    void newOriginTime();
+
+    /**
+    * Sets a new origin frame time from input time point
+    * @param system_clock::time_point to set as origin
+    */
+    void setOriginTime(std::chrono::system_clock::time_point orgTime);
+
+    /**
+    * Sets a new origin frame time from input time point
+    * @param system_clock::time_point to set as origin
+    */
+    void setDuration(std::chrono::nanoseconds dur);
+
+    /**
+    * Sets frame sequence number
+    * @param sequence number
+    */
+    void setSequenceNumber(size_t seqNum);
+
+    std::chrono::system_clock::time_point getPresentationTime() const {return presentationTime;};
+
+    /**
+    * Gets origin frame time point
+    * @return system_clock::time_point frame origin time
+    */
+    std::chrono::system_clock::time_point getOriginTime() const {return originTime;};
+
+    /**
+    * Gets frame duration
+    * @return frame duration as chrono::nanoseconds
+    */
+    virtual std::chrono::nanoseconds getDuration() const {return duration;};
+
+    /**
+    * Gets frame sequence number
+    * @return frame sequence number
+    */
+    size_t getSequenceNumber() const {return sequenceNumber;}
+
+    /**
+    * Pure virtual method for getting frame data bytes
+    * @return frame data bytes as unsigned char pointer
+    */
+    virtual unsigned char *getDataBuf() = 0;
+
+    /**
+    * Pure virtual method for getting planar frame data bytes
+    * @return planar frame data bytes as unsigned char pointer
+    */
+    virtual unsigned char **getPlanarDataBuf() = 0;
+
+    /**
+    * Pure virtual method for getting frame size in bytes
+    * @return frame size in bytes
+    */
+    virtual unsigned int getLength() = 0;
+
+    /**
+    * Pure virtual method for getting maximum frame size in bytes
+    * @return defined frame size in bytes
+    */
+    virtual unsigned int getMaxLength() = 0;
+
+    /**
+    * Pure virtual method for setting frame size in bytes
+    * @param frame size in bytes
+    */
+    virtual void setLength(unsigned int length) = 0;
+
+    /**
+    * Pure virtual method to know if it is a planar frame or not
+    * @return true if it is planar, otherwise false
+    */
+    virtual bool isPlanar() = 0;
+
+protected:
+    std::chrono::system_clock::time_point presentationTime;
+    std::chrono::system_clock::time_point originTime;
+    std::chrono::nanoseconds duration;
+    size_t sequenceNumber;
 };
 
 #endif

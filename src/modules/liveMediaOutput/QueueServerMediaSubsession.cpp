@@ -25,14 +25,12 @@
 #include "QueueServerMediaSubsession.hh"
 
 QueueServerMediaSubsession
-::QueueServerMediaSubsession(UsageEnvironment& env, StreamReplicator* replicator, 
-                             int readerId, Boolean reuseFirstSource)
-    : OnDemandServerMediaSubsession(env, reuseFirstSource),
-        fReplicator(replicator), fReaderId(readerId) {
+::QueueServerMediaSubsession(UsageEnvironment& env, Boolean reuseFirstSource)
+    : OnDemandServerMediaSubsession(env, reuseFirstSource)
+{
 }
 
 QueueServerMediaSubsession::~QueueServerMediaSubsession()
 {
-    Medium::close(fReplicator);
 }
 

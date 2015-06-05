@@ -27,7 +27,7 @@
 
 PixType getPixelFormat(AVPixelFormat format);
 
-VideoDecoderLibav::VideoDecoderLibav()
+VideoDecoderLibav::VideoDecoderLibav(FilterRole fRole_, bool sharedFrames) : OneToOneFilter(true, fRole_, sharedFrames)
 {
     avcodec_register_all();
 
@@ -56,7 +56,7 @@ VideoDecoderLibav::~VideoDecoderLibav()
 
 FrameQueue* VideoDecoderLibav::allocQueue(int wId)
 {
-    return VideoFrameQueue::createNew(RAW, RGB24);
+    return VideoFrameQueue::createNew(RAW, DEFAULT_RAW_VIDEO_FRAMES, RGB24);
 }
 
 bool VideoDecoderLibav::doProcessFrame(Frame *org, Frame *dst)
@@ -101,6 +101,9 @@ bool VideoDecoderLibav::inputConfig()
         case H264:
             libavCodecId = AV_CODEC_ID_H264;
             break;
+        case H265:
+            libavCodecId = AV_CODEC_ID_HEVC;
+            break;
         case VP8: 
             libavCodecId = AV_CODEC_ID_VP8;
             break;
@@ -108,7 +111,7 @@ bool VideoDecoderLibav::inputConfig()
             libavCodecId = AV_CODEC_ID_MJPEG;
             break;
         case RAW:
-            //TODO: set raw video codec
+            libavCodecId = AV_CODEC_ID_RAWVIDEO ;
         default:
             utils::errorMsg("Codec not supported");
             return false;
@@ -208,10 +211,7 @@ void VideoDecoderLibav::initializeEventMap()
 
 void VideoDecoderLibav::doGetState(Jzon::Object &filterNode)
 {
-   /* filterNode.Add("codec", utils::getAudioCodecAsString(fCodec));
-    filterNode.Add("sampleRate", sampleRate);
-    filterNode.Add("channels", channels);
-    filterNode.Add("sampleFormat", utils::getSampleFormatAsString(sampleFmt));*/
+    filterNode.Add("codec", utils::getVideoCodecAsString(fCodec));
 }
 
 PixType getPixelFormat(AVPixelFormat format)

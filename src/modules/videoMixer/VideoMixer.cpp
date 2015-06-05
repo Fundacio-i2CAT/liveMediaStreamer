@@ -55,14 +55,15 @@ void ChannelConfig::config(float width, float height, float x, float y, int laye
 //                VideoMixer Class               //
 ///////////////////////////////////////////////////
 
-VideoMixer::VideoMixer(int framerate, int inputChannels, int outputWidth, int outputHeight) :
-ManyToOneFilter(inputChannels, true)
+VideoMixer::VideoMixer(FilterRole fRole_, bool sharedFrames, int framerate, int inputChannels, 
+                       int outputWidth, int outputHeight, size_t fTime) :
+ManyToOneFilter(fRole_, sharedFrames, inputChannels, fTime, true)
 {
     this->outputWidth = outputWidth;
     this->outputHeight = outputHeight;
     fType = VIDEO_MIXER;
     maxChannels = inputChannels;
-    frameTime = std::chrono::microseconds(1000000/framerate);
+    setFrameTime(std::chrono::nanoseconds(std::nano::den/framerate));
 
     layoutImg = cv::Mat(outputHeight, outputWidth, CV_8UC3);
     initializeEventMap();
@@ -79,7 +80,7 @@ VideoMixer::~VideoMixer()
 
 FrameQueue* VideoMixer::allocQueue(int wId)
 {
-    return VideoFrameQueue::createNew(RAW, RGB24);
+    return VideoFrameQueue::createNew(RAW, DEFAULT_RAW_VIDEO_FRAMES, RGB24);
 }
 
 bool VideoMixer::doProcessFrame(std::map<int, Frame*> orgFrames, Frame *dst)
@@ -138,14 +139,14 @@ void VideoMixer::pasteToLayout(int frameID, VideoFrame* vFrame)
 {
     ChannelConfig* chConfig = channelsConfig[frameID];
     cv::Mat img(vFrame->getHeight(), vFrame->getWidth(), CV_8UC3, vFrame->getDataBuf());
-    
+
     cv::Size sz(chConfig->getWidth()*outputWidth, chConfig->getHeight()*outputHeight);
 
     int x = chConfig->getX()*outputWidth;
     int y = chConfig->getY()*outputHeight;
 
-    int cropX = (vFrame->getWidth() - chConfig->getWidth()*outputWidth)/2; 
-    int cropY = (vFrame->getHeight() - chConfig->getHeight()*outputHeight)/2; 
+    int cropX = (vFrame->getWidth() - chConfig->getWidth()*outputWidth)/2;
+    int cropY = (vFrame->getHeight() - chConfig->getHeight()*outputHeight)/2;
 
     if (cropX < 0 || cropX + sz.width > vFrame->getWidth() || cropY < 0 || cropY + sz.height > vFrame->getHeight()) {
         return;
@@ -155,23 +156,23 @@ void VideoMixer::pasteToLayout(int frameID, VideoFrame* vFrame)
         img(cv::Rect(cropX, cropY, sz.width, sz.height)).copyTo(layoutImg(cv::Rect(x, y, sz.width, sz.height)));
     } else {
         addWeighted(
-            img(cv::Rect(cropX, cropY, sz.width, sz.height)), 
+            img(cv::Rect(cropX, cropY, sz.width, sz.height)),
             chConfig->getOpacity(),
-            layoutImg(cv::Rect(x, y, sz.width, sz.height)), 
-            1 - chConfig->getOpacity(), 
-            0.0, 
+            layoutImg(cv::Rect(x, y, sz.width, sz.height)),
+            1 - chConfig->getOpacity(),
+            0.0,
             layoutImg(cv::Rect(x, y, sz.width, sz.height))
         );
     }
 }
 
-Reader* VideoMixer::setReader(int readerID, FrameQueue* queue, bool sharedQueue)
+Reader* VideoMixer::setReader(int readerID, FrameQueue* queue)
 {
     if (readers.count(readerID) < 0) {
         return NULL;
     }
 
-    Reader* r = new Reader(sharedQueue);
+    Reader* r = new Reader();
     readers[readerID] = r;
 
     channelsConfig[readerID] = new ChannelConfig(1, 1, 0, 0, 0);
@@ -181,24 +182,20 @@ Reader* VideoMixer::setReader(int readerID, FrameQueue* queue, bool sharedQueue)
 
 void VideoMixer::initializeEventMap()
 {
-     eventMap["configChannel"] = std::bind(&VideoMixer::configChannelEvent, 
-                                                this, std::placeholders::_1, std::placeholders::_2);
-
+    eventMap["configChannel"] = std::bind(&VideoMixer::configChannelEvent, this, std::placeholders::_1);
 }
 
-void VideoMixer::configChannelEvent(Jzon::Node* params, Jzon::Object &outputNode)
+bool VideoMixer::configChannelEvent(Jzon::Node* params)
 {
     if (!params) {
-        outputNode.Add("error", "Error changing master volume");
-        return;
+        return false;
     }
 
-    if (!params->Has("id") || !params->Has("width") || !params->Has("height") || 
-            !params->Has("x") || !params->Has("y") || !params->Has("layer") || 
+    if (!params->Has("id") || !params->Has("width") || !params->Has("height") ||
+            !params->Has("x") || !params->Has("y") || !params->Has("layer") ||
                 !params->Has("enabled") || !params->Has("opacity")) {
 
-        outputNode.Add("error", "Error configure channel. Check parameters!");
-        return;
+        return false;
     }
 
     int id = params->Get("id").ToInt();
@@ -210,11 +207,7 @@ void VideoMixer::configChannelEvent(Jzon::Node* params, Jzon::Object &outputNode
     bool enabled = params->Get("enabled").ToBool();
     float opacity = params->Get("opacity").ToFloat();
 
-    if (!configChannel(id, width, height, x, y, layer, enabled, opacity)) {
-        outputNode.Add("error", "Error configurating channel. Check parameters!");
-    } else {
-        outputNode.Add("error", Jzon::null);
-    }
+    return configChannel(id, width, height, x, y, layer, enabled, opacity);
 }
 
 void VideoMixer::doGetState(Jzon::Object &filterNode)

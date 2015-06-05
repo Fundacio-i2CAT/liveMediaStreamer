@@ -22,6 +22,24 @@
  */
 
  #include "VideoFrame.hh"
+ #include <string.h>
+
+VideoFrame::VideoFrame(VCodecType codec_) : 
+Frame(), codec(codec_), width(0), height(0), pixelFormat(P_NONE)
+{
+
+}
+
+VideoFrame::VideoFrame(VCodecType codec_, int width_, int height_, PixType pixFormat)
+: Frame(), codec(codec_), width(width_), height(height_), pixelFormat(pixFormat)
+{
+
+}
+
+VideoFrame::~VideoFrame()
+{
+
+}
 
 void VideoFrame::setSize(int width, int height)
 {
@@ -49,22 +67,15 @@ InterleavedVideoFrame* InterleavedVideoFrame::createNew(VCodecType codec, int wi
 }
 
 InterleavedVideoFrame::InterleavedVideoFrame(VCodecType codec, unsigned int maxLength)
+: VideoFrame(codec), bufferLen(0)
 {
-    width = 0;
-    height = 0;
-    bufferLen = 0;
     bufferMaxLen = maxLength;
     frameBuff = new unsigned char [bufferMaxLen]();
-    this->codec = codec;
 }
 
 InterleavedVideoFrame::InterleavedVideoFrame(VCodecType codec, int width, int height, PixType pixelFormat)
+: VideoFrame(codec, width, height, pixelFormat), bufferLen(0)
 {
-    this->width = width;
-    this->height = height;
-    this->pixelFormat = pixelFormat;
-    this->codec = codec;
-
     int bytesPerPixel;
 
     switch (pixelFormat) {
@@ -81,7 +92,7 @@ InterleavedVideoFrame::InterleavedVideoFrame(VCodecType codec, int width, int he
             bytesPerPixel = DEFAULT_BYTES_PER_PIXEL;
             break;
     }
-    bufferLen = 0;
+
     bufferMaxLen = width * height * bytesPerPixel;
     frameBuff = new unsigned char [bufferMaxLen]();
 }
@@ -89,5 +100,86 @@ InterleavedVideoFrame::InterleavedVideoFrame(VCodecType codec, int width, int he
 InterleavedVideoFrame::~InterleavedVideoFrame()
 {
     delete[] frameBuff;
+}
+
+/////////////////////////
+// X264or5 VIDEO FRAME //
+/////////////////////////
+
+SlicedVideoFrame* SlicedVideoFrame::createNew(VCodecType codec, unsigned copiedSlicesMaxSize) 
+{
+    if (copiedSlicesMaxSize <= 0) {
+        utils::errorMsg("Error creating slicedFrame: copiedSlicesMaxSize negative or 0");
+        return NULL;
+    }
+
+    return new SlicedVideoFrame(codec, copiedSlicesMaxSize);
+}
+
+SlicedVideoFrame::SlicedVideoFrame(VCodecType codec, unsigned copiedSlicesMaxSize_) :
+VideoFrame(codec), pointedSliceNum(0), copiedSliceNum(0), copiedSlicesMaxSize(copiedSlicesMaxSize_) 
+{
+    for (int i = 0; i < MAX_COPIED_SLICES; i++) {
+        copiedSlices[i].allocData(copiedSlicesMaxSize);
+    }
+}
+
+SlicedVideoFrame::~SlicedVideoFrame()
+{
+    for (int i = 0; i < MAX_COPIED_SLICES; i++) {
+        copiedSlices[i].releaseData();
+    }
+}
+
+void SlicedVideoFrame::clear()
+{
+    pointedSliceNum = 0; 
+    copiedSliceNum = 0;
+}
+
+bool SlicedVideoFrame::setSlice(unsigned char *data, unsigned size)
+{
+    if (pointedSliceNum >= MAX_SLICES) {
+        return false;
+    }
+
+    pointedSlices[pointedSliceNum].setData(data);
+    pointedSlices[pointedSliceNum].setDataSize(size);
+
+    pointedSliceNum++;
+    return true;
+}
+
+bool SlicedVideoFrame::copySlice(unsigned char *data, unsigned size)
+{
+    if (copiedSliceNum >= MAX_COPIED_SLICES || size > copiedSlicesMaxSize) {
+        return false;
+    }
+
+    copiedSlices[copiedSliceNum].copyData(data, size);
+
+    copiedSliceNum++;
+    return true;
+}
+
+Slice::Slice() : data(NULL), dataSize(0)
+{
+
+}
+
+void Slice::allocData(unsigned size)
+{
+    data = new unsigned char [size]();
+}
+
+void Slice::releaseData()
+{
+    delete data;
+}
+
+void Slice::copyData(unsigned char *p, unsigned s)
+{
+    memcpy(data, p, s);
+    dataSize = s;
 }
 

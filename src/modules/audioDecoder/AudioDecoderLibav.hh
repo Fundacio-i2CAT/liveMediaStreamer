@@ -36,21 +36,21 @@ extern "C" {
 class AudioDecoderLibav : public OneToOneFilter {
 
 public:
-    AudioDecoderLibav();
+    AudioDecoderLibav(FilterRole fRole_ = MASTER, bool sharedFrames = true);
     ~AudioDecoderLibav();
     bool doProcessFrame(Frame *org, Frame *dst);
     FrameQueue* allocQueue(int wId);
     bool configure(SampleFmt sampleFormat, int channels, int sampleRate);
-    
+
 private:
 
     void initializeEventMap();
     bool resample(AVFrame* src, AudioFrame* dst);
-    void checkInputParams(int sampleFormat, int channels, int sampleRate);
+    void checkSampleFormat(int sampleFormat);
     bool inputConfig();
     bool outputConfig();
     bool reconfigureDecoder(AudioFrame* frame);
-    void configEvent(Jzon::Node* params, Jzon::Object &outputNode);
+    bool configEvent(Jzon::Node* params);
     void doGetState(Jzon::Object &filterNode);
 
 
@@ -61,10 +61,9 @@ private:
     AVPacket            pkt;
     int                 gotFrame;
     SwrContext          *resampleCtx;
-    AVCodecID           codecID;
     AVSampleFormat      inLibavSampleFmt;
     AVSampleFormat      outLibavSampleFmt;
-    
+
     ACodecType          fCodec;
     SampleFmt           inSampleFmt;
     SampleFmt           outSampleFmt;
@@ -78,4 +77,3 @@ private:
 };
 
 #endif
-

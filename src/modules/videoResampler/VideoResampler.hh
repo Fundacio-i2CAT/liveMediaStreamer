@@ -37,7 +37,7 @@ extern "C" {
 class VideoResampler : public OneToOneFilter {
 
     public:
-        VideoResampler();
+        VideoResampler(FilterRole fRole_ = MASTER, bool sharedFrames = true);
         ~VideoResampler();
         bool doProcessFrame(Frame *org, Frame *dst);
         FrameQueue* allocQueue(int wId);
@@ -45,7 +45,7 @@ class VideoResampler : public OneToOneFilter {
         
     private:
         void initializeEventMap();
-        void configEvent(Jzon::Node* params, Jzon::Object &outputNode);
+        bool configEvent(Jzon::Node* params);
         void doGetState(Jzon::Object &filterNode);
         bool reconfigure(VideoFrame* orgFrame);
         bool setAVFrame(AVFrame *aFrame, VideoFrame* vFrame, AVPixelFormat format);

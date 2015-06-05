@@ -17,54 +17,90 @@
  *  You should have received a copy of the GNU General Public License
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- *  Authors:  David Cassany <david.cassany@i2cat.net>,
- *  		  Martin German <martin.german@i2cat.net>
- *            
+ *  Authors:  David Cassany <david.cassany@i2cat.net>
+ *
+ *
  */
 
 #ifndef _WORKER_HH
 #define _WORKER_HH
 
-#include <atomic>
 #include <thread>
-#include <map>
 #include <chrono>
-#include "Frame.hh"
+#include <mutex>
+#include <queue>
+
 #include "Types.hh"
 #include "Jzon.h"
 #include "Utils.hh"
-#include <mutex>
+#include "Runnable.hh"
 
 #define MAX_SLAVE 16
-
-class Runnable;
 
 class Worker {
     
 public:
-    Worker(Runnable *processor_);
+    
+    /**
+    * Creates a worker object
+    */
     Worker();
     virtual ~Worker();
     
+    /**
+    * Starts worker thread
+    * @return True if succeded and false if not
+    */
     bool start();
+    
+    /**
+    * @return True if succeded and false if not
+    */
     bool isRunning();
+    
+    /**
+    * Tell its thread to stop and waits until done
+    */
     virtual void stop();
-    virtual void enable();
-    virtual void disable();
-    bool isEnabled();
+
+    /**
+    * Adds a processor to the worker
+    * @param id processor ID
+    * @param processor processor objecto to add
+    * @return True if succeded and false if not
+    */
     bool addProcessor(int id, Runnable *processor);
+    
+    /**
+    * Removes a processor from the worker's list
+    * @param id processor ID
+    * @return True if succeded and false if not
+    */
     bool removeProcessor(int id);
+    
+    /**
+    * @return returns worker's type, see Types.hh
+    */
     WorkerType getType(){return type;};
-    std::map<int, Runnable*> getProcessors(){return processors;};
+    
+    /**
+    * @return returns the number of curent processors
+    * @param workerNode json reference to fill
+    */
+    size_t getProcessorsSize(){return processors.size();};
+    
+    /**
+    * Fills the appropriate JSON state object
+    */
     void getState(Jzon::Object &workerNode);
     
 protected:
-    virtual void process() = 0;
+    virtual void process();
 
-    std::map<int, Runnable*> processors;
+    std::priority_queue<Runnable*, std::vector<Runnable*>, RunnableLess> processors;
     std::thread thread;
-    std::atomic<bool> run;
-    std::atomic<bool> enabled;
+    bool run;
+    bool enabled;
 
     WorkerType type;
     std::mutex mtx;
@@ -73,53 +109,9 @@ protected:
 class LiveMediaWorker : public Worker {
 public:
     LiveMediaWorker();
-    void enable() {};
-    void disable() {};
     void stop();
 private:
     void process();
-};
-
-class Slave : public Worker {
-public:
-    Slave();
-    bool getFinished(){return finished;};
-    void setFalse();
-    
-protected:
-    void process();
-    std::atomic<bool> finished; 
-};
-
-class Master : public Worker {
-public:
-    Master();
-    bool addSlave(int id, Slave *slave);
-    bool removeSlave(int id);
-
-protected:
-    void process();
-    bool allFinished();
-    void processAll();
-
-private:
-    void updateFrameTime(Runnable* processor);
-    std::map<int, Slave*> slaves;
-    std::chrono::microseconds frameTime;
-
-};
-
-class Runnable {
-    
-public:
-    ~Runnable(){};
-    virtual bool processFrame(bool removeFrame = true) = 0;
-    virtual void processEvent() = 0;
-    virtual void removeFrames() = 0;
-    virtual bool hasFrames() = 0;
-    virtual bool isEnabled() = 0;
-    virtual void stop() = 0;
-    virtual std::chrono::microseconds getFrameTime() = 0;
 };
 
 #endif

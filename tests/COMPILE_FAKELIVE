@@ -1,0 +1,1 @@
+g++ -std=c++11 -g -Wall -I/usr/local/include/liveMedia -I/usr/local/include/groupsock -I/usr/local/include/BasicUsageEnvironment -I/usr/local/include/UsageEnvironment H264LoopVideoFileServerMediaSubsession.cpp LoopByteStreamFileSource.cpp fakeLive.cpp -o fakeLive -lBasicUsageEnvironment -lUsageEnvironment -lliveMedia -lgroupsock

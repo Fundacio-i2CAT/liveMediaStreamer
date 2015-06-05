@@ -26,27 +26,34 @@
 #include <algorithm>
 #include <log4cplus/logger.h>
 #include <log4cplus/loggingmacros.h>
+#include <log4cplus/consoleappender.h>
 #include <log4cplus/configurator.h>
 #include <sys/time.h>
-#include <random> 
+#include <random>
 
 using namespace log4cplus;
+using namespace log4cplus::helpers;
 
 static bool logConfigured = false;
 
-namespace utils 
+namespace utils
 {
     void configureLog(){
-        BasicConfigurator config;
-        config.configure();
-        
+        SharedObjectPtr<Appender> append_1(new ConsoleAppender());
+        append_1->setName(LOG4CPLUS_TEXT("First"));
+        log4cplus::tstring pattern = LOG4CPLUS_TEXT("%-5p [%l] - %m %n");
+        append_1->setLayout(std::auto_ptr<Layout>(new PatternLayout(pattern)));
+        Logger::getRoot().addAppender(append_1);
+
         logConfigured = true;
+        Logger logger = Logger::getInstance(LOG4CPLUS_TEXT("main"));
+        logger.setLogLevel(INFO_LOG_LEVEL);
     }
-    
+
     SampleFmt getSampleFormatFromString(std::string stringSampleFmt)
     {
         SampleFmt sampleFormat;
-        
+
         if (stringSampleFmt.compare("u8") == 0) {
             sampleFormat = U8;
         } else if (stringSampleFmt.compare("u8p") == 0) {
@@ -66,7 +73,7 @@ namespace utils
         return sampleFormat;
     }
 
-    ACodecType getCodecFromString(std::string stringCodec)
+    ACodecType getAudioCodecFromString(std::string stringCodec)
     {
         ACodecType codec;
         if (stringCodec.compare("g711") == 0) {
@@ -86,6 +93,54 @@ namespace utils
         }
 
         return codec;
+    }
+       
+    VCodecType getVideoCodecFromString(std::string stringCodec)
+    {
+        VCodecType codec;
+        if (stringCodec.compare("H264") == 0) {
+            codec = H264;
+        } else if (stringCodec.compare("H265") == 0) {
+            codec = H265;
+        } else if (stringCodec.compare("VP8") == 0) {
+            codec = VP8;
+        }  else if (stringCodec.compare("MJPEG") == 0) {
+            codec = MJPEG;
+        }  else if (stringCodec.compare("RAW") == 0) {
+            codec = RAW;
+        }  else {
+            codec = VC_NONE;
+        }
+
+        return codec;
+    }
+    
+    std::string getVideoCodecAsString(VCodecType codec)
+    {
+       std::string stringCodec;
+
+        switch(codec) {
+            case H264:
+                stringCodec = "H264";
+                break;
+            case H265:
+                stringCodec = "H265";
+                break;
+            case RAW:
+                stringCodec = "RAW";
+                break;
+            case VP8:
+                stringCodec = "VP8";
+                break;
+            case MJPEG:
+                stringCodec = "MJPEG";
+                break;
+            default:
+                stringCodec = "";
+                break;
+        }
+
+        return stringCodec;
     }
 
     std::string getAudioCodecAsString(ACodecType codec)
@@ -119,7 +174,7 @@ namespace utils
         return stringCodec;
     }
 
-    std::string getFilterTypeAsString(FilterType type) 
+    std::string getFilterTypeAsString(FilterType type)
     {
         std::string stringType;
 
@@ -162,7 +217,7 @@ namespace utils
     FilterType getFilterTypeFromString(std::string stringFilterType)
     {
         FilterType fType;
-        
+
         if (stringFilterType.compare("videoDecoder") == 0) {
            fType = VIDEO_DECODER;
         } else if (stringFilterType.compare("videoEncoder") == 0) {
@@ -181,14 +236,56 @@ namespace utils
            fType = RECEIVER;
         }  else if (stringFilterType.compare("transmitter") == 0) {
            fType = TRANSMITTER;
+        }  else if (stringFilterType.compare("sharedMemory") == 0) {
+           fType = SHARED_MEMORY;
+        }  else if (stringFilterType.compare("dasher") == 0) {
+           fType = DASHER;
         }  else {
-           fType = F_NONE;
+           fType = FT_NONE;
         }
 
         return fType;
     }
 
-    std::string getSampleFormatAsString(SampleFmt sFormat) 
+    FilterRole getRoleTypeFromString(std::string stringRoleType)
+    {
+        FilterRole fRole;
+
+        if (stringRoleType.compare("master") == 0) {
+           fRole = MASTER;
+        } else if (stringRoleType.compare("slave") == 0) {
+           fRole = SLAVE;
+        }  else if (stringRoleType.compare("network") == 0) {
+           fRole = NETWORK;
+        }  else {
+           fRole = FR_NONE;
+        }
+
+        return fRole;
+    }
+    std::string getRoleAsString(FilterRole role)
+    {
+        std::string stringRole;
+
+        switch(role) {
+            case MASTER:
+                stringRole = "master";
+                break;
+            case SLAVE:
+                stringRole = "slave";
+                break;
+            case NETWORK:
+                stringRole = "network";
+                break;
+            default:
+                stringRole = "";
+                break;
+        }
+
+        return stringRole;
+    }
+
+    std::string getSampleFormatAsString(SampleFmt sFormat)
     {
         std::string stringFormat;
 
@@ -228,11 +325,8 @@ namespace utils
             case LIVEMEDIA:
                 stringWorker = "livemedia";
                 break;
-            case MASTER:
-                stringWorker = "master";
-                break;
-            case SLAVE:
-                stringWorker = "slave";
+            case WORKER:
+                stringWorker = "worker";
                 break;
             default:
                 stringWorker = "";
@@ -245,7 +339,7 @@ namespace utils
     TxFormat getTxFormatFromString(std::string stringTxFormat)
     {
         TxFormat format;
-        
+
         if (stringTxFormat.compare("std") == 0) {
            format = STD_RTP;
         } else if (stringTxFormat.compare("ultragrid") == 0) {
@@ -280,32 +374,32 @@ namespace utils
 
         return stringFormat;
     }
-    
+
     char randAlphaNum()
     {
         static const char alphanum[] =
         "0123456789"
         "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
         "abcdefghijklmnopqrstuvwxyz";
-        
+
         return alphanum[rand() % (sizeof(alphanum) - 1)];
     }
-    
-    std::string randomIdGenerator(unsigned int length) 
+
+    std::string randomIdGenerator(unsigned int length)
     {
         std::string id(length,0);
         std::generate_n(id.begin(), length, randAlphaNum);
         return id;
     }
 
-    int getPayloadFromCodec(std::string codec) 
+    int getPayloadFromCodec(std::string codec)
     {
         int payload;
 
         if (codec.compare("pcmu") == 0 ||
             codec.compare("opus") == 0 ||
             codec.compare("pcm") == 0 ||
-            codec.compare("mpeg4-generic") == 0) {
+            codec.compare("MPEG4-GENERIC") == 0) {
             payload = 97;
         } else if (codec.compare("mp3") == 0) {
             payload = 14;
@@ -317,15 +411,15 @@ namespace utils
 
         return payload;
     }
-    
+
     void setLogLevel(DefinedLogLevel level)
     {
         if (!logConfigured){
             configureLog();
         }
-        
+
         Logger logger = Logger::getInstance(LOG4CPLUS_TEXT("main"));
-        
+
         switch(level) {
             case ERROR:
                 logger.setLogLevel(ERROR_LOG_LEVEL);
@@ -341,60 +435,68 @@ namespace utils
                 break;
         }
     }
-    
+
     void warningMsg(std::string msg)
     {
         if (!logConfigured){
             configureLog();
         }
-        
+
         if (msg.empty()){
             return;
         }
-        
+
         Logger logger = Logger::getInstance(LOG4CPLUS_TEXT("main"));
-        LOG4CPLUS_WARN(logger, msg);
+        LOG4CPLUS_WARN(logger, "\e[2;91m" + msg + "\e[0m");
     }
-    
+
     void debugMsg(std::string msg)
     {
         if (!logConfigured){
             configureLog();
         }
-        
+
         if (msg.empty()){
             return;
         }
-        
+
         Logger logger = Logger::getInstance(LOG4CPLUS_TEXT("main"));
-        LOG4CPLUS_DEBUG(logger, msg);
+        LOG4CPLUS_DEBUG(logger, "\e[2;37m" + msg + "\e[0m");
     }
-    
+
     void errorMsg(std::string msg)
     {
         if (!logConfigured){
             configureLog();
         }
-        
+
         if (msg.empty()){
             return;
         }
-        
+
         Logger logger = Logger::getInstance(LOG4CPLUS_TEXT("main"));
-        LOG4CPLUS_ERROR(logger, msg);
+        LOG4CPLUS_ERROR(logger,  "\e[1;31m" + msg + "\e[0m");
     }
-    
+
     void infoMsg(std::string msg)
     {
         if (!logConfigured){
             configureLog();
         }
-        
+
         if (msg.empty()){
             return;
         }
-        
+
         Logger logger = Logger::getInstance(LOG4CPLUS_TEXT("main"));
-        LOG4CPLUS_INFO(logger, msg);
+        LOG4CPLUS_INFO(logger, "\e[1;33m" + msg + "\e[0m");
+    }
+
+    void printMood(bool mood){
+        if (mood){
+            std::cout << "\e[1;32mSUCCESS \e[5m(⌐■_■)\e[0m" << std::endl << std::endl;
+        } else {
+            std::cout << "\e[5;31mFAILED! \e[25m (Shit happens...)\e[1;33m ¯\\_(ツ)_/¯\e[0m" << std::endl << std::endl;
+        }
     }
 }

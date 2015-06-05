@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- *  Authors: David Cassany <david.cassany@i2cat.net> 
+ *  Authors: David Cassany <david.cassany@i2cat.net>
  *           Marc Palau <marc.palau@i2cat.net>
  */
 
@@ -34,13 +34,15 @@
 class QueueSink: public MediaSink {
 
 public:
-    static QueueSink* createNew(UsageEnvironment& env, Writer *writer);
+    static QueueSink* createNew(UsageEnvironment& env, Writer *writer, unsigned port);
+    Writer* getWriter() const {return fWriter;};
+    unsigned getPort() {return fPort;};
 
 protected:
-    QueueSink(UsageEnvironment& env, Writer *writer);
+    QueueSink(UsageEnvironment& env, Writer *writer, unsigned port);
     ~QueueSink();
 
-protected: 
+protected:
     virtual Boolean continuePlaying();
 
 protected:
@@ -50,9 +52,11 @@ protected:
                 unsigned durationInMicroseconds);
     virtual void afterGettingFrame(unsigned frameSize, struct timeval presentationTime);
 
-    Frame *frame;
     Writer *fWriter;
+    unsigned fPort;
+    Frame *frame;
     unsigned char *dummyBuffer;
+    size_t seqNum;
 };
 
 #endif

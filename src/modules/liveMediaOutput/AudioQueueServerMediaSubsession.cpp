@@ -28,22 +28,26 @@
 
 AudioQueueServerMediaSubsession*
 AudioQueueServerMediaSubsession::createNew(UsageEnvironment& env,
-                          StreamReplicator* replicator, int readerId,
+                          StreamReplicator* replica, int readerId,
                           ACodecType codec, unsigned channels,
                           unsigned sampleRate, SampleFmt sampleFormat,
                           Boolean reuseFirstSource) {
-  return new AudioQueueServerMediaSubsession(env, replicator, readerId, 
+  return new AudioQueueServerMediaSubsession(env, replica, readerId, 
                                              codec, channels, sampleRate,
                                              sampleFormat, reuseFirstSource);
 }
 
 AudioQueueServerMediaSubsession::AudioQueueServerMediaSubsession(UsageEnvironment& env,
-                          StreamReplicator* replicator, int readerId, 
+                          StreamReplicator* replica, int readerId, 
                           ACodecType codec, unsigned channels,
                           unsigned sampleRate, SampleFmt sampleFormat,
                           Boolean reuseFirstSource)
-  : QueueServerMediaSubsession(env, replicator, readerId, reuseFirstSource), fCodec(codec),
+  : QueueServerMediaSubsession(env, reuseFirstSource), replicator(replica), reader(readerId), fCodec(codec),
                           fChannels(channels), fSampleRate(sampleRate), fSampleFormat(sampleFormat) {
+}
+
+AudioQueueServerMediaSubsession::~AudioQueueServerMediaSubsession()
+{
 }
 
 FramedSource* AudioQueueServerMediaSubsession::createNewStreamSource(unsigned /*clientSessionId*/, unsigned& estBitrate) {
@@ -61,7 +65,7 @@ FramedSource* AudioQueueServerMediaSubsession::createNewStreamSource(unsigned /*
     } else {
         estBitrate = 128; // kbps, estimate
     }
-    return fReplicator->createStreamReplica();
+    return replicator->createStreamReplica();
 }
 
 RTPSink* AudioQueueServerMediaSubsession
@@ -91,10 +95,18 @@ RTPSink* AudioQueueServerMediaSubsession
      if (fCodec == MP3){
         return MPEG1or2AudioRTPSink::createNew(envir(), rtpGroupsock);
     }
-    
+
     return SimpleRTPSink
     ::createNew(envir(), rtpGroupsock, payloadType,
                 fSampleRate, "audio", 
                 codecStr.c_str(),
                 fChannels, False);
 }
+
+std::vector<int> AudioQueueServerMediaSubsession::getReaderIds()
+{
+    std::vector<int> readers;
+    readers.push_back(reader);
+    return readers;
+}
+

@@ -25,20 +25,36 @@
 #include <cstring>
 #include <iostream>
 
-int mod (int a, int b)
-{
-    int ret = a % b;
-    
-    if (ret < 0) {
-        ret += b;
-    }
-    
-    return ret;
-}
+int mod (int a, int b);
 
 AudioCircularBuffer* AudioCircularBuffer::createNew(int ch, int sRate, int maxSamples, SampleFmt sFmt)
 {
-    return new AudioCircularBuffer(ch, sRate, maxSamples, sFmt);
+    AudioCircularBuffer* b = new AudioCircularBuffer(ch, sRate, maxSamples, sFmt);
+
+    if (!b->setup()) {
+        utils::errorMsg("AudioCircularBuffer setup error!");
+        delete b;
+        return NULL;
+    }
+
+    return b;
+}
+
+AudioCircularBuffer::AudioCircularBuffer(int ch, int sRate, int maxSamples, SampleFmt sFmt)
+: FrameQueue(), channels(ch), sampleRate(sRate), chMaxSamples(maxSamples), sampleFormat(sFmt),
+outputFrameAlreadyRead(true), bufferingState(BUFFERING)
+{
+
+}
+
+AudioCircularBuffer::~AudioCircularBuffer()
+{
+    for (int i=0; i<channels; i++) {
+        delete[] data[i];
+    }
+
+    delete inputFrame;
+    delete outputFrame;
 }
 
 
@@ -75,7 +91,7 @@ void AudioCircularBuffer::removeFrame()
     return;
 }
 
-void AudioCircularBuffer::flush() 
+void AudioCircularBuffer::flush()
 {
     return;
 }
@@ -100,32 +116,7 @@ Frame* AudioCircularBuffer::forceGetFront(bool &newFrame)
     return outputFrame;
 }
 
-AudioCircularBuffer::AudioCircularBuffer(int ch, int sRate, int maxSamples, SampleFmt sFmt)
-{
-    elements = 0;
-    front = 0;
-    rear = 0;
-    channels = ch;
-    sampleRate = sRate;
-    this->chMaxSamples = maxSamples;
-    sampleFormat = sFmt;
-    outputFrameAlreadyRead = true;
-    bufferingState = BUFFERING;
-
-    config();
-}
-
-AudioCircularBuffer::~AudioCircularBuffer()
-{
-    for (int i=0; i<channels; i++) {
-        delete[] data[i];
-    }
-
-    delete inputFrame;
-    delete outputFrame;
-}
-
-bool AudioCircularBuffer::config()
+bool AudioCircularBuffer::setup()
 {
     switch(sampleFormat) {
         case U8P:
@@ -164,9 +155,9 @@ bool AudioCircularBuffer::config()
 }
 
 
-bool AudioCircularBuffer::pushBack(unsigned char **buffer, int samplesRequested) 
+bool AudioCircularBuffer::pushBack(unsigned char **buffer, int samplesRequested)
 {
-    int bytesRequested = samplesRequested * bytesPerSample;
+    unsigned bytesRequested = samplesRequested * bytesPerSample;
 
     if (bytesRequested > (channelMaxLength - elements)) {
         return false;
@@ -194,7 +185,7 @@ bool AudioCircularBuffer::pushBack(unsigned char **buffer, int samplesRequested)
     rear = (rear + bytesRequested) % channelMaxLength;
 
     return true;
-}   
+}
 
 bool AudioCircularBuffer::popFront(unsigned char **buffer, int samplesRequested)
 {
@@ -203,11 +194,11 @@ bool AudioCircularBuffer::popFront(unsigned char **buffer, int samplesRequested)
     if (elements < samplesBufferingThreshold * bytesPerSample) {
         bufferingState = BUFFERING;
     } else {
-	bufferingState = OK;
+	    bufferingState = OK;
     }
 
     if (bufferingState == BUFFERING) {
-	return false;
+	   return false;
     }
 
     fillOutputBuffers(buffer, bytesRequested);
@@ -280,3 +271,13 @@ QueueState AudioCircularBuffer::getState()
     return state;
 }
 
+int mod (int a, int b)
+{
+    int ret = a % b;
+
+    if (ret < 0) {
+        ret += b;
+    }
+
+    return ret;
+}

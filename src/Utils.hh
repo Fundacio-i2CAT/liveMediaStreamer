@@ -27,31 +27,36 @@
 #include <string>
 
 #define ID_LENGTH 4
+#define BYTE_TO_BIT 8
 
 enum DefinedLogLevel {ERROR, WARNING, DEBUG, INFO};
 
-namespace utils 
+namespace utils
 {
     SampleFmt getSampleFormatFromString(std::string stringSampleFmt);
-    ACodecType getCodecFromString(std::string stringCodec);
+    ACodecType getAudioCodecFromString(std::string stringCodec);
+    VCodecType getVideoCodecFromString(std::string stringCodec);
     FilterType getFilterTypeFromString(std::string stringFilterType);
     TxFormat getTxFormatFromString(std::string stringTxFormat);
+    FilterRole getRoleTypeFromString(std::string stringRoleType);
+    std::string getRoleAsString(FilterRole role);
     std::string getSampleFormatAsString(SampleFmt sFormat);
     std::string getAudioCodecAsString(ACodecType codec);
+    std::string getVideoCodecAsString(VCodecType codec);
     std::string getFilterTypeAsString(FilterType type);
     std::string getWorkerTypeAsString(WorkerType type);
     std::string getTxFormatAsString(TxFormat format);
-	std::string randomIdGenerator(unsigned int length);
-    int getPayloadFromCodec(std::string codec); 
+    std::string randomIdGenerator(unsigned int length);
+    int getPayloadFromCodec(std::string codec);
 
-    
+
     void errorMsg(std::string msg);
     void warningMsg(std::string msg);
     void infoMsg(std::string msg);
     void debugMsg(std::string msg);
-    
+
     void setLogLevel(DefinedLogLevel level);
-	void startPresentacionTime();
+    void printMood(bool mood);
 }
 
 #endif

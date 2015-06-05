@@ -15,6 +15,7 @@ void QueueSource::doGetNextFrame()
     checkStatus();
     bool newFrame = false;
     QueueState state;
+    std::chrono::microseconds presentationTime;
 
     frame = fReader->getFrame(state, newFrame);
 
@@ -28,8 +29,10 @@ void QueueSource::doGetNextFrame()
         return;
     }
 
-    fPresentationTime.tv_sec = frame->getPresentationTime().count()/1000000;
-    fPresentationTime.tv_usec = frame->getPresentationTime().count()%1000000;
+    presentationTime = duration_cast<std::chrono::microseconds>(frame->getPresentationTime().time_since_epoch());
+
+    fPresentationTime.tv_sec = presentationTime.count()/std::micro::den;
+    fPresentationTime.tv_usec = presentationTime.count()%std::micro::den;
 
     if (fMaxSize < frame->getLength()){
         fFrameSize = fMaxSize;
@@ -41,7 +44,7 @@ void QueueSource::doGetNextFrame()
     
     memcpy(fTo, frame->getDataBuf(), fFrameSize);
     fReader->removeFrame();
-    
+
     afterGetting(this);
 }
 

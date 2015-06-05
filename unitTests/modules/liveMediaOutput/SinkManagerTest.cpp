@@ -34,6 +34,8 @@ class SinkManagerTest : public CppUnit::TestFixture
 {
     CPPUNIT_TEST_SUITE(SinkManagerTest);
     CPPUNIT_TEST(addMpegTsRTPConnection);
+    CPPUNIT_TEST(addRTSPConnectionMPEGTS);
+    CPPUNIT_TEST(addRTSPConnectionSTD);
     CPPUNIT_TEST_SUITE_END();
 
 public:
@@ -42,6 +44,8 @@ public:
 
 protected:
     void addMpegTsRTPConnection();
+    void addRTSPConnectionMPEGTS();
+    void addRTSPConnectionSTD();
 
 protected:
     SinkManager* sinkManager = NULL;
@@ -49,13 +53,13 @@ protected:
     AudioFilterMockup* aFilter = NULL;
     int vReaderId = 234;
     int aReaderId = 236;
-    int fakevReaderId = vReaderId + 1;;
-    int fakeaReaderId = aReaderId + 1;;
+    int fakevReaderId = vReaderId + 1;
+    int fakeaReaderId = aReaderId + 1;
 };
 
 void SinkManagerTest::setUp()
 {
-	sinkManager = sinkManager->getInstance();
+    sinkManager = SinkManager::createNew();
     vFilter = new VideoFilterMockup(H264);
     aFilter = new AudioFilterMockup(AAC);
     vFilter->connectOneToMany(sinkManager, vReaderId);
@@ -64,7 +68,9 @@ void SinkManagerTest::setUp()
 
 void SinkManagerTest::tearDown()
 {
-    sinkManager->destroyInstance();
+    delete vFilter;
+    delete aFilter;
+    delete sinkManager;
 }
 
 void SinkManagerTest::addMpegTsRTPConnection()
@@ -92,6 +98,67 @@ void SinkManagerTest::addMpegTsRTPConnection()
     CPPUNIT_ASSERT(sinkManager->addRTPConnection(readers, id, ip, port, txFormat));
 
     CPPUNIT_ASSERT(!sinkManager->addRTPConnection(readers, id, ip, port, txFormat));
+    
+    CPPUNIT_ASSERT(sinkManager->removeConnection(id));
+    CPPUNIT_ASSERT(!sinkManager->removeConnection(id));
+}
+
+void SinkManagerTest::addRTSPConnectionMPEGTS()
+{
+    std::vector<int> readers;
+    std::string name = "testRTSP";
+    int id = 1;
+    TxFormat txFormat = MPEGTS;
+
+    CPPUNIT_ASSERT(sinkManager != NULL);
+    CPPUNIT_ASSERT(vFilter != NULL);
+
+    readers.push_back(fakevReaderId);
+    CPPUNIT_ASSERT(!sinkManager->addRTSPConnection(readers, id, txFormat, name));
+    readers.clear();
+
+    readers.push_back(vReaderId);
+    readers.push_back(vReaderId);
+    CPPUNIT_ASSERT(!sinkManager->addRTSPConnection(readers, id, txFormat, name));
+    readers.clear();
+
+    readers.push_back(vReaderId);
+    readers.push_back(aReaderId);
+    CPPUNIT_ASSERT(sinkManager->addRTSPConnection(readers, id, txFormat, name));
+
+    CPPUNIT_ASSERT(!sinkManager->addRTSPConnection(readers, id, txFormat, name));
+    
+    CPPUNIT_ASSERT(sinkManager->removeConnection(id));
+    CPPUNIT_ASSERT(!sinkManager->removeConnection(id));
+}
+
+void SinkManagerTest::addRTSPConnectionSTD()
+{
+    std::vector<int> readers;
+    std::string name = "testRTSP";
+    int id = 1;
+    TxFormat txFormat = STD_RTP;
+
+    CPPUNIT_ASSERT(sinkManager != NULL);
+    CPPUNIT_ASSERT(vFilter != NULL);
+
+    readers.push_back(fakevReaderId);
+    CPPUNIT_ASSERT(!sinkManager->addRTSPConnection(readers, id, txFormat, name));
+    readers.clear();
+
+    readers.push_back(vReaderId);
+    readers.push_back(vReaderId);
+    CPPUNIT_ASSERT(!sinkManager->addRTSPConnection(readers, id, txFormat, name));
+    readers.clear();
+
+    readers.push_back(vReaderId);
+    readers.push_back(aReaderId);
+    CPPUNIT_ASSERT(sinkManager->addRTSPConnection(readers, id, txFormat, name));
+
+    CPPUNIT_ASSERT(!sinkManager->addRTSPConnection(readers, id, txFormat, name));
+    
+    CPPUNIT_ASSERT(sinkManager->removeConnection(id));
+    CPPUNIT_ASSERT(!sinkManager->removeConnection(id));
 }
 
 CPPUNIT_TEST_SUITE_REGISTRATION( SinkManagerTest );
@@ -106,5 +173,7 @@ int main(int argc, char* argv[])
     runner.run( "", false );
     outputter->write();
 
+    utils::printMood(runner.result().wasSuccessful());
+    
     return runner.result().wasSuccessful() ? 0 : 1;
 }

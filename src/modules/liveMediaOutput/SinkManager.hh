@@ -18,9 +18,9 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  *  Authors:  David Cassany <david.cassany@i2cat.net>,
- *            
+ *
  */
- 
+
 #ifndef _SINK_MANAGER_HH
 #define _SINK_MANAGER_HH
 
@@ -31,25 +31,21 @@
 
 #include <map>
 #include <string>
+#include <liveMedia/liveMedia.hh>
+#include <BasicUsageEnvironment.hh>
 
 #define RTSP_PORT 8554
-#define MAX_VIDEO_FRAME_SIZE 1024*1024
+#define MAX_VIDEO_FRAME_SIZE 1024*1024*2 //2MB
 #define MANUAL_CLIENT_SESSION_ID 1
 #define INIT_SEGMENT 0
 
 
-class SinkManager : public TailFilter {
-private:
-    SinkManager(int readersNum = MAX_READERS);
-    ~SinkManager();
-    
+class SinkManager : public LiveMediaFilter {
 public:
-    static SinkManager* getInstance();
-    static void destroyInstance();
+    static SinkManager* createNew(unsigned readersNum = MAX_READERS);
     
-    bool addSession(std::string id, std::vector<int> readers, 
-                    std::string info = "", std::string desc = "");
-    
+    ~SinkManager();
+
     /**
     * Adds an RTP connection
     * @param readers Readers associated to the connection (some connection support multiple readers)
@@ -58,51 +54,66 @@ public:
     * @param port Destination port
     * @param txFormat Transmission format which can be STD_RTP (no container), MPEGTS, Destination port
     * @return True if succeded and false if not
-    */ 
+    */
     bool addRTPConnection(std::vector<int> readers, int id, std::string ip, int port, TxFormat txFormat);
-    bool addDASHConnection(int reader, unsigned id, std::string fileName, std::string quality,
-                           bool reInit, uint32_t segmentTime,
-                           uint32_t initSegment, uint32_t fps);
+    
+    /**
+    * Adds an RTSP connection
+    * @param readers Readers associated to the connection (some connection support multiple readers)
+    * @param id Connection Id, which must be unique for each one
+    * @param txFormat Transmission format which can be STD_RTP (no container) or MPEGTS
+    * @param name name of the RTSP session used to generate the session URI
+    * @param info information field of the session (optional)
+    * @param desc description of the RTSP session (optional)
+    * @return True if succeded and false if not
+    */
+    bool addRTSPConnection(std::vector<int> readers, int id, TxFormat txformat, 
+                           std::string name, std::string info = "", std::string desc = "");
+    
+    /**
+    * Removes the connection determined by the id
+    * @param id Connection Id to delete
+    * @return True if succeded, the connected with the given id has been stopped and deteled
+    */
+    bool removeConnection(int id);
 
-    ServerMediaSession* getSession(std::string id); 
-    bool publishSession(std::string id);
-    bool removeSession(std::string id);
-    bool removeSessionByReaderId(int readerId);
-    bool deleteReader(int id);
-    
-    void stop();
-    
     UsageEnvironment* envir() {return env;}
-      
-private: 
+
+private:
+    SinkManager(unsigned readersNum = MAX_READERS);
+    
+    bool isGood() {return rtspServer != NULL;};
+    
     bool addStdRTPConnection(std::vector<int> readers, int id, std::string ip, int port);
     bool addUltraGridRTPConnection(std::vector<int> readers, int id, std::string ip, int port);
     bool addMpegTsRTPConnection(std::vector<int> readers, int id, std::string ip, int port);
     void initializeEventMap();
-    void addSessionEvent(Jzon::Node* params, Jzon::Object &outputNode);
-    void addRTPConnectionEvent(Jzon::Node* params, Jzon::Object &outputNode);
-    Reader *setReader(int readerID, FrameQueue* queue, bool sharedQueue = false);
     
-    bool processFrame(bool removeFrame = false);
+    bool removeConnectionByReaderId(int readerId);
+    bool deleteReader(int id);
     
-    ServerMediaSubsession *createSubsessionByReader(int readerId);
-    ServerMediaSubsession *createVideoMediaSubsession(VCodecType codec, int readerId);
-    ServerMediaSubsession *createAudioMediaSubsession(ACodecType codec, 
-                                                      unsigned channels,
-                                                      unsigned sampleRate,
-                                                      SampleFmt sampleFormat, int readerId);
+    bool addRTSPConnectionEvent(Jzon::Node* params);
+    bool addRTPConnectionEvent(Jzon::Node* params);
+    
+    Reader *setReader(int readerID, FrameQueue* queue);
+
+    bool runDoProcessFrame();
+    void stop();
+
+    FrameQueue *allocQueue(int wId) { return NULL;};
+
+    bool addSubsessionByReader(RTSPConnection* connection, int readerId);
+
     void createVideoQueueSource(VCodecType codec, Reader *reader, int readerId);
     void createAudioQueueSource(ACodecType codec, Reader *reader, int readerId);
     void doGetState(Jzon::Object &filterNode);
-   
-    static SinkManager* mngrInstance;
-    std::map<std::string, ServerMediaSession*> sessionList;
+
     std::map<int, StreamReplicator*> replicators;
     std::map<int, Connection*> connections;
+
+    RTSPServer* rtspServer;
     UsageEnvironment* env;
     uint8_t watch;
-    
-    RTSPServer* rtspServer;
 };
 
 #endif

@@ -19,7 +19,7 @@
  *
  *  Authors:  Marc Palau <marc.palau@i2cat.net>
  */
- 
+
 #ifndef _AUDIO_MIXER_HH
 #define _AUDIO_MIXER_HH
 
@@ -36,38 +36,38 @@ enum mixingAlgorithm
 {
     LA,      //Linear Attenuation
     LDRC     //Linear Dynamic Range Compression
-}; 
+};
 
 class AudioMixer : public ManyToOneFilter {
-    
+
     public:
-        AudioMixer(int inputChannels = AMIXER_MAX_CHANNELS);
-        AudioMixer(int inputChannels, int frameChannels, int sampleRate);
+        AudioMixer(FilterRole fRole_ = MASTER, bool sharedFrames = true, int inputChannels = AMIXER_MAX_CHANNELS);
         ~AudioMixer();
         FrameQueue *allocQueue(int wId);
         bool doProcessFrame(std::map<int, Frame*> orgFrames, Frame *dst);
 
     protected:
-        Reader *setReader(int readerID, FrameQueue* queue, bool sharedQueue = false);
+        Reader *setReader(int readerID, FrameQueue* queue);
         void doGetState(Jzon::Object &filterNode);
 
     private:
         void initializeEventMap();
-        void mixNonEmptyFrames(std::map<int, Frame*> orgFrames, std::vector<int> filledFramesIds, Frame *dst); 
+        void mixNonEmptyFrames(std::map<int, Frame*> orgFrames, std::vector<int> filledFramesIds, Frame *dst);
         void applyMixAlgorithm(std::vector<float> &fSamples, int frameNumber, int realFrameNumber);
         void applyGainToChannel(std::vector<float> &fSamples, float gain);
-        void sumValues(std::vector<float> fSamples, std::vector<float> &mixedSamples); 
-        void LAMixAlgorithm(std::vector<float> &fSamples, int frameNumber); 
-        void LDRCMixAlgorithm(std::vector<float> &fSamples, int frameNumber); 
-        
-        void changeChannelVolumeEvent(Jzon::Node* params, Jzon::Object &outputNode); 
-        void muteChannelEvent(Jzon::Node* params, Jzon::Object &outputNode); 
-        void soloChannelEvent(Jzon::Node* params, Jzon::Object &outputNode);
-        void changeMasterVolumeEvent(Jzon::Node* params, Jzon::Object &outputNode);
-        void muteMasterEvent(Jzon::Node* params, Jzon::Object &outputNode);
+        void sumValues(std::vector<float> fSamples, std::vector<float> &mixedSamples);
+        void LAMixAlgorithm(std::vector<float> &fSamples, int frameNumber);
+        void LDRCMixAlgorithm(std::vector<float> &fSamples, int frameNumber);
+
+        bool changeChannelVolumeEvent(Jzon::Node* params);
+        bool muteChannelEvent(Jzon::Node* params);
+        bool soloChannelEvent(Jzon::Node* params);
+        bool changeMasterVolumeEvent(Jzon::Node* params);
+        bool muteMasterEvent(Jzon::Node* params);
 
         int frameChannels;
         int sampleRate;
+        int samplesPerFrame;
         SampleFmt sampleFormat;
         std::map<int,float> gains;
         float masterGain;

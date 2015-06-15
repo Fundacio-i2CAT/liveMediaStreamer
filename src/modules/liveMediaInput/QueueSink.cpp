@@ -50,7 +50,7 @@ Boolean QueueSink::continuePlaying()
         return False;
     }
 
-    if (!fWriter->isConnected()){
+    if (!fWriter->isConnected()) {
         utils::debugMsg("Using dummy buffer, no writer connected yet");
         fSource->getNextFrame(dummyBuffer, DUMMY_RECEIVE_BUFFER_SIZE,
                               afterGettingFrame, this,
@@ -78,7 +78,8 @@ void QueueSink::afterGettingFrame(void* clientData, unsigned frameSize,
 
 void QueueSink::afterGettingFrame(unsigned frameSize, struct timeval presentationTime)
 {
-    if (frame != NULL){
+    if (frame != NULL) {
+        std::cout << "Timestamp: " << presentationTime.tv_sec << "." << presentationTime.tv_usec << std::endl;
         frame->setLength(frameSize);
         frame->newOriginTime();
         frame->setPresentationTime(std::chrono::system_clock::now());

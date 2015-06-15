@@ -44,7 +44,7 @@ public:
     * Set frame presentation time
     * @param system_clock::time_point to set as presentation time
     */
-    void setPresentationTime(std::chrono::system_clock::time_point pTime);
+    void setPresentationTime(std::chrono::microseconds pTime);
 
     /**
     * Sets a new origin frame time from system_clock::now
@@ -69,7 +69,7 @@ public:
     */
     void setSequenceNumber(size_t seqNum);
 
-    std::chrono::system_clock::time_point getPresentationTime() const {return presentationTime;};
+    std::chrono::microseconds getPresentationTime() const {return presentationTime;};
 
     /**
     * Gets origin frame time point
@@ -126,7 +126,7 @@ public:
     virtual bool isPlanar() = 0;
 
 protected:
-    std::chrono::system_clock::time_point presentationTime;
+    std::chrono::microseconds presentationTime;
     std::chrono::system_clock::time_point originTime;
     std::chrono::nanoseconds duration;
     size_t sequenceNumber;

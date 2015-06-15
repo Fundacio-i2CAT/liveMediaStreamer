@@ -56,7 +56,6 @@ void H264or5QueueSource::doGetNextFrame() {
     unsigned char* buff;
     unsigned int size;
     uint8_t offset;
-    std::chrono::microseconds presentationTime;
 
     bool newFrame = false;
     QueueState state;
@@ -81,10 +80,8 @@ void H264or5QueueSource::doGetNextFrame() {
     buff = frame->getDataBuf() + offset;
     size = size - offset;
 
-    presentationTime = duration_cast<std::chrono::microseconds>(frame->getPresentationTime().time_since_epoch());
-
-    fPresentationTime.tv_sec = presentationTime.count()/std::micro::den;
-    fPresentationTime.tv_usec = presentationTime.count()%std::micro::den;
+    fPresentationTime.tv_sec = frame->getPresentationTime().count()/std::micro::den;
+    fPresentationTime.tv_usec = frame->getPresentationTime().count()%std::micro::den;
 
     if (fMaxSize < size){
         fFrameSize = fMaxSize;

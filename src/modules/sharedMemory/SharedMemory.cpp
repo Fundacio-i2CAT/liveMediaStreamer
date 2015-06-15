@@ -277,13 +277,10 @@ int SharedMemory::writeSharedMemoryRAW(uint8_t *buf, int buf_size)
     return 0;
 }
 
-void SharedMemory::writeFramePayload(InterleavedVideoFrame *frame) {
-    std::chrono::microseconds presentationTime; 
-
-    presentationTime = duration_cast<std::chrono::microseconds>(frame->getPresentationTime().time_since_epoch());
-
-    uint32_t tv_sec = presentationTime.count()/std::micro::den;
-    uint32_t tv_usec = presentationTime.count()%std::micro::den;
+void SharedMemory::writeFramePayload(InterleavedVideoFrame *frame) 
+{
+    uint32_t tv_sec = frame->getPresentationTime().count()/std::micro::den;
+    uint32_t tv_usec = frame->getPresentationTime().count()%std::micro::den;
     uint16_t width = frame->getWidth();
     uint16_t height = frame->getHeight();
     uint32_t length = frame->getLength();

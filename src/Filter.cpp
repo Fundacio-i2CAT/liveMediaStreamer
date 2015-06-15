@@ -548,15 +548,16 @@ void BaseFilter::updateFrames(std::map<int, Frame*> oFrames_)
 OneToOneFilter::OneToOneFilter(bool byPassTimestamp, FilterRole fRole_, bool sharedFrames_, size_t fTime, bool force_) :
     BaseFilter(1,1,fTime,fRole_,force_,sharedFrames_), passTimestamp(byPassTimestamp)
 {
+    
 }
 
 bool OneToOneFilter::runDoProcessFrame()
 {
-    if (updateTimestamp() && doProcessFrame(oFrames.begin()->second, dFrames.begin()->second)) {
+    if (doProcessFrame(oFrames.begin()->second, dFrames.begin()->second)) {
         if (passTimestamp){
             dFrames.begin()->second->setPresentationTime(oFrames.begin()->second->getPresentationTime());
         } else {
-            dFrames.begin()->second->setPresentationTime(timestamp);
+            dFrames.begin()->second->setPresentationTime(oFrames.begin()->second->getPresentationTime());
         }
         dFrames.begin()->second->setDuration(duration);
         dFrames.begin()->second->setSequenceNumber(oFrames.begin()->second->getSequenceNumber());
@@ -571,14 +572,15 @@ bool OneToOneFilter::runDoProcessFrame()
 OneToManyFilter::OneToManyFilter(FilterRole fRole_, bool sharedFrames_, unsigned writersNum, size_t fTime, bool force_) :
     BaseFilter(1,writersNum,fTime,fRole_,force_,sharedFrames_)
 {
+
 }
 
 bool OneToManyFilter::runDoProcessFrame()
 {
-    if (updateTimestamp() && doProcessFrame(oFrames.begin()->second, dFrames)) {
+    if (doProcessFrame(oFrames.begin()->second, dFrames)) {
 
         for (auto it : dFrames) {
-            it.second->setPresentationTime(timestamp);
+            it.second->setPresentationTime(oFrames.begin()->second->getPresentationTime());
             it.second->setDuration(duration);
             it.second->setSequenceNumber(oFrames.begin()->second->getSequenceNumber());
         }
@@ -599,8 +601,8 @@ HeadFilter::HeadFilter(FilterRole fRole_, size_t fTime) :
 
 bool HeadFilter::runDoProcessFrame()
 {
-    if (updateTimestamp() && doProcessFrame(dFrames.begin()->second)) {
-        dFrames.begin()->second->setPresentationTime(timestamp);
+    if (doProcessFrame(dFrames.begin()->second)) {
+        // dFrames.begin()->second->setPresentationTime(timestamp);
         dFrames.begin()->second->setDuration(duration);
         seqNums[dFrames.begin()->first]++;
         dFrames.begin()->second->setSequenceNumber(seqNums[dFrames.begin()->first]);
@@ -668,8 +670,9 @@ ManyToOneFilter::ManyToOneFilter(FilterRole fRole_, bool sharedFrames_, unsigned
 
 bool ManyToOneFilter::runDoProcessFrame()
 {
-    if (updateTimestamp() && doProcessFrame(oFrames, dFrames.begin()->second)) {
-        dFrames.begin()->second->setPresentationTime(timestamp);
+    if (doProcessFrame(oFrames, dFrames.begin()->second)) {
+        //NOTE: this assignment is only done in order to advance in the timestamp refactor. Must be implmented correctly
+        dFrames.begin()->second->setPresentationTime(oFrames.begin()->second->getPresentationTime());
         dFrames.begin()->second->setDuration(duration);
         seqNums[dFrames.begin()->first]++;
         dFrames.begin()->second->setSequenceNumber(seqNums[dFrames.begin()->first]);

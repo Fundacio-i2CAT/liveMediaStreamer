@@ -78,11 +78,12 @@ void QueueSink::afterGettingFrame(void* clientData, unsigned frameSize,
 
 void QueueSink::afterGettingFrame(unsigned frameSize, struct timeval presentationTime)
 {
+    std::chrono::microseconds ts = std::chrono::microseconds(presentationTime.tv_sec * std::micro::den + presentationTime.tv_usec);
+
     if (frame != NULL) {
-        std::cout << "Timestamp: " << presentationTime.tv_sec << "." << presentationTime.tv_usec << std::endl;
         frame->setLength(frameSize);
         frame->newOriginTime();
-        frame->setPresentationTime(std::chrono::system_clock::now());
+        frame->setPresentationTime(ts);
         frame->setSequenceNumber(++seqNum);
         fWriter->addFrame();
     }

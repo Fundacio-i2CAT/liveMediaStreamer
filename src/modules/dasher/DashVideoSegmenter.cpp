@@ -53,7 +53,8 @@ bool DashVideoSegmenter::manageFrame(Frame* frame, bool &newFrame)
     }
 
     currDuration = nal->getDuration();
-    currTimestamp = nal->getPresentationTime(); 
+    // currTimestamp = nal->getPresentationTime();
+    currTimestamp = std::chrono::system_clock::now();
     width = nal->getWidth();
     height = nal->getHeight();
 

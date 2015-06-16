@@ -47,6 +47,7 @@ AudioCircularBuffer::AudioCircularBuffer(int ch, int sRate, int maxSamples, Samp
 outputFrameAlreadyRead(true), bufferingState(BUFFERING)
 {
     syncTimestamp = std::chrono::microseconds(0);
+    frontSampleIdx = 0;
     tsDeviationThreshold = MAX_DEVIATION_SAMPLES*std::micro::den/sRate;
 }
 
@@ -68,6 +69,8 @@ Frame* AudioCircularBuffer::getRear()
 
 Frame* AudioCircularBuffer::getFront(bool &newFrame)
 {
+    std::chrono::microseconds ts;
+
     if (outputFrameAlreadyRead == false) {
         newFrame = true;
         return outputFrame;
@@ -79,6 +82,9 @@ Frame* AudioCircularBuffer::getFront(bool &newFrame)
         return NULL;
     }
 
+    ts = std::chrono::microseconds(frontSampleIdx*std::micro::den/sampleRate) + syncTimestamp;
+    outputFrame->setPresentationTime(ts);
+    frontSampleIdx += outputFrame->getSamples();
     newFrame = true;
     return outputFrame;
 }
@@ -96,8 +102,8 @@ void AudioCircularBuffer::addFrame()
         rearSampleIdx = 0;
     }
 
-    rearTs = std::chrono::microseconds(rearSampleIdx*std::micro::den/sampleRate);
-    deviation = inTs - (syncTimestamp + rearTs);
+    rearTs = std::chrono::microseconds(rearSampleIdx*std::micro::den/sampleRate) + syncTimestamp;
+    deviation = inTs - rearTs;
 
     if (deviation.count() > tsDeviationThreshold || deviation.count() < (-tsDeviationThreshold)) {
         utils::warningMsg("[AudioCircularBuffer] Timestamp discontinuity... Synching again.");

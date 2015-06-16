@@ -23,7 +23,6 @@
 #ifndef _AUDIO_CIRCULAR_BUFFER_HH
 #define _AUDIO_CIRCULAR_BUFFER_HH
 
-#include <atomic>
 #include "Types.hh"
 #include "FrameQueue.hh"
 #include "AudioFrame.hh"
@@ -77,6 +76,7 @@ private:
     PlanarAudioFrame* inputFrame;
     PlanarAudioFrame* outputFrame;
 
+    std::atomic<unsigned> syncTimestampAtomicValue;
     std::chrono::microseconds syncTimestamp;
 
     unsigned rearSampleIdx;

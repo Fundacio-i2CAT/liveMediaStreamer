@@ -34,48 +34,54 @@
 
  class AudioCircularBuffer : public FrameQueue {
 
-    public:
-        static AudioCircularBuffer* createNew(int ch, int sRate, int maxSamples, SampleFmt sFmt);
-        ~AudioCircularBuffer();
-        void setOutputFrameSamples(int samples); 
+public:
+    static AudioCircularBuffer* createNew(int ch, int sRate, int maxSamples, SampleFmt sFmt);
+    ~AudioCircularBuffer();
+    void setOutputFrameSamples(int samples); 
 
-        Frame *getRear();
-        Frame *getFront(bool &newFrame);
-        void addFrame();
-        void removeFrame();
-        void flush();
-        Frame *forceGetRear();
-        Frame *forceGetFront(bool &newFrame);
-        bool frameToRead() {return false;};
-        int getFreeSamples();
-        QueueState getState();
+    Frame *getRear();
+    Frame *getFront(bool &newFrame);
+    void addFrame();
+    void removeFrame();
+    void flush();
+    Frame *forceGetRear();
+    Frame *forceGetFront(bool &newFrame);
+    bool frameToRead() {return false;};
+    int getFreeSamples();
+    QueueState getState();
 
-    private:
-        AudioCircularBuffer(int ch, int sRate, int maxSamples, SampleFmt sFmt);
+private:
+    AudioCircularBuffer(int ch, int sRate, int maxSamples, SampleFmt sFmt);
 
-        enum State {BUFFERING, OK, FULL};
+    enum State {BUFFERING, OK, FULL};
 
-        bool pushBack(unsigned char **buffer, int samplesRequested);
-        bool forcePushBack(unsigned char **buffer, int samplesRequested);
-        bool popFront(unsigned char **buffer, int samplesRequested);
-        void fillOutputBuffers(unsigned char **buffer, int bytesRequested);
-        bool setup();
+    bool pushBack(unsigned char **buffer, int samplesRequested);
+    bool forcePushBack(unsigned char **buffer, int samplesRequested);
+    bool popFront(unsigned char **buffer, int samplesRequested);
+    void fillOutputBuffers(unsigned char **buffer, int bytesRequested);
+    bool setup();
 
-        int channels;
-        int sampleRate;
-        unsigned bytesPerSample;
-        int chMaxSamples;
-        unsigned channelMaxLength;
-        int delayBytes;
-        unsigned char *data[MAX_CHANNELS];
-        SampleFmt sampleFormat;
-        bool outputFrameAlreadyRead;
+    int channels;
+    int sampleRate;
+    unsigned bytesPerSample;
+    int chMaxSamples;
+    unsigned channelMaxLength;
+    int delayBytes;
+    unsigned char *data[MAX_CHANNELS];
+    SampleFmt sampleFormat;
+    bool outputFrameAlreadyRead;
 
-        unsigned samplesBufferingThreshold;
-        State bufferingState;
+    unsigned samplesBufferingThreshold;
+    State bufferingState;
 
-        PlanarAudioFrame* inputFrame;
-        PlanarAudioFrame* outputFrame;
+    PlanarAudioFrame* inputFrame;
+    PlanarAudioFrame* outputFrame;
+
+    std::chrono::microseconds syncTimestamp;
+
+    unsigned rearSampleIdx;
+    unsigned frontSampleIdx;
+    int tsDeviationThreshold;
 };
 
 #endif

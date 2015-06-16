@@ -25,6 +25,8 @@
 #include <cstring>
 #include <iostream>
 
+#define MAX_DEVIATION_SAMPLES 100
+
 int mod (int a, int b);
 
 AudioCircularBuffer* AudioCircularBuffer::createNew(int ch, int sRate, int maxSamples, SampleFmt sFmt)
@@ -44,7 +46,9 @@ AudioCircularBuffer::AudioCircularBuffer(int ch, int sRate, int maxSamples, Samp
 : FrameQueue(), channels(ch), sampleRate(sRate), chMaxSamples(maxSamples), sampleFormat(sFmt),
 outputFrameAlreadyRead(true), bufferingState(BUFFERING)
 {
-
+    syncTimestamp = std::chrono::microseconds(0);
+    frontSampleIdx = 0;
+    tsDeviationThreshold = MAX_DEVIATION_SAMPLES*std::micro::den/sRate;
 }
 
 AudioCircularBuffer::~AudioCircularBuffer()
@@ -65,6 +69,8 @@ Frame* AudioCircularBuffer::getRear()
 
 Frame* AudioCircularBuffer::getFront(bool &newFrame)
 {
+    std::chrono::microseconds ts;
+
     if (outputFrameAlreadyRead == false) {
         newFrame = true;
         return outputFrame;
@@ -76,13 +82,39 @@ Frame* AudioCircularBuffer::getFront(bool &newFrame)
         return NULL;
     }
 
+    ts = std::chrono::microseconds(frontSampleIdx*std::micro::den/sampleRate) + syncTimestamp;
+    outputFrame->setPresentationTime(ts);
+    frontSampleIdx += outputFrame->getSamples();
     newFrame = true;
     return outputFrame;
 }
 
 void AudioCircularBuffer::addFrame()
 {
-    forcePushBack(inputFrame->getPlanarDataBuf(), inputFrame->getSamples());
+    std::chrono::microseconds inTs;
+    std::chrono::microseconds rearTs;
+    std::chrono::microseconds deviation;
+
+    inTs = inputFrame->getPresentationTime();
+
+    if (syncTimestamp.count() == 0) {
+        syncTimestamp = inTs;
+        rearSampleIdx = 0;
+    }
+
+    rearTs = std::chrono::microseconds(rearSampleIdx*std::micro::den/sampleRate) + syncTimestamp;
+    deviation = inTs - rearTs;
+
+    if (deviation.count() > tsDeviationThreshold || deviation.count() < (-tsDeviationThreshold)) {
+        utils::warningMsg("[AudioCircularBuffer] Timestamp discontinuity... Synching again.");
+        rearSampleIdx = 0;
+    }
+
+    if(!forcePushBack(inputFrame->getPlanarDataBuf(), inputFrame->getSamples())) {
+        return;
+    }
+
+    rearSampleIdx += inputFrame->getSamples();
 }
 
 void AudioCircularBuffer::removeFrame()
@@ -248,10 +280,12 @@ bool AudioCircularBuffer::forcePushBack(unsigned char **buffer, int samplesReque
         }
         return false;
     }
+
     return true;
 }
 
-void AudioCircularBuffer::setOutputFrameSamples(int samples) {
+void AudioCircularBuffer::setOutputFrameSamples(int samples) 
+{
     outputFrame->setSamples(samples);
     outputFrame->setLength(samples*bytesPerSample);
 }

@@ -194,14 +194,13 @@ protected:
     virtual Reader *setReader(int readerID, FrameQueue* queue);
     Reader* getReader(int id);
 
-    bool demandOriginFrames();
+    virtual bool demandOriginFrames() = 0;
     bool demandDestinationFrames();
 
     bool newEvent();
     void processEvent();
     virtual void doGetState(Jzon::Object &filterNode) = 0;
 
-    bool updateTimestamp();
     std::map<std::string, std::function<bool(Jzon::Node* params)> > eventMap;
 
     virtual bool runDoProcessFrame() = 0;
@@ -217,6 +216,7 @@ protected:
     std::map<int, Frame*> oFrames;
     std::map<int, Frame*> dFrames;
     std::map<int, size_t> seqNums;
+    std::map<int, bool> rUpdates;
     FilterType fType;
 
     float frameTimeMod;
@@ -231,6 +231,7 @@ protected:
 
     unsigned maxReaders;
     unsigned maxWriters;
+    bool force;
     std::chrono::nanoseconds frameTime;
 
 private:
@@ -249,9 +250,7 @@ private:
     std::mutex eventQueueMutex;
     int workerId;
     bool enabled;
-    std::map<int, bool> rUpdates;
     FilterRole const fRole;
-    bool force;
     bool sharedFrames;
 };
 
@@ -265,7 +264,10 @@ protected:
 
 private:
     bool passTimestamp;
+
     bool runDoProcessFrame();
+    bool demandOriginFrames();
+    
     using BaseFilter::demandOriginFrames;
     using BaseFilter::demandDestinationFrames;
     using BaseFilter::addFrames;
@@ -275,7 +277,6 @@ private:
     using BaseFilter::dFrames;
     using BaseFilter::seqNums;
     using BaseFilter::processEvent;
-    using BaseFilter::updateTimestamp;
     using BaseFilter::addSlave;
     using BaseFilter::setWallClock;
 
@@ -303,7 +304,8 @@ protected:
 
 private:
     bool runDoProcessFrame();
-    using BaseFilter::demandOriginFrames;
+    bool demandOriginFrames();
+
     using BaseFilter::demandDestinationFrames;
     using BaseFilter::addFrames;
     using BaseFilter::removeFrames;
@@ -313,7 +315,6 @@ private:
     using BaseFilter::dFrames;
     using BaseFilter::seqNums;
     using BaseFilter::processEvent;
-    using BaseFilter::updateTimestamp;
     using BaseFilter::addSlave;
     using BaseFilter::setWallClock;
 
@@ -345,7 +346,8 @@ protected:
 
 private: 
     bool runDoProcessFrame();
-    using BaseFilter::demandOriginFrames;
+    bool demandOriginFrames();
+
     using BaseFilter::demandDestinationFrames;
     using BaseFilter::addFrames;
     using BaseFilter::removeFrames;
@@ -354,7 +356,6 @@ private:
     using BaseFilter::dFrames;
     using BaseFilter::seqNums;
     using BaseFilter::processEvent;
-    using BaseFilter::updateTimestamp;
     using BaseFilter::addSlave;
     using BaseFilter::setWallClock;
 
@@ -385,7 +386,8 @@ private:
     FrameQueue *allocQueue(int wId) {return NULL;};
     bool runDoProcessFrame();
     virtual bool doProcessFrame(std::map<int, Frame*> orgFrames) = 0;
-    using BaseFilter::demandOriginFrames;
+    bool demandOriginFrames();
+
     using BaseFilter::demandDestinationFrames;
     using BaseFilter::addFrames;
     using BaseFilter::removeFrames;
@@ -393,7 +395,6 @@ private:
     using BaseFilter::dFrames;
     using BaseFilter::seqNums;
     using BaseFilter::processEvent;
-    using BaseFilter::updateTimestamp;
     using BaseFilter::setWallClock;
 
     using BaseFilter::frameTime;
@@ -420,7 +421,8 @@ protected:
 
 private:   
     bool runDoProcessFrame();
-    using BaseFilter::demandOriginFrames;
+    bool demandOriginFrames();
+
     using BaseFilter::demandDestinationFrames;
     using BaseFilter::addFrames;
     using BaseFilter::removeFrames;
@@ -429,7 +431,6 @@ private:
     using BaseFilter::dFrames;
     using BaseFilter::seqNums;
     using BaseFilter::processEvent;
-    using BaseFilter::updateTimestamp;
     using BaseFilter::addSlave;
     using BaseFilter::setWallClock;
 
@@ -458,7 +459,8 @@ protected:
     virtual bool runDoProcessFrame() = 0;
 
 private:
-    using BaseFilter::demandOriginFrames;
+    bool demandOriginFrames();
+
     using BaseFilter::demandDestinationFrames;
     using BaseFilter::addFrames;
     using BaseFilter::removeFrames;
@@ -466,7 +468,6 @@ private:
     using BaseFilter::dFrames;
     using BaseFilter::seqNums;
     using BaseFilter::processEvent;
-    using BaseFilter::updateTimestamp;
     using BaseFilter::addSlave;
     using BaseFilter::setWallClock;
     using BaseFilter::frameTime;

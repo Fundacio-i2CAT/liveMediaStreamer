@@ -118,6 +118,7 @@ protected:
     FrameQueue *allocQueue(int wId) {return new AVFramedQueueMock(4);};
     size_t masterProcessFrame() {return 20;};
     size_t slaveProcessFrame() {return 20;};
+    bool demandOriginFrames() {return true;};
     void doGetState(Jzon::Object &filterNode) {};
     void stop() {};
 
@@ -280,7 +281,7 @@ protected:
             
             dstFrame->setLength(srcFrame->getLength());
             dstFrame->setSize(srcFrame->getWidth(), srcFrame->getHeight());
-            dstFrame->setPresentationTime(std::chrono::system_clock::now());
+            dstFrame->setPresentationTime(std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now().time_since_epoch()));
             dstFrame->setOriginTime(srcFrame->getOriginTime());
             dstFrame->setPixelFormat(srcFrame->getPixelFormat());
             

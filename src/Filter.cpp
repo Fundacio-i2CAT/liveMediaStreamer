@@ -32,7 +32,7 @@
 #define FAST_MODIFIER 0.90
 
 BaseFilter::BaseFilter(unsigned readersNum, unsigned writersNum, size_t fTime, FilterRole fRole_, bool force_, bool sharedFrames_):
-process(false), maxReaders(readersNum), maxWriters(writersNum),  frameTime(fTime), fRole(fRole_), force(force_), sharedFrames(sharedFrames_)
+process(false), maxReaders(readersNum), maxWriters(writersNum), force(force_), frameTime(fTime), fRole(fRole_), sharedFrames(sharedFrames_)
 {
     frameTimeMod = 1;
     bufferStateFrameTimeMod = 1;
@@ -110,51 +110,6 @@ int BaseFilter::generateWriterID()
     }
 
     return id;
-}
-
-bool BaseFilter::demandOriginFrames()
-{
-    bool newFrame;
-    bool someFrame = false;
-    QueueState qState;
-
-    if (maxReaders == 0) {
-        return true;
-    }
-
-    for (auto it : readers) {
-        if (!it.second->isConnected()) {
-            it.second->disconnect();
-            //NOTE: think about readers as shared pointers
-            delete it.second;
-            readers.erase(it.first);
-            continue;
-        }
-
-        oFrames[it.first] = it.second->getFrame(qState, newFrame, force);
-
-        if (oFrames[it.first] != NULL) {
-            if (newFrame) {
-                rUpdates[it.first] = true;
-            } else {
-                rUpdates[it.first] = false;
-            }
-
-            someFrame = true;
-
-        } else {
-            rUpdates[it.first] = false;
-        }
-
-    }
-
-    if (qState == SLOW) {
-        bufferStateFrameTimeMod = SLOW_MODIFIER;
-    } else {
-        bufferStateFrameTimeMod = FAST_MODIFIER;
-    }
-
-    return someFrame;
 }
 
 bool BaseFilter::demandDestinationFrames()
@@ -358,51 +313,6 @@ bool BaseFilter::hasFrames()
 	return true;
 }
 
-bool BaseFilter::updateTimestamp()
-{   
-    int threshold = frameTime.count() * WALL_CLOCK_THRESHOLD;
-    
-    if (frameTime.count() == 0) {
-        lastValidTimestamp = timestamp;
-        timestamp = wallClock;
-        duration = timestamp - lastValidTimestamp;
-        return true;
-    }
-
-    timestamp += frameTime;
-
-    lastDiffTime = diffTime;
-    diffTime = wallClock - timestamp;
-
-    if (diffTime.count() > threshold || diffTime.count() < (-threshold) ) {
-        // reset timestamp value in order to realign with the wall clock
-        utils::warningMsg("Wall clock deviations exceeded! Reseting values!");
-        timestamp = wallClock;
-        duration = frameTime + diffTime;
-        diffTime = std::chrono::nanoseconds(0);
-        frameTimeMod = 1;
-    } else {
-        lastValidTimestamp = timestamp;
-        duration = frameTime;
-    }
-
-    if (diffTime.count() > 0 && lastDiffTime < diffTime) {
-        // delayed and incrementing delay. Need to speed up
-        frameTimeMod -= 0.01;
-    }
-
-    if (diffTime.count() < 0 && lastDiffTime > diffTime) {
-        // advanced and incremeting advance. Need to slow down
-        frameTimeMod += 0.01;
-    }
-
-    if (frameTimeMod < 0) {
-        frameTimeMod = 0;
-    }
-    
-    return timestamp >= lastValidTimestamp;
-}
-
 std::chrono::nanoseconds BaseFilter::processFrame()
 {
     std::chrono::nanoseconds retValue;
@@ -553,21 +463,47 @@ OneToOneFilter::OneToOneFilter(bool byPassTimestamp, FilterRole fRole_, bool sha
 
 bool OneToOneFilter::runDoProcessFrame()
 {
-    if (doProcessFrame(oFrames.begin()->second, dFrames.begin()->second)) {
-        if (passTimestamp){
-            dFrames.begin()->second->setPresentationTime(oFrames.begin()->second->getPresentationTime());
-        } else {
-            dFrames.begin()->second->setPresentationTime(oFrames.begin()->second->getPresentationTime());
-        }
-        dFrames.begin()->second->setDuration(duration);
-        dFrames.begin()->second->setSequenceNumber(oFrames.begin()->second->getSequenceNumber());
-        addFrames();
-        return true;
+    if (!doProcessFrame(oFrames.begin()->second, dFrames.begin()->second)) {
+        return false;
     }
-
-    return false;
+    
+    dFrames.begin()->second->setPresentationTime(oFrames.begin()->second->getPresentationTime());
+    dFrames.begin()->second->setDuration(duration);
+    dFrames.begin()->second->setSequenceNumber(oFrames.begin()->second->getSequenceNumber());
+    addFrames();
+    return true;
 }
 
+bool OneToOneFilter::demandOriginFrames()
+{
+    bool newFrame;
+    QueueState qState;
+    Reader* r;
+    int rId;
+
+    if (readers.empty()) {
+        return false;
+    }
+
+    rId = readers.begin()->first;
+    r = readers.begin()->second;
+
+    if (!r->isConnected()) {
+        r->disconnect();
+        delete r;
+        readers.erase(rId);
+        return false;
+    }
+
+    oFrames[rId] = r->getFrame(qState, newFrame, force);
+
+    if (!oFrames[rId]) {
+        return false;
+    }
+
+    rUpdates[rId] = true;
+    return true;
+}
 
 OneToManyFilter::OneToManyFilter(FilterRole fRole_, bool sharedFrames_, unsigned writersNum, size_t fTime, bool force_) :
     BaseFilter(1,writersNum,fTime,fRole_,force_,sharedFrames_)
@@ -577,19 +513,63 @@ OneToManyFilter::OneToManyFilter(FilterRole fRole_, bool sharedFrames_, unsigned
 
 bool OneToManyFilter::runDoProcessFrame()
 {
-    if (doProcessFrame(oFrames.begin()->second, dFrames)) {
+    if (!doProcessFrame(oFrames.begin()->second, dFrames)) {
+        return false;
+    }
 
-        for (auto it : dFrames) {
-            it.second->setPresentationTime(oFrames.begin()->second->getPresentationTime());
-            it.second->setDuration(duration);
-            it.second->setSequenceNumber(oFrames.begin()->second->getSequenceNumber());
-        }
+    for (auto it : dFrames) {
+        it.second->setPresentationTime(oFrames.begin()->second->getPresentationTime());
+        it.second->setDuration(duration);
+        it.second->setSequenceNumber(oFrames.begin()->second->getSequenceNumber());
+    }
 
-        addFrames();
+    addFrames();
+    return true;
+}
+
+bool OneToManyFilter::demandOriginFrames()
+{
+    bool newFrame;
+    bool someFrame = false;
+    QueueState qState;
+
+    if (maxReaders == 0) {
         return true;
     }
 
-    return false;
+    for (auto it : readers) {
+        if (!it.second->isConnected()) {
+            it.second->disconnect();
+            //NOTE: think about readers as shared pointers
+            delete it.second;
+            readers.erase(it.first);
+            continue;
+        }
+
+        oFrames[it.first] = it.second->getFrame(qState, newFrame, force);
+
+        if (oFrames[it.first] != NULL) {
+            if (newFrame) {
+                rUpdates[it.first] = true;
+            } else {
+                rUpdates[it.first] = false;
+            }
+
+            someFrame = true;
+
+        } else {
+            rUpdates[it.first] = false;
+        }
+
+    }
+
+    if (qState == SLOW) {
+        bufferStateFrameTimeMod = SLOW_MODIFIER;
+    } else {
+        bufferStateFrameTimeMod = FAST_MODIFIER;
+    }
+
+    return someFrame;
 }
 
 
@@ -611,6 +591,11 @@ bool HeadFilter::runDoProcessFrame()
     }
 
     return false;
+}
+
+bool HeadFilter::demandOriginFrames()
+{
+    return true;
 }
 
 void HeadFilter::pushEvent(Event e)
@@ -635,6 +620,7 @@ void HeadFilter::pushEvent(Event e)
 TailFilter::TailFilter(FilterRole fRole_, bool sharedFrames_, unsigned readersNum, size_t fTime) :
     BaseFilter(readersNum, 0, fTime, fRole_, false, sharedFrames_)
 {
+
 }
 
 bool TailFilter::runDoProcessFrame()
@@ -662,10 +648,56 @@ void TailFilter::pushEvent(Event e)
     }
 }
 
+bool TailFilter::demandOriginFrames()
+{
+    bool newFrame;
+    bool someFrame = false;
+    QueueState qState;
+
+    if (maxReaders == 0) {
+        return true;
+    }
+
+    for (auto it : readers) {
+        if (!it.second->isConnected()) {
+            it.second->disconnect();
+            //NOTE: think about readers as shared pointers
+            delete it.second;
+            readers.erase(it.first);
+            continue;
+        }
+
+        oFrames[it.first] = it.second->getFrame(qState, newFrame, force);
+
+        if (oFrames[it.first] != NULL) {
+            if (newFrame) {
+                rUpdates[it.first] = true;
+            } else {
+                rUpdates[it.first] = false;
+            }
+
+            someFrame = true;
+
+        } else {
+            rUpdates[it.first] = false;
+        }
+
+    }
+
+    if (qState == SLOW) {
+        bufferStateFrameTimeMod = SLOW_MODIFIER;
+    } else {
+        bufferStateFrameTimeMod = FAST_MODIFIER;
+    }
+
+    return someFrame;
+}
+
 
 ManyToOneFilter::ManyToOneFilter(FilterRole fRole_, bool sharedFrames_, unsigned readersNum, size_t fTime, bool force_) :
     BaseFilter(readersNum,1,fTime,fRole_,force_,sharedFrames_)
 {
+
 }
 
 bool ManyToOneFilter::runDoProcessFrame()
@@ -683,9 +715,55 @@ bool ManyToOneFilter::runDoProcessFrame()
     return false;
 }
 
+bool ManyToOneFilter::demandOriginFrames()
+{
+    bool newFrame;
+    bool someFrame = false;
+    QueueState qState;
+
+    if (maxReaders == 0) {
+        return true;
+    }
+
+    for (auto it : readers) {
+        if (!it.second->isConnected()) {
+            it.second->disconnect();
+            //NOTE: think about readers as shared pointers
+            delete it.second;
+            readers.erase(it.first);
+            continue;
+        }
+
+        oFrames[it.first] = it.second->getFrame(qState, newFrame, force);
+
+        if (oFrames[it.first] != NULL) {
+            if (newFrame) {
+                rUpdates[it.first] = true;
+            } else {
+                rUpdates[it.first] = false;
+            }
+
+            someFrame = true;
+
+        } else {
+            rUpdates[it.first] = false;
+        }
+
+    }
+
+    if (qState == SLOW) {
+        bufferStateFrameTimeMod = SLOW_MODIFIER;
+    } else {
+        bufferStateFrameTimeMod = FAST_MODIFIER;
+    }
+
+    return someFrame;
+}
+
 LiveMediaFilter::LiveMediaFilter(unsigned readersNum, unsigned writersNum) :
 BaseFilter(readersNum, writersNum, 0, NETWORK, false, false)
 {
+
 }
 
 void LiveMediaFilter::pushEvent(Event e)
@@ -705,4 +783,50 @@ void LiveMediaFilter::pushEvent(Event e)
     if (!eventMap[action](params)) {
         utils::errorMsg("Error executing filter event");
     }
+}
+
+bool LiveMediaFilter::demandOriginFrames()
+{
+    return true;
+    bool newFrame;
+    bool someFrame = false;
+    QueueState qState;
+
+    if (maxReaders == 0) {
+        return true;
+    }
+
+    for (auto it : readers) {
+        if (!it.second->isConnected()) {
+            it.second->disconnect();
+            //NOTE: think about readers as shared pointers
+            delete it.second;
+            readers.erase(it.first);
+            continue;
+        }
+
+        oFrames[it.first] = it.second->getFrame(qState, newFrame, force);
+
+        if (oFrames[it.first] != NULL) {
+            if (newFrame) {
+                rUpdates[it.first] = true;
+            } else {
+                rUpdates[it.first] = false;
+            }
+
+            someFrame = true;
+
+        } else {
+            rUpdates[it.first] = false;
+        }
+
+    }
+
+    if (qState == SLOW) {
+        bufferStateFrameTimeMod = SLOW_MODIFIER;
+    } else {
+        bufferStateFrameTimeMod = FAST_MODIFIER;
+    }
+
+    return someFrame;
 }

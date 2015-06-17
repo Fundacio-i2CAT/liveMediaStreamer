@@ -54,7 +54,8 @@ AudioMixer::~AudioMixer() {}
 
 FrameQueue *AudioMixer::allocQueue(int wId) 
 {
-    return AudioCircularBuffer::createNew(frameChannels, sampleRate, AudioFrame::getMaxSamples(sampleRate), sampleFormat);
+    return AudioCircularBuffer::createNew(frameChannels, sampleRate, DEFAULT_BUFFER_SIZE, 
+                                            sampleFormat, std::chrono::milliseconds(BUFFERING_THRESHOLD));
 }
 
 bool AudioMixer::doProcessFrame(std::map<int, Frame*> orgFrames, Frame *dst)

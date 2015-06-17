@@ -1,5 +1,5 @@
 /*
- *  AudioDecoderLibab - Audio circular buffer
+ *  AudioCircularBuffer - Audio circular buffer
  *  Copyright (C) 2013  Fundació i2CAT, Internet i Innovació digital a Catalunya
  *
  *  This file is part of media-streamer.
@@ -26,15 +26,16 @@
 #include "Types.hh"
 #include "FrameQueue.hh"
 #include "AudioFrame.hh"
+#include <mutex>
 
-#define BUFFERING_SIZE_TIME 500 //ms
+#define DEFAULT_BUFFER_SIZE 32768 //samples (~600ms at 48KHz)
 #define BUFFERING_THRESHOLD 40 //ms
 
 
  class AudioCircularBuffer : public FrameQueue {
 
 public:
-    static AudioCircularBuffer* createNew(int ch, int sRate, int maxSamples, SampleFmt sFmt);
+    static AudioCircularBuffer* createNew(unsigned ch, unsigned sRate, unsigned maxSamples, SampleFmt sFmt, std::chrono::milliseconds bufferingThreshold);
     ~AudioCircularBuffer();
     void setOutputFrameSamples(int samples); 
 
@@ -48,9 +49,10 @@ public:
     bool frameToRead() {return false;};
     int getFreeSamples();
     QueueState getState();
+    void setBufferingThreshold(std::chrono::milliseconds th);
 
 private:
-    AudioCircularBuffer(int ch, int sRate, int maxSamples, SampleFmt sFmt);
+    AudioCircularBuffer(unsigned ch, unsigned sRate, unsigned maxSamples, SampleFmt sFmt);
 
     enum State {BUFFERING, OK, FULL};
 
@@ -60,12 +62,11 @@ private:
     void fillOutputBuffers(unsigned char **buffer, int bytesRequested);
     bool setup();
 
-    int channels;
-    int sampleRate;
+    unsigned channels;
+    unsigned sampleRate;
     unsigned bytesPerSample;
-    int chMaxSamples;
+    unsigned chMaxSamples;
     unsigned channelMaxLength;
-    int delayBytes;
     unsigned char *data[MAX_CHANNELS];
     SampleFmt sampleFormat;
     bool outputFrameAlreadyRead;
@@ -80,8 +81,10 @@ private:
     std::atomic<unsigned> syncTimestampAtomicValue;
     std::chrono::microseconds syncTimestamp;
     bool synchronized;
+    bool setupSuccess;
 
     int tsDeviationThreshold;
+    std::mutex mtx;
 };
 
 #endif

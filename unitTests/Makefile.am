@@ -1,6 +1,11 @@
 AUTOMAKE_OPTIONS = foreign
 
-bin_PROGRAMS = connectionTest sinkManagerTest filterTest workerTest dasherTest dashAudioSegmenterTest dashVideoSegmenterTest mpdManagerTest encodingDecodingTest sharedMemoryTest slicedVideoFrameQueueTest
+bin_PROGRAMS = connectionTest sinkManagerTest filterTest workerTest dasherTest dashAudioSegmenterTest dashVideoSegmenterTest mpdManagerTest encodingDecodingTest sharedMemoryTest slicedVideoFrameQueueTest audioCircularBufferTest
+
+audioCircularBufferTest_SOURCES = AudioCircularBufferTest.cpp ../src/AudioCircularBuffer.cpp ../src/Jzon.cpp ../src/Utils.cpp ../src/Frame.cpp ../src/AudioFrame.cpp
+audioCircularBufferTest_CPPFLAGS = -g -Wall -D__STDC_CONSTANT_MACROS -I../src/
+audioCircularBufferTest_CXXFLAGS = -std=c++11
+audioCircularBufferTest_LDFLAGS = -L../src -lcppunit -lavutil -lavcodec -lavformat -lswresample -lfdk-aac
 
 slicedVideoFrameQueueTest_SOURCES = SlicedVideoFrameQueueTest.cpp ../src/SlicedVideoFrameQueue.cpp ../src/VideoFrame.cpp ../src/AVFramedQueue.cpp ../src/Jzon.cpp ../src/Utils.cpp ../src/Frame.cpp ../src/AudioFrame.cpp
 slicedVideoFrameQueueTest_CPPFLAGS = -g -Wall -D__STDC_CONSTANT_MACROS -I../src/

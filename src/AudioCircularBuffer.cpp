@@ -25,11 +25,11 @@
 #include <cstring>
 #include <iostream>
 
-#define MAX_DEVIATION_SAMPLES 1000
+#define MAX_DEVIATION_SAMPLES 64
 
 int mod (int a, int b);
 
-AudioCircularBuffer* AudioCircularBuffer::createNew(int ch, int sRate, int maxSamples, SampleFmt sFmt)
+AudioCircularBuffer* AudioCircularBuffer::createNew(unsigned ch, unsigned sRate, unsigned maxSamples, SampleFmt sFmt, std::chrono::milliseconds bufferingThreshold)
 {
     AudioCircularBuffer* b = new AudioCircularBuffer(ch, sRate, maxSamples, sFmt);
 
@@ -39,27 +39,36 @@ AudioCircularBuffer* AudioCircularBuffer::createNew(int ch, int sRate, int maxSa
         return NULL;
     }
 
+    b->setBufferingThreshold(bufferingThreshold);
     return b;
 }
 
-AudioCircularBuffer::AudioCircularBuffer(int ch, int sRate, int maxSamples, SampleFmt sFmt)
-: FrameQueue(), channels(ch), sampleRate(sRate), chMaxSamples(maxSamples), sampleFormat(sFmt),
-outputFrameAlreadyRead(true), bufferingState(BUFFERING)
+AudioCircularBuffer::AudioCircularBuffer(unsigned ch, unsigned sRate, unsigned maxSamples, SampleFmt sFmt)
+: FrameQueue(), channels(ch), sampleRate(sRate), bytesPerSample(0), chMaxSamples(maxSamples), channelMaxLength(0), 
+sampleFormat(sFmt), outputFrameAlreadyRead(true), samplesBufferingThreshold(0), bufferingState(BUFFERING), 
+inputFrame(NULL), outputFrame(NULL), dummyFrame(NULL), synchronized(false), setupSuccess(false), tsDeviationThreshold(0)
 {
-    syncTimestamp = std::chrono::microseconds(0);
-    tsDeviationThreshold = MAX_DEVIATION_SAMPLES*std::micro::den/sRate;
-    synchronized = false;
+
 }
 
 AudioCircularBuffer::~AudioCircularBuffer()
 {
-    for (int i=0; i<channels; i++) {
-        delete[] data[i];
-    }
+    if (setupSuccess) {
 
-    delete inputFrame;
-    delete outputFrame;
+        for (unsigned i=0; i<channels; i++) {
+            delete[] data[i];
+        }        
+        
+        delete inputFrame;
+        delete outputFrame;
+    }
 }
+
+void AudioCircularBuffer::setBufferingThreshold(std::chrono::milliseconds th)
+{
+    samplesBufferingThreshold = th.count()*sampleRate/std::milli::den;
+}
+
 
 
 Frame* AudioCircularBuffer::getRear()
@@ -71,6 +80,8 @@ Frame* AudioCircularBuffer::getFront(bool &newFrame)
 {
     std::chrono::microseconds ts;
     unsigned frontSampleIdx;
+
+    std::lock_guard<std::mutex> guard(mtx);
 
     if (outputFrameAlreadyRead == false) {
         newFrame = true;
@@ -86,7 +97,6 @@ Frame* AudioCircularBuffer::getFront(bool &newFrame)
     frontSampleIdx = front/bytesPerSample;
     ts = std::chrono::microseconds(frontSampleIdx*std::micro::den/sampleRate) + syncTimestamp;
     outputFrame->setPresentationTime(ts);
-    frontSampleIdx += outputFrame->getSamples();
     newFrame = true;
     return outputFrame;
 }
@@ -120,14 +130,19 @@ void AudioCircularBuffer::addFrame()
 
         paddingSamples = (deviation.count()*sampleRate)/std::micro::den;
 
-        if(!forcePushBack(dummyFrame->getPlanarDataBuf(), paddingSamples)) {
-            //TODO::flush buffer??
+        if (paddingSamples >= chMaxSamples) {
+            utils::warningMsg("[AudioCircularBuffer] Time discontinuity. Flushing buffer!");
+            flush();
+            return;
+        }
+
+        if(!pushBack(dummyFrame->getPlanarDataBuf(), paddingSamples)) {
             utils::warningMsg("[AudioCircularBuffer] Cannot push padding");
             return;
         }
     }
 
-    if(!forcePushBack(inputFrame->getPlanarDataBuf(), inputFrame->getSamples())) {
+    if(!pushBack(inputFrame->getPlanarDataBuf(), inputFrame->getSamples())) {
         utils::warningMsg("[AudioCircularBuffer] Cannot push frame");
         return;
     }
@@ -141,7 +156,10 @@ void AudioCircularBuffer::removeFrame()
 
 void AudioCircularBuffer::flush()
 {
-    return;
+    std::lock_guard<std::mutex> guard(mtx);
+    rear = 0;
+    front = 0;
+    synchronized = false;
 }
 
 
@@ -152,20 +170,16 @@ Frame* AudioCircularBuffer::forceGetRear()
 
 Frame* AudioCircularBuffer::forceGetFront(bool &newFrame)
 {
-    bufferingState = OK;
-
-    if (!popFront(outputFrame->getPlanarDataBuf(), outputFrame->getSamples())) {
-        utils::debugMsg("There is not enough data to fill a frame. Outputing silence!");
-        //return dummy frame
-    }
-
-    //updateState
-
-    return outputFrame;
+    newFrame = false;
+    return NULL;
 }
 
 bool AudioCircularBuffer::setup()
 {
+    if (channels <= 0 || sampleRate <= 0 || chMaxSamples <= 0) {
+        return false;
+    }
+
     switch(sampleFormat) {
         case U8P:
             bytesPerSample = 1;
@@ -182,21 +196,22 @@ bool AudioCircularBuffer::setup()
             return false;
     }
 
-    channelMaxLength = BUFFERING_SIZE_TIME*(sampleRate/1000) * bytesPerSample;
+    channelMaxLength = chMaxSamples*(sampleRate/1000) * bytesPerSample;
 
-    for (int i=0; i<channels; i++) {
+    for (unsigned i=0; i<channels; i++) {
         data[i] = new unsigned char [channelMaxLength]();
     }
 
-    inputFrame = PlanarAudioFrame::createNew(channels, sampleRate, chMaxSamples, PCM, sampleFormat);
-    outputFrame = PlanarAudioFrame::createNew(channels, sampleRate, chMaxSamples, PCM, sampleFormat);
-    dummyFrame = PlanarAudioFrame::createNew(channels, sampleRate, chMaxSamples, PCM, sampleFormat);
+    inputFrame = PlanarAudioFrame::createNew(channels, sampleRate, AudioFrame::getMaxSamples(sampleRate), PCM, sampleFormat);
+    outputFrame = PlanarAudioFrame::createNew(channels, sampleRate, AudioFrame::getMaxSamples(sampleRate), PCM, sampleFormat);
+    dummyFrame = PlanarAudioFrame::createNew(channels, sampleRate, AudioFrame::getMaxSamples(sampleRate), PCM, sampleFormat);
     dummyFrame->fillWithValue(0);
 
     outputFrame->setSamples(AudioFrame::getDefaultSamples(sampleRate));
     outputFrame->setLength(AudioFrame::getDefaultSamples(sampleRate)*bytesPerSample);
 
-    samplesBufferingThreshold = BUFFERING_THRESHOLD*(sampleRate/1000);
+    tsDeviationThreshold = MAX_DEVIATION_SAMPLES*std::micro::den/sampleRate;
+    setupSuccess = true;
 
     return true;
 }
@@ -216,7 +231,7 @@ bool AudioCircularBuffer::pushBack(unsigned char **buffer, int samplesRequested)
 
     if ((rearMod + bytesRequested) < channelMaxLength) {
 
-        for (int i=0; i<channels; i++) {
+        for (unsigned i=0; i<channels; i++) {
             memcpy(data[i] + rearMod, buffer[i], bytesRequested);
         }
 
@@ -224,7 +239,7 @@ bool AudioCircularBuffer::pushBack(unsigned char **buffer, int samplesRequested)
 
         firstCopiedBytes = channelMaxLength - rearMod;
         
-        for (int i=0; i<channels;  i++) {
+        for (unsigned i=0; i<channels;  i++) {
             memcpy(data[i] + rearMod, buffer[i], firstCopiedBytes);
             memcpy(data[i], buffer[i] + firstCopiedBytes, bytesRequested - firstCopiedBytes);
         }
@@ -262,14 +277,14 @@ void AudioCircularBuffer::fillOutputBuffers(unsigned char **buffer, int bytesReq
     frontMod = front % channelMaxLength;
 
     if (frontMod + bytesRequested < channelMaxLength) {
-        for (int i=0; i<channels; i++) {
+        for (unsigned i=0; i<channels; i++) {
             memcpy(buffer[i], data[i] + frontMod, bytesRequested);
         }
 
     } else {
         firstCopiedBytes = channelMaxLength - frontMod;
 
-        for (int i=0; i<channels;  i++) {
+        for (unsigned i=0; i<channels;  i++) {
             memcpy(buffer[i], data[i] + frontMod, firstCopiedBytes);
             memcpy(buffer[i] + firstCopiedBytes, data[i], bytesRequested - firstCopiedBytes);
         }

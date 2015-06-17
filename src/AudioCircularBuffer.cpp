@@ -107,6 +107,7 @@ void AudioCircularBuffer::addFrame()
 
     if (deviation.count() > tsDeviationThreshold || deviation.count() < (-tsDeviationThreshold)) {
         utils::warningMsg("[AudioCircularBuffer] Timestamp discontinuity... Synching again.");
+        syncTimestamp = inTs;
         rearSampleIdx = 0;
     }
 

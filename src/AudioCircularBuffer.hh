@@ -75,12 +75,12 @@ private:
 
     PlanarAudioFrame* inputFrame;
     PlanarAudioFrame* outputFrame;
+    PlanarAudioFrame* dummyFrame;
 
     std::atomic<unsigned> syncTimestampAtomicValue;
     std::chrono::microseconds syncTimestamp;
+    bool synchronized;
 
-    unsigned rearSampleIdx;
-    unsigned frontSampleIdx;
     int tsDeviationThreshold;
 };
 

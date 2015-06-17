@@ -23,6 +23,7 @@
 #include "AudioFrame.hh"
 #include <iostream>
 #include <assert.h>
+#include <string.h>
 
 int AudioFrame::getMaxSamples(int sampleRate)
 {
@@ -91,10 +92,10 @@ InterleavedAudioFrame::~InterleavedAudioFrame()
     delete[] frameBuff;
 }
 
-void InterleavedAudioFrame::setDummy()
+void InterleavedAudioFrame::fillWithValue(int value)
 {
-    
-}
+
+}    
 
 
 
@@ -184,7 +185,9 @@ void PlanarAudioFrame::fillBufferWithFloatSamples(std::vector<float> samplesVec,
     }
 }
 
-void PlanarAudioFrame::setDummy()
+void PlanarAudioFrame::fillWithValue(int value)
 {
-    
+    for (int i = 0; i < channels; i++) {
+        memset(frameBuff[i], value, bufferMaxLen);
+    }
 } 

@@ -25,7 +25,7 @@
 #include <cstring>
 #include <iostream>
 
-#define MAX_DEVIATION_SAMPLES 100
+#define MAX_DEVIATION_SAMPLES 1000
 
 int mod (int a, int b);
 
@@ -47,8 +47,8 @@ AudioCircularBuffer::AudioCircularBuffer(int ch, int sRate, int maxSamples, Samp
 outputFrameAlreadyRead(true), bufferingState(BUFFERING)
 {
     syncTimestamp = std::chrono::microseconds(0);
-    frontSampleIdx = 0;
     tsDeviationThreshold = MAX_DEVIATION_SAMPLES*std::micro::den/sRate;
+    synchronized = false;
 }
 
 AudioCircularBuffer::~AudioCircularBuffer()
@@ -70,6 +70,7 @@ Frame* AudioCircularBuffer::getRear()
 Frame* AudioCircularBuffer::getFront(bool &newFrame)
 {
     std::chrono::microseconds ts;
+    unsigned frontSampleIdx;
 
     if (outputFrameAlreadyRead == false) {
         newFrame = true;
@@ -82,6 +83,7 @@ Frame* AudioCircularBuffer::getFront(bool &newFrame)
         return NULL;
     }
 
+    frontSampleIdx = front/bytesPerSample;
     ts = std::chrono::microseconds(frontSampleIdx*std::micro::den/sampleRate) + syncTimestamp;
     outputFrame->setPresentationTime(ts);
     frontSampleIdx += outputFrame->getSamples();
@@ -94,28 +96,41 @@ void AudioCircularBuffer::addFrame()
     std::chrono::microseconds inTs;
     std::chrono::microseconds rearTs;
     std::chrono::microseconds deviation;
+    unsigned paddingSamples;
+    unsigned rearSampleIdx;
 
     inTs = inputFrame->getPresentationTime();
 
-    if (syncTimestamp.count() == 0) {
+    if (!synchronized) {
         syncTimestamp = inTs;
-        rearSampleIdx = 0;
+        synchronized = true;
     }
 
+    rearSampleIdx = rear/bytesPerSample;
     rearTs = std::chrono::microseconds(rearSampleIdx*std::micro::den/sampleRate) + syncTimestamp;
     deviation = inTs - rearTs;
 
-    if (deviation.count() > tsDeviationThreshold || deviation.count() < (-tsDeviationThreshold)) {
-        utils::warningMsg("[AudioCircularBuffer] Timestamp discontinuity... Synching again.");
-        syncTimestamp = inTs;
-        rearSampleIdx = 0;
-    }
-
-    if(!forcePushBack(inputFrame->getPlanarDataBuf(), inputFrame->getSamples())) {
+    if (deviation.count() < -tsDeviationThreshold) {
+        utils::warningMsg("[AudioCircularBuffer] Timestamp from the past, discarding entire frame");
         return;
     }
 
-    rearSampleIdx += inputFrame->getSamples();
+    if (deviation.count() > tsDeviationThreshold) {
+        utils::warningMsg("[AudioCircularBuffer] Deviation exceeded, introducing silence");
+
+        paddingSamples = (deviation.count()*sampleRate)/std::micro::den;
+
+        if(!forcePushBack(dummyFrame->getPlanarDataBuf(), paddingSamples)) {
+            //TODO::flush buffer??
+            utils::warningMsg("[AudioCircularBuffer] Cannot push padding");
+            return;
+        }
+    }
+
+    if(!forcePushBack(inputFrame->getPlanarDataBuf(), inputFrame->getSamples())) {
+        utils::warningMsg("[AudioCircularBuffer] Cannot push frame");
+        return;
+    }
 }
 
 void AudioCircularBuffer::removeFrame()
@@ -161,13 +176,10 @@ bool AudioCircularBuffer::setup()
         case FLTP:
             bytesPerSample = 4;
             break;
-        case S_NONE:
-        case U8:
-        case S16:
-        case FLT:
+        default:
             bytesPerSample = 0;
             utils::errorMsg("[Audio Circular Buffer] Only planar sample formats are supported (U8P, S16P, FLTP)");
-            break;
+            return false;
     }
 
     channelMaxLength = BUFFERING_SIZE_TIME*(sampleRate/1000) * bytesPerSample;
@@ -178,6 +190,8 @@ bool AudioCircularBuffer::setup()
 
     inputFrame = PlanarAudioFrame::createNew(channels, sampleRate, chMaxSamples, PCM, sampleFormat);
     outputFrame = PlanarAudioFrame::createNew(channels, sampleRate, chMaxSamples, PCM, sampleFormat);
+    dummyFrame = PlanarAudioFrame::createNew(channels, sampleRate, chMaxSamples, PCM, sampleFormat);
+    dummyFrame->fillWithValue(0);
 
     outputFrame->setSamples(AudioFrame::getDefaultSamples(sampleRate));
     outputFrame->setLength(AudioFrame::getDefaultSamples(sampleRate)*bytesPerSample);
@@ -191,32 +205,33 @@ bool AudioCircularBuffer::setup()
 bool AudioCircularBuffer::pushBack(unsigned char **buffer, int samplesRequested)
 {
     unsigned bytesRequested = samplesRequested * bytesPerSample;
+    unsigned rearMod;
+    int firstCopiedBytes;
 
     if (bytesRequested > (channelMaxLength - elements)) {
         return false;
     }
 
-    if ((rear + bytesRequested) < channelMaxLength) {
+    rearMod = rear % channelMaxLength;
+
+    if ((rearMod + bytesRequested) < channelMaxLength) {
+
         for (int i=0; i<channels; i++) {
-            memcpy(data[i] + rear, buffer[i], bytesRequested);
+            memcpy(data[i] + rearMod, buffer[i], bytesRequested);
         }
 
-        elements += bytesRequested;
-        rear = (rear + bytesRequested) % channelMaxLength;
+    } else {
 
-        return true;
-    }
-
-    int firstCopiedBytes = channelMaxLength - rear;
-
-    for (int i=0; i<channels;  i++) {
-        memcpy(data[i] + rear, buffer[i], firstCopiedBytes);
-        memcpy(data[i], buffer[i] + firstCopiedBytes, bytesRequested - firstCopiedBytes);
+        firstCopiedBytes = channelMaxLength - rearMod;
+        
+        for (int i=0; i<channels;  i++) {
+            memcpy(data[i] + rearMod, buffer[i], firstCopiedBytes);
+            memcpy(data[i], buffer[i] + firstCopiedBytes, bytesRequested - firstCopiedBytes);
+        }
     }
 
     elements += bytesRequested;
-    rear = (rear + bytesRequested) % channelMaxLength;
-
+    rear += bytesRequested;
     return true;
 }
 
@@ -242,23 +257,26 @@ bool AudioCircularBuffer::popFront(unsigned char **buffer, int samplesRequested)
 void AudioCircularBuffer::fillOutputBuffers(unsigned char **buffer, int bytesRequested)
 {
     int firstCopiedBytes = 0;
+    unsigned frontMod;
 
-    if (front + bytesRequested < channelMaxLength) {
+    frontMod = front % channelMaxLength;
+
+    if (frontMod + bytesRequested < channelMaxLength) {
         for (int i=0; i<channels; i++) {
-            memcpy(buffer[i], data[i] + front, bytesRequested);
+            memcpy(buffer[i], data[i] + frontMod, bytesRequested);
         }
 
     } else {
-        firstCopiedBytes = channelMaxLength - front;
+        firstCopiedBytes = channelMaxLength - frontMod;
 
         for (int i=0; i<channels;  i++) {
-            memcpy(buffer[i], data[i] + front, firstCopiedBytes);
+            memcpy(buffer[i], data[i] + frontMod, firstCopiedBytes);
             memcpy(buffer[i] + firstCopiedBytes, data[i], bytesRequested - firstCopiedBytes);
         }
     }
 
     elements -= bytesRequested;
-    front = (front + bytesRequested) % channelMaxLength;
+    front += bytesRequested;
 }
 
 int AudioCircularBuffer::getFreeSamples()

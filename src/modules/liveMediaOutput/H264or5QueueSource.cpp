@@ -58,9 +58,8 @@ void H264or5QueueSource::doGetNextFrame() {
     uint8_t offset;
 
     bool newFrame = false;
-    QueueState state;
 
-    frame = fReader->getFrame(state, newFrame);
+    frame = fReader->getFrame(newFrame);
 
     if ((newFrame && frame == NULL) || (!newFrame && frame != NULL)) {
         //TODO: sanity check, think about assert

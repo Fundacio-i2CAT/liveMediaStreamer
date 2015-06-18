@@ -40,7 +40,6 @@ public:
     Frame *forceGetFront(bool &newFrame);
     unsigned getElements() const {return elements;};
     bool frameToRead();
-    QueueState getState();
 
     virtual ~AVFramedQueue();
 

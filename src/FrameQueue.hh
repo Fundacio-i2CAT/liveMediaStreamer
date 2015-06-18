@@ -39,8 +39,6 @@
 
 using namespace std::chrono;
 
-enum QueueState{SLOW, FAST};
-
 /*! FrameQueue class is pure abstract class that represents buffering structure
     of the pipeline
 */
@@ -50,7 +48,7 @@ public:
     /**
     * Creates a frame object
     */
-    FrameQueue() : state(SLOW), rear(0), front(0), elements(0), connected(false), firstFrame(false) {};
+    FrameQueue() : rear(0), front(0), elements(0), connected(false), firstFrame(false) {};
     virtual ~FrameQueue() {};
 
     /**
@@ -100,12 +98,6 @@ public:
     virtual bool frameToRead() = 0;
 
     /**
-    * Get queue's state
-    * @return queuestate object
-    */
-    virtual QueueState getState() = 0;
-
-    /**
     * To know if the queue is connected with a reader and a writer
     * @return true if connected and false if not
     */
@@ -124,7 +116,6 @@ public:
     unsigned getElements() {return elements;};
 
 protected:
-    QueueState state;
     std::atomic<unsigned> rear;
     std::atomic<unsigned> front;
     std::atomic<unsigned> elements;

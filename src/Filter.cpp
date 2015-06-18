@@ -27,10 +27,6 @@
 
 #include <thread>
 
-#define WALL_CLOCK_THRESHOLD 2.5 //number of frames
-#define SLOW_MODIFIER 1.10
-#define FAST_MODIFIER 0.90
-
 BaseFilter::BaseFilter(unsigned readersNum, unsigned writersNum, size_t fTime, FilterRole fRole_, bool force_, bool sharedFrames_):
 process(false), maxReaders(readersNum), maxWriters(writersNum), force(force_), frameTime(fTime), fRole(fRole_), sharedFrames(sharedFrames_)
 {
@@ -477,7 +473,6 @@ bool OneToOneFilter::runDoProcessFrame()
 bool OneToOneFilter::demandOriginFrames()
 {
     bool newFrame;
-    QueueState qState;
     Reader* r;
     int rId;
 
@@ -495,7 +490,7 @@ bool OneToOneFilter::demandOriginFrames()
         return false;
     }
 
-    oFrames[rId] = r->getFrame(qState, newFrame, force);
+    oFrames[rId] = r->getFrame(newFrame, force);
 
     if (!oFrames[rId]) {
         return false;
@@ -531,7 +526,6 @@ bool OneToManyFilter::demandOriginFrames()
 {
     bool newFrame;
     bool someFrame = false;
-    QueueState qState;
 
     if (maxReaders == 0) {
         return true;
@@ -546,7 +540,7 @@ bool OneToManyFilter::demandOriginFrames()
             continue;
         }
 
-        oFrames[it.first] = it.second->getFrame(qState, newFrame, force);
+        oFrames[it.first] = it.second->getFrame(newFrame, force);
 
         if (oFrames[it.first] != NULL) {
             if (newFrame) {
@@ -561,12 +555,6 @@ bool OneToManyFilter::demandOriginFrames()
             rUpdates[it.first] = false;
         }
 
-    }
-
-    if (qState == SLOW) {
-        bufferStateFrameTimeMod = SLOW_MODIFIER;
-    } else {
-        bufferStateFrameTimeMod = FAST_MODIFIER;
     }
 
     return someFrame;
@@ -652,7 +640,6 @@ bool TailFilter::demandOriginFrames()
 {
     bool newFrame;
     bool someFrame = false;
-    QueueState qState;
 
     if (maxReaders == 0) {
         return true;
@@ -667,7 +654,7 @@ bool TailFilter::demandOriginFrames()
             continue;
         }
 
-        oFrames[it.first] = it.second->getFrame(qState, newFrame, force);
+        oFrames[it.first] = it.second->getFrame(newFrame, force);
 
         if (oFrames[it.first] != NULL) {
             if (newFrame) {
@@ -682,12 +669,6 @@ bool TailFilter::demandOriginFrames()
             rUpdates[it.first] = false;
         }
 
-    }
-
-    if (qState == SLOW) {
-        bufferStateFrameTimeMod = SLOW_MODIFIER;
-    } else {
-        bufferStateFrameTimeMod = FAST_MODIFIER;
     }
 
     return someFrame;
@@ -719,7 +700,6 @@ bool ManyToOneFilter::demandOriginFrames()
 {
     bool newFrame;
     bool someFrame = false;
-    QueueState qState;
 
     if (maxReaders == 0) {
         return true;
@@ -734,7 +714,7 @@ bool ManyToOneFilter::demandOriginFrames()
             continue;
         }
 
-        oFrames[it.first] = it.second->getFrame(qState, newFrame, force);
+        oFrames[it.first] = it.second->getFrame(newFrame, force);
 
         if (oFrames[it.first] != NULL) {
             if (newFrame) {
@@ -749,12 +729,6 @@ bool ManyToOneFilter::demandOriginFrames()
             rUpdates[it.first] = false;
         }
 
-    }
-
-    if (qState == SLOW) {
-        bufferStateFrameTimeMod = SLOW_MODIFIER;
-    } else {
-        bufferStateFrameTimeMod = FAST_MODIFIER;
     }
 
     return someFrame;
@@ -790,7 +764,6 @@ bool LiveMediaFilter::demandOriginFrames()
     return true;
     bool newFrame;
     bool someFrame = false;
-    QueueState qState;
 
     if (maxReaders == 0) {
         return true;
@@ -805,7 +778,7 @@ bool LiveMediaFilter::demandOriginFrames()
             continue;
         }
 
-        oFrames[it.first] = it.second->getFrame(qState, newFrame, force);
+        oFrames[it.first] = it.second->getFrame(newFrame, force);
 
         if (oFrames[it.first] != NULL) {
             if (newFrame) {
@@ -820,12 +793,6 @@ bool LiveMediaFilter::demandOriginFrames()
             rUpdates[it.first] = false;
         }
 
-    }
-
-    if (qState == SLOW) {
-        bufferStateFrameTimeMod = SLOW_MODIFIER;
-    } else {
-        bufferStateFrameTimeMod = FAST_MODIFIER;
     }
 
     return someFrame;

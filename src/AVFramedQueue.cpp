@@ -108,21 +108,6 @@ bool AVFramedQueue::frameToRead()
     }
 }
 
-QueueState AVFramedQueue::getState()
-{
-    float occupancy = (float)elements/(float)max;
-   
-    if (occupancy > FAST_THRESHOLD) {
-        state = FAST;
-    }
-
-    if (occupancy < SLOW_THRESHOLD) {
-        state = SLOW;
-    }
-
-    return state;
-}
-
 ////////////////////////////////////////////
 //VIDEO FRAME QUEUE METHODS IMPLEMENTATION//
 ////////////////////////////////////////////

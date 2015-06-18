@@ -48,7 +48,6 @@ public:
     Frame *forceGetFront(bool &newFrame);
     bool frameToRead() {return false;};
     int getFreeSamples();
-    QueueState getState();
     void setBufferingThreshold(std::chrono::milliseconds th);
 
 private:

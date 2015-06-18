@@ -27,8 +27,6 @@
 
 #define MAX_DEVIATION_SAMPLES 64
 
-int mod (int a, int b);
-
 AudioCircularBuffer* AudioCircularBuffer::createNew(unsigned ch, unsigned sRate, unsigned maxSamples, SampleFmt sFmt, std::chrono::milliseconds bufferingThreshold)
 {
     AudioCircularBuffer* b = new AudioCircularBuffer(ch, sRate, maxSamples, sFmt);
@@ -329,28 +327,3 @@ void AudioCircularBuffer::setOutputFrameSamples(int samples)
     outputFrame->setLength(samples*bytesPerSample);
 }
 
-QueueState AudioCircularBuffer::getState()
-{
-    float occupancy = (float)elements/(float)channelMaxLength;
-
-    if (occupancy > FAST_THRESHOLD) {
-        state = FAST;
-    }
-
-    if (occupancy < SLOW_THRESHOLD) {
-        state = SLOW;
-    }
-
-    return state;
-}
-
-int mod (int a, int b)
-{
-    int ret = a % b;
-
-    if (ret < 0) {
-        ret += b;
-    }
-
-    return ret;
-}

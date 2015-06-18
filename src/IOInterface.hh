@@ -126,12 +126,11 @@ public:
     /**
     * Gets front frame object from queue if possible. If force is set to true and
     * frame is NULL this will flush queue until having a frame object from front
-    * @param QueueState object pointer to set queue state
     * @param bool to check if there is a newFrame or not
     * @param bool to force having frame object or not (default set to false)
     * @return Frame object from its queue
     */
-    Frame* getFrame(QueueState &state, bool &newFrame, bool force = false);
+    Frame* getFrame(bool &newFrame, bool force = false);
 
     /**
     * Removes frame element from queue

@@ -17,10 +17,9 @@ void QueueSource::doGetNextFrame()
 {
     checkStatus();
     bool newFrame = false;
-    QueueState state;
     std::chrono::microseconds presentationTime;
 
-    frame = fReader->getFrame(state, newFrame);
+    frame = fReader->getFrame(newFrame);
 
     if ((newFrame && frame == NULL) || (!newFrame && frame != NULL)) {
         //TODO: sanity check, think about assert

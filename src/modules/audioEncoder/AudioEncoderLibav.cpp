@@ -29,7 +29,7 @@ bool checkSampleFormat(AVCodec *codec, enum AVSampleFormat sampleFmt);
 bool checkSampleRateSupport(AVCodec *codec, int sampleRate);
 bool checkChannelLayoutSupport(AVCodec *codec, uint64_t channelLayout);
 
-AudioEncoderLibav::AudioEncoderLibav(FilterRole fRole_, bool sharedFrames) : OneToOneFilter(false, fRole_, sharedFrames), fCodec(AC_NONE), 
+AudioEncoderLibav::AudioEncoderLibav(FilterRole fRole_, bool sharedFrames) : OneToOneFilter(fRole_, sharedFrames), fCodec(AC_NONE), 
 samplesPerFrame(0), internalChannels(0), internalSampleRate(0), internalSampleFmt(S_NONE), internalLibavSampleFmt(AV_SAMPLE_FMT_NONE), 
 outputBitrate(0), inputChannels(0), inputSampleRate(0), inputSampleFmt(S_NONE), inputLibavSampleFmt(AV_SAMPLE_FMT_NONE)
 {

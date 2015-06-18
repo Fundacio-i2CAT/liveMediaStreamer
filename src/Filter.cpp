@@ -451,8 +451,8 @@ void BaseFilter::updateFrames(std::map<int, Frame*> oFrames_)
     oFrames = oFrames_;
 }
 
-OneToOneFilter::OneToOneFilter(bool byPassTimestamp, FilterRole fRole_, bool sharedFrames_, size_t fTime, bool force_) :
-    BaseFilter(1,1,fTime,fRole_,force_,sharedFrames_), passTimestamp(byPassTimestamp)
+OneToOneFilter::OneToOneFilter(FilterRole fRole_, bool sharedFrames_, size_t fTime, bool force_) :
+BaseFilter(1,1,fTime,fRole_,force_,sharedFrames_)
 {
     
 }

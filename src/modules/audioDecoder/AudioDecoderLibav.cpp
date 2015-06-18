@@ -48,7 +48,7 @@ AVSampleFormat getAVSampleFormatFromtIntCode(int id)
 }
 
 AudioDecoderLibav::AudioDecoderLibav(FilterRole fRole_, bool sharedFrames)
-: OneToOneFilter(true, fRole_, sharedFrames)
+: OneToOneFilter(fRole_, sharedFrames)
 {
     avcodec_register_all();
 

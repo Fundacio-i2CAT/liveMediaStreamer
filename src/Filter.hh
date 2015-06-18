@@ -257,14 +257,12 @@ private:
 class OneToOneFilter : public BaseFilter {
 
 protected:
-    OneToOneFilter(bool byPassTimestamp, FilterRole fRole_ = MASTER, bool sharedFrames_ = true, size_t fTime = 0, bool force_ = false);
+    OneToOneFilter(FilterRole fRole_ = MASTER, bool sharedFrames_ = true, size_t fTime = 0, bool force_ = false);
     virtual bool doProcessFrame(Frame *org, Frame *dst) = 0;
     using BaseFilter::setFrameTime;
     using BaseFilter::getFrameTime;
 
 private:
-    bool passTimestamp;
-
     bool runDoProcessFrame();
     bool demandOriginFrames();
     

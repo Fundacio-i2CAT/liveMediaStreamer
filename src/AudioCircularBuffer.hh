@@ -58,7 +58,7 @@ private:
 
     bool pushBack(unsigned char **buffer, int samplesRequested);
     bool forcePushBack(unsigned char **buffer, int samplesRequested);
-    bool popFront(unsigned char **buffer, int samplesRequested);
+    bool popFront(unsigned char **buffer, unsigned samplesRequested);
     void fillOutputBuffers(unsigned char **buffer, int bytesRequested);
     bool setup();
 

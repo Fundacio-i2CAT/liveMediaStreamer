@@ -117,6 +117,12 @@ public:
     */
     void setConnected(bool conn) {connected = conn;};
 
+    /**
+    * Get number of elements in the queue
+    * @return elements
+    */
+    unsigned getElements() {return elements;};
+
 protected:
     QueueState state;
     std::atomic<unsigned> rear;

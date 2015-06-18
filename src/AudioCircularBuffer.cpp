@@ -69,8 +69,6 @@ void AudioCircularBuffer::setBufferingThreshold(std::chrono::milliseconds th)
     samplesBufferingThreshold = th.count()*sampleRate/std::milli::den;
 }
 
-
-
 Frame* AudioCircularBuffer::getRear()
 {
     return inputFrame;
@@ -88,16 +86,18 @@ Frame* AudioCircularBuffer::getFront(bool &newFrame)
         return outputFrame;
     }
 
+    frontSampleIdx = front/bytesPerSample;
+    ts = std::chrono::microseconds(frontSampleIdx*std::micro::den/sampleRate) + syncTimestamp;
+    outputFrame->setPresentationTime(ts);
+
     if (!popFront(outputFrame->getPlanarDataBuf(), outputFrame->getSamples())) {
         newFrame = false;
         utils::debugMsg("There is not enough data to fill a frame. Impossible to get new frame!");
         return NULL;
     }
 
-    frontSampleIdx = front/bytesPerSample;
-    ts = std::chrono::microseconds(frontSampleIdx*std::micro::den/sampleRate) + syncTimestamp;
-    outputFrame->setPresentationTime(ts);
     newFrame = true;
+    outputFrameAlreadyRead = false;
     return outputFrame;
 }
 
@@ -159,6 +159,7 @@ void AudioCircularBuffer::flush()
     std::lock_guard<std::mutex> guard(mtx);
     rear = 0;
     front = 0;
+    elements = 0;
     synchronized = false;
 }
 
@@ -250,9 +251,13 @@ bool AudioCircularBuffer::pushBack(unsigned char **buffer, int samplesRequested)
     return true;
 }
 
-bool AudioCircularBuffer::popFront(unsigned char **buffer, int samplesRequested)
+bool AudioCircularBuffer::popFront(unsigned char **buffer, unsigned samplesRequested)
 {
-    int bytesRequested = samplesRequested * bytesPerSample;
+    unsigned bytesRequested = samplesRequested * bytesPerSample;
+
+    if (elements < bytesRequested) {
+        return false;
+    }
 
     if (elements < samplesBufferingThreshold * bytesPerSample) {
         bufferingState = BUFFERING;

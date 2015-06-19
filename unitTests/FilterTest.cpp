@@ -445,18 +445,18 @@ void FilterFunctionalTest::masterSlavesIndependentFramesTest()
     
     size_t seq = 0;
     size_t elements = masterOut->getElements();
-    bool newFrame;
+
     for (size_t i = 0; i < elements; i ++){
-        CPPUNIT_ASSERT(seq < masterOut->getFront(newFrame)->getSequenceNumber());
-        seq = masterOut->getFront(newFrame)->getSequenceNumber();
+        CPPUNIT_ASSERT(seq < masterOut->getFront()->getSequenceNumber());
+        seq = masterOut->getFront()->getSequenceNumber();
         masterOut->removeFrame();
     }
     
     seq = 0;
     elements = slave1Out->getElements();
     for (size_t i = 0; i < elements; i ++){
-        CPPUNIT_ASSERT(seq < slave1Out->getFront(newFrame)->getSequenceNumber());
-        seq = slave1Out->getFront(newFrame)->getSequenceNumber();
+        CPPUNIT_ASSERT(seq < slave1Out->getFront()->getSequenceNumber());
+        seq = slave1Out->getFront()->getSequenceNumber();
         slave1Out->removeFrame();
     }
     
@@ -558,10 +558,10 @@ void FilterFunctionalTest::masterSlavesSharedFramesTest()
     
     size_t seq = 0;
     size_t elements = slave1Out->getElements();
-    bool newFrame;
+
     for (size_t i = 0; i < elements; i ++){
-        CPPUNIT_ASSERT(seq < slave1Out->getFront(newFrame)->getSequenceNumber());
-        seq = slave1Out->getFront(newFrame)->getSequenceNumber();
+        CPPUNIT_ASSERT(seq < slave1Out->getFront()->getSequenceNumber());
+        seq = slave1Out->getFront()->getSequenceNumber();
         slave1Out->removeFrame();
     }
 

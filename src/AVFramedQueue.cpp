@@ -47,14 +47,13 @@ Frame* AVFramedQueue::getRear()
     return frames[rear];
 }
 
-Frame* AVFramedQueue::getFront(bool &newFrame) 
+Frame* AVFramedQueue::getFront() 
 {
-    if(frameToRead()) {
-        newFrame = true;
-        return frames[front];
+    if(!frameToRead()) {
+        return NULL;
     }
-    newFrame = false;
-    return NULL;
+
+    return frames[front];
 }
 
 void AVFramedQueue::addFrame() 
@@ -88,24 +87,15 @@ Frame* AVFramedQueue::forceGetRear()
     return frame;
 }
 
-Frame* AVFramedQueue::forceGetFront(bool &newFrame)
+Frame* AVFramedQueue::forceGetFront()
 {
-    if (!firstFrame) {
-        // utils::debugMsg("Forcing front without any frame. Returning NULL pointer");
-        return NULL;
-    }
-
     return frames[(front + (max - 1)) % max]; 
 }
 
 
 bool AVFramedQueue::frameToRead()
 {
-    if (elements <= 0){
-        return false;
-    } else {
-        return true;
-    }
+    return elements > 0;
 }
 
 ////////////////////////////////////////////

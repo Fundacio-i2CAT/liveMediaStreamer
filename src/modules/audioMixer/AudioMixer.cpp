@@ -41,7 +41,7 @@ AudioMixer::AudioMixer(FilterRole role, bool sharedFrames, int inputChannels) : 
     samples.resize(AudioFrame::getMaxSamples(sampleRate));
     mixedSamples.resize(AudioFrame::getMaxSamples(sampleRate));
     samplesPerFrame = AudioFrame::getDefaultSamples(sampleRate);
-    setFrameTime(std::chrono::nanoseconds(samplesPerFrame*std::nano::den/sampleRate));
+    setFrameTime(std::chrono::microseconds(samplesPerFrame*std::micro::den/sampleRate));
 
     initializeEventMap();
 

@@ -32,12 +32,12 @@ class AVFramedQueue : public FrameQueue {
 public:
     AVFramedQueue(unsigned maxFrames);
     virtual Frame *getRear();
-    Frame *getFront(bool &newFrame);
+    Frame *getFront();
     virtual void addFrame();
     void removeFrame();
     void flush();
     virtual Frame *forceGetRear();
-    Frame *forceGetFront(bool &newFrame);
+    Frame *forceGetFront();
     unsigned getElements() const {return elements;};
     bool frameToRead();
 

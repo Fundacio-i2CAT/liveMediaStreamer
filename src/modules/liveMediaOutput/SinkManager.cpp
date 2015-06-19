@@ -100,7 +100,7 @@ void SinkManager::stop()
     watch = 1;
 }
 
-bool SinkManager::runDoProcessFrame()
+bool SinkManager::runDoProcessFrame(std::chrono::microseconds outTimestamp)
 {
     if (envir() == NULL){
         return false;

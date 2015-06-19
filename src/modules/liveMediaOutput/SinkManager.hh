@@ -97,7 +97,7 @@ private:
     
     Reader *setReader(int readerID, FrameQueue* queue);
 
-    bool runDoProcessFrame();
+    bool runDoProcessFrame(std::chrono::microseconds outTimestamp);
     void stop();
 
     FrameQueue *allocQueue(int wId) { return NULL;};

@@ -50,7 +50,7 @@ BaseFilter::~BaseFilter()
     rUpdates.clear();
 }
 
-void BaseFilter::setFrameTime(std::chrono::nanoseconds fTime)
+void BaseFilter::setFrameTime(std::chrono::microseconds fTime)
 {
     frameTime = fTime;
 }
@@ -298,18 +298,10 @@ void BaseFilter::getState(Jzon::Object &filterNode)
     doGetState(filterNode);
 }
 
-bool BaseFilter::hasFrames()
-{
-	if (!demandOriginFrames() || !demandDestinationFrames()) {
-		return false;
-	}
-
-	return true;
-}
-
 std::chrono::nanoseconds BaseFilter::processFrame()
 {
     std::chrono::nanoseconds retValue;
+    std::chrono::microseconds outTimestamp;
 
     switch(fRole) {
         case MASTER:
@@ -319,7 +311,7 @@ std::chrono::nanoseconds BaseFilter::processFrame()
             retValue = slaveProcessFrame();
             break;
         case NETWORK:
-            runDoProcessFrame();
+            runDoProcessFrame(outTimestamp);
             retValue = std::chrono::nanoseconds(0);
             break;
         default:
@@ -377,16 +369,17 @@ std::chrono::nanoseconds BaseFilter::masterProcessFrame()
 {
     std::chrono::nanoseconds enlapsedTime;
     std::chrono::nanoseconds frameTime_;
+    std::chrono::microseconds outTimestamp;
     
     processEvent();
       
-    if (!demandOriginFrames() || !demandDestinationFrames()) {
+    if (!demandOriginFrames(outTimestamp) || !demandDestinationFrames()) {
         return std::chrono::nanoseconds(RETRY);
     }
 
     processAll();
 
-    runDoProcessFrame();
+    runDoProcessFrame(outTimestamp);
 
     while (runningSlaves()){
         std::this_thread::sleep_for(std::chrono::nanoseconds(RETRY));
@@ -399,6 +392,8 @@ std::chrono::nanoseconds BaseFilter::masterProcessFrame()
 
 std::chrono::nanoseconds BaseFilter::slaveProcessFrame()
 {
+    std::chrono::microseconds outTimestamp;
+
     if (!process) {
         return std::chrono::nanoseconds(RETRY);
     }
@@ -410,11 +405,11 @@ std::chrono::nanoseconds BaseFilter::slaveProcessFrame()
         return std::chrono::nanoseconds(RETRY);
     }
 
-    if (!sharedFrames && !demandOriginFrames()) {
+    if (!sharedFrames && !demandOriginFrames(outTimestamp)) {
         return std::chrono::nanoseconds(RETRY);
     }
 
-    runDoProcessFrame();
+    runDoProcessFrame(outTimestamp);
 
     if (!sharedFrames){
         removeFrames();
@@ -429,53 +424,131 @@ void BaseFilter::updateFrames(std::map<int, Frame*> oFrames_)
     oFrames = oFrames_;
 }
 
+bool BaseFilter::demandOriginFrames(std::chrono::microseconds &outTimestamp)
+{
+    bool success;
+
+    if (readers.empty()) {
+        return false;
+    }
+
+    if (frameTime.count() <= 0) {
+        success = demandOriginFramesBestEffort(outTimestamp);
+    } else {
+        success = demandOriginFramesFrameTime(outTimestamp);
+    }
+
+    return success;
+}
+
+bool BaseFilter::demandOriginFramesBestEffort(std::chrono::microseconds &outTimestamp) 
+{
+    std::chrono::microseconds outTs = std::chrono::microseconds(0);
+    bool noFrame = true;
+    Frame* frame;
+
+    for (auto r : readers) {
+        frame = r.second->getFrame();
+
+        if (!frame) {
+            frame = r.second->getFrame(true);
+            oFrames[r.first] = frame;
+            rUpdates[r.first] = false;
+            continue;
+        }
+
+        outTs = std::max(frame->getPresentationTime(), outTs);
+        oFrames[r.first] = frame;
+        rUpdates[r.first] = true;
+        noFrame = false;
+    }
+
+    if (noFrame) {
+        return false;
+    }
+
+    outTimestamp = outTs;
+    return false;
+}
+
+bool BaseFilter::demandOriginFramesFrameTime(std::chrono::microseconds &outTimestamp) 
+{
+    std::chrono::microseconds outOfScopeTs = std::chrono::microseconds(-1);
+    std::chrono::microseconds outTs = std::chrono::microseconds(-1);
+    Frame* frame;
+
+    for (auto r : readers) {
+        frame = r.second->getFrame();
+
+        // In case a frame is earliear than syncTs, we will discard frames
+        // until we found a valid one or until we found a NULL (which will treat later) 
+        while(frame && frame->getPresentationTime() < syncTs) {
+            r.second->removeFrame();
+            frame = r.second->getFrame();
+        }
+
+        // If there is no frame or the current one is out of our mixing scope, 
+        // we get the previous one from the queue
+        if (!frame || frame->getPresentationTime() >= syncTs + frameTime) {
+            frame = r.second->getFrame(true);
+            oFrames[r.first] = frame;
+            rUpdates[r.first] = false;
+
+            if (outOfScopeTs.count() < 0) {
+                outOfScopeTs = frame->getPresentationTime();
+            } else {
+                outOfScopeTs = std::min(frame->getPresentationTime(), outOfScopeTs);
+            }
+
+            continue;
+        }
+
+        // Normal case, which means that the frame is in our mixing scope (syncTime -> syncTime+frameTime)
+        // We use its timestamp to calculate the output frame timestamp 
+        if (outTs.count() < 0) {
+            outTs = frame->getPresentationTime();
+        } else {
+            outTs = std::min(frame->getPresentationTime(), outTs);
+        }
+
+        oFrames[r.first] = frame;
+        rUpdates[r.first] = true;
+    }
+
+    // After all, there was no valid frame, so we return false
+    // This case is nearly impossible
+    if (outTs.count() < 0) {
+
+        if (outOfScopeTs.count() > 0) {
+            syncTs = outOfScopeTs;
+        }
+
+        return false;
+    } 
+
+    // Finally set timestamp and set syncTs
+    outTimestamp = syncTs;
+    syncTs += frameTime;
+    return true;
+}
+
+
 OneToOneFilter::OneToOneFilter(FilterRole fRole_, bool sharedFrames_, size_t fTime) :
 BaseFilter(1, 1, fTime, fRole_, sharedFrames_)
 {
     
 }
 
-bool OneToOneFilter::runDoProcessFrame()
+bool OneToOneFilter::runDoProcessFrame(std::chrono::microseconds outTimestamp)
 {
     if (!doProcessFrame(oFrames.begin()->second, dFrames.begin()->second)) {
         return false;
     }
     
-    dFrames.begin()->second->setPresentationTime(oFrames.begin()->second->getPresentationTime());
+    dFrames.begin()->second->setPresentationTime(outTimestamp);
     dFrames.begin()->second->setDuration(oFrames.begin()->second->getDuration());
     dFrames.begin()->second->setSequenceNumber(oFrames.begin()->second->getSequenceNumber());
     addFrames();
-    return true;
-}
-
-bool OneToOneFilter::demandOriginFrames()
-{
-    bool newFrame;
-    Reader* r;
-    int rId;
-    bool force = false;
-
-    if (readers.empty()) {
-        return false;
-    }
-
-    rId = readers.begin()->first;
-    r = readers.begin()->second;
-
-    if (!r->isConnected()) {
-        r->disconnect();
-        delete r;
-        readers.erase(rId);
-        return false;
-    }
-
-    oFrames[rId] = r->getFrame(newFrame, force);
-
-    if (!oFrames[rId]) {
-        return false;
-    }
-
-    rUpdates[rId] = true;
     return true;
 }
 
@@ -485,14 +558,14 @@ BaseFilter(1, writersNum, fTime, fRole_, sharedFrames_)
 
 }
 
-bool OneToManyFilter::runDoProcessFrame()
+bool OneToManyFilter::runDoProcessFrame(std::chrono::microseconds outTimestamp)
 {
     if (!doProcessFrame(oFrames.begin()->second, dFrames)) {
         return false;
     }
 
     for (auto it : dFrames) {
-        it.second->setPresentationTime(oFrames.begin()->second->getPresentationTime());
+        it.second->setPresentationTime(outTimestamp);
         it.second->setDuration(oFrames.begin()->second->getDuration());
         it.second->setSequenceNumber(oFrames.begin()->second->getSequenceNumber());
     }
@@ -501,53 +574,13 @@ bool OneToManyFilter::runDoProcessFrame()
     return true;
 }
 
-bool OneToManyFilter::demandOriginFrames()
-{
-    bool newFrame;
-    bool someFrame = false;
-    bool force = false;
-
-    if (maxReaders == 0) {
-        return true;
-    }
-
-    for (auto it : readers) {
-        if (!it.second->isConnected()) {
-            it.second->disconnect();
-            //NOTE: think about readers as shared pointers
-            delete it.second;
-            readers.erase(it.first);
-            continue;
-        }
-
-        oFrames[it.first] = it.second->getFrame(newFrame, force);
-
-        if (oFrames[it.first] != NULL) {
-            if (newFrame) {
-                rUpdates[it.first] = true;
-            } else {
-                rUpdates[it.first] = false;
-            }
-
-            someFrame = true;
-
-        } else {
-            rUpdates[it.first] = false;
-        }
-
-    }
-
-    return someFrame;
-}
-
-
 HeadFilter::HeadFilter(FilterRole fRole_, size_t fTime) :
 BaseFilter(0, 1, fTime, fRole_, false)
 {
     
 }
 
-bool HeadFilter::runDoProcessFrame()
+bool HeadFilter::runDoProcessFrame(std::chrono::microseconds outTimestamp)
 {
     if (doProcessFrame(dFrames.begin()->second)) {
         // dFrames.begin()->second->setPresentationTime(timestamp);
@@ -559,11 +592,6 @@ bool HeadFilter::runDoProcessFrame()
     }
 
     return false;
-}
-
-bool HeadFilter::demandOriginFrames()
-{
-    return true;
 }
 
 void HeadFilter::pushEvent(Event e)
@@ -591,7 +619,7 @@ BaseFilter(readersNum, 0, fTime, fRole_, sharedFrames_)
 
 }
 
-bool TailFilter::runDoProcessFrame()
+bool TailFilter::runDoProcessFrame(std::chrono::microseconds outTimestamp)
 {
     return doProcessFrame(oFrames);
 }
@@ -616,53 +644,13 @@ void TailFilter::pushEvent(Event e)
     }
 }
 
-bool TailFilter::demandOriginFrames()
-{
-    bool newFrame;
-    bool someFrame = false;
-    bool force = false;
-
-    if (maxReaders == 0) {
-        return true;
-    }
-
-    for (auto it : readers) {
-        if (!it.second->isConnected()) {
-            it.second->disconnect();
-            //NOTE: think about readers as shared pointers
-            delete it.second;
-            readers.erase(it.first);
-            continue;
-        }
-
-        oFrames[it.first] = it.second->getFrame(newFrame, force);
-
-        if (oFrames[it.first] != NULL) {
-            if (newFrame) {
-                rUpdates[it.first] = true;
-            } else {
-                rUpdates[it.first] = false;
-            }
-
-            someFrame = true;
-
-        } else {
-            rUpdates[it.first] = false;
-        }
-
-    }
-
-    return someFrame;
-}
-
-
 ManyToOneFilter::ManyToOneFilter(FilterRole fRole_, bool sharedFrames_, unsigned readersNum, size_t fTime) :
 BaseFilter(readersNum, 1, fTime, fRole_, sharedFrames_)
 {
 
 }
 
-bool ManyToOneFilter::runDoProcessFrame()
+bool ManyToOneFilter::runDoProcessFrame(std::chrono::microseconds outTimestamp)
 {
     if (doProcessFrame(oFrames, dFrames.begin()->second)) {
         //NOTE: this assignment is only done in order to advance in the timestamp refactor. Must be implmented correctly
@@ -675,45 +663,6 @@ bool ManyToOneFilter::runDoProcessFrame()
     }
 
     return false;
-}
-
-bool ManyToOneFilter::demandOriginFrames()
-{
-    bool newFrame;
-    bool someFrame = false;
-    bool force = false;
-
-    if (maxReaders == 0) {
-        return true;
-    }
-
-    for (auto it : readers) {
-        if (!it.second->isConnected()) {
-            it.second->disconnect();
-            //NOTE: think about readers as shared pointers
-            delete it.second;
-            readers.erase(it.first);
-            continue;
-        }
-
-        oFrames[it.first] = it.second->getFrame(newFrame, force);
-
-        if (oFrames[it.first] != NULL) {
-            if (newFrame) {
-                rUpdates[it.first] = true;
-            } else {
-                rUpdates[it.first] = false;
-            }
-
-            someFrame = true;
-
-        } else {
-            rUpdates[it.first] = false;
-        }
-
-    }
-
-    return someFrame;
 }
 
 LiveMediaFilter::LiveMediaFilter(unsigned readersNum, unsigned writersNum) :
@@ -741,7 +690,3 @@ void LiveMediaFilter::pushEvent(Event e)
     }
 }
 
-bool LiveMediaFilter::demandOriginFrames()
-{
-    return true;
-}

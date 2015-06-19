@@ -72,7 +72,7 @@ Frame* AudioCircularBuffer::getRear()
     return inputFrame;
 }
 
-Frame* AudioCircularBuffer::getFront(bool &newFrame)
+Frame* AudioCircularBuffer::getFront()
 {
     std::chrono::microseconds ts;
     unsigned frontSampleIdx;
@@ -80,7 +80,6 @@ Frame* AudioCircularBuffer::getFront(bool &newFrame)
     std::lock_guard<std::mutex> guard(mtx);
 
     if (outputFrameAlreadyRead == false) {
-        newFrame = true;
         return outputFrame;
     }
 
@@ -89,12 +88,10 @@ Frame* AudioCircularBuffer::getFront(bool &newFrame)
     outputFrame->setPresentationTime(ts);
 
     if (!popFront(outputFrame->getPlanarDataBuf(), outputFrame->getSamples())) {
-        newFrame = false;
         utils::debugMsg("There is not enough data to fill a frame. Impossible to get new frame!");
         return NULL;
     }
 
-    newFrame = true;
     outputFrameAlreadyRead = false;
     return outputFrame;
 }
@@ -167,9 +164,8 @@ Frame* AudioCircularBuffer::forceGetRear()
     return getRear();
 }
 
-Frame* AudioCircularBuffer::forceGetFront(bool &newFrame)
+Frame* AudioCircularBuffer::forceGetFront()
 {
-    newFrame = false;
     return NULL;
 }
 

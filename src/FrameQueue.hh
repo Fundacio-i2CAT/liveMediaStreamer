@@ -61,7 +61,7 @@ public:
     * Returns frame object from queue's front
     * @return frame object
     */
-    virtual Frame *getFront(bool &newFrame) = 0;
+    virtual Frame *getFront() = 0;
 
     /**
     * Adds frame to queue elements
@@ -86,10 +86,9 @@ public:
 
     /**
     * Forces getting frame from queue's front
-    * @param boolean returning true if there is a new frame from queue's front
     * @return frame object
     */
-    virtual Frame *forceGetFront(bool &newFrame) = 0;
+    virtual Frame *forceGetFront() = 0;
 
     /**
     * To know if there is a new frame to read

@@ -174,22 +174,24 @@ public:
     * Sets filter frame time
     * @param size_t frame time
     */
-    void setFrameTime(std::chrono::nanoseconds fTime);
+    void setFrameTime(std::chrono::microseconds fTime);
 
 protected:
     BaseFilter(unsigned readersNum = MAX_READERS, unsigned writersNum = MAX_WRITERS, size_t fTime = 0, FilterRole fRole_ = MASTER, bool sharedFrames_ = true);
 
     void addFrames();
     void removeFrames();
-    bool hasFrames();
     virtual FrameQueue *allocQueue(int wId) = 0;
 
-    std::chrono::nanoseconds getFrameTime() {return frameTime;};
+    std::chrono::microseconds getFrameTime() {return frameTime;};
 
     virtual Reader *setReader(int readerID, FrameQueue* queue);
     Reader* getReader(int id);
 
-    virtual bool demandOriginFrames() = 0;
+    bool demandOriginFrames(std::chrono::microseconds &outTimestamp);
+    bool demandOriginFramesBestEffort(std::chrono::microseconds &outTimestamp);
+    bool demandOriginFramesFrameTime(std::chrono::microseconds &outTimestamp); 
+
     bool demandDestinationFrames();
 
     bool newEvent();
@@ -198,7 +200,7 @@ protected:
 
     std::map<std::string, std::function<bool(Jzon::Node* params)> > eventMap;
 
-    virtual bool runDoProcessFrame() = 0;
+    virtual bool runDoProcessFrame(std::chrono::microseconds outTimestamp) = 0;
 
     bool removeSlave(int id);
     std::map<int, BaseFilter*> slaves;
@@ -216,7 +218,7 @@ protected:
 
     unsigned maxReaders;
     unsigned maxWriters;
-    std::chrono::nanoseconds frameTime;
+    std::chrono::microseconds frameTime;
 
 private:
     bool connect(BaseFilter *R, int writerID, int readerID);
@@ -236,6 +238,7 @@ private:
     bool enabled;
     FilterRole const fRole;
     bool sharedFrames;
+    std::chrono::microseconds syncTs;
 };
 
 class OneToOneFilter : public BaseFilter {
@@ -247,8 +250,7 @@ protected:
     using BaseFilter::getFrameTime;
 
 private:
-    bool runDoProcessFrame();
-    bool demandOriginFrames();
+    bool runDoProcessFrame(std::chrono::microseconds outTimestamp);
     
     using BaseFilter::demandOriginFrames;
     using BaseFilter::demandDestinationFrames;
@@ -276,9 +278,9 @@ protected:
     using BaseFilter::getFrameTime;
 
 private:
-    bool runDoProcessFrame();
-    bool demandOriginFrames();
+    bool runDoProcessFrame(std::chrono::microseconds outTimestamp);
 
+    using BaseFilter::demandOriginFrames;
     using BaseFilter::demandDestinationFrames;
     using BaseFilter::addFrames;
     using BaseFilter::removeFrames;
@@ -310,10 +312,10 @@ protected:
     using BaseFilter::getFrameTime;
 
 private: 
-    bool runDoProcessFrame();
-    bool demandOriginFrames();
+    bool runDoProcessFrame(std::chrono::microseconds outTimestamp);
 
     using BaseFilter::demandDestinationFrames;
+    using BaseFilter::demandOriginFrames;
     using BaseFilter::addFrames;
     using BaseFilter::removeFrames;
     using BaseFilter::readers;
@@ -340,11 +342,11 @@ protected:
 
 private:
     FrameQueue *allocQueue(int wId) {return NULL;};
-    bool runDoProcessFrame();
+    bool runDoProcessFrame(std::chrono::microseconds outTimestamp);
     virtual bool doProcessFrame(std::map<int, Frame*> orgFrames) = 0;
-    bool demandOriginFrames();
 
     using BaseFilter::demandDestinationFrames;
+    using BaseFilter::demandOriginFrames;
     using BaseFilter::addFrames;
     using BaseFilter::removeFrames;
     using BaseFilter::oFrames;
@@ -367,9 +369,9 @@ protected:
     using BaseFilter::getFrameTime;
 
 private:   
-    bool runDoProcessFrame();
-    bool demandOriginFrames();
+    bool runDoProcessFrame(std::chrono::microseconds outTimestamp);
 
+    using BaseFilter::demandOriginFrames;
     using BaseFilter::demandDestinationFrames;
     using BaseFilter::addFrames;
     using BaseFilter::removeFrames;
@@ -394,11 +396,10 @@ public:
 protected:
     LiveMediaFilter(unsigned readersNum = MAX_READERS, unsigned writersNum = MAX_WRITERS);
 
-    virtual bool runDoProcessFrame() = 0;
+    virtual bool runDoProcessFrame(std::chrono::microseconds outTimestamp) = 0;
 
 private:
-    bool demandOriginFrames();
-
+    using BaseFilter::demandOriginFrames;
     using BaseFilter::demandDestinationFrames;
     using BaseFilter::addFrames;
     using BaseFilter::removeFrames;

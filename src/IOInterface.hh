@@ -130,7 +130,7 @@ public:
     * @param bool to force having frame object or not (default set to false)
     * @return Frame object from its queue
     */
-    Frame* getFrame(bool &newFrame, bool force = false);
+    Frame* getFrame(bool force = false);
 
     /**
     * Removes frame element from queue

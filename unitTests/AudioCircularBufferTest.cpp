@@ -114,7 +114,6 @@ void AudioCircularBufferTest::normalBehaviour()
     Frame* inFrame;
     Frame* outFrame;
     AudioFrame* aFrame;
-    bool newFrame;
     std::chrono::microseconds syncTime = std::chrono::microseconds(0);
     unsigned samplesPerFrame = 40;
     unsigned outputSamples = 80;
@@ -131,7 +130,7 @@ void AudioCircularBufferTest::normalBehaviour()
     buffer->addFrame();
     insertedFrames++;
     
-    outFrame = buffer->getFront(newFrame);
+    outFrame = buffer->getFront();
     CPPUNIT_ASSERT(!outFrame);
 
     inFrame = buffer->getRear();
@@ -143,17 +142,17 @@ void AudioCircularBufferTest::normalBehaviour()
     buffer->addFrame();
     insertedFrames++;
 
-    outFrame = buffer->getFront(newFrame);
+    outFrame = buffer->getFront();
     CPPUNIT_ASSERT(outFrame);
     CPPUNIT_ASSERT(outFrame->getPresentationTime() == syncTime + std::chrono::microseconds(removedFrames*outputSamples*std::micro::den/sampleRate));
     removedFrames++;
 
-    outFrame = buffer->getFront(newFrame);
+    outFrame = buffer->getFront();
     CPPUNIT_ASSERT(outFrame);
     CPPUNIT_ASSERT(outFrame->getPresentationTime() == syncTime + std::chrono::microseconds((removedFrames - 1)*outputSamples*std::micro::den/sampleRate));
     buffer->removeFrame();
 
-    outFrame = buffer->getFront(newFrame);
+    outFrame = buffer->getFront();
     CPPUNIT_ASSERT(!outFrame);
 
     inFrame = buffer->getRear();
@@ -165,7 +164,7 @@ void AudioCircularBufferTest::normalBehaviour()
     buffer->addFrame();
     insertedFrames++;
 
-    outFrame = buffer->getFront(newFrame);
+    outFrame = buffer->getFront();
     CPPUNIT_ASSERT(!outFrame);
 
     inFrame = buffer->getRear();
@@ -176,7 +175,7 @@ void AudioCircularBufferTest::normalBehaviour()
     aFrame->setPresentationTime(syncTime + std::chrono::microseconds(insertedFrames*samplesPerFrame*std::micro::den/sampleRate));
     buffer->addFrame(); 
 
-    outFrame = buffer->getFront(newFrame);
+    outFrame = buffer->getFront();
     CPPUNIT_ASSERT(outFrame);
     CPPUNIT_ASSERT(outFrame->getPresentationTime() == syncTime + std::chrono::microseconds(removedFrames*outputSamples*std::micro::den/sampleRate));
     removedFrames++;
@@ -187,7 +186,6 @@ void AudioCircularBufferTest::timestampGap()
     Frame* inFrame;
     Frame* outFrame;
     AudioFrame* aFrame;
-    bool newFrame;
     std::chrono::microseconds syncTime = std::chrono::microseconds(0);
     const unsigned samplesPerFrame = 40;
     const unsigned outputSamples = 80;
@@ -220,7 +218,7 @@ void AudioCircularBufferTest::timestampGap()
     buffer->addFrame();
     insertedFrames++;
 
-    outFrame = buffer->getFront(newFrame);
+    outFrame = buffer->getFront();
     CPPUNIT_ASSERT(outFrame);
     CPPUNIT_ASSERT(outFrame->getPresentationTime() == syncTime + std::chrono::microseconds(removedFrames*outputSamples*std::micro::den/sampleRate));
     buffer->removeFrame();
@@ -231,7 +229,7 @@ void AudioCircularBufferTest::timestampGap()
     CPPUNIT_ASSERT(memcmp(outFrame->getPlanarDataBuf()[0] + samplesPerFrame*bytesPerSample, zeroTestBlock, samplesPerFrame*bytesPerSample) == 0);
     CPPUNIT_ASSERT(memcmp(outFrame->getPlanarDataBuf()[1] + samplesPerFrame*bytesPerSample, zeroTestBlock, samplesPerFrame*bytesPerSample) == 0);
 
-    outFrame = buffer->getFront(newFrame);
+    outFrame = buffer->getFront();
     CPPUNIT_ASSERT(outFrame);
     CPPUNIT_ASSERT(outFrame->getPresentationTime() == syncTime + std::chrono::microseconds(removedFrames*outputSamples*std::micro::den/sampleRate));
     removedFrames++;
@@ -247,7 +245,6 @@ void AudioCircularBufferTest::timestampOverlapping()
     Frame* inFrame;
     Frame* outFrame;
     AudioFrame* aFrame;
-    bool newFrame;
     std::chrono::microseconds syncTime = std::chrono::microseconds(0);
     const unsigned samplesPerFrame = 100;
     const unsigned outputSamples = samplesPerFrame*2;
@@ -273,7 +270,7 @@ void AudioCircularBufferTest::timestampOverlapping()
     buffer->addFrame();
     insertedFrames++;
 
-    outFrame = buffer->getFront(newFrame);
+    outFrame = buffer->getFront();
     CPPUNIT_ASSERT(!outFrame);
 }
 
@@ -282,7 +279,6 @@ void AudioCircularBufferTest::flushBecauseOfDeviation()
     Frame* inFrame;
     Frame* outFrame;
     AudioFrame* aFrame;
-    bool newFrame;
     std::chrono::microseconds syncTime = std::chrono::microseconds(0);
     std::chrono::microseconds newSyncTime = std::chrono::microseconds(1000);
     const unsigned samplesPerFrame = 100;
@@ -323,7 +319,7 @@ void AudioCircularBufferTest::flushBecauseOfDeviation()
     buffer->addFrame();
     insertedFrames++;
 
-    outFrame = buffer->getFront(newFrame);
+    outFrame = buffer->getFront();
     CPPUNIT_ASSERT(outFrame);
     CPPUNIT_ASSERT(outFrame->getPresentationTime() == newSyncTime);
     buffer->removeFrame();

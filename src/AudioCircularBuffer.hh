@@ -40,12 +40,12 @@ public:
     void setOutputFrameSamples(int samples); 
 
     Frame *getRear();
-    Frame *getFront(bool &newFrame);
+    Frame *getFront();
     void addFrame();
     void removeFrame();
     void flush();
     Frame *forceGetRear();
-    Frame *forceGetFront(bool &newFrame);
+    Frame *forceGetFront();
     bool frameToRead() {return false;};
     int getFreeSamples();
     void setBufferingThreshold(std::chrono::milliseconds th);

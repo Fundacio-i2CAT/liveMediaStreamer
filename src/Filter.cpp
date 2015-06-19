@@ -27,12 +27,10 @@
 
 #include <thread>
 
-BaseFilter::BaseFilter(unsigned readersNum, unsigned writersNum, size_t fTime, FilterRole fRole_, bool force_, bool sharedFrames_):
-process(false), maxReaders(readersNum), maxWriters(writersNum), force(force_), frameTime(fTime), fRole(fRole_), sharedFrames(sharedFrames_)
+BaseFilter::BaseFilter(unsigned readersNum, unsigned writersNum, size_t fTime, FilterRole fRole_, bool sharedFrames_):
+process(false), maxReaders(readersNum), maxWriters(writersNum), frameTime(fTime), fRole(fRole_), sharedFrames(sharedFrames_)
 {
-    frameTimeMod = 1;
-    bufferStateFrameTimeMod = 1;
-    timestamp = std::chrono::system_clock::now();
+
 }
 
 BaseFilter::~BaseFilter()
@@ -338,7 +336,6 @@ void BaseFilter::processAll()
         if (sharedFrames){
             it.second->updateFrames(oFrames);
         }
-        it.second->setWallClock(wallClock);
         it.second->execute();
     }
 }
@@ -380,10 +377,7 @@ std::chrono::nanoseconds BaseFilter::masterProcessFrame()
 {
     std::chrono::nanoseconds enlapsedTime;
     std::chrono::nanoseconds frameTime_;
-    size_t frameTime_value;
     
-    wallClock = std::chrono::system_clock::now();
-
     processEvent();
       
     if (!demandOriginFrames() || !demandDestinationFrames()) {
@@ -400,23 +394,7 @@ std::chrono::nanoseconds BaseFilter::masterProcessFrame()
 
     removeFrames();
 
-    if (frameTime.count() == 0) {
-        return std::chrono::nanoseconds(0);
-    }
-
-    enlapsedTime = (std::chrono::duration_cast<std::chrono::nanoseconds>
-        (std::chrono::system_clock::now() - wallClock));
-
-    frameTime_value = frameTime.count()*frameTimeMod*bufferStateFrameTimeMod;
-
-    frameTime_ = std::chrono::nanoseconds(frameTime_value);
-    
-    if (enlapsedTime > frameTime_){
-        utils::warningMsg("Your computer is too slow");
-        return std::chrono::nanoseconds(0);
-    }
-
-    return frameTime_ - enlapsedTime;
+    return std::chrono::nanoseconds(0);
 }
 
 std::chrono::nanoseconds BaseFilter::slaveProcessFrame()
@@ -451,8 +429,8 @@ void BaseFilter::updateFrames(std::map<int, Frame*> oFrames_)
     oFrames = oFrames_;
 }
 
-OneToOneFilter::OneToOneFilter(FilterRole fRole_, bool sharedFrames_, size_t fTime, bool force_) :
-BaseFilter(1,1,fTime,fRole_,force_,sharedFrames_)
+OneToOneFilter::OneToOneFilter(FilterRole fRole_, bool sharedFrames_, size_t fTime) :
+BaseFilter(1, 1, fTime, fRole_, sharedFrames_)
 {
     
 }
@@ -464,7 +442,7 @@ bool OneToOneFilter::runDoProcessFrame()
     }
     
     dFrames.begin()->second->setPresentationTime(oFrames.begin()->second->getPresentationTime());
-    dFrames.begin()->second->setDuration(duration);
+    dFrames.begin()->second->setDuration(oFrames.begin()->second->getDuration());
     dFrames.begin()->second->setSequenceNumber(oFrames.begin()->second->getSequenceNumber());
     addFrames();
     return true;
@@ -475,6 +453,7 @@ bool OneToOneFilter::demandOriginFrames()
     bool newFrame;
     Reader* r;
     int rId;
+    bool force = false;
 
     if (readers.empty()) {
         return false;
@@ -500,8 +479,8 @@ bool OneToOneFilter::demandOriginFrames()
     return true;
 }
 
-OneToManyFilter::OneToManyFilter(FilterRole fRole_, bool sharedFrames_, unsigned writersNum, size_t fTime, bool force_) :
-    BaseFilter(1,writersNum,fTime,fRole_,force_,sharedFrames_)
+OneToManyFilter::OneToManyFilter(FilterRole fRole_, bool sharedFrames_, unsigned writersNum, size_t fTime) :
+BaseFilter(1, writersNum, fTime, fRole_, sharedFrames_)
 {
 
 }
@@ -514,7 +493,7 @@ bool OneToManyFilter::runDoProcessFrame()
 
     for (auto it : dFrames) {
         it.second->setPresentationTime(oFrames.begin()->second->getPresentationTime());
-        it.second->setDuration(duration);
+        it.second->setDuration(oFrames.begin()->second->getDuration());
         it.second->setSequenceNumber(oFrames.begin()->second->getSequenceNumber());
     }
 
@@ -526,6 +505,7 @@ bool OneToManyFilter::demandOriginFrames()
 {
     bool newFrame;
     bool someFrame = false;
+    bool force = false;
 
     if (maxReaders == 0) {
         return true;
@@ -562,7 +542,7 @@ bool OneToManyFilter::demandOriginFrames()
 
 
 HeadFilter::HeadFilter(FilterRole fRole_, size_t fTime) :
-    BaseFilter(0, 1, fTime, fRole_, false, false)
+BaseFilter(0, 1, fTime, fRole_, false)
 {
     
 }
@@ -571,7 +551,7 @@ bool HeadFilter::runDoProcessFrame()
 {
     if (doProcessFrame(dFrames.begin()->second)) {
         // dFrames.begin()->second->setPresentationTime(timestamp);
-        dFrames.begin()->second->setDuration(duration);
+        // dFrames.begin()->second->setDuration(duration);
         seqNums[dFrames.begin()->first]++;
         dFrames.begin()->second->setSequenceNumber(seqNums[dFrames.begin()->first]);
         addFrames();
@@ -606,7 +586,7 @@ void HeadFilter::pushEvent(Event e)
 }
 
 TailFilter::TailFilter(FilterRole fRole_, bool sharedFrames_, unsigned readersNum, size_t fTime) :
-    BaseFilter(readersNum, 0, fTime, fRole_, false, sharedFrames_)
+BaseFilter(readersNum, 0, fTime, fRole_, sharedFrames_)
 {
 
 }
@@ -640,6 +620,7 @@ bool TailFilter::demandOriginFrames()
 {
     bool newFrame;
     bool someFrame = false;
+    bool force = false;
 
     if (maxReaders == 0) {
         return true;
@@ -675,8 +656,8 @@ bool TailFilter::demandOriginFrames()
 }
 
 
-ManyToOneFilter::ManyToOneFilter(FilterRole fRole_, bool sharedFrames_, unsigned readersNum, size_t fTime, bool force_) :
-    BaseFilter(readersNum,1,fTime,fRole_,force_,sharedFrames_)
+ManyToOneFilter::ManyToOneFilter(FilterRole fRole_, bool sharedFrames_, unsigned readersNum, size_t fTime) :
+BaseFilter(readersNum, 1, fTime, fRole_, sharedFrames_)
 {
 
 }
@@ -686,7 +667,7 @@ bool ManyToOneFilter::runDoProcessFrame()
     if (doProcessFrame(oFrames, dFrames.begin()->second)) {
         //NOTE: this assignment is only done in order to advance in the timestamp refactor. Must be implmented correctly
         dFrames.begin()->second->setPresentationTime(oFrames.begin()->second->getPresentationTime());
-        dFrames.begin()->second->setDuration(duration);
+        dFrames.begin()->second->setDuration(oFrames.begin()->second->getDuration());
         seqNums[dFrames.begin()->first]++;
         dFrames.begin()->second->setSequenceNumber(seqNums[dFrames.begin()->first]);
         addFrames();
@@ -700,6 +681,7 @@ bool ManyToOneFilter::demandOriginFrames()
 {
     bool newFrame;
     bool someFrame = false;
+    bool force = false;
 
     if (maxReaders == 0) {
         return true;
@@ -735,7 +717,7 @@ bool ManyToOneFilter::demandOriginFrames()
 }
 
 LiveMediaFilter::LiveMediaFilter(unsigned readersNum, unsigned writersNum) :
-BaseFilter(readersNum, writersNum, 0, NETWORK, false, false)
+BaseFilter(readersNum, writersNum, 0, NETWORK, false)
 {
 
 }
@@ -762,38 +744,4 @@ void LiveMediaFilter::pushEvent(Event e)
 bool LiveMediaFilter::demandOriginFrames()
 {
     return true;
-    bool newFrame;
-    bool someFrame = false;
-
-    if (maxReaders == 0) {
-        return true;
-    }
-
-    for (auto it : readers) {
-        if (!it.second->isConnected()) {
-            it.second->disconnect();
-            //NOTE: think about readers as shared pointers
-            delete it.second;
-            readers.erase(it.first);
-            continue;
-        }
-
-        oFrames[it.first] = it.second->getFrame(newFrame, force);
-
-        if (oFrames[it.first] != NULL) {
-            if (newFrame) {
-                rUpdates[it.first] = true;
-            } else {
-                rUpdates[it.first] = false;
-            }
-
-            someFrame = true;
-
-        } else {
-            rUpdates[it.first] = false;
-        }
-
-    }
-
-    return someFrame;
 }

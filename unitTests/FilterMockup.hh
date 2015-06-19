@@ -133,7 +133,7 @@ class OneToOneFilterMockup : public OneToOneFilter
 public:
     OneToOneFilterMockup(size_t processTime_, size_t queueSize_, bool gotFrame_,
                          size_t frameTime, FilterRole role, bool sharedFrames) :
-        OneToOneFilter(role, sharedFrames, frameTime, false),
+        OneToOneFilter(role, sharedFrames, frameTime),
         processTime(processTime_), queueSize(queueSize_), gotFrame(gotFrame_) {};
 
     void setGotFrame(bool gotFrame_) {gotFrame = gotFrame_;};
@@ -165,7 +165,7 @@ class OneToManyFilterMockup : public OneToManyFilter
 public:
     OneToManyFilterMockup(unsigned maxWriters, size_t processTime_, size_t queueSize_, bool gotFrame_,
                          size_t frameTime, FilterRole role, bool sharedFrames) :
-        OneToManyFilter(role, sharedFrames, maxWriters, frameTime, false),
+        OneToManyFilter(role, sharedFrames, maxWriters, frameTime),
         processTime(processTime_), queueSize(queueSize_), gotFrame(gotFrame_) {};
 
     void setGotFrame(bool gotFrame_) {gotFrame = gotFrame_;};

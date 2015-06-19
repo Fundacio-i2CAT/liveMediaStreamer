@@ -164,11 +164,6 @@ public:
     */
     virtual ~BaseFilter();
 
-    /**
-    * Sets a dfined wall clock to the filter
-    * @param refWallClock reference wall clock
-    */
-    void setWallClock(std::chrono::system_clock::time_point refWallClock) {wallClock = refWallClock;};
     //NOTE: these are public just for testing purposes
     /**
     * Processes frames as a function of its role
@@ -182,7 +177,7 @@ public:
     void setFrameTime(std::chrono::nanoseconds fTime);
 
 protected:
-    BaseFilter(unsigned readersNum = MAX_READERS, unsigned writersNum = MAX_WRITERS, size_t fTime = 0, FilterRole fRole_ = MASTER, bool force_ = false, bool sharedFrames_ = true);
+    BaseFilter(unsigned readersNum = MAX_READERS, unsigned writersNum = MAX_WRITERS, size_t fTime = 0, FilterRole fRole_ = MASTER, bool sharedFrames_ = true);
 
     void addFrames();
     void removeFrames();
@@ -219,19 +214,8 @@ protected:
     std::map<int, bool> rUpdates;
     FilterType fType;
 
-    float frameTimeMod;
-    float bufferStateFrameTimeMod;
-
-    std::chrono::system_clock::time_point timestamp;
-    std::chrono::system_clock::time_point lastValidTimestamp;
-    std::chrono::nanoseconds duration;
-    std::chrono::nanoseconds lastDiffTime;
-    std::chrono::nanoseconds diffTime;
-    std::chrono::system_clock::time_point wallClock;
-
     unsigned maxReaders;
     unsigned maxWriters;
-    bool force;
     std::chrono::nanoseconds frameTime;
 
 private:
@@ -257,7 +241,7 @@ private:
 class OneToOneFilter : public BaseFilter {
 
 protected:
-    OneToOneFilter(FilterRole fRole_ = MASTER, bool sharedFrames_ = true, size_t fTime = 0, bool force_ = false);
+    OneToOneFilter(FilterRole fRole_ = MASTER, bool sharedFrames_ = true, size_t fTime = 0);
     virtual bool doProcessFrame(Frame *org, Frame *dst) = 0;
     using BaseFilter::setFrameTime;
     using BaseFilter::getFrameTime;
@@ -276,16 +260,7 @@ private:
     using BaseFilter::seqNums;
     using BaseFilter::processEvent;
     using BaseFilter::addSlave;
-    using BaseFilter::setWallClock;
-
     using BaseFilter::frameTime;
-    using BaseFilter::timestamp;
-    using BaseFilter::lastValidTimestamp;
-    using BaseFilter::duration;
-    using BaseFilter::lastDiffTime;
-    using BaseFilter::diffTime;
-    using BaseFilter::wallClock;
-
     using BaseFilter::maxReaders;
     using BaseFilter::maxWriters;
 
@@ -295,7 +270,7 @@ private:
 class OneToManyFilter : public BaseFilter {
 
 protected:
-    OneToManyFilter(FilterRole fRole_ = MASTER, bool sharedFrames_ = true, unsigned writersNum = MAX_WRITERS, size_t fTime = 0, bool force_ = false);
+    OneToManyFilter(FilterRole fRole_ = MASTER, bool sharedFrames_ = true, unsigned writersNum = MAX_WRITERS, size_t fTime = 0);
     virtual bool doProcessFrame(Frame *org, std::map<int, Frame *> dstFrames) = 0;
     using BaseFilter::setFrameTime;
     using BaseFilter::getFrameTime;
@@ -314,16 +289,8 @@ private:
     using BaseFilter::seqNums;
     using BaseFilter::processEvent;
     using BaseFilter::addSlave;
-    using BaseFilter::setWallClock;
 
     using BaseFilter::frameTime;
-    using BaseFilter::timestamp;
-    using BaseFilter::lastValidTimestamp;
-    using BaseFilter::duration;
-    using BaseFilter::lastDiffTime;
-    using BaseFilter::diffTime;
-    using BaseFilter::wallClock;
-
     using BaseFilter::maxReaders;
     using BaseFilter::maxWriters;
 
@@ -355,16 +322,7 @@ private:
     using BaseFilter::seqNums;
     using BaseFilter::processEvent;
     using BaseFilter::addSlave;
-    using BaseFilter::setWallClock;
-
     using BaseFilter::frameTime;
-    using BaseFilter::timestamp;
-    using BaseFilter::lastValidTimestamp;
-    using BaseFilter::duration;
-    using BaseFilter::lastDiffTime;
-    using BaseFilter::diffTime;
-    using BaseFilter::wallClock;
-
     using BaseFilter::maxReaders;
     using BaseFilter::maxWriters;
     
@@ -393,16 +351,7 @@ private:
     using BaseFilter::dFrames;
     using BaseFilter::seqNums;
     using BaseFilter::processEvent;
-    using BaseFilter::setWallClock;
-
     using BaseFilter::frameTime;
-    using BaseFilter::timestamp;
-    using BaseFilter::lastValidTimestamp;
-    using BaseFilter::duration;
-    using BaseFilter::lastDiffTime;
-    using BaseFilter::diffTime;
-    using BaseFilter::wallClock;
-
     using BaseFilter::maxReaders;
     using BaseFilter::maxWriters;
 
@@ -412,7 +361,7 @@ private:
 class ManyToOneFilter : public BaseFilter {
 
 protected:
-    ManyToOneFilter(FilterRole fRole_ = MASTER, bool sharedFrames_ = true, unsigned readersNum = MAX_READERS, size_t fTime = 0, bool force_ = false);
+    ManyToOneFilter(FilterRole fRole_ = MASTER, bool sharedFrames_ = true, unsigned readersNum = MAX_READERS, size_t fTime = 0);
     virtual bool doProcessFrame(std::map<int, Frame *> orgFrames, Frame *dst) = 0;
     using BaseFilter::setFrameTime;
     using BaseFilter::getFrameTime;
@@ -430,16 +379,7 @@ private:
     using BaseFilter::seqNums;
     using BaseFilter::processEvent;
     using BaseFilter::addSlave;
-    using BaseFilter::setWallClock;
-
     using BaseFilter::frameTime;
-    using BaseFilter::timestamp;
-    using BaseFilter::lastValidTimestamp;
-    using BaseFilter::duration;
-    using BaseFilter::lastDiffTime;
-    using BaseFilter::diffTime;
-    using BaseFilter::wallClock;
-
     using BaseFilter::maxReaders;
     using BaseFilter::maxWriters;
 
@@ -467,14 +407,7 @@ private:
     using BaseFilter::seqNums;
     using BaseFilter::processEvent;
     using BaseFilter::addSlave;
-    using BaseFilter::setWallClock;
     using BaseFilter::frameTime;
-    using BaseFilter::timestamp;
-    using BaseFilter::lastValidTimestamp;
-    using BaseFilter::duration;
-    using BaseFilter::lastDiffTime;
-    using BaseFilter::diffTime;
-    using BaseFilter::wallClock;
 
     using BaseFilter::maxReaders;
     using BaseFilter::maxWriters;

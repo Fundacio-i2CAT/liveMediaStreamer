@@ -1,6 +1,6 @@
 AUTOMAKE_OPTIONS = foreign
 
-bin_PROGRAMS = connectionTest sinkManagerTest filterTest workerTest dasherTest dashAudioSegmenterTest dashVideoSegmenterTest mpdManagerTest encodingDecodingTest sharedMemoryTest slicedVideoFrameQueueTest
+bin_PROGRAMS = connectionTest sinkManagerTest filterTest workerTest dasherTest dashAudioSegmenterTest dashVideoSegmenterTest mpdManagerTest encodingDecodingTest sharedMemoryTest slicedVideoFrameQueueTest headDemuxerTest
 
 slicedVideoFrameQueueTest_SOURCES = SlicedVideoFrameQueueTest.cpp ../src/SlicedVideoFrameQueue.cpp ../src/VideoFrame.cpp ../src/AVFramedQueue.cpp ../src/Jzon.cpp ../src/Utils.cpp ../src/Frame.cpp ../src/AudioFrame.cpp
 slicedVideoFrameQueueTest_CPPFLAGS = -g -Wall -D__STDC_CONSTANT_MACROS -I../src/
@@ -56,4 +56,9 @@ workerTest_SOURCES = ../src/Utils.cpp WorkerTest.cpp RunnableMockup.hh ../src/Wo
 workerTest_CPPFLAGS = -g -Wall -g -D__STDC_CONSTANT_MACROS -I../src -I.
 workerTest_CXXFLAGS = -std=c++11
 workerTest_LDFLAGS = -llog4cplus -lcppunit -lpthread
+
+headDemuxerTest_SOURCES = ../src/Utils.cpp modules/headDemuxer/HeadDemuxerTest.cpp ../src/modules/headDemuxer/HeadDemuxerLibav.cpp ../src/Jzon.cpp ../src/Filter.cpp ../src/Event.cpp ../src/Frame.cpp ../src/IOInterface.cpp
+headDemuxerTest_CPPFLAGS = -g -Wall -g -D__STDC_CONSTANT_MACROS -I../src -I.
+headDemuxerTest_CXXFLAGS = -std=c++11
+headDemuxerTest_LDFLAGS = -llog4cplus -lcppunit -lpthread
 

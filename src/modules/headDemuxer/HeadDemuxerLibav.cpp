@@ -38,6 +38,8 @@ HeadDemuxerLibav::HeadDemuxerLibav() : HeadFilter (MASTER, 0, 2)
 HeadDemuxerLibav::~HeadDemuxerLibav()
 {
     reset();
+
+    avformat_network_deinit();
 }
 
 void HeadDemuxerLibav::reset()

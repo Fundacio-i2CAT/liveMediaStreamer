@@ -272,7 +272,9 @@ public:
     void doGetState(Jzon::Object &filterNode){};
     
 protected:
-    bool doProcessFrame(Frame *dst) {
+    bool doProcessFrame(std::map<int, Frame*> dstFrames) {
+        // There is only one frame in the map
+        Frame *dst = dstFrames.begin()->second;
         InterleavedVideoFrame *dstFrame;
         
         if ((dstFrame = dynamic_cast<InterleavedVideoFrame*>(dst)) != NULL){

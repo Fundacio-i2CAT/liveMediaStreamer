@@ -336,8 +336,8 @@ public:
     void pushEvent(Event e);
 
 protected:
-    HeadFilter(FilterRole fRole_ = MASTER, size_t fTime = 0);
-    virtual bool doProcessFrame(Frame *dst) = 0;
+    HeadFilter(FilterRole fRole_ = MASTER, size_t fTime = 0, unsigned writersNum = 1);
+    virtual bool doProcessFrame(std::map<int, Frame*> dstFrames) = 0;
     
     int getNullWriterID();
     using BaseFilter::setFrameTime;

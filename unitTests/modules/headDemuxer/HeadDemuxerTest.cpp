@@ -80,6 +80,19 @@ void HeadDemuxerTest::demuxingTest()
     CPPUNIT_ASSERT (node.AsValue().GetValueType() == Jzon::Value::VT_STRING);
     CPPUNIT_ASSERT (node.ToString() == good_uri);
 
+    Jzon::Array &array = state.Get("streams").AsArray();
+    CPPUNIT_ASSERT (array.GetCount() == 2);
+
+    Jzon::Node &vnode = array.Get(0);
+    CPPUNIT_ASSERT (vnode.Get("wId").ToInt() == 0);
+    CPPUNIT_ASSERT (vnode.Get("type").ToInt() == VIDEO);
+    CPPUNIT_ASSERT (vnode.Get("codec_name").ToString() == "vp8");
+
+    Jzon::Node &anode = array.Get(1);
+    CPPUNIT_ASSERT (anode.Get("wId").ToInt() == 1);
+    CPPUNIT_ASSERT (anode.Get("type").ToInt() == AUDIO);
+    CPPUNIT_ASSERT (anode.Get("codec_name").ToString() == "vorbis");
+
     /* // Uncomment to dump state Json
     Jzon::Writer writer(state, Jzon::StandardFormat);
     writer.Write();

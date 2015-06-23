@@ -27,9 +27,12 @@ extern "C" {
 #include <libavformat/avformat.h>
 }
 
-#include "../../VideoFrame.hh"
-#include "../../FrameQueue.hh"
 #include "../../Filter.hh"
+
+struct DemuxerStreamInfo {
+   StreamType type;
+   std::string codec_name;
+};
 
 class HeadDemuxerLibav : public HeadFilter {
 
@@ -41,12 +44,17 @@ class HeadDemuxerLibav : public HeadFilter {
         bool setURI(const std::string URI);
 
     protected:
-        virtual bool doProcessFrame(Frame *dst);
+        virtual bool doProcessFrame(std::map<int, Frame*> dstFrames);
         virtual FrameQueue *allocQueue(int wId);
         virtual void doGetState(Jzon::Object &filterNode);
 
     private:
         std::string uri;
+        std::map<int, DemuxerStreamInfo> streams;
+        int last_writer_id;
+        AVFormatContext *av_ctx;
+
+        void reset();
 };
 
 #endif

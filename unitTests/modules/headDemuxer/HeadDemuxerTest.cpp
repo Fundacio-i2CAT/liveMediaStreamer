@@ -64,15 +64,27 @@ void HeadDemuxerTest::tearDown()
 
 void HeadDemuxerTest::demuxingTest()
 {
-    static const std::string test_uri = "test://non.existing.host";
+    static const std::string bad_uri1 = "test://non.existing.protocol";
+    static const std::string bad_uri2 = "http://non.existing.host";
+    static const std::string bad_uri3 = "http://docs.gstreamer.com/display/GstSDK/gst-inspect";
+    static const std::string good_uri = "http://docs.gstreamer.com/media/sintel_trailer-480p.webm";
     Jzon::Object state;
 
-    demuxer->setURI (test_uri);
+    CPPUNIT_ASSERT (demuxer->setURI (bad_uri1) == false);
+    CPPUNIT_ASSERT (demuxer->setURI (bad_uri2) == false);
+    CPPUNIT_ASSERT (demuxer->setURI (bad_uri3) == false);
+    CPPUNIT_ASSERT (demuxer->setURI (good_uri));
     demuxer->getState (state);
     Jzon::Node &node = state.Get("uri");
     CPPUNIT_ASSERT (node.IsValue());
     CPPUNIT_ASSERT (node.AsValue().GetValueType() == Jzon::Value::VT_STRING);
-    CPPUNIT_ASSERT (node.ToString() == test_uri);
+    CPPUNIT_ASSERT (node.ToString() == good_uri);
+
+    /* // Uncomment to dump state Json
+    Jzon::Writer writer(state, Jzon::StandardFormat);
+    writer.Write();
+    std::cerr << writer.GetResult();
+    */
 }
 
 CPPUNIT_TEST_SUITE_REGISTRATION(HeadDemuxerTest);
@@ -86,6 +98,8 @@ int main(int argc, char* argv[])
     runner.addTest( CppUnit::TestFactoryRegistry::getRegistry().makeTest() );
     runner.run( "", false );
     outputter->write();
+
+    delete outputter;
 
     utils::printMood(runner.result().wasSuccessful());
 

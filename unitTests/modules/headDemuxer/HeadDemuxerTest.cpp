@@ -32,10 +32,6 @@
 
 #include "modules/headDemuxer/HeadDemuxerLibav.hh"
 
-class HeadDemuxerTestMock : public HeadDemuxerLibav
-{
-};
-
 class HeadDemuxerTest : public CppUnit::TestFixture
 {
     CPPUNIT_TEST_SUITE(HeadDemuxerTest);
@@ -49,12 +45,12 @@ public:
 protected:
     void demuxingTest();
 
-    HeadDemuxerTestMock* demuxer;
+    HeadDemuxerLibav* demuxer;
 };
 
 void HeadDemuxerTest::setUp()
 {
-    demuxer = new HeadDemuxerTestMock();
+    demuxer = new HeadDemuxerLibav();
 }
 
 void HeadDemuxerTest::tearDown()

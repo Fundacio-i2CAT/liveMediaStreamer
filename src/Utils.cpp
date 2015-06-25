@@ -94,7 +94,7 @@ namespace utils
 
         return codec;
     }
-       
+
     VCodecType getVideoCodecFromString(std::string stringCodec)
     {
         VCodecType codec;
@@ -115,6 +115,49 @@ namespace utils
         return codec;
     }
     
+    ACodecType getAudioCodecFromLibavString(std::string stringCodec)
+    {
+        ACodecType codec;
+        if (stringCodec.compare("pcm_alaw") == 0 ||
+            stringCodec.compare("pcm_mulaw") == 0) {
+            codec = G711;
+        } else if (stringCodec.compare(0, 5, "pcm_u") == 0) {
+            codec = PCMU;
+        }  else if (stringCodec.compare("opus") == 0) {
+            codec = OPUS;
+        }  else if (stringCodec.compare(0, 5, "pcm_s") == 0) {
+            codec = PCM;
+        }  else if (stringCodec.compare("aac") == 0) {
+            codec = AAC;
+        }  else if (stringCodec.compare("mp3") == 0) {
+            codec = MP3;
+        }  else {
+            codec = AC_NONE;
+        }
+
+        return codec;
+    }
+
+    VCodecType getVideoCodecFromLibavString(std::string stringCodec)
+    {
+        VCodecType codec;
+        if (stringCodec.compare("h264") == 0) {
+            codec = H264;
+        } else if (stringCodec.compare("hevc") == 0) {
+            codec = H265;
+        } else if (stringCodec.compare("vp8") == 0) {
+            codec = VP8;
+        }  else if (stringCodec.compare("mjpeg") == 0) {
+            codec = MJPEG;
+        }  else if (stringCodec.compare("rawvideo") == 0) {
+            codec = RAW;
+        }  else {
+            codec = VC_NONE;
+        }
+
+        return codec;
+    }
+
     std::string getVideoCodecAsString(VCodecType codec)
     {
        std::string stringCodec;

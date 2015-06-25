@@ -35,6 +35,9 @@
     between the data flow, control and execution layers. It has all related
     information to existing filters, paths and their interconnections.
 */
+
+class BaseFilter;
+
 class PipelineManager {
 
 public:

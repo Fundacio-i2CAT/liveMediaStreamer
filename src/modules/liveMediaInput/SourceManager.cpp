@@ -78,15 +78,19 @@ bool SourceManager::hasCallback()
     return false;
 }
 
-bool SourceManager::runDoProcessFrame()
+std::vector<int> SourceManager::runDoProcessFrame()
 {
+    utils::errorMsg("Starting doEventLoop");
+    std::vector<int> enabledJobs;
     if (envir() == NULL){
-        return false;
+        return enabledJobs;
     }
 
+    utils::infoMsg("Starting doEventLoop");
     envir()->taskScheduler().doEventLoop((char*) &watch);
+    utils::infoMsg("doEventLoop finalized");
 
-    return true;
+    return enabledJobs;
 }
 
 bool SourceManager::addSession(Session* session)

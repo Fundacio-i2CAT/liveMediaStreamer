@@ -26,6 +26,8 @@
 #define _RUNNABLE_HH
 
 #include <chrono>
+#include <functional>
+#include <vector>
 
 #include "Utils.hh"
 
@@ -41,13 +43,14 @@ public:
     * This method runs the pure virtual method processFrame and sets the next time value
     * when processFrame should run
     */
-    bool runProcessFrame();
-    virtual bool isEnabled() = 0;
-
-    /**
+	
+	//TODO delete this method
+	/**
     * This is a pure virtual method to be implemented by its inheriting filters and if required to do some stop stuff
     */
     virtual void stop() = 0;
+
+    std::vector<int> runProcessFrame();
 
     /**
     * This method tests if enough time went through since last processFrame
@@ -79,20 +82,59 @@ public:
     * @param pointer to right side runnable object
     */
     bool operator()(const Runnable* lhs, const Runnable* rhs);
+    
+    /**
+     * Returns the value of the running flag
+     * @return True if the runnable is currently running, False otherwise
+     */
+    bool isRunning() {return running;};
+    
+    /**
+     * Sets the running flag to true
+     */
+    void setRunning() {running = true;};
+    
+    /**
+     * Sets the running flag to false
+     */
+    void unsetRunning() {running = false;};
 
     /**
     * Get next time point of processFrame execution
     * @return time point of the next execution of processFrame
     */
     std::chrono::system_clock::time_point getTime() const {return time;};
+    
+    /**
+     * This method test if the runnable is periodic or not
+     * @return true is the Runnable is periodic, false otherwise
+     */
+    bool isPeriodic() const {return periodic;};
 
 protected:
-    virtual std::chrono::nanoseconds processFrame() = 0;
+    /**
+     * Runnable constructor
+     * @param bool it determines if the Runnable is periodic or not
+     */
+    Runnable(bool periodic = false);
+    
+    /**
+     * This is the virtual method that derivatives classes implements to process data
+     * @param integer this integer contains the delay until the method can be executed again
+     * @return A vector containing the ids of the runnables that can be exectued after 
+     * this process (e.g new data has been generated)
+     */
+    virtual std::vector<int> processFrame(int& ret) = 0;
+    
+protected:
     std::chrono::system_clock::time_point time;
 
 private:
+    const bool periodic;
+    bool running;
     int id;
 };
+
 
 struct RunnableLess : public std::binary_function<Runnable*, Runnable*, bool>
 {
@@ -101,5 +143,6 @@ struct RunnableLess : public std::binary_function<Runnable*, Runnable*, bool>
     return lhs->getTime() > rhs->getTime();
   }
 };
+
 
 #endif

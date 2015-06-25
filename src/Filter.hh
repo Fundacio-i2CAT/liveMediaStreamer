@@ -35,6 +35,7 @@
 #include "IOInterface.hh"
 #include "Runnable.hh"
 #include "Event.hh"
+#include "PipelineManager.hh"
 
 
 #define DEFAULT_ID 1                /*!< Default ID for unique filter's readers and/or writers. */
@@ -169,12 +170,21 @@ public:
     * @param refWallClock reference wall clock
     */
     void setWallClock(std::chrono::system_clock::time_point refWallClock) {wallClock = refWallClock;};
+    
+    /**
+     * Gets the filter Id, if Id < 0 it means unset ID, only zero or higher values are allowed
+     * @return id of the filter, it is a unique value.
+     */
+    int getId() {return id;};
+    
     //NOTE: these are public just for testing purposes
     /**
-    * Processes frames as a function of its role
-    * @return time to wait until next frame should be processed in nanoseconds.
+    * Processes frames depending on its role (MASTER or SLAVE)
+    * @param integer this integer contains the delay until the method can be executed again
+    * @return A vector containing the ids of the filters that can be exectued after 
+    * this process (e.g new data has been generated)
     */
-    std::chrono::nanoseconds processFrame();
+    std::vector<int> processFrame(int &ret);
     /**
     * Sets filter frame time
     * @param size_t frame time
@@ -182,7 +192,8 @@ public:
     void setFrameTime(std::chrono::nanoseconds fTime);
 
 protected:
-    BaseFilter(unsigned readersNum = MAX_READERS, unsigned writersNum = MAX_WRITERS, size_t fTime = 0, FilterRole fRole_ = MASTER, bool force_ = false, bool sharedFrames_ = true);
+    //TODO: all these methods should be described also
+    BaseFilter(unsigned readersNum = MAX_READERS, unsigned writersNum = MAX_WRITERS, size_t fTime = 0, FilterRole fRole_ = MASTER, bool force_ = false, bool sharedFrames_ = true, bool periodic = false);
 
     void addFrames();
     void removeFrames();
@@ -204,7 +215,7 @@ protected:
     bool updateTimestamp();
     std::map<std::string, std::function<bool(Jzon::Node* params)> > eventMap;
 
-    virtual bool runDoProcessFrame() = 0;
+    virtual std::vector<int> runDoProcessFrame() = 0;
 
     bool removeSlave(int id);
     std::map<int, BaseFilter*> slaves;
@@ -234,15 +245,18 @@ protected:
     std::chrono::nanoseconds frameTime;
 
 private:
+    friend class PipelineManager;
+    
     bool connect(BaseFilter *R, int writerID, int readerID);
-    std::chrono::nanoseconds masterProcessFrame();
+    std::vector<int> masterProcessFrame(int& ret);
     void processAll();
     bool runningSlaves();
     void setSharedFrames(bool sharedFrames_);
-    std::chrono::nanoseconds slaveProcessFrame();
+    std::vector<int> slaveProcessFrame(int& ret);
     void execute() {process = true;};
     bool isProcessing() {return process;};
     void updateFrames(std::map<int, Frame*> oFrames_);
+    void setId(int filterId);
 
 private:
     std::priority_queue<Event> eventQueue;
@@ -253,6 +267,7 @@ private:
     FilterRole const fRole;
     bool force;
     bool sharedFrames;
+    int id;
 };
 
 class OneToOneFilter : public BaseFilter {
@@ -265,7 +280,7 @@ protected:
 
 private:
     bool passTimestamp;
-    bool runDoProcessFrame();
+    std::vector<int> runDoProcessFrame();
     using BaseFilter::demandOriginFrames;
     using BaseFilter::demandDestinationFrames;
     using BaseFilter::addFrames;
@@ -296,13 +311,13 @@ private:
 class OneToManyFilter : public BaseFilter {
 
 protected:
-    OneToManyFilter(FilterRole fRole_ = MASTER, bool sharedFrames_ = true, unsigned writersNum = MAX_WRITERS, size_t fTime = 0, bool force_ = false);
+    OneToManyFilter(FilterRole fRole_ = MASTER, bool sharedFrames_ = true, unsigned writersNum = MAX_WRITERS, size_t fTime = 0, bool force_ = true);
     virtual bool doProcessFrame(Frame *org, std::map<int, Frame *> dstFrames) = 0;
     using BaseFilter::setFrameTime;
     using BaseFilter::getFrameTime;
 
 private:
-    bool runDoProcessFrame();
+    std::vector<int> runDoProcessFrame();
     using BaseFilter::demandOriginFrames;
     using BaseFilter::demandDestinationFrames;
     using BaseFilter::addFrames;
@@ -344,7 +359,7 @@ protected:
     using BaseFilter::getFrameTime;
 
 private: 
-    bool runDoProcessFrame();
+    std::vector<int> runDoProcessFrame();
     using BaseFilter::demandOriginFrames;
     using BaseFilter::demandDestinationFrames;
     using BaseFilter::addFrames;
@@ -383,7 +398,7 @@ protected:
 
 private:
     FrameQueue *allocQueue(int wId) {return NULL;};
-    bool runDoProcessFrame();
+    std::vector<int> runDoProcessFrame();
     virtual bool doProcessFrame(std::map<int, Frame*> orgFrames) = 0;
     using BaseFilter::demandOriginFrames;
     using BaseFilter::demandDestinationFrames;
@@ -419,7 +434,7 @@ protected:
     using BaseFilter::getFrameTime;
 
 private:   
-    bool runDoProcessFrame();
+    std::vector<int> runDoProcessFrame();
     using BaseFilter::demandOriginFrames;
     using BaseFilter::demandDestinationFrames;
     using BaseFilter::addFrames;
@@ -455,7 +470,7 @@ public:
 protected:
     LiveMediaFilter(unsigned readersNum = MAX_READERS, unsigned writersNum = MAX_WRITERS);
 
-    virtual bool runDoProcessFrame() = 0;
+    virtual std::vector<int> runDoProcessFrame() = 0;
 
 private:
     using BaseFilter::demandOriginFrames;

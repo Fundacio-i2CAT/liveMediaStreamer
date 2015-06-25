@@ -100,15 +100,16 @@ void SinkManager::stop()
     watch = 1;
 }
 
-bool SinkManager::runDoProcessFrame()
+std::vector<int> SinkManager::runDoProcessFrame()
 {
+    std::vector<int> enabledJobs;
     if (envir() == NULL){
-        return false;
+        return enabledJobs;
     }
 
     envir()->taskScheduler().doEventLoop((char*) &watch);
 
-    return true;
+    return enabledJobs;
 }
 
 bool SinkManager::removeConnection(int id)
@@ -347,22 +348,32 @@ Reader *SinkManager::setReader(int readerId, FrameQueue* queue)
 {
     VideoFrameQueue *vQueue;
     AudioFrameQueue *aQueue;
+    bool queueSrcCreated = false;
 
     if (readers.size() >= getMaxReaders() || readers.count(readerId) > 0 ) {
         return NULL;
     }
 
     Reader* r = new Reader();
-    readers[readerId] = r;
+    
 
     if ((vQueue = dynamic_cast<VideoFrameQueue*>(queue)) != NULL){
         createVideoQueueSource(vQueue->getCodec(), r, readerId);
+        queueSrcCreated = true;
     }
 
     if ((aQueue = dynamic_cast<AudioFrameQueue*>(queue)) != NULL){
         createAudioQueueSource(aQueue->getCodec(), r, readerId);
+        queueSrcCreated = true;
     }
-
+    
+    if(!queueSrcCreated){
+        delete r;
+        return NULL;
+    }
+    
+    readers[readerId] = r;
+    
     return r;
 }
 

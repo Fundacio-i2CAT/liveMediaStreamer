@@ -184,10 +184,17 @@ BaseFilter* PipelineManager::createFilter(FilterType type, Jzon::Node* params)
 bool PipelineManager::addFilter(int id, BaseFilter* filter)
 {
     if (filters.count(id) > 0) {
+        utils::errorMsg("Filter ID must be unique");
+        return false;
+    }
+    
+    if (id < 0){
+        utils::errorMsg("Filter ID must equal or higher than zero");
         return false;
     }
 
     filters[id] = filter;
+    filter->setId(id);
 
     return true;
 }

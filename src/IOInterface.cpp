@@ -119,11 +119,11 @@ Writer::~Writer()
 bool Writer::connect(Reader *reader) const
 {
     if (!queue) {
-        utils::errorMsg("The queue is empty");
+        utils::errorMsg("The queue is NULL");
         return false;
     }
 
-    reader->setConnection(queue);
+    reader->setConnection(queue);    
     queue->setConnected(true);
     return true;
 }

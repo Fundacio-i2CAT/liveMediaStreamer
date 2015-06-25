@@ -116,15 +116,26 @@ public:
 
 protected:
     FrameQueue *allocQueue(int wId) {return new AVFramedQueueMock(4);};
-    size_t masterProcessFrame() {return 20;};
-    size_t slaveProcessFrame() {return 20;};
+    std::vector<int> masterProcessFrame(int& ret) {
+        std::vector<int> enabledJobs;
+        ret = 20;
+        return enabledJobs;
+    };
+    std::vector<int> slaveProcessFrame(int& ret) {
+        std::vector<int> enabledJobs;
+        ret = 20;
+        return enabledJobs;
+    };
     void doGetState(Jzon::Object &filterNode) {};
     void stop() {};
 
 private:
     VCodecType codec;
 
-    bool runDoProcessFrame() {return true;};
+    std::vector<int> runDoProcessFrame() {
+        std::vector<int> enabledJobs;
+        return enabledJobs;
+    };
 };
 
 class OneToOneFilterMockup : public OneToOneFilter
@@ -206,14 +217,15 @@ private:
         watch = false;
     }
     void doGetState(Jzon::Object &filterNode) {};
-    bool runDoProcessFrame(){
+    std::vector<int> runDoProcessFrame(){
+        std::vector<int> enabledJobs;
         if(watch){
             utils::debugMsg("LiveMedia filter dummy runDoProcessFrame\n");
             while(watch){
                 std::this_thread::sleep_for(std::chrono::milliseconds(50));
             }
         }
-        return true;
+        return enabledJobs;
     }
 
 private:

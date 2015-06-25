@@ -115,6 +115,7 @@ bool AudioEncoderLibav::doProcessFrame(Frame *org, Frame *dst)
 
 Reader* AudioEncoderLibav::setReader(int readerID, FrameQueue* queue)
 {
+    AudioCircularBuffer* circularBufferQueue;
     if (readers.size() >= getMaxReaders() || readers.count(readerID) > 0 ) {
         return NULL;
     }
@@ -123,11 +124,14 @@ Reader* AudioEncoderLibav::setReader(int readerID, FrameQueue* queue)
         utils::errorMsg("Error setting audio encoder reader. Samples per frame has 0 value");
         return NULL;
     }
+    
+    if (!(circularBufferQueue = dynamic_cast<AudioCircularBuffer*>(queue))) {
+        return NULL;
+    }
+    circularBufferQueue->setOutputFrameSamples(samplesPerFrame);
 
     Reader* r = new Reader();
     readers[readerID] = r;
-
-    dynamic_cast<AudioCircularBuffer*>(queue)->setOutputFrameSamples(samplesPerFrame);
 
     return r;
 }

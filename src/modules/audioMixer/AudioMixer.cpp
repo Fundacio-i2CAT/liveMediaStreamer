@@ -137,14 +137,19 @@ void AudioMixer::sumValues(std::vector<float> fSamples, std::vector<float> &mixe
 
 Reader* AudioMixer::setReader(int readerID, FrameQueue* queue)
 {
+    AudioCircularBuffer* circularBufferQueue;
+    
     if (readers.count(readerID) > 0) {
         return NULL;
     }
+    
+    if (!(circularBufferQueue = dynamic_cast<AudioCircularBuffer*>(queue))){
+        return NULL;
+    }
+    circularBufferQueue->setOutputFrameSamples(samplesPerFrame);
 
     Reader* r = new Reader();
     readers[readerID] = r;
-
-    dynamic_cast<AudioCircularBuffer*>(queue)->setOutputFrameSamples(samplesPerFrame);
 
     gains[readerID] = DEFAULT_CHANNEL_GAIN;
 

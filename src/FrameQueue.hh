@@ -50,7 +50,7 @@ public:
     /**
     * Creates a frame object
     */
-    FrameQueue() : state(SLOW), rear(0), front(0), elements(0), connected(false), firstFrame(false) {};
+    FrameQueue() : state(SLOW), rear(0), front(0), elements(0), connected(false), firstFrame(false), rFilterId(-1), wFilterId(-1) {};
     virtual ~FrameQueue() {};
 
     /**
@@ -116,15 +116,39 @@ public:
     * @param boolean to set connected to true or false
     */
     void setConnected(bool conn) {connected = conn;};
+    
+    //TODO: move to new FrameQueue.cpp file
+    /**
+     * Sets writer filter Id
+     * @param integer writer filter Id
+     */
+    void setWFilterId(int id){
+        if (id < 0){
+            return;
+        }
+        wFilterId = id;
+    }
+    
+    /**
+     * Sets reader filter Id
+     * @param integer reader filter Id
+     */
+    void setRFilterId(int id){
+        if (id < 0){
+            return;
+        }
+        rFilterId = id;
+    }
 
 protected:
     QueueState state;
-    std::atomic<unsigned> rear;
-    std::atomic<unsigned> front;
+    unsigned rear;
+    unsigned front;
     std::atomic<unsigned> elements;
-    std::atomic<bool> connected;
-    std::atomic<bool> firstFrame;
-    
+    bool connected;
+    bool firstFrame;
+    int rFilterId;
+    int wFilterId;
 };
 
 #endif

@@ -77,18 +77,20 @@ public:
         tailF->disconnectAll();
     }
     
-    std::chrono::nanoseconds processFrame(InterleavedVideoFrame* srcFrame){
-        std::chrono::nanoseconds ret;
+    int processFrame(InterleavedVideoFrame* srcFrame){
+        int ret;
         
         if (! headF->inject(srcFrame)){
-            return std::chrono::nanoseconds(0);
+            return 0;
         }
-        headF->processFrame();
-        return filterToTest->processFrame();
+        headF->processFrame(ret);
+        filterToTest->processFrame(ret);
+        return ret;
     }
     
     InterleavedVideoFrame *extractFrame(){
-        tailF->processFrame();
+        int ret;
+        tailF->processFrame(ret);
         return tailF->extract();
     }
     

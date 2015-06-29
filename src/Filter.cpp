@@ -451,6 +451,11 @@ bool BaseFilter::demandOriginFramesBestEffort(std::chrono::microseconds &outTime
     for (auto r : readers) {
         frame = r.second->getFrame();
 
+        while(frame && frame->getPresentationTime() < syncTs) {
+            r.second->removeFrame();
+            frame = r.second->getFrame();
+        }
+
         if (!frame) {
             frame = r.second->getFrame(true);
             oFrames[r.first] = frame;
@@ -469,6 +474,8 @@ bool BaseFilter::demandOriginFramesBestEffort(std::chrono::microseconds &outTime
     }
 
     outTimestamp = outTs;
+    std::cout << (outTs - syncTs).count() << std::endl;
+    syncTs = outTs;
     return true;
 }
 

@@ -59,7 +59,7 @@ void setupMixer(int mixerId, int transmitterId)
     std::vector<int> ids = {resId, encId};
 
     //NOTE: Adding decoder to pipeManager and handle worker
-    mixer = new VideoMixer(MIX_WIDTH, MIX_HEIGHT);
+    mixer = new VideoMixer(MIX_WIDTH, MIX_HEIGHT, std::chrono::microseconds(40000));
     pipe->addFilter(mixerId, mixer);
     mixWorker = new Worker();
     mixWorker->addProcessor(mixerId, mixer);
@@ -144,7 +144,7 @@ void addVideoPath(unsigned port, int receiverId, int mixerId)
     }
 
     mixer->configChannel(port, 0.5, 0.5, rand()%50/100.0, rand()%50/100.0, layer++, true, 1.0);
-    resampler->configure(MIX_WIDTH*0.5, MIX_HEIGHT*0.5, 0, YUV420P);
+    resampler->configure(MIX_WIDTH*0.5, MIX_HEIGHT*0.5, 0, RGB24);
 
     pipe->startWorkers();
 

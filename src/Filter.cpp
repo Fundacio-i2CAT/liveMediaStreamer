@@ -29,7 +29,7 @@
 
 BaseFilter::BaseFilter(unsigned readersNum, unsigned writersNum, FilterRole fRole_, bool sharedFrames_) :
 process(false), maxReaders(readersNum), maxWriters(writersNum), frameTime(std::chrono::microseconds(0)), 
-fRole(fRole_), sharedFrames(sharedFrames_)
+fRole(fRole_), sharedFrames(sharedFrames_), syncTs(std::chrono::microseconds(0))
 {
 
 }
@@ -479,6 +479,7 @@ bool BaseFilter::demandOriginFramesFrameTime(std::chrono::microseconds &outTimes
     Frame* frame;
 
     for (auto r : readers) {
+
         frame = r.second->getFrame();
 
         // In case a frame is earliear than syncTs, we will discard frames
@@ -488,10 +489,17 @@ bool BaseFilter::demandOriginFramesFrameTime(std::chrono::microseconds &outTimes
             frame = r.second->getFrame();
         }
 
+        // If there is no frame get the previous one from the queue
+        if (!frame) {
+            frame = r.second->getFrame(true);
+            oFrames[r.first] = frame;
+            rUpdates[r.first] = false;
+            continue;
+        }
+
         // If there is no frame or the current one is out of our mixing scope, 
         // we get the previous one from the queue
-        if (!frame || frame->getPresentationTime() >= syncTs + frameTime) {
-            frame = r.second->getFrame(true);
+        if (frame->getPresentationTime() >= syncTs + frameTime) {
             oFrames[r.first] = frame;
             rUpdates[r.first] = false;
 
@@ -522,6 +530,7 @@ bool BaseFilter::demandOriginFramesFrameTime(std::chrono::microseconds &outTimes
 
         if (outOfScopeTs.count() > 0) {
             syncTs = outOfScopeTs;
+            std::cout << "Out of scope, resyncing: " << outOfScopeTs.count() << std::endl; 
         }
 
         return false;
@@ -529,6 +538,7 @@ bool BaseFilter::demandOriginFramesFrameTime(std::chrono::microseconds &outTimes
 
     // Finally set timestamp and set syncTs
     outTimestamp = syncTs;
+    std::cout << "sync: " << syncTs.count() << std::endl; 
     syncTs += frameTime;
     return true;
 }
@@ -655,7 +665,7 @@ bool ManyToOneFilter::runDoProcessFrame(std::chrono::microseconds outTimestamp)
 {
     if (doProcessFrame(oFrames, dFrames.begin()->second)) {
         //NOTE: this assignment is only done in order to advance in the timestamp refactor. Must be implmented correctly
-        dFrames.begin()->second->setPresentationTime(oFrames.begin()->second->getPresentationTime());
+        dFrames.begin()->second->setPresentationTime(outTimestamp);
         dFrames.begin()->second->setDuration(oFrames.begin()->second->getDuration());
         seqNums[dFrames.begin()->first]++;
         dFrames.begin()->second->setSequenceNumber(seqNums[dFrames.begin()->first]);

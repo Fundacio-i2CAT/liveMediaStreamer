@@ -151,29 +151,32 @@ bool HeadDemuxerLibav::setURI(const std::string URI)
         const AVCodecDescriptor* cdesc =
                 avcodec_descriptor_get(av_ctx->streams[i]->codec->codec_id);
         DemuxerStreamInfo *sinfo = new DemuxerStreamInfo;
-        switch (cdesc->type) {
-            case AVMEDIA_TYPE_AUDIO:
-                sinfo->type = AUDIO;
-                sinfo->audio.codec = utils::getAudioCodecFromLibavString(cdesc->name);
-                sinfo->audio.sampleRate = av_ctx->streams[i]->codec->sample_rate;
-                sinfo->audio.channels = av_ctx->streams[i]->codec->channels;
-                sinfo->audio.sampleFormat = getSampleFormatFromLibav (av_ctx->streams[i]->codec->sample_fmt);
-                break;
-            case AVMEDIA_TYPE_VIDEO:
-                sinfo->type = VIDEO;
-                sinfo->video.codec = utils::getVideoCodecFromLibavString(cdesc->name);
-                sinfo->video.width = av_ctx->streams[i]->codec->width;
-                sinfo->video.height = av_ctx->streams[i]->codec->height;
-                break;
-            default:
-                // Ignore this stream
-                sinfo->type = ST_NONE;
-                break;
-        }
-        sinfo->extradata_size = av_ctx->streams[i]->codec->extradata_size;
-        if (sinfo->extradata_size > 0) {
-            sinfo->extradata = new uint8_t[sinfo->extradata_size];
-            memcpy (sinfo->extradata, av_ctx->streams[i]->codec->extradata, sinfo->extradata_size);
+        sinfo->type = ST_NONE;
+        sinfo->extradata = NULL;
+        if (cdesc) {
+            switch (cdesc->type) {
+                case AVMEDIA_TYPE_AUDIO:
+                    sinfo->type = AUDIO;
+                    sinfo->audio.codec = utils::getAudioCodecFromLibavString(cdesc->name);
+                    sinfo->audio.sampleRate = av_ctx->streams[i]->codec->sample_rate;
+                    sinfo->audio.channels = av_ctx->streams[i]->codec->channels;
+                    sinfo->audio.sampleFormat = getSampleFormatFromLibav (av_ctx->streams[i]->codec->sample_fmt);
+                    break;
+                case AVMEDIA_TYPE_VIDEO:
+                    sinfo->type = VIDEO;
+                    sinfo->video.codec = utils::getVideoCodecFromLibavString(cdesc->name);
+                    sinfo->video.width = av_ctx->streams[i]->codec->width;
+                    sinfo->video.height = av_ctx->streams[i]->codec->height;
+                    break;
+                default:
+                    // Ignore this stream
+                    break;
+            }
+            sinfo->extradata_size = av_ctx->streams[i]->codec->extradata_size;
+            if (sinfo->extradata_size > 0) {
+                sinfo->extradata = new uint8_t[sinfo->extradata_size];
+                memcpy (sinfo->extradata, av_ctx->streams[i]->codec->extradata, sinfo->extradata_size);
+            }
         }
         streams[i] = sinfo;
     }

@@ -145,6 +145,7 @@ protected:
         realProcessTime = distribution(generator);
         utils::debugMsg("Process time " + std::to_string(realProcessTime));
         std::this_thread::sleep_for(std::chrono::nanoseconds(realProcessTime));
+        dst->setConsumed(gotFrame);
         return gotFrame;
     }
     void doGetState(Jzon::Object &filterNode) {};
@@ -177,6 +178,9 @@ protected:
         realProcessTime = distribution(generator);
         utils::debugMsg("Process time " + std::to_string(realProcessTime));
         std::this_thread::sleep_for(std::chrono::nanoseconds(realProcessTime));
+        for (auto dst : dstFrames) {
+            dst.second->setConsumed(gotFrame);
+        }
         return gotFrame;
     }
     void doGetState(Jzon::Object &filterNode) {};
@@ -285,7 +289,7 @@ protected:
             dstFrame->setPresentationTime(std::chrono::system_clock::now());
             dstFrame->setOriginTime(srcFrame->getOriginTime());
             dstFrame->setPixelFormat(srcFrame->getPixelFormat());
-            
+            dstFrame->setConsumed(true);
             return true;
         }
         
@@ -317,12 +321,17 @@ public:
         }
     }
     
+    ~VideoTailFilterMockup() {
+        if (oFrame) {
+            delete oFrame;
+        }
+    }
     void doGetState(Jzon::Object &filterNode){};
     
 protected:
     bool doProcessFrame(std::map<int, Frame*> orgFrames) {
         InterleavedVideoFrame *orgFrame;
-        
+ 
         if ((orgFrame = dynamic_cast<InterleavedVideoFrame*>(orgFrames.begin()->second)) != NULL){
             if (!oFrame){
                 oFrame = InterleavedVideoFrame::createNew(orgFrame->getCodec(), 
@@ -349,6 +358,62 @@ protected:
 
 private:
     InterleavedVideoFrame* oFrame;
+    bool newFrame;
+};
+
+class AudioTailFilterMockup : public TailFilter
+{
+public:
+    AudioTailFilterMockup(): TailFilter(), oFrame(NULL), newFrame(false){};
+
+    PlanarAudioFrame* extract(){
+        if (newFrame){
+            newFrame = false;
+            return oFrame;
+        } else {
+            return NULL;
+        }
+    }
+
+    ~AudioTailFilterMockup() {
+        if (oFrame) {
+            delete oFrame;
+        }
+    }
+
+    void doGetState(Jzon::Object &filterNode){};
+
+protected:
+    bool doProcessFrame(std::map<int, Frame*> orgFrames) {
+        PlanarAudioFrame *orgFrame;
+
+        if ((orgFrame = dynamic_cast<PlanarAudioFrame*>(orgFrames.begin()->second)) != NULL){
+            if (!oFrame){
+                oFrame = PlanarAudioFrame::createNew(
+                        orgFrame->getChannels(),
+                        orgFrame->getSampleRate(),
+                        orgFrame->getMaxSamples(),
+                        orgFrame->getCodec(),
+                        orgFrame->getSampleFmt());
+            }
+
+            memmove(oFrame->getDataBuf(), orgFrame->getDataBuf(), sizeof(unsigned char)*orgFrame->getLength());
+
+            oFrame->setPresentationTime(orgFrame->getPresentationTime());
+            oFrame->setOriginTime(orgFrame->getOriginTime());
+            oFrame->setSequenceNumber(orgFrame->getSequenceNumber());
+
+            newFrame = true;
+
+            return true;
+        }
+
+        return false;
+    }
+
+
+private:
+    PlanarAudioFrame* oFrame;
     bool newFrame;
 };
 

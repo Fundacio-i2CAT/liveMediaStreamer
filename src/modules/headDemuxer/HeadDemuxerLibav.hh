@@ -30,8 +30,22 @@ extern "C" {
 #include "../../Filter.hh"
 
 struct DemuxerStreamInfo {
-   StreamType type;
-   std::string codec_name;
+    StreamType type;
+    uint8_t *extradata;
+    int extradata_size;
+    union {
+        struct {
+            ACodecType codec;
+            unsigned sampleRate;
+            unsigned channels;
+            SampleFmt sampleFormat;
+        } audio;
+        struct {
+            VCodecType codec;
+            int width;
+            int height;
+        } video;
+    };
 };
 
 class HeadDemuxerLibav : public HeadFilter {
@@ -49,12 +63,22 @@ class HeadDemuxerLibav : public HeadFilter {
         virtual void doGetState(Jzon::Object &filterNode);
 
     private:
+        /* URI currently being played */
         std::string uri;
-        std::map<int, DemuxerStreamInfo> streams;
-        int last_writer_id;
+        /* Maps writer IDs to Stream Infos.
+         * We use libav stream index as writer ID.
+         * The struct is allocated by the demuxer and it belongs to the demuxer,
+         * including extradata, even though a pointer to extradata might be
+         * shared with the queues. */
+        std::map<int, DemuxerStreamInfo*> streams;
+        /* Libav media context */
         AVFormatContext *av_ctx;
 
+        /* Clear all data, close all files */
         void reset();
+
+        /* Convert from Libav SampleFormat enum to ours */
+        SampleFmt getSampleFormatFromLibav(AVSampleFormat libavSampleFmt);
 };
 
 #endif

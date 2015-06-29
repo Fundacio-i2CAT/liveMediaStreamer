@@ -41,18 +41,22 @@ public:
     unsigned getElements() const {return elements;};
     bool frameToRead();
     QueueState getState();
+    const uint8_t *getExtraData() const {return extradata;};
+    int getExtraDataSize() const {return extradata_size;};
 
     virtual ~AVFramedQueue();
 
 protected:
     Frame* frames[MAX_FRAMES];
     unsigned max;
+    const uint8_t *extradata;
+    int extradata_size;
 };
 
 class VideoFrameQueue : public AVFramedQueue {
 
 public:
-    static VideoFrameQueue* createNew(VCodecType codec, unsigned maxFrames, PixType pixelFormat = P_NONE);
+    static VideoFrameQueue* createNew(VCodecType codec, unsigned maxFrames, PixType pixelFormat = P_NONE, const uint8_t *extradata = NULL, int extradata_size = 0);
 
     const VCodecType getCodec() const {return codec;};
 
@@ -70,7 +74,8 @@ class AudioFrameQueue : public AVFramedQueue {
 
 public:
     static AudioFrameQueue* createNew(ACodecType codec, unsigned maxFrames, unsigned sampleRate = DEFAULT_SAMPLE_RATE, 
-                                       unsigned channels = DEFAULT_CHANNELS, SampleFmt sFmt = S16);
+                                       unsigned channels = DEFAULT_CHANNELS, SampleFmt sFmt = S16,
+                                       const uint8_t *extradata = NULL, int extradata_size = 0);
     
     unsigned getSampleRate() const {return sampleRate;};
     unsigned getChannels() const {return channels;};

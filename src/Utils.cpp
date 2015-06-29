@@ -249,6 +249,9 @@ namespace utils
             case TRANSMITTER:
                 stringType = "transmitter";
                 break;
+            case DEMUXER:
+                stringType = "demuxer";
+                break;
             default:
                 stringType = "";
                 break;
@@ -283,6 +286,8 @@ namespace utils
            fType = SHARED_MEMORY;
         }  else if (stringFilterType.compare("dasher") == 0) {
            fType = DASHER;
+        }  else if (stringFilterType.compare("demuxer") == 0) {
+           fType = DEMUXER;
         }  else {
            fType = FT_NONE;
         }

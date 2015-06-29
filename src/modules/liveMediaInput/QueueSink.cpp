@@ -83,6 +83,7 @@ void QueueSink::afterGettingFrame(unsigned frameSize, struct timeval presentatio
         frame->newOriginTime();
         frame->setPresentationTime(std::chrono::system_clock::now());
         frame->setSequenceNumber(++seqNum);
+        frame->setConsumed(true);
         fWriter->addFrame();
     }
 

@@ -63,7 +63,7 @@ void HeadDemuxerTest::demuxingTest()
     static const std::string bad_uri1 = "test://non.existing.protocol";
     static const std::string bad_uri2 = "http://non.existing.host";
     static const std::string bad_uri3 = "http://docs.gstreamer.com/display/GstSDK/gst-inspect";
-    static const std::string good_uri = "http://docs.gstreamer.com/media/sintel_trailer-480p.webm";
+    static const std::string good_uri = "http://download.blender.org/durian/trailer/sintel_trailer-480p.mp4";
     Jzon::Object state;
 
     CPPUNIT_ASSERT (demuxer->setURI (bad_uri1) == false);
@@ -82,12 +82,16 @@ void HeadDemuxerTest::demuxingTest()
     Jzon::Node &vnode = array.Get(0);
     CPPUNIT_ASSERT (vnode.Get("wId").ToInt() == 0);
     CPPUNIT_ASSERT (vnode.Get("type").ToInt() == VIDEO);
-    CPPUNIT_ASSERT (vnode.Get("codec_name").ToString() == "vp8");
+    CPPUNIT_ASSERT (vnode.Get("codec").ToInt() == H264);
+    CPPUNIT_ASSERT (vnode.Get("width").ToInt() == 854);
+    CPPUNIT_ASSERT (vnode.Get("height").ToInt() == 480);
 
     Jzon::Node &anode = array.Get(1);
     CPPUNIT_ASSERT (anode.Get("wId").ToInt() == 1);
     CPPUNIT_ASSERT (anode.Get("type").ToInt() == AUDIO);
-    CPPUNIT_ASSERT (anode.Get("codec_name").ToString() == "vorbis");
+    CPPUNIT_ASSERT (anode.Get("codec").ToInt() == AAC);
+    CPPUNIT_ASSERT (anode.Get("sampleRate").ToInt() == 48000);
+    CPPUNIT_ASSERT (anode.Get("channels").ToInt() == 2);
 
     /* // Uncomment to dump state Json
     Jzon::Writer writer(state, Jzon::StandardFormat);

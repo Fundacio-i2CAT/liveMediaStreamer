@@ -125,11 +125,15 @@ public:
     */
     virtual bool isPlanar() = 0;
 
+    bool getConsumed() const { return consumed; }
+    void setConsumed(bool c) { consumed=c; }
+
 protected:
     std::chrono::system_clock::time_point presentationTime;
     std::chrono::system_clock::time_point originTime;
     std::chrono::nanoseconds duration;
     size_t sequenceNumber;
+    bool consumed;
 };
 
 #endif

@@ -28,8 +28,8 @@
 
 #define MAX_PLANES_PER_PICTURE 3
 
-VideoEncoderX265::VideoEncoderX265(FilterRole fRole, bool sharedFrames) :
-VideoEncoderX264or5(fRole, sharedFrames), encoder(NULL)
+VideoEncoderX265::VideoEncoderX265(FilterRole fRole) :
+VideoEncoderX264or5(fRole), encoder(NULL)
 {
     pts = 0;
     xparams = x265_param_alloc();

@@ -55,9 +55,9 @@ void ChannelConfig::config(float width, float height, float x, float y, int laye
 //                VideoMixer Class               //
 ///////////////////////////////////////////////////
 
-VideoMixer::VideoMixer(FilterRole fRole_, bool sharedFrames, int framerate, int inputChannels, 
+VideoMixer::VideoMixer(FilterRole fRole_, int framerate, int inputChannels, 
                        int outputWidth, int outputHeight, size_t fTime) :
-ManyToOneFilter(fRole_, sharedFrames, inputChannels, fTime, true)
+ManyToOneFilter(fRole_, inputChannels, fTime, true)
 {
     this->outputWidth = outputWidth;
     this->outputHeight = outputHeight;

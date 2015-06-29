@@ -31,6 +31,7 @@
 
 #include "Utils.hh"
 
+
 /*! Runnable class is an interface implemented by BaseFilter, which has some
     basic methods in order to process a single frame of the filter.
 */
@@ -38,17 +39,6 @@ class Runnable {
 
 public:
     virtual ~Runnable(){};
-
-    /**
-    * This method runs the pure virtual method processFrame and sets the next time value
-    * when processFrame should run
-    */
-	
-	//TODO delete this method
-	/**
-    * This is a pure virtual method to be implemented by its inheriting filters and if required to do some stop stuff
-    */
-    virtual void stop() = 0;
 
     std::vector<int> runProcessFrame();
 
@@ -64,17 +54,10 @@ public:
     void sleepUntilReady();
 
     /**
-    * Get runnable object Id
-    * @return Id of the runnable object
-    */
+     * Gets the runnable Id, if Id < 0 it means unset ID, only zero or higher values are allowed
+     * @return id of the filter, it is a unique value.
+     */
     int getId() {return id;};
-
-    /**
-    * Sets the Runnable object id
-    * @param Id of the runnable object
-    */
-    void setId(int id_) {id = id_;};
-    //TODO: setId should be private
 
     /**
     * Operator definition to make Runnable objects comparable
@@ -110,6 +93,10 @@ public:
      * @return true is the Runnable is periodic, false otherwise
      */
     bool isPeriodic() const {return periodic;};
+    
+    //TODO should be a private method
+    void setId(int id_);
+    
 
 protected:
     /**
@@ -140,7 +127,7 @@ struct RunnableLess : public std::binary_function<Runnable*, Runnable*, bool>
 {
   bool operator()(const Runnable* lhs, const Runnable* rhs) const
   {
-    return lhs->getTime() > rhs->getTime();
+    return lhs->getTime() < rhs->getTime();
   }
 };
 

@@ -58,7 +58,7 @@ private:
 class VideoMixer : public ManyToOneFilter {
 
     public:
-        VideoMixer(FilterRole fRole_ = MASTER, bool sharedFrames = true,
+        VideoMixer(FilterRole fRole_ = MASTER,
                    int framerate = VIDEO_DEFAULT_FRAMERATE,
                    int inputChannels = VMIXER_MAX_CHANNELS,
                    int outputWidth = DEFAULT_WIDTH,

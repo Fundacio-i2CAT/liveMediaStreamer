@@ -28,11 +28,11 @@
 #include "../../Filter.hh"
 #include "../../IOInterface.hh"
 #include "Connection.hh"
+#include "../CustomScheduler.hh"
 
 #include <map>
 #include <string>
 #include <liveMedia/liveMedia.hh>
-#include <BasicUsageEnvironment.hh>
 
 #define RTSP_PORT 8554
 #define MAX_VIDEO_FRAME_SIZE 1024*1024*2 //2MB
@@ -97,7 +97,7 @@ private:
     
     Reader *setReader(int readerID, FrameQueue* queue);
 
-    std::vector<int> runDoProcessFrame();
+    bool doProcessFrame();
     void stop();
 
     FrameQueue *allocQueue(int wId) { return NULL;};

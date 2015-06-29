@@ -24,9 +24,9 @@
 
 static unsigned char const start_code[4] = {0x00, 0x00, 0x00, 0x01};
 
-SharedMemory* SharedMemory::createNew(size_t key_, VCodecType codec, FilterRole fRole_, size_t fTime, bool force_, bool sharedFrames_)
+SharedMemory* SharedMemory::createNew(size_t key_, VCodecType codec, FilterRole fRole_, size_t fTime, bool force_)
 {
-    SharedMemory *shm = new SharedMemory(key_, codec, fTime, fRole_, force_, sharedFrames_);
+    SharedMemory *shm = new SharedMemory(key_, codec, fTime, fRole_, force_);
 
     if(shm->isEnabled()){
         return shm;
@@ -34,7 +34,7 @@ SharedMemory* SharedMemory::createNew(size_t key_, VCodecType codec, FilterRole 
     return NULL;
 }
 
-SharedMemory::SharedMemory(size_t key_, VCodecType codec_, size_t fTime, FilterRole fRole_, bool force_, bool sharedFrames_):
+SharedMemory::SharedMemory(size_t key_, VCodecType codec_, size_t fTime, FilterRole fRole_, bool force_):
     OneToOneFilter(true, fRole_, fTime), enabled(true), newFrame(false), codec(codec_)
 {
 

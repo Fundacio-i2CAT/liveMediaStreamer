@@ -317,25 +317,6 @@ namespace utils
 
     }
 
-    std::string getWorkerTypeAsString(WorkerType type)
-    {
-        std::string stringWorker;
-
-        switch(type) {
-            case LIVEMEDIA:
-                stringWorker = "livemedia";
-                break;
-            case WORKER:
-                stringWorker = "worker";
-                break;
-            default:
-                stringWorker = "";
-                break;
-        }
-
-        return stringWorker;
-    }
-
     TxFormat getTxFormatFromString(std::string stringTxFormat)
     {
         TxFormat format;

@@ -40,12 +40,12 @@ extern "C" {
 class VideoEncoderX265 : public VideoEncoderX264or5 {
 
 public:
-    VideoEncoderX265(FilterRole fRole = MASTER, bool sharedFrames = false);
-	~VideoEncoderX265();
+    VideoEncoderX265(FilterRole fRole = MASTER);
+    ~VideoEncoderX265();
 
 private:
     FrameQueue* allocQueue(int wId);
-	void initializeEventMap();
+    void initializeEventMap();
 
     x265_picture    *picIn;
     x265_picture    *picOut;

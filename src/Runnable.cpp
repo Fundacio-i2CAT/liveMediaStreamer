@@ -27,7 +27,7 @@
 #include "Runnable.hh"
 
 
-Runnable::Runnable(bool periodic_) : periodic(periodic_), running(false)
+Runnable::Runnable(bool periodic_) : periodic(periodic_), running(false), id(-1)
 {
 }
 
@@ -59,3 +59,16 @@ std::vector<int> Runnable::runProcessFrame()
     return enabledJobs;
 }
 
+void Runnable::setId(int id_){
+    if (id_ < 0){
+        utils::errorMsg("invalid filter Id, only positive values are allowed");
+        return;
+    }
+    
+    if (id >= 0){
+        utils::errorMsg("You cannot re-assign the filter Id");
+        return;
+    }
+    
+    id = id_;
+}

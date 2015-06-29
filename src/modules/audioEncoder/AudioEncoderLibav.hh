@@ -38,7 +38,7 @@ extern "C" {
 class AudioEncoderLibav : public OneToOneFilter {
 
 public:
-    AudioEncoderLibav(FilterRole fRole_ = MASTER, bool sharedFrames = true);
+    AudioEncoderLibav(FilterRole fRole_ = MASTER);
     ~AudioEncoderLibav();
     
     bool doProcessFrame(Frame *org, Frame *dst);

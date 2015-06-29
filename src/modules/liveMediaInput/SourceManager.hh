@@ -24,6 +24,7 @@
 #define _SOURCE_MANAGER_HH
 
 #include "../../Filter.hh"
+#include "../CustomScheduler.hh"
 #include "Handlers.hh"
 #include "QueueSink.hh"
 
@@ -32,8 +33,8 @@
 #include <functional>
 #include <string>
 #include <liveMedia.hh>
-#include <BasicUsageEnvironment.hh>
 #include <GroupsockHelper.hh>
+
 
 #define PROTOCOL "RTP"
 
@@ -118,7 +119,7 @@ private:
     friend bool StreamClientState::addWriterToMngr(unsigned port, Writer* writer);
     bool addWriter(unsigned port, const Writer *writer);
 
-    std::vector<int> runDoProcessFrame();
+    bool doProcessFrame();
     void addConnection(int wId, MediaSubsession* subsession);
 
     static void* startServer(void *args);

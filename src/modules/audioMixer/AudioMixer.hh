@@ -41,7 +41,7 @@ enum mixingAlgorithm
 class AudioMixer : public ManyToOneFilter {
 
     public:
-        AudioMixer(FilterRole fRole_ = MASTER, bool sharedFrames = true, int inputChannels = AMIXER_MAX_CHANNELS);
+        AudioMixer(FilterRole fRole_ = MASTER, int inputChannels = AMIXER_MAX_CHANNELS);
         ~AudioMixer();
         FrameQueue *allocQueue(int wId);
         bool doProcessFrame(std::map<int, Frame*> orgFrames, Frame *dst);

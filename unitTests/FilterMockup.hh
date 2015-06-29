@@ -142,8 +142,8 @@ class OneToOneFilterMockup : public OneToOneFilter
 {
 public:
     OneToOneFilterMockup(size_t processTime_, size_t queueSize_, bool gotFrame_,
-                         size_t frameTime, FilterRole role, bool sharedFrames) :
-        OneToOneFilter(true, role, sharedFrames, frameTime, false),
+                         size_t frameTime, FilterRole role) :
+        OneToOneFilter(true, role, frameTime, false),
         processTime(processTime_), queueSize(queueSize_), gotFrame(gotFrame_) {};
 
     void setGotFrame(bool gotFrame_) {gotFrame = gotFrame_;};
@@ -151,6 +151,7 @@ public:
 
 protected:
     bool doProcessFrame(Frame *org, Frame *dst) {
+        std::cout << "this is do process frame" << std::endl;
         size_t realProcessTime;
         std::uniform_int_distribution<size_t> distribution(processTime/2, processTime*0.99);
         realProcessTime = distribution(generator);
@@ -174,8 +175,8 @@ class OneToManyFilterMockup : public OneToManyFilter
 {
 public:
     OneToManyFilterMockup(unsigned maxWriters, size_t processTime_, size_t queueSize_, bool gotFrame_,
-                         size_t frameTime, FilterRole role, bool sharedFrames) :
-        OneToManyFilter(role, sharedFrames, maxWriters, frameTime, false),
+                         size_t frameTime, FilterRole role) :
+        OneToManyFilter(role, maxWriters, frameTime, false),
         processTime(processTime_), queueSize(queueSize_), gotFrame(gotFrame_) {};
 
     void setGotFrame(bool gotFrame_) {gotFrame = gotFrame_;};
@@ -213,32 +214,27 @@ public:
 
 private:
     virtual FrameQueue *allocQueue(int wId) {return new AVFramedQueueMock(queueSize);};
-    void stop() {
-        watch = false;
-    }
     void doGetState(Jzon::Object &filterNode) {};
-    std::vector<int> runDoProcessFrame(){
-        std::vector<int> enabledJobs;
+    bool doProcessFrame(){
         if(watch){
             utils::debugMsg("LiveMedia filter dummy runDoProcessFrame\n");
             while(watch){
                 std::this_thread::sleep_for(std::chrono::milliseconds(50));
             }
         }
-        return enabledJobs;
+        return true;
     }
 
 private:
     size_t queueSize;
     bool watch;
-
 };
 
 class VideoFilterMockup : public OneToOneFilterMockup
 {
 public:
     VideoFilterMockup(VCodecType c) : OneToOneFilterMockup(20000, 4, true,
-                      40000, MASTER, false)  {
+                      40000, MASTER)  {
         codec = c;
     };
 
@@ -253,7 +249,7 @@ class AudioFilterMockup : public OneToOneFilterMockup
 {
 public:
     AudioFilterMockup(ACodecType c) : OneToOneFilterMockup(20000, 4, true,
-                      40000, MASTER, false)  {
+                      40000, MASTER)  {
         codec = c;
     };
 

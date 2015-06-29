@@ -40,6 +40,13 @@
 PipelineManager::PipelineManager()
 {
     pipeMngrInstance = this;
+    pool = new WorkersPool();
+}
+
+PipelineManager::~PipelineManager()
+{
+    stop();
+    pipeMngrInstance = NULL;
 }
 
 PipelineManager* PipelineManager::getInstance()
@@ -62,16 +69,11 @@ void PipelineManager::destroyInstance()
 
 bool PipelineManager::stop()
 {
-    for (auto it : workers) {
-        it.second->stop();
-        while (it.second->isRunning()) {
-            std::this_thread::sleep_for(std::chrono::microseconds(WORKER_DELETE_SLEEPING_TIME));
-        }
-        delete it.second;
+    for (auto it : filters) {
+        pool->removeTask(it.first);
     }
-
-    workers.clear();
-
+    utils::infoMsg("No more tasks in pool");
+    
     for (auto it : paths) {
         if (!deletePath(it.second)) {
             return false;
@@ -79,12 +81,18 @@ bool PipelineManager::stop()
     }
 
     paths.clear();
+    utils::infoMsg("Paths deleted");
 
     for (auto it : filters) {
         delete it.second;
     }
 
     filters.clear();
+    utils::infoMsg("Filters deleted");
+    
+    if (pool){
+        delete pool;
+    }
 
     return true;
 }
@@ -111,27 +119,15 @@ bool PipelineManager::addPath(int id, Path* path)
     return true;
 }
 
-BaseFilter* PipelineManager::createFilter(FilterType type, Jzon::Node* params)
+
+bool PipelineManager::createFilter(int id, FilterType type, FilterRole role)
 {
-    BaseFilter* filter;
-    FilterRole role;
-    bool sharedFrames = true;
-
-    if (!params->Has("role")){
-        return NULL;
+    BaseFilter* filter = NULL;
+    
+    if (id < 0 || filters.count(id) > 0){
+        utils::errorMsg("Invalid filter ID");
+        return false;
     }
-    role = utils::getRoleTypeFromString(params->Get("role").ToString());
-    if (role != MASTER && role != SLAVE){
-        role = MASTER;
-    }
-
-    if (params->Has("sharedFrames")){
-        sharedFrames = params->Get("sharedFrames").ToBool();
-    }
-
-    //TODO: this shouldn't be here
-    int key = rand();
-    VCodecType codec = RAW;
 
     switch (type) {
         case RECEIVER:
@@ -141,48 +137,44 @@ BaseFilter* PipelineManager::createFilter(FilterType type, Jzon::Node* params)
             filter = SinkManager::createNew();
             break;
         case VIDEO_DECODER:
-            filter = new VideoDecoderLibav(role, sharedFrames);
+            filter = new VideoDecoderLibav(role);
             break;
         case VIDEO_ENCODER:
-            filter = new VideoEncoderX264(role, sharedFrames);
+            filter = new VideoEncoderX264(role);
             break;
          case VIDEO_RESAMPLER:
-            filter = new VideoResampler(role, sharedFrames);
+            filter = new VideoResampler(role);
             break;
         case VIDEO_MIXER:
-            filter = new VideoMixer(role, sharedFrames);
+            filter = new VideoMixer(role);
             break;
         case AUDIO_DECODER:
-            filter = new AudioDecoderLibav(role, sharedFrames);
+            filter = new AudioDecoderLibav(role);
             break;
         case AUDIO_ENCODER:
-            filter = new AudioEncoderLibav(role, sharedFrames);
+            filter = new AudioEncoderLibav(role);
             break;
         case AUDIO_MIXER:
-            filter = new AudioMixer(role, sharedFrames);
+            filter = new AudioMixer(role);
             break;
-        case SHARED_MEMORY:
-            if (params->Has("codec")){
-                codec = utils::getVideoCodecFromString(params->Get("codec").ToString());
-                key = params->Get("key").ToInt();
-            }
-            filter = SharedMemory::createNew(key, codec, role, sharedFrames);
-            break;
-        // TODO: think about extra parameters necesary to create filters like Dasher
-        // case DASHER:
-        //     filter = new Dasher(sharedFrames);
-        //     break;
+        //TODO include sharedMemory and Dasher filters
         default:
             utils::errorMsg("Unknown filter type");
-            filter = NULL;
             break;
     }
+    
+    if (filter){
+        addFilter(id, filter);
+        return true;
+    }
 
-    return filter;
+    return false;
 }
 
 bool PipelineManager::addFilter(int id, BaseFilter* filter)
 {
+    Runnable* run = NULL;
+    
     if (filters.count(id) > 0) {
         utils::errorMsg("Filter ID must be unique");
         return false;
@@ -194,9 +186,11 @@ bool PipelineManager::addFilter(int id, BaseFilter* filter)
     }
 
     filters[id] = filter;
-    filter->setId(id);
+    if ((run = dynamic_cast<Runnable*>(filter))){
+        run->setId(id);
+    }
 
-    return true;
+    return pool->addTask(filter);
 }
 
 BaseFilter* PipelineManager::getFilter(int id)
@@ -207,59 +201,6 @@ BaseFilter* PipelineManager::getFilter(int id)
     }
 
     return filters[id];
-}
-
-bool PipelineManager::addWorker(int id, Worker* worker)
-{
-    if (workers.count(id) > 0) {
-        return false;
-    }
-
-    workers[id] = worker;
-
-    return true;
-}
-
-Worker* PipelineManager::getWorker(int id)
-{
-    if (workers.count(id) <= 0) {
-        return NULL;
-    }
-
-    return workers[id];
-}
-
-bool PipelineManager::removeWorker(int id)
-{
-    Worker* worker = NULL;
-
-    worker = getWorker(id);
-
-    if (!worker) {
-        return false;
-    }
-
-    worker->stop();
-    delete workers[id];
-    workers.erase(id);
-
-    return true;
-}
-
-
-bool PipelineManager::addFilterToWorker(int workerId, int filterId)
-{
-    if (filters.count(filterId) <= 0 || workers.count(workerId) <= 0) {
-        return false;
-    }
-
-    filters[filterId]->setWorkerId(workerId);
-
-    if (!workers[workerId]->addProcessor(filterId, filters[filterId])) {
-        return false;
-    }
-
-    return true;
 }
 
 Path* PipelineManager::getPath(int id)
@@ -378,7 +319,6 @@ bool PipelineManager::deletePath(Path* path)
     std::vector<int> pathFilters = path->getFilters();
     int orgFilterId = path->getOriginFilterID();
     int dstFilterId = path->getDestinationFilterID();
-    Worker *worker = NULL;
 
     if (filters.count(orgFilterId) <= 0 || filters.count(dstFilterId) <= 0) {
         return false;
@@ -401,12 +341,7 @@ bool PipelineManager::deletePath(Path* path)
     }
 
     for (auto it : pathFilters) {
-        worker = getWorker(filters[it]->getWorkerId());
-
-        if (worker) {
-            worker->removeProcessor(it);
-        }
-
+        pool->removeTask(it);
         delete filters[it];
         filters.erase(it);
     }
@@ -414,27 +349,6 @@ bool PipelineManager::deletePath(Path* path)
     delete path;
 
     return true;
-}
-
-void PipelineManager::startWorkers()
-{
-    for (auto it : workers) {
-        if (!it.second->isRunning()) {
-            utils::debugMsg("Worker " + std::to_string(it.first) + " starting");
-            it.second->start();
-            utils::debugMsg("Worker " + std::to_string(it.first) + " started");
-        }
-    }
-}
-
-void PipelineManager::stopWorkers()
-{
-    for (auto it : workers) {
-        if (it.second->isRunning()) {
-            it.second->stop();
-            utils::debugMsg("Worker " + std::to_string(it.first) + " stoped");
-        }
-    }
 }
 
 void PipelineManager::getStateEvent(Jzon::Node* params, Jzon::Object &outputNode)
@@ -472,47 +386,40 @@ void PipelineManager::getStateEvent(Jzon::Node* params, Jzon::Object &outputNode
     }
 
     outputNode.Add("paths", pathList);
-
-    for (auto it : workers) {
-        Jzon::Object worker;
-        worker.Add("id", it.first);
-        it.second->getState(worker);
-        workersList.Add(worker);
-    }
-
-    outputNode.Add("workers", workersList);
-
 }
 
 void PipelineManager::createFilterEvent(Jzon::Node* params, Jzon::Object &outputNode)
 {
     int id;
     FilterType fType;
-    BaseFilter* filter;
+    FilterRole role;
 
     if(!params) {
         outputNode.Add("error", "Error creating filter. Invalid JSON format...");
         return;
     }
 
-    if (!params->Has("id") || !params->Has("type")) {
+    if (!params->Has("id") || !params->Has("type") || !params->Has("role")) {
         outputNode.Add("error", "Error creating filter. Invalid JSON format...");
         return;
     }
-
-    id = params->Get("id").ToInt();
-    fType = utils::getFilterTypeFromString(params->Get("type").ToString());
-
-    filter = createFilter(fType, params);
-
-    if (!filter) {
-        outputNode.Add("error", "Error creating filter. Specified type is not correct..");
+    
+    if (!params->Get("id").IsNumber()){
+        outputNode.Add("error", "Error creating filter. ID must be numeric...");
         return;
     }
-
-    if (!addFilter(id, filter)) {
-        outputNode.Add("error", "Error registering filter. Specified ID already exists..");
-        return;
+    
+    role = utils::getRoleTypeFromString(params->Get("role").ToString());
+    if (role == FR_NONE){
+        utils::warningMsg("Unkown role, assuming MASTER");
+        role = MASTER;
+    }
+    
+    id = params->Get("id").ToInt();
+    fType = utils::getFilterTypeFromString(params->Get("type").ToString());
+    
+    if (! createFilter(id, fType, role)){
+        outputNode.Add("error", "Error creating filter.");
     }
 
     outputNode.Add("error", Jzon::null);
@@ -599,70 +506,6 @@ void PipelineManager::removePathEvent(Jzon::Node* params, Jzon::Object &outputNo
     outputNode.Add("error", Jzon::null);
 }
 
-void PipelineManager::removeWorkerEvent(Jzon::Node* params, Jzon::Object &outputNode)
-{
-    int id;
-
-    if(!params) {
-        outputNode.Add("error", "Error removing worker. Invalid JSON format...");
-        return;
-    }
-
-    if (!params->Has("id")) {
-        outputNode.Add("error", "Error removing worker. Invalid JSON format...");
-        return;
-    }
-
-    id = params->Get("id").ToInt();
-
-    if (!removeWorker(id)) {
-        outputNode.Add("error", "Error removing worker. Internal error...");
-        return;
-    }
-
-    outputNode.Add("error", Jzon::null);
-}
-
-
-void PipelineManager::addWorkerEvent(Jzon::Node* params, Jzon::Object &outputNode)
-{
-    int id;
-    std::string type;
-    Worker* worker = NULL;
-
-    if(!params) {
-        outputNode.Add("error", "Error creating worker. Invalid JSON format...");
-        return;
-    }
-
-    if (!params->Has("id") || !params->Has("type")) {
-        outputNode.Add("error", "Error creating worker. Invalid JSON format...");
-        return;
-    }
-
-    id = params->Get("id").ToInt();
-    type = params->Get("type").ToString();
-
-    if (type.compare("livemedia") == 0){
-        worker = new LiveMediaWorker();
-    } else {
-        worker = new Worker();
-    }
-
-    if (!worker) {
-        outputNode.Add("error", "Error creating worker. Check type...");
-        return;
-    }
-
-    if (!addWorker(id, worker)) {
-        outputNode.Add("error", "Error adding worker to filter. Check filter ID...");
-        return;
-    }
-
-    outputNode.Add("error", Jzon::null);
-}
-
-
 void PipelineManager::addSlavesToFilterEvent(Jzon::Node* params, Jzon::Object &outputNode)
 {
     BaseFilter *slave, *master;
@@ -695,8 +538,8 @@ void PipelineManager::addSlavesToFilterEvent(Jzon::Node* params, Jzon::Object &o
 
     for (Jzon::Array::iterator it = jsonSlavesIds.begin(); it != jsonSlavesIds.end(); ++it) {
        if ((slave = getFilter((*it).ToInt())) && slave->getRole() == SLAVE){
-           if (!master->addSlave((*it).ToInt(), slave)){
-               outputNode.Add("error", "Error, either master or slave do not have the appropriate role!");
+           if (!master->addSlave(slave)){
+               outputNode.Add("error", "Error adding slave, check the role and the filter id!");
            }
        } else {
            outputNode.Add("error", "Error adding slaves to filter. Invalid Slave...");
@@ -706,39 +549,6 @@ void PipelineManager::addSlavesToFilterEvent(Jzon::Node* params, Jzon::Object &o
     outputNode.Add("error", Jzon::null);
 }
 
-void PipelineManager::addFiltersToWorkerEvent(Jzon::Node* params, Jzon::Object &outputNode)
-{
-    int workerId;
-
-    if(!params) {
-        outputNode.Add("error", "Error adding slaves to worker. Invalid JSON format...");
-        return;
-    }
-
-    if (!params->Has("worker")) {
-        outputNode.Add("error", "Error adding filters to worker. Invalid JSON format...");
-        return;
-    }
-
-    if (!params->Has("filters") || !params->Get("filters").IsArray()) {
-        outputNode.Add("error", "Error adding filters to worker. Invalid JSON format...");
-        return;
-    }
-
-    workerId = params->Get("worker").ToInt();
-    Jzon::Array& jsonFiltersIds = params->Get("filters").AsArray();
-
-    for (Jzon::Array::iterator it = jsonFiltersIds.begin(); it != jsonFiltersIds.end(); ++it) {
-        if (!addFilterToWorker(workerId, (*it).ToInt())) {
-            outputNode.Add("error", "Error adding filters to worker. Invalid internal error...");
-            return;
-        }
-    }
-
-    startWorkers();
-
-    outputNode.Add("error", Jzon::null);
-}
 
 void PipelineManager::stopEvent(Jzon::Node* params, Jzon::Object &outputNode)
 {

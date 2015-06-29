@@ -31,8 +31,8 @@
 #define SLOW_MODIFIER 1.10
 #define FAST_MODIFIER 0.90
 
-BaseFilter::BaseFilter(unsigned readersNum, unsigned writersNum, size_t fTime, FilterRole fRole_, bool force_, bool sharedFrames_, bool periodic): Runnable(periodic), process(false), 
-maxReaders(readersNum), maxWriters(writersNum),  frameTime(fTime), fRole(fRole_), force(force_), sharedFrames(sharedFrames_), id(-1)
+BaseFilter::BaseFilter(unsigned readersNum, unsigned writersNum, size_t fTime, FilterRole fRole_, bool force_, bool periodic): Runnable(periodic), process(false), 
+maxReaders(readersNum), maxWriters(writersNum),  frameTime(fTime), fRole(fRole_), force(force_)
 {
     frameTimeMod = 1;
     bufferStateFrameTimeMod = 1;
@@ -41,6 +41,7 @@ maxReaders(readersNum), maxWriters(writersNum),  frameTime(fTime), fRole(fRole_)
 
 BaseFilter::~BaseFilter()
 {
+    std::lock_guard<std::mutex> guard(readersWritersLck);
     for (auto it : readers) {
         delete it.second;
     }
@@ -56,20 +57,6 @@ BaseFilter::~BaseFilter()
     rUpdates.clear();
 }
 
-void BaseFilter::setId(int filterId){
-    if (filterId < 0){
-        utils::errorMsg("invalid filter Id, only positive values are allowed");
-        return;
-    }
-    
-    if (id >= 0){
-        utils::errorMsg("You cannot re-assign the filter Id");
-        return;
-    }
-    
-    id = filterId;
-}
-
 void BaseFilter::setFrameTime(std::chrono::nanoseconds fTime)
 {
     frameTime = fTime;
@@ -77,6 +64,7 @@ void BaseFilter::setFrameTime(std::chrono::nanoseconds fTime)
 
 Reader* BaseFilter::getReader(int id)
 {
+    std::lock_guard<std::mutex> guard(readersWritersLck);
     if (readers.count(id) <= 0) {
         return NULL;
     }
@@ -86,6 +74,7 @@ Reader* BaseFilter::getReader(int id)
 
 Reader* BaseFilter::setReader(int readerID, FrameQueue* queue)
 {
+    std::lock_guard<std::mutex> guard(readersWritersLck);
     if (readers.size() >= getMaxReaders() || readers.count(readerID) > 0 ) {
         return NULL;
     }
@@ -98,6 +87,7 @@ Reader* BaseFilter::setReader(int readerID, FrameQueue* queue)
 
 int BaseFilter::generateReaderID()
 {
+    std::lock_guard<std::mutex> guard(readersWritersLck);
     if (maxReaders == 1) {
         return DEFAULT_ID;
     }
@@ -113,6 +103,7 @@ int BaseFilter::generateReaderID()
 
 int BaseFilter::generateWriterID()
 {
+    std::lock_guard<std::mutex> guard(readersWritersLck);
     if (maxWriters == 1) {
         return DEFAULT_ID;
     }
@@ -132,6 +123,8 @@ bool BaseFilter::demandOriginFrames()
     bool someFrame = false;
     QueueState qState;
 
+    std::lock_guard<std::mutex> guard(readersWritersLck);
+    
     if (maxReaders == 0) {
         return true;
     }
@@ -173,6 +166,8 @@ bool BaseFilter::demandOriginFrames()
 
 bool BaseFilter::demandDestinationFrames()
 {
+    std::lock_guard<std::mutex> guard(readersWritersLck);
+    
     if (maxWriters == 0) {
         return true;
     }
@@ -195,6 +190,7 @@ bool BaseFilter::demandDestinationFrames()
 
 void BaseFilter::addFrames()
 {
+    std::lock_guard<std::mutex> guard(readersWritersLck);
     for (auto it : writers){
         if (it.second->isConnected()){
             it.second->addFrame();
@@ -204,6 +200,7 @@ void BaseFilter::addFrames()
 
 void BaseFilter::removeFrames()
 {
+    std::lock_guard<std::mutex> guard(readersWritersLck);
     for (auto it : readers){
         if (rUpdates[it.first]){
             it.second->removeFrame();
@@ -215,8 +212,10 @@ bool BaseFilter::connect(BaseFilter *R, int writerID, int readerID)
 {
     Reader* r;
     FrameQueue *queue = NULL;
-
-    if (writers.size() < getMaxWriters() && writers.count(writerID) <= 0) {
+    
+    std::lock_guard<std::mutex> guard(readersWritersLck);
+      
+    if (writers.size() < maxWriters && writers.count(writerID) <= 0) {
         writers[writerID] = new Writer();
         seqNums[writerID] = 0;
         utils::debugMsg("New writer created " + std::to_string(writerID));
@@ -277,6 +276,9 @@ bool BaseFilter::connectOneToMany(BaseFilter *R, int readerID)
 bool BaseFilter::disconnectWriter(int writerId)
 {
     bool ret;
+    
+    std::lock_guard<std::mutex> guard(readersWritersLck);
+    
     if (writers.count(writerId) <= 0) {
         return false;
     }
@@ -291,6 +293,9 @@ bool BaseFilter::disconnectWriter(int writerId)
 bool BaseFilter::disconnectReader(int readerId)
 {
     bool ret;
+    
+    std::lock_guard<std::mutex> guard(readersWritersLck);
+    
     if (readers.count(readerId) <= 0) {
         return false;
     }
@@ -304,6 +309,8 @@ bool BaseFilter::disconnectReader(int readerId)
 
 void BaseFilter::disconnectAll()
 {
+    std::lock_guard<std::mutex> guard(readersWritersLck);
+    
     for (auto it : writers) {
         it.second->disconnect();
     }
@@ -447,9 +454,7 @@ std::vector<int> BaseFilter::processFrame(int& ret)
 void BaseFilter::processAll()
 {
     for (auto it : slaves) {
-        if (sharedFrames){
-            it.second->updateFrames(oFrames);
-        }
+        it.second->updateFrames(oFrames);
         it.second->setWallClock(wallClock);
         it.second->execute();
     }
@@ -464,26 +469,24 @@ bool BaseFilter::runningSlaves()
     return running;
 }
 
-void BaseFilter::setSharedFrames(bool sharedFrames_)
+bool BaseFilter::addSlave(BaseFilter *slave)
 {
-    if(fRole == MASTER){
-        sharedFrames = sharedFrames_;
+    if (slave->fRole != SLAVE){
+        utils::warningMsg("Could not add slave, invalid role");
+        return false;
     }
-}
-
-bool BaseFilter::addSlave(int id, BaseFilter *slave)
-{
-    if (fRole != MASTER || slave->fRole != SLAVE){
+    
+    if (slave->getId() < 0){
+        utils::warningMsg("Could not add slave, invalid id");
         return false;
     }
 
-    if (slaves.count(id) > 0){
+    if (slaves.count(slave->getId()) > 0){
+        utils::warningMsg("Could not add slave, id must be unique");
         return false;
     }
 
-    slave->sharedFrames = sharedFrames;
-
-    slaves[id] = slave;
+    slaves[slave->getId()] = slave;
 
     return true;
 }
@@ -559,15 +562,11 @@ std::vector<int> BaseFilter::slaveProcessFrame(int& ret)
         return enabledJobs;;
     }
 
-    if (!sharedFrames && !demandOriginFrames()) {
+    if (!demandOriginFrames()) {
         return enabledJobs;
     }
 
     enabledJobs = runDoProcessFrame();
-
-    if (!sharedFrames){
-        removeFrames();
-    }
 
     process = false;
     return enabledJobs;
@@ -578,8 +577,8 @@ void BaseFilter::updateFrames(std::map<int, Frame*> oFrames_)
     oFrames = oFrames_;
 }
 
-OneToOneFilter::OneToOneFilter(bool byPassTimestamp, FilterRole fRole_, bool sharedFrames_, size_t fTime, bool force_) :
-    BaseFilter(1,1,fTime,fRole_,force_,sharedFrames_), passTimestamp(byPassTimestamp)
+OneToOneFilter::OneToOneFilter(bool byPassTimestamp, FilterRole fRole_, size_t fTime, bool force_) :
+    BaseFilter(1,1,fTime,fRole_,force_), passTimestamp(byPassTimestamp)
 {
 }
 
@@ -602,8 +601,8 @@ std::vector<int> OneToOneFilter::runDoProcessFrame()
 }
 
 
-OneToManyFilter::OneToManyFilter(FilterRole fRole_, bool sharedFrames_, unsigned writersNum, size_t fTime, bool force_) :
-    BaseFilter(1,writersNum,fTime,fRole_,force_,sharedFrames_)
+OneToManyFilter::OneToManyFilter(FilterRole fRole_, unsigned writersNum, size_t fTime, bool force_) :
+    BaseFilter(1,writersNum,fTime,fRole_,force_)
 {
 }
 
@@ -666,8 +665,8 @@ void HeadFilter::pushEvent(Event e)
     }
 }
 
-TailFilter::TailFilter(FilterRole fRole_, bool sharedFrames_, unsigned readersNum, size_t fTime) :
-    BaseFilter(readersNum, 0, fTime, fRole_, false, sharedFrames_)
+TailFilter::TailFilter(FilterRole fRole_, unsigned readersNum, size_t fTime) :
+    BaseFilter(readersNum, 0, fTime, fRole_, false)
 {
 }
 
@@ -699,8 +698,8 @@ void TailFilter::pushEvent(Event e)
 }
 
 
-ManyToOneFilter::ManyToOneFilter(FilterRole fRole_, bool sharedFrames_, unsigned readersNum, size_t fTime, bool force_) :
-    BaseFilter(readersNum,1,fTime,fRole_,force_,sharedFrames_)
+ManyToOneFilter::ManyToOneFilter(FilterRole fRole_, unsigned readersNum, size_t fTime, bool force_) :
+    BaseFilter(readersNum,1,fTime,fRole_,force_)
 {
 }
 
@@ -720,8 +719,14 @@ std::vector<int> ManyToOneFilter::runDoProcessFrame()
 }
 
 LiveMediaFilter::LiveMediaFilter(unsigned readersNum, unsigned writersNum) :
-BaseFilter(readersNum, writersNum, 0, NETWORK, false, false)
+BaseFilter(readersNum, writersNum, 0, NETWORK, false)
 {
+}
+
+std::vector<int> LiveMediaFilter::runDoProcessFrame(){
+    std::vector<int> enabledJobs;
+    doProcessFrame();
+    return enabledJobs;
 }
 
 void LiveMediaFilter::pushEvent(Event e)

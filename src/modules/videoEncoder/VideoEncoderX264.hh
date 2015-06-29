@@ -40,7 +40,7 @@ extern "C" {
 class VideoEncoderX264 : public VideoEncoderX264or5 {
 
 public:
-    VideoEncoderX264(FilterRole fRole = MASTER, bool sharedFrames = false);
+    VideoEncoderX264(FilterRole fRole = MASTER);
     ~VideoEncoderX264();
 
 private:

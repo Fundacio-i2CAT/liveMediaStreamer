@@ -30,7 +30,7 @@
 #include <utility>
 #include <cmath>
 
-AudioMixer::AudioMixer(FilterRole role, bool sharedFrames, int inputChannels) : ManyToOneFilter(role, sharedFrames, inputChannels) 
+AudioMixer::AudioMixer(FilterRole role, int inputChannels) : ManyToOneFilter(role, inputChannels) 
 {
     frameChannels = DEFAULT_CHANNELS;
     sampleRate = DEFAULT_SAMPLE_RATE;

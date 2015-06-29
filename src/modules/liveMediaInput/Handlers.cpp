@@ -123,6 +123,11 @@ namespace handlers
                 utils::errorMsg("Failed to initiate subsession sink");
                 scs.subsession->deInitiate();
             }
+            
+            if (!queueSink->getWriter()){
+                utils::errorMsg("Writer is not set in queueSink!");
+                scs.subsession->deInitiate();
+            }
 
             if (!scs.addWriterToMngr(queueSink->getPort(), queueSink->getWriter())){
                 utils::errorMsg("Failed adding writer in SourceManager");
@@ -296,8 +301,9 @@ namespace handlers
         }
 
         if (sink == NULL){
-            std::cerr << "Sink NULL!" << std::endl;
+            utils::errorMsg("failed to create Sink!");
             delete writer;
+            writer = NULL;
             return false;
         }
 

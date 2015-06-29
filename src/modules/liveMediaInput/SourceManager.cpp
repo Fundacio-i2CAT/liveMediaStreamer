@@ -40,7 +40,7 @@ SourceManager::SourceManager(unsigned writersNum): LiveMediaFilter(0, writersNum
 {
     fType = RECEIVER;
 
-    TaskScheduler* scheduler = BasicTaskScheduler::createNew();
+    TaskScheduler* scheduler = CustomScheduler::createNew();
     env = BasicUsageEnvironment::createNew(*scheduler);
 
     initializeEventMap();
@@ -78,19 +78,15 @@ bool SourceManager::hasCallback()
     return false;
 }
 
-std::vector<int> SourceManager::runDoProcessFrame()
+bool SourceManager::doProcessFrame()
 {
-    utils::errorMsg("Starting doEventLoop");
-    std::vector<int> enabledJobs;
     if (envir() == NULL){
-        return enabledJobs;
+        return false;
     }
 
-    utils::infoMsg("Starting doEventLoop");
     envir()->taskScheduler().doEventLoop((char*) &watch);
-    utils::infoMsg("doEventLoop finalized");
 
-    return enabledJobs;
+    return true;
 }
 
 bool SourceManager::addSession(Session* session)
@@ -132,8 +128,15 @@ Session* SourceManager::getSession(std::string id)
 bool SourceManager::addWriter(unsigned port, const Writer *writer)
 {
     if(writers.count(port) > 0){
+        utils::warningMsg("writer id must be unique!");
         return false;
     }
+    
+    if (!writer){
+        utils::warningMsg("writer is NULL, it has not been added!");
+        return false;
+    }
+    
     writers[port] = writer;
 
     return true;

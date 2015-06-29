@@ -35,8 +35,6 @@
 #include "IOInterface.hh"
 #include "Runnable.hh"
 #include "Event.hh"
-#include "PipelineManager.hh"
-
 
 #define DEFAULT_ID 1                /*!< Default ID for unique filter's readers and/or writers. */
 #define MAX_WRITERS 16              /*!< Default maximum writers for a filter. */
@@ -101,7 +99,7 @@ public:
     * @param BaseFilter pointer of the slave filter to be added
     * @return True if succeeded and false if not
     */
-    bool addSlave(int id, BaseFilter *slave);
+    bool addSlave(BaseFilter *slave);
 
     /**
     * Filter type getter
@@ -144,16 +142,7 @@ public:
     * @param filter node pointer
     */
     void getState(Jzon::Object &filterNode);
-    /**
-    * Returns its worker ID
-    * @return Integer worker ID
-    */
-    int getWorkerId(){return workerId;};
-    /**
-    * Sets the filter's worker ID
-    * @param Integer worker ID
-    */
-    void setWorkerId(int id){workerId = id;};
+
     /**
     * Returns true if filter is enabled or false if not
     * @return Bool enabled
@@ -171,12 +160,6 @@ public:
     */
     void setWallClock(std::chrono::system_clock::time_point refWallClock) {wallClock = refWallClock;};
     
-    /**
-     * Gets the filter Id, if Id < 0 it means unset ID, only zero or higher values are allowed
-     * @return id of the filter, it is a unique value.
-     */
-    int getId() {return id;};
-    
     //NOTE: these are public just for testing purposes
     /**
     * Processes frames depending on its role (MASTER or SLAVE)
@@ -193,7 +176,7 @@ public:
 
 protected:
     //TODO: all these methods should be described also
-    BaseFilter(unsigned readersNum = MAX_READERS, unsigned writersNum = MAX_WRITERS, size_t fTime = 0, FilterRole fRole_ = MASTER, bool force_ = false, bool sharedFrames_ = true, bool periodic = false);
+    BaseFilter(unsigned readersNum = MAX_READERS, unsigned writersNum = MAX_WRITERS, size_t fTime = 0, FilterRole fRole_ = MASTER, bool force_ = false, bool periodic = true);
 
     void addFrames();
     void removeFrames();
@@ -244,36 +227,30 @@ protected:
     unsigned maxWriters;
     std::chrono::nanoseconds frameTime;
 
-private:
-    friend class PipelineManager;
-    
+private:   
     bool connect(BaseFilter *R, int writerID, int readerID);
     std::vector<int> masterProcessFrame(int& ret);
     void processAll();
     bool runningSlaves();
-    void setSharedFrames(bool sharedFrames_);
     std::vector<int> slaveProcessFrame(int& ret);
     void execute() {process = true;};
     bool isProcessing() {return process;};
     void updateFrames(std::map<int, Frame*> oFrames_);
-    void setId(int filterId);
 
 private:
     std::priority_queue<Event> eventQueue;
     std::mutex eventQueueMutex;
-    int workerId;
+    std::mutex readersWritersLck;
     bool enabled;
     std::map<int, bool> rUpdates;
     FilterRole const fRole;
     bool force;
-    bool sharedFrames;
-    int id;
 };
 
 class OneToOneFilter : public BaseFilter {
 
 protected:
-    OneToOneFilter(bool byPassTimestamp, FilterRole fRole_ = MASTER, bool sharedFrames_ = true, size_t fTime = 0, bool force_ = false);
+    OneToOneFilter(bool byPassTimestamp, FilterRole fRole_ = MASTER, size_t fTime = 0, bool force_ = false);
     virtual bool doProcessFrame(Frame *org, Frame *dst) = 0;
     using BaseFilter::setFrameTime;
     using BaseFilter::getFrameTime;
@@ -304,14 +281,12 @@ private:
 
     using BaseFilter::maxReaders;
     using BaseFilter::maxWriters;
-
-    void stop() {};
 };
 
 class OneToManyFilter : public BaseFilter {
 
 protected:
-    OneToManyFilter(FilterRole fRole_ = MASTER, bool sharedFrames_ = true, unsigned writersNum = MAX_WRITERS, size_t fTime = 0, bool force_ = true);
+    OneToManyFilter(FilterRole fRole_ = MASTER, unsigned writersNum = MAX_WRITERS, size_t fTime = 0, bool force_ = true);
     virtual bool doProcessFrame(Frame *org, std::map<int, Frame *> dstFrames) = 0;
     using BaseFilter::setFrameTime;
     using BaseFilter::getFrameTime;
@@ -342,8 +317,6 @@ private:
 
     using BaseFilter::maxReaders;
     using BaseFilter::maxWriters;
-
-    void stop() {};
 };
 
 class HeadFilter : public BaseFilter {
@@ -352,7 +325,7 @@ public:
 
 protected:
     HeadFilter(FilterRole fRole_ = MASTER, size_t fTime = 0);
-    virtual bool doProcessFrame(Frame *dst) = 0;
+    virtual bool doProcessFrame(Frame* dst) = 0;
     
     int getNullWriterID();
     using BaseFilter::setFrameTime;
@@ -383,8 +356,6 @@ private:
 
     using BaseFilter::maxReaders;
     using BaseFilter::maxWriters;
-    
-    void stop() {};
 };
 
 class TailFilter : public BaseFilter {
@@ -392,7 +363,7 @@ public:
     void pushEvent(Event e);
 
 protected:
-    TailFilter(FilterRole fRole_ = MASTER, bool sharedFrames_ = true, unsigned readersNum = MAX_READERS, size_t fTime = 0);
+    TailFilter(FilterRole fRole_ = MASTER, unsigned readersNum = MAX_READERS, size_t fTime = 0);
     using BaseFilter::setFrameTime;
     using BaseFilter::getFrameTime;
 
@@ -421,14 +392,12 @@ private:
 
     using BaseFilter::maxReaders;
     using BaseFilter::maxWriters;
-
-    void stop() {};
 };
 
 class ManyToOneFilter : public BaseFilter {
 
 protected:
-    ManyToOneFilter(FilterRole fRole_ = MASTER, bool sharedFrames_ = true, unsigned readersNum = MAX_READERS, size_t fTime = 0, bool force_ = false);
+    ManyToOneFilter(FilterRole fRole_ = MASTER, unsigned readersNum = MAX_READERS, size_t fTime = 0, bool force_ = false);
     virtual bool doProcessFrame(std::map<int, Frame *> orgFrames, Frame *dst) = 0;
     using BaseFilter::setFrameTime;
     using BaseFilter::getFrameTime;
@@ -458,8 +427,6 @@ private:
 
     using BaseFilter::maxReaders;
     using BaseFilter::maxWriters;
-
-    void stop() {};
 };
 
 class LiveMediaFilter : public BaseFilter
@@ -470,9 +437,10 @@ public:
 protected:
     LiveMediaFilter(unsigned readersNum = MAX_READERS, unsigned writersNum = MAX_WRITERS);
 
-    virtual std::vector<int> runDoProcessFrame() = 0;
+    virtual bool doProcessFrame() = 0;
 
 private:
+    std::vector<int> runDoProcessFrame();
     using BaseFilter::demandOriginFrames;
     using BaseFilter::demandDestinationFrames;
     using BaseFilter::addFrames;

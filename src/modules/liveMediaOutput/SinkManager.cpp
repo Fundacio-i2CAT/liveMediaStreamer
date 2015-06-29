@@ -49,7 +49,7 @@ SinkManager* SinkManager::createNew(unsigned readersNum)
 SinkManager::SinkManager(unsigned readersNum) :
 LiveMediaFilter(readersNum, 0), rtspServer(NULL), watch(0)
 {
-    TaskScheduler* scheduler = BasicTaskScheduler::createNew();
+    TaskScheduler* scheduler = CustomScheduler::createNew();
     env = BasicUsageEnvironment::createNew(*scheduler);
     
     unsigned port = RTSP_PORT;
@@ -100,16 +100,15 @@ void SinkManager::stop()
     watch = 1;
 }
 
-std::vector<int> SinkManager::runDoProcessFrame()
+bool SinkManager::doProcessFrame()
 {
-    std::vector<int> enabledJobs;
     if (envir() == NULL){
-        return enabledJobs;
+        return false;
     }
 
     envir()->taskScheduler().doEventLoop((char*) &watch);
 
-    return enabledJobs;
+    return true;
 }
 
 bool SinkManager::removeConnection(int id)

@@ -38,7 +38,7 @@ extern "C" {
 class VideoDecoderLibav : public OneToOneFilter {
 
     public:
-        VideoDecoderLibav(FilterRole fRole_ = MASTER, bool sharedFrames = true);
+        VideoDecoderLibav(FilterRole fRole_ = MASTER);
         ~VideoDecoderLibav();
         bool doProcessFrame(Frame *org, Frame *dst);
         

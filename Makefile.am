@@ -17,6 +17,6 @@ teststreamer_SOURCES = tests/H264LoopVideoFileServerMediaSubsession.cpp tests/Lo
 teststreamer_CPPFLAGS = -std=c++11 -g -Wall -D__STDC_CONSTANT_MACROS
 teststreamer_LDFLAGS = -Lsrc -lBasicUsageEnvironment -lUsageEnvironment -lliveMedia -lgroupsock
 
-fakelive_SOURCES = tests/H264LoopVideoFileServerMediaSubsession.cpp tests/LoopByteStreamFileSource.cpp tests/fakeLive.cpp
+fakelive_SOURCES = tests/H264LoopVideoFileServerMediaSubsession.cpp tests/LoopByteStreamFileSource.cpp tests/fakeLive.cpp src/modules/CustomScheduler.cpp
 fakelive_CPPFLAGS = -std=c++11 -g -Wall -D__STDC_CONSTANT_MACROS
 fakelive_LDFLAGS = -Lsrc -lBasicUsageEnvironment -lUsageEnvironment -lliveMedia -lgroupsock

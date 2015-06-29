@@ -42,15 +42,10 @@
 #define DASH_FOLDER "/tmp/dash"
 #define BASE_NAME "test"
 
-bool run = true;
-
 void signalHandler( int signum )
 {
     utils::infoMsg("Interruption signal received");
-    run = false;
     Controller::getInstance()->pipelineManager()->stop();
-    Controller::destroyInstance();
-    PipelineManager::destroyInstance();
     exit(0);
 }
 
@@ -58,8 +53,6 @@ Dasher* setupDasher(int dasherId)
 {
     Dasher* dasher = NULL;
 
-    int workerId = rand();
-    Worker* worker = NULL;
     PipelineManager *pipe = Controller::getInstance()->pipelineManager();
 
     dasher = Dasher::createNew(std::string(DASH_FOLDER), std::string(BASE_NAME), SEG_DURATION);
@@ -70,10 +63,6 @@ Dasher* setupDasher(int dasherId)
     }
 
     pipe->addFilter(dasherId, dasher);
-    worker = new Worker();
-    worker->addProcessor(dasherId, dasher);
-    dasher->setWorkerId(workerId);
-    pipe->addWorker(workerId, worker);
 
     return dasher;
 }
@@ -82,8 +71,6 @@ void addAudioPath(unsigned port, Dasher* dasher, int dasherId, int receiverID, i
 {
     PipelineManager *pipe = Controller::getInstance()->pipelineManager();
 
-    int aDecId = rand();
-    int aEncId = rand();
     int decId = rand();
     int encId = rand();
     int dstReader = rand();
@@ -92,18 +79,11 @@ void addAudioPath(unsigned port, Dasher* dasher, int dasherId, int receiverID, i
     AudioDecoderLibav *decoder;
     AudioEncoderLibav *encoder;
 
-    Worker* aDec;
-    Worker* aEnc;
-
     Path *path;
 
     //NOTE: Adding decoder to pipeManager and handle worker
     decoder = new AudioDecoderLibav();
     pipe->addFilter(decId, decoder);
-    aDec = new Worker();
-    aDec->addProcessor(decId, decoder);
-    decoder->setWorkerId(aDecId);
-    pipe->addWorker(aDecId, aDec);
 
     //NOTE: Adding encoder to pipeManager and handle worker
     encoder = new AudioEncoderLibav();
@@ -113,10 +93,6 @@ void addAudioPath(unsigned port, Dasher* dasher, int dasherId, int receiverID, i
     }
 
     pipe->addFilter(encId, encoder);
-    aEnc = new Worker();
-    aEnc->addProcessor(encId, encoder);
-    encoder->setWorkerId(aEncId);
-    pipe->addWorker(aEncId, aEnc);
 
     //NOTE: add filter to path
     if (dasher == NULL){
@@ -125,7 +101,11 @@ void addAudioPath(unsigned port, Dasher* dasher, int dasherId, int receiverID, i
         path = pipe->createPath(receiverID, dasherId, port, dstReader, ids);
     }
     pipe->addPath(port, path);
-    pipe->connectPath(path);
+    if (!pipe->connectPath(path)){
+        utils::errorMsg("Failed! Path not connected");
+        pipe->removePath(port);
+        return;
+    }
 
     if (dasher != NULL && !dasher->addSegmenter(dstReader)) {
         utils::errorMsg("Error adding segmenter");
@@ -133,9 +113,7 @@ void addAudioPath(unsigned port, Dasher* dasher, int dasherId, int receiverID, i
 
     if (dasher != NULL && !dasher->setDashSegmenterBitrate(dstReader, OUT_A_BITRATE)) {
         utils::errorMsg("Error setting bitrate to segmenter");
-    } 
-
-    pipe->startWorkers();
+    }
 
     utils::infoMsg("Audio path created from port " + std::to_string(port));
 }
@@ -145,12 +123,6 @@ void addVideoPath(unsigned port, Dasher* dasher, int dasherId, int receiverID, i
 {
     PipelineManager *pipe = Controller::getInstance()->pipelineManager();
 
-    int wResId = rand();
-    int wResId2 = rand();
-    int wEncId = rand();
-    int wEncId2 = rand();
-    int wEncId3 = rand();
-    int wDecId = rand();
     int decId = rand();
     int resId = 2000;
     int resId2 = 2001;
@@ -164,9 +136,7 @@ void addVideoPath(unsigned port, Dasher* dasher, int dasherId, int receiverID, i
     int slavePathId = rand();
     int slavePathId2 = rand();
     int shmId = rand();
-    int wShmId = rand();
     SharedMemory *shm;
-    Worker* wShm;
 
     std::vector<int> ids;
 
@@ -190,22 +160,11 @@ void addVideoPath(unsigned port, Dasher* dasher, int dasherId, int receiverID, i
     VideoEncoderX264 *encoder3;
     VideoDecoderLibav *decoder;
 
-    Worker* wDec;
-    Worker* wRes;
-    Worker* wRes2;
-    Worker* wEnc;
-    Worker* wEnc2;
-    Worker* wEnc3;
-
     Path *path, *slavePath;
 
     //NOTE: Adding decoder to pipeManager and handle worker
     decoder = new VideoDecoderLibav();
     pipe->addFilter(decId, decoder);
-    wDec = new Worker();
-    wDec->addProcessor(decId, decoder);
-    decoder->setWorkerId(wDecId);
-    pipe->addWorker(wDecId, wDec);
 
     //NOTE: Adding sharedMemory to pipeManager and handle worker
     if(sharingMemoryKey > 0){
@@ -215,28 +174,16 @@ void addVideoPath(unsigned port, Dasher* dasher, int dasherId, int receiverID, i
             exit(1);
         }
         pipe->addFilter(shmId, shm);
-        wShm = new Worker();
-        wShm->addProcessor(shmId, shm);
-        shm->setWorkerId(wShmId);
-        pipe->addWorker(wShmId, wShm);
     }
 
     //NOTE: Adding resampler to pipeManager and handle worker
     resampler = new VideoResampler();
     pipe->addFilter(resId, resampler);
-    wRes = new Worker();
-    wRes->addProcessor(resId, resampler);
-    resampler->setWorkerId(wResId);
     resampler->configure(1280, 720, 0, YUV420P);
-    pipe->addWorker(wResId, wRes);
 
     //NOTE: Adding encoder to pipeManager and handle worker
     encoder = new VideoEncoderX264();
     pipe->addFilter(encId, encoder);
-    wEnc = new Worker();
-    wEnc->addProcessor(encId, encoder);
-    encoder->setWorkerId(wEncId);
-    pipe->addWorker(wEncId, wEnc);
 
     //bitrate, fps, gop, lookahead, threads, annexB, preset
     encoder->configure(4000, 25, 25, 25, 4, true, "superfast");
@@ -247,7 +194,11 @@ void addVideoPath(unsigned port, Dasher* dasher, int dasherId, int receiverID, i
         path = pipe->createPath(receiverID, transmitterID, port, -1, ids);
     }
     pipe->addPath(port, path);
-    pipe->connectPath(path);
+    if (!pipe->connectPath(path)){
+        utils::errorMsg("Failed! Path not connected");
+        pipe->removePath(port);
+        return;
+    }
 
     if (dasher != NULL){
         if (!dasher->addSegmenter(dstReader1)) {
@@ -260,38 +211,24 @@ void addVideoPath(unsigned port, Dasher* dasher, int dasherId, int receiverID, i
         //NOTE: Adding resampler to pipeManager and handle worker
         resampler2 = new VideoResampler(SLAVE);
         pipe->addFilter(resId2, resampler2);
-        wRes2 = new Worker();
-        wRes2->addProcessor(resId2, resampler2);
-        resampler2->setWorkerId(wResId2);
         resampler2->configure(640, 360, 0, YUV420P);
-        pipe->addWorker(wResId2, wRes2);
-        ((BaseFilter*)resampler)->addSlave(resId2, resampler2);
+        ((BaseFilter*)resampler)->addSlave(resampler2);
 
         resampler3 = new VideoResampler(SLAVE);
         pipe->addFilter(resId3, resampler3);
-        wRes2->addProcessor(resId3, resampler3);
-        resampler3->setWorkerId(wResId2);
         resampler3->configure(1280, 720, 0, YUV420P);
-         ((BaseFilter*)resampler)->addSlave(resId3, resampler3);
+         ((BaseFilter*)resampler)->addSlave(resampler3);
 
         //NOTE: Adding encoder to pipeManager and handle worker
-        encoder2 = new VideoEncoderX264(SLAVE, false);
+        encoder2 = new VideoEncoderX264(SLAVE);
         pipe->addFilter(encId2, encoder2);
-        wEnc2 = new Worker();
-        wEnc2->addProcessor(encId2, encoder2);
-        encoder2->setWorkerId(wEncId2);
-        pipe->addWorker(wEncId2, wEnc2);
-        ((BaseFilter*)encoder)->addSlave(wEncId2, encoder2);
+        ((BaseFilter*)encoder)->addSlave(encoder2);
 
         encoder2->configure(1000, 25, 25, 25, 4, true, "superfast");
 
-        encoder3 = new VideoEncoderX264(SLAVE, false);
+        encoder3 = new VideoEncoderX264(SLAVE);
         pipe->addFilter(encId3, encoder3);
-        wEnc3 = new Worker();
-        wEnc3->addProcessor(encId3, encoder3);
-        encoder3->setWorkerId(wEncId3);
-        pipe->addWorker(wEncId3, wEnc3);
-        ((BaseFilter*)encoder)->addSlave(wEncId3, encoder3);
+        ((BaseFilter*)encoder)->addSlave(encoder3);
 
         encoder3->configure(250, 25, 25, 25, 4, true, "superfast");
 
@@ -320,8 +257,6 @@ void addVideoPath(unsigned port, Dasher* dasher, int dasherId, int receiverID, i
             utils::errorMsg("Error setting bitrate to segmenter");
         }
     }
-
-    pipe->startWorkers();
 
     utils::infoMsg("Video path created from port " + std::to_string(port));
 }
@@ -466,13 +401,10 @@ int main(int argc, char* argv[])
 
     int transmitterID = rand();
     int receiverID = rand();
-    int transWorkID = rand();
-    int receiWorkID = rand();
 
     SinkManager* transmitter = NULL;
     SourceManager* receiver = NULL;
     PipelineManager *pipe;
-    LiveMediaWorker *lW;
 
     utils::setLogLevel(INFO);
 
@@ -522,18 +454,10 @@ int main(int argc, char* argv[])
             return 1;
         }
 
-        lW = new LiveMediaWorker();
-        pipe->addWorker(transWorkID, lW);
-        pipe->addFilter(transmitterID, transmitter);
-        pipe->addFilterToWorker(transWorkID, transmitterID);
+        pipe->addFilter(transmitterID, transmitter);        
     }
 
-    lW = new LiveMediaWorker();
-    pipe->addWorker(receiWorkID, lW);
     pipe->addFilter(receiverID, receiver);
-    pipe->addFilterToWorker(receiWorkID, receiverID);
-
-    pipe->startWorkers();
 
     signal(SIGINT, signalHandler);
 
@@ -577,7 +501,7 @@ int main(int argc, char* argv[])
         exit(1);
     }
 
-    while (run) {
+    while (true) {
         if (!ctrl->listenSocket()) {
             continue;
         }

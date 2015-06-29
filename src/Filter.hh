@@ -40,7 +40,7 @@
 #define DEFAULT_ID 1                /*!< Default ID for unique filter's readers and/or writers. */
 #define MAX_WRITERS 16              /*!< Default maximum writers for a filter. */
 #define MAX_READERS 16              /*!< Default maximum readers for a filter. */
-#define RETRY 500000                   /*!< Default retry time in nanoseconds (ns). */
+#define RETRY 500                   /*!< Default retry time in microseconds (ms). */
 
 /*! Generic filter class methods. It is an interface to different specific filters
     so it cannot be instantiated
@@ -167,9 +167,9 @@ public:
     //NOTE: these are public just for testing purposes
     /**
     * Processes frames as a function of its role
-    * @return time to wait until next frame should be processed in nanoseconds.
+    * @return time to wait until next frame should be processed in microseconds.
     */
-    std::chrono::nanoseconds processFrame();
+    std::chrono::microseconds processFrame();
     /**
     * Sets filter frame time
     * @param size_t frame time
@@ -177,7 +177,7 @@ public:
     void setFrameTime(std::chrono::microseconds fTime);
 
 protected:
-    BaseFilter(unsigned readersNum = MAX_READERS, unsigned writersNum = MAX_WRITERS, size_t fTime = 0, FilterRole fRole_ = MASTER, bool sharedFrames_ = true);
+    BaseFilter(unsigned readersNum = MAX_READERS, unsigned writersNum = MAX_WRITERS, FilterRole fRole_ = MASTER, bool sharedFrames_ = true);
 
     void addFrames();
     void removeFrames();
@@ -222,11 +222,11 @@ protected:
 
 private:
     bool connect(BaseFilter *R, int writerID, int readerID);
-    std::chrono::nanoseconds masterProcessFrame();
+    std::chrono::microseconds masterProcessFrame();
     void processAll();
     bool runningSlaves();
     void setSharedFrames(bool sharedFrames_);
-    std::chrono::nanoseconds slaveProcessFrame();
+    std::chrono::microseconds slaveProcessFrame();
     void execute() {process = true;};
     bool isProcessing() {return process;};
     void updateFrames(std::map<int, Frame*> oFrames_);
@@ -244,7 +244,7 @@ private:
 class OneToOneFilter : public BaseFilter {
 
 protected:
-    OneToOneFilter(FilterRole fRole_ = MASTER, bool sharedFrames_ = true, size_t fTime = 0);
+    OneToOneFilter(FilterRole fRole_ = MASTER, bool sharedFrames_ = true);
     virtual bool doProcessFrame(Frame *org, Frame *dst) = 0;
     using BaseFilter::setFrameTime;
     using BaseFilter::getFrameTime;
@@ -272,7 +272,7 @@ private:
 class OneToManyFilter : public BaseFilter {
 
 protected:
-    OneToManyFilter(FilterRole fRole_ = MASTER, bool sharedFrames_ = true, unsigned writersNum = MAX_WRITERS, size_t fTime = 0);
+    OneToManyFilter(FilterRole fRole_ = MASTER, bool sharedFrames_ = true, unsigned writersNum = MAX_WRITERS);
     virtual bool doProcessFrame(Frame *org, std::map<int, Frame *> dstFrames) = 0;
     using BaseFilter::setFrameTime;
     using BaseFilter::getFrameTime;
@@ -304,7 +304,7 @@ public:
     void pushEvent(Event e);
 
 protected:
-    HeadFilter(FilterRole fRole_ = MASTER, size_t fTime = 0);
+    HeadFilter(FilterRole fRole_ = MASTER);
     virtual bool doProcessFrame(Frame *dst) = 0;
     
     int getNullWriterID();
@@ -336,7 +336,7 @@ public:
     void pushEvent(Event e);
 
 protected:
-    TailFilter(FilterRole fRole_ = MASTER, bool sharedFrames_ = true, unsigned readersNum = MAX_READERS, size_t fTime = 0);
+    TailFilter(FilterRole fRole_ = MASTER, bool sharedFrames_ = true, unsigned readersNum = MAX_READERS);
     using BaseFilter::setFrameTime;
     using BaseFilter::getFrameTime;
 
@@ -363,7 +363,7 @@ private:
 class ManyToOneFilter : public BaseFilter {
 
 protected:
-    ManyToOneFilter(FilterRole fRole_ = MASTER, bool sharedFrames_ = true, unsigned readersNum = MAX_READERS, size_t fTime = 0);
+    ManyToOneFilter(FilterRole fRole_ = MASTER, bool sharedFrames_ = true, unsigned readersNum = MAX_READERS);
     virtual bool doProcessFrame(std::map<int, Frame *> orgFrames, Frame *dst) = 0;
     using BaseFilter::setFrameTime;
     using BaseFilter::getFrameTime;

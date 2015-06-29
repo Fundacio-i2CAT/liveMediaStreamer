@@ -28,7 +28,6 @@
 #include <opencv/cv.hpp>
 
 
-#define MAX_LAYERS 16
 #define VMIXER_MAX_CHANNELS 16
 
 class ChannelConfig {
@@ -58,16 +57,15 @@ private:
 class VideoMixer : public ManyToOneFilter {
 
     public:
-        VideoMixer(FilterRole fRole_ = MASTER, bool sharedFrames = true,
-                   int framerate = VIDEO_DEFAULT_FRAMERATE,
-                   int inputChannels = VMIXER_MAX_CHANNELS,
-                   int outputWidth = DEFAULT_WIDTH,
-                   int outputHeight = DEFAULT_HEIGHT,
-                   size_t fTime = 0);
+        VideoMixer(int outWidth = DEFAULT_WIDTH,
+                   int outHeight = DEFAULT_HEIGHT,
+                   std::chrono::microseconds fTime = std::chrono::microseconds(0), 
+                   FilterRole fRole_ = MASTER);
         ~VideoMixer();
         FrameQueue *allocQueue(int wId);
         bool doProcessFrame(std::map<int, Frame*> orgFrames, Frame *dst);
         Reader* setReader(int readerID, FrameQueue* queue);
+        bool configChannel(int id, float width, float height, float x, float y, int layer, bool enabled, float opacity);
 
     protected:
         void doGetState(Jzon::Object &filterNode);
@@ -75,7 +73,6 @@ class VideoMixer : public ManyToOneFilter {
     private:
         void initializeEventMap();
         void pasteToLayout(int frameID, VideoFrame* vFrame);
-        bool configChannel(int id, float width, float height, float x, float y, int layer, bool enabled, float opacity);
 
         bool configChannelEvent(Jzon::Node* params);
 

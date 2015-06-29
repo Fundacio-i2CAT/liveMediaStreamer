@@ -42,7 +42,7 @@ public:
     void stop() {};
     
 protected:
-    std::chrono::nanoseconds processFrame() {
+    std::chrono::microseconds processFrame() {
         std::chrono::system_clock::time_point now = std::chrono::system_clock::now();
         auto duration = now.time_since_epoch();
         size_t millis = std::chrono::duration_cast<std::chrono::milliseconds>(duration).count();
@@ -52,12 +52,12 @@ protected:
         realProcessTime = distribution(generator);
         std::this_thread::sleep_for(std::chrono::milliseconds(realProcessTime));
         if (realProcessTime > frameTime){
-            return  std::chrono::nanoseconds(0);
+            return  std::chrono::microseconds(0);
         }
         
         utils::debugMsg("[" + name + "] " + "SleepTime " + std::to_string(frameTime - realProcessTime));
         
-        return std::chrono::nanoseconds((frameTime - realProcessTime) * 1000);
+        return std::chrono::microseconds((frameTime - realProcessTime) * 1000);
     }
 
 private:

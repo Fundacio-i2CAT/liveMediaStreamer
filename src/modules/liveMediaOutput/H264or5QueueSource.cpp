@@ -57,15 +57,9 @@ void H264or5QueueSource::doGetNextFrame() {
     unsigned int size;
     uint8_t offset;
 
-    bool newFrame = false;
+    frame = fReader->getFrame();
 
-    frame = fReader->getFrame(newFrame);
-
-    if ((newFrame && frame == NULL) || (!newFrame && frame != NULL)) {
-        //TODO: sanity check, think about assert
-    }
-
-    if (!newFrame) {
+    if (!frame) {
         nextTask() = envir().taskScheduler().scheduleDelayedTask(POLL_TIME,
             (TaskFunc*)QueueSource::staticDoGetNextFrame, this);
         return;

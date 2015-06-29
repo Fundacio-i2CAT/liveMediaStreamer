@@ -27,8 +27,9 @@
 
 #include <thread>
 
-BaseFilter::BaseFilter(unsigned readersNum, unsigned writersNum, size_t fTime, FilterRole fRole_, bool sharedFrames_):
-process(false), maxReaders(readersNum), maxWriters(writersNum), frameTime(fTime), fRole(fRole_), sharedFrames(sharedFrames_)
+BaseFilter::BaseFilter(unsigned readersNum, unsigned writersNum, FilterRole fRole_, bool sharedFrames_) :
+process(false), maxReaders(readersNum), maxWriters(writersNum), frameTime(std::chrono::microseconds(0)), 
+fRole(fRole_), sharedFrames(sharedFrames_)
 {
 
 }
@@ -298,9 +299,9 @@ void BaseFilter::getState(Jzon::Object &filterNode)
     doGetState(filterNode);
 }
 
-std::chrono::nanoseconds BaseFilter::processFrame()
+std::chrono::microseconds BaseFilter::processFrame()
 {
-    std::chrono::nanoseconds retValue;
+    std::chrono::microseconds retValue;
     std::chrono::microseconds outTimestamp;
 
     switch(fRole) {
@@ -312,10 +313,10 @@ std::chrono::nanoseconds BaseFilter::processFrame()
             break;
         case NETWORK:
             runDoProcessFrame(outTimestamp);
-            retValue = std::chrono::nanoseconds(0);
+            retValue = std::chrono::microseconds(0);
             break;
         default:
-            retValue = std::chrono::nanoseconds(RETRY);
+            retValue = std::chrono::microseconds(RETRY);
             break;
     }
 
@@ -365,16 +366,16 @@ bool BaseFilter::addSlave(int id, BaseFilter *slave)
     return true;
 }
 
-std::chrono::nanoseconds BaseFilter::masterProcessFrame()
+std::chrono::microseconds BaseFilter::masterProcessFrame()
 {
-    std::chrono::nanoseconds enlapsedTime;
-    std::chrono::nanoseconds frameTime_;
+    std::chrono::microseconds enlapsedTime;
+    std::chrono::microseconds frameTime_;
     std::chrono::microseconds outTimestamp;
     
     processEvent();
       
     if (!demandOriginFrames(outTimestamp) || !demandDestinationFrames()) {
-        return std::chrono::nanoseconds(RETRY);
+        return std::chrono::microseconds(RETRY);
     }
 
     processAll();
@@ -382,31 +383,31 @@ std::chrono::nanoseconds BaseFilter::masterProcessFrame()
     runDoProcessFrame(outTimestamp);
 
     while (runningSlaves()){
-        std::this_thread::sleep_for(std::chrono::nanoseconds(RETRY));
+        std::this_thread::sleep_for(std::chrono::microseconds(RETRY));
     }
 
     removeFrames();
 
-    return std::chrono::nanoseconds(0);
+    return std::chrono::microseconds(0);
 }
 
-std::chrono::nanoseconds BaseFilter::slaveProcessFrame()
+std::chrono::microseconds BaseFilter::slaveProcessFrame()
 {
     std::chrono::microseconds outTimestamp;
 
     if (!process) {
-        return std::chrono::nanoseconds(RETRY);
+        return std::chrono::microseconds(RETRY);
     }
 
     processEvent();
 
     //TODO: decide policy to set run to true/false if retry
     if (!demandDestinationFrames()){
-        return std::chrono::nanoseconds(RETRY);
+        return std::chrono::microseconds(RETRY);
     }
 
     if (!sharedFrames && !demandOriginFrames(outTimestamp)) {
-        return std::chrono::nanoseconds(RETRY);
+        return std::chrono::microseconds(RETRY);
     }
 
     runDoProcessFrame(outTimestamp);
@@ -416,7 +417,7 @@ std::chrono::nanoseconds BaseFilter::slaveProcessFrame()
     }
 
     process = false;
-    return std::chrono::nanoseconds(RETRY);
+    return std::chrono::microseconds(RETRY);
 }
 
 void BaseFilter::updateFrames(std::map<int, Frame*> oFrames_)
@@ -468,7 +469,7 @@ bool BaseFilter::demandOriginFramesBestEffort(std::chrono::microseconds &outTime
     }
 
     outTimestamp = outTs;
-    return false;
+    return true;
 }
 
 bool BaseFilter::demandOriginFramesFrameTime(std::chrono::microseconds &outTimestamp) 
@@ -533,8 +534,8 @@ bool BaseFilter::demandOriginFramesFrameTime(std::chrono::microseconds &outTimes
 }
 
 
-OneToOneFilter::OneToOneFilter(FilterRole fRole_, bool sharedFrames_, size_t fTime) :
-BaseFilter(1, 1, fTime, fRole_, sharedFrames_)
+OneToOneFilter::OneToOneFilter(FilterRole fRole_, bool sharedFrames_) :
+BaseFilter(1, 1, fRole_, sharedFrames_)
 {
     
 }
@@ -552,8 +553,8 @@ bool OneToOneFilter::runDoProcessFrame(std::chrono::microseconds outTimestamp)
     return true;
 }
 
-OneToManyFilter::OneToManyFilter(FilterRole fRole_, bool sharedFrames_, unsigned writersNum, size_t fTime) :
-BaseFilter(1, writersNum, fTime, fRole_, sharedFrames_)
+OneToManyFilter::OneToManyFilter(FilterRole fRole_, bool sharedFrames_, unsigned writersNum) :
+BaseFilter(1, writersNum, fRole_, sharedFrames_)
 {
 
 }
@@ -574,8 +575,8 @@ bool OneToManyFilter::runDoProcessFrame(std::chrono::microseconds outTimestamp)
     return true;
 }
 
-HeadFilter::HeadFilter(FilterRole fRole_, size_t fTime) :
-BaseFilter(0, 1, fTime, fRole_, false)
+HeadFilter::HeadFilter(FilterRole fRole_) :
+BaseFilter(0, 1, fRole_, false)
 {
     
 }
@@ -613,8 +614,8 @@ void HeadFilter::pushEvent(Event e)
     }
 }
 
-TailFilter::TailFilter(FilterRole fRole_, bool sharedFrames_, unsigned readersNum, size_t fTime) :
-BaseFilter(readersNum, 0, fTime, fRole_, sharedFrames_)
+TailFilter::TailFilter(FilterRole fRole_, bool sharedFrames_, unsigned readersNum) :
+BaseFilter(readersNum, 0, fRole_, sharedFrames_)
 {
 
 }
@@ -644,8 +645,8 @@ void TailFilter::pushEvent(Event e)
     }
 }
 
-ManyToOneFilter::ManyToOneFilter(FilterRole fRole_, bool sharedFrames_, unsigned readersNum, size_t fTime) :
-BaseFilter(readersNum, 1, fTime, fRole_, sharedFrames_)
+ManyToOneFilter::ManyToOneFilter(FilterRole fRole_, bool sharedFrames_, unsigned readersNum) :
+BaseFilter(readersNum, 1, fRole_, sharedFrames_)
 {
 
 }
@@ -666,7 +667,7 @@ bool ManyToOneFilter::runDoProcessFrame(std::chrono::microseconds outTimestamp)
 }
 
 LiveMediaFilter::LiveMediaFilter(unsigned readersNum, unsigned writersNum) :
-BaseFilter(readersNum, writersNum, 0, NETWORK, false)
+BaseFilter(readersNum, writersNum, NETWORK, false)
 {
 
 }

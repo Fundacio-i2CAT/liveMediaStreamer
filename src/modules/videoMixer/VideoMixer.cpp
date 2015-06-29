@@ -55,15 +55,14 @@ void ChannelConfig::config(float width, float height, float x, float y, int laye
 //                VideoMixer Class               //
 ///////////////////////////////////////////////////
 
-VideoMixer::VideoMixer(FilterRole fRole_, bool sharedFrames, int framerate, int inputChannels, 
-                       int outputWidth, int outputHeight, size_t fTime) :
-ManyToOneFilter(fRole_, sharedFrames, inputChannels, fTime)
+VideoMixer::VideoMixer(int outWidth, int outHeight, std::chrono::microseconds fTime, FilterRole fRole_) :
+ManyToOneFilter(fRole_, true, VMIXER_MAX_CHANNELS)
 {
-    this->outputWidth = outputWidth;
-    this->outputHeight = outputHeight;
+    outputWidth = outWidth;
+    outputHeight = outHeight;
     fType = VIDEO_MIXER;
-    maxChannels = inputChannels;
-    setFrameTime(std::chrono::microseconds(std::micro::den/framerate));
+    maxChannels = VMIXER_MAX_CHANNELS;
+    setFrameTime(fTime);
 
     layoutImg = cv::Mat(outputHeight, outputWidth, CV_8UC3);
     initializeEventMap();
@@ -94,7 +93,7 @@ bool VideoMixer::doProcessFrame(std::map<int, Frame*> orgFrames, Frame *dst)
 
     layoutImg = cv::Scalar(0, 0, 0);
 
-    for (int lay=0; lay < MAX_LAYERS; lay++) {
+    for (int lay=0; lay < VMIXER_MAX_CHANNELS; lay++) {
         for (auto it : orgFrames) {
             if (channelsConfig[it.first]->getLayer() != lay) {
                 continue;

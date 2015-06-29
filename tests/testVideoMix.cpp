@@ -59,7 +59,7 @@ void setupMixer(int mixerId, int transmitterId)
     std::vector<int> ids = {resId, encId};
 
     //NOTE: Adding decoder to pipeManager and handle worker
-    mixer = new VideoMixer(MIX_WIDTH, MIX_HEIGHT, std::chrono::microseconds(40000));
+    mixer = new VideoMixer(MIX_WIDTH, MIX_HEIGHT, std::chrono::microseconds(100000));
     pipe->addFilter(mixerId, mixer);
     mixWorker = new Worker();
     mixWorker->addProcessor(mixerId, mixer);
@@ -315,7 +315,6 @@ int main(int argc, char* argv[])
     signal(SIGINT, signalHandler);
 
     for (auto it : pipe->getPaths()) {
-        std::cout << it.second->getDstReaderID() << std::endl;
         readers.push_back(it.second->getDstReaderID());
     }
 

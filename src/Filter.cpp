@@ -527,18 +527,14 @@ bool BaseFilter::demandOriginFramesFrameTime(std::chrono::microseconds &outTimes
     // After all, there was no valid frame, so we return false
     // This case is nearly impossible
     if (outTs.count() < 0) {
-
         if (outOfScopeTs.count() > 0) {
             syncTs = outOfScopeTs;
-            std::cout << "Out of scope, resyncing: " << outOfScopeTs.count() << std::endl; 
         }
-
         return false;
     } 
 
     // Finally set timestamp and set syncTs
     outTimestamp = syncTs;
-    std::cout << "sync: " << syncTs.count() << std::endl; 
     syncTs += frameTime;
     return true;
 }

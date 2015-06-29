@@ -74,6 +74,13 @@ struct TestDataStruct TestData[] = {
         534,
         2,
         48000
+    },
+    {
+        "http://h265.tvclever.com/TearsOfSteel_720p-h265.mkv",
+        1280,
+        720,
+        2,
+        48000
     }
 };
 
@@ -84,6 +91,7 @@ class HeadDemuxerFunctionalTest : public CppUnit::TestFixture
     CPPUNIT_TEST(test2);
     CPPUNIT_TEST(test3);
     CPPUNIT_TEST(test4);
+    CPPUNIT_TEST(test5);
     CPPUNIT_TEST_SUITE_END();
 
 public:
@@ -96,6 +104,7 @@ protected:
     void test2();
     void test3();
     void test4();
+    void test5();
 
     HeadDemuxerLibav* headDemuxer;
     VideoDecoderLibav* vDecoder;
@@ -141,6 +150,10 @@ void HeadDemuxerFunctionalTest::test3() {
 
 void HeadDemuxerFunctionalTest::test4() {
     test(3);
+}
+
+void HeadDemuxerFunctionalTest::test5() {
+    test(4);
 }
 
 void HeadDemuxerFunctionalTest::test(int test_ndx)
@@ -201,7 +214,7 @@ void HeadDemuxerFunctionalTest::test(int test_ndx)
         }
 
         watchDog++;
-        if (watchDog > 10) {
+        if (watchDog > 25) {
             CPPUNIT_FAIL("Maximum number of iterations exceeded");
             // We should be able to retrieve that information in less than 10 iterations
             return;

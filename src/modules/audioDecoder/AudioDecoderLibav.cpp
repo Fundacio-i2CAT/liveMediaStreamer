@@ -129,9 +129,11 @@ bool AudioDecoderLibav::doProcessFrame(Frame *org, Frame *dst)
             return false;
         }
 
+        dst->setConsumed(true);
         return true;
     }
 
+    dst->setConsumed(true);
     return true;
 }
 

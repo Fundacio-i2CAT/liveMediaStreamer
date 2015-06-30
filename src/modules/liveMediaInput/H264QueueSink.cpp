@@ -67,6 +67,7 @@ void H264QueueSink::afterGettingFrame(unsigned frameSize, struct timeval present
         frame->newOriginTime();
         frame->setPresentationTime(std::chrono::system_clock::now());
         frame->setSequenceNumber(++seqNum);
+        frame->setConsumed(true);
         fWriter->addFrame();
     }
     continuePlaying();

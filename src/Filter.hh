@@ -36,6 +36,7 @@
 #include "Runnable.hh"
 #include "Event.hh"
 
+
 #define DEFAULT_ID 1                /*!< Default ID for unique filter's readers and/or writers. */
 #define MAX_WRITERS 16              /*!< Default maximum writers for a filter. */
 #define MAX_READERS 16              /*!< Default maximum readers for a filter. */
@@ -324,8 +325,8 @@ public:
     void pushEvent(Event e);
 
 protected:
-    HeadFilter(FilterRole fRole_ = MASTER, size_t fTime = 0);
-    virtual bool doProcessFrame(Frame* dst) = 0;
+    HeadFilter(FilterRole fRole_ = MASTER, size_t fTime = 0, unsigned writersNum = 1);
+    virtual bool doProcessFrame(std::map<int, Frame*> dstFrames) = 0;
     
     int getNullWriterID();
     using BaseFilter::setFrameTime;

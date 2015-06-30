@@ -137,7 +137,7 @@ bool BaseFilter::demandOriginFrames()
             readers.erase(it.first);
             continue;
         }
-        
+
         oFrames[it.first] = it.second->getFrame(qState, newFrame, force);
 
         if (oFrames[it.first] != NULL) {
@@ -181,7 +181,9 @@ bool BaseFilter::demandDestinationFrames()
             continue;
         }
 
-        dFrames[it.first] = it.second->getFrame(true);
+        Frame *f = it.second->getFrame(true);
+        f->setConsumed(false);
+        dFrames[it.first] = f;
         newFrame = true;
     }
 
@@ -191,9 +193,12 @@ bool BaseFilter::demandDestinationFrames()
 void BaseFilter::addFrames()
 {
     std::lock_guard<std::mutex> guard(readersWritersLck);
-    for (auto it : writers){
-        if (it.second->isConnected()){
-            it.second->addFrame();
+    for (auto it : dFrames){
+        if (it.second->getConsumed()) {
+            int wId = it.first;
+            if (writers[wId]->isConnected()){
+                writers[wId]->addFrame();
+            }
         }
     }
 }
@@ -625,8 +630,8 @@ std::vector<int> OneToManyFilter::runDoProcessFrame()
 }
 
 
-HeadFilter::HeadFilter(FilterRole fRole_, size_t fTime) :
-    BaseFilter(0, 1, fTime, fRole_, false, false)
+HeadFilter::HeadFilter(FilterRole fRole_, size_t fTime, unsigned writersNum) :
+    BaseFilter(0, writersNum, fTime, fRole_, false, false)
 {
     
 }
@@ -634,11 +639,12 @@ HeadFilter::HeadFilter(FilterRole fRole_, size_t fTime) :
 std::vector<int> HeadFilter::runDoProcessFrame()
 {
     std::vector<int> enabledJobs;
-    if (updateTimestamp() && doProcessFrame(dFrames.begin()->second)) {
-        dFrames.begin()->second->setPresentationTime(timestamp);
-        dFrames.begin()->second->setDuration(duration);
-        seqNums[dFrames.begin()->first]++;
-        dFrames.begin()->second->setSequenceNumber(seqNums[dFrames.begin()->first]);
+    if (updateTimestamp() && doProcessFrame(dFrames)) {
+        for (auto it : dFrames) {
+            it.second->setPresentationTime(timestamp);
+            it.second->setDuration(duration);
+            it.second->setSequenceNumber(seqNums[it.first]++);
+        }
         addFrames();
         return enabledJobs;
     }

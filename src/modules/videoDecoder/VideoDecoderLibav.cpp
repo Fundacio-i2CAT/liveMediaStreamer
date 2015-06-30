@@ -79,9 +79,10 @@ bool VideoDecoderLibav::doProcessFrame(Frame *org, Frame *dst)
             utils::errorMsg("Decoding video frame");
             return false;
         }
-        
-        if (gotFrame) {           
+
+        if (gotFrame) {
             if (toBuffer(vDecodedFrame, vCodedFrame)) {
+                vDecodedFrame->setConsumed(true);
                 return true;
             }
         }
@@ -146,13 +147,21 @@ bool VideoDecoderLibav::inputConfig()
 
     codecCtx->flags2 |= CODEC_FLAG2_CHUNKS;
 
+    AVFramedQueue *in_queue = dynamic_cast<AVFramedQueue *>(getReader(DEFAULT_ID)->getQueue());
+    if (!in_queue) {
+        utils::errorMsg("Input queue is not an AV queue???");
+        return false;
+    }
+    codecCtx->extradata = (uint8_t *)in_queue->getExtraData();
+    codecCtx->extradata_size = in_queue->getExtraDataSize();
+
     AVDictionary* dictionary = NULL;
     if (avcodec_open2(codecCtx, codec, &dictionary) < 0)
     {
         utils::errorMsg("Could not open required codec");
         return false;
     }
-    
+
     return true;
 }
 

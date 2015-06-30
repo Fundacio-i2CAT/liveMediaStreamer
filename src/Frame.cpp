@@ -26,6 +26,7 @@
 Frame::Frame()
 {
 	originTime = std::chrono::system_clock::now();
+    consumed = false;
 }
 
 void Frame::setPresentationTime(std::chrono::system_clock::time_point pTime)

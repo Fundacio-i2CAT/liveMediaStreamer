@@ -110,6 +110,7 @@ bool AudioEncoderLibav::doProcessFrame(Frame *org, Frame *dst)
     codedFrame->setLength(pkt.size);
     codedFrame->setSamples(samples);
 
+    dst->setConsumed(true);
     return true;
 }
 

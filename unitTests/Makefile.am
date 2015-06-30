@@ -65,4 +65,4 @@ headDemuxerTest_LDFLAGS = -llog4cplus -lcppunit -lpthread -lavcodec -lavformat -
 headDemuxerFunctionalTest_SOURCES = ../src/Utils.cpp HeadDemuxerFunctionalTest.cpp ../src/modules/headDemuxer/HeadDemuxerLibav.cpp ../src/Jzon.cpp ../src/Filter.cpp ../src/Event.cpp ../src/Frame.cpp ../src/IOInterface.cpp ../src/AVFramedQueue.cpp ../src/VideoFrame.cpp ../src/AudioFrame.cpp ../src/modules/videoDecoder/VideoDecoderLibav.cpp ../src/modules/audioDecoder/AudioDecoderLibav.cpp ../src/AudioCircularBuffer.cpp
 headDemuxerFunctionalTest_CPPFLAGS = -g -Wall -g -D__STDC_CONSTANT_MACROS -I../src -I.
 headDemuxerFunctionalTest_CXXFLAGS = -std=c++11
-headDemuxerFunctionalTest_LDFLAGS = -llog4cplus -lcppunit -lpthread -lavcodec -lavformat -lavutil
+headDemuxerFunctionalTest_LDFLAGS = -llog4cplus -lcppunit -lpthread -lavcodec -lavformat -lavutil -lswresample

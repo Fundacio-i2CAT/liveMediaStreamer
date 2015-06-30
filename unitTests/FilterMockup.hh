@@ -397,7 +397,11 @@ protected:
                         orgFrame->getSampleFmt());
             }
 
-            memmove(oFrame->getDataBuf(), orgFrame->getDataBuf(), sizeof(unsigned char)*orgFrame->getLength());
+            unsigned char **orgData = orgFrame->getPlanarDataBuf();
+            unsigned char **oData = oFrame->getPlanarDataBuf();
+            for (int i=0; i<orgFrame->getChannels(); i++) {
+                memmove(oData[i], orgData[i], sizeof(unsigned char)*orgFrame->getLength());
+            }
 
             oFrame->setPresentationTime(orgFrame->getPresentationTime());
             oFrame->setOriginTime(orgFrame->getOriginTime());

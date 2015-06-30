@@ -151,7 +151,6 @@ public:
 
 protected:
     bool doProcessFrame(Frame *org, Frame *dst) {
-        std::cout << "this is do process frame" << std::endl;
         size_t realProcessTime;
         std::uniform_int_distribution<size_t> distribution(processTime/2, processTime*0.99);
         realProcessTime = distribution(generator);

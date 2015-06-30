@@ -216,7 +216,7 @@ void HeadDemuxerFunctionalTest::test(int test_ndx)
         watchDog++;
         if (watchDog > 25) {
             CPPUNIT_FAIL("Maximum number of iterations exceeded");
-            // We should be able to retrieve that information in less than 10 iterations
+            // We should be able to retrieve that information in less than 25 iterations
             return;
         }
     }

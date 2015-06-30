@@ -150,7 +150,7 @@ BaseFilter* PipelineManager::createFilter(FilterType type, Jzon::Node* params)
             filter = new VideoResampler(role, sharedFrames);
             break;
         case VIDEO_MIXER:
-            filter = new VideoMixer(role, sharedFrames);
+            filter = VideoMixer::createNew();
             break;
         case AUDIO_DECODER:
             filter = new AudioDecoderLibav(role, sharedFrames);

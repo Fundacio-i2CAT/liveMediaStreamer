@@ -59,7 +59,7 @@ void setupMixer(int mixerId, int transmitterId)
     std::vector<int> ids = {resId, encId};
 
     //NOTE: Adding decoder to pipeManager and handle worker
-    mixer = new VideoMixer(MIX_WIDTH, MIX_HEIGHT);
+    mixer = VideoMixer::createNew(MIX_WIDTH, MIX_HEIGHT);
     pipe->addFilter(mixerId, mixer);
     mixWorker = new Worker();
     mixWorker->addProcessor(mixerId, mixer);

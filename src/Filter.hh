@@ -30,7 +30,6 @@
 #include <queue>
 #include <mutex>
 
-
 #include "FrameQueue.hh"
 #include "IOInterface.hh"
 #include "Runnable.hh"

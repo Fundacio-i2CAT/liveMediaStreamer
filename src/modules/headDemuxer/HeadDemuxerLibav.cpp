@@ -25,6 +25,7 @@
 
 HeadDemuxerLibav::HeadDemuxerLibav() : HeadFilter (MASTER, 0, 2)
 {
+    // Initialize libav
     av_register_all();
     avformat_network_init();
 
@@ -32,13 +33,16 @@ HeadDemuxerLibav::HeadDemuxerLibav() : HeadFilter (MASTER, 0, 2)
 
     fType = DEMUXER;
 
+    // Clear all internal data
     reset();
 }
 
 HeadDemuxerLibav::~HeadDemuxerLibav()
 {
+    // Free any possible memory and close possible files/streams
     reset();
 
+    // Shutdown libav
     avformat_network_deinit();
 }
 
@@ -48,6 +52,8 @@ void HeadDemuxerLibav::reset()
         avformat_close_input (&av_ctx);
     }
     av_ctx = NULL;
+
+    // Free extradatas and stream infos
     for (auto sinfo : streams) {
         if (sinfo.second->extradata) {
             delete []sinfo.second->extradata;
@@ -61,6 +67,7 @@ bool HeadDemuxerLibav::doProcessFrame(std::map<int, Frame*> dstFrames)
 {
     if (!av_ctx) return false;
 
+    // Ask libav for a data packet
     AVPacket pkt;
     av_init_packet (&pkt);
     pkt.data = NULL;
@@ -68,9 +75,12 @@ bool HeadDemuxerLibav::doProcessFrame(std::map<int, Frame*> dstFrames)
     if (av_read_frame (av_ctx, &pkt) < 0) {
         return false;
     }
+
+    // Find the stream index of the packet and the corresponding output frame
     Frame *f = dstFrames[pkt.stream_index];
     if (f != NULL) {
-        // This output is connected, copy payload
+        // If the output for this stream index is connected, copy payload
+        // (Otherwise, discard packet)
         uint8_t *data = f->getDataBuf();
         memcpy (data, pkt.data, pkt.size);
         f->setConsumed(true);
@@ -83,12 +93,16 @@ bool HeadDemuxerLibav::doProcessFrame(std::map<int, Frame*> dstFrames)
 
 FrameQueue *HeadDemuxerLibav::allocQueue(int wId)
 {
+    // Create output queue for the kind of stream associated with this wId
     const DemuxerStreamInfo *info = streams[wId];
     switch (info->type) {
         case AUDIO:
-            return AudioFrameQueue::createNew(info->audio.codec, DEFAULT_AUDIO_FRAMES, info->audio.sampleRate, info->audio.channels, info->audio.sampleFormat, info->extradata, info->extradata_size);
+            return AudioFrameQueue::createNew(info->audio.codec, DEFAULT_AUDIO_FRAMES,
+                    info->audio.sampleRate, info->audio.channels,
+                    info->audio.sampleFormat, info->extradata, info->extradata_size);
         case VIDEO:
-            return VideoFrameQueue::createNew(info->video.codec, DEFAULT_VIDEO_FRAMES, P_NONE, info->extradata, info->extradata_size);
+            return VideoFrameQueue::createNew(info->video.codec, DEFAULT_VIDEO_FRAMES,
+                    P_NONE, info->extradata, info->extradata_size);
         default:
             break;
     }
@@ -125,28 +139,32 @@ void HeadDemuxerLibav::doGetState(Jzon::Object &filterNode)
 
 bool HeadDemuxerLibav::setURI(const std::string URI)
 {
+    // Close previous URI, if there was one, and clear associated data
     reset();
 
     uri = URI;
 
     int res;
 
+    // Try to open the URI
     res = avformat_open_input(&av_ctx, uri.c_str(), NULL, NULL);
     if (res < 0) {
         char err[1024];
         av_make_error_string(err, sizeof(err), res);
-        std::cerr << "avformat_open_input (" << URI << "): " << err << std::endl;
+        utils::errorMsg("avformat_open_input (" + URI + "): " + err);
         return false;
     }
 
+    // Try to recover stream info
     res = avformat_find_stream_info(av_ctx, NULL);
     if (res < 0) {
         char err[1024];
         av_make_error_string(err, sizeof(err), res);
-        std::cerr << "avformat_find_stream_info (" + URI + "): " << err << std::endl;
+        utils::errorMsg("avformat_find_stream_info (" + URI + "): " + err);
         return false;
     }
 
+    // Build DemuxerStreamInfos and map them through wId
     for (unsigned int i=0; i<av_ctx->nb_streams; i++) {
         const AVCodecDescriptor* cdesc =
                 avcodec_descriptor_get(av_ctx->streams[i]->codec->codec_id);
@@ -160,7 +178,8 @@ bool HeadDemuxerLibav::setURI(const std::string URI)
                     sinfo->audio.codec = utils::getAudioCodecFromLibavString(cdesc->name);
                     sinfo->audio.sampleRate = av_ctx->streams[i]->codec->sample_rate;
                     sinfo->audio.channels = av_ctx->streams[i]->codec->channels;
-                    sinfo->audio.sampleFormat = getSampleFormatFromLibav (av_ctx->streams[i]->codec->sample_fmt);
+                    sinfo->audio.sampleFormat = getSampleFormatFromLibav (
+                            av_ctx->streams[i]->codec->sample_fmt);
                     break;
                 case AVMEDIA_TYPE_VIDEO:
                     sinfo->type = VIDEO;
@@ -175,7 +194,8 @@ bool HeadDemuxerLibav::setURI(const std::string URI)
             sinfo->extradata_size = av_ctx->streams[i]->codec->extradata_size;
             if (sinfo->extradata_size > 0) {
                 sinfo->extradata = new uint8_t[sinfo->extradata_size];
-                memcpy (sinfo->extradata, av_ctx->streams[i]->codec->extradata, sinfo->extradata_size);
+                memcpy (sinfo->extradata, av_ctx->streams[i]->codec->extradata,
+                        sinfo->extradata_size);
             }
         }
         streams[i] = sinfo;

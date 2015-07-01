@@ -1,6 +1,5 @@
 #include <liveMedia.hh>
-//#include <BasicUsageEnvironment.hh>
-#include "../src/modules/CustomScheduler.hh"
+#include <BasicUsageEnvironment.hh>
 #include <string>
 
 #include "H264LoopVideoFileServerMediaSubsession.hh"
@@ -17,7 +16,7 @@ static void announceStream(RTSPServer* rtspServer, ServerMediaSession* sms,
 
 int main(int argc, char** argv) {
   // Begin by setting up our usage environment:
-  TaskScheduler* scheduler = CustomScheduler::createNew();
+  BasicTaskScheduler0* scheduler = BasicTaskScheduler::createNew();
   env = BasicUsageEnvironment::createNew(*scheduler);
 
   UserAuthenticationDatabase* authDB = NULL;
@@ -95,8 +94,8 @@ int main(int argc, char** argv) {
     announceStream(rtspServer, sms, vStreamName.c_str(), vStreamName.c_str());
   }
 
-  while(true){ // does not return
-    env->taskScheduler().doEventLoop(); 
+  while(true){
+    scheduler->SingleStep();
   }
 
   return 0; // only to prevent compiler warning

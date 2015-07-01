@@ -24,7 +24,6 @@
 #define _SOURCE_MANAGER_HH
 
 #include "../../Filter.hh"
-#include "../CustomScheduler.hh"
 #include "Handlers.hh"
 #include "QueueSink.hh"
 
@@ -33,6 +32,7 @@
 #include <functional>
 #include <string>
 #include <liveMedia.hh>
+#include <BasicUsageEnvironment.hh>
 #include <GroupsockHelper.hh>
 
 
@@ -104,8 +104,6 @@ public:
 
     Session* getSession(std::string id);
     int getWriterID(unsigned int port);
-    void setCallback(std::function<void(char const*, unsigned short)> callbackFunction);
-    bool hasCallback();
 
     UsageEnvironment* envir() {return env;}
 
@@ -130,10 +128,7 @@ private:
     std::map<std::string, Session*> sessionMap;
 
     UsageEnvironment* env;
-    uint8_t watch;
-
-    std::function<void(char const*, unsigned short)> callback;
-
+    BasicTaskScheduler0 *scheduler;
 };
 
 #endif

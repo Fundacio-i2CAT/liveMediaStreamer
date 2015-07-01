@@ -42,7 +42,6 @@ liblivemediastreamer_la_SOURCES = modules/audioDecoder/AudioDecoderLibav.cpp \
                                   modules/liveMediaOutput/SPSparser/h264_stream.c \
                                   modules/sharedMemory/SharedMemory.cpp \
                                   modules/headDemuxer/HeadDemuxerLibav.cpp \
-                                  modules/CustomScheduler.cpp \
                                   AVFramedQueue.cpp \
                                   AudioCircularBuffer.cpp \
                                   SlicedVideoFrameQueue.cpp \

@@ -47,9 +47,9 @@ SinkManager* SinkManager::createNew(unsigned readersNum)
 }
 
 SinkManager::SinkManager(unsigned readersNum) :
-LiveMediaFilter(readersNum, 0), rtspServer(NULL), watch(0)
+LiveMediaFilter(readersNum, 0), rtspServer(NULL)
 {
-    TaskScheduler* scheduler = CustomScheduler::createNew();
+    scheduler = BasicTaskScheduler::createNew();
     env = BasicUsageEnvironment::createNew(*scheduler);
     
     unsigned port = RTSP_PORT;
@@ -72,7 +72,7 @@ LiveMediaFilter(readersNum, 0), rtspServer(NULL), watch(0)
 SinkManager::~SinkManager()
 {
     stop();
-    delete &envir()->taskScheduler();
+    delete scheduler;
     envir()->reclaim();
     env = NULL;
 }
@@ -93,11 +93,11 @@ void SinkManager::stop()
     // Medium::close(rtspServer) seemms to do this internally, generating a segFault. Check deeper 
     // if not closing RTSP server is the best solution (port binding has been checked and it works
     // properly -- no port binding when stopping)
-    // if (rtspServer){
-    //     Medium::close(rtspServer);
-    // }
+    if (rtspServer){
+        Medium::close(rtspServer);
+    }
 
-    watch = 1;
+    //watch = 1;
 }
 
 bool SinkManager::doProcessFrame()
@@ -106,7 +106,7 @@ bool SinkManager::doProcessFrame()
         return false;
     }
 
-    envir()->taskScheduler().doEventLoop((char*) &watch);
+    scheduler->SingleStep();
 
     return true;
 }

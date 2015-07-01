@@ -46,6 +46,9 @@ PipelineManager::PipelineManager()
 PipelineManager::~PipelineManager()
 {
     stop();
+    if (pool){
+        delete pool;
+    }
     pipeMngrInstance = NULL;
 }
 
@@ -89,10 +92,6 @@ bool PipelineManager::stop()
 
     filters.clear();
     utils::infoMsg("Filters deleted");
-    
-    if (pool){
-        delete pool;
-    }
 
     return true;
 }

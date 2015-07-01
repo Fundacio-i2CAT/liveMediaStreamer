@@ -30,13 +30,15 @@ WorkersPool::WorkersPool(size_t threads) : run(true)
         threads > std::thread::hardware_concurrency()){
         threads = std::thread::hardware_concurrency();
     }
+    
+    utils::infoMsg("starting "  + std::to_string(threads) + " threads");
+    
     for (unsigned int i = 0; i < threads; i++){
         workers.push_back(
             std::thread([this](unsigned int j){
                 Runnable* job = NULL;
                 std::list<Runnable*>::iterator iter;
                 std::vector<int> enabledJobs;
-                utils::infoMsg("starting thread "  + std::to_string(j));
                 
                 while(true) {
                     std::unique_lock<std::mutex> guard(mtx);

@@ -36,11 +36,11 @@ FrameQueue* createAudioQueue(unsigned char rtpPayloadFormat,
                              char const* codecName, unsigned channels,
                              unsigned sampleRate);
 
-SourceManager::SourceManager(unsigned writersNum): LiveMediaFilter(0, writersNum), watch(0)
+SourceManager::SourceManager(unsigned writersNum): LiveMediaFilter(0, writersNum)
 {
     fType = RECEIVER;
 
-    TaskScheduler* scheduler = CustomScheduler::createNew();
+    scheduler = BasicTaskScheduler::createNew();
     env = BasicUsageEnvironment::createNew(*scheduler);
 
     initializeEventMap();
@@ -52,30 +52,14 @@ SourceManager::~SourceManager()
         delete it.second;
     }
 
-    delete &envir()->taskScheduler();
+    delete scheduler;
     envir()->reclaim();
     env = NULL;
 }
 
 void SourceManager::stop()
 {
-    watch = 1;
-}
-
-void SourceManager::setCallback(std::function<void(char const*, unsigned short)> callbackFunction)
-{
-    if (!callback) {
-        callback = callbackFunction;
-    }
-}
-
-bool SourceManager::hasCallback()
-{
-    if (callback) {
-        return true;
-    }
-
-    return false;
+    
 }
 
 bool SourceManager::doProcessFrame()
@@ -84,7 +68,7 @@ bool SourceManager::doProcessFrame()
         return false;
     }
 
-    envir()->taskScheduler().doEventLoop((char*) &watch);
+    scheduler->SingleStep();
 
     return true;
 }

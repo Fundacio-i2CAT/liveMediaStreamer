@@ -26,49 +26,56 @@
 
 #include <random>
 
-#include "Worker.hh"
-
 class RunnableMockup : public Runnable {
     
 public:
-    RunnableMockup(size_t frameTime_, size_t processTime_, std::string name_ = ""){
-        name = name_;
+    RunnableMockup(int frameTime_, std::vector<int> enabledJobs_, bool periodic) : Runnable(periodic){
         frameTime = frameTime_;
-        processTime = processTime_;
         time = std::chrono::system_clock::now();
+        enabledJobs = enabledJobs_;
+        first = true;
     }
-    
-    bool isEnabled(){return true;};
-    void stop() {};
     
 protected:
     std::vector<int> processFrame(int& ret) {
-        std::vector<int> enabledJobs;
         std::chrono::system_clock::time_point now = std::chrono::system_clock::now();
-        auto duration = now.time_since_epoch();
-        size_t millis = std::chrono::duration_cast<std::chrono::milliseconds>(duration).count();
-        utils::debugMsg("[" + name + "] " + "StartTime " + std::to_string(millis));
         size_t realProcessTime;
-        std::uniform_int_distribution<size_t> distribution(processTime/2, processTime + processTime/2);
-        realProcessTime = distribution(generator);
-        std::this_thread::sleep_for(std::chrono::milliseconds(realProcessTime));
-        if (realProcessTime > frameTime){
-            ret = 0;
-            return enabledJobs;
+        std::chrono::microseconds remaining, diff;
+        
+        if (first){
+            wallclock = now;
+            first = false;
         }
         
-        utils::debugMsg("[" + name + "] " + "SleepTime " + std::to_string(frameTime - realProcessTime));
+        diff = std::chrono::duration_cast<std::chrono::microseconds> (wallclock - now);
+        if (std::abs(diff.count()) > frameTime/32){
+            std::cout << "Failed! reseting wallcock! " << remaining.count() << std::endl;
+            wallclock = now;
+        }
         
-        ret = frameTime - realProcessTime;
+        wallclock += std::chrono::microseconds(frameTime);
+        
+        std::uniform_int_distribution<size_t> distribution(frameTime/2, frameTime);
+        realProcessTime = distribution(generator);
+        std::this_thread::sleep_for(std::chrono::microseconds(realProcessTime));
+        
+        remaining = (std::chrono::duration_cast<std::chrono::microseconds> (wallclock - std::chrono::high_resolution_clock::now()));
+        
+        if (isPeriodic()){
+            ret = remaining.count();
+        } else {
+            ret = 0;
+        }
         
         return enabledJobs;
     }
 
 private:
     std::default_random_engine generator;
-    std::string name;
-    size_t frameTime;
-    size_t processTime;
+    int frameTime;
+    std::vector<int> enabledJobs;
+    std::chrono::system_clock::time_point wallclock;
+    bool first;
 };
 
 #endif

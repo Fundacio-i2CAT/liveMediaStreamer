@@ -63,11 +63,13 @@ protected:
     unsigned maxFrames = 4;
     VCodecType codec = H264; 
     unsigned maxSliceSize = 16;
+    int wId = 0;
+    int rId = 1;
 };
 
 void SlicedVideoFrameQueueTest::setUp()
 {
-    queue = SlicedVideoFrameQueue::createNew(codec, maxFrames, maxSliceSize);
+    queue = SlicedVideoFrameQueue::createNew(wId, rId, codec, maxFrames, maxSliceSize);
 
     if (!queue) {
         CPPUNIT_FAIL("SlicedVideoFrameQueueTest failed. Error creating SlicedVideoFrameQueue in setUp()\n");
@@ -87,22 +89,22 @@ void SlicedVideoFrameQueueTest::create()
 
     tmpMaxFrames = 0;
     tmpMaxSliceSize = 0;
-    tmpqueue = SlicedVideoFrameQueue::createNew(codec, tmpMaxFrames, tmpMaxSliceSize);
+    tmpqueue = SlicedVideoFrameQueue::createNew(wId, rId, codec, tmpMaxFrames, tmpMaxSliceSize);
     CPPUNIT_ASSERT(!tmpqueue);
 
     tmpMaxFrames = 0;
     tmpMaxSliceSize = 16;
-    tmpqueue = SlicedVideoFrameQueue::createNew(codec, tmpMaxFrames, tmpMaxSliceSize);
+    tmpqueue = SlicedVideoFrameQueue::createNew(wId, rId, codec, tmpMaxFrames, tmpMaxSliceSize);
     CPPUNIT_ASSERT(!tmpqueue);
 
     tmpMaxFrames = 16;
     tmpMaxSliceSize = 0;
-    tmpqueue = SlicedVideoFrameQueue::createNew(codec, tmpMaxFrames, tmpMaxSliceSize);
+    tmpqueue = SlicedVideoFrameQueue::createNew(wId, rId, codec, tmpMaxFrames, tmpMaxSliceSize);
     CPPUNIT_ASSERT(!tmpqueue);
 
     tmpMaxFrames = 16;
     tmpMaxSliceSize = 16;
-    tmpqueue = SlicedVideoFrameQueue::createNew(codec, tmpMaxFrames, tmpMaxSliceSize);
+    tmpqueue = SlicedVideoFrameQueue::createNew(wId, rId, codec, tmpMaxFrames, tmpMaxSliceSize);
     CPPUNIT_ASSERT(tmpqueue);
 
     delete tmpqueue;

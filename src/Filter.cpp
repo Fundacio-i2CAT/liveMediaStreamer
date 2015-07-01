@@ -236,7 +236,7 @@ bool BaseFilter::connect(BaseFilter *R, int writerID, int readerID)
         return false;
     }
 
-    queue = allocQueue(writerID);
+    queue = allocQueue(getId(), R->getId(), writerID);
     if (!queue){
         return false;
     }
@@ -245,9 +245,6 @@ bool BaseFilter::connect(BaseFilter *R, int writerID, int readerID)
         utils::errorMsg("Could not set the queue to the reader");
         return false;
     }
-
-    queue->setWFilterId(getId());
-    queue->setRFilterId(R->getId());
     
     writers[writerID]->setQueue(queue);
 

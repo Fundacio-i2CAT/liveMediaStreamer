@@ -31,8 +31,8 @@
 #define RTSP_CLIENT_VERBOSITY_LEVEL 1
 #define RTP_RECEIVE_BUFFER_SIZE 2000000
 
-FrameQueue* createVideoQueue(char const* codecName);
-FrameQueue* createAudioQueue(unsigned char rtpPayloadFormat,
+FrameQueue* createVideoQueue(int wFId, int rFId, char const* codecName);
+FrameQueue* createAudioQueue(int wFId, int rFId, unsigned char rtpPayloadFormat,
                              char const* codecName, unsigned channels,
                              unsigned sampleRate);
 
@@ -126,7 +126,7 @@ bool SourceManager::addWriter(unsigned port, const Writer *writer)
     return true;
 }
 
-FrameQueue *SourceManager::allocQueue(int wId)
+FrameQueue *SourceManager::allocQueue(int wFId, int rFId, int wId)
 {
     MediaSubsession *mSubsession;
 
@@ -136,13 +136,13 @@ FrameQueue *SourceManager::allocQueue(int wId)
         }
 
         if (strcmp(mSubsession->mediumName(), "audio") == 0) {
-            return createAudioQueue(mSubsession->rtpPayloadFormat(),
+            return createAudioQueue(wFId, rFId, mSubsession->rtpPayloadFormat(),
                 mSubsession->codecName(), mSubsession->numChannels(),
                 mSubsession->rtpTimestampFrequency());
         }
 
         if (strcmp(mSubsession->mediumName(), "video") == 0) {
-            return createVideoQueue(mSubsession->codecName());
+            return createVideoQueue(wFId, rFId, mSubsession->codecName());
         }
     }
 
@@ -290,7 +290,7 @@ void SourceManager::doGetState(Jzon::Object &filterNode)
 }
 
 
-FrameQueue* createVideoQueue(char const* codecName)
+FrameQueue* createVideoQueue(int wFId, int rFId, char const* codecName)
 {
     VCodecType codec;
 
@@ -306,36 +306,36 @@ FrameQueue* createVideoQueue(char const* codecName)
         return NULL;
     }
 
-    return VideoFrameQueue::createNew(codec, DEFAULT_VIDEO_FRAMES);
+    return VideoFrameQueue::createNew(wFId, rFId, codec, DEFAULT_VIDEO_FRAMES);
 }
 
-FrameQueue* createAudioQueue(unsigned char rtpPayloadFormat, char const* codecName, unsigned channels, unsigned sampleRate)
+FrameQueue* createAudioQueue(int wFId, int rFId, unsigned char rtpPayloadFormat, char const* codecName, unsigned channels, unsigned sampleRate)
 {
     ACodecType codec;
     //is this one neeeded? in should be implicit in PCMU case
     if (rtpPayloadFormat == 0) {
         codec = G711;
-        return AudioFrameQueue::createNew(codec, DEFAULT_AUDIO_FRAMES);
+        return AudioFrameQueue::createNew(wFId, rFId, codec, DEFAULT_AUDIO_FRAMES);
     }
 
     if (strcmp(codecName, "OPUS") == 0) {
         codec = OPUS;
-        return AudioFrameQueue::createNew(codec, DEFAULT_AUDIO_FRAMES, sampleRate, channels);
+        return AudioFrameQueue::createNew(wFId, rFId, codec, DEFAULT_AUDIO_FRAMES, sampleRate, channels);
     }
 
     if (strcmp(codecName, "MPEG4-GENERIC") == 0) {
         codec = AAC;
-        return AudioFrameQueue::createNew(codec, DEFAULT_AUDIO_FRAMES, sampleRate, channels);
+        return AudioFrameQueue::createNew(wFId, rFId, codec, DEFAULT_AUDIO_FRAMES, sampleRate, channels);
     }
 
     if (strcmp(codecName, "PCMU") == 0) {
         codec = PCMU;
-         return AudioFrameQueue::createNew(codec, DEFAULT_AUDIO_FRAMES, sampleRate, channels);
+         return AudioFrameQueue::createNew(wFId, rFId, codec, DEFAULT_AUDIO_FRAMES, sampleRate, channels);
     }
 
     if (strcmp(codecName, "PCM") == 0) {
         codec = PCM;
-        return AudioFrameQueue::createNew(codec, DEFAULT_AUDIO_FRAMES, sampleRate, channels);
+        return AudioFrameQueue::createNew(wFId, rFId, codec, DEFAULT_AUDIO_FRAMES, sampleRate, channels);
     }
 
     utils::errorMsg("Error creating audio queue in SourceManager: codec " + std::string(codecName) + " not supported");

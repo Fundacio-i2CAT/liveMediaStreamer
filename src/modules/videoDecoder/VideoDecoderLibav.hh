@@ -40,11 +40,11 @@ class VideoDecoderLibav : public OneToOneFilter {
     public:
         VideoDecoderLibav(FilterRole fRole_ = MASTER);
         ~VideoDecoderLibav();
-        bool doProcessFrame(Frame *org, Frame *dst);
         
     private:
         void initializeEventMap();
-        FrameQueue* allocQueue(int wId);
+        FrameQueue* allocQueue(int wFId, int rFId, int wId);
+        bool doProcessFrame(Frame *org, Frame *dst);
         bool toBuffer(VideoFrame *decodedFrame, VideoFrame *codedFrame);
         bool reconfigure(VCodecType codec);
         bool inputConfig();

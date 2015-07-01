@@ -40,17 +40,18 @@ class AudioEncoderLibav : public OneToOneFilter {
 public:
     AudioEncoderLibav(FilterRole fRole_ = MASTER);
     ~AudioEncoderLibav();
-    
-    bool doProcessFrame(Frame *org, Frame *dst);
 
     int getSamplesPerFrame(){ return samplesPerFrame;};
     ACodecType getCodec() {return fCodec;};
 
     bool configure(ACodecType codec, int codedAudioChannels, int codedAudioSampleRate, int bitrate);
     Reader* setReader(int readerID, FrameQueue* queue);
+    
+protected:
+    FrameQueue* allocQueue(int wFId, int rFId, int wId);
+    bool doProcessFrame(Frame *org, Frame *dst);
 
 private:
-    FrameQueue* allocQueue(int wId);
     
     void initializeEventMap();
     int resample(AudioFrame* src, AVFrame* dst);

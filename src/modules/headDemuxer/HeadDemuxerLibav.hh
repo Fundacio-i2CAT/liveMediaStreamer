@@ -73,7 +73,7 @@ class HeadDemuxerLibav : public HeadFilter {
 
     protected:
         virtual bool doProcessFrame(std::map<int, Frame*> dstFrames);
-        virtual FrameQueue *allocQueue(int wId);
+        virtual FrameQueue *allocQueue(int wFId, int rFId, int wId);
         virtual void doGetState(Jzon::Object &filterNode);
 
     private:

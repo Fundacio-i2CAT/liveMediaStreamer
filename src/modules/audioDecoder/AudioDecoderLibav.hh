@@ -38,9 +38,11 @@ class AudioDecoderLibav : public OneToOneFilter {
 public:
     AudioDecoderLibav(FilterRole fRole_ = MASTER);
     ~AudioDecoderLibav();
-    bool doProcessFrame(Frame *org, Frame *dst);
-    FrameQueue* allocQueue(int wId);
     bool configure(SampleFmt sampleFormat, int channels, int sampleRate);
+    
+protected:
+    bool doProcessFrame(Frame *org, Frame *dst);
+    FrameQueue* allocQueue(int wFId, int rFId, int wId);
 
 private:
 

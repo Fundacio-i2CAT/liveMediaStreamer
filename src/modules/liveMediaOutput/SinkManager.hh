@@ -100,7 +100,7 @@ private:
     bool doProcessFrame();
     void stop();
 
-    FrameQueue *allocQueue(int wId) { return NULL;};
+    FrameQueue *allocQueue(int wFId, int rFId, int wId) { return NULL;};
 
     bool addSubsessionByReader(RTSPConnection* connection, int readerId);
 

@@ -91,7 +91,7 @@ private:
 class AVFramedQueueMock : public AVFramedQueue
 {
 public:
-    AVFramedQueueMock(unsigned max) : AVFramedQueue(max) {
+    AVFramedQueueMock(int wFId, int rFId, unsigned max) : AVFramedQueue(wFId, rFId, max) {
         config();
     };
 
@@ -115,7 +115,7 @@ public:
     using BaseFilter::getReader;
 
 protected:
-    FrameQueue *allocQueue(int wId) {return new AVFramedQueueMock(4);};
+    FrameQueue *allocQueue(int wFId, int rFId, int wId) {return new AVFramedQueueMock(wFId, rFId, 4);};
     std::vector<int> masterProcessFrame(int& ret) {
         std::vector<int> enabledJobs;
         ret = 20;
@@ -163,7 +163,7 @@ protected:
     void stop() {};
 
 private:
-    virtual FrameQueue *allocQueue(int wId) {return new AVFramedQueueMock(queueSize);};
+    virtual FrameQueue *allocQueue(int wFId, int rFId, int wId) {return new AVFramedQueueMock(wFId, rFId, queueSize);};
 
     std::default_random_engine generator;
     size_t processTime; //usec
@@ -198,7 +198,7 @@ protected:
     void stop() {};
 
 private:
-    virtual FrameQueue *allocQueue(int wId) {return new AVFramedQueueMock(queueSize);};
+    virtual FrameQueue *allocQueue(int wFId, int rFId, int wId) {return new AVFramedQueueMock(wFId, rFId, queueSize);};
 
     std::default_random_engine generator;
     size_t processTime; //usec
@@ -216,7 +216,7 @@ public:
     using BaseFilter::getReader;
 
 private:
-    virtual FrameQueue *allocQueue(int wId) {return new AVFramedQueueMock(queueSize);};
+    virtual FrameQueue *allocQueue(int wFId, int rFId, int wId) {return new AVFramedQueueMock(wFId, rFId, queueSize);};
     void doGetState(Jzon::Object &filterNode) {};
     bool doProcessFrame(){
         if(watch){
@@ -242,7 +242,7 @@ public:
     };
 
 protected:
-    FrameQueue *allocQueue(int wId) {return VideoFrameQueue::createNew(codec, DEFAULT_VIDEO_FRAMES);};
+    FrameQueue *allocQueue(int wFId, int rFId, int wId) {return VideoFrameQueue::createNew(wFId, rFId, codec, DEFAULT_VIDEO_FRAMES);};
 
 private:
     VCodecType codec;
@@ -257,7 +257,7 @@ public:
     };
 
 protected:
-    FrameQueue *allocQueue(int wId) {return AudioFrameQueue::createNew(codec, DEFAULT_AUDIO_FRAMES);};
+    FrameQueue *allocQueue(int wFId, int rFId, int wId) {return AudioFrameQueue::createNew(wFId, rFId, codec, DEFAULT_AUDIO_FRAMES);};
 
 private:
     ACodecType codec;
@@ -305,8 +305,8 @@ protected:
     
 
 private:
-    FrameQueue *allocQueue(int wId) {
-        return VideoFrameQueue::createNew(codec, 10, pixFormat);
+    FrameQueue *allocQueue(int wFId, int rFId, int wId) {
+        return VideoFrameQueue::createNew(wFId, rFId, codec, 10, pixFormat);
     };
 
     InterleavedVideoFrame* srcFrame;

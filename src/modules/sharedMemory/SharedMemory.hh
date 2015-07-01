@@ -98,7 +98,7 @@ private:
     bool doProcessFrame(Frame *org, Frame *dst);
     void initializeEventMap();
     void doGetState(Jzon::Object &filterNode);
-    FrameQueue* allocQueue(int wId);
+    FrameQueue* allocQueue(int wFId, int rFId, int wId);
 
     void copyOrgToDstFrame(InterleavedVideoFrame *org, InterleavedVideoFrame *dst);
 
@@ -108,13 +108,13 @@ private:
     VCodecType getVCodecFromCodecType(uint16_t codecType);
 
 private:
-    size_t 			              SharedMemorykey;
-    size_t 			              SharedMemoryID;
-    uint8_t                       *SharedMemoryOrigin;
-    uint8_t 			          *buffer;
-    uint8_t 			          *access;
-    bool                          enabled;
-    bool                          newFrame;
+    size_t      SharedMemorykey;
+    size_t      SharedMemoryID;
+    uint8_t     *SharedMemoryOrigin;
+    uint8_t     *buffer;
+    uint8_t     *access;
+    bool        enabled;
+    bool        newFrame;
     std::vector<unsigned char>    frameData;
     VCodecType const              codec;
     uint16_t                      seqNum;

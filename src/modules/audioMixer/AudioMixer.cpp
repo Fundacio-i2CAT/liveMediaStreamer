@@ -52,9 +52,9 @@ AudioMixer::AudioMixer(FilterRole role, int inputChannels) : ManyToOneFilter(rol
 
 AudioMixer::~AudioMixer() {}
 
-FrameQueue *AudioMixer::allocQueue(int wId) 
+FrameQueue *AudioMixer::allocQueue(int wFId, int rFId, int wId) 
 {
-    return AudioCircularBuffer::createNew(frameChannels, sampleRate, AudioFrame::getMaxSamples(sampleRate), sampleFormat);
+    return AudioCircularBuffer::createNew(wFId, rFId, frameChannels, sampleRate, AudioFrame::getMaxSamples(sampleRate), sampleFormat);
 }
 
 bool AudioMixer::doProcessFrame(std::map<int, Frame*> orgFrames, Frame *dst)

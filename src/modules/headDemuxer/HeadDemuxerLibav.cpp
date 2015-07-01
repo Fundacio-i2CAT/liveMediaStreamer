@@ -91,17 +91,17 @@ bool HeadDemuxerLibav::doProcessFrame(std::map<int, Frame*> dstFrames)
     return true;
 }
 
-FrameQueue *HeadDemuxerLibav::allocQueue(int wId)
+FrameQueue *HeadDemuxerLibav::allocQueue(int wFId, int rFId, int wId)
 {
     // Create output queue for the kind of stream associated with this wId
     const DemuxerStreamInfo *info = streams[wId];
     switch (info->type) {
         case AUDIO:
-            return AudioFrameQueue::createNew(info->audio.codec, DEFAULT_AUDIO_FRAMES,
+            return AudioFrameQueue::createNew(wFId, rFId, info->audio.codec, DEFAULT_AUDIO_FRAMES,
                     info->audio.sampleRate, info->audio.channels,
                     info->audio.sampleFormat, info->extradata, info->extradata_size);
         case VIDEO:
-            return VideoFrameQueue::createNew(info->video.codec, DEFAULT_VIDEO_FRAMES,
+            return VideoFrameQueue::createNew(wFId, rFId, info->video.codec, DEFAULT_VIDEO_FRAMES,
                     P_NONE, info->extradata, info->extradata_size);
         default:
             break;

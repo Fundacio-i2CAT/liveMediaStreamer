@@ -79,9 +79,9 @@ AudioDecoderLibav::~AudioDecoderLibav()
     av_free_packet(&pkt);
 }
 
-FrameQueue* AudioDecoderLibav::allocQueue(int wId)
+FrameQueue* AudioDecoderLibav::allocQueue(int wFId, int rFId, int wId)
 {
-    return AudioCircularBuffer::createNew(outChannels, outSampleRate, AudioFrame::getMaxSamples(outSampleRate), outSampleFmt);
+    return AudioCircularBuffer::createNew(wFId, rFId, outChannels, outSampleRate, AudioFrame::getMaxSamples(outSampleRate), outSampleFmt);
 }
 
 bool AudioDecoderLibav::doProcessFrame(Frame *org, Frame *dst)

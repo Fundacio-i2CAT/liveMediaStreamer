@@ -65,11 +65,11 @@ class VideoMixer : public ManyToOneFilter {
                    int outputHeight = DEFAULT_HEIGHT,
                    size_t fTime = 0);
         ~VideoMixer();
-        FrameQueue *allocQueue(int wId);
-        bool doProcessFrame(std::map<int, Frame*> orgFrames, Frame *dst);
         Reader* setReader(int readerID, FrameQueue* queue);
 
     protected:
+        FrameQueue *allocQueue(int wFId, int rFId, int wId);
+        bool doProcessFrame(std::map<int, Frame*> orgFrames, Frame *dst);
         void doGetState(Jzon::Object &filterNode);
 
     private:

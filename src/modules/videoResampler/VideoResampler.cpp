@@ -55,9 +55,9 @@ VideoResampler::~VideoResampler()
     sws_freeContext(imgConvertCtx);
 }
 
-FrameQueue* VideoResampler::allocQueue(int wId)
+FrameQueue* VideoResampler::allocQueue(int wFId, int rFId, int wId)
 {
-    return VideoFrameQueue::createNew(RAW, DEFAULT_RAW_VIDEO_FRAMES, outPixFmt);
+    return VideoFrameQueue::createNew(wFId, rFId, RAW, DEFAULT_RAW_VIDEO_FRAMES, outPixFmt);
 }
 
 bool VideoResampler::reconfigure(VideoFrame* orgFrame)

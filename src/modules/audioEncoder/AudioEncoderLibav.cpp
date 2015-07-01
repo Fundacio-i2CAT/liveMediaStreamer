@@ -60,9 +60,9 @@ AudioEncoderLibav::~AudioEncoderLibav()
     av_free_packet(&pkt);
 }
 
-FrameQueue* AudioEncoderLibav::allocQueue(int wId)
+FrameQueue* AudioEncoderLibav::allocQueue(int wFId, int rFId, int wId)
 {
-    return AudioFrameQueue::createNew(fCodec, DEFAULT_AUDIO_FRAMES, internalSampleRate, internalChannels, internalSampleFmt);
+    return AudioFrameQueue::createNew(wFId, rFId, fCodec, DEFAULT_AUDIO_FRAMES, internalSampleRate, internalChannels, internalSampleFmt);
 }
 
 bool AudioEncoderLibav::doProcessFrame(Frame *org, Frame *dst)

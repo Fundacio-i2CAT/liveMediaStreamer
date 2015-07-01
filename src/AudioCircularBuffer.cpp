@@ -27,9 +27,9 @@
 
 int mod (int a, int b);
 
-AudioCircularBuffer* AudioCircularBuffer::createNew(int ch, int sRate, int maxSamples, SampleFmt sFmt)
+AudioCircularBuffer* AudioCircularBuffer::createNew(int wId, int rId, int ch, int sRate, int maxSamples, SampleFmt sFmt)
 {
-    AudioCircularBuffer* b = new AudioCircularBuffer(ch, sRate, maxSamples, sFmt);
+    AudioCircularBuffer* b = new AudioCircularBuffer(wId, rId, ch, sRate, maxSamples, sFmt);
 
     if (!b->setup()) {
         utils::errorMsg("AudioCircularBuffer setup error!");
@@ -40,8 +40,8 @@ AudioCircularBuffer* AudioCircularBuffer::createNew(int ch, int sRate, int maxSa
     return b;
 }
 
-AudioCircularBuffer::AudioCircularBuffer(int ch, int sRate, int maxSamples, SampleFmt sFmt)
-: FrameQueue(), channels(ch), sampleRate(sRate), chMaxSamples(maxSamples), sampleFormat(sFmt),
+AudioCircularBuffer::AudioCircularBuffer(int wId, int rId, int ch, int sRate, int maxSamples, SampleFmt sFmt)
+: FrameQueue(wId, rId), channels(ch), sampleRate(sRate), chMaxSamples(maxSamples), sampleFormat(sFmt),
 outputFrameAlreadyRead(true), bufferingState(BUFFERING)
 {
 

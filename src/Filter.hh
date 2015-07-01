@@ -182,7 +182,7 @@ protected:
     void addFrames();
     void removeFrames();
     bool hasFrames();
-    virtual FrameQueue *allocQueue(int wId) = 0;
+    virtual FrameQueue *allocQueue(int wFId, int rFId, int wId) = 0;
 
     std::chrono::nanoseconds getFrameTime() {return frameTime;};
 
@@ -369,7 +369,7 @@ protected:
     using BaseFilter::getFrameTime;
 
 private:
-    FrameQueue *allocQueue(int wId) {return NULL;};
+    FrameQueue *allocQueue(int wFId, int rFId, int wId) {return NULL;};
     std::vector<int> runDoProcessFrame();
     virtual bool doProcessFrame(std::map<int, Frame*> orgFrames) = 0;
     using BaseFilter::demandOriginFrames;

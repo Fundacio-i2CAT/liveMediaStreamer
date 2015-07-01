@@ -35,7 +35,7 @@
  class AudioCircularBuffer : public FrameQueue {
 
     public:
-        static AudioCircularBuffer* createNew(int ch, int sRate, int maxSamples, SampleFmt sFmt);
+        static AudioCircularBuffer* createNew(int wId, int rId, int ch, int sRate, int maxSamples, SampleFmt sFmt);
         ~AudioCircularBuffer();
         void setOutputFrameSamples(int samples); 
 
@@ -51,7 +51,7 @@
         QueueState getState();
 
     private:
-        AudioCircularBuffer(int ch, int sRate, int maxSamples, SampleFmt sFmt);
+        AudioCircularBuffer(int wId, int rId, int ch, int sRate, int maxSamples, SampleFmt sFmt);
 
         enum State {BUFFERING, OK, FULL};
 

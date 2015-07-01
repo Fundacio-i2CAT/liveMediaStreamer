@@ -136,9 +136,9 @@ bool VideoEncoderX265::encodeHeadersFrame(VideoFrame* frame)
     return true;
 }
 
-FrameQueue* VideoEncoderX265::allocQueue(int wId)
+FrameQueue* VideoEncoderX265::allocQueue(int wFId, int rFId, int wId)
 {
-    return SlicedVideoFrameQueue::createNew(H265, DEFAULT_VIDEO_FRAMES, MAX_H264_OR_5_NAL_SIZE);
+    return SlicedVideoFrameQueue::createNew(wFId, rFId, H265, DEFAULT_VIDEO_FRAMES, MAX_H264_OR_5_NAL_SIZE);
 }
 
 bool VideoEncoderX265::reconfigure(VideoFrame* orgFrame, VideoFrame* dstFrame)

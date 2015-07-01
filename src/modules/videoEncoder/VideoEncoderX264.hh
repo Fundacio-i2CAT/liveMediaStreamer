@@ -44,7 +44,7 @@ public:
     ~VideoEncoderX264();
 
 private:
-    FrameQueue* allocQueue(int wId);
+    FrameQueue* allocQueue(int wFId, int rFId, int wId);
     void initializeEventMap();
 
     x264_picture_t picIn;

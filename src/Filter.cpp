@@ -593,22 +593,26 @@ bool OneToManyFilter::runDoProcessFrame(std::chrono::microseconds outTimestamp)
     return true;
 }
 
-HeadFilter::HeadFilter(FilterRole fRole_) :
-BaseFilter(0, 1, fRole_, false)
+HeadFilter::HeadFilter(FilterRole fRole_, unsigned writersNum) :
+BaseFilter(0, writersNum, fRole_, false)
 {
     
 }
 
 bool HeadFilter::runDoProcessFrame(std::chrono::microseconds outTimestamp)
 {
-    if (!doProcessFrame(dFrames.begin()->second)) {
+    if (!doProcessFrame(dFrames)) {
         return false;
     }
 
-    seqNums[dFrames.begin()->first]++;
-    dFrames.begin()->second->setSequenceNumber(seqNums[dFrames.begin()->first]);
-    addFrames();
-    return true;
+   for (auto it : dFrames) {
+       it.second->setPresentationTime(outTimestamp);
+       // it.second->setDuration(duration); //TODO: set duration
+       it.second->setSequenceNumber(seqNums[it.first]++);
+   }
+
+   addFrames();
+   return true;
 }
 
 void HeadFilter::pushEvent(Event e)

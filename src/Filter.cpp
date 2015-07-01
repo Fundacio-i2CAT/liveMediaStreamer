@@ -430,7 +430,8 @@ bool BaseFilter::demandOriginFrames(std::chrono::microseconds &outTimestamp)
     bool success;
 
     if (readers.empty()) {
-        return false;
+        //NOTE: head filter's case
+        return true;
     }
 
     if (frameTime.count() <= 0) {
@@ -474,7 +475,6 @@ bool BaseFilter::demandOriginFramesBestEffort(std::chrono::microseconds &outTime
     }
 
     outTimestamp = outTs;
-    std::cout << (outTs - syncTs).count() << std::endl;
     syncTs = outTs;
     return true;
 }
@@ -596,16 +596,14 @@ BaseFilter(0, 1, fRole_, false)
 
 bool HeadFilter::runDoProcessFrame(std::chrono::microseconds outTimestamp)
 {
-    if (doProcessFrame(dFrames.begin()->second)) {
-        // dFrames.begin()->second->setPresentationTime(timestamp);
-        // dFrames.begin()->second->setDuration(duration);
-        seqNums[dFrames.begin()->first]++;
-        dFrames.begin()->second->setSequenceNumber(seqNums[dFrames.begin()->first]);
-        addFrames();
-        return true;
+    if (!doProcessFrame(dFrames.begin()->second)) {
+        return false;
     }
 
-    return false;
+    seqNums[dFrames.begin()->first]++;
+    dFrames.begin()->second->setSequenceNumber(seqNums[dFrames.begin()->first]);
+    addFrames();
+    return true;
 }
 
 void HeadFilter::pushEvent(Event e)

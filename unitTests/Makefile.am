@@ -1,6 +1,6 @@
 AUTOMAKE_OPTIONS = foreign
 
-bin_PROGRAMS = connectionTest sinkManagerTest filterTest workerTest dasherTest dashAudioSegmenterTest dashVideoSegmenterTest mpdManagerTest encodingDecodingTest sharedMemoryTest slicedVideoFrameQueueTest audioCircularBufferTest videoMixerTest
+bin_PROGRAMS = connectionTest sinkManagerTest filterTest workerTest dasherTest dashAudioSegmenterTest dashVideoSegmenterTest mpdManagerTest encodingDecodingTest sharedMemoryTest slicedVideoFrameQueueTest audioCircularBufferTest videoMixerTest videoMixerFunctionalTest
 
 videoMixerTest_SOURCES = modules/videoMixer/VideoMixerTest.cpp ../src/modules/videoMixer/VideoMixer.cpp ../src/AVFramedQueue.cpp ../src/IOInterface.cpp ../src/Event.cpp ../src/Frame.cpp ../src/VideoFrame.cpp ../src/AudioFrame.cpp ../src/Jzon.cpp ../src/Utils.cpp ../src/Filter.cpp
 videoMixerTest_CPPFLAGS = -g -Wall -D__STDC_CONSTANT_MACROS -I../src/
@@ -16,6 +16,11 @@ slicedVideoFrameQueueTest_SOURCES = SlicedVideoFrameQueueTest.cpp ../src/SlicedV
 slicedVideoFrameQueueTest_CPPFLAGS = -g -Wall -D__STDC_CONSTANT_MACROS -I../src/
 slicedVideoFrameQueueTest_CXXFLAGS = -std=c++11
 slicedVideoFrameQueueTest_LDFLAGS = -L../src -lcppunit -lavutil -lavcodec -lavformat -lswresample -lfdk-aac
+
+videoMixerFunctionalTest_SOURCES = VideoMixerFunctionalTest.cpp ../src/modules/videoMixer/VideoMixer.cpp ../src/AVFramedQueue.cpp ../src/IOInterface.cpp ../src/Event.cpp ../src/Frame.cpp ../src/VideoFrame.cpp ../src/Jzon.cpp ../src/Utils.cpp ../src/Filter.cpp ../src/AudioFrame.cpp ../src/SlicedVideoFrameQueue.cpp
+videoMixerFunctionalTest_CPPFLAGS = -g -Wall -D__STDC_CONSTANT_MACROS -I../src/
+videoMixerFunctionalTest_CXXFLAGS = -std=c++11
+videoMixerFunctionalTest_LDFLAGS = -L../src -lcppunit -lavutil -lavcodec -lavformat -lswresample -lfdk-aac
 
 encodingDecodingTest_SOURCES = EncodingDecodingTest.cpp ../src/modules/videoEncoder/VideoEncoderX264or5.cpp ../src/modules/videoEncoder/VideoEncoderX264.cpp ../src/modules/videoEncoder/VideoEncoderX265.cpp ../src/modules/videoDecoder/VideoDecoderLibav.cpp ../src/AVFramedQueue.cpp ../src/IOInterface.cpp ../src/Event.cpp ../src/Frame.cpp ../src/VideoFrame.cpp ../src/Jzon.cpp ../src/Utils.cpp ../src/Filter.cpp ../src/AudioFrame.cpp ../src/SlicedVideoFrameQueue.cpp
 encodingDecodingTest_CPPFLAGS = -g -Wall -D__STDC_CONSTANT_MACROS -I../src/

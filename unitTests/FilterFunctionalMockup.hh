@@ -71,23 +71,26 @@ public:
         return true;
     };
     
-    void disconnectFilter(){
+    void disconnectFilter()
+    {
         headF->disconnectAll();
         filterToTest->disconnectAll();
         tailF->disconnectAll();
     }
     
-    std::chrono::nanoseconds processFrame(InterleavedVideoFrame* srcFrame){
-        std::chrono::nanoseconds ret;
+    std::chrono::microseconds processFrame(InterleavedVideoFrame* srcFrame)
+    {
+        std::chrono::microseconds ret;
         
         if (! headF->inject(srcFrame)){
-            return std::chrono::nanoseconds(0);
+            return std::chrono::microseconds(0);
         }
         headF->processFrame();
         return filterToTest->processFrame();
     }
     
-    InterleavedVideoFrame *extractFrame(){
+    InterleavedVideoFrame *extractFrame()
+    {
         tailF->processFrame();
         return tailF->extract();
     }
@@ -96,6 +99,90 @@ private:
     VideoHeadFilterMockup *headF;
     VideoTailFilterMockup *tailF;
     OneToOneFilter *filterToTest;
+};
+
+class ManyToOneVideoScenarioMockup {
+
+public: 
+    ManyToOneVideoScenarioMockup(ManyToOneFilter* fToTest): filterToTest(fToTest) 
+    {
+        tailF = new VideoTailFilterMockup();
+    };
+    
+    ~ManyToOneVideoScenarioMockup()
+    {
+        disconnectFilters();
+
+        for (auto f : headFilters) {
+            delete f.second;
+        }
+
+        delete tailF;
+    }
+
+    bool addHeadFilter(int id, VCodecType c, PixType pix = P_NONE) 
+    {
+        if (headFilters.count(id) > 0) {
+            return false;
+        }
+
+        headFilters[id] = new VideoHeadFilterMockup(c, pix);
+        return true;
+    }
+    
+    bool connectFilters() 
+    {
+        if (filterToTest == NULL || headFilters.empty()) {
+            return false;
+        }
+
+        for (auto f : headFilters) {
+            if (!f.second->connectOneToMany(filterToTest, f.first)) {
+                return false;
+            }
+        }
+        
+        if (!filterToTest->connectOneToOne(tailF)) {
+            return false;
+        }
+        
+        return true;
+    };
+    
+    void disconnectFilters() 
+    {
+        for (auto f : headFilters) {
+            f.second->disconnectAll();
+        }
+
+        filterToTest->disconnectAll();
+        tailF->disconnectAll();
+    }
+    
+    std::chrono::microseconds processFrame(InterleavedVideoFrame* srcFrame)
+    {
+        std::chrono::microseconds ret;
+
+        for (auto f : headFilters) {
+            if (!f.second->inject(srcFrame)) {
+                return std::chrono::microseconds(0);
+            }
+            f.second->processFrame();
+        }   
+        
+        return filterToTest->processFrame();
+    }
+    
+    InterleavedVideoFrame *extractFrame()
+    {
+        tailF->processFrame();
+        return tailF->extract();
+    }
+    
+private:
+    std::map<int,VideoHeadFilterMockup*> headFilters;
+    ManyToOneFilter *filterToTest;
+    VideoTailFilterMockup *tailF;
 };
 
 class InterleavedFramesWriter {

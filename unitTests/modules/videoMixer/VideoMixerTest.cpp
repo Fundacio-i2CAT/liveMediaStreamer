@@ -120,6 +120,7 @@ void VideoMixerTest::channelConfigTest()
     CPPUNIT_ASSERT(!r);
 
     CPPUNIT_ASSERT(mixer->configChannel(id, 1, 1, 0, 0, 1, true, 1));
+    
     CPPUNIT_ASSERT(!mixer->configChannel(id, 1, 1, -1, 0, 1, true, 1));
     CPPUNIT_ASSERT(!mixer->configChannel(id, 1, 1, 0, -1, 1, true, 1));
     CPPUNIT_ASSERT(!mixer->configChannel(id, 1, -1, 0, 0, 1, true, 1));

@@ -105,6 +105,10 @@ class VideoMixer : public ManyToOneFilter {
         * @param opacity See ChannelConfig::config
         */
         bool configChannel(int id, float width, float height, float x, float y, int layer, bool enabled, float opacity);
+
+        /**
+        * @return Mixing max channels
+        */
         int getMaxChannels() {return maxChannels;};
 
     protected:

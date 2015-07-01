@@ -236,6 +236,10 @@ public:
     AVFramesReader(): fmtCtx(NULL), frame(NULL){
         av_register_all();
     };
+
+    ~AVFramesReader() {
+        close();
+    };
     
     bool openFile(std::string file, VCodecType c, PixType pix = P_NONE, 
                   unsigned int width = 0, unsigned int height = 0){

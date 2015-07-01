@@ -116,6 +116,7 @@ int main(int argc, char* argv[])
     outputter->write();
 
     utils::printMood(runner.result().wasSuccessful());
+    delete outputter;
 
     return runner.result().wasSuccessful() ? 0 : 1;
 }

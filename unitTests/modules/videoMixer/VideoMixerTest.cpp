@@ -135,7 +135,8 @@ void VideoMixerTest::channelConfigTest()
 
     CPPUNIT_ASSERT(!mixer->configChannel(id, 1, 1, 0, 0, -1, true, 1));
     CPPUNIT_ASSERT(!mixer->configChannel(id, 1, 1, 0, 0, mixer->getMaxChannels()+1, true, 1));
-    
+
+    delete mixer;
 }
 
 CPPUNIT_TEST_SUITE_REGISTRATION(VideoMixerTest);
@@ -151,6 +152,7 @@ int main(int argc, char* argv[])
     outputter->write();
 
     utils::printMood(runner.result().wasSuccessful());
+    delete outputter;
 
     return runner.result().wasSuccessful() ? 0 : 1;
 }

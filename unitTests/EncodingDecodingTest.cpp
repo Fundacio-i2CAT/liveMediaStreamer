@@ -157,7 +157,6 @@ void VideoEncoderDecoderFunctionalTest::test500()
                     && filteredFrame->getHeight() == midFrame->getHeight());
                 CPPUNIT_ASSERT(writer->writeInterleavedFrame(filteredFrame));
                 milestone = true;
-                std::cout << "WRITING" << std::endl;
             }
         }
     }  

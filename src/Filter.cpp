@@ -606,8 +606,6 @@ bool HeadFilter::runDoProcessFrame(std::chrono::microseconds outTimestamp)
     }
 
    for (auto it : dFrames) {
-       it.second->setPresentationTime(outTimestamp);
-       // it.second->setDuration(duration); //TODO: set duration
        it.second->setSequenceNumber(seqNums[it.first]++);
    }
 

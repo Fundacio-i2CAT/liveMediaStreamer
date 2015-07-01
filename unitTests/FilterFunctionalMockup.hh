@@ -308,6 +308,7 @@ public:
         if (av_read_frame(fmtCtx, &pkt) >= 0){
             memmove(frame->getDataBuf(), pkt.data, sizeof(unsigned char)*pkt.size);
             frame->setLength(pkt.size);
+            frame->setPresentationTime(std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now().time_since_epoch()));
             return frame;
         } 
         

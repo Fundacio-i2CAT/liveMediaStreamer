@@ -52,7 +52,6 @@ protected:
     ManyToOneVideoScenarioMockup *mixScenario;
     VideoMixer* mixer;
     AVFramesReader* reader;
-    InterleavedFramesWriter* writer;
 };
 
 void VideoMixerFunctionalTest::setUp()
@@ -60,15 +59,14 @@ void VideoMixerFunctionalTest::setUp()
     mixer = VideoMixer::createNew(mixWidth, mixHeight);
     mixScenario = new ManyToOneVideoScenarioMockup(mixer);
     reader = new AVFramesReader();
-    writer = new InterleavedFramesWriter();
 
     CPPUNIT_ASSERT(mixScenario->addHeadFilter(1, RAW, RGB24)); 
     CPPUNIT_ASSERT(mixScenario->addHeadFilter(2, RAW, RGB24)); 
     CPPUNIT_ASSERT(mixScenario->addHeadFilter(3, RAW, RGB24));
     CPPUNIT_ASSERT(mixScenario->connectFilters());
     CPPUNIT_ASSERT(mixer->configChannel(1, 0.5, 0.5, 0, 0, 1, true, 1));
-    CPPUNIT_ASSERT(mixer->configChannel(2, 0.5, 0.5, 0.5, 0, 1, true, 1));
-    CPPUNIT_ASSERT(mixer->configChannel(3, 0.5, 0.5, 0, 0.5, 1, true, 1));
+    CPPUNIT_ASSERT(mixer->configChannel(2, 0.5, 0.5, 0.3, 0.1, 1, true, 1));
+    CPPUNIT_ASSERT(mixer->configChannel(3, 0.5, 0.5, 0.4, 0.4, 1, true, 1));
 }
 
 void VideoMixerFunctionalTest::tearDown()

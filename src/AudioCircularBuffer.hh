@@ -77,7 +77,6 @@ private:
     PlanarAudioFrame* outputFrame;
     PlanarAudioFrame* dummyFrame;
 
-    std::atomic<unsigned> syncTimestampAtomicValue;
     std::chrono::microseconds syncTimestamp;
     bool synchronized;
     bool setupSuccess;

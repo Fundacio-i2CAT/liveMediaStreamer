@@ -85,6 +85,7 @@ void QueueSink::afterGettingFrame(unsigned frameSize, struct timeval presentatio
         frame->newOriginTime();
         frame->setPresentationTime(ts);
         frame->setSequenceNumber(++seqNum);
+        frame->setConsumed(true);
         fWriter->addFrame();
     }
 

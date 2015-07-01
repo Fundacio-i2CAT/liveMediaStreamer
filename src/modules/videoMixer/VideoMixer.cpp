@@ -134,6 +134,7 @@ bool VideoMixer::doProcessFrame(std::map<int, Frame*> orgFrames, Frame *dst)
         }
     }
 
+    dst->setConsumed(true);
     return true;
 }
 

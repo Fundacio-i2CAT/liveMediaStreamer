@@ -74,6 +74,7 @@ bool AudioMixer::doProcessFrame(std::map<int, Frame*> orgFrames, Frame *dst)
 
     mixNonEmptyFrames(orgFrames, filledFramesIds, dst);
 
+    dst->setConsumed(true);
     return true;
 }
 

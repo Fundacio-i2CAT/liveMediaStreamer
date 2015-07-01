@@ -102,7 +102,7 @@ bool AVFramedQueue::frameToRead()
 //VIDEO FRAME QUEUE METHODS IMPLEMENTATION//
 ////////////////////////////////////////////
 
-VideoFrameQueue* VideoFrameQueue::createNew(VCodecType codec, unsigned maxFrames, PixType pixelFormat)
+VideoFrameQueue* VideoFrameQueue::createNew(VCodecType codec, unsigned maxFrames, PixType pixelFormat, const uint8_t *extradata, int extradata_size)
 {
     VideoFrameQueue* q = new VideoFrameQueue(codec, maxFrames, pixelFormat);
 
@@ -111,6 +111,9 @@ VideoFrameQueue* VideoFrameQueue::createNew(VCodecType codec, unsigned maxFrames
         delete q;
         return NULL;
     }
+
+    q->extradata = extradata;
+    q->extradata_size = extradata_size;
 
     return q;
 }
@@ -160,7 +163,7 @@ bool VideoFrameQueue::setup()
 
 unsigned getMaxSamples(unsigned sampleRate);
 
-AudioFrameQueue* AudioFrameQueue::createNew(ACodecType codec, unsigned maxFrames, unsigned sampleRate, unsigned channels, SampleFmt sFmt)
+AudioFrameQueue* AudioFrameQueue::createNew(ACodecType codec, unsigned maxFrames, unsigned sampleRate, unsigned channels, SampleFmt sFmt, const uint8_t *extradata, int extradata_size)
 {
     AudioFrameQueue* q = new AudioFrameQueue(codec, maxFrames, sFmt, sampleRate, channels);
 
@@ -169,6 +172,9 @@ AudioFrameQueue* AudioFrameQueue::createNew(ACodecType codec, unsigned maxFrames
         delete q;
         return NULL;
     }
+
+    q->extradata = extradata;
+    q->extradata_size = extradata_size;
 
     return q;
 }

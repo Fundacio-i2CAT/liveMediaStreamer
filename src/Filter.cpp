@@ -122,7 +122,9 @@ bool BaseFilter::demandDestinationFrames()
             continue;
         }
 
-        dFrames[it.first] = it.second->getFrame(true);
+        Frame *f = it.second->getFrame(true);
+        f->setConsumed(false);
+        dFrames[it.first] = f;
         newFrame = true;
     }
 
@@ -131,9 +133,12 @@ bool BaseFilter::demandDestinationFrames()
 
 void BaseFilter::addFrames()
 {
-    for (auto it : writers){
-        if (it.second->isConnected()){
-            it.second->addFrame();
+    for (auto it : dFrames){
+        if (it.second->getConsumed()) {
+            int wId = it.first;
+            if (writers[wId]->isConnected()){
+                writers[wId]->addFrame();
+            }
         }
     }
 }

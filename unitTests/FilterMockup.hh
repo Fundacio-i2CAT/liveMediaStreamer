@@ -118,7 +118,6 @@ protected:
     FrameQueue *allocQueue(int wId) {return new AVFramedQueueMock(4);};
     size_t masterProcessFrame() {return 20;};
     size_t slaveProcessFrame() {return 20;};
-    bool demandOriginFrames() {return true;};
     void doGetState(Jzon::Object &filterNode) {};
     void stop() {};
 
@@ -148,6 +147,7 @@ protected:
         realProcessTime = distribution(generator);
         utils::debugMsg("Process time " + std::to_string(realProcessTime));
         std::this_thread::sleep_for(std::chrono::microseconds(realProcessTime));
+        dst->setConsumed(gotFrame);
         return gotFrame;
     }
     void doGetState(Jzon::Object &filterNode) {};
@@ -182,6 +182,9 @@ protected:
         realProcessTime = distribution(generator);
         utils::debugMsg("Process time " + std::to_string(realProcessTime));
         std::this_thread::sleep_for(std::chrono::microseconds(realProcessTime));
+        for (auto dst : dstFrames) {
+            dst.second->setConsumed(gotFrame);
+        }
         return gotFrame;
     }
     void doGetState(Jzon::Object &filterNode) {};
@@ -277,7 +280,9 @@ public:
     void doGetState(Jzon::Object &filterNode){};
     
 protected:
-    bool doProcessFrame(Frame *dst) {
+    bool doProcessFrame(std::map<int, Frame*> dstFrames) {
+        // There is only one frame in the map
+        Frame *dst = dstFrames.begin()->second;
         InterleavedVideoFrame *dstFrame;
         
         if ((dstFrame = dynamic_cast<InterleavedVideoFrame*>(dst)) != NULL){
@@ -288,7 +293,7 @@ protected:
             dstFrame->setPresentationTime(std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now().time_since_epoch()));
             dstFrame->setOriginTime(srcFrame->getOriginTime());
             dstFrame->setPixelFormat(srcFrame->getPixelFormat());
-            
+            dstFrame->setConsumed(true);
             return true;
         }
         
@@ -320,12 +325,17 @@ public:
         }
     }
     
+    ~VideoTailFilterMockup() {
+        if (oFrame) {
+            delete oFrame;
+        }
+    }
     void doGetState(Jzon::Object &filterNode){};
     
 protected:
     bool doProcessFrame(std::map<int, Frame*> orgFrames) {
         InterleavedVideoFrame *orgFrame;
-        
+ 
         if ((orgFrame = dynamic_cast<InterleavedVideoFrame*>(orgFrames.begin()->second)) != NULL){
             if (!oFrame){
                 oFrame = InterleavedVideoFrame::createNew(orgFrame->getCodec(), 
@@ -352,6 +362,66 @@ protected:
 
 private:
     InterleavedVideoFrame* oFrame;
+    bool newFrame;
+};
+
+class AudioTailFilterMockup : public TailFilter
+{
+public:
+    AudioTailFilterMockup(): TailFilter(), oFrame(NULL), newFrame(false){};
+
+    PlanarAudioFrame* extract(){
+        if (newFrame){
+            newFrame = false;
+            return oFrame;
+        } else {
+            return NULL;
+        }
+    }
+
+    ~AudioTailFilterMockup() {
+        if (oFrame) {
+            delete oFrame;
+        }
+    }
+
+    void doGetState(Jzon::Object &filterNode){};
+
+protected:
+    bool doProcessFrame(std::map<int, Frame*> orgFrames) {
+        PlanarAudioFrame *orgFrame;
+
+        if ((orgFrame = dynamic_cast<PlanarAudioFrame*>(orgFrames.begin()->second)) != NULL){
+            if (!oFrame){
+                oFrame = PlanarAudioFrame::createNew(
+                        orgFrame->getChannels(),
+                        orgFrame->getSampleRate(),
+                        orgFrame->getMaxSamples(),
+                        orgFrame->getCodec(),
+                        orgFrame->getSampleFmt());
+            }
+
+            unsigned char **orgData = orgFrame->getPlanarDataBuf();
+            unsigned char **oData = oFrame->getPlanarDataBuf();
+            for (int i=0; i<orgFrame->getChannels(); i++) {
+                memmove(oData[i], orgData[i], sizeof(unsigned char)*orgFrame->getLength());
+            }
+
+            oFrame->setPresentationTime(orgFrame->getPresentationTime());
+            oFrame->setOriginTime(orgFrame->getOriginTime());
+            oFrame->setSequenceNumber(orgFrame->getSequenceNumber());
+
+            newFrame = true;
+
+            return true;
+        }
+
+        return false;
+    }
+
+
+private:
+    PlanarAudioFrame* oFrame;
     bool newFrame;
 };
 

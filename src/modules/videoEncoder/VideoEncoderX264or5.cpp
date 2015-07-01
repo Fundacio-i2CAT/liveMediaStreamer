@@ -71,6 +71,8 @@ bool VideoEncoderX264or5::doProcessFrame(Frame *org, Frame *dst)
     }
 
     codedFrame->setSize(rawFrame->getWidth(), rawFrame->getHeight());
+
+    dst->setConsumed(true);
     return true;
 }
 
@@ -107,10 +109,8 @@ bool VideoEncoderX264or5::configure(int bitrate_, int fps_, int gop_, int lookah
 
     if (fps_ <= 0) {
         fps = VIDEO_DEFAULT_FRAMERATE;
-        // setFrameTime(std::chrono::nanoseconds(0));
     } else {
         fps = fps_;
-        // setFrameTime(std::chrono::nanoseconds(std::nano::den/fps));
     }
 
     needsConfig = true;

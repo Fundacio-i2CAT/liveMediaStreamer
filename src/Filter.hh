@@ -212,7 +212,6 @@ protected:
     std::map<int, Frame*> oFrames;
     std::map<int, Frame*> dFrames;
     std::map<int, size_t> seqNums;
-    std::map<int, bool> rUpdates;
     FilterType fType;
 
     unsigned maxReaders;
@@ -235,6 +234,7 @@ private:
     std::mutex eventQueueMutex;
     int workerId;
     bool enabled;
+    std::map<int, bool> rUpdates;
     FilterRole const fRole;
     bool sharedFrames;
     std::chrono::microseconds syncTs;

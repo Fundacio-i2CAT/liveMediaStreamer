@@ -36,7 +36,7 @@
 class AudioFrame : public Frame {
     
     public:
-        AudioFrame(int ch, int sRate, int maxSamples, ACodecType codec);
+        AudioFrame(int ch, int sRate, int maxSmpls, ACodecType codec, SampleFmt sFmt);
         AudioFrame() {};
 
         void setChannelNumber(int ch) {channels = ch;};

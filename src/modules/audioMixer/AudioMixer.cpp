@@ -34,7 +34,7 @@ AudioMixer::AudioMixer(FilterRole role, bool sharedFrames, int inputChannels) : 
 {
     frameChannels = DEFAULT_CHANNELS;
     sampleRate = DEFAULT_SAMPLE_RATE;
-    sampleFormat = S16P;
+    sampleFormat = FLTP;
     maxChannels = inputChannels;
     fType = AUDIO_MIXER;
 

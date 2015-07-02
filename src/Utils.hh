@@ -50,6 +50,7 @@ namespace utils
     std::string getTxFormatAsString(TxFormat format);
     std::string randomIdGenerator(unsigned int length);
     int getPayloadFromCodec(std::string codec);
+    int getBytesPerSampleFromFormat(SampleFmt fmt);
 
 
     void errorMsg(std::string msg);

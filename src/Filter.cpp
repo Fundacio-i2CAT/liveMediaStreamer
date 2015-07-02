@@ -434,9 +434,12 @@ bool BaseFilter::demandOriginFrames(std::chrono::microseconds &outTimestamp)
 {
     bool success;
 
-    if (readers.empty()) {
-        //NOTE: head filter's case
+    if (maxReaders == 0) {
         return true;
+    }
+
+    if (readers.empty()) {
+        return false;
     }
 
     if (frameTime.count() <= 0) {

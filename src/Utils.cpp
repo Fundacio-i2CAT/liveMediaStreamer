@@ -362,8 +362,33 @@ namespace utils
         }
 
         return stringFormat;
-
     }
+
+    int getBytesPerSampleFromFormat(SampleFmt fmt)
+    {
+        int bytesPerSample;
+
+        switch(fmt) {
+            case U8:
+            case U8P:
+                bytesPerSample = 1;
+                break;
+            case S16:
+            case S16P:
+                bytesPerSample = 2;
+                break;
+            case FLT:
+            case FLTP:
+                bytesPerSample = 4;
+                break;
+            default:
+                bytesPerSample = 0;
+                break;
+        }
+
+        return bytesPerSample;
+    }
+
 
     std::string getWorkerTypeAsString(WorkerType type)
     {

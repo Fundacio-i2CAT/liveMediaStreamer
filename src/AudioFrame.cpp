@@ -24,6 +24,7 @@
 #include <iostream>
 #include <assert.h>
 #include <string.h>
+#include "Utils.hh"
 
 int AudioFrame::getMaxSamples(int sampleRate)
 {
@@ -36,13 +37,10 @@ int AudioFrame::getDefaultSamples(int sampleRate)
 }
 
 
-AudioFrame::AudioFrame(int ch, int sRate, int maxSamples, ACodecType codec)
+AudioFrame::AudioFrame(int ch, int sRate, int maxSmpls, ACodecType codec, SampleFmt sFmt) : 
+Frame(), channels(ch), sampleRate(sRate), samples(0), maxSamples(maxSmpls), fCodec(codec), sampleFmt(sFmt)
 {
-    channels = ch;
-    sampleRate = sRate;
-    fCodec = codec;
-    samples = 0;
-    this->maxSamples = maxSamples; 
+    bytesPerSample = utils::getBytesPerSampleFromFormat(sFmt);
 }
 
 std::chrono::nanoseconds AudioFrame::getDuration() const
@@ -58,32 +56,18 @@ std::chrono::nanoseconds AudioFrame::getDuration() const
 
 InterleavedAudioFrame* InterleavedAudioFrame::createNew(int ch, int sRate, int maxSamples, ACodecType codec, SampleFmt sFmt)
 {
+    if (sFmt != U8 && sFmt != S16 && sFmt != FLT) {
+        utils::errorMsg("[InterleavedAudioFrame] Sample format not supported");
+        return NULL;
+    }
+
     return new InterleavedAudioFrame(ch, sRate, maxSamples, codec, sFmt);
 }
 
 InterleavedAudioFrame::InterleavedAudioFrame(int ch, int sRate, int maxSamples, ACodecType codec, SampleFmt sFmt)
-: AudioFrame(ch, sRate, maxSamples, codec)
+: AudioFrame(ch, sRate, maxSamples, codec, sFmt)
 {
-    sampleFmt = sFmt;
-
-    switch(sampleFmt) {
-        case U8:
-            bytesPerSample = 1;
-            break;
-        case S16:
-            bytesPerSample = 2;
-            break;
-        case FLT:
-            bytesPerSample = 4;
-            break;
-        default:
-            //TODO: error
-            bytesPerSample = 0;
-        break;
-    }
-
     bufferMaxLen = bytesPerSample * maxSamples * MAX_CHANNELS;
-
     frameBuff = new unsigned char [bufferMaxLen]();
 }
 
@@ -94,7 +78,7 @@ InterleavedAudioFrame::~InterleavedAudioFrame()
 
 void InterleavedAudioFrame::fillWithValue(int value)
 {
-
+    memset(frameBuff, value, bufferMaxLen*channels);
 }    
 
 
@@ -105,30 +89,17 @@ void InterleavedAudioFrame::fillWithValue(int value)
 
 PlanarAudioFrame* PlanarAudioFrame::createNew(int ch, int sRate, int maxSamples, ACodecType codec, SampleFmt sFmt)
 {
+     if (sFmt != U8P && sFmt != S16P && sFmt != FLTP) {
+        utils::errorMsg("[PlanarAudioFrame] Sample format not supported");
+        return NULL;
+    }
+
     return new PlanarAudioFrame(ch, sRate, maxSamples, codec, sFmt);
 }
 
 PlanarAudioFrame::PlanarAudioFrame(int ch, int sRate, int maxSamples, ACodecType codec, SampleFmt sFmt)
-: AudioFrame(ch, sRate, maxSamples, codec)
+: AudioFrame(ch, sRate, maxSamples, codec, sFmt)
 {
-    sampleFmt = sFmt;
-
-    switch(sampleFmt){
-        case U8P:
-            bytesPerSample = 1;
-            break;
-        case S16P:
-            bytesPerSample = 2;
-            break;
-        case FLTP:
-            bytesPerSample = 4;
-            break;
-        default:
-            //TODO: error
-            bytesPerSample = 0;
-        break;
-    }
-
     bufferMaxLen = bytesPerSample * maxSamples;
 
     for (int i=0; i<MAX_CHANNELS; i++) {
@@ -146,23 +117,32 @@ PlanarAudioFrame::~PlanarAudioFrame()
 
 int PlanarAudioFrame::getChannelFloatSamples(std::vector<float> &samplesVec, int channel) 
 {
-    assert (sampleFmt == S16P);
+    short value = 0;
+    float fValue = 0;
+
+    if (sampleFmt != S16P && sampleFmt != FLTP) {
+        utils::errorMsg("[PlanarAudioFrame] Only S16P and FLTP formats are supported when converting to float values");
+        return 0;
+    }
 
     if ((int)samplesVec.size() != samples) {
         samplesVec.resize(samples);
     }
 
-    short value = 0;
-    float fValue = 0;
-    int samplesIndex = 0;
-
     unsigned char* b = frameBuff[channel];
 
-    for (int i=0; i < samples*bytesPerSample; i+=bytesPerSample) {
-        value = (short)(b[i] | b[i+1] << 8);
-        fValue = value / 32768.0f;
-        samplesVec[samplesIndex] = fValue;
-        samplesIndex++;
+    if (sampleFmt == FLTP) {
+        for (int i = 0; i < samples; i++) {
+            fValue = *(float*)(b+i*bytesPerSample);
+            samplesVec[i] = fValue;
+        }
+
+    } else if (sampleFmt == S16P) {
+        for (int i=0; i < samples; i++) {
+            value = (short)(b[i*bytesPerSample] | b[i*bytesPerSample + 1] << 8);
+            fValue = value / 32768.0f;
+            samplesVec[i] = fValue;
+        }
     }
 
     return samples;
@@ -170,18 +150,25 @@ int PlanarAudioFrame::getChannelFloatSamples(std::vector<float> &samplesVec, int
 
 void PlanarAudioFrame::fillBufferWithFloatSamples(std::vector<float> samplesVec, int channel)
 {
-    assert (sampleFmt == S16P);
-
     short value = 0;
-    int samplesIndex = 0;
-
     unsigned char* b = frameBuff[channel];
 
-    for (int i=0; i<samples*bytesPerSample; i+=bytesPerSample) {
-        value = samplesVec[samplesIndex] * 32768.0;
-        b[i] = value & 0xFF; 
-        b[i+1] = (value >> 8) & 0xFF;
-        samplesIndex++;
+    if (sampleFmt != S16P && sampleFmt != FLTP) {
+        utils::errorMsg("[PlanarAudioFrame] Only S16P and FLTP formats are supported when converting from float values");
+        return;
+    }
+
+    if (sampleFmt == FLTP) {
+        for (int i = 0; i < samples; i++) {
+            memcpy(b + i*bytesPerSample, &samplesVec[i], bytesPerSample);
+        }
+
+    } else if (sampleFmt == S16P) {
+        for (int i = 0; i < samples; i++) {
+            value = samplesVec[i] * 32768.0;
+            b[i*bytesPerSample] = value & 0xFF; 
+            b[i*bytesPerSample+1] = (value >> 8) & 0xFF;
+        }
     }
 }
 

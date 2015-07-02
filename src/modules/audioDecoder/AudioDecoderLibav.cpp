@@ -67,7 +67,7 @@ AudioDecoderLibav::AudioDecoderLibav(FilterRole fRole_, bool sharedFrames)
 
     initializeEventMap();
 
-    configure(S16P, DEFAULT_CHANNELS, DEFAULT_SAMPLE_RATE);
+    configure(FLTP, DEFAULT_CHANNELS, DEFAULT_SAMPLE_RATE);
 }
 
 AudioDecoderLibav::~AudioDecoderLibav()

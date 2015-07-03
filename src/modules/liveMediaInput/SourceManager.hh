@@ -115,7 +115,7 @@ private:
 
     friend bool Session::initiateSession();
     friend bool StreamClientState::addWriterToMngr(unsigned port, Writer* writer);
-    bool addWriter(unsigned port, const Writer *writer);
+    bool addWriter(unsigned port, Writer *writer);
 
     bool doProcessFrame();
     void addConnection(int wId, MediaSubsession* subsession);

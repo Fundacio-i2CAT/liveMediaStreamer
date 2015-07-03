@@ -208,7 +208,7 @@ protected:
     bool process;
 
     std::map<int, Reader*> readers;
-    std::map<int, const Writer*> writers;
+    std::map<int, Writer*> writers;
     std::map<int, Frame*> oFrames;
     std::map<int, Frame*> dFrames;
     std::map<int, size_t> seqNums;
@@ -227,6 +227,8 @@ protected:
     unsigned maxReaders;
     unsigned maxWriters;
     std::chrono::nanoseconds frameTime;
+    
+    std::mutex readersWritersLck;
 
 private:   
     bool connect(BaseFilter *R, int writerID, int readerID);
@@ -241,7 +243,7 @@ private:
 private:
     std::priority_queue<Event> eventQueue;
     std::mutex eventQueueMutex;
-    std::mutex readersWritersLck;
+    
     bool enabled;
     std::map<int, bool> rUpdates;
     FilterRole const fRole;

@@ -453,7 +453,7 @@ std::vector<int> BaseFilter::processFrame(int& ret)
             enabledJobs = slaveProcessFrame(ret);
             break;
 		case NETWORK:
-            runDoProcessFrame();
+            enabledJobs = runDoProcessFrame();
             ret = 0;
         default:
             ret = 0;
@@ -738,7 +738,29 @@ BaseFilter(readersNum, writersNum, 0, NETWORK, false, periodic)
 
 std::vector<int> LiveMediaFilter::runDoProcessFrame(){
     std::vector<int> enabledJobs;
-    doProcessFrame();
+    //bool run = false;
+    std::map<int, Frame*> frames;
+    {
+        std::lock_guard<std::mutex> guard(readersWritersLck);
+        for (auto it : writers){
+            if (it.second->isConnected()){
+                frames[it.first] = it.second->getFrame(true);
+                frames[it.first]->setConsumed(false);
+                //run = true;
+            }
+        }
+    }
+    //if (run){
+        if (doProcessFrame()){
+    
+            std::lock_guard<std::mutex> guard(readersWritersLck);
+            for (auto it : frames){
+                if (it.second->getConsumed()){
+                    enabledJobs.push_back(writers[it.first]->getId());
+                }
+            }
+        }
+    //}
     return enabledJobs;
 }
 

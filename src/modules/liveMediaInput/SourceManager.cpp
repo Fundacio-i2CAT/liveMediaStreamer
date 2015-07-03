@@ -109,8 +109,9 @@ Session* SourceManager::getSession(std::string id)
     return sessionMap[id];
 }
 
-bool SourceManager::addWriter(unsigned port, const Writer *writer)
+bool SourceManager::addWriter(unsigned port, Writer *writer)
 {
+    std::lock_guard<std::mutex> guard(readersWritersLck);
     if(writers.count(port) > 0){
         utils::warningMsg("writer id must be unique!");
         return false;

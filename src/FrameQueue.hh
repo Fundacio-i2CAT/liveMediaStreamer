@@ -118,6 +118,11 @@ public:
     * @param boolean to set connected to true or false
     */
     void setConnected(bool conn) {connected = conn;};
+    
+    //TODO: delete
+    int getId(){
+        return rFilterId;
+    }
 
 protected:
     QueueState state;

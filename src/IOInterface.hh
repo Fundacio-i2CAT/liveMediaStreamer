@@ -95,6 +95,14 @@ public:
     * @return true if successful disconnecting, otherwise returns false
     */
     bool disconnect() const;
+    
+    //TODO: delete it
+    int getId(){
+        if (!queue){
+            return -1;
+        }
+        return queue->getId();
+    }
 
 protected:
     mutable FrameQueue *queue;

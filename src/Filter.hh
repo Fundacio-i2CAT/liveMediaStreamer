@@ -177,10 +177,10 @@ public:
 
 protected:
     //TODO: all these methods should be described also
-    BaseFilter(unsigned readersNum = MAX_READERS, unsigned writersNum = MAX_WRITERS, size_t fTime = 0, FilterRole fRole_ = MASTER, bool force_ = false, bool periodic = true);
+    BaseFilter(unsigned readersNum = MAX_READERS, unsigned writersNum = MAX_WRITERS, size_t fTime = 0, FilterRole fRole_ = MASTER, bool force_ = false, bool periodic = false);
 
-    void addFrames();
-    void removeFrames();
+    std::vector<int> addFrames();
+    std::vector<int> removeFrames();
     bool hasFrames();
     virtual FrameQueue *allocQueue(int wFId, int rFId, int wId) = 0;
 
@@ -251,7 +251,7 @@ private:
 class OneToOneFilter : public BaseFilter {
 
 protected:
-    OneToOneFilter(bool byPassTimestamp, FilterRole fRole_ = MASTER, size_t fTime = 0, bool force_ = false);
+    OneToOneFilter(bool byPassTimestamp, FilterRole fRole_ = MASTER, size_t fTime = 0, bool force_ = false, bool periodic = false);
     virtual bool doProcessFrame(Frame *org, Frame *dst) = 0;
     using BaseFilter::setFrameTime;
     using BaseFilter::getFrameTime;
@@ -287,7 +287,7 @@ private:
 class OneToManyFilter : public BaseFilter {
 
 protected:
-    OneToManyFilter(FilterRole fRole_ = MASTER, unsigned writersNum = MAX_WRITERS, size_t fTime = 0, bool force_ = true);
+    OneToManyFilter(FilterRole fRole_ = MASTER, unsigned writersNum = MAX_WRITERS, size_t fTime = 0, bool force_ = true, bool periodic = false);
     virtual bool doProcessFrame(Frame *org, std::map<int, Frame *> dstFrames) = 0;
     using BaseFilter::setFrameTime;
     using BaseFilter::getFrameTime;
@@ -325,7 +325,7 @@ public:
     void pushEvent(Event e);
 
 protected:
-    HeadFilter(FilterRole fRole_ = MASTER, size_t fTime = 0, unsigned writersNum = 1);
+    HeadFilter(FilterRole fRole_ = MASTER, size_t fTime = 0, unsigned writersNum = 1, bool periodic = true);
     virtual bool doProcessFrame(std::map<int, Frame*> dstFrames) = 0;
     
     int getNullWriterID();
@@ -364,7 +364,7 @@ public:
     void pushEvent(Event e);
 
 protected:
-    TailFilter(FilterRole fRole_ = MASTER, unsigned readersNum = MAX_READERS, size_t fTime = 0);
+    TailFilter(FilterRole fRole_ = MASTER, unsigned readersNum = MAX_READERS, size_t fTime = 0, bool periodic = false);
     using BaseFilter::setFrameTime;
     using BaseFilter::getFrameTime;
 
@@ -398,7 +398,7 @@ private:
 class ManyToOneFilter : public BaseFilter {
 
 protected:
-    ManyToOneFilter(FilterRole fRole_ = MASTER, unsigned readersNum = MAX_READERS, size_t fTime = 0, bool force_ = false);
+    ManyToOneFilter(FilterRole fRole_ = MASTER, unsigned readersNum = MAX_READERS, size_t fTime = 0, bool force_ = false, bool periodic = false);
     virtual bool doProcessFrame(std::map<int, Frame *> orgFrames, Frame *dst) = 0;
     using BaseFilter::setFrameTime;
     using BaseFilter::getFrameTime;
@@ -436,7 +436,7 @@ public:
     void pushEvent(Event e);
 
 protected:
-    LiveMediaFilter(unsigned readersNum = MAX_READERS, unsigned writersNum = MAX_WRITERS);
+    LiveMediaFilter(unsigned readersNum = MAX_READERS, unsigned writersNum = MAX_WRITERS, bool periodic = true);
 
     virtual bool doProcessFrame() = 0;
 

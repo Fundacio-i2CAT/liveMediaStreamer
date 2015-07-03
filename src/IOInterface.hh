@@ -87,7 +87,7 @@ public:
     /**
     * Adds a frame element to its queue
     */
-    void addFrame() const;
+    int addFrame() const;
 
     /**
     * Disconnects from its queue (sets queue disconnected) or deletes the queue
@@ -136,7 +136,7 @@ public:
     /**
     * Removes frame element from queue
     */
-    void removeFrame();
+    int removeFrame();
 
     /**
     * Sets queue to connect to

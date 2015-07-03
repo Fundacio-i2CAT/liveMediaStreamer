@@ -66,9 +66,9 @@ Frame* Reader::getFrame(QueueState &state, bool &newFrame, bool force)
     return frame;
 }
 
-void Reader::removeFrame()
+int Reader::removeFrame()
 {
-    queue->removeFrame();
+    return queue->removeFrame();
 }
 
 void Reader::setConnection(FrameQueue *queue)
@@ -184,7 +184,7 @@ Frame* Writer::getFrame(bool force) const
     return frame;
 }
 
-void Writer::addFrame() const
+int Writer::addFrame() const
 {
-    queue->addFrame();
+    return queue->addFrame();
 }

@@ -41,8 +41,8 @@
 
         Frame *getRear();
         Frame *getFront(bool &newFrame);
-        void addFrame();
-        void removeFrame();
+        int addFrame();
+        int removeFrame();
         void flush();
         Frame *forceGetRear();
         Frame *forceGetFront(bool &newFrame);

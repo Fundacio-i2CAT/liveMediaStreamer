@@ -57,17 +57,19 @@ Frame* AVFramedQueue::getFront(bool &newFrame)
     return NULL;
 }
 
-void AVFramedQueue::addFrame() 
+int AVFramedQueue::addFrame() 
 {
     rear =  (rear + 1) % max;
     ++elements;
     firstFrame = true;
+    return rFilterId;
 }
 
-void AVFramedQueue::removeFrame() 
+int AVFramedQueue::removeFrame() 
 {
     front = (front + 1) % max;
     --elements;
+    return wFilterId;
 }
 
 void AVFramedQueue::flush() 

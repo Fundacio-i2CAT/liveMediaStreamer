@@ -56,7 +56,7 @@ public:
     * into a VideoFrame structure.
     * @return input frame pointer or NULL if internal buffer is full
     */
-    void addFrame();
+    int addFrame();
 
     /**
     * It returns the input frame, flushing the internal buffer if the internal buffer is full. It may cause data loss.

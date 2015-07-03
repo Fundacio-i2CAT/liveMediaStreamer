@@ -80,15 +80,16 @@ Frame* AudioCircularBuffer::getFront(bool &newFrame)
     return outputFrame;
 }
 
-void AudioCircularBuffer::addFrame()
+int AudioCircularBuffer::addFrame()
 {
     forcePushBack(inputFrame->getPlanarDataBuf(), inputFrame->getSamples());
+    return rFilterId;
 }
 
-void AudioCircularBuffer::removeFrame()
+int AudioCircularBuffer::removeFrame()
 {
     outputFrameAlreadyRead = true;
-    return;
+    return wFilterId;
 }
 
 void AudioCircularBuffer::flush()

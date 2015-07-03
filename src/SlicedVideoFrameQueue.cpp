@@ -64,9 +64,10 @@ Frame* SlicedVideoFrameQueue::getRear()
     return inputFrame;
 }
 
-void SlicedVideoFrameQueue::addFrame()
+int SlicedVideoFrameQueue::addFrame()
 {
     pushBack();
+    return rFilterId;
 }
 
 Frame* SlicedVideoFrameQueue::forceGetRear()

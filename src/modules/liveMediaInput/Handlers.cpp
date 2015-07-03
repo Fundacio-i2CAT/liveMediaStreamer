@@ -26,7 +26,6 @@
 #include "H264QueueSink.hh"
 #include "SourceManager.hh"
 #include "ExtendedRTSPClient.hh"
-//#include "../../AVFramedQueue.hh"
 
 #include <iostream>
 #include <sstream>

@@ -33,8 +33,8 @@ public:
     AVFramedQueue(int wId, int rId, unsigned maxFrames);
     virtual Frame *getRear();
     Frame *getFront(bool &newFrame);
-    virtual void addFrame();
-    void removeFrame();
+    virtual int addFrame();
+    int removeFrame();
     void flush();
     virtual Frame *forceGetRear();
     Frame *forceGetFront(bool &newFrame);

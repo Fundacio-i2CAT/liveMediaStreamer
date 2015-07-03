@@ -67,13 +67,15 @@ public:
 
     /**
     * Adds frame to queue elements
+    * @return the id of the reader filter that has a new frame available.
     */
-    virtual void addFrame() = 0;
+    virtual int addFrame() = 0;
 
     /**
     * Removes frame from queue elements
+    * @return the id of the writer filter that introduced the frame consumed.
     */
-    virtual void removeFrame() = 0;
+    virtual int removeFrame() = 0;
 
     /**
     * Flushes the queue

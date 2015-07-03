@@ -81,10 +81,16 @@ bool HeadDemuxerLibav::doProcessFrame(std::map<int, Frame*> dstFrames)
     if (f != NULL) {
         // If the output for this stream index is connected, copy payload
         // (Otherwise, discard packet)
+        DemuxerStreamInfo *sinfo = streams[pkt.stream_index];
         uint8_t *data = f->getDataBuf();
         memcpy (data, pkt.data, pkt.size);
         f->setConsumed(true);
         f->setLength(pkt.size);
+        f->setPresentationTime(
+            std::chrono::system_clock::time_point(
+                std::chrono::microseconds(1000000 * pkt.pts * sinfo->time_base_num / sinfo->time_base_den)));
+        f->setDuration(
+            std::chrono::nanoseconds(1000000000 * pkt.duration * sinfo->time_base_num / sinfo->time_base_den));
     }
     av_free_packet(&pkt);
 
@@ -191,6 +197,8 @@ bool HeadDemuxerLibav::setURI(const std::string URI)
                     // Ignore this stream
                     break;
             }
+            sinfo->time_base_num = av_ctx->streams[i]->time_base.num;
+            sinfo->time_base_den = av_ctx->streams[i]->time_base.den;
             sinfo->extradata_size = av_ctx->streams[i]->codec->extradata_size;
             if (sinfo->extradata_size > 0) {
                 sinfo->extradata = new uint8_t[sinfo->extradata_size];

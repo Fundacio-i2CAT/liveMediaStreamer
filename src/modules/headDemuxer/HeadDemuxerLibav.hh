@@ -38,6 +38,8 @@ struct DemuxerStreamInfo {
     StreamType type; //!< AUDIO or VIDEO, basically
     uint8_t *extradata; //!< Codec-specific info. This array belongs to this struct, no-one but us should free it.
     int extradata_size; //!< Amount of bytes in #extradata
+    int time_base_num; //!< Multiplier for frame timestamps
+    int time_base_den; //!< Divider for frame timestamps
     union {
         /** Audio-specific data */
         struct {

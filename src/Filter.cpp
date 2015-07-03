@@ -606,8 +606,6 @@ bool HeadFilter::runDoProcessFrame()
 {
     if (updateTimestamp() && doProcessFrame(dFrames)) {
         for (auto it : dFrames) {
-            it.second->setPresentationTime(timestamp);
-            it.second->setDuration(duration);
             it.second->setSequenceNumber(seqNums[it.first]++);
         }
         addFrames();

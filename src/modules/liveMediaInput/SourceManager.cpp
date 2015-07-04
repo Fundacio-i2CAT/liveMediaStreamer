@@ -36,7 +36,7 @@ FrameQueue* createAudioQueue(int wFId, int rFId, unsigned char rtpPayloadFormat,
                              char const* codecName, unsigned channels,
                              unsigned sampleRate);
 
-SourceManager::SourceManager(unsigned writersNum): LiveMediaFilter(0, writersNum)
+SourceManager::SourceManager(unsigned writersNum): HeadFilter(MASTER, 0, writersNum)
 {
     fType = RECEIVER;
 
@@ -62,12 +62,18 @@ void SourceManager::stop()
     
 }
 
-bool SourceManager::doProcessFrame()
+bool SourceManager::doProcessFrame(std::map<int, Frame*> dFrames)
 {
     if (envir() == NULL){
         return false;
     }
-
+    
+    for (auto it : dFrames){
+        if (sinks.count(it.first) > 0){
+            sinks[it.first]->setFrame(it.second);
+        }
+    }
+    
     scheduler->SingleStep();
 
     return true;
@@ -109,20 +115,20 @@ Session* SourceManager::getSession(std::string id)
     return sessionMap[id];
 }
 
-bool SourceManager::addWriter(unsigned port, Writer *writer)
+bool SourceManager::addSink(unsigned port, QueueSink *sink)
 {
     std::lock_guard<std::mutex> guard(readersWritersLck);
-    if(writers.count(port) > 0){
+    if(sinks.count(port) > 0){
         utils::warningMsg("writer id must be unique!");
         return false;
     }
     
-    if (!writer){
+    if (!sink){
         utils::warningMsg("writer is NULL, it has not been added!");
         return false;
     }
     
-    writers[port] = writer;
+    sinks[port] = sink;
 
     return true;
 }
@@ -404,8 +410,8 @@ bool Session::initiateSession()
                     subsession->deInitiate();
                     return false;
                 }
-                if (!scs->addWriterToMngr(queueSink->getPort(), queueSink->getWriter())){
-                    utils::errorMsg("Failed adding writer in SourceManager");
+                if (!scs->addSinkToMngr(queueSink->getPort(), queueSink)){
+                    utils::errorMsg("Failed adding sink in SourceManager");
                     subsession->deInitiate();
                     return false;
                 }
@@ -482,7 +488,7 @@ StreamClientState::~StreamClientState()
     }
 }
 
-bool StreamClientState::addWriterToMngr(unsigned id, Writer* writer)
+bool StreamClientState::addSinkToMngr(unsigned id, QueueSink* sink)
 {
-    return mngr->addWriter(id, writer);
+    return mngr->addSink(id, sink);
 }

@@ -47,7 +47,7 @@ public:
 
     std::string getId(){return id;};
 
-    bool addWriterToMngr(unsigned id, Writer* writer);
+    bool addSinkToMngr(unsigned id, QueueSink* sink);
 
 public:
     SourceManager *const mngr;
@@ -85,7 +85,7 @@ protected:
     StreamClientState *scs;
 };
 
-class SourceManager : public LiveMediaFilter {
+class SourceManager : public HeadFilter {
 public:
     SourceManager(unsigned writersNum = MAX_WRITERS);
     ~SourceManager();
@@ -114,10 +114,10 @@ private:
     bool addSessionEvent(Jzon::Node* params);
 
     friend bool Session::initiateSession();
-    friend bool StreamClientState::addWriterToMngr(unsigned port, Writer* writer);
-    bool addWriter(unsigned port, Writer *writer);
+    friend bool StreamClientState::addSinkToMngr(unsigned port, QueueSink* sink);
+    bool addSink(unsigned port, QueueSink *sink);
 
-    bool doProcessFrame();
+    bool doProcessFrame(std::map<int, Frame*>);
     void addConnection(int wId, MediaSubsession* subsession);
 
     static void* startServer(void *args);
@@ -126,6 +126,7 @@ private:
     void stop();
 
     std::map<std::string, Session*> sessionMap;
+    std::map<int, QueueSink*> sinks;
 
     UsageEnvironment* env;
     BasicTaskScheduler0 *scheduler;

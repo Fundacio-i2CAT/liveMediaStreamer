@@ -123,12 +123,7 @@ namespace handlers
                 scs.subsession->deInitiate();
             }
             
-            if (!queueSink->getWriter()){
-                utils::errorMsg("Writer is not set in queueSink!");
-                scs.subsession->deInitiate();
-            }
-
-            if (!scs.addWriterToMngr(queueSink->getPort(), queueSink->getWriter())){
+            if (!scs.addSinkToMngr(queueSink->getPort(), queueSink)){
                 utils::errorMsg("Failed adding writer in SourceManager");
                 scs.subsession->deInitiate();
             }
@@ -288,21 +283,17 @@ namespace handlers
     {
         int wId;
         QueueSink *sink;
-        Writer *writer;
 
-        writer = new Writer();
         wId = subsession->clientPortNum();
 
         if (strcmp(subsession->codecName(), "H264") == 0 || strcmp(subsession->codecName(), "H265") == 0) {
-            sink = H264QueueSink::createNew(env, writer, wId, subsession->fmtp_spropparametersets());
+            sink = H264QueueSink::createNew(env, wId, subsession->fmtp_spropparametersets());
         } else {
-            sink = QueueSink::createNew(env, writer, wId);
+            sink = QueueSink::createNew(env, wId);
         }
 
         if (sink == NULL){
             utils::errorMsg("failed to create Sink!");
-            delete writer;
-            writer = NULL;
             return false;
         }
 

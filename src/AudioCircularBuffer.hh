@@ -49,6 +49,7 @@ public:
     bool frameToRead() {return false;};
     int getFreeSamples();
     void setBufferingThreshold(std::chrono::milliseconds th);
+    unsigned getChannelMaxSamples() {return chMaxSamples;};
 
 private:
     AudioCircularBuffer(unsigned ch, unsigned sRate, unsigned maxSamples, SampleFmt sFmt);

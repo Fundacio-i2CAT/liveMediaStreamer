@@ -39,7 +39,7 @@
 #define DEFAULT_ID 1                /*!< Default ID for unique filter's readers and/or writers. */
 #define MAX_WRITERS 16              /*!< Default maximum writers for a filter. */
 #define MAX_READERS 16              /*!< Default maximum readers for a filter. */
-#define RETRY 500                   /*!< Default retry time in microseconds (ms). */
+#define RETRY 1000                   /*!< Default retry time in microseconds . */
 
 /*! Generic filter class methods. It is an interface to different specific filters
     so it cannot be instantiated

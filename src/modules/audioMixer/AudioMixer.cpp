@@ -24,121 +24,227 @@
 
 #include "AudioMixer.hh"
 #include "../../AudioCircularBuffer.hh"
-#include "../../AudioFrame.hh"
 #include "../../Utils.hh"
 #include <iostream>
 #include <utility>
 #include <cmath>
+#include <string.h>
 
-AudioMixer::AudioMixer(FilterRole role, bool sharedFrames, int inputChannels) : ManyToOneFilter(role, sharedFrames, inputChannels) 
+AudioMixer::AudioMixer(FilterRole role, bool sharedFrames, int inputChannels) : 
+ManyToOneFilter(role, sharedFrames, inputChannels), channels(DEFAULT_CHANNELS),
+sampleRate(DEFAULT_SAMPLE_RATE), sampleFormat(FLTP), maxMixingChannels(inputChannels),
+front(0), rear(0), masterGain(DEFAULT_MASTER_GAIN), th(COMPRESSION_THRESHOLD), mAlg(LDRC), 
+syncTs(std::chrono::microseconds(-1))
 {
-    frameChannels = DEFAULT_CHANNELS;
-    sampleRate = DEFAULT_SAMPLE_RATE;
-    sampleFormat = FLTP;
-    maxChannels = inputChannels;
     fType = AUDIO_MIXER;
+    inputFrameSamples = AudioFrame::getDefaultSamples(sampleRate);
+    outputSamples = inputFrameSamples;
+    mixBufferMaxSamples = inputFrameSamples*5;
+    mixingThreshold = inputFrameSamples*3;
 
-    samples.resize(AudioFrame::getMaxSamples(sampleRate));
-    mixedSamples.resize(AudioFrame::getMaxSamples(sampleRate));
-    samplesPerFrame = AudioFrame::getDefaultSamples(sampleRate);
-    setFrameTime(std::chrono::microseconds(samplesPerFrame*std::micro::den/sampleRate));
+    for (int i = 0; i < MAX_CHANNELS; i++) {
+        mixBuffers[i] = new float[mixBufferMaxSamples]();
+    }
 
     initializeEventMap();
-
-    masterGain = DEFAULT_MASTER_GAIN;
-    th = COMPRESSION_THRESHOLD;
-    mAlg = LDRC;
 }
 
-AudioMixer::~AudioMixer() {}
+AudioMixer::~AudioMixer() 
+{
+
+}
 
 FrameQueue *AudioMixer::allocQueue(int wId) 
 {
-    return AudioCircularBuffer::createNew(frameChannels, sampleRate, DEFAULT_BUFFER_SIZE, 
+    return AudioCircularBuffer::createNew(channels, sampleRate, DEFAULT_BUFFER_SIZE, 
                                             sampleFormat, std::chrono::milliseconds(BUFFERING_THRESHOLD));
 }
 
-bool AudioMixer::doProcessFrame(std::map<int, Frame*> orgFrames, Frame *dst)
+bool AudioMixer::doProcessFrame(std::map<int, Frame*> orgFrames, Frame *dst) 
 {
-    std::vector<int> filledFramesIds;
+    AudioFrame* aFrame;
+    AudioFrame* aDstFrame;
 
     for (auto frame : orgFrames) {
-        if (frame.second) {
-            filledFramesIds.push_back(frame.first);
+
+        if (!frame.second) {
+            continue;
+        }
+
+        aFrame = dynamic_cast<AudioFrame*>(frame.second);
+
+        if (!aFrame) {
+            utils::errorMsg("[AudioMixer] Input frames must be AudioFrames");
+            continue;
+        }
+
+
+        if (!pushToBuffer(frame.first, aFrame)) {
+            utils::errorMsg("[AudioMixer] Error pushing samples to the internal buffer");
+            continue;
         }
     }
 
-    if (filledFramesIds.empty()) {
+    aDstFrame = dynamic_cast<AudioFrame*>(dst);
+
+    if (!aDstFrame) {
+        utils::errorMsg("[AudioMixer] Output frame must be an AudioFrame");
         return false;
     }
 
-    mixNonEmptyFrames(orgFrames, filledFramesIds, dst);
+    if (!extractMixedFrame(aDstFrame)) {
+        return false;
+    }
 
-    dst->setConsumed(true);
     return true;
 }
 
-void AudioMixer::mixNonEmptyFrames(std::map<int, Frame*> orgFrames, std::vector<int> filledFramesIds, Frame *dst)
+bool AudioMixer::pushToBuffer(int id, AudioFrame* frame) 
 {
-    int nOfSamples = 0;
+    unsigned char* b;
+    float fSample;
+    SampleFmt fmt;
+    int nOfSamples;
+    int bytesPerSample;
+    unsigned absolutePosition;
+    unsigned bufferIdx;
 
-    for (int ch = 0; ch < frameChannels; ch++) {
-        for (auto id : filledFramesIds) {
-            nOfSamples = dynamic_cast<AudioFrame*>(orgFrames[id])->getChannelFloatSamples(samples, ch);
+    bytesPerSample = utils::getBytesPerSampleFromFormat(sampleFormat);
+    fmt = frame->getSampleFmt();
+    nOfSamples = frame->getSamples();
 
-            if ((int)mixedSamples.size() != nOfSamples) {
-                mixedSamples.resize(nOfSamples);
+    if (syncTs.count() < 0) {
+        syncTs = frame->getPresentationTime();
+    }
+
+    absolutePosition = (frame->getPresentationTime() - syncTs).count()*sampleRate/std::micro::den;
+
+    if (absolutePosition < front) {
+        utils::errorMsg("[AudioMixer] Samples from the past ignored");
+        return false;
+    }
+
+    for (int i = 0; i < channels; i++) {
+
+        b = frame->getPlanarDataBuf()[i];
+        bufferIdx = absolutePosition % mixBufferMaxSamples;
+
+        for (int j = 0; j < nOfSamples; j++) {
+
+            if (!bytesToFloat(b + j*bytesPerSample, fSample, fmt)) {
+                utils::errorMsg("[AudioMixer] Error converting samples from bytes to float");
+                return false;
             }
 
-            applyGainToChannel(samples, gains[id]);
-            sumValues(samples, mixedSamples);
+            mixSample(fSample, bufferIdx);
+            bufferIdx = (bufferIdx + 1) % mixBufferMaxSamples;
         }
-
-        applyMixAlgorithm(mixedSamples, (int)orgFrames.size(), (int)filledFramesIds.size());
-        applyGainToChannel(mixedSamples, masterGain);
-        AudioFrame *aDst = dynamic_cast<AudioFrame*>(dst);
-        aDst->setSamples(nOfSamples);
-        aDst->setLength(nOfSamples*BPS);
-        aDst->fillBufferWithFloatSamples(mixedSamples, ch);
-
-        std::fill(mixedSamples.begin(), mixedSamples.end(), 0);
     }
-    
+
+    if (absolutePosition + nOfSamples > rear) {
+        rear = absolutePosition + nOfSamples;
+    }
+
+    return true;
 }
 
-void AudioMixer::applyMixAlgorithm(std::vector<float> &fSamples, int totalFrameNumber, int realFrameNumber)
+void AudioMixer::mixSample(float sample, int bufferPosition)
 {
-    switch (mAlg) {
-        case LA:
-            LAMixAlgorithm(fSamples, totalFrameNumber);
+    //TODO: mix doing a lineal compression
+    // if (x < th) y = x;
+    // else y = lineal compression
+}
+
+bool AudioMixer::extractMixedFrame(AudioFrame* frame)
+{
+    unsigned mixedElements = rear - front;
+    unsigned pos;
+    unsigned char* b;
+    float *mixB;
+    std::chrono::microseconds ts;
+    unsigned bytesPerSample;
+
+    if (mixedElements < mixingThreshold) {
+        return false;
+    }
+
+    bytesPerSample = utils::getBytesPerSampleFromFormat(sampleFormat);
+
+    if (bytesPerSample <= 0) {
+        utils::errorMsg("[AudioMixer] Only S16P and FLTP sample formats are supported");
+        return false;
+    }
+
+    for (int i = 0; i < channels; i++) {
+
+        b = frame->getPlanarDataBuf()[i];
+        pos = front % mixBufferMaxSamples;
+        mixB = mixBuffers[i];
+
+        for (unsigned j = 0; j < outputSamples; j++) {
+
+            if (!floatToBytes(b + j*bytesPerSample, mixB[(pos+j)%mixBufferMaxSamples], sampleFormat)) {
+                utils::errorMsg("[AudioMixer] Error converting samples from bytes to float");
+                return false;
+            }
+        }
+    }
+
+    front += outputSamples;
+
+    ts = std::chrono::microseconds(front * std::micro::den/sampleRate) + syncTs;
+    frame->setPresentationTime(ts);
+    frame->setLength(outputSamples*bytesPerSample);
+    frame->setSamples(outputSamples);
+    frame->setChannelNumber(channels);
+    frame->setSampleRate(sampleRate);
+
+    return true;
+}
+
+bool AudioMixer::bytesToFloat(unsigned char const* origin, float &dst, SampleFmt fmt) 
+{
+    short value;
+
+    switch(fmt) {
+        case S16P:
+            value = (short)(*origin | *(origin+1) << 8);
+            dst = value / 32768.0f;
             break;
-        case LDRC:
-            LDRCMixAlgorithm(fSamples, realFrameNumber);
+        case FLTP:
+            dst = *(float*)(origin);
+             break;
+        default:
+            return false;
+    }
+
+    return true;
+}
+
+bool AudioMixer::floatToBytes(unsigned char* dst, float const origin, SampleFmt fmt) 
+{
+    short value;
+
+    switch(fmt) {
+        case S16P:
+            value = origin * 32768.0;
+            *dst = value & 0xFF; 
+            *(dst+1) = (value >> 8) & 0xFF;
+            break;
+        case FLTP:
+            memcpy(dst, &origin, utils::getBytesPerSampleFromFormat(fmt));
             break;
         default:
-            LAMixAlgorithm(fSamples, totalFrameNumber);
-        break;
+            return false;
     }
-}
 
-void AudioMixer::applyGainToChannel(std::vector<float> &fSamples, float gain)
-{
-    for (float& sample : fSamples) {
-        sample *= gain;
-    }
-}
-
-void AudioMixer::sumValues(std::vector<float> fSamples, std::vector<float> &mixedSamples)
-{
-    int i=0;
-    for (float& mixedSample : mixedSamples) {
-        mixedSample += fSamples[i];
-        i++;
-    }
+    return true;
 }
 
 Reader* AudioMixer::setReader(int readerID, FrameQueue* queue)
 {
+    AudioCircularBuffer* inBuffer;
+
     if (readers.count(readerID) > 0) {
         return NULL;
     }
@@ -146,28 +252,37 @@ Reader* AudioMixer::setReader(int readerID, FrameQueue* queue)
     Reader* r = new Reader();
     readers[readerID] = r;
 
-    dynamic_cast<AudioCircularBuffer*>(queue)->setOutputFrameSamples(samplesPerFrame);
+    inBuffer = dynamic_cast<AudioCircularBuffer*>(queue);
+
+    if (!inBuffer) {
+        utils::errorMsg("[AudioMixer] Error setting reader: queue must be an AudioCircularBuffer");
+        return NULL;
+    }
+
+    inBuffer->setOutputFrameSamples(inputFrameSamples);
 
     gains[readerID] = DEFAULT_CHANNEL_GAIN;
 
     return r;
 }
 
-void AudioMixer::LAMixAlgorithm(std::vector<float> &fSamples, int frameNumber)
+bool AudioMixer::setChannelGain(int id, float value)
 {
-    for (auto sample : fSamples) {
-        sample *= (1.0/frameNumber);
+    if (gains.count(id) <= 0) {
+        return false;
     }
+
+    if (value > 1) {
+        gains[id] = 1;
+    } else if (value < 0) {
+        gains[id] = 0;
+    } else {
+        gains[id] = value;
+    }
+
+    return true;
 }
 
-void AudioMixer::LDRCMixAlgorithm(std::vector<float> &fSamples, int frameNumber)
-{
-    for (auto s : fSamples) {
-        if (abs(s) > th) {
-            s = (s/abs(s))*(th + ( ((1 - th)/((float)frameNumber - th))*(abs(s) - th) ));
-        }
-    }
-}
 
 bool AudioMixer::changeChannelVolumeEvent(Jzon::Node* params)
 {
@@ -185,12 +300,7 @@ bool AudioMixer::changeChannelVolumeEvent(Jzon::Node* params)
     id = params->Get("id").ToInt();
     volume = params->Get("volume").ToFloat();
 
-    if (gains.count(id) <= 0) {
-        return false;
-    }
-
-    gains[id] = volume;
-    return true;
+    return setChannelGain(id, volume);
 }
 
 bool AudioMixer::muteChannelEvent(Jzon::Node* params)
@@ -207,12 +317,7 @@ bool AudioMixer::muteChannelEvent(Jzon::Node* params)
 
     id = params->Get("id").ToInt();
 
-    if (gains.count(id) <= 0) {
-        return false;
-    }
-
-    gains[id] = 0;
-    return true;
+    return setChannelGain(id, 0);
 }
 
 bool AudioMixer::soloChannelEvent(Jzon::Node* params)
@@ -229,15 +334,13 @@ bool AudioMixer::soloChannelEvent(Jzon::Node* params)
 
     id = params->Get("id").ToInt();
 
-    if (gains.count(id) <= 0) {
+    if (!setChannelGain(id, DEFAULT_CHANNEL_GAIN)) {
         return false;
     }
 
-    for (auto &it : gains) {
-        if (it.first == id) {
-            it.second = DEFAULT_CHANNEL_GAIN;
-        } else {
-            it.second = 0;
+    for (auto it : gains) {
+        if (it.first != id) {
+            setChannelGain(it.first, 0);
         }
     }
 
@@ -290,11 +393,11 @@ void AudioMixer::doGetState(Jzon::Object &filterNode)
 {
     Jzon::Array jsonGains;
 
+    filterNode.Add("channels", channels);
     filterNode.Add("sampleRate", sampleRate);
-    filterNode.Add("channels", frameChannels);
     filterNode.Add("sampleFormat", utils::getSampleFormatAsString(sampleFormat));
+    filterNode.Add("maxChannels", maxMixingChannels);
     filterNode.Add("masterGain", masterGain);
-    filterNode.Add("maxChannels", maxChannels);
 
     for (auto it : gains) {
         Jzon::Object gain;

@@ -114,7 +114,6 @@ PlanarAudioFrame::~PlanarAudioFrame()
     }
 }
 
-
 int PlanarAudioFrame::getChannelFloatSamples(std::vector<float> &samplesVec, int channel) 
 {
     short value = 0;

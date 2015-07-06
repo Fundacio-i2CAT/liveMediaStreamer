@@ -96,8 +96,24 @@ bool SourceManager::addSession(Session* session)
 
 bool SourceManager::removeSession(std::string id)
 {
+    MediaSubsession *subsession;
+    
     if (sessionMap.count(id) <= 0) {
         return false;
+    }
+    
+    std::lock_guard<std::mutex> guard(sinksMtx);
+    
+    for (auto it : sessionMap) {
+        it.second->getScs()->iter = new MediaSubsessionIterator(*(it.second->getScs()->session));
+        subsession = it.second->getScs()->iter->next();
+        while (subsession != NULL) {
+            if (sinks.count(subsession->clientPortNum()) > 0){
+                sinks.erase(subsession->clientPortNum());
+                disconnectWriter(subsession->clientPortNum());
+            }
+            subsession = it.second->getScs()->iter->next();
+        }
     }
 
     delete sessionMap[id];
@@ -117,7 +133,7 @@ Session* SourceManager::getSession(std::string id)
 
 bool SourceManager::addSink(unsigned port, QueueSink *sink)
 {
-    std::lock_guard<std::mutex> guard(readersWritersLck);
+    std::lock_guard<std::mutex> guard(sinksMtx);
     if(sinks.count(port) > 0){
         utils::warningMsg("writer id must be unique!");
         return false;

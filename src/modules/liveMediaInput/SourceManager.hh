@@ -127,6 +127,7 @@ private:
 
     std::map<std::string, Session*> sessionMap;
     std::map<int, QueueSink*> sinks;
+    std::mutex sinksMtx;
 
     UsageEnvironment* env;
     BasicTaskScheduler0 *scheduler;

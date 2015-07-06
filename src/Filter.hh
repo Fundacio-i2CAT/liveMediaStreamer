@@ -227,8 +227,6 @@ protected:
     unsigned maxReaders;
     unsigned maxWriters;
     std::chrono::nanoseconds frameTime;
-    
-    std::mutex readersWritersLck;
 
 private:   
     bool connect(BaseFilter *R, int writerID, int readerID);
@@ -243,6 +241,7 @@ private:
 private:
     std::priority_queue<Event> eventQueue;
     std::mutex eventQueueMutex;
+    std::mutex readersWritersLck;
     
     bool enabled;
     std::map<int, bool> rUpdates;

@@ -33,7 +33,6 @@ Boolean H264QueueSink::continuePlaying()
     if (nextFrame){
         nextTask() = envir().taskScheduler().scheduleDelayedTask(0,
             (TaskFunc*)QueueSink::staticContinuePlaying, this);
-        nextFrame = false;
         return True;
     }
 

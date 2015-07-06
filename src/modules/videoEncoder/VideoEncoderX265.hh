@@ -19,7 +19,7 @@
  *
  *  Authors:  David Cassany <david.cassany@i2cat.net>
  *            Marc Palau <marc.palau@i2cat.net>
- *	          Gerard Castillo <gerard.castillo@i2cat.net>
+ *	      Gerard Castillo <gerard.castillo@i2cat.net>
  */
 
 #ifndef _VIDEO_ENCODER_X265_HH

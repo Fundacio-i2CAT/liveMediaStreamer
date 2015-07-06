@@ -49,8 +49,8 @@ Dasher* Dasher::createNew(std::string dashFolder, std::string baseName, size_t s
 }
 
 
-Dasher::Dasher(int readersNum) :
-TailFilter(MASTER, readersNum), mpdMngr(NULL), hasVideo(false), videoStarted(false)
+Dasher::Dasher(FilterRole fRole_, bool sharedFrames_, unsigned readersNum) :
+TailFilter(fRole_, sharedFrames_, readersNum), mpdMngr(NULL), hasVideo(false), videoStarted(false)
 {
     fType = DASHER;
     initializeEventMap();
@@ -534,8 +534,8 @@ bool Dasher::addSegmenter(int readerId)
 
     if ((vQueue = dynamic_cast<VideoFrameQueue*>(r->getQueue())) != NULL) {
 
-        if (vQueue->getCodec() != H264) {
-            utils::errorMsg("Error setting dasher reader: only H264 codec is supported for video");
+        if (vQueue->getCodec() != H264 && vQueue->getCodec() != H265) {
+            utils::errorMsg("Error setting dasher reader: only H264 & H265 codecs are supported for video");
             return false;
         }
 

@@ -60,12 +60,17 @@ public:
     * @param segDurInSeconds is the time duration in seconds
     * @return Pointer to the object if succeded and NULL if not
     */
-    static Dasher* createNew(std::string dashFolder, std::string baseName, size_t segDurInSeconds, int readersNum = MAX_READERS);
+//    static Dasher* createNew(std::string dashFolder, std::string baseName, size_t segDurInSeconds, int readersNum = MAX_READERS);
+
+    Dasher(FilterRole fRole_ = MASTER, bool sharedFrames_ = true, unsigned readersNum = MAX_READERS);
+
 
     /**
     * Class destructor
     */
     ~Dasher();
+
+    bool configure(std::string dashFolder, std::string baseName_, size_t segDurInSeconds);
 
     /**
     * Adds a new segmenter associated to an existance reader. Only one segmenter can be associated to each reader
@@ -106,8 +111,6 @@ public:
     bool setDashSegmenterBitrate(int id, size_t kbps);
 
 private:
-    Dasher(int readersNum);
-    bool configure(std::string dashFolder, std::string baseName_, size_t segDurInSeconds);
     bool doProcessFrame(std::map<int, Frame*> orgFrames);
     void doGetState(Jzon::Object &filterNode);
     void initializeEventMap();

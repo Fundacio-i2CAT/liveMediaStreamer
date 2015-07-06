@@ -101,7 +101,7 @@ void video_context_initializer(i2ctx **context) {
 }
 
 void context_refresh(i2ctx **context, uint32_t media_type) {
-    if ((media_type == VIDEO_TYPE) || (media_type == AUDIOVIDEO_TYPE)) {
+    if ((media_type == VIDEO_TYPE_AVC) || (media_type == VIDEO_TYPE_HEVC)) {
         (*context)->ctxvideo->earliest_presentation_time = 0;
         (*context)->ctxvideo->sequence_number = 0;
         (*context)->ctxvideo->current_video_duration = 0;
@@ -111,7 +111,7 @@ void context_refresh(i2ctx **context, uint32_t media_type) {
         (*context)->ctxvideo->ctxsample->moof_pos = 0;
         (*context)->ctxvideo->ctxsample->trun_pos = 0;
     }
-    if ((media_type == AUDIO_TYPE) || (media_type == AUDIOVIDEO_TYPE)) {
+    if (media_type == AUDIO_TYPE) {
         (*context)->ctxaudio->earliest_presentation_time = 0;
         (*context)->ctxaudio->sequence_number = 0;
         (*context)->ctxaudio->current_audio_duration = 0;
@@ -136,7 +136,7 @@ void video_sample_context_initializer(i2ctx_video **ctxVideo) {
 
 uint8_t generate_context(i2ctx **context, uint32_t media_type) 
 {
-    if ((media_type != VIDEO_TYPE) && (media_type != AUDIO_TYPE) && (media_type != AUDIOVIDEO_TYPE)) {
+    if ((media_type != VIDEO_TYPE_AVC) && (media_type != VIDEO_TYPE_HEVC) && (media_type != AUDIO_TYPE)) {
         (*context) = NULL;
         return I2ERROR_MEDIA_TYPE;
     }
@@ -144,13 +144,13 @@ uint8_t generate_context(i2ctx **context, uint32_t media_type)
     *context = (i2ctx *) malloc(sizeof(i2ctx));
     (*context)->reference_size = 0;
 
-    if ((media_type == VIDEO_TYPE) || (media_type == AUDIOVIDEO_TYPE)) {
+    if ((media_type == VIDEO_TYPE_AVC) || (media_type == VIDEO_TYPE_HEVC)) {
         video_context_initializer(context);
     } else {
         (*context)->ctxvideo = NULL;
     }
 
-    if ((media_type == AUDIO_TYPE) || (media_type == AUDIOVIDEO_TYPE)) {
+    if (media_type == AUDIO_TYPE) {
         audio_context_initializer(context);
     } else {
         (*context)->ctxaudio = NULL;
@@ -315,7 +315,7 @@ uint32_t init_audio_handler(byte *input_data, uint32_t size_input, byte *output_
     return initAudio;
 }
 
-uint32_t generate_video_segment(uint8_t nextFrameIsIntra, byte *output_data, i2ctx **context, uint32_t* segmentTimestamp, uint32_t* segmentDuration)
+uint32_t generate_video_segment(uint8_t nextFrameIsIntra, byte *output_data, i2ctx **context, uint32_t* segmentTimestamp, uint32_t* segmentDuration, uint32_t media_type)
 {
     uint32_t segDataLength;
 
@@ -333,8 +333,12 @@ uint32_t generate_video_segment(uint8_t nextFrameIsIntra, byte *output_data, i2c
         return I2ERROR_IS_INTRA;
     }
 
+    if ((media_type != VIDEO_TYPE_AVC) && (media_type != VIDEO_TYPE_HEVC)) {
+        return I2ERROR_MEDIA_TYPE;
+    }
+
     if ((nextFrameIsIntra == TRUE) && ((((*context)->duration - (*context)->threshold)) <= ((*context)->ctxvideo->current_video_duration))) {
-        segDataLength = segmentGenerator((*context)->ctxvideo->segment_data, (*context)->ctxvideo->segment_data_size, output_data, VIDEO_TYPE, context);
+        segDataLength = segmentGenerator((*context)->ctxvideo->segment_data, (*context)->ctxvideo->segment_data_size, output_data, media_type, context);
 
         if (segDataLength <= I2ERROR_MAX) {
             return segDataLength;
@@ -342,7 +346,7 @@ uint32_t generate_video_segment(uint8_t nextFrameIsIntra, byte *output_data, i2c
 
         *segmentDuration = (*context)->ctxvideo->current_video_duration;
         *segmentTimestamp = (*context)->ctxvideo->earliest_presentation_time;
-        context_refresh(context, VIDEO_TYPE);
+        context_refresh(context, media_type);
     }
 
     return segDataLength;
@@ -531,17 +535,16 @@ uint32_t add_sample(byte *input_data, uint32_t size_input, uint32_t duration_sam
         return I2ERROR_IS_INTRA;
     }
 
-    // TODO AUDIOVIDEO_TYPE
-    if ((media_type != AUDIO_TYPE) && (media_type != VIDEO_TYPE)) {
+    if ((media_type != AUDIO_TYPE) && (media_type != VIDEO_TYPE_AVC) && (media_type != VIDEO_TYPE_HEVC)) {
         return I2ERROR_MEDIA_TYPE;
     }
 
-    if (media_type == VIDEO_TYPE) {
+    if ((media_type == VIDEO_TYPE_AVC) || (media_type == VIDEO_TYPE_HEVC)) {
         seg_gen = I2OK;
         if ((is_intra == TRUE) && ((((*context)->duration) - ((*context)->threshold)) <= ((*context)->ctxvideo->current_video_duration))) {
-            seg_gen = segmentGenerator((*context)->ctxvideo->segment_data, (*context)->ctxvideo->segment_data_size, output_data, VIDEO_TYPE, context);
+            seg_gen = segmentGenerator((*context)->ctxvideo->segment_data, (*context)->ctxvideo->segment_data_size, output_data, media_type, context);
             if (seg_gen > I2ERROR_MAX)
-                context_refresh(context, VIDEO_TYPE);
+                context_refresh(context, media_type);
         }
         
         // Add sample or Init new segmentation
@@ -618,16 +621,16 @@ uint32_t finish_segment(uint32_t media_type, byte *output_data, i2ctx **context)
     if (output_data == NULL) {
         return I2ERROR_DESTINATION_NULL;
     }
-    if ((media_type != VIDEO_TYPE) && (media_type != AUDIO_TYPE)) {
+    if ((media_type != VIDEO_TYPE_AVC) && (media_type != VIDEO_TYPE_HEVC) && (media_type != AUDIO_TYPE)) {
         return I2ERROR_MEDIA_TYPE;
     }
     
-    if (media_type == VIDEO_TYPE) {
+    if ((media_type == VIDEO_TYPE_AVC) || (media_type == VIDEO_TYPE_HEVC)) {
         seg_gen = I2OK;
         
-        seg_gen = segmentGenerator((*context)->ctxvideo->segment_data, (*context)->ctxvideo->segment_data_size, output_data, VIDEO_TYPE, context);
+        seg_gen = segmentGenerator((*context)->ctxvideo->segment_data, (*context)->ctxvideo->segment_data_size, output_data, media_type, context);
         if ((seg_gen == I2OK) || (seg_gen > I2ERROR_MAX))
-            context_refresh(context, VIDEO_TYPE);
+            context_refresh(context, media_type);
     } else if(media_type == AUDIO_TYPE) {
         seg_gen = I2OK;
         

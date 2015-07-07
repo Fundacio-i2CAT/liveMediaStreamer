@@ -92,6 +92,7 @@ FrameQueue* VideoMixer::allocQueue(int wId)
 bool VideoMixer::doProcessFrame(std::map<int, Frame*> orgFrames, Frame *dst)
 {
     int frameNumber = orgFrames.size();
+    std::chrono::microseconds outTs = std::chrono::microseconds(0);
     VideoFrame *vFrame;
 
     vFrame = dynamic_cast<VideoFrame*>(dst);
@@ -108,7 +109,9 @@ bool VideoMixer::doProcessFrame(std::map<int, Frame*> orgFrames, Frame *dst)
     layoutImg = cv::Scalar(0, 0, 0);
 
     for (int lay=0; lay < maxChannels; lay++) {
+
         for (auto it : orgFrames) {
+
             if (channelsConfig[it.first]->getLayer() != lay) {
                 continue;
             }
@@ -126,6 +129,7 @@ bool VideoMixer::doProcessFrame(std::map<int, Frame*> orgFrames, Frame *dst)
             }
 
             pasteToLayout(it.first, vFrame);
+            outTs = std::max(vFrame->getPresentationTime(), outTs);
             frameNumber--;
         }
 
@@ -135,6 +139,14 @@ bool VideoMixer::doProcessFrame(std::map<int, Frame*> orgFrames, Frame *dst)
     }
 
     dst->setConsumed(true);
+    
+    if (getFrameTime().count() <= 0) {
+        dst->setPresentationTime(outTs);
+        setSyncTs(outTs);
+    } else {
+        dst->setPresentationTime(getSyncTs());
+    }
+
     return true;
 }
 

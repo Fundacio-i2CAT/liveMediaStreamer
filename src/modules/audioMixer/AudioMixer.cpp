@@ -33,7 +33,7 @@
 AudioMixer::AudioMixer(FilterRole role, bool sharedFrames, int inputChannels) : 
 ManyToOneFilter(role, sharedFrames, inputChannels), channels(DEFAULT_CHANNELS),
 sampleRate(DEFAULT_SAMPLE_RATE), sampleFormat(FLTP), maxMixingChannels(inputChannels),
-front(0), rear(0), masterGain(DEFAULT_MASTER_GAIN), th(COMPRESSION_THRESHOLD), mAlg(LDRC), 
+front(0), rear(0), masterGain(DEFAULT_MASTER_GAIN), th(COMPRESSION_THRESHOLD),
 syncTs(std::chrono::microseconds(-1))
 {
     fType = AUDIO_MIXER;
@@ -96,22 +96,33 @@ bool AudioMixer::doProcessFrame(std::map<int, Frame*> orgFrames, Frame *dst)
         return false;
     }
 
+    dst->setConsumed(true);
+
     return true;
 }
 
-bool AudioMixer::pushToBuffer(int id, AudioFrame* frame) 
+bool AudioMixer::pushToBuffer(int mixChId, AudioFrame* frame) 
 {
     unsigned char* b;
+    float* mixBuff;
     float fSample;
     SampleFmt fmt;
-    int nOfSamples;
+    unsigned nOfSamples;
     int bytesPerSample;
     unsigned absolutePosition;
     unsigned bufferIdx;
+    unsigned freeSpaceInMixBuffer;
 
     bytesPerSample = utils::getBytesPerSampleFromFormat(sampleFormat);
     fmt = frame->getSampleFmt();
     nOfSamples = frame->getSamples();
+
+    freeSpaceInMixBuffer = mixBufferMaxSamples - (rear - front);
+
+    if (freeSpaceInMixBuffer < nOfSamples) {
+        utils::errorMsg("[AudioMixer] No free space in mixing buffer, discarding frame from channel " + std::to_string(mixChId));
+        return false;
+    }
 
     if (syncTs.count() < 0) {
         syncTs = frame->getPresentationTime();
@@ -128,15 +139,16 @@ bool AudioMixer::pushToBuffer(int id, AudioFrame* frame)
 
         b = frame->getPlanarDataBuf()[i];
         bufferIdx = absolutePosition % mixBufferMaxSamples;
+        mixBuff = mixBuffers[i];
 
-        for (int j = 0; j < nOfSamples; j++) {
+        for (unsigned j = 0; j < nOfSamples; j++) {
 
             if (!bytesToFloat(b + j*bytesPerSample, fSample, fmt)) {
                 utils::errorMsg("[AudioMixer] Error converting samples from bytes to float");
                 return false;
             }
 
-            mixSample(fSample, bufferIdx);
+            mixSample(fSample, mixBuff, bufferIdx, gains[mixChId]);
             bufferIdx = (bufferIdx + 1) % mixBufferMaxSamples;
         }
     }
@@ -148,11 +160,15 @@ bool AudioMixer::pushToBuffer(int id, AudioFrame* frame)
     return true;
 }
 
-void AudioMixer::mixSample(float sample, int bufferPosition)
+void AudioMixer::mixSample(float sample, float* mixBuff, int bufferIdx, float gain)
 {
-    //TODO: mix doing a lineal compression
-    // if (x < th) y = x;
-    // else y = lineal compression
+    mixBuff[bufferIdx] += sample*gain*masterGain;
+
+    if (mixBuff[bufferIdx] > th) {
+        mixBuff[bufferIdx] = ((1-th)/(2-th))*mixBuff[bufferIdx] + th/(2-th);
+    } else if (mixBuff[bufferIdx] < -th) {
+        mixBuff[bufferIdx] = ((1-th)/(2-th))*mixBuff[bufferIdx] - th/(2-th);
+    } 
 }
 
 bool AudioMixer::extractMixedFrame(AudioFrame* frame)
@@ -187,10 +203,10 @@ bool AudioMixer::extractMixedFrame(AudioFrame* frame)
                 utils::errorMsg("[AudioMixer] Error converting samples from bytes to float");
                 return false;
             }
+
+            mixB[(pos+j)%mixBufferMaxSamples] = 0;
         }
     }
-
-    front += outputSamples;
 
     ts = std::chrono::microseconds(front * std::micro::den/sampleRate) + syncTs;
     frame->setPresentationTime(ts);
@@ -199,6 +215,7 @@ bool AudioMixer::extractMixedFrame(AudioFrame* frame)
     frame->setChannelNumber(channels);
     frame->setSampleRate(sampleRate);
 
+    front += outputSamples;
     return true;
 }
 

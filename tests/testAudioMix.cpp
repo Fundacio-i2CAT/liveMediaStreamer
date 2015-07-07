@@ -1,7 +1,6 @@
-#include "../src/modules/videoEncoder/VideoEncoderX264.hh"
-#include "../src/modules/videoDecoder/VideoDecoderLibav.hh"
-#include "../src/modules/videoMixer/VideoMixer.hh"
-#include "../src/modules/videoResampler/VideoResampler.hh"
+#include "../src/modules/audioEncoder/AudioEncoderLibav.hh"
+#include "../src/modules/audioDecoder/AudioDecoderLibav.hh"
+#include "../src/modules/audioMixer/AudioMixer.hh"
 #include "../src/modules/liveMediaInput/SourceManager.hh"
 #include "../src/modules/liveMediaOutput/SinkManager.hh"
 #include "../src/Controller.hh"
@@ -11,20 +10,21 @@
 #include <vector>
 #include <string>
 
-#define V_MEDIUM "video"
-#define PROTOCOL "RTP"
-#define V_PAYLOAD 96
-#define V_CODEC "H264"
-#define V_BANDWITH 1200
-#define V_TIME_STMP_FREQ 90000
-#define FRAME_RATE 25
+#define A_MEDIUM "audio"
+#define A_PAYLOAD 97
+// #define A_CODEC "MPEG4-GENERIC"
+#define A_CODEC "OPUS"
+#define A_BANDWITH 128
+#define A_TIME_STMP_FREQ 48000
+#define A_CHANNELS 2
+
+#define OUT_A_CODEC AAC
+#define OUT_A_FREQ 48000
+#define OUT_A_BITRATE 192000
 
 #define RETRIES 60
-#define MIX_WIDTH 640
-#define MIX_HEIGHT 360
 
 bool run = true;
-int layer = 0;
 
 void signalHandler( int signum )
 {
@@ -40,51 +40,39 @@ void setupMixer(int mixerId, int transmitterId)
 {
     PipelineManager *pipe = Controller::getInstance()->pipelineManager();
 
-    VideoMixer* mixer;
-    VideoEncoderX264* encoder;
-    VideoResampler* resampler;
+    AudioMixer* mixer;
+    AudioEncoderLibav* encoder;
 
     Worker* mixWorker;
     Worker* wEnc;
-    Worker* wRes;
     Path* path;
 
     int mixWorkerId = rand();
     int encId = rand();
-    int resId = rand();
     int wEncId = rand();
-    int wResId = rand();
     int pathId = rand();
 
-    std::vector<int> ids = {resId, encId};
+    std::vector<int> ids = {encId};
 
     //NOTE: Adding decoder to pipeManager and handle worker
-    mixer = VideoMixer::createNew(MIX_WIDTH, MIX_HEIGHT, std::chrono::microseconds(40000));
+    mixer = new AudioMixer();
     pipe->addFilter(mixerId, mixer);
     mixWorker = new Worker();
     mixWorker->addProcessor(mixerId, mixer);
     mixer->setWorkerId(mixWorkerId);
     pipe->addWorker(mixWorkerId, mixWorker);
 
-    //NOTE: Adding resampler to pipeManager and handle worker
-    resampler = new VideoResampler();
-    pipe->addFilter(resId, resampler);
-    wRes = new Worker();
-    wRes->addProcessor(resId, resampler);
-    resampler->setWorkerId(wResId);
-    resampler->configure(0, 0, 0, YUV420P);
-    pipe->addWorker(wResId, wRes);
+    encoder = new AudioEncoderLibav();
+    if (!encoder->configure(OUT_A_CODEC, A_CHANNELS, OUT_A_FREQ, OUT_A_BITRATE)) {
+        utils::errorMsg("Error configuring audio encoder. Check provided parameters");
+        return;
+    }
 
-    //NOTE: Adding encoder to pipeManager and handle worker
-    encoder = new VideoEncoderX264();
     pipe->addFilter(encId, encoder);
     wEnc = new Worker();
     wEnc->addProcessor(encId, encoder);
     encoder->setWorkerId(wEncId);
     pipe->addWorker(wEncId, wEnc);
-
-    //bitrate, fps, gop, lookahead, threads, annexB, preset
-    encoder->configure(4000, 25, 25, 25, 4, true, "superfast");
 
     path = pipe->createPath(mixerId, transmitterId, -1, -1, ids);
     pipe->addPath(pathId, path);
@@ -93,83 +81,54 @@ void setupMixer(int mixerId, int transmitterId)
     pipe->startWorkers();
 }
 
-void addVideoPath(unsigned port, int receiverId, int mixerId)
+void addAudioPath(unsigned port, int receiverId, int mixerId)
 {
     PipelineManager *pipe = Controller::getInstance()->pipelineManager();
 
-    int resId = rand();
-    int wResId = rand();
+    int aDecId = rand();
     int decId = rand();
-    int wDecId = rand();
+    std::vector<int> ids({decId});
 
-    std::vector<int> ids = {decId, resId};
-
-    std::string sessionId;
-    std::string sdp;
-
-    VideoDecoderLibav *decoder;
-    VideoResampler *resampler;
-    VideoMixer* mixer;
-
-    Worker* wDec;
-    Worker* wRes;
-
+    AudioDecoderLibav *decoder;
+    Worker* aDec;
     Path *path;
 
     //NOTE: Adding decoder to pipeManager and handle worker
-    decoder = new VideoDecoderLibav();
+    decoder = new AudioDecoderLibav();
     pipe->addFilter(decId, decoder);
-    wDec = new Worker();
-    wDec->addProcessor(decId, decoder);
-    decoder->setWorkerId(wDecId);
-    pipe->addWorker(wDecId, wDec);
-
-    //NOTE: Adding resampler to pipeManager and handle worker
-    resampler = new VideoResampler();
-    pipe->addFilter(resId, resampler);
-    wRes = new Worker();
-    wRes->addProcessor(resId, resampler);
-    resampler->setWorkerId(wResId);
-    pipe->addWorker(wResId, wRes);
+    aDec = new Worker();
+    aDec->addProcessor(decId, decoder);
+    decoder->setWorkerId(aDecId);
+    pipe->addWorker(aDecId, aDec);
 
     path = pipe->createPath(receiverId, mixerId, port, port, ids);
     pipe->addPath(port, path);
     pipe->connectPath(path);
 
-    mixer = dynamic_cast<VideoMixer*>(pipe->getFilter(mixerId));
-
-    if (!mixer) {
-        utils::errorMsg("Error getting videoMixer from pipe");
-        return;
-    }
-
-    mixer->configChannel(port, 0.5, 0.5, rand()%50/100.0, rand()%50/100.0, layer++, true, 1.0);
-    resampler->configure(MIX_WIDTH*0.5, MIX_HEIGHT*0.5, 0, RGB24);
-
     pipe->startWorkers();
-
-    utils::infoMsg("Video path created from port " + std::to_string(port));
+    utils::infoMsg("Audio path created from port " + std::to_string(port));
 }
 
-bool addVideoSDPSession(unsigned port, SourceManager *receiver, std::string codec = V_CODEC)
+bool addAudioSDPSession(unsigned port, SourceManager *receiver, std::string codec = A_CODEC,
+                        unsigned channels = A_CHANNELS, unsigned freq = A_TIME_STMP_FREQ)
 {
     Session *session;
     std::string sessionId;
     std::string sdp;
 
     sessionId = utils::randomIdGenerator(ID_LENGTH);
-    sdp = SourceManager::makeSessionSDP(sessionId, "this is a video stream");
-    sdp += SourceManager::makeSubsessionSDP(V_MEDIUM, PROTOCOL, V_PAYLOAD, codec,
-                                            V_BANDWITH, V_TIME_STMP_FREQ, port);
+    sdp = SourceManager::makeSessionSDP(sessionId, "this is an audio stream");
+    sdp += SourceManager::makeSubsessionSDP(A_MEDIUM, PROTOCOL, A_PAYLOAD, codec,
+                                            A_BANDWITH, freq, port, channels);
     utils::infoMsg(sdp);
 
     session = Session::createNew(*(receiver->envir()), sdp, sessionId, receiver);
     if (!receiver->addSession(session)){
-        utils::errorMsg("Could not add video session");
+        utils::errorMsg("Could not add audio session");
         return false;
     }
     if (!session->initiateSession()){
-        utils::errorMsg("Could not initiate video session");
+        utils::errorMsg("Could not initiate audio session");
         return false;
     }
 
@@ -219,10 +178,10 @@ bool addRTSPsession(std::string rtspUri, SourceManager *receiver, int receiverId
     while((subsession = iter.next()) != NULL){
         medium = subsession->mediumName();
 
-        if (medium.compare("video") == 0) {
-            addVideoPath(subsession->clientPortNum(), receiverId, mixerId);
+        if (medium.compare("audio") == 0) {
+            addAudioPath(subsession->clientPortNum(), receiverId, mixerId);
         } else {
-            utils::warningMsg("Only video is supported in this test. Ignoring audio streams");
+            utils::warningMsg("Only audio is supported in this test. Ignoring video streams");
         }
     }
 
@@ -273,10 +232,10 @@ int main(int argc, char* argv[])
 
     for (int i = 1; i < argc; i++) {
 
-        if (strcmp(argv[i],"-v") == 0) {
+        if (strcmp(argv[i],"-a") == 0) {
             port = std::stoi(argv[i+1]);
             ports.push_back(port);
-            utils::infoMsg("video input port: " + std::to_string(port));
+            utils::infoMsg("audio input port: " + std::to_string(port));
         } else if (strcmp(argv[i],"-r")==0) {
             uris.push_back(argv[i+1]);
             utils::infoMsg("input RTSP URI: " + rtspUri);
@@ -324,8 +283,8 @@ int main(int argc, char* argv[])
     }
 
     for (auto p : ports) {
-        addVideoSDPSession(p, receiver);
-        addVideoPath(p, receiverId, mixerId);
+        addAudioSDPSession(p, receiver);
+        addAudioPath(p, receiverId, mixerId);
     }
 
     for (auto uri : uris) {

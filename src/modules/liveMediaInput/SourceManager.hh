@@ -118,7 +118,7 @@ private:
     friend bool StreamClientState::addWriterToMngr(unsigned port, Writer* writer);
     bool addWriter(unsigned port, const Writer *writer);
 
-    bool runDoProcessFrame(std::chrono::microseconds outTimestamp);
+    bool runDoProcessFrame();
     void addConnection(int wId, MediaSubsession* subsession);
 
     static void* startServer(void *args);

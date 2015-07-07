@@ -32,12 +32,6 @@
 #define DEFAULT_CHANNEL_GAIN 1.0
 #define AMIXER_MAX_CHANNELS 16
 
-enum mixingAlgorithm
-{
-    LA,      //Linear Attenuation
-    LDRC     //Linear Dynamic Range Compression
-};
-
 class AudioMixer : public ManyToOneFilter {
 
 public:
@@ -50,12 +44,12 @@ private:
     void doGetState(Jzon::Object &filterNode);
     bool doProcessFrame(std::map<int, Frame*> orgFrames, Frame *dst);
     void initializeEventMap();
-    bool pushToBuffer(int id, AudioFrame* frame);
+    bool pushToBuffer(int mixChId, AudioFrame* frame);
     bool fillChannel(std::queue<float> &buffer, int nOfSamples, unsigned char* data, SampleFmt fmt); 
     bool bytesToFloat(unsigned char const* origin, float &dst, SampleFmt fmt); 
     bool floatToBytes(unsigned char* dst, float const origin, SampleFmt fmt);
     bool extractMixedFrame(AudioFrame* frame);
-    void mixSample(float sample, int bufferPosition);
+    void mixSample(float sample, float* mixBuff, int bufferIdx, float gain);
     bool setChannelGain(int id, float value);
 
     bool changeChannelVolumeEvent(Jzon::Node* params);
@@ -73,8 +67,7 @@ private:
     unsigned rear;
 
     float masterGain;
-    float th;  //Dynamic Range Compression algorithms threshold
-    mixingAlgorithm mAlg;
+    float th;  //Dynamic Range Compression algorithm threshold
 
     std::map<int, float> gains;
     std::chrono::microseconds syncTs;

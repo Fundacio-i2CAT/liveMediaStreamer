@@ -78,7 +78,7 @@ bool SourceManager::hasCallback()
     return false;
 }
 
-bool SourceManager::runDoProcessFrame(std::chrono::microseconds outTimestamp)
+bool SourceManager::runDoProcessFrame()
 {
     if (envir() == NULL){
         return false;

@@ -187,9 +187,9 @@ protected:
     virtual Reader *setReader(int readerID, FrameQueue* queue);
     Reader* getReader(int id);
 
-    bool demandOriginFrames(std::chrono::microseconds &outTimestamp);
-    bool demandOriginFramesBestEffort(std::chrono::microseconds &outTimestamp);
-    bool demandOriginFramesFrameTime(std::chrono::microseconds &outTimestamp); 
+    bool demandOriginFrames();
+    bool demandOriginFramesBestEffort();
+    bool demandOriginFramesFrameTime(); 
 
     bool demandDestinationFrames();
 
@@ -199,13 +199,16 @@ protected:
 
     std::map<std::string, std::function<bool(Jzon::Node* params)> > eventMap;
 
-    virtual bool runDoProcessFrame(std::chrono::microseconds outTimestamp) = 0;
+    virtual bool runDoProcessFrame() = 0;
 
     bool removeSlave(int id);
-    std::map<int, BaseFilter*> slaves;
+
+    void setSyncTs(std::chrono::microseconds ts){syncTs = ts;};
+    std::chrono::microseconds getSyncTs(){return syncTs;};
 
 protected:
     bool process;
+    std::map<int, BaseFilter*> slaves;
 
     std::map<int, Reader*> readers;
     std::map<int, const Writer*> writers;
@@ -249,7 +252,7 @@ protected:
     using BaseFilter::getFrameTime;
 
 private:
-    bool runDoProcessFrame(std::chrono::microseconds outTimestamp);
+    bool runDoProcessFrame();
     
     using BaseFilter::demandOriginFrames;
     using BaseFilter::demandDestinationFrames;
@@ -277,7 +280,7 @@ protected:
     using BaseFilter::getFrameTime;
 
 private:
-    bool runDoProcessFrame(std::chrono::microseconds outTimestamp);
+    bool runDoProcessFrame();
 
     using BaseFilter::demandOriginFrames;
     using BaseFilter::demandDestinationFrames;
@@ -311,7 +314,7 @@ protected:
     using BaseFilter::getFrameTime;
 
 private: 
-    bool runDoProcessFrame(std::chrono::microseconds outTimestamp);
+    bool runDoProcessFrame();
 
     using BaseFilter::demandDestinationFrames;
     using BaseFilter::demandOriginFrames;
@@ -341,7 +344,7 @@ protected:
 
 private:
     FrameQueue *allocQueue(int wId) {return NULL;};
-    bool runDoProcessFrame(std::chrono::microseconds outTimestamp);
+    bool runDoProcessFrame();
     virtual bool doProcessFrame(std::map<int, Frame*> orgFrames) = 0;
 
     using BaseFilter::demandDestinationFrames;
@@ -368,7 +371,7 @@ protected:
     using BaseFilter::getFrameTime;
 
 private:   
-    bool runDoProcessFrame(std::chrono::microseconds outTimestamp);
+    bool runDoProcessFrame();
 
     using BaseFilter::demandOriginFrames;
     using BaseFilter::demandDestinationFrames;
@@ -395,7 +398,7 @@ public:
 protected:
     LiveMediaFilter(unsigned readersNum = MAX_READERS, unsigned writersNum = MAX_WRITERS);
 
-    virtual bool runDoProcessFrame(std::chrono::microseconds outTimestamp) = 0;
+    virtual bool runDoProcessFrame() = 0;
 
 private:
     using BaseFilter::demandOriginFrames;

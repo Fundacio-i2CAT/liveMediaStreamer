@@ -124,7 +124,7 @@ protected:
 private:
     VCodecType codec;
 
-    bool runDoProcessFrame(std::chrono::microseconds outTimestamp) {return true;};
+    bool runDoProcessFrame() {return true;};
 };
 
 class OneToOneFilterMockup : public OneToOneFilter
@@ -214,7 +214,7 @@ private:
         watch = false;
     }
     void doGetState(Jzon::Object &filterNode) {};
-    bool runDoProcessFrame(std::chrono::microseconds outTimestamp){
+    bool runDoProcessFrame(){
         if(watch){
             utils::debugMsg("LiveMedia filter dummy runDoProcessFrame\n");
             while(watch){

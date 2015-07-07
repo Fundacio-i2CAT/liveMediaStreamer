@@ -35,22 +35,6 @@
 #include <unistd.h>
 #include <math.h>
 
-/*Dasher* Dasher::createNew(std::string dashFolder, std::string baseName, size_t segDurInSeconds, int readersNum)
-{
-    Dasher* dasher = NULL;
-
-    dasher = new Dasher(readersNum);
-
-    if (!dasher->configure(dashFolder, baseName, segDurInSeconds)) {
-        utils::errorMsg("Error configuring Dasher");
-        delete dasher;
-        return NULL;
-    }
-
-    return dasher;
-}*/
-
-
 Dasher::Dasher(FilterRole fRole_, bool sharedFrames_, unsigned readersNum) :
 TailFilter(fRole_, sharedFrames_, readersNum), mpdMngr(NULL), hasVideo(false), videoStarted(false)
 {

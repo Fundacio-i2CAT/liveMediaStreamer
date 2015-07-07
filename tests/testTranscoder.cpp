@@ -2,7 +2,6 @@
 #include "../src/modules/audioDecoder/AudioDecoderLibav.hh"
 #include "../src/modules/audioMixer/AudioMixer.hh"
 #include "../src/modules/videoEncoder/VideoEncoderX264.hh"
-#include "../src/modules/videoEncoder/VideoEncoderX265.hh"
 #include "../src/modules/videoDecoder/VideoDecoderLibav.hh"
 #include "../src/modules/videoMixer/VideoMixer.hh"
 #include "../src/modules/videoResampler/VideoResampler.hh"
@@ -28,7 +27,7 @@
 
 #define A_MEDIUM "audio"
 #define A_PAYLOAD 97
-#define A_CODEC "OPUS"
+#define A_CODEC "MPEG4-GENERIC"
 #define A_BANDWITH 128
 #define A_TIME_STMP_FREQ 48000
 #define A_CHANNELS 2
@@ -191,9 +190,9 @@ void addVideoPath(unsigned port, Dasher* dasher, int dasherId, int receiverID, i
     VideoResampler *resampler;
     VideoResampler *resampler2;
     VideoResampler *resampler3;
-    VideoEncoderX265 *encoder;
-    VideoEncoderX265 *encoder2;
-    VideoEncoderX265 *encoder3;
+    VideoEncoderX264 *encoder;
+    VideoEncoderX264 *encoder2;
+    VideoEncoderX264 *encoder3;
     VideoDecoderLibav *decoder;
 
     Worker* wDec;
@@ -237,7 +236,7 @@ void addVideoPath(unsigned port, Dasher* dasher, int dasherId, int receiverID, i
     pipe->addWorker(wResId, wRes);
 
     //NOTE: Adding encoder to pipeManager and handle worker
-    encoder = new VideoEncoderX265();
+    encoder = new VideoEncoderX264();
     pipe->addFilter(encId, encoder);
     wEnc = new Worker();
     wEnc->addProcessor(encId, encoder);
@@ -264,7 +263,7 @@ void addVideoPath(unsigned port, Dasher* dasher, int dasherId, int receiverID, i
         } 
 
         //NOTE: Adding resampler to pipeManager and handle worker
-        /*resampler2 = new VideoResampler(SLAVE);
+        resampler2 = new VideoResampler(SLAVE);
         pipe->addFilter(resId2, resampler2);
         wRes2 = new Worker();
         wRes2->addProcessor(resId2, resampler2);
@@ -278,10 +277,10 @@ void addVideoPath(unsigned port, Dasher* dasher, int dasherId, int receiverID, i
         wRes2->addProcessor(resId3, resampler3);
         resampler3->setWorkerId(wResId2);
         resampler3->configure(1280, 720, 0, YUV420P);
-         ((BaseFilter*)resampler)->addSlave(resId3, resampler3);*/
+         ((BaseFilter*)resampler)->addSlave(resId3, resampler3);
 
         //NOTE: Adding encoder to pipeManager and handle worker
-        /*encoder2 = new VideoEncoderX265(SLAVE, false);
+        encoder2 = new VideoEncoderX264(SLAVE, false);
         pipe->addFilter(encId2, encoder2);
         wEnc2 = new Worker();
         wEnc2->addProcessor(encId2, encoder2);
@@ -291,7 +290,7 @@ void addVideoPath(unsigned port, Dasher* dasher, int dasherId, int receiverID, i
 
         encoder2->configure(1000, 25, 25, 25, 4, true, "superfast");
 
-        encoder3 = new VideoEncoderX265(SLAVE, false);
+        encoder3 = new VideoEncoderX264(SLAVE, false);
         pipe->addFilter(encId3, encoder3);
         wEnc3 = new Worker();
         wEnc3->addProcessor(encId3, encoder3);
@@ -299,10 +298,10 @@ void addVideoPath(unsigned port, Dasher* dasher, int dasherId, int receiverID, i
         pipe->addWorker(wEncId3, wEnc3);
         ((BaseFilter*)encoder)->addSlave(wEncId3, encoder3);
 
-        encoder3->configure(250, 25, 25, 25, 4, true, "superfast");*/
+        encoder3->configure(250, 25, 25, 25, 4, true, "superfast");
 
         //NOTE: add filter to path
-        /*slavePath = pipe->createPath(resId2, dasherId, -1, dstReader2, slaveIds);
+        slavePath = pipe->createPath(resId2, dasherId, -1, dstReader2, slaveIds);
         pipe->addPath(slavePathId, slavePath);
         pipe->connectPath(slavePath);
 
@@ -311,8 +310,8 @@ void addVideoPath(unsigned port, Dasher* dasher, int dasherId, int receiverID, i
         pipe->connectPath(slavePath);
 
         utils::infoMsg("Master reader: " + std::to_string(dstReader1));
-        utils::infoMsg("Slave reader: " + std::to_string(dstReader2));*/
-/*
+        utils::infoMsg("Slave reader: " + std::to_string(dstReader2));
+
         if (!dasher->addSegmenter(dstReader2)) {
             utils::errorMsg("Error adding segmenter");
         }
@@ -324,7 +323,7 @@ void addVideoPath(unsigned port, Dasher* dasher, int dasherId, int receiverID, i
         }
         if (!dasher->setDashSegmenterBitrate(dstReader3, 250*1000)) {
             utils::errorMsg("Error setting bitrate to segmenter");
-        }*/
+        }
     }
 
     pipe->startWorkers();

@@ -1,5 +1,5 @@
 /*
- *  DashVideoSegmenterHEVC.cpp - DASH video stream segmenter
+ *  DashVideoSegmenterHEVC.cpp - DASH HEVC video stream segmenter
  *  Copyright (C) 2014  Fundació i2CAT, Internet i Innovació digital a Catalunya
  *
  *  This file is part of liveMediaStreamer.

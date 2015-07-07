@@ -1,5 +1,5 @@
 /*
- *  DashVideoSegmenterAVC.hh - DASH video stream segmenter
+ *  DashVideoSegmenterAVC.hh - DASH AVC video stream segmenter
  *  Copyright (C) 2014  Fundació i2CAT, Internet i Innovació digital a Catalunya
  *
  *  This file is part of liveMediaStreamer.
@@ -42,7 +42,7 @@
 #define PPS_AVC 8
 #define AUD_AVC 9
 
-/*! Class responsible for managing DASH video segments creation. It receives H264 NALs, joining them into complete frames
+/*! Class responsible for managing DASH AVC video segments creation. It receives H264 NALs, joining them into complete frames
     and using these frames to create the segments. It also manages Init Segment creation, constructing MP4 metadata from
     SPS and PPS NALUs*/
 
@@ -78,6 +78,10 @@ public:
     */
     bool isVCLFrame() {return isVCL;};
     
+    /**
+    * Flushes segment context
+    * @return true if success, false otherwise.
+    */
     bool flushDashContext();
 
 private:

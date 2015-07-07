@@ -59,10 +59,12 @@ protected:
 
     Dasher* dasher;
     VideoFilterMockup* h264Filter = NULL;
+    VideoFilterMockup* h265Filter = NULL;
     VideoFilterMockup* vp8Filter = NULL;
     AudioFilterMockup* aacFilter = NULL;
     AudioFilterMockup* mp3Filter = NULL;
     int h264ReaderId = 100;
+    int h265ReaderId = 150;
     int vp8ReaderId = 200;
     int aacReaderId = 300;
     int mp3ReaderId = 400;
@@ -76,10 +78,12 @@ void DasherTest::setUp()
     dasher = new Dasher();
     dasher->configure(dashFolder, baseName, SEG_DURATION);
     h264Filter = new VideoFilterMockup(H264);
+    h265Filter = new VideoFilterMockup(H265);
     vp8Filter = new VideoFilterMockup(VP8);
     aacFilter = new AudioFilterMockup(AAC);
     mp3Filter = new AudioFilterMockup(MP3);
     h264Filter->connectOneToMany(dasher, h264ReaderId);
+    h265Filter->connectOneToMany(dasher, h265ReaderId);
     vp8Filter->connectOneToMany(dasher, vp8ReaderId);
     aacFilter->connectOneToMany(dasher, aacReaderId);
     mp3Filter->connectOneToMany(dasher, mp3ReaderId);
@@ -89,6 +93,7 @@ void DasherTest::tearDown()
 {
     delete dasher;
     delete h264Filter;
+    delete h265Filter;
     delete vp8Filter;
     delete aacFilter;
     delete mp3Filter;
@@ -120,6 +125,7 @@ void DasherTest::addSegmenter()
     CPPUNIT_ASSERT(!dasher->addSegmenter(vp8ReaderId));
     CPPUNIT_ASSERT(!dasher->addSegmenter(mp3ReaderId));
     CPPUNIT_ASSERT(dasher->addSegmenter(h264ReaderId));
+    CPPUNIT_ASSERT(dasher->addSegmenter(h265ReaderId));
     CPPUNIT_ASSERT(dasher->addSegmenter(aacReaderId));
     CPPUNIT_ASSERT(!dasher->addSegmenter(h264ReaderId));
     CPPUNIT_ASSERT(!dasher->addSegmenter(aacReaderId));
@@ -128,8 +134,10 @@ void DasherTest::addSegmenter()
 void DasherTest::removeSegmenter()
 {
     dasher->addSegmenter(h264ReaderId);
+    dasher->addSegmenter(h265ReaderId);
     dasher->addSegmenter(aacReaderId);
     CPPUNIT_ASSERT(dasher->removeSegmenter(h264ReaderId));
+    CPPUNIT_ASSERT(dasher->removeSegmenter(h265ReaderId));
     CPPUNIT_ASSERT(dasher->removeSegmenter(aacReaderId));
     CPPUNIT_ASSERT(!dasher->removeSegmenter(h264ReaderId));
     CPPUNIT_ASSERT(!dasher->removeSegmenter(aacReaderId));
@@ -138,7 +146,9 @@ void DasherTest::removeSegmenter()
 void DasherTest::setDashSegmenterBitrate() 
 {
     dasher->addSegmenter(h264ReaderId);
+    dasher->addSegmenter(h265ReaderId);
     CPPUNIT_ASSERT(dasher->setDashSegmenterBitrate(h264ReaderId, 1000000));
+    CPPUNIT_ASSERT(dasher->setDashSegmenterBitrate(h265ReaderId, 2000000));
     CPPUNIT_ASSERT(!dasher->setDashSegmenterBitrate(aacReaderId, 1000000));
 }
 

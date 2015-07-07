@@ -30,26 +30,16 @@
 #define SHORT_START_CODE_LENGTH 3
 #define LONG_START_CODE_LENGTH 4
 
-/*! Class responsible for managing DASH video segments creation. It receives H264 NALs, joining them into complete frames
+/*! Virtual class responsible for managing DASH video segments creation. It receives H264or5 NALs, joining them into complete frames
     and using these frames to create the segments. It also manages Init Segment creation, constructing MP4 metadata from
-    SPS and PPS NALUs*/
+    SPS and PPS (and VPS) NALUs*/
 
 class DashVideoSegmenter : public DashSegmenter {
 
 public:
     /**
-    * It manages an input NAL, doing different actions depending on its type. Contemplated NALUs are:
-    *   - SPS (7) and PPS (8)
-    *      Saves this NALs to generate InitSegment. They will be not appended to the frame
-    *   - SEI (6)
-    *       It is just ignored
-    *   - AUD (9)
-    *       It is used to detect the end of a frame. It is not appended to the internal frame buffer. It
-    *       sets newFrame to true only if the previously received NALs are VCL (IDR and NON-IDR)
-    *   - IDR (5)
-    *       It is appended to the internal frame buffer and activates isIntra flag
-    *   - NON-IDR (1)
-    *       It is appended to the internal frame buffer
+    * It manages an input NAL, doing different actions depending on its type. See children classes headers to check which 
+    * types of NALUs are checked.
     * @param frame Pointer the source NAL, which must be contained in a VideoFrame structure
     * @param newFrame Passed as reference, it indicates if there is a complete frame in the internal frame buffer
     * @return false if error and true if the NAL has been managed correctly
@@ -98,22 +88,32 @@ public:
     */
     size_t getFramerate() {return frameRate;};
 
+    /**
+    * Return the video format string (i.e.: avc or hevc types)
+    * @return video format as string
+    */
     std::string getVideoFormat() {return video_format;};
 
+    /**
+    * Processes incoming frames to be appended to current segment
+    * @return true if success, false otherwise.
+    */
     bool appendFrameToDashSegment(DashSegment* segment);
+    
+    /**
+    * Processes current data in buffer to generate new segment
+    * @return true if success, false otherwise.
+    */
     bool generateSegment(DashSegment* segment);
+
+    /**
+    * Virtual method that flushes segment context at children classes
+    * @return true if success, false otherwise.
+    */
     virtual bool flushDashContext() = 0;
 
 protected:
-    /**
-    * Class constructor
-    * @param segDur Segment duration in milliseconds
-    */
     DashVideoSegmenter(std::chrono::seconds segDur, std::string video_format_);
-
-    /**
-    * Class destructor
-    */
     virtual ~DashVideoSegmenter();
 
     virtual bool updateMetadata() = 0;

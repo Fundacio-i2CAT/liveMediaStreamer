@@ -1,5 +1,5 @@
 /*
- *  DashVideoSegmenterHEVC.hh - DASH video stream segmenter
+ *  DashVideoSegmenterHEVC.hh - DASH HEVC video stream segmenter
  *  Copyright (C) 2014  Fundació i2CAT, Internet i Innovació digital a Catalunya
  *
  *  This file is part of liveMediaStreamer.
@@ -67,9 +67,9 @@
 #define PREFIX_SEI_NUT 39
 #define SUFFIX_SEI_NUT 40 
 
-/*! Class responsible for managing DASH video segments creation. It receives H264 NALs, joining them into complete frames
+/*! Class responsible for managing DASH HEVC video segments creation. It receives H265 NALs, joining them into complete frames
     and using these frames to create the segments. It also manages Init Segment creation, constructing MP4 metadata from
-    SPS and PPS NALUs*/
+    VPS, SPS and PPS NALUs*/
 
 class DashVideoSegmenterHEVC : public DashVideoSegmenter {
 
@@ -102,7 +102,11 @@ public:
     * @return true if VCL NAL (IDR and NON-IDR) and false if not (SPS, PPS, SEI)
     */
     bool isVCLFrame() {return isVCL;};
-    
+        
+    /**
+    * Flushes segment context
+    * @return true if success, false otherwise.
+    */
     bool flushDashContext();
 
 private:

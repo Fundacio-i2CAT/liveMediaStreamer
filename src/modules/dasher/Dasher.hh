@@ -61,10 +61,7 @@ public:
     * @param segDurInSeconds is the time duration in seconds
     * @return Pointer to the object if succeded and NULL if not
     */
-//    static Dasher* createNew(std::string dashFolder, std::string baseName, size_t segDurInSeconds, int readersNum = MAX_READERS);
-
     Dasher(FilterRole fRole_ = MASTER, bool sharedFrames_ = true, unsigned readersNum = MAX_READERS);
-
 
     /**
     * Class destructor

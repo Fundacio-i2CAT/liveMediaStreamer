@@ -54,7 +54,6 @@ BaseFilter::~BaseFilter()
     writers.clear();
     oFrames.clear();
     dFrames.clear();
-    rUpdates.clear();
 }
 
 void BaseFilter::setFrameTime(std::chrono::nanoseconds fTime)
@@ -142,17 +141,13 @@ bool BaseFilter::demandOriginFrames()
 
         if (oFrames[it.first] != NULL) {
             if (newFrame) {
-                rUpdates[it.first] = true;
+                oFrames[it.first]->setConsumed(true);
             } else {
-                rUpdates[it.first] = false;
+                oFrames[it.first]->setConsumed(false);
             }
 
             someFrame = true;
-
-        } else {
-            rUpdates[it.first] = false;
-        }
-
+        } 
     }
 
     if (qState == SLOW) {
@@ -210,12 +205,16 @@ std::vector<int> BaseFilter::addFrames()
 
 std::vector<int> BaseFilter::removeFrames()
 {
-    std::lock_guard<std::mutex> guard(readersWritersLck);
-    
     std::vector<int> enabledJobs;
     
+    if (maxReaders == 0){
+        return enabledJobs;
+    }
+    
+    std::lock_guard<std::mutex> guard(readersWritersLck);
+    
     for (auto it : readers){
-        if (rUpdates[it.first]){
+        if (oFrames[it.first] != NULL && oFrames[it.first]->getConsumed()){
             enabledJobs.push_back(it.second->removeFrame());
         }
     }
@@ -452,9 +451,12 @@ std::vector<int> BaseFilter::processFrame(int& ret)
         case SLAVE:
             enabledJobs = slaveProcessFrame(ret);
             break;
-		case NETWORK:
-            enabledJobs = runDoProcessFrame();
+        case NETWORK:
+            runDoProcessFrame();
             ret = 0;
+            break;
+        case SERVER:
+            enabledJobs = serverProcessFrame(ret);
         default:
             ret = 0;
             break;
@@ -526,12 +528,13 @@ std::vector<int> BaseFilter::masterProcessFrame(int& ret)
 
     processAll();
 
-    enabledJobs = runDoProcessFrame();
+    runDoProcessFrame();
 
     while (runningSlaves()){
         std::this_thread::sleep_for(std::chrono::nanoseconds(RETRY));
     }
 
+    enabledJobs = addFrames();
     removeFrames();
 
     if (frameTime.count() == 0) {
@@ -557,6 +560,25 @@ std::vector<int> BaseFilter::masterProcessFrame(int& ret)
     return enabledJobs;
 }
 
+std::vector<int> BaseFilter::serverProcessFrame(int& ret)
+{
+    std::vector<int> enabledJobs;
+
+    processEvent();
+      
+    demandOriginFrames();
+    demandDestinationFrames();
+
+    runDoProcessFrame();
+
+    enabledJobs = addFrames();
+    removeFrames();
+    
+    ret = 0;
+    
+    return enabledJobs;
+}
+
 std::vector<int> BaseFilter::slaveProcessFrame(int& ret)
 {
     std::vector<int> enabledJobs;
@@ -578,7 +600,9 @@ std::vector<int> BaseFilter::slaveProcessFrame(int& ret)
         return enabledJobs;
     }
 
-    enabledJobs = runDoProcessFrame();
+    runDoProcessFrame();
+    
+    enabledJobs = addFrames();
 
     process = false;
     return enabledJobs;
@@ -594,9 +618,8 @@ OneToOneFilter::OneToOneFilter(bool byPassTimestamp, FilterRole fRole_, size_t f
 {
 }
 
-std::vector<int> OneToOneFilter::runDoProcessFrame()
+bool OneToOneFilter::runDoProcessFrame()
 {
-    std::vector<int> enabledJobs;
     if (updateTimestamp() && doProcessFrame(oFrames.begin()->second, dFrames.begin()->second)) {
         if (passTimestamp){
             dFrames.begin()->second->setPresentationTime(oFrames.begin()->second->getPresentationTime());
@@ -605,11 +628,10 @@ std::vector<int> OneToOneFilter::runDoProcessFrame()
         }
         dFrames.begin()->second->setDuration(duration);
         dFrames.begin()->second->setSequenceNumber(oFrames.begin()->second->getSequenceNumber());
-        enabledJobs = addFrames();
-        return enabledJobs;
+        return true;
     }
 
-    return enabledJobs;
+    return false;
 }
 
 
@@ -618,45 +640,29 @@ OneToManyFilter::OneToManyFilter(FilterRole fRole_, unsigned writersNum, size_t 
 {
 }
 
-std::vector<int> OneToManyFilter::runDoProcessFrame()
+bool OneToManyFilter::runDoProcessFrame()
 {
-    std::vector<int> enabledJobs;
     if (updateTimestamp() && doProcessFrame(oFrames.begin()->second, dFrames)) {
-
         for (auto it : dFrames) {
             it.second->setPresentationTime(timestamp);
             it.second->setDuration(duration);
             it.second->setSequenceNumber(oFrames.begin()->second->getSequenceNumber());
         }
-
-        enabledJobs = addFrames();
-        return enabledJobs;
+        return true;
     }
 
-    return enabledJobs;
+    return false;
 }
 
 
 HeadFilter::HeadFilter(FilterRole fRole_, size_t fTime, unsigned writersNum, bool periodic) :
     BaseFilter(0, writersNum, fTime, fRole_, false, periodic)
 {
-    
 }
 
-std::vector<int> HeadFilter::runDoProcessFrame()
+bool HeadFilter::runDoProcessFrame()
 {
-    std::vector<int> enabledJobs;
-    if (updateTimestamp() && doProcessFrame(dFrames)) {
-        for (auto it : dFrames) {
-            it.second->setPresentationTime(timestamp);
-            it.second->setDuration(duration);
-            it.second->setSequenceNumber(seqNums[it.first]++);
-        }
-        enabledJobs = addFrames();
-        return enabledJobs;
-    }
-
-    return enabledJobs;
+    return doProcessFrame(dFrames);
 }
 
 void HeadFilter::pushEvent(Event e)
@@ -683,11 +689,9 @@ TailFilter::TailFilter(FilterRole fRole_, unsigned readersNum, size_t fTime, boo
 {
 }
 
-std::vector<int> TailFilter::runDoProcessFrame()
+bool TailFilter::runDoProcessFrame()
 {
-    std::vector<int> enabledJobs;
-    doProcessFrame(oFrames);
-    return enabledJobs;
+    return doProcessFrame(oFrames);
 }
 
 
@@ -716,19 +720,17 @@ ManyToOneFilter::ManyToOneFilter(FilterRole fRole_, unsigned readersNum, size_t 
 {
 }
 
-std::vector<int> ManyToOneFilter::runDoProcessFrame()
+bool ManyToOneFilter::runDoProcessFrame()
 {
-    std::vector<int> enabledJobs;
     if (updateTimestamp() && doProcessFrame(oFrames, dFrames.begin()->second)) {
         dFrames.begin()->second->setPresentationTime(timestamp);
         dFrames.begin()->second->setDuration(duration);
         seqNums[dFrames.begin()->first]++;
         dFrames.begin()->second->setSequenceNumber(seqNums[dFrames.begin()->first]);
-        enabledJobs = addFrames();
-        return enabledJobs;
+        return true;
     }
 
-    return enabledJobs;
+    return false;
 }
 
 LiveMediaFilter::LiveMediaFilter(unsigned readersNum, unsigned writersNum, bool periodic) :
@@ -736,10 +738,9 @@ BaseFilter(readersNum, writersNum, 0, NETWORK, false, periodic)
 {
 }
 
-std::vector<int> LiveMediaFilter::runDoProcessFrame(){
-    std::vector<int> enabledJobs;
-    doProcessFrame();
-    return enabledJobs;
+bool LiveMediaFilter::runDoProcessFrame()
+{
+    return doProcessFrame();
 }
 
 void LiveMediaFilter::pushEvent(Event e)

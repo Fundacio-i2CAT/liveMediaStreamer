@@ -199,7 +199,7 @@ protected:
     bool updateTimestamp();
     std::map<std::string, std::function<bool(Jzon::Node* params)> > eventMap;
 
-    virtual std::vector<int> runDoProcessFrame() = 0;
+    virtual bool runDoProcessFrame() = 0;
 
     bool removeSlave(int id);
     std::map<int, BaseFilter*> slaves;
@@ -224,16 +224,17 @@ protected:
     std::chrono::nanoseconds diffTime;
     std::chrono::system_clock::time_point wallClock;
 
-    unsigned maxReaders;
-    unsigned maxWriters;
+    const unsigned maxReaders;
+    const unsigned maxWriters;
     std::chrono::nanoseconds frameTime;
 
 private:   
     bool connect(BaseFilter *R, int writerID, int readerID);
     std::vector<int> masterProcessFrame(int& ret);
+    std::vector<int> slaveProcessFrame(int& ret);
+    std::vector<int> serverProcessFrame(int& ret);
     void processAll();
     bool runningSlaves();
-    std::vector<int> slaveProcessFrame(int& ret);
     void execute() {process = true;};
     bool isProcessing() {return process;};
     void updateFrames(std::map<int, Frame*> oFrames_);
@@ -244,7 +245,6 @@ private:
     std::mutex readersWritersLck;
     
     bool enabled;
-    std::map<int, bool> rUpdates;
     FilterRole const fRole;
     bool force;
 };
@@ -259,7 +259,7 @@ protected:
 
 private:
     bool passTimestamp;
-    std::vector<int> runDoProcessFrame();
+    bool runDoProcessFrame();
     using BaseFilter::demandOriginFrames;
     using BaseFilter::demandDestinationFrames;
     using BaseFilter::addFrames;
@@ -294,7 +294,7 @@ protected:
     using BaseFilter::getFrameTime;
 
 private:
-    std::vector<int> runDoProcessFrame();
+    bool runDoProcessFrame();
     using BaseFilter::demandOriginFrames;
     using BaseFilter::demandDestinationFrames;
     using BaseFilter::addFrames;
@@ -334,7 +334,7 @@ protected:
     using BaseFilter::getFrameTime;
 
 private: 
-    std::vector<int> runDoProcessFrame();
+    bool runDoProcessFrame();
     using BaseFilter::demandOriginFrames;
     using BaseFilter::demandDestinationFrames;
     using BaseFilter::addFrames;
@@ -371,7 +371,7 @@ protected:
 
 private:
     FrameQueue *allocQueue(int wFId, int rFId, int wId) {return NULL;};
-    std::vector<int> runDoProcessFrame();
+    bool runDoProcessFrame();
     virtual bool doProcessFrame(std::map<int, Frame*> orgFrames) = 0;
     using BaseFilter::demandOriginFrames;
     using BaseFilter::demandDestinationFrames;
@@ -405,7 +405,7 @@ protected:
     using BaseFilter::getFrameTime;
 
 private:   
-    std::vector<int> runDoProcessFrame();
+    bool runDoProcessFrame();
     using BaseFilter::demandOriginFrames;
     using BaseFilter::demandDestinationFrames;
     using BaseFilter::addFrames;
@@ -442,7 +442,7 @@ protected:
     virtual bool doProcessFrame() = 0;
 
 private:
-    std::vector<int> runDoProcessFrame();
+    bool runDoProcessFrame();
     using BaseFilter::demandOriginFrames;
     using BaseFilter::demandDestinationFrames;
     using BaseFilter::addFrames;

@@ -107,10 +107,7 @@ protected:
 class BaseFilterMockup : public BaseFilter
 {
 public:
-    BaseFilterMockup(unsigned readers, unsigned writers) : BaseFilter() {
-        maxReaders = readers;
-        maxWriters = writers;
-    };
+    BaseFilterMockup(unsigned readers, unsigned writers) : BaseFilter(readers, writers) {};
 
     using BaseFilter::getReader;
 
@@ -132,9 +129,8 @@ protected:
 private:
     VCodecType codec;
 
-    std::vector<int> runDoProcessFrame() {
-        std::vector<int> enabledJobs;
-        return enabledJobs;
+    bool runDoProcessFrame() {
+        return true;
     };
 };
 

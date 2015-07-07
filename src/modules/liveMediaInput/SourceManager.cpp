@@ -36,7 +36,7 @@ FrameQueue* createAudioQueue(int wFId, int rFId, unsigned char rtpPayloadFormat,
                              char const* codecName, unsigned channels,
                              unsigned sampleRate);
 
-SourceManager::SourceManager(unsigned writersNum): HeadFilter(MASTER, 0, writersNum)
+SourceManager::SourceManager(unsigned writersNum): HeadFilter(SERVER, 0, writersNum)
 {
     fType = RECEIVER;
 

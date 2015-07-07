@@ -37,13 +37,14 @@ extern "C" {
 #include <map>
 #include <string>
 
-#define DASH_VIDEO_TIME_BASE 12800
-#define V_ADAPT_SET_ID "0"
-#define A_ADAPT_SET_ID "1"
-#define VIDEO_CODEC "avc1.42c01e"
-#define AUDIO_CODEC "mp4a.40.2"
-#define V_EXT ".m4v"
-#define A_EXT ".m4a"
+#define DASH_VIDEO_TIME_BASE    12800
+#define V_ADAPT_SET_ID          "0"
+#define A_ADAPT_SET_ID          "1"
+#define VIDEO_CODEC_AVC         "avc1.42c01e"
+#define VIDEO_CODEC_HEVC        "hev1"
+#define AUDIO_CODEC             "mp4a.40.2"
+#define V_EXT                   ".m4v"
+#define A_EXT                   ".m4a"
 
 class DashSegmenter;
 class DashSegment;

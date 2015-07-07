@@ -26,24 +26,9 @@
 
 #include "Dasher.hh"
 
-#define H264_NALU_START_CODE 0x00000001
+#define H264or5_NALU_START_CODE 0x00000001
 #define SHORT_START_CODE_LENGTH 3
 #define LONG_START_CODE_LENGTH 4
-#define H264_NALU_TYPE_MASK 0x1F
-
-#define H264_METADATA_VERSION_FLAG 0x01
-#define METADATA_RESERVED_BYTES1 0xFC
-#define AVCC_HEADER_BYTES_MINUS_ONE 0x03
-#define METADATA_RESERVED_BYTES2 0xE0
-#define NUMBER_OF_SPS 0x01
-#define NUMBER_OF_PPS 0x01
-
-#define NON_IDR 1
-#define IDR 5
-#define SEI 6
-#define SPS 7
-#define PPS 8
-#define AUD 9
 
 /*! Class responsible for managing DASH video segments creation. It receives H264 NALs, joining them into complete frames
     and using these frames to create the segments. It also manages Init Segment creation, constructing MP4 metadata from
@@ -52,18 +37,6 @@
 class DashVideoSegmenter : public DashSegmenter {
 
 public:
-    /**
-    * Class constructor
-    * @param segDur Segment duration in milliseconds
-    * @param segBaseName Base name for the segments. Segment names will be: segBaseName_<timestamp>.m4v and segBaseName_init.m4v
-    */
-    DashVideoSegmenter(std::chrono::seconds segDur);
-
-    /**
-    * Class destructor
-    */
-    ~DashVideoSegmenter();
-
     /**
     * It manages an input NAL, doing different actions depending on its type. Contemplated NALUs are:
     *   - SPS (7) and PPS (8)
@@ -90,30 +63,6 @@ public:
     bool updateConfig();
 
     /**
-    * Returns the isIntra flag, set by the last execution of manageFrame method
-    * @return true if intraFrame and false if not
-    */
-    bool isIntraFrame() {return isIntra;};
-
-    /**
-    * Returns the isVCL flag, set by the last execution of manageFrame method
-    * @return true if VCL NAL (IDR and NON-IDR) and false if not (SPS, PPS, SEI)
-    */
-    bool isVCLFrame() {return isVCL;};
-
-    /**
-    * Return the last stored SPS size
-    * @return size in bytes
-    */
-    size_t getSPSsize() {return lastSPS.size();};
-
-    /**
-    * Return the last stored PPS size
-    * @return size in bytes
-    */
-    size_t getPPSsize() {return lastPPS.size();};
-
-    /**
     * Return the last stored PPS size
     * @return size in bytes
     */
@@ -124,7 +73,13 @@ public:
     * @return timestamp in milliseconds
     */
     std::chrono::system_clock::time_point getCurrentTimestamp() {return currTimestamp;};
-
+    
+    /**
+    * Returns the isIntra flag, set by the last execution of manageFrame method
+    * @return true if intraFrame and false if not
+    */
+    bool isIntraFrame() {return isIntra;};
+    
     /**
     * Return the width of the last complete frame managed by manageFrame method
     * @return width in pixels
@@ -143,35 +98,43 @@ public:
     */
     size_t getFramerate() {return frameRate;};
 
+    std::string getVideoFormat() {return video_format;};
+
     bool appendFrameToDashSegment(DashSegment* segment);
     bool generateSegment(DashSegment* segment);
-    bool flushDashContext();
+    virtual bool flushDashContext() = 0;
 
-private:
-    bool updateMetadata();
+protected:
+    /**
+    * Class constructor
+    * @param segDur Segment duration in milliseconds
+    */
+    DashVideoSegmenter(std::chrono::seconds segDur, std::string video_format_);
+
+    /**
+    * Class destructor
+    */
+    virtual ~DashVideoSegmenter();
+
+    virtual bool updateMetadata() = 0;
+    virtual bool setup(size_t segmentDuration, size_t timeBase, size_t sampleDuration, size_t width, size_t height, size_t framerate) = 0;
+    virtual bool appendNalToFrame(unsigned char* nalData, unsigned nalDataLength, bool &newFrame) = 0;
+    virtual void createMetadata() = 0;
+
     bool generateInitData(DashSegment* segment);
-
-    bool setup(size_t segmentDuration, size_t timeBase, size_t sampleDuration, size_t width, size_t height, size_t framerate);
     bool parseNal(VideoFrame* nal, bool &newFrame);
     int detectStartCode(unsigned char const* ptr);
-    void saveSPS(unsigned char* data, int dataLength);
-    void savePPS(unsigned char* data, int dataLength);
-    void createMetadata();
-    bool appendNalToFrame(unsigned char* nalData, unsigned nalDataLength, bool &newFrame);
     bool updateTimeValues();
 
     std::vector<unsigned char> frameData;
-    std::vector<unsigned char> lastSPS;
-    std::vector<unsigned char> lastPPS;
-    bool updatedSPS;
-    bool updatedPPS;
     size_t frameRate;
     bool isIntra;
-    bool isVCL;
+
     std::chrono::system_clock::time_point currTimestamp;
     std::chrono::nanoseconds currDuration;
     size_t width;
     size_t height;
+    const std::string video_format;
 };
 
 #endif

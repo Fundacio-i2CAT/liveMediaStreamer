@@ -24,6 +24,8 @@
 #include "Dasher.hh"
 #include "../../AVFramedQueue.hh"
 #include "DashVideoSegmenter.hh"
+#include "DashVideoSegmenterAVC.hh"
+#include "DashVideoSegmenterHEVC.hh"
 #include "DashAudioSegmenter.hh"
 
 #include <map>
@@ -33,7 +35,7 @@
 #include <unistd.h>
 #include <math.h>
 
-Dasher* Dasher::createNew(std::string dashFolder, std::string baseName, size_t segDurInSeconds, int readersNum)
+/*Dasher* Dasher::createNew(std::string dashFolder, std::string baseName, size_t segDurInSeconds, int readersNum)
 {
     Dasher* dasher = NULL;
 
@@ -46,7 +48,7 @@ Dasher* Dasher::createNew(std::string dashFolder, std::string baseName, size_t s
     }
 
     return dasher;
-}
+}*/
 
 
 Dasher::Dasher(FilterRole fRole_, bool sharedFrames_, unsigned readersNum) :
@@ -240,7 +242,7 @@ bool Dasher::generateSegment(size_t id, DashSegmenter* segmenter)
         }
 
         mpdMngr->updateVideoAdaptationSet(V_ADAPT_SET_ID, segmenters[id]->getTimeBase(), vSegTempl, vInitSegTempl);
-        mpdMngr->updateVideoRepresentation(V_ADAPT_SET_ID, std::to_string(id), VIDEO_CODEC, vSeg->getWidth(),
+        mpdMngr->updateVideoRepresentation(V_ADAPT_SET_ID, std::to_string(id), vSeg->getVideoFormat(), vSeg->getWidth(),
                                             vSeg->getHeight(), vSeg->getBitrate(), vSeg->getFramerate());
 
         if (!updateTimestampControl(vSegments, refTimestamp, refDuration)) {
@@ -539,7 +541,12 @@ bool Dasher::addSegmenter(int readerId)
             return false;
         }
 
-        segmenters[readerId] = new DashVideoSegmenter(segDur);
+        if (vQueue->getCodec() == H264) segmenters[readerId] = new DashVideoSegmenterAVC(segDur);
+        else if (vQueue->getCodec() == H265) segmenters[readerId] = new DashVideoSegmenterHEVC(segDur);
+        else {
+            utils::errorMsg("Error setting dasher video segmenter: only H264 & H265 codecs are supported for video");
+            return false;
+        }
         segmenters[readerId]->setOffset(timestampOffset);
         vSegments[readerId] = new DashSegment();
         initSegments[readerId] = new DashSegment();

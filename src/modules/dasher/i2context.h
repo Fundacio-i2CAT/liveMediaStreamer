@@ -83,6 +83,7 @@ typedef struct {
     uint32_t        sequence_number;
     uint32_t        current_video_duration;
     i2ctx_sample    *ctxsample;
+    uint32_t        video_type;
 } i2ctx_video;
 
 typedef struct {

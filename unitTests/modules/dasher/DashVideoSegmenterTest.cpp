@@ -31,6 +31,8 @@
 #include <cppunit/XmlOutputter.h>
 
 #include "modules/dasher/DashVideoSegmenter.hh"
+#include "modules/dasher/DashVideoSegmenterAVC.hh"
+#include "modules/dasher/DashVideoSegmenterHEVC.hh"
 
 #define SEG_DURATION 2
 #define BASE_NAME "testsData/modules/dasher/dashVideoSegmenterTest/test"
@@ -84,7 +86,7 @@ protected:
     void appendFrameToDashSegment();
     void generateSegment();
 
-    DashVideoSegmenter* segmenter;
+    DashVideoSegmenterAVC* segmenter;
     AudioFrame* aFrame;
     VideoFrame *spsNal;
     VideoFrame *ppsNal;
@@ -104,7 +106,7 @@ void DashVideoSegmenterTest::setUp()
     frameTime = std::chrono::microseconds(40000);
     nanoFrameTime = std::chrono::duration_cast<std::chrono::nanoseconds>(frameTime);
 
-    segmenter = new DashVideoSegmenter(std::chrono::seconds(SEG_DURATION));
+    segmenter = new DashVideoSegmenterAVC(std::chrono::seconds(SEG_DURATION));
     dummyNal = InterleavedVideoFrame::createNew(H264, MAX_H264_OR_5_NAL_SIZE);
 
     spsNal = InterleavedVideoFrame::createNew(H264, MAX_H264_OR_5_NAL_SIZE);

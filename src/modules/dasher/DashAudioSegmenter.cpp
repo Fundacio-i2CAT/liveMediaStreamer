@@ -84,7 +84,8 @@ bool DashAudioSegmenter::appendFrameToDashSegment(DashSegment* segment)
         return false;
     }
 
-    theoricPts = customTimestamp(aFrame->getPresentationTime());
+    // theoricPts = customTimestamp(aFrame->getPresentationTime());
+    theoricPts = customTimestamp(std::chrono::system_clock::now());
 
     dataWithoutADTS = aFrame->getDataBuf() + ADTS_HEADER_LENGTH;
     dataLengthWithoutADTS = aFrame->getLength() - ADTS_HEADER_LENGTH;

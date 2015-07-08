@@ -100,6 +100,92 @@ private:
     OneToOneFilter *filterToTest;
 };
 
+class ManyToOneVideoScenarioMockup {
+
+public: 
+    ManyToOneVideoScenarioMockup(ManyToOneFilter* fToTest): filterToTest(fToTest) 
+    {
+        tailF = new VideoTailFilterMockup();
+    };
+    
+    ~ManyToOneVideoScenarioMockup()
+    {
+        disconnectFilters();
+
+        for (auto f : headFilters) {
+            delete f.second;
+        }
+
+        delete tailF;
+    }
+
+    bool addHeadFilter(int id, VCodecType c, PixType pix = P_NONE) 
+    {
+        if (headFilters.count(id) > 0) {
+            return false;
+        }
+
+        headFilters[id] = new VideoHeadFilterMockup(c, pix);
+        return true;
+    }
+    
+    bool connectFilters() 
+    {
+        if (filterToTest == NULL || headFilters.empty()) {
+            return false;
+        }
+
+        for (auto f : headFilters) {
+            if (!f.second->connectOneToMany(filterToTest, f.first)) {
+                return false;
+            }
+        }
+        
+        if (!filterToTest->connectOneToOne(tailF)) {
+            return false;
+        }
+        
+        return true;
+    };
+    
+    void disconnectFilters() 
+    {
+        for (auto f : headFilters) {
+            f.second->disconnectAll();
+        }
+
+        filterToTest->disconnectAll();
+        tailF->disconnectAll();
+    }
+    
+    int processFrame(InterleavedVideoFrame* srcFrame)
+    {
+        int ret;
+
+        for (auto f : headFilters) {
+            if (!f.second->inject(srcFrame)) {
+                return 0;
+            }
+            f.second->processFrame(ret);
+        }   
+        
+        filterToTest->processFrame(ret);
+        return ret;
+    }
+    
+    InterleavedVideoFrame *extractFrame()
+    {
+        int ret;
+        tailF->processFrame(ret);
+        return tailF->extract();
+    }
+    
+private:
+    std::map<int,VideoHeadFilterMockup*> headFilters;
+    ManyToOneFilter *filterToTest;
+    VideoTailFilterMockup *tailF;
+};
+
 class InterleavedFramesWriter {
 public:
     InterleavedFramesWriter(): file(""){};
@@ -150,6 +236,10 @@ class AVFramesReader {
 public:
     AVFramesReader(): fmtCtx(NULL), frame(NULL){
         av_register_all();
+    };
+
+    ~AVFramesReader() {
+        close();
     };
     
     bool openFile(std::string file, VCodecType c, PixType pix = P_NONE, 
@@ -223,6 +313,7 @@ public:
         if (av_read_frame(fmtCtx, &pkt) >= 0){
             memmove(frame->getDataBuf(), pkt.data, sizeof(unsigned char)*pkt.size);
             frame->setLength(pkt.size);
+            frame->setPresentationTime(std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now().time_since_epoch()));
             return frame;
         } 
         

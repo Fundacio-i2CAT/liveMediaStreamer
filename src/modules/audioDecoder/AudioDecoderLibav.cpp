@@ -48,7 +48,7 @@ AVSampleFormat getAVSampleFormatFromtIntCode(int id)
 }
 
 AudioDecoderLibav::AudioDecoderLibav(FilterRole fRole_)
-: OneToOneFilter(true, fRole_)
+: OneToOneFilter(fRole_)
 {
     avcodec_register_all();
 
@@ -67,7 +67,7 @@ AudioDecoderLibav::AudioDecoderLibav(FilterRole fRole_)
 
     initializeEventMap();
 
-    configure(S16P, DEFAULT_CHANNELS, DEFAULT_SAMPLE_RATE);
+    configure(FLTP, DEFAULT_CHANNELS, DEFAULT_SAMPLE_RATE);
 }
 
 AudioDecoderLibav::~AudioDecoderLibav()
@@ -81,7 +81,8 @@ AudioDecoderLibav::~AudioDecoderLibav()
 
 FrameQueue* AudioDecoderLibav::allocQueue(int wFId, int rFId, int wId)
 {
-    return AudioCircularBuffer::createNew(wFId, rFId, outChannels, outSampleRate, AudioFrame::getMaxSamples(outSampleRate), outSampleFmt);
+    return AudioCircularBuffer::createNew(wFId, rFId, outChannels, outSampleRate, DEFAULT_BUFFER_SIZE, 
+                                            outSampleFmt, std::chrono::milliseconds(BUFFERING_THRESHOLD));
 }
 
 bool AudioDecoderLibav::doProcessFrame(Frame *org, Frame *dst)

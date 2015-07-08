@@ -42,8 +42,6 @@ class FilterUnitTest : public CppUnit::TestFixture
     CPPUNIT_TEST(connectManyToOne);
     CPPUNIT_TEST(connectOneToMany);
     CPPUNIT_TEST(connectManyToMany);
-    CPPUNIT_TEST(connectLiveMediaToMany);
-    CPPUNIT_TEST(connectManyToLiveMedia);
     CPPUNIT_TEST_SUITE_END();
 
 public:
@@ -55,8 +53,6 @@ protected:
     void connectManyToOne();
     void connectOneToMany();
     void connectManyToMany();
-    void connectLiveMediaToMany();
-    void connectManyToLiveMedia();
 };
 
 void FilterUnitTest::setUp()
@@ -153,66 +149,12 @@ void FilterUnitTest::connectManyToMany()
     delete satelliteFilter;
 }
 
-void FilterUnitTest::connectLiveMediaToMany()
-{
-    BaseFilter* headLiveMediaFilterToTest = new LiveMediaFilterMockup(0,2,1,false);
-    BaseFilter* satelliteFilter = new BaseFilterMockup(2,1);
-
-    CPPUNIT_ASSERT(headLiveMediaFilterToTest->connectManyToMany(satelliteFilter,1,1));
-    CPPUNIT_ASSERT(headLiveMediaFilterToTest->connectManyToMany(satelliteFilter,2,2));
-
-    CPPUNIT_ASSERT(!headLiveMediaFilterToTest->connectManyToMany(satelliteFilter,2,1));
-    CPPUNIT_ASSERT(!headLiveMediaFilterToTest->connectManyToMany(satelliteFilter,1,2));
-
-    CPPUNIT_ASSERT(headLiveMediaFilterToTest->disconnectWriter(1));
-    CPPUNIT_ASSERT(satelliteFilter->disconnectReader(1));
-    CPPUNIT_ASSERT(headLiveMediaFilterToTest->disconnectWriter(2));
-    CPPUNIT_ASSERT(satelliteFilter->disconnectReader(2));
-
-    CPPUNIT_ASSERT(headLiveMediaFilterToTest->connectManyToMany(satelliteFilter,2,1));
-    CPPUNIT_ASSERT(headLiveMediaFilterToTest->connectManyToMany(satelliteFilter,1,2));
-
-    headLiveMediaFilterToTest->disconnectAll();
-    satelliteFilter->disconnectAll();
-
-    delete headLiveMediaFilterToTest;
-    delete satelliteFilter;
-}
-
-void FilterUnitTest::connectManyToLiveMedia()
-{
-    BaseFilter* tailLiveMediaFilterToTest = new LiveMediaFilterMockup(2,0,1,false);
-    BaseFilter* satelliteFilter = new BaseFilterMockup(1,2);
-
-    CPPUNIT_ASSERT(satelliteFilter->connectManyToMany(tailLiveMediaFilterToTest,1,1));
-    CPPUNIT_ASSERT(satelliteFilter->connectManyToMany(tailLiveMediaFilterToTest,2,2));
-
-    CPPUNIT_ASSERT(!satelliteFilter->connectManyToMany(tailLiveMediaFilterToTest,2,1));
-    CPPUNIT_ASSERT(!satelliteFilter->connectManyToMany(tailLiveMediaFilterToTest,1,2));
-
-    CPPUNIT_ASSERT(satelliteFilter->disconnectWriter(1));
-    CPPUNIT_ASSERT(tailLiveMediaFilterToTest->disconnectReader(1));
-    CPPUNIT_ASSERT(satelliteFilter->disconnectWriter(2));
-    CPPUNIT_ASSERT(tailLiveMediaFilterToTest->disconnectReader(2));
-
-    CPPUNIT_ASSERT(satelliteFilter->connectManyToMany(tailLiveMediaFilterToTest,2,1));
-    CPPUNIT_ASSERT(satelliteFilter->connectManyToMany(tailLiveMediaFilterToTest,1,2));
-
-    tailLiveMediaFilterToTest->disconnectAll();
-    satelliteFilter->disconnectAll();
-
-    delete tailLiveMediaFilterToTest;
-    delete satelliteFilter;
-}
-
-
 class FilterFunctionalTest : public CppUnit::TestFixture
 {
     CPPUNIT_TEST_SUITE(FilterFunctionalTest);
     CPPUNIT_TEST(oneToOneMasterProcessFrame);
     CPPUNIT_TEST(oneToOneSlaveProcessFrame);
     CPPUNIT_TEST(masterSlavesSharedFramesTest);
-    CPPUNIT_TEST(liveMediaSourceFilterTest);
     CPPUNIT_TEST_SUITE_END();
 
 public:
@@ -224,7 +166,6 @@ protected:
     void oneToOneMasterProcessFrame();
     void oneToOneSlaveProcessFrame();
     void masterSlavesSharedFramesTest();
-    void liveMediaSourceFilterTest();
 };
 
 void FilterFunctionalTest::setUp()
@@ -239,8 +180,8 @@ void FilterFunctionalTest::tearDown()
 
 void FilterFunctionalTest::oneToOneMasterProcessFrame()
 {
-    int frameTime = std::chrono::nanoseconds(15000000).count();
-    int processTime = std::chrono::nanoseconds(10000000).count();
+    std::chrono::microseconds frameTime = std::chrono::microseconds(15000);
+    std::chrono::microseconds processTime = std::chrono::microseconds(10000);
 
     //TODO: this test should be done with HeadFilterMockup
     BaseFilter* filterToTest = new OneToOneFilterMockup(processTime, 4, true, frameTime, MASTER);
@@ -254,7 +195,7 @@ void FilterFunctionalTest::oneToOneMasterProcessFrame()
     int ret;
 
     filterToTest->processFrame(ret);
-    CPPUNIT_ASSERT(ret == RETRY/1000);
+    CPPUNIT_ASSERT(ret == RETRY);
 
     filterMockup = dynamic_cast<OneToOneFilterMockup*>(filterToTest);
 
@@ -265,24 +206,24 @@ void FilterFunctionalTest::oneToOneMasterProcessFrame()
     frameQueue = dynamic_cast<AVFramedQueueMock*>(reader->getQueue());
 
     filterToTest->processFrame(ret);
-    CPPUNIT_ASSERT(ret == RETRY/1000);
+    CPPUNIT_ASSERT(ret == RETRY);
 
     for (int i = 0; i < 10; i++){
         frameQueue->addFrame();
         filterToTest->processFrame(ret);
         time = ret;
         utils::debugMsg("Time to sleep in microseconds " + std::to_string(time));
-        CPPUNIT_ASSERT(time > 0 && time >= processTime/2000 && time < frameTime*1.5/1000);
+        CPPUNIT_ASSERT(time > 0 && time >= processTime.count()/2 && time < frameTime.count()*1.5);
     }
 
     filterToTest->processFrame(ret);
-    CPPUNIT_ASSERT(ret == RETRY/1000);
+    CPPUNIT_ASSERT(ret == RETRY);
 
     delete filterToTest;
     CPPUNIT_ASSERT(satelliteFilterFirst->disconnectWriter(1));
     CPPUNIT_ASSERT(satelliteFilterLast->disconnectReader(1));
 
-    filterToTest = new OneToOneFilterMockup(processTime, 4, true, 0, MASTER);
+    filterToTest = new OneToOneFilterMockup(processTime, 4, true, std::chrono::microseconds(0), MASTER);
     filterMockup = dynamic_cast<OneToOneFilterMockup*>(filterToTest);
 
     CPPUNIT_ASSERT(satelliteFilterFirst->connectOneToOne(filterToTest));
@@ -296,7 +237,7 @@ void FilterFunctionalTest::oneToOneMasterProcessFrame()
     filterToTest->processFrame(ret);
     CPPUNIT_ASSERT(ret == 0);
     filterToTest->processFrame(ret);
-    CPPUNIT_ASSERT(ret == RETRY/1000);
+    CPPUNIT_ASSERT(ret == RETRY);
 
     delete filterToTest;
     delete satelliteFilterFirst;
@@ -305,11 +246,11 @@ void FilterFunctionalTest::oneToOneMasterProcessFrame()
 
 void FilterFunctionalTest::oneToOneSlaveProcessFrame()
 {
-    size_t frameTime= 15000;
-    size_t processTime = 10000;
+    std::chrono::microseconds frameTime = std::chrono::microseconds(15000);
+    std::chrono::microseconds processTime = std::chrono::microseconds(10000);
     int ret;
     
-    BaseFilter* filterToTest = new OneToOneFilterMockup(processTime,4, true, frameTime, SLAVE);
+    BaseFilter* filterToTest = new OneToOneFilterMockup(processTime, 4, true, frameTime, SLAVE);
     BaseFilter* satelliteFilterFirst = new BaseFilterMockup(2,1);
     BaseFilter* satelliteFilterLast = new BaseFilterMockup(1,2);
 
@@ -325,20 +266,20 @@ void FilterFunctionalTest::oneToOneSlaveProcessFrame()
 
     frameQueue->addFrame();
     filterToTest->processFrame(ret);
-    CPPUNIT_ASSERT(ret == RETRY/1000);
+    CPPUNIT_ASSERT(ret == RETRY);
     filterToTest->processFrame(ret);
-    CPPUNIT_ASSERT(ret == RETRY/1000);
+    CPPUNIT_ASSERT(ret == RETRY);
 
     frameQueue->addFrame();
     frameQueue->addFrame();
     filterToTest->processFrame(ret);
-    CPPUNIT_ASSERT(ret == RETRY/1000);
+    CPPUNIT_ASSERT(ret == RETRY);
 
     delete filterToTest;
     CPPUNIT_ASSERT(satelliteFilterFirst->disconnectWriter(1));
     CPPUNIT_ASSERT(satelliteFilterLast->disconnectReader(1));
 
-    filterToTest = new OneToOneFilterMockup(processTime, 4, false, 0, SLAVE);
+    filterToTest = new OneToOneFilterMockup(processTime, 4, false, std::chrono::microseconds(0), SLAVE);
 
     CPPUNIT_ASSERT(satelliteFilterFirst->connectOneToOne(filterToTest));
     CPPUNIT_ASSERT(filterToTest->connectOneToOne(satelliteFilterLast));
@@ -349,9 +290,9 @@ void FilterFunctionalTest::oneToOneSlaveProcessFrame()
 
     frameQueue->addFrame();
     filterToTest->processFrame(ret);
-    CPPUNIT_ASSERT(ret == RETRY/1000);
+    CPPUNIT_ASSERT(ret == RETRY);
     filterToTest->processFrame(ret);
-    CPPUNIT_ASSERT(ret == RETRY/1000);
+    CPPUNIT_ASSERT(ret == RETRY);
 
     delete filterToTest;
     delete satelliteFilterFirst;
@@ -360,12 +301,14 @@ void FilterFunctionalTest::oneToOneSlaveProcessFrame()
 
 void FilterFunctionalTest::masterSlavesSharedFramesTest()
 {
+    std::chrono::microseconds frameTime = std::chrono::microseconds(40000);
+    std::chrono::microseconds processTime = std::chrono::microseconds(15000);
     std::cout << "slaves test" << std::endl;
     //TODO: we should recheck sharedFrames slaves doesn't have a connected reader
-    BaseFilter* master = new OneToOneFilterMockup(15000, 4, true, 40000, MASTER);
-    BaseFilter* slave1 = new OneToOneFilterMockup(15000, 4, true, 40000, SLAVE);
-    BaseFilter* slave2 = new OneToOneFilterMockup(15000, 4, false, 40000, SLAVE);
-    BaseFilter* fakeSlave = new OneToOneFilterMockup(15000, 4, true, 40000, MASTER);
+    BaseFilter* master = new OneToOneFilterMockup(processTime, 4, true, frameTime, MASTER);
+    BaseFilter* slave1 = new OneToOneFilterMockup(processTime, 4, true, frameTime, SLAVE);
+    BaseFilter* slave2 = new OneToOneFilterMockup(processTime, 4, false, frameTime, SLAVE);
+    BaseFilter* fakeSlave = new OneToOneFilterMockup(processTime, 4, true, frameTime, MASTER);
     
     WorkersPool* pool = new WorkersPool();
     
@@ -429,10 +372,10 @@ void FilterFunctionalTest::masterSlavesSharedFramesTest()
     
     size_t seq = 0;
     size_t elements = slave1Out->getElements();
-    bool newFrame;
+
     for (size_t i = 0; i < elements; i ++){
-        CPPUNIT_ASSERT(seq < slave1Out->getFront(newFrame)->getSequenceNumber());
-        seq = slave1Out->getFront(newFrame)->getSequenceNumber();
+        CPPUNIT_ASSERT(seq < slave1Out->getFront()->getSequenceNumber());
+        seq = slave1Out->getFront()->getSequenceNumber();
         slave1Out->removeFrame();
     }
 
@@ -442,23 +385,6 @@ void FilterFunctionalTest::masterSlavesSharedFramesTest()
     delete satelliteFilterFirst;
     delete satelliteFilterLast;
     delete fakeSlave;
-}
-
-//TODO: to implement liveMediaSinkFilterTest too
-void FilterFunctionalTest::liveMediaSourceFilterTest()
-{
-    BaseFilter* headFilterToTest = new LiveMediaFilterMockup(0,10000,4,true);
-    BaseFilter* satelliteFilter1 = new BaseFilterMockup(1,1);
-    BaseFilter* satelliteFilter2 = new BaseFilterMockup(1,1);
-
-    CPPUNIT_ASSERT(headFilterToTest->connectManyToOne(satelliteFilter1,1));
-    CPPUNIT_ASSERT(headFilterToTest->connectManyToOne(satelliteFilter2,2));
-
-    CPPUNIT_ASSERT(headFilterToTest->disconnectWriter(1));
-
-    delete headFilterToTest;
-    delete satelliteFilter1;
-    delete satelliteFilter2;
 }
 
 CPPUNIT_TEST_SUITE_REGISTRATION(FilterFunctionalTest);

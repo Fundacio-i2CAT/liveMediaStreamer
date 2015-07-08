@@ -154,7 +154,7 @@ void DashVideoSegmenterTest::manageSetInternalValues()
     bool newFrame;
 
     std::chrono::microseconds timestamp(tsValue);
-    idrNal->setPresentationTime(std::chrono::system_clock::time_point(timestamp));
+    idrNal->setPresentationTime(timestamp);
     idrNal->setSize(WIDTH, HEIGHT);
 
     CPPUNIT_ASSERT(segmenter->manageFrame(idrNal, newFrame));
@@ -234,11 +234,11 @@ void DashVideoSegmenterTest::updateConfig()
 
     CPPUNIT_ASSERT(!segmenter->updateConfig());
 
-    std::chrono::system_clock::time_point ts = std::chrono::system_clock::now();
-    idrNal->setPresentationTime(std::chrono::system_clock::time_point(ts));
+    std::chrono::microseconds ts(1000);
+    idrNal->setPresentationTime(ts);
     idrNal->setDuration(nanoFrameTime);
     idrNal->setSize(WIDTH, HEIGHT);
-    audNal->setPresentationTime(std::chrono::system_clock::time_point(ts));
+    audNal->setPresentationTime(ts);
     audNal->setDuration(nanoFrameTime);
     audNal->setSize(WIDTH, HEIGHT);
 
@@ -254,7 +254,7 @@ void DashVideoSegmenterTest::generateInitSegment()
     char* initModel = new char[MAX_DAT];
     size_t initModelLength;
     DashSegment* initSegment = new DashSegment();
-    std::chrono::system_clock::time_point ts = std::chrono::system_clock::now();
+    std::chrono::microseconds ts(1000);
     bool newFrame;
 
     spsNal->setSize(WIDTH, HEIGHT);
@@ -284,7 +284,7 @@ void DashVideoSegmenterTest::appendFrameToDashSegment()
 {
     bool newFrame;
     DashSegment* segment = new DashSegment();
-    std::chrono::system_clock::time_point ts = std::chrono::system_clock::now();
+    std::chrono::microseconds ts(1000);
 
     CPPUNIT_ASSERT(!segmenter->appendFrameToDashSegment(segment));
 
@@ -316,7 +316,7 @@ void DashVideoSegmenterTest::generateSegment()
     DashSegment* segment = new DashSegment();
 
     bool newFrame;
-    std::chrono::system_clock::time_point ts(std::chrono::microseconds(1000));
+    std::chrono::microseconds ts(1000);
     size_t nalCounter = 0;
     size_t dataLength = 0;
     std::string strName;

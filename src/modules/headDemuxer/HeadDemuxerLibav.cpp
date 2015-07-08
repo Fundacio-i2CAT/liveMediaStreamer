@@ -23,7 +23,7 @@
 #include "HeadDemuxerLibav.hh"
 #include "../../AVFramedQueue.hh"
 
-HeadDemuxerLibav::HeadDemuxerLibav() : HeadFilter (MASTER, 0, 2)
+HeadDemuxerLibav::HeadDemuxerLibav() : HeadFilter (MASTER, 2)
 {
     // Initialize libav
     av_register_all();
@@ -87,8 +87,7 @@ bool HeadDemuxerLibav::doProcessFrame(std::map<int, Frame*> dstFrames)
         f->setConsumed(true);
         f->setLength(pkt.size);
         f->setPresentationTime(
-            std::chrono::system_clock::time_point(
-                std::chrono::microseconds(1000000 * pkt.pts * sinfo->time_base_num / sinfo->time_base_den)));
+            std::chrono::microseconds(1000000 * pkt.pts * sinfo->time_base_num / sinfo->time_base_den));
         f->setDuration(
             std::chrono::nanoseconds(1000000000 * pkt.duration * sinfo->time_base_num / sinfo->time_base_den));
     }

@@ -145,7 +145,7 @@ bool PipelineManager::createFilter(int id, FilterType type, FilterRole role)
             filter = new VideoResampler(role);
             break;
         case VIDEO_MIXER:
-            filter = new VideoMixer(role);
+            filter = VideoMixer::createNew(role);
             break;
         case AUDIO_DECODER:
             filter = new AudioDecoderLibav(role);

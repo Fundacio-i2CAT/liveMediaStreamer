@@ -23,7 +23,7 @@
 
 #include "Handlers.hh"
 #include "QueueSink.hh"
-#include "H264QueueSink.hh"
+#include "H264VideoSdpParser.hh"
 #include "SourceManager.hh"
 #include "ExtendedRTSPClient.hh"
 
@@ -283,24 +283,27 @@ namespace handlers
     {
         int wId;
         QueueSink *sink;
+        FramedFilter* filter = NULL;
 
         wId = subsession->clientPortNum();
-
-        if (strcmp(subsession->codecName(), "H264") == 0 || strcmp(subsession->codecName(), "H265") == 0) {
-            sink = H264QueueSink::createNew(env, wId, subsession->fmtp_spropparametersets());
-        } else {
-            sink = QueueSink::createNew(env, wId);
-        }
+        sink = QueueSink::createNew(env, wId);
 
         if (sink == NULL){
-            utils::errorMsg("failed to create Sink!");
+            utils::errorMsg("Error creating subsession sink");
             return false;
         }
 
         subsession->sink = sink;
+        
+        if (strcmp(subsession->codecName(), "H264") == 0 || strcmp(subsession->codecName(), "H265") == 0) {
+            filter = H264VideoSdpParser::createNew(env, subsession->readSource(), subsession->fmtp_spropparametersets());
+        }
 
-        subsession->sink->startPlaying(*(subsession->readSource()),
-                                       handlers::subsessionAfterPlaying, subsession);
+        if (filter) {
+            subsession->addFilter(filter);
+        }
+
+        subsession->sink->startPlaying(*(subsession->readSource()), handlers::subsessionAfterPlaying, subsession);
 
         if (subsession->rtcpInstance() != NULL) {
             subsession->rtcpInstance()->setByeHandler(handlers::subsessionByeHandler, subsession);

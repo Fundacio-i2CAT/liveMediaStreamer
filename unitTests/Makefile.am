@@ -1,11 +1,26 @@
 AUTOMAKE_OPTIONS = foreign
 
-bin_PROGRAMS = connectionTest sinkManagerTest filterTest dasherTest dashAudioSegmenterTest dashVideoSegmenterTest mpdManagerTest encodingDecodingTest sharedMemoryTest slicedVideoFrameQueueTest headDemuxerTest headDemuxerFunctionalTest workersPoolTest
+bin_PROGRAMS = connectionTest sinkManagerTest filterTest dasherTest dashAudioSegmenterTest dashVideoSegmenterTest mpdManagerTest encodingDecodingTest sharedMemoryTest slicedVideoFrameQueueTest audioCircularBufferTest videoMixerTest videoMixerFunctionalTest headDemuxerTest headDemuxerFunctionalTest workersPoolTest
+
+videoMixerTest_SOURCES = modules/videoMixer/VideoMixerTest.cpp ../src/modules/videoMixer/VideoMixer.cpp ../src/AVFramedQueue.cpp ../src/IOInterface.cpp ../src/Event.cpp ../src/Frame.cpp ../src/VideoFrame.cpp ../src/AudioFrame.cpp ../src/Jzon.cpp ../src/Utils.cpp ../src/Filter.cpp ../src/Runnable.cpp
+videoMixerTest_CPPFLAGS = -g -Wall -D__STDC_CONSTANT_MACROS -I../src/
+videoMixerTest_CXXFLAGS = -std=c++11
+videoMixerTest_LDFLAGS = -L../src -lcppunit 
+
+audioCircularBufferTest_SOURCES = AudioCircularBufferTest.cpp ../src/AudioCircularBuffer.cpp ../src/Jzon.cpp ../src/Utils.cpp ../src/Frame.cpp ../src/AudioFrame.cpp
+audioCircularBufferTest_CPPFLAGS = -g -Wall -D__STDC_CONSTANT_MACROS -I../src/
+audioCircularBufferTest_CXXFLAGS = -std=c++11
+audioCircularBufferTest_LDFLAGS = -L../src -lcppunit -lavutil -lavcodec -lavformat -lswresample -lfdk-aac
 
 slicedVideoFrameQueueTest_SOURCES = SlicedVideoFrameQueueTest.cpp ../src/SlicedVideoFrameQueue.cpp ../src/VideoFrame.cpp ../src/AVFramedQueue.cpp ../src/Jzon.cpp ../src/Utils.cpp ../src/Frame.cpp ../src/AudioFrame.cpp
 slicedVideoFrameQueueTest_CPPFLAGS = -g -Wall -D__STDC_CONSTANT_MACROS -I../src/
 slicedVideoFrameQueueTest_CXXFLAGS = -std=c++11
 slicedVideoFrameQueueTest_LDFLAGS = -L../src -lcppunit -lavutil -lavcodec -lavformat -lswresample -lfdk-aac
+
+videoMixerFunctionalTest_SOURCES = VideoMixerFunctionalTest.cpp ../src/modules/videoMixer/VideoMixer.cpp ../src/AVFramedQueue.cpp ../src/IOInterface.cpp ../src/Event.cpp ../src/Frame.cpp ../src/VideoFrame.cpp ../src/Jzon.cpp ../src/Utils.cpp ../src/Filter.cpp ../src/AudioFrame.cpp ../src/SlicedVideoFrameQueue.cpp ../src/Runnable.cpp
+videoMixerFunctionalTest_CPPFLAGS = -g -Wall -D__STDC_CONSTANT_MACROS -I../src/
+videoMixerFunctionalTest_CXXFLAGS = -std=c++11
+videoMixerFunctionalTest_LDFLAGS = -L../src -lcppunit -lavutil -lavcodec -lavformat -lswresample -lfdk-aac
 
 encodingDecodingTest_SOURCES = EncodingDecodingTest.cpp ../src/modules/videoEncoder/VideoEncoderX264or5.cpp ../src/modules/videoEncoder/VideoEncoderX264.cpp ../src/modules/videoEncoder/VideoEncoderX265.cpp ../src/modules/videoDecoder/VideoDecoderLibav.cpp ../src/AVFramedQueue.cpp ../src/IOInterface.cpp ../src/Event.cpp ../src/Frame.cpp ../src/VideoFrame.cpp ../src/Jzon.cpp ../src/Utils.cpp ../src/Filter.cpp ../src/AudioFrame.cpp ../src/SlicedVideoFrameQueue.cpp ../src/Runnable.cpp
 encodingDecodingTest_CPPFLAGS = -g -Wall -D__STDC_CONSTANT_MACROS -I../src/

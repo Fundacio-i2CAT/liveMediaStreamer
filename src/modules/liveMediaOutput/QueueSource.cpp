@@ -1,7 +1,8 @@
 #include "QueueSource.hh"
 #include "SinkManager.hh"
 
-QueueSource* QueueSource::createNew(UsageEnvironment& env, int readerId) {
+QueueSource* QueueSource::createNew(UsageEnvironment& env, int readerId) 
+{
   return new QueueSource(env, readerId);
 }
 
@@ -40,14 +41,10 @@ void QueueSource::deliverFrame()
     if (!frame) {
         return;
     }
-    
-    std::chrono::microseconds presentationTime;
 
-    presentationTime = duration_cast<std::chrono::microseconds>(frame->getPresentationTime().time_since_epoch());
+    fPresentationTime.tv_sec = frame->getPresentationTime().count()/std::micro::den;
+    fPresentationTime.tv_usec = frame->getPresentationTime().count()%std::micro::den;
 
-    fPresentationTime.tv_sec = presentationTime.count()/std::micro::den;
-    fPresentationTime.tv_usec = presentationTime.count()%std::micro::den;
-    
     if (fMaxSize < frame->getLength()){
         fFrameSize = fMaxSize;
         fNumTruncatedBytes = frame->getLength() - fMaxSize;

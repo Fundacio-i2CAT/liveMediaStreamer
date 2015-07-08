@@ -44,7 +44,7 @@ QueueSink* QueueSink::createNew(UsageEnvironment& env, unsigned port)
 }
 
 Boolean QueueSink::continuePlaying()
-{   
+{
     if (fSource == NULL) {
         utils::errorMsg("Cannot play, fSource is null");
         return False;
@@ -83,10 +83,12 @@ void QueueSink::afterGettingFrame(void* clientData, unsigned frameSize,
 
 void QueueSink::afterGettingFrame(unsigned frameSize, struct timeval presentationTime)
 {
-    if (frame != NULL){
+    std::chrono::microseconds ts = std::chrono::microseconds(presentationTime.tv_sec * std::micro::den + presentationTime.tv_usec);
+
+    if (frame != NULL) {
         frame->setLength(frameSize);
         frame->newOriginTime();
-        frame->setPresentationTime(std::chrono::system_clock::now());
+        frame->setPresentationTime(ts);
         frame->setSequenceNumber(++seqNum);
         frame->setConsumed(true);
         nextFrame = true;

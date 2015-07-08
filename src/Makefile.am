@@ -17,10 +17,10 @@ liblivemediastreamer_la_SOURCES = modules/audioDecoder/AudioDecoderLibav.cpp \
                                   modules/dasher/i2libdash.c \
                                   modules/dasher/i2libisoff.c \
                                   modules/liveMediaInput/ExtendedRTSPClient.cpp \
-                                  modules/liveMediaInput/H264QueueSink.cpp \
                                   modules/liveMediaInput/Handlers.cpp \
                                   modules/liveMediaInput/QueueSink.cpp \
                                   modules/liveMediaInput/SourceManager.cpp \
+                                  modules/liveMediaInput/H264VideoSdpParser.cpp \
                                   modules/liveMediaOutput/AudioQueueServerMediaSubsession.cpp \
                                   modules/liveMediaOutput/H264or5QueueServerMediaSubsession.cpp \
                                   modules/liveMediaOutput/H264QueueServerMediaSubsession.cpp \

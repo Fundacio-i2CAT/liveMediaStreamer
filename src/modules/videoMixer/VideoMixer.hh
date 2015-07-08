@@ -27,14 +27,29 @@
 #include "../../Filter.hh"
 #include <opencv/cv.hpp>
 
-
-#define MAX_LAYERS 16
 #define VMIXER_MAX_CHANNELS 16
+
+/*! Class that contains one mixer channel configuration */
 
 class ChannelConfig {
 
 public:
-    ChannelConfig(float width, float height, float x, float y, int layer);
+    /**
+    * Class constructor. It sets its attributes to default values
+    * @see VideoMixer
+    */
+    ChannelConfig();
+
+    /**
+    * It sets class attributes. NOTE: it does not validate parameters coherence, so it must be done from outside
+    * @param width Channel width in mixing width percentage (0.0,1.0]. Real width will be mixingWidth*width 
+    * @param height Channel height in mixing height percentage (0.0,1.0]. Real height will be mixingHeight*height 
+    * @param x Upper left corner X position in percentage (0.0,1.0]
+    * @param y Upper left corner Y position in percentage (0.0,1.0]
+    * @param layer Mixing layer. Range between 0 (rear) and MAX_CHANNELS(front)
+    * @param enabled If true, channels is used for the mixing. If false, it is ignored. 
+    * @param opacity Opacity value (0.0, 1.0)
+    */
     void config(float width, float height, float x, float y, int layer, bool enabled, float opacity);
 
     float getWidth() {return width;};
@@ -55,19 +70,56 @@ private:
     float opacity;
 };
 
+/*! Filter that mixes different video frames in one frame. Each channel is identified by and Id 
+*   (which coincides with the reader associated to it) and has its own configuration 
+*/
+
 class VideoMixer : public ManyToOneFilter {
 
     public:
-        VideoMixer(FilterRole fRole_ = MASTER,
-                   int framerate = VIDEO_DEFAULT_FRAMERATE,
+        /**
+        * Class constructor wrapper used to validate input params
+        * @param outWidth Mixed frames width in pixels
+        * @param outHeight Mixed frames height in pixels
+        * @param fTime Frame time in microseconds
+        * @param fRole_ Filter role (NETWORK, MASTER, SLAVE)
+        * @return Pointer to new object if succeed of NULL if not
+        */
+        static VideoMixer* createNew(FilterRole fRole_ = MASTER,
                    int inputChannels = VMIXER_MAX_CHANNELS,
                    int outputWidth = DEFAULT_WIDTH,
                    int outputHeight = DEFAULT_HEIGHT,
-                   size_t fTime = 0);
+                   std::chrono::microseconds fTime = std::chrono::microseconds(0));
+        /**
+        * Class destructor
+        */
         ~VideoMixer();
-        Reader* setReader(int readerID, FrameQueue* queue);
+
+		//TODO: to private
+        /**
+        * Configure channel, validating introduced data
+        * @param id Channel id
+        * @param width See ChannelConfig::config
+        * @param height See ChannelConfig::config
+        * @param x See ChannelConfig::config
+        * @param y See ChannelConfig::config
+        * @param layer See ChannelConfig::config
+        * @param enabled See ChannelConfig::config
+        * @param opacity See ChannelConfig::config
+        */
+        bool configChannel(int id, float width, float height, float x, float y, int layer, bool enabled, float opacity);
+
+        /**
+        * @return Mixing max channels
+        */
+        int getMaxChannels() {return maxChannels;};
 
     protected:
+        //Protected for testing purposes
+        VideoMixer(FilterRole fRole, int inputChannels,
+                   int outWidth, int outHeight,
+                   std::chrono::microseconds fTime);
+        Reader* setReader(int readerID, FrameQueue* queue);
         FrameQueue *allocQueue(int wFId, int rFId, int wId);
         bool doProcessFrame(std::map<int, Frame*> orgFrames, Frame *dst);
         void doGetState(Jzon::Object &filterNode);
@@ -75,8 +127,6 @@ class VideoMixer : public ManyToOneFilter {
     private:
         void initializeEventMap();
         void pasteToLayout(int frameID, VideoFrame* vFrame);
-        bool configChannel(int id, float width, float height, float x, float y, int layer, bool enabled, float opacity);
-
         bool configChannelEvent(Jzon::Node* params);
 
         std::map<int, ChannelConfig*> channelsConfig;

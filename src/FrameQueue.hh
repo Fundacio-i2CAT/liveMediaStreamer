@@ -39,8 +39,6 @@
 
 using namespace std::chrono;
 
-enum QueueState{SLOW, FAST};
-
 /*! FrameQueue class is pure abstract class that represents buffering structure
     of the pipeline
 */
@@ -50,7 +48,7 @@ public:
     /**
     * Creates a frame object
     */
-    FrameQueue(int wId, int rId) : state(SLOW), rear(0), front(0), elements(0), connected(false), firstFrame(false), rFilterId(rId), wFilterId(wId) {};
+    FrameQueue(int wId, int rId) : rear(0), front(0), elements(0), connected(false), firstFrame(false), rFilterId(rId), wFilterId(wId) {};
     virtual ~FrameQueue() {};
 
     /**
@@ -63,7 +61,7 @@ public:
     * Returns frame object from queue's front
     * @return frame object
     */
-    virtual Frame *getFront(bool &newFrame) = 0;
+    virtual Frame *getFront() = 0;
 
     /**
     * Adds frame to queue elements
@@ -90,22 +88,15 @@ public:
 
     /**
     * Forces getting frame from queue's front
-    * @param boolean returning true if there is a new frame from queue's front
     * @return frame object
     */
-    virtual Frame *forceGetFront(bool &newFrame) = 0;
+    virtual Frame *forceGetFront() = 0;
 
     /**
     * To know if there is a new frame to read
     * @return true if there is a new frame or false if not
     */
     virtual bool frameToRead() = 0;
-
-    /**
-    * Get queue's state
-    * @return queuestate object
-    */
-    virtual QueueState getState() = 0;
 
     /**
     * To know if the queue is connected with a reader and a writer
@@ -120,12 +111,17 @@ public:
     void setConnected(bool conn) {connected = conn;};
     
     //TODO: delete
-    int getId(){
-        return rFilterId;
-    }
+    //int getId(){
+      //  return rFilterId;
+    //}
+
+    /**
+    * Get number of elements in the queue
+    * @return elements
+    */
+    unsigned getElements() {return elements;};
 
 protected:
-    QueueState state;
     unsigned rear;
     unsigned front;
     std::atomic<unsigned> elements;

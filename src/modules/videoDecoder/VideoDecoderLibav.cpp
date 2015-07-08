@@ -27,7 +27,7 @@
 
 PixType getPixelFormat(AVPixelFormat format);
 
-VideoDecoderLibav::VideoDecoderLibav(FilterRole fRole_) : OneToOneFilter(true, fRole_)
+VideoDecoderLibav::VideoDecoderLibav(FilterRole fRole_) : OneToOneFilter(fRole_)
 {
     avcodec_register_all();
 

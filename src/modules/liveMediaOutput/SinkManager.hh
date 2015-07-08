@@ -40,7 +40,7 @@
 #define INIT_SEGMENT 0
 
 
-class SinkManager : public LiveMediaFilter {
+class SinkManager : public TailFilter {
 public:
     static SinkManager* createNew(unsigned readersNum = MAX_READERS);
     

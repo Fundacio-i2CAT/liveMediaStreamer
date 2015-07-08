@@ -47,7 +47,7 @@ SinkManager* SinkManager::createNew(unsigned readersNum)
 }
 
 SinkManager::SinkManager(unsigned readersNum) :
-LiveMediaFilter(readersNum, 0), rtspServer(NULL)
+TailFilter(SERVER, readersNum, 0, true), rtspServer(NULL)
 {
     scheduler = BasicTaskScheduler::createNew();
     env = BasicUsageEnvironment::createNew(*scheduler);

@@ -34,29 +34,28 @@
 class QueueSink: public MediaSink {
 
 public:
-    static QueueSink* createNew(UsageEnvironment& env, Writer *writer, unsigned port);
-    Writer* getWriter() const {return fWriter;};
+    static QueueSink* createNew(UsageEnvironment& env, unsigned port);
     unsigned getPort() {return fPort;};
+    bool setFrame(Frame *f);
 
 protected:
-    QueueSink(UsageEnvironment& env, Writer *writer, unsigned port);
+    QueueSink(UsageEnvironment& env, unsigned port);
     ~QueueSink();
-
-protected:
+    
+    void static staticContinuePlaying(QueueSink *sink);
     virtual Boolean continuePlaying();
-
-protected:
     static void afterGettingFrame(void* clientData, unsigned frameSize,
                 unsigned numTruncatedBytes,
                 struct timeval presentationTime,
                 unsigned durationInMicroseconds);
     virtual void afterGettingFrame(unsigned frameSize, struct timeval presentationTime);
 
-    Writer *fWriter;
+protected:
     unsigned fPort;
     Frame *frame;
     unsigned char *dummyBuffer;
     size_t seqNum;
+    bool nextFrame;
 };
 
 #endif

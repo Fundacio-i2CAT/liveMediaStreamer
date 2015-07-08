@@ -27,8 +27,8 @@
 
 #define MAX_PLANES_PER_PICTURE 4
 
-VideoEncoderX264::VideoEncoderX264(FilterRole fRole, bool sharedFrames) :
-VideoEncoderX264or5(fRole, sharedFrames), encoder(NULL)
+VideoEncoderX264::VideoEncoderX264(FilterRole fRole) :
+VideoEncoderX264or5(fRole), encoder(NULL)
 {
     pts = 0;
     x264_picture_init(&picIn);
@@ -134,9 +134,9 @@ bool VideoEncoderX264::encodeHeadersFrame(VideoFrame* frame)
     return true;
 }
 
-FrameQueue* VideoEncoderX264::allocQueue(int wId)
+FrameQueue* VideoEncoderX264::allocQueue(int wFId, int rFId, int wId)
 {
-    return SlicedVideoFrameQueue::createNew(H264, DEFAULT_VIDEO_FRAMES, MAX_H264_OR_5_NAL_SIZE);
+    return SlicedVideoFrameQueue::createNew(wFId, rFId, H264, DEFAULT_VIDEO_FRAMES, MAX_H264_OR_5_NAL_SIZE);
 }
 
 bool VideoEncoderX264::reconfigure(VideoFrame* orgFrame, VideoFrame* dstFrame)

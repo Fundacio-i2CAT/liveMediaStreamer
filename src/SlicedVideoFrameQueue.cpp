@@ -25,7 +25,7 @@
 #include "Utils.hh"
 #include <cstring>
 
-SlicedVideoFrameQueue* SlicedVideoFrameQueue::createNew(VCodecType codec, unsigned maxFrames, unsigned maxSliceSize)
+SlicedVideoFrameQueue* SlicedVideoFrameQueue::createNew(int wId, int rId, VCodecType codec, unsigned maxFrames, unsigned maxSliceSize)
 {
     SlicedVideoFrameQueue* q;
 
@@ -33,7 +33,7 @@ SlicedVideoFrameQueue* SlicedVideoFrameQueue::createNew(VCodecType codec, unsign
         return NULL;
     }
 
-    q = new SlicedVideoFrameQueue(codec, maxFrames);
+    q = new SlicedVideoFrameQueue(wId, rId, codec, maxFrames);
 
     if (!q->setup(maxSliceSize)) {
         utils::errorMsg("SlicedVideoFrameQueue setup error");
@@ -44,8 +44,8 @@ SlicedVideoFrameQueue* SlicedVideoFrameQueue::createNew(VCodecType codec, unsign
     return q;
 }
 
-SlicedVideoFrameQueue::SlicedVideoFrameQueue(VCodecType codec, unsigned maxFrames) : 
-VideoFrameQueue(codec, maxFrames)
+SlicedVideoFrameQueue::SlicedVideoFrameQueue(int wId, int rId, VCodecType codec, unsigned maxFrames) : 
+VideoFrameQueue(wId, rId, codec, maxFrames)
 {
 
 }
@@ -64,9 +64,10 @@ Frame* SlicedVideoFrameQueue::getRear()
     return inputFrame;
 }
 
-void SlicedVideoFrameQueue::addFrame()
+int SlicedVideoFrameQueue::addFrame()
 {
     pushBack();
+    return rFilterId;
 }
 
 Frame* SlicedVideoFrameQueue::forceGetRear()

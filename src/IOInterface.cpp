@@ -62,9 +62,9 @@ Frame* Reader::getFrame(bool force)
     return frame;
 }
 
-void Reader::removeFrame()
+int Reader::removeFrame()
 {
-    queue->removeFrame();
+    return queue->removeFrame();
 }
 
 void Reader::setConnection(FrameQueue *queue)
@@ -115,11 +115,11 @@ Writer::~Writer()
 bool Writer::connect(Reader *reader) const
 {
     if (!queue) {
-        utils::errorMsg("The queue is empty");
+        utils::errorMsg("The queue is NULL");
         return false;
     }
 
-    reader->setConnection(queue);
+    reader->setConnection(queue);    
     queue->setConnected(true);
     return true;
 }
@@ -180,7 +180,7 @@ Frame* Writer::getFrame(bool force) const
     return frame;
 }
 
-void Writer::addFrame() const
+int Writer::addFrame() const
 {
-    queue->addFrame();
+    return queue->addFrame();
 }

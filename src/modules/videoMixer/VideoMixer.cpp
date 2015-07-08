@@ -49,7 +49,7 @@ void ChannelConfig::config(float width, float height, float x, float y, int laye
 //                VideoMixer Class               //
 ///////////////////////////////////////////////////
 
-VideoMixer* VideoMixer::createNew(int outWidth, int outHeight, std::chrono::microseconds fTime, FilterRole fRole)
+VideoMixer* VideoMixer::createNew(FilterRole fRole, int inputChannels, int outWidth, int outHeight, std::chrono::microseconds fTime)
 {
     if (outWidth <= 0 || outWidth > DEFAULT_WIDTH || outHeight <= 0 || outHeight > DEFAULT_HEIGHT) {
         utils::errorMsg("[VideoMixer] Error creating VideoMixer, output size range is  (0," + 
@@ -62,12 +62,12 @@ VideoMixer* VideoMixer::createNew(int outWidth, int outHeight, std::chrono::micr
         return NULL;
     }
 
-    return new VideoMixer(outWidth, outHeight, fTime, fRole);
+    return new VideoMixer(fRole, inputChannels, outWidth, outHeight, fTime);
 }
 
-
-VideoMixer::VideoMixer(int outWidth, int outHeight, std::chrono::microseconds fTime, FilterRole fRole_) :
-ManyToOneFilter(fRole_, true, VMIXER_MAX_CHANNELS), outputWidth(outWidth), outputHeight(outHeight), maxChannels(VMIXER_MAX_CHANNELS)
+VideoMixer::VideoMixer(FilterRole fRole_, int inputChannels, 
+                       int outWidth, int outHeight, std::chrono::microseconds fTime) :
+ManyToOneFilter(fRole_, inputChannels), outputWidth(outWidth), outputHeight(outHeight), maxChannels(inputChannels)
 {
     setFrameTime(fTime);
     layoutImg = cv::Mat(outputHeight, outputWidth, CV_8UC3);
@@ -84,9 +84,9 @@ VideoMixer::~VideoMixer()
     channelsConfig.clear();
 }
 
-FrameQueue* VideoMixer::allocQueue(int wId)
+FrameQueue* VideoMixer::allocQueue(int wFId, int rFId, int wId)
 {
-    return VideoFrameQueue::createNew(RAW, DEFAULT_RAW_VIDEO_FRAMES, RGB24);
+    return VideoFrameQueue::createNew(wFId, rFId, RAW, DEFAULT_RAW_VIDEO_FRAMES, RGB24);
 }
 
 bool VideoMixer::doProcessFrame(std::map<int, Frame*> orgFrames, Frame *dst)
@@ -275,4 +275,3 @@ void VideoMixer::doGetState(Jzon::Object &filterNode)
 
     filterNode.Add("channels", jsonChannelConfigs);
 }
-

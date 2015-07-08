@@ -47,8 +47,8 @@ AVSampleFormat getAVSampleFormatFromtIntCode(int id)
     return sampleFmt;
 }
 
-AudioDecoderLibav::AudioDecoderLibav(FilterRole fRole_, bool sharedFrames)
-: OneToOneFilter(fRole_, sharedFrames)
+AudioDecoderLibav::AudioDecoderLibav(FilterRole fRole_)
+: OneToOneFilter(fRole_)
 {
     avcodec_register_all();
 
@@ -79,10 +79,10 @@ AudioDecoderLibav::~AudioDecoderLibav()
     av_free_packet(&pkt);
 }
 
-FrameQueue* AudioDecoderLibav::allocQueue(int wId)
+FrameQueue* AudioDecoderLibav::allocQueue(int wFId, int rFId, int wId)
 {
-    return AudioCircularBuffer::createNew(outChannels, outSampleRate, DEFAULT_BUFFER_SIZE, 
-                                            outSampleFmt, std::chrono::milliseconds(0));
+    return AudioCircularBuffer::createNew(wFId, rFId, outChannels, outSampleRate, DEFAULT_BUFFER_SIZE, 
+                                            outSampleFmt, std::chrono::milliseconds(BUFFERING_THRESHOLD));
 }
 
 bool AudioDecoderLibav::doProcessFrame(Frame *org, Frame *dst)
@@ -356,8 +356,8 @@ void AudioDecoderLibav::initializeEventMap()
 void AudioDecoderLibav::doGetState(Jzon::Object &filterNode)
 {
     filterNode.Add("codec", utils::getAudioCodecAsString(fCodec));
-    filterNode.Add("sampleRate", outSampleRate);
-    filterNode.Add("channels", outChannels);
+    filterNode.Add("sampleRate", (int)outSampleRate);
+    filterNode.Add("channels", (int)outChannels);
     filterNode.Add("sampleFormat", utils::getSampleFormatAsString(outSampleFmt));
 }
 

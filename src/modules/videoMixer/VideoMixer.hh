@@ -85,14 +85,17 @@ class VideoMixer : public ManyToOneFilter {
         * @param fRole_ Filter role (NETWORK, MASTER, SLAVE)
         * @return Pointer to new object if succeed of NULL if not
         */
-        static VideoMixer* createNew(int outWidth = DEFAULT_WIDTH, int outHeight = DEFAULT_HEIGHT,
-                   std::chrono::microseconds fTime = std::chrono::microseconds(0), 
-                   FilterRole fRole = MASTER);
+        static VideoMixer* createNew(FilterRole fRole_ = MASTER,
+                   int inputChannels = VMIXER_MAX_CHANNELS,
+                   int outputWidth = DEFAULT_WIDTH,
+                   int outputHeight = DEFAULT_HEIGHT,
+                   std::chrono::microseconds fTime = std::chrono::microseconds(0));
         /**
         * Class destructor
         */
         ~VideoMixer();
 
+		//TODO: to private
         /**
         * Configure channel, validating introduced data
         * @param id Channel id
@@ -113,17 +116,18 @@ class VideoMixer : public ManyToOneFilter {
 
     protected:
         //Protected for testing purposes
-        VideoMixer(int outWidth, int outHeight, std::chrono::microseconds fTime, FilterRole fRole_);
+        VideoMixer(FilterRole fRole, int inputChannels,
+                   int outWidth, int outHeight,
+                   std::chrono::microseconds fTime);
         Reader* setReader(int readerID, FrameQueue* queue);
+        FrameQueue *allocQueue(int wFId, int rFId, int wId);
+        bool doProcessFrame(std::map<int, Frame*> orgFrames, Frame *dst);
+        void doGetState(Jzon::Object &filterNode);
 
     private:
-        bool doProcessFrame(std::map<int, Frame*> orgFrames, Frame *dst);
-        FrameQueue *allocQueue(int wId);
-
         void initializeEventMap();
         void pasteToLayout(int frameID, VideoFrame* vFrame);
         bool configChannelEvent(Jzon::Node* params);
-        void doGetState(Jzon::Object &filterNode);
 
         std::map<int, ChannelConfig*> channelsConfig;
         int outputWidth;

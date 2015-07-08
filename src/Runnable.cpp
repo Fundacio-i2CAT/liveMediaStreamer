@@ -22,13 +22,18 @@
  *
  */
 
+#include <thread>
+
 #include "Runnable.hh"
 
-#include <thread>
+
+Runnable::Runnable(bool periodic_) : periodic(periodic_), running(false), id(-1)
+{
+}
 
 bool Runnable::ready()
 {
-    return time < std::chrono::system_clock::now();
+    return time < std::chrono::high_resolution_clock::now();
 }
 
 void Runnable::sleepUntilReady()
@@ -43,17 +48,27 @@ void Runnable::sleepUntilReady()
     }
 }
 
-bool Runnable::runProcessFrame()
-{
-    std::chrono::nanoseconds ret;
+std::vector<int> Runnable::runProcessFrame()
+{   
+    int ret = 0;
+    std::vector<int> enabledJobs;
+    enabledJobs = processFrame(ret);
     
-    ret = processFrame();
-   
-    if (ret.count() < 0){
-        return false;
+    time = std::chrono::high_resolution_clock::now() + std::chrono::microseconds(ret);
+    
+    return enabledJobs;
+}
+
+void Runnable::setId(int id_){
+    if (id_ < 0){
+        utils::errorMsg("invalid filter Id, only positive values are allowed");
+        return;
     }
-
-    time = std::chrono::system_clock::now() + ret;
-
-    return true;
+    
+    if (id >= 0){
+        utils::errorMsg("You cannot re-assign the filter Id");
+        return;
+    }
+    
+    id = id_;
 }

@@ -29,7 +29,7 @@ bool checkSampleFormat(AVCodec *codec, enum AVSampleFormat sampleFmt);
 bool checkSampleRateSupport(AVCodec *codec, int sampleRate);
 bool checkChannelLayoutSupport(AVCodec *codec, uint64_t channelLayout);
 
-AudioEncoderLibav::AudioEncoderLibav(FilterRole fRole_, bool sharedFrames) : OneToOneFilter(fRole_, sharedFrames), fCodec(AC_NONE), 
+AudioEncoderLibav::AudioEncoderLibav(FilterRole fRole_) : OneToOneFilter(fRole_), fCodec(AC_NONE), 
 samplesPerFrame(0), internalChannels(0), internalSampleRate(0), internalSampleFmt(S_NONE), internalLibavSampleFmt(AV_SAMPLE_FMT_NONE), 
 outputBitrate(0), inputChannels(0), inputSampleRate(0), inputSampleFmt(S_NONE), inputLibavSampleFmt(AV_SAMPLE_FMT_NONE)
 {
@@ -60,9 +60,9 @@ AudioEncoderLibav::~AudioEncoderLibav()
     av_free_packet(&pkt);
 }
 
-FrameQueue* AudioEncoderLibav::allocQueue(int wId)
+FrameQueue* AudioEncoderLibav::allocQueue(int wFId, int rFId, int wId)
 {
-    return AudioFrameQueue::createNew(fCodec, DEFAULT_AUDIO_FRAMES, internalSampleRate, internalChannels, internalSampleFmt);
+    return AudioFrameQueue::createNew(wFId, rFId, fCodec, DEFAULT_AUDIO_FRAMES, internalSampleRate, internalChannels, internalSampleFmt);
 }
 
 bool AudioEncoderLibav::doProcessFrame(Frame *org, Frame *dst)
@@ -116,6 +116,7 @@ bool AudioEncoderLibav::doProcessFrame(Frame *org, Frame *dst)
 
 Reader* AudioEncoderLibav::setReader(int readerID, FrameQueue* queue)
 {
+    AudioCircularBuffer* circularBufferQueue;
     if (readers.size() >= getMaxReaders() || readers.count(readerID) > 0 ) {
         return NULL;
     }
@@ -124,11 +125,14 @@ Reader* AudioEncoderLibav::setReader(int readerID, FrameQueue* queue)
         utils::errorMsg("Error setting audio encoder reader. Samples per frame has 0 value");
         return NULL;
     }
+    
+    if (!(circularBufferQueue = dynamic_cast<AudioCircularBuffer*>(queue))) {
+        return NULL;
+    }
+    circularBufferQueue->setOutputFrameSamples(samplesPerFrame);
 
     Reader* r = new Reader();
     readers[readerID] = r;
-
-    dynamic_cast<AudioCircularBuffer*>(queue)->setOutputFrameSamples(samplesPerFrame);
 
     return r;
 }
@@ -346,8 +350,8 @@ int AudioEncoderLibav::resample(AudioFrame* src, AVFrame* dst)
 void AudioEncoderLibav::doGetState(Jzon::Object &filterNode)
 {
     filterNode.Add("codec", utils::getAudioCodecAsString(fCodec));
-    filterNode.Add("sampleRate", internalSampleRate);
-    filterNode.Add("channels", internalChannels);
+    filterNode.Add("sampleRate", (int)internalSampleRate);
+    filterNode.Add("channels", (int)internalChannels);
 }
 
 bool checkSampleFormat(AVCodec *codec, enum AVSampleFormat sampleFmt)

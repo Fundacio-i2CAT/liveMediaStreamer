@@ -43,13 +43,9 @@ void setupMixer(int mixerId, int transmitterId)
     AudioMixer* mixer;
     AudioEncoderLibav* encoder;
 
-    Worker* mixWorker;
-    Worker* wEnc;
     Path* path;
 
-    int mixWorkerId = rand();
     int encId = rand();
-    int wEncId = rand();
     int pathId = rand();
 
     std::vector<int> ids = {encId};
@@ -57,10 +53,6 @@ void setupMixer(int mixerId, int transmitterId)
     //NOTE: Adding decoder to pipeManager and handle worker
     mixer = new AudioMixer();
     pipe->addFilter(mixerId, mixer);
-    mixWorker = new Worker();
-    mixWorker->addProcessor(mixerId, mixer);
-    mixer->setWorkerId(mixWorkerId);
-    pipe->addWorker(mixWorkerId, mixWorker);
 
     encoder = new AudioEncoderLibav();
     if (!encoder->configure(OUT_A_CODEC, A_CHANNELS, OUT_A_FREQ, OUT_A_BITRATE)) {
@@ -69,43 +61,30 @@ void setupMixer(int mixerId, int transmitterId)
     }
 
     pipe->addFilter(encId, encoder);
-    wEnc = new Worker();
-    wEnc->addProcessor(encId, encoder);
-    encoder->setWorkerId(wEncId);
-    pipe->addWorker(wEncId, wEnc);
 
     path = pipe->createPath(mixerId, transmitterId, -1, -1, ids);
     pipe->addPath(pathId, path);
     pipe->connectPath(path);
-
-    pipe->startWorkers();
 }
 
 void addAudioPath(unsigned port, int receiverId, int mixerId)
 {
     PipelineManager *pipe = Controller::getInstance()->pipelineManager();
 
-    int aDecId = rand();
     int decId = rand();
     std::vector<int> ids({decId});
 
     AudioDecoderLibav *decoder;
-    Worker* aDec;
     Path *path;
 
     //NOTE: Adding decoder to pipeManager and handle worker
     decoder = new AudioDecoderLibav();
     pipe->addFilter(decId, decoder);
-    aDec = new Worker();
-    aDec->addProcessor(decId, decoder);
-    decoder->setWorkerId(aDecId);
-    pipe->addWorker(aDecId, aDec);
 
     path = pipe->createPath(receiverId, mixerId, port, port, ids);
     pipe->addPath(port, path);
     pipe->connectPath(path);
 
-    pipe->startWorkers();
     utils::infoMsg("Audio path created from port " + std::to_string(port));
 }
 
@@ -215,10 +194,8 @@ int main(int argc, char* argv[])
 
     std::string rtspUri;
 
-    int transmitterID = rand();
+    int transmitterId = rand();
     int receiverId = rand();
-    int transWorkID = rand();
-    int receiWorkID = rand();
     int mixerId = rand();
 
     int port;
@@ -226,7 +203,6 @@ int main(int argc, char* argv[])
     SinkManager* transmitter = NULL;
     SourceManager* receiver = NULL;
     PipelineManager *pipe;
-    LiveMediaWorker *lW;
 
     utils::setLogLevel(INFO);
 
@@ -257,19 +233,10 @@ int main(int argc, char* argv[])
         return 1;
     }
 
-    lW = new LiveMediaWorker();
-    pipe->addWorker(transWorkID, lW);
-    pipe->addFilter(transmitterID, transmitter);
-    pipe->addFilterToWorker(transWorkID, transmitterID);
-
-    lW = new LiveMediaWorker();
-    pipe->addWorker(receiWorkID, lW);
+    pipe->addFilter(transmitterId, transmitter);
     pipe->addFilter(receiverId, receiver);
-    pipe->addFilterToWorker(receiWorkID, receiverId);
 
-    setupMixer(mixerId, transmitterID);
-
-    pipe->startWorkers();
+    setupMixer(mixerId, transmitterId);
 
     signal(SIGINT, signalHandler);
 

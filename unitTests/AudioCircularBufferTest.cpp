@@ -60,6 +60,9 @@ protected:
     void timestampOverlapping();
     void flushBecauseOfDeviation();
 
+    int wFId = 1;
+    int rFId = 2;
+
     AudioCircularBuffer* buffer;
     const unsigned channels = 2;
     const unsigned sampleRate = 48000;
@@ -71,7 +74,7 @@ protected:
 
 void AudioCircularBufferTest::setUp()
 {
-    buffer = AudioCircularBuffer::createNew(channels, sampleRate, maxSamples, format, buffering);
+    buffer = AudioCircularBuffer::createNew(wFId, rFId, channels, sampleRate, maxSamples, format, buffering);
 
     if (!buffer) {
         CPPUNIT_FAIL("AudioCircularBufferTest failed. Error creating AudioCircularBuffer in setUp()\n");
@@ -91,19 +94,19 @@ void AudioCircularBufferTest::create()
     SampleFmt badFormat = FLT;
     AudioCircularBuffer* tmpbuffer;
 
-    tmpbuffer = AudioCircularBuffer::createNew(badChannels, sampleRate, maxSamples, format, buffering);
+    tmpbuffer = AudioCircularBuffer::createNew(wFId, rFId, badChannels, sampleRate, maxSamples, format, buffering);
     CPPUNIT_ASSERT(!tmpbuffer);
 
-    tmpbuffer = AudioCircularBuffer::createNew(channels, badSampleRate, maxSamples, format, buffering);
+    tmpbuffer = AudioCircularBuffer::createNew(wFId, rFId, channels, badSampleRate, maxSamples, format, buffering);
     CPPUNIT_ASSERT(!tmpbuffer);
     
-    tmpbuffer = AudioCircularBuffer::createNew(channels, sampleRate, badMaxSamples, format, buffering);
+    tmpbuffer = AudioCircularBuffer::createNew(wFId, rFId, channels, sampleRate, badMaxSamples, format, buffering);
     CPPUNIT_ASSERT(!tmpbuffer);
 
-    tmpbuffer = AudioCircularBuffer::createNew(channels, badSampleRate, maxSamples, badFormat, buffering);
+    tmpbuffer = AudioCircularBuffer::createNew(wFId, rFId, channels, badSampleRate, maxSamples, badFormat, buffering);
     CPPUNIT_ASSERT(!tmpbuffer);
 
-    tmpbuffer = AudioCircularBuffer::createNew(channels, sampleRate, maxSamples, format, buffering);
+    tmpbuffer = AudioCircularBuffer::createNew(wFId, rFId, channels, sampleRate, maxSamples, format, buffering);
     CPPUNIT_ASSERT(tmpbuffer);
 
     delete tmpbuffer;

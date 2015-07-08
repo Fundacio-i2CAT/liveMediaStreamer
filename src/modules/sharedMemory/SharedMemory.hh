@@ -68,7 +68,7 @@ public:
     * @return SharedMemory object or NULL if any error while creating
     * @see OneToOneFilter to check the inherated input params
     */
-    static SharedMemory* createNew(size_t key_, VCodecType codec, FilterRole fRole_ = MASTER, size_t fTime = 0, bool force_ = false, bool sharedFrames_ = true);
+    static SharedMemory* createNew(size_t key_, VCodecType codec, FilterRole fRole_ = MASTER);
     /**
     * Class destructor
     */
@@ -80,7 +80,7 @@ public:
     size_t getSharedMemoryID() { return SharedMemoryID;};
 
 protected:
-    SharedMemory(size_t key_, VCodecType codec_, size_t fTime = 0, FilterRole fRole_ = MASTER, bool force_ = false, bool sharedFrames_ = true);
+    SharedMemory(size_t key_, VCodecType codec_, FilterRole fRole_ = MASTER);
     bool isEnabled() {return enabled;};
     void writeSharedMemoryH264();
     bool appendNalToFrame(unsigned char* nalData, unsigned nalDataLength, int startCodeOffset, bool &newFrame);
@@ -98,7 +98,7 @@ private:
     bool doProcessFrame(Frame *org, Frame *dst);
     void initializeEventMap();
     void doGetState(Jzon::Object &filterNode);
-    FrameQueue* allocQueue(int wId);
+    FrameQueue* allocQueue(int wFId, int rFId, int wId);
 
     void copyOrgToDstFrame(InterleavedVideoFrame *org, InterleavedVideoFrame *dst);
 
@@ -108,13 +108,13 @@ private:
     VCodecType getVCodecFromCodecType(uint16_t codecType);
 
 private:
-    size_t 			              SharedMemorykey;
-    size_t 			              SharedMemoryID;
-    uint8_t                       *SharedMemoryOrigin;
-    uint8_t 			          *buffer;
-    uint8_t 			          *access;
-    bool                          enabled;
-    bool                          newFrame;
+    size_t      SharedMemorykey;
+    size_t      SharedMemoryID;
+    uint8_t     *SharedMemoryOrigin;
+    uint8_t     *buffer;
+    uint8_t     *access;
+    bool        enabled;
+    bool        newFrame;
     std::vector<unsigned char>    frameData;
     VCodecType const              codec;
     uint16_t                      seqNum;

@@ -57,7 +57,7 @@ liblivemediastreamer_la_SOURCES = modules/audioDecoder/AudioDecoderLibav.cpp \
                                   Utils.cpp \
                                   VideoFrame.cpp \
                                   Runnable.cpp \
-                                  Worker.cpp 
+                                  WorkersPool.cpp 
 
 liblivemediastreamer_la_CPPFLAGS = -g -D__STDC_CONSTANT_MACROS -Wall
 

@@ -30,11 +30,11 @@
 class AVFramedQueue : public FrameQueue {
 
 public:
-    AVFramedQueue(unsigned maxFrames);
+    AVFramedQueue(int wId, int rId, unsigned maxFrames);
     virtual Frame *getRear();
     Frame *getFront();
-    virtual void addFrame();
-    void removeFrame();
+    virtual int addFrame();
+    int removeFrame();
     void flush();
     virtual Frame *forceGetRear();
     Frame *forceGetFront();
@@ -55,12 +55,12 @@ protected:
 class VideoFrameQueue : public AVFramedQueue {
 
 public:
-    static VideoFrameQueue* createNew(VCodecType codec, unsigned maxFrames, PixType pixelFormat = P_NONE, const uint8_t *extradata = NULL, int extradata_size = 0);
+    static VideoFrameQueue* createNew(int wId, int rId, VCodecType codec, unsigned maxFrames, PixType pixelFormat = P_NONE, const uint8_t *extradata = NULL, int extradata_size = 0);
 
     const VCodecType getCodec() const {return codec;};
 
 protected:
-    VideoFrameQueue(VCodecType codec, unsigned maxFrames, PixType pixelFormat = P_NONE);
+    VideoFrameQueue(int wId, int rId, VCodecType codec, unsigned maxFrames, PixType pixelFormat = P_NONE);
     VCodecType codec;
     PixType pixelFormat;
 
@@ -72,9 +72,10 @@ private:
 class AudioFrameQueue : public AVFramedQueue {
 
 public:
-    static AudioFrameQueue* createNew(ACodecType codec, unsigned maxFrames, unsigned sampleRate = DEFAULT_SAMPLE_RATE, 
-                                       unsigned channels = DEFAULT_CHANNELS, SampleFmt sFmt = S16,
-                                       const uint8_t *extradata = NULL, int extradata_size = 0);
+    static AudioFrameQueue* createNew(int wId, int rId, ACodecType codec, unsigned maxFrames, 
+                                      unsigned sampleRate = DEFAULT_SAMPLE_RATE, 
+                                      unsigned channels = DEFAULT_CHANNELS, SampleFmt sFmt = S16,
+                                      const uint8_t *extradata = NULL, int extradata_size = 0);
     
     unsigned getSampleRate() const {return sampleRate;};
     unsigned getChannels() const {return channels;};
@@ -82,7 +83,7 @@ public:
     const SampleFmt getSampleFmt() const {return sampleFormat;};
 
 protected:
-    AudioFrameQueue(ACodecType codec, unsigned maxFrames, SampleFmt sFmt, unsigned sampleRate, unsigned channels);
+    AudioFrameQueue(int wId, int rId, ACodecType codec, unsigned maxFrames, SampleFmt sFmt, unsigned sampleRate, unsigned channels);
 
     ACodecType codec;
     SampleFmt sampleFormat;

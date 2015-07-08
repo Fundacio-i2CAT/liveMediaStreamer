@@ -47,9 +47,9 @@ SinkManager* SinkManager::createNew(unsigned readersNum)
 }
 
 SinkManager::SinkManager(unsigned readersNum) :
-LiveMediaFilter(readersNum, 0), rtspServer(NULL), watch(0)
+TailFilter(SERVER, readersNum, true), rtspServer(NULL)
 {
-    TaskScheduler* scheduler = BasicTaskScheduler::createNew();
+    scheduler = BasicTaskScheduler::createNew();
     env = BasicUsageEnvironment::createNew(*scheduler);
     
     unsigned port = RTSP_PORT;
@@ -72,7 +72,7 @@ LiveMediaFilter(readersNum, 0), rtspServer(NULL), watch(0)
 SinkManager::~SinkManager()
 {
     stop();
-    delete &envir()->taskScheduler();
+    delete scheduler;
     envir()->reclaim();
     env = NULL;
 }
@@ -85,28 +85,46 @@ void SinkManager::stop()
     connections.clear();
 
     for (auto it : replicators) {
-       Medium::close(it.second);
+        if (it.second->numReplicas() == 0){
+            Medium::close(it.second);
+            sources.erase(it.first);
+        }
     }
     replicators.clear();
+    
+    for (auto it : sources) {
+       Medium::close(it.second);
+    }
+    sources.clear();
     
     // NOTE: this crashes because rtsp sessions are destroyed inside each RTSP connection and 
     // Medium::close(rtspServer) seemms to do this internally, generating a segFault. Check deeper 
     // if not closing RTSP server is the best solution (port binding has been checked and it works
     // properly -- no port binding when stopping)
-    // if (rtspServer){
-    //     Medium::close(rtspServer);
-    // }
+    if (rtspServer){
+        Medium::close(rtspServer);
+    }
 
-    watch = 1;
+    //watch = 1;
 }
 
-bool SinkManager::runDoProcessFrame()
+bool SinkManager::doProcessFrame(std::map<int, Frame*> oFrames)
 {
     if (envir() == NULL){
         return false;
     }
+    
+    for (auto it: oFrames){
+        if (sources.count(it.first) > 0 && it.second){
+            it.second->setConsumed(false);
+            if (sources[it.first]->setFrame(it.second)){
+                QueueSource::signalNewFrameData(scheduler, sources[it.first]);
+            }
+            
+        }
+    }
 
-    envir()->taskScheduler().doEventLoop((char*) &watch);
+    scheduler->SingleStep();
 
     return true;
 }
@@ -347,48 +365,55 @@ Reader *SinkManager::setReader(int readerId, FrameQueue* queue)
 {
     VideoFrameQueue *vQueue;
     AudioFrameQueue *aQueue;
+    bool queueSrcCreated = false;
 
     if (readers.size() >= getMaxReaders() || readers.count(readerId) > 0 ) {
         return NULL;
     }
 
     Reader* r = new Reader();
-    readers[readerId] = r;
+    
 
     if ((vQueue = dynamic_cast<VideoFrameQueue*>(queue)) != NULL){
-        createVideoQueueSource(vQueue->getCodec(), r, readerId);
+        createVideoQueueSource(vQueue->getCodec(), readerId);
+        queueSrcCreated = true;
     }
 
     if ((aQueue = dynamic_cast<AudioFrameQueue*>(queue)) != NULL){
-        createAudioQueueSource(aQueue->getCodec(), r, readerId);
+        createAudioQueueSource(aQueue->getCodec(), readerId);
+        queueSrcCreated = true;
     }
-
+    
+    if(!queueSrcCreated){
+        delete r;
+        return NULL;
+    }
+    
+    readers[readerId] = r;
+    
     return r;
 }
 
-void SinkManager::createVideoQueueSource(VCodecType codec, Reader *reader, int readerId)
+void SinkManager::createVideoQueueSource(VCodecType codec, int readerId)
 {
-    FramedSource *source;
     switch(codec){
         case H264:
         case H265:
-            source = H264or5QueueSource::createNew(*(envir()), reader, readerId);
-            replicators[readerId] = StreamReplicator::createNew(*(envir()), source, False);
+            sources[readerId] = H264or5QueueSource::createNew(*(envir()), readerId);
+            replicators[readerId] = StreamReplicator::createNew(*(envir()), sources[readerId], False);
             break;
         case VP8:
         default:
-            source = QueueSource::createNew(*(envir()), reader, readerId);
-            replicators[readerId] =  StreamReplicator::createNew(*(envir()), source, False);
+            sources[readerId] = QueueSource::createNew(*(envir()), readerId);
+            replicators[readerId] =  StreamReplicator::createNew(*(envir()), sources[readerId], False);
             break;
     }
 }
 
-void SinkManager::createAudioQueueSource(ACodecType codec, Reader *reader, int readerId)
-{
-    QueueSource *source;
-    
-    source = QueueSource::createNew(*(envir()), reader, readerId);
-    replicators[readerId] = StreamReplicator::createNew(*(envir()), source, False);
+void SinkManager::createAudioQueueSource(ACodecType codec, int readerId)
+{    
+    sources[readerId] = QueueSource::createNew(*(envir()), readerId);
+    replicators[readerId] = StreamReplicator::createNew(*(envir()), sources[readerId], False);
 }
 
 bool SinkManager::addSubsessionByReader(RTSPConnection* connection ,int readerId)
@@ -414,51 +439,57 @@ bool SinkManager::addSubsessionByReader(RTSPConnection* connection ,int readerId
     return false;
 }
 
-bool SinkManager::removeConnectionByReaderId(int readerId)
-{
-    std::vector<int> readers;
-    std::vector<int> connToDelete;
-    bool ret = false;
-    Connection* conn;
-    
-    for (auto it : connections){
-        readers = it.second->getReaders();
-        for (auto ti : readers){
-            if (ti == readerId){
-                it.second->stopPlaying();
-                connToDelete.push_back(it.first);
-            }
-        }
-    }
-    
-    for (auto id : connToDelete){
-        conn = connections[id];
-        connections.erase(id);
-        delete conn;
-        ret |= true;
-    }
-    
-    return ret;
-}
-
-bool SinkManager::deleteReader(int id)
-{
-    Reader* reader = getReader(id);
-    if (reader == NULL){
-        return false;
-    }
-
-    removeConnectionByReaderId(id);
-
-    if (reader->isConnected()) {
-        return false;
-    }
-
-    delete reader;
-    readers.erase(id);
-
-    return true;
-}
+//TODO: shall we keep it?
+// bool SinkManager::removeConnectionByReaderId(int readerId)
+// {
+//     std::vector<int> readers;
+//     std::vector<int> connToDelete;
+//     bool ret = false;
+//     Connection* conn;
+//     
+//     for (auto it : connections){
+//         readers = it.second->getReaders();
+//         for (auto ti : readers){
+//             if (ti == readerId){
+//                 it.second->stopPlaying();
+//                 connToDelete.push_back(it.first);
+//             }
+//         }
+//     }
+//     
+//     for (auto id : connToDelete){
+//         conn = connections[id];
+//         connections.erase(id);
+//         delete conn;
+//         ret |= true;
+//     }
+//     
+//     return ret;
+// }
+// 
+// bool SinkManager::deleteReader(int id)
+// {
+//     Reader* reader = getReader(id);
+//     if (reader == NULL){
+//         return false;
+//     }
+// 
+//     removeConnectionByReaderId(id);
+// 
+//     if (reader->isConnected()) {
+//         return false;
+//     }
+// 
+//     delete reader;
+//     readers.erase(id);
+//     
+//     if (sources.count(id) > 0 && sources[id]){
+//         delete sources[id];
+//         sources.erase(id);
+//     }
+// 
+//     return true;
+// }
 
 void SinkManager::initializeEventMap()
 {

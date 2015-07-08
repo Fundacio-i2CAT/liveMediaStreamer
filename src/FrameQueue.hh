@@ -48,7 +48,7 @@ public:
     /**
     * Creates a frame object
     */
-    FrameQueue() : rear(0), front(0), elements(0), connected(false), firstFrame(false) {};
+    FrameQueue(int wId, int rId) : rear(0), front(0), elements(0), connected(false), firstFrame(false), rFilterId(rId), wFilterId(wId) {};
     virtual ~FrameQueue() {};
 
     /**
@@ -65,13 +65,15 @@ public:
 
     /**
     * Adds frame to queue elements
+    * @return the id of the reader filter that has a new frame available.
     */
-    virtual void addFrame() = 0;
+    virtual int addFrame() = 0;
 
     /**
     * Removes frame from queue elements
+    * @return the id of the writer filter that introduced the frame consumed.
     */
-    virtual void removeFrame() = 0;
+    virtual int removeFrame() = 0;
 
     /**
     * Flushes the queue
@@ -107,6 +109,11 @@ public:
     * @param boolean to set connected to true or false
     */
     void setConnected(bool conn) {connected = conn;};
+    
+    //TODO: delete
+    //int getId(){
+      //  return rFilterId;
+    //}
 
     /**
     * Get number of elements in the queue
@@ -115,12 +122,13 @@ public:
     unsigned getElements() {return elements;};
 
 protected:
-    std::atomic<unsigned> rear;
-    std::atomic<unsigned> front;
+    unsigned rear;
+    unsigned front;
     std::atomic<unsigned> elements;
-    std::atomic<bool> connected;
-    std::atomic<bool> firstFrame;
-    
+    bool connected;
+    bool firstFrame;
+    const int rFilterId;
+    const int wFilterId;
 };
 
 #endif

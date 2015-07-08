@@ -194,12 +194,13 @@ void HeadDemuxerFunctionalTest::test(int test_ndx)
 
     bool gotVideo = false, gotAudio = false;
     int watchDog = 0;
+    int ret = 0;
     while (!gotVideo || !gotAudio) {
-        headDemuxer->processFrame();
-        vDecoder->processFrame();
-        aDecoder->processFrame();        
-        vTail->processFrame();
-        aTail->processFrame();
+        headDemuxer->processFrame(ret);
+        vDecoder->processFrame(ret);
+        aDecoder->processFrame(ret);        
+        vTail->processFrame(ret);
+        aTail->processFrame(ret);
         InterleavedVideoFrame *vFrame = vTail->extract();
         PlanarAudioFrame *aFrame = aTail->extract();
         if (vFrame) {

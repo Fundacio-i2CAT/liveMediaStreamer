@@ -31,16 +31,16 @@
 #define RTSP_CLIENT_VERBOSITY_LEVEL 1
 #define RTP_RECEIVE_BUFFER_SIZE 2000000
 
-FrameQueue* createVideoQueue(char const* codecName);
-FrameQueue* createAudioQueue(unsigned char rtpPayloadFormat,
+FrameQueue* createVideoQueue(int wFId, int rFId, char const* codecName);
+FrameQueue* createAudioQueue(int wFId, int rFId, unsigned char rtpPayloadFormat,
                              char const* codecName, unsigned channels,
                              unsigned sampleRate);
 
-SourceManager::SourceManager(unsigned writersNum): LiveMediaFilter(0, writersNum), watch(0)
+SourceManager::SourceManager(unsigned writersNum): HeadFilter(SERVER, 0, writersNum)
 {
     fType = RECEIVER;
 
-    TaskScheduler* scheduler = BasicTaskScheduler::createNew();
+    scheduler = BasicTaskScheduler::createNew();
     env = BasicUsageEnvironment::createNew(*scheduler);
 
     initializeEventMap();
@@ -52,39 +52,29 @@ SourceManager::~SourceManager()
         delete it.second;
     }
 
-    delete &envir()->taskScheduler();
+    delete scheduler;
     envir()->reclaim();
     env = NULL;
 }
 
 void SourceManager::stop()
 {
-    watch = 1;
+    
 }
 
-void SourceManager::setCallback(std::function<void(char const*, unsigned short)> callbackFunction)
-{
-    if (!callback) {
-        callback = callbackFunction;
-    }
-}
-
-bool SourceManager::hasCallback()
-{
-    if (callback) {
-        return true;
-    }
-
-    return false;
-}
-
-bool SourceManager::runDoProcessFrame()
+bool SourceManager::doProcessFrame(std::map<int, Frame*> dFrames)
 {
     if (envir() == NULL){
         return false;
     }
-
-    envir()->taskScheduler().doEventLoop((char*) &watch);
+    
+    for (auto it : dFrames){
+        if (sinks.count(it.first) > 0){
+            sinks[it.first]->setFrame(it.second);
+        }
+    }
+    
+    scheduler->SingleStep();
 
     return true;
 }
@@ -106,8 +96,24 @@ bool SourceManager::addSession(Session* session)
 
 bool SourceManager::removeSession(std::string id)
 {
+    MediaSubsession *subsession;
+    
     if (sessionMap.count(id) <= 0) {
         return false;
+    }
+    
+    std::lock_guard<std::mutex> guard(sinksMtx);
+    
+    for (auto it : sessionMap) {
+        it.second->getScs()->iter = new MediaSubsessionIterator(*(it.second->getScs()->session));
+        subsession = it.second->getScs()->iter->next();
+        while (subsession != NULL) {
+            if (sinks.count(subsession->clientPortNum()) > 0){
+                sinks.erase(subsession->clientPortNum());
+                disconnectWriter(subsession->clientPortNum());
+            }
+            subsession = it.second->getScs()->iter->next();
+        }
     }
 
     delete sessionMap[id];
@@ -125,17 +131,25 @@ Session* SourceManager::getSession(std::string id)
     return sessionMap[id];
 }
 
-bool SourceManager::addWriter(unsigned port, const Writer *writer)
+bool SourceManager::addSink(unsigned port, QueueSink *sink)
 {
-    if(writers.count(port) > 0){
+    std::lock_guard<std::mutex> guard(sinksMtx);
+    if(sinks.count(port) > 0){
+        utils::warningMsg("writer id must be unique!");
         return false;
     }
-    writers[port] = writer;
+    
+    if (!sink){
+        utils::warningMsg("writer is NULL, it has not been added!");
+        return false;
+    }
+    
+    sinks[port] = sink;
 
     return true;
 }
 
-FrameQueue *SourceManager::allocQueue(int wId)
+FrameQueue *SourceManager::allocQueue(int wFId, int rFId, int wId)
 {
     MediaSubsession *mSubsession;
 
@@ -145,13 +159,13 @@ FrameQueue *SourceManager::allocQueue(int wId)
         }
 
         if (strcmp(mSubsession->mediumName(), "audio") == 0) {
-            return createAudioQueue(mSubsession->rtpPayloadFormat(),
+            return createAudioQueue(wFId, rFId, mSubsession->rtpPayloadFormat(),
                 mSubsession->codecName(), mSubsession->numChannels(),
                 mSubsession->rtpTimestampFrequency());
         }
 
         if (strcmp(mSubsession->mediumName(), "video") == 0) {
-            return createVideoQueue(mSubsession->codecName());
+            return createVideoQueue(wFId, rFId, mSubsession->codecName());
         }
     }
 
@@ -299,7 +313,7 @@ void SourceManager::doGetState(Jzon::Object &filterNode)
 }
 
 
-FrameQueue* createVideoQueue(char const* codecName)
+FrameQueue* createVideoQueue(int wFId, int rFId, char const* codecName)
 {
     VCodecType codec;
 
@@ -315,36 +329,36 @@ FrameQueue* createVideoQueue(char const* codecName)
         return NULL;
     }
 
-    return VideoFrameQueue::createNew(codec, DEFAULT_VIDEO_FRAMES);
+    return VideoFrameQueue::createNew(wFId, rFId, codec, DEFAULT_VIDEO_FRAMES);
 }
 
-FrameQueue* createAudioQueue(unsigned char rtpPayloadFormat, char const* codecName, unsigned channels, unsigned sampleRate)
+FrameQueue* createAudioQueue(int wFId, int rFId, unsigned char rtpPayloadFormat, char const* codecName, unsigned channels, unsigned sampleRate)
 {
     ACodecType codec;
     //is this one neeeded? in should be implicit in PCMU case
     if (rtpPayloadFormat == 0) {
         codec = G711;
-        return AudioFrameQueue::createNew(codec, DEFAULT_AUDIO_FRAMES);
+        return AudioFrameQueue::createNew(wFId, rFId, codec, DEFAULT_AUDIO_FRAMES);
     }
 
     if (strcmp(codecName, "OPUS") == 0) {
         codec = OPUS;
-        return AudioFrameQueue::createNew(codec, DEFAULT_AUDIO_FRAMES, sampleRate, channels);
+        return AudioFrameQueue::createNew(wFId, rFId, codec, DEFAULT_AUDIO_FRAMES, sampleRate, channels);
     }
 
     if (strcmp(codecName, "MPEG4-GENERIC") == 0) {
         codec = AAC;
-        return AudioFrameQueue::createNew(codec, DEFAULT_AUDIO_FRAMES, sampleRate, channels);
+        return AudioFrameQueue::createNew(wFId, rFId, codec, DEFAULT_AUDIO_FRAMES, sampleRate, channels);
     }
 
     if (strcmp(codecName, "PCMU") == 0) {
         codec = PCMU;
-         return AudioFrameQueue::createNew(codec, DEFAULT_AUDIO_FRAMES, sampleRate, channels);
+         return AudioFrameQueue::createNew(wFId, rFId, codec, DEFAULT_AUDIO_FRAMES, sampleRate, channels);
     }
 
     if (strcmp(codecName, "PCM") == 0) {
         codec = PCM;
-        return AudioFrameQueue::createNew(codec, DEFAULT_AUDIO_FRAMES, sampleRate, channels);
+        return AudioFrameQueue::createNew(wFId, rFId, codec, DEFAULT_AUDIO_FRAMES, sampleRate, channels);
     }
 
     utils::errorMsg("Error creating audio queue in SourceManager: codec " + std::string(codecName) + " not supported");
@@ -412,8 +426,8 @@ bool Session::initiateSession()
                     subsession->deInitiate();
                     return false;
                 }
-                if (!scs->addWriterToMngr(queueSink->getPort(), queueSink->getWriter())){
-                    utils::errorMsg("Failed adding writer in SourceManager");
+                if (!scs->addSinkToMngr(queueSink->getPort(), queueSink)){
+                    utils::errorMsg("Failed adding sink in SourceManager");
                     subsession->deInitiate();
                     return false;
                 }
@@ -490,7 +504,7 @@ StreamClientState::~StreamClientState()
     }
 }
 
-bool StreamClientState::addWriterToMngr(unsigned id, Writer* writer)
+bool StreamClientState::addSinkToMngr(unsigned id, QueueSink* sink)
 {
-    return mngr->addWriter(id, writer);
+    return mngr->addSink(id, sink);
 }

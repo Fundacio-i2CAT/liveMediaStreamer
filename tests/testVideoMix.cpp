@@ -22,6 +22,7 @@
 #define RETRIES 60
 #define MIX_WIDTH 640
 #define MIX_HEIGHT 360
+#define MIX_CHANNELS 8
 
 bool run = true;
 int layer = 0;
@@ -44,53 +45,34 @@ void setupMixer(int mixerId, int transmitterId)
     VideoEncoderX264* encoder;
     VideoResampler* resampler;
 
-    Worker* mixWorker;
-    Worker* wEnc;
-    Worker* wRes;
     Path* path;
 
-    int mixWorkerId = rand();
     int encId = rand();
     int resId = rand();
-    int wEncId = rand();
-    int wResId = rand();
     int pathId = rand();
 
     std::vector<int> ids = {resId, encId};
 
     //NOTE: Adding decoder to pipeManager and handle worker
-    mixer = VideoMixer::createNew(MIX_WIDTH, MIX_HEIGHT, std::chrono::microseconds(40000));
+    mixer = VideoMixer::createNew(MASTER, MIX_CHANNELS, MIX_WIDTH, MIX_HEIGHT, std::chrono::microseconds(40000));
     pipe->addFilter(mixerId, mixer);
-    mixWorker = new Worker();
-    mixWorker->addProcessor(mixerId, mixer);
-    mixer->setWorkerId(mixWorkerId);
-    pipe->addWorker(mixWorkerId, mixWorker);
 
     //NOTE: Adding resampler to pipeManager and handle worker
     resampler = new VideoResampler();
-    pipe->addFilter(resId, resampler);
-    wRes = new Worker();
-    wRes->addProcessor(resId, resampler);
-    resampler->setWorkerId(wResId);
     resampler->configure(0, 0, 0, YUV420P);
-    pipe->addWorker(wResId, wRes);
+    pipe->addFilter(resId, resampler);
 
     //NOTE: Adding encoder to pipeManager and handle worker
     encoder = new VideoEncoderX264();
-    pipe->addFilter(encId, encoder);
-    wEnc = new Worker();
-    wEnc->addProcessor(encId, encoder);
-    encoder->setWorkerId(wEncId);
-    pipe->addWorker(wEncId, wEnc);
-
     //bitrate, fps, gop, lookahead, threads, annexB, preset
     encoder->configure(4000, 25, 25, 25, 4, true, "superfast");
+    pipe->addFilter(encId, encoder);
+
 
     path = pipe->createPath(mixerId, transmitterId, -1, -1, ids);
     pipe->addPath(pathId, path);
     pipe->connectPath(path);
 
-    pipe->startWorkers();
 }
 
 void addVideoPath(unsigned port, int receiverId, int mixerId)
@@ -98,9 +80,7 @@ void addVideoPath(unsigned port, int receiverId, int mixerId)
     PipelineManager *pipe = Controller::getInstance()->pipelineManager();
 
     int resId = rand();
-    int wResId = rand();
     int decId = rand();
-    int wDecId = rand();
 
     std::vector<int> ids = {decId, resId};
 
@@ -111,26 +91,16 @@ void addVideoPath(unsigned port, int receiverId, int mixerId)
     VideoResampler *resampler;
     VideoMixer* mixer;
 
-    Worker* wDec;
-    Worker* wRes;
-
     Path *path;
 
     //NOTE: Adding decoder to pipeManager and handle worker
     decoder = new VideoDecoderLibav();
     pipe->addFilter(decId, decoder);
-    wDec = new Worker();
-    wDec->addProcessor(decId, decoder);
-    decoder->setWorkerId(wDecId);
-    pipe->addWorker(wDecId, wDec);
 
     //NOTE: Adding resampler to pipeManager and handle worker
     resampler = new VideoResampler();
+    resampler->configure(MIX_WIDTH*0.5, MIX_HEIGHT*0.5, 0, RGB24);
     pipe->addFilter(resId, resampler);
-    wRes = new Worker();
-    wRes->addProcessor(resId, resampler);
-    resampler->setWorkerId(wResId);
-    pipe->addWorker(wResId, wRes);
 
     path = pipe->createPath(receiverId, mixerId, port, port, ids);
     pipe->addPath(port, path);
@@ -144,9 +114,6 @@ void addVideoPath(unsigned port, int receiverId, int mixerId)
     }
 
     mixer->configChannel(port, 0.5, 0.5, rand()%50/100.0, rand()%50/100.0, layer++, true, 1.0);
-    resampler->configure(MIX_WIDTH*0.5, MIX_HEIGHT*0.5, 0, RGB24);
-
-    pipe->startWorkers();
 
     utils::infoMsg("Video path created from port " + std::to_string(port));
 }
@@ -258,8 +225,6 @@ int main(int argc, char* argv[])
 
     int transmitterID = rand();
     int receiverId = rand();
-    int transWorkID = rand();
-    int receiWorkID = rand();
     int mixerId = rand();
 
     int port;
@@ -267,7 +232,6 @@ int main(int argc, char* argv[])
     SinkManager* transmitter = NULL;
     SourceManager* receiver = NULL;
     PipelineManager *pipe;
-    LiveMediaWorker *lW;
 
     utils::setLogLevel(INFO);
 
@@ -298,19 +262,10 @@ int main(int argc, char* argv[])
         return 1;
     }
 
-    lW = new LiveMediaWorker();
-    pipe->addWorker(transWorkID, lW);
     pipe->addFilter(transmitterID, transmitter);
-    pipe->addFilterToWorker(transWorkID, transmitterID);
-
-    lW = new LiveMediaWorker();
-    pipe->addWorker(receiWorkID, lW);
     pipe->addFilter(receiverId, receiver);
-    pipe->addFilterToWorker(receiWorkID, receiverId);
 
     setupMixer(mixerId, transmitterID);
-
-    pipe->startWorkers();
 
     signal(SIGINT, signalHandler);
 

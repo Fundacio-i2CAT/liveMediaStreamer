@@ -41,7 +41,7 @@ namespace utils
     void configureLog(){
         SharedObjectPtr<Appender> append_1(new ConsoleAppender());
         append_1->setName(LOG4CPLUS_TEXT("First"));
-        log4cplus::tstring pattern = LOG4CPLUS_TEXT("%-5p [%l] - %m %n");
+        log4cplus::tstring pattern = LOG4CPLUS_TEXT("%-5p - %m %n");
         append_1->setLayout(std::auto_ptr<Layout>(new PatternLayout(pattern)));
         Logger::getRoot().addAppender(append_1);
 
@@ -389,25 +389,6 @@ namespace utils
         return bytesPerSample;
     }
 
-
-    std::string getWorkerTypeAsString(WorkerType type)
-    {
-        std::string stringWorker;
-
-        switch(type) {
-            case LIVEMEDIA:
-                stringWorker = "livemedia";
-                break;
-            case WORKER:
-                stringWorker = "worker";
-                break;
-            default:
-                stringWorker = "";
-                break;
-        }
-
-        return stringWorker;
-    }
 
     TxFormat getTxFormatFromString(std::string stringTxFormat)
     {

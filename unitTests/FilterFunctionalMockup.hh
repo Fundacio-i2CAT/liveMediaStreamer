@@ -71,27 +71,26 @@ public:
         return true;
     };
     
-    void disconnectFilter()
-    {
+    void disconnectFilter(){
         headF->disconnectAll();
         filterToTest->disconnectAll();
         tailF->disconnectAll();
     }
     
-    std::chrono::microseconds processFrame(InterleavedVideoFrame* srcFrame)
-    {
-        std::chrono::microseconds ret;
+    int processFrame(InterleavedVideoFrame* srcFrame){
+        int ret;
         
         if (! headF->inject(srcFrame)){
-            return std::chrono::microseconds(0);
+            return 0;
         }
-        headF->processFrame();
-        return filterToTest->processFrame();
+        headF->processFrame(ret);
+        filterToTest->processFrame(ret);
+        return ret;
     }
     
-    InterleavedVideoFrame *extractFrame()
-    {
-        tailF->processFrame();
+    InterleavedVideoFrame *extractFrame(){
+        int ret;
+        tailF->processFrame(ret);
         return tailF->extract();
     }
     
@@ -159,23 +158,25 @@ public:
         tailF->disconnectAll();
     }
     
-    std::chrono::microseconds processFrame(InterleavedVideoFrame* srcFrame)
+    int processFrame(InterleavedVideoFrame* srcFrame)
     {
-        std::chrono::microseconds ret;
+        int ret;
 
         for (auto f : headFilters) {
             if (!f.second->inject(srcFrame)) {
-                return std::chrono::microseconds(0);
+                return 0;
             }
-            f.second->processFrame();
+            f.second->processFrame(ret);
         }   
         
-        return filterToTest->processFrame();
+        filterToTest->processFrame(ret);
+        return ret;
     }
     
     InterleavedVideoFrame *extractFrame()
     {
-        tailF->processFrame();
+        int ret;
+        tailF->processFrame(ret);
         return tailF->extract();
     }
     
@@ -242,24 +243,26 @@ public:
         filterToTest->disconnectAll();
         tailF->disconnectAll();
     }
-    
-    std::chrono::microseconds processFrame(PlanarAudioFrame* srcFrame)
+
+    int processFrame(PlanarAudioFrame* srcFrame)
     {
-        std::chrono::microseconds ret;
+        int ret;
 
         for (auto f : headFilters) {
             if (!f.second->inject(srcFrame)) {
-                return std::chrono::microseconds(0);
+                return 0;
             }
-            f.second->processFrame();
+            f.second->processFrame(ret);
         }   
         
-        return filterToTest->processFrame();
+        filterToTest->processFrame(ret);
+        return ret;
     }
     
     PlanarAudioFrame *extractFrame()
     {
-        tailF->processFrame();
+        int ret;
+        tailF->processFrame(ret);
         return tailF->extract();
     }
     

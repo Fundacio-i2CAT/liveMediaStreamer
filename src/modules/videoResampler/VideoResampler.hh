@@ -37,13 +37,13 @@ extern "C" {
 class VideoResampler : public OneToOneFilter {
 
     public:
-        VideoResampler(FilterRole fRole_ = MASTER, bool sharedFrames = true);
+        VideoResampler(FilterRole fRole_ = MASTER);
         ~VideoResampler();
-        bool doProcessFrame(Frame *org, Frame *dst);
-        FrameQueue* allocQueue(int wId);
         bool configure(int width, int height, int period, PixType pixelFormat);
         
     private:
+        bool doProcessFrame(Frame *org, Frame *dst);
+        FrameQueue* allocQueue(int wFId, int rFId, int wId);
         void initializeEventMap();
         bool configEvent(Jzon::Node* params);
         void doGetState(Jzon::Object &filterNode);

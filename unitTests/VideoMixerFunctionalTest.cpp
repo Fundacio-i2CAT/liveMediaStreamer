@@ -48,6 +48,7 @@ protected:
 
     int mixWidth = 1920;
     int mixHeight = 1080;
+    int channels = 8;
 
     ManyToOneVideoScenarioMockup *mixScenario;
     VideoMixer* mixer;
@@ -56,7 +57,7 @@ protected:
 
 void VideoMixerFunctionalTest::setUp()
 {
-    mixer = VideoMixer::createNew(mixWidth, mixHeight);
+    mixer = VideoMixer::createNew(MASTER, channels, mixWidth, mixHeight);
     mixScenario = new ManyToOneVideoScenarioMockup(mixer);
     reader = new AVFramesReader();
 

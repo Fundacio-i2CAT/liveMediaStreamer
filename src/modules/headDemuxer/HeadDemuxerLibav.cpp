@@ -81,27 +81,32 @@ bool HeadDemuxerLibav::doProcessFrame(std::map<int, Frame*> dstFrames)
     if (f != NULL) {
         // If the output for this stream index is connected, copy payload
         // (Otherwise, discard packet)
+        DemuxerStreamInfo *sinfo = streams[pkt.stream_index];
         uint8_t *data = f->getDataBuf();
         memcpy (data, pkt.data, pkt.size);
         f->setConsumed(true);
         f->setLength(pkt.size);
+        f->setPresentationTime(
+            std::chrono::microseconds(1000000 * pkt.pts * sinfo->time_base_num / sinfo->time_base_den));
+        f->setDuration(
+            std::chrono::nanoseconds(1000000000 * pkt.duration * sinfo->time_base_num / sinfo->time_base_den));
     }
     av_free_packet(&pkt);
 
     return true;
 }
 
-FrameQueue *HeadDemuxerLibav::allocQueue(int wId)
+FrameQueue *HeadDemuxerLibav::allocQueue(int wFId, int rFId, int wId)
 {
     // Create output queue for the kind of stream associated with this wId
     const DemuxerStreamInfo *info = streams[wId];
     switch (info->type) {
         case AUDIO:
-            return AudioFrameQueue::createNew(info->audio.codec, DEFAULT_AUDIO_FRAMES,
+            return AudioFrameQueue::createNew(wFId, rFId, info->audio.codec, DEFAULT_AUDIO_FRAMES,
                     info->audio.sampleRate, info->audio.channels,
                     info->audio.sampleFormat, info->extradata, info->extradata_size);
         case VIDEO:
-            return VideoFrameQueue::createNew(info->video.codec, DEFAULT_VIDEO_FRAMES,
+            return VideoFrameQueue::createNew(wFId, rFId, info->video.codec, DEFAULT_VIDEO_FRAMES,
                     P_NONE, info->extradata, info->extradata_size);
         default:
             break;
@@ -191,6 +196,8 @@ bool HeadDemuxerLibav::setURI(const std::string URI)
                     // Ignore this stream
                     break;
             }
+            sinfo->time_base_num = av_ctx->streams[i]->time_base.num;
+            sinfo->time_base_den = av_ctx->streams[i]->time_base.den;
             sinfo->extradata_size = av_ctx->streams[i]->codec->extradata_size;
             if (sinfo->extradata_size > 0) {
                 sinfo->extradata = new uint8_t[sinfo->extradata_size];

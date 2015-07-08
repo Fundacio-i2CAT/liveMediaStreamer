@@ -27,15 +27,16 @@
 
 #include <thread>
 
-BaseFilter::BaseFilter(unsigned readersNum, unsigned writersNum, FilterRole fRole_, bool sharedFrames_) :
-process(false), maxReaders(readersNum), maxWriters(writersNum), frameTime(std::chrono::microseconds(0)), 
-fRole(fRole_), sharedFrames(sharedFrames_), syncTs(std::chrono::microseconds(0))
-{
 
+BaseFilter::BaseFilter(unsigned readersNum, unsigned writersNum, FilterRole fRole_, bool periodic): Runnable(periodic), 
+process(false), maxReaders(readersNum), maxWriters(writersNum),  frameTime(std::chrono::microseconds(0)), 
+fRole(fRole_), syncTs(std::chrono::microseconds(0))
+{
 }
 
 BaseFilter::~BaseFilter()
 {
+    std::lock_guard<std::mutex> guard(readersWritersLck);
     for (auto it : readers) {
         delete it.second;
     }
@@ -48,7 +49,6 @@ BaseFilter::~BaseFilter()
     writers.clear();
     oFrames.clear();
     dFrames.clear();
-    rUpdates.clear();
 }
 
 void BaseFilter::setFrameTime(std::chrono::microseconds fTime)
@@ -58,6 +58,7 @@ void BaseFilter::setFrameTime(std::chrono::microseconds fTime)
 
 Reader* BaseFilter::getReader(int id)
 {
+    std::lock_guard<std::mutex> guard(readersWritersLck);
     if (readers.count(id) <= 0) {
         return NULL;
     }
@@ -67,6 +68,7 @@ Reader* BaseFilter::getReader(int id)
 
 Reader* BaseFilter::setReader(int readerID, FrameQueue* queue)
 {
+    std::lock_guard<std::mutex> guard(readersWritersLck);
     if (readers.size() >= getMaxReaders() || readers.count(readerID) > 0 ) {
         return NULL;
     }
@@ -79,6 +81,7 @@ Reader* BaseFilter::setReader(int readerID, FrameQueue* queue)
 
 int BaseFilter::generateReaderID()
 {
+    std::lock_guard<std::mutex> guard(readersWritersLck);
     if (maxReaders == 1) {
         return DEFAULT_ID;
     }
@@ -94,6 +97,7 @@ int BaseFilter::generateReaderID()
 
 int BaseFilter::generateWriterID()
 {
+    std::lock_guard<std::mutex> guard(readersWritersLck);
     if (maxWriters == 1) {
         return DEFAULT_ID;
     }
@@ -109,6 +113,8 @@ int BaseFilter::generateWriterID()
 
 bool BaseFilter::demandDestinationFrames()
 {
+    std::lock_guard<std::mutex> guard(readersWritersLck);
+    
     if (maxWriters == 0) {
         return true;
     }
@@ -131,33 +137,51 @@ bool BaseFilter::demandDestinationFrames()
     return newFrame;
 }
 
-void BaseFilter::addFrames()
+std::vector<int> BaseFilter::addFrames()
 {
+    std::lock_guard<std::mutex> guard(readersWritersLck);
+    
+    std::vector<int> enabledJobs;
+    
     for (auto it : dFrames){
         if (it.second->getConsumed()) {
             int wId = it.first;
             if (writers[wId]->isConnected()){
-                writers[wId]->addFrame();
+                enabledJobs.push_back(writers[wId]->addFrame());
             }
         }
     }
+    
+    return enabledJobs;
 }
 
-void BaseFilter::removeFrames()
+std::vector<int> BaseFilter::removeFrames()
 {
+    std::vector<int> enabledJobs;
+    
+    if (maxReaders == 0){
+        return enabledJobs;
+    }
+    
+    std::lock_guard<std::mutex> guard(readersWritersLck);
+    
     for (auto it : readers){
-        if (rUpdates[it.first]){
-            it.second->removeFrame();
+        if (oFrames[it.first] && oFrames[it.first]->getConsumed()){
+            enabledJobs.push_back(it.second->removeFrame());
         }
     }
+    
+    return enabledJobs;
 }
 
 bool BaseFilter::connect(BaseFilter *R, int writerID, int readerID)
 {
     Reader* r;
-    FrameQueue *queue;
-
-    if (writers.size() < getMaxWriters() && writers.count(writerID) <= 0) {
+    FrameQueue *queue = NULL;
+    
+    std::lock_guard<std::mutex> guard(readersWritersLck);
+      
+    if (writers.size() < maxWriters && writers.count(writerID) <= 0) {
         writers[writerID] = new Writer();
         seqNums[writerID] = 0;
         utils::debugMsg("New writer created " + std::to_string(writerID));
@@ -173,7 +197,10 @@ bool BaseFilter::connect(BaseFilter *R, int writerID, int readerID)
         return false;
     }
 
-    queue = allocQueue(writerID);
+    queue = allocQueue(getId(), R->getId(), writerID);
+    if (!queue){
+        return false;
+    }
 
     if (!(r = R->setReader(readerID, queue))) {
         utils::errorMsg("Could not set the queue to the reader");
@@ -212,6 +239,9 @@ bool BaseFilter::connectOneToMany(BaseFilter *R, int readerID)
 bool BaseFilter::disconnectWriter(int writerId)
 {
     bool ret;
+    
+    std::lock_guard<std::mutex> guard(readersWritersLck);
+    
     if (writers.count(writerId) <= 0) {
         return false;
     }
@@ -226,6 +256,9 @@ bool BaseFilter::disconnectWriter(int writerId)
 bool BaseFilter::disconnectReader(int readerId)
 {
     bool ret;
+    
+    std::lock_guard<std::mutex> guard(readersWritersLck);
+    
     if (readers.count(readerId) <= 0) {
         return false;
     }
@@ -239,6 +272,8 @@ bool BaseFilter::disconnectReader(int readerId)
 
 void BaseFilter::disconnectAll()
 {
+    std::lock_guard<std::mutex> guard(readersWritersLck);
+    
     for (auto it : writers) {
         it.second->disconnect();
     }
@@ -300,40 +335,38 @@ void BaseFilter::getState(Jzon::Object &filterNode)
     std::lock_guard<std::mutex> guard(eventQueueMutex);
     filterNode.Add("type", utils::getFilterTypeAsString(fType));
     filterNode.Add("role", utils::getRoleAsString(fRole));
-    filterNode.Add("workerId", workerId);
     doGetState(filterNode);
 }
 
-std::chrono::microseconds BaseFilter::processFrame()
+std::vector<int> BaseFilter::processFrame(int& ret)
 {
-    std::chrono::microseconds retValue;
-    std::chrono::microseconds outTimestamp;
+    std::vector<int> enabledJobs;
 
     switch(fRole) {
         case MASTER:
-            retValue = masterProcessFrame();
+            enabledJobs = masterProcessFrame(ret);
             break;
         case SLAVE:
-            retValue = slaveProcessFrame();
+            enabledJobs = slaveProcessFrame(ret);
             break;
         case NETWORK:
             runDoProcessFrame();
-            retValue = std::chrono::microseconds(0);
+            ret = 0;
             break;
+        case SERVER:
+            enabledJobs = serverProcessFrame(ret);
         default:
-            retValue = std::chrono::microseconds(RETRY);
+            ret = 0;
             break;
     }
 
-    return retValue;
+    return enabledJobs;
 }
 
 void BaseFilter::processAll()
 {
     for (auto it : slaves) {
-        if (sharedFrames){
-            it.second->updateFrames(oFrames);
-        }
+        it.second->updateFrames(oFrames);
         it.second->execute();
     }
 }
@@ -347,39 +380,44 @@ bool BaseFilter::runningSlaves()
     return running;
 }
 
-void BaseFilter::setSharedFrames(bool sharedFrames_)
+bool BaseFilter::addSlave(BaseFilter *slave)
 {
-    if(fRole == MASTER){
-        sharedFrames = sharedFrames_;
+    if (slave->fRole != SLAVE){
+        utils::warningMsg("Could not add slave, invalid role");
+        return false;
     }
-}
-
-bool BaseFilter::addSlave(int id, BaseFilter *slave)
-{
-    if (fRole != MASTER || slave->fRole != SLAVE){
+    
+    if (slave->getId() < 0){
+        utils::warningMsg("Could not add slave, invalid id");
         return false;
     }
 
-    if (slaves.count(id) > 0){
+    if (slaves.count(slave->getId()) > 0){
+        utils::warningMsg("Could not add slave, id must be unique");
         return false;
     }
 
-    slave->sharedFrames = sharedFrames;
-
-    slaves[id] = slave;
+    slaves[slave->getId()] = slave;
 
     return true;
 }
 
-std::chrono::microseconds BaseFilter::masterProcessFrame()
+std::vector<int> BaseFilter::masterProcessFrame(int& ret)
 {
     std::chrono::microseconds enlapsedTime;
     std::chrono::microseconds frameTime_;
+    std::vector<int> enabledJobs;
     
     processEvent();
       
-    if (!demandOriginFrames() || !demandDestinationFrames()) {
-        return std::chrono::microseconds(RETRY);
+    if (!demandOriginFrames()) {
+        ret = RETRY/1000;
+        return enabledJobs;
+    }
+    
+    if (!demandDestinationFrames()) {
+        ret = RETRY/1000;
+        return enabledJobs;
     }
 
     processAll();
@@ -390,36 +428,54 @@ std::chrono::microseconds BaseFilter::masterProcessFrame()
         std::this_thread::sleep_for(std::chrono::microseconds(RETRY));
     }
 
+    enabledJobs = addFrames();
     removeFrames();
 
-    return std::chrono::microseconds(0);
+    return enabledJobs;
 }
 
-std::chrono::microseconds BaseFilter::slaveProcessFrame()
+std::vector<int> BaseFilter::serverProcessFrame(int& ret)
 {
+    std::vector<int> enabledJobs;
+
+    processEvent();
+      
+    demandOriginFrames();
+    demandDestinationFrames();
+
+    runDoProcessFrame();
+
+    enabledJobs = addFrames();
+    removeFrames();
+    
+    ret = 0;
+    
+    return enabledJobs;
+}
+
+std::vector<int> BaseFilter::slaveProcessFrame(int& ret)
+{
+    std::vector<int> enabledJobs;
+    ret = RETRY;
+
     if (!process) {
-        return std::chrono::microseconds(RETRY);
+        ret = RETRY;
+        return enabledJobs;
     }
 
     processEvent();
 
     //TODO: decide policy to set run to true/false if retry
     if (!demandDestinationFrames()){
-        return std::chrono::microseconds(RETRY);
-    }
-
-    if (!sharedFrames && !demandOriginFrames()) {
-        return std::chrono::microseconds(RETRY);
+        return enabledJobs;
     }
 
     runDoProcessFrame();
-
-    if (!sharedFrames){
-        removeFrames();
-    }
+    
+    enabledJobs = addFrames();
 
     process = false;
-    return std::chrono::microseconds(RETRY);
+    return enabledJobs;
 }
 
 void BaseFilter::updateFrames(std::map<int, Frame*> oFrames_)
@@ -450,7 +506,7 @@ bool BaseFilter::demandOriginFrames()
 
 bool BaseFilter::demandOriginFramesBestEffort() 
 {
-    bool noFrame = true;
+    bool someFrame = false;
     Frame* frame;
 
     for (auto r : readers) {
@@ -463,21 +519,17 @@ bool BaseFilter::demandOriginFramesBestEffort()
 
         if (!frame) {
             frame = r.second->getFrame(true);
+            frame->setConsumed(false);
             oFrames[r.first] = frame;
-            rUpdates[r.first] = false;
             continue;
         }
 
+        frame->setConsumed(true);
         oFrames[r.first] = frame;
-        rUpdates[r.first] = true;
-        noFrame = false;
+        someFrame = true;
     }
 
-    if (noFrame) {
-        return false;
-    }
-
-    return true;
+    return someFrame;
 }
 
 bool BaseFilter::demandOriginFramesFrameTime() 
@@ -500,16 +552,16 @@ bool BaseFilter::demandOriginFramesFrameTime()
         // If there is no frame get the previous one from the queue
         if (!frame) {
             frame = r.second->getFrame(true);
+            frame->setConsumed(false);
             oFrames[r.first] = frame;
-            rUpdates[r.first] = false;
             continue;
         }
 
         // If the current frame is out of our mixing scope, 
         // we get the previous one from the queue
         if (frame->getPresentationTime() >= syncTs + frameTime) {
+            frame->setConsumed(false);
             oFrames[r.first] = frame;
-            rUpdates[r.first] = false;
 
             if (outOfScopeTs.count() < 0) {
                 outOfScopeTs = frame->getPresentationTime();
@@ -521,8 +573,8 @@ bool BaseFilter::demandOriginFramesFrameTime()
         }
 
         // Normal case, which means that the frame is in our mixing scope (syncTime -> syncTime+frameTime)
+        frame->setConsumed(true);
         oFrames[r.first] = frame;
-        rUpdates[r.first] = true;
         noFrame = false;
     }
 
@@ -540,11 +592,9 @@ bool BaseFilter::demandOriginFramesFrameTime()
     return true;
 }
 
-
-OneToOneFilter::OneToOneFilter(FilterRole fRole_, bool sharedFrames_) :
-BaseFilter(1, 1, fRole_, sharedFrames_)
+OneToOneFilter::OneToOneFilter(FilterRole fRole_, bool periodic) :
+    BaseFilter(1, 1, fRole_, periodic)
 {
-    
 }
 
 bool OneToOneFilter::runDoProcessFrame()
@@ -565,14 +615,13 @@ bool OneToOneFilter::runDoProcessFrame()
     dFrames.begin()->second->setPresentationTime(outTimestamp);
     dFrames.begin()->second->setDuration(oFrames.begin()->second->getDuration());
     dFrames.begin()->second->setSequenceNumber(oFrames.begin()->second->getSequenceNumber());
-    addFrames();
     return true;
 }
 
-OneToManyFilter::OneToManyFilter(FilterRole fRole_, bool sharedFrames_, unsigned writersNum) :
-BaseFilter(1, writersNum, fRole_, sharedFrames_)
-{
 
+OneToManyFilter::OneToManyFilter(FilterRole fRole_, unsigned writersNum, bool periodic) :
+    BaseFilter(1, writersNum, fRole_, periodic)
+{
 }
 
 bool OneToManyFilter::runDoProcessFrame()
@@ -581,20 +630,20 @@ bool OneToManyFilter::runDoProcessFrame()
         return false;
     }
 
+	//TODO: implement timestamp setting
     for (auto it : dFrames) {
         // it.second->setPresentationTime(outTimestamp);
         // it.second->setDuration(oFrames.begin()->second->getDuration());
         it.second->setSequenceNumber(oFrames.begin()->second->getSequenceNumber());
     }
 
-    addFrames();
     return true;
 }
 
-HeadFilter::HeadFilter(FilterRole fRole_, unsigned writersNum) :
-BaseFilter(0, writersNum, fRole_, false)
+
+HeadFilter::HeadFilter(FilterRole fRole_, unsigned writersNum, bool periodic) :
+    BaseFilter(0, writersNum, fRole_, periodic)
 {
-    
 }
 
 bool HeadFilter::runDoProcessFrame()
@@ -607,7 +656,6 @@ bool HeadFilter::runDoProcessFrame()
        it.second->setSequenceNumber(seqNums[it.first]++);
    }
 
-   addFrames();
    return true;
 }
 
@@ -630,10 +678,9 @@ void HeadFilter::pushEvent(Event e)
     }
 }
 
-TailFilter::TailFilter(FilterRole fRole_, bool sharedFrames_, unsigned readersNum) :
-BaseFilter(readersNum, 0, fRole_, sharedFrames_)
+TailFilter::TailFilter(FilterRole fRole_, unsigned readersNum, bool periodic) :
+    BaseFilter(readersNum, 0, fRole_, periodic)
 {
-
 }
 
 bool TailFilter::runDoProcessFrame()
@@ -661,10 +708,10 @@ void TailFilter::pushEvent(Event e)
     }
 }
 
-ManyToOneFilter::ManyToOneFilter(FilterRole fRole_, bool sharedFrames_, unsigned readersNum) :
-BaseFilter(readersNum, 1, fRole_, sharedFrames_)
-{
 
+ManyToOneFilter::ManyToOneFilter(FilterRole fRole_, unsigned readersNum, bool periodic) :
+    BaseFilter(readersNum, 1, fRole_, periodic)
+{
 }
 
 bool ManyToOneFilter::runDoProcessFrame()
@@ -677,32 +724,6 @@ bool ManyToOneFilter::runDoProcessFrame()
     // dFrames.begin()->second->setDuration(oFrames.begin()->second->getDuration());
     seqNums[dFrames.begin()->first]++;
     dFrames.begin()->second->setSequenceNumber(seqNums[dFrames.begin()->first]);
-    addFrames();
     return true;
-}
-
-LiveMediaFilter::LiveMediaFilter(unsigned readersNum, unsigned writersNum) :
-BaseFilter(readersNum, writersNum, NETWORK, false)
-{
-
-}
-
-void LiveMediaFilter::pushEvent(Event e)
-{
-    std::string action = e.getAction();
-    Jzon::Node* params = e.getParams();
-    Jzon::Object outputNode;
-
-    if (action.empty()) {
-        return;
-    }
-
-    if (eventMap.count(action) <= 0) {
-        return;
-    }
-
-    if (!eventMap[action](params)) {
-        utils::errorMsg("Error executing filter event");
-    }
 }
 

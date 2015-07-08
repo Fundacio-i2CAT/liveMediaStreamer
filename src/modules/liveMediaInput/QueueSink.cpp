@@ -26,8 +26,8 @@
 
 #include <sys/time.h>
 
-QueueSink::QueueSink(UsageEnvironment& env, Writer *writer, unsigned port)
-  : MediaSink(env), fWriter(writer), fPort(port), seqNum(0)
+QueueSink::QueueSink(UsageEnvironment& env, unsigned port)
+  : MediaSink(env), fPort(port), seqNum(0), nextFrame(true)
 {
     frame = NULL;
     dummyBuffer = new unsigned char[DUMMY_RECEIVE_BUFFER_SIZE];
@@ -38,9 +38,9 @@ QueueSink::~QueueSink()
     delete[] dummyBuffer;
 }
 
-QueueSink* QueueSink::createNew(UsageEnvironment& env, Writer *writer, unsigned port)
+QueueSink* QueueSink::createNew(UsageEnvironment& env, unsigned port)
 {
-    return new QueueSink(env, writer, port);
+    return new QueueSink(env, port);
 }
 
 Boolean QueueSink::continuePlaying()
@@ -50,15 +50,20 @@ Boolean QueueSink::continuePlaying()
         return False;
     }
 
-    if (!fWriter->isConnected()) {
+    if (!frame){
         utils::debugMsg("Using dummy buffer, no writer connected yet");
         fSource->getNextFrame(dummyBuffer, DUMMY_RECEIVE_BUFFER_SIZE,
                               afterGettingFrame, this,
                               onSourceClosure, this);
         return True;
     }
+    
+    if (nextFrame){
+        nextTask() = envir().taskScheduler().scheduleDelayedTask(0,
+            (TaskFunc*)QueueSink::staticContinuePlaying, this);
+        return True;
+    }
 
-    frame = fWriter->getFrame(true);
 
     fSource->getNextFrame(frame->getDataBuf(), frame->getMaxLength(),
               afterGettingFrame, this,
@@ -86,8 +91,22 @@ void QueueSink::afterGettingFrame(unsigned frameSize, struct timeval presentatio
         frame->setPresentationTime(ts);
         frame->setSequenceNumber(++seqNum);
         frame->setConsumed(true);
-        fWriter->addFrame();
+        nextFrame = true;
     }
+    nextTask() = envir().taskScheduler().scheduleDelayedTask(0,
+            (TaskFunc*)QueueSink::staticContinuePlaying, this);
+}
 
-    continuePlaying();
+void QueueSink::staticContinuePlaying(QueueSink *sink)
+{
+    sink->continuePlaying();
+}
+
+bool QueueSink::setFrame(Frame *f){
+    if (nextFrame){
+        frame = f;
+        nextFrame = false;
+        return true;
+    }
+    return false;
 }

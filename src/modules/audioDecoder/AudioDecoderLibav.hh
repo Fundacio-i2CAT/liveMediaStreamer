@@ -36,11 +36,13 @@ extern "C" {
 class AudioDecoderLibav : public OneToOneFilter {
 
 public:
-    AudioDecoderLibav(FilterRole fRole_ = MASTER, bool sharedFrames = true);
+    AudioDecoderLibav(FilterRole fRole_ = MASTER);
     ~AudioDecoderLibav();
-    bool doProcessFrame(Frame *org, Frame *dst);
-    FrameQueue* allocQueue(int wId);
     bool configure(SampleFmt sampleFormat, int channels, int sampleRate);
+    
+protected:
+    bool doProcessFrame(Frame *org, Frame *dst);
+    FrameQueue* allocQueue(int wFId, int rFId, int wId);
 
 private:
 
@@ -64,15 +66,15 @@ private:
     AVSampleFormat      inLibavSampleFmt;
     AVSampleFormat      outLibavSampleFmt;
 
-    ACodecType          fCodec;
-    SampleFmt           inSampleFmt;
-    SampleFmt           outSampleFmt;
-    int                 inChannels;
-    int                 outChannels;
-    int                 inSampleRate;
-    int                 outSampleRate;
-    unsigned int        bytesPerSample;
-    unsigned char       *auxBuff[1];
+    ACodecType fCodec;
+    SampleFmt inSampleFmt;
+    SampleFmt outSampleFmt;
+    unsigned inChannels;
+    unsigned outChannels;
+    unsigned inSampleRate;
+    unsigned outSampleRate;
+    unsigned bytesPerSample;
+    unsigned char *auxBuff[1];
 
 };
 

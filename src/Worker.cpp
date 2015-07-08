@@ -27,6 +27,7 @@
 #define ACTIVE_TIMEOUT 500
 
 #include <map>
+#include <iostream>
 
 #include "Worker.hh"
 
@@ -73,7 +74,7 @@ bool Worker::removeProcessor(int id)
     Runnable* current;
 
     std::lock_guard<std::mutex> guard(mtx);
-
+    
     while (!processors.empty()){
         current = processors.top();
         processors.pop();

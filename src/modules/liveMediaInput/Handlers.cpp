@@ -26,7 +26,6 @@
 #include "H264VideoSdpParser.hh"
 #include "SourceManager.hh"
 #include "ExtendedRTSPClient.hh"
-#include "../../AVFramedQueue.hh"
 
 #include <iostream>
 #include <sstream>
@@ -123,8 +122,8 @@ namespace handlers
                 utils::errorMsg("Failed to initiate subsession sink");
                 scs.subsession->deInitiate();
             }
-
-            if (!scs.addWriterToMngr(queueSink->getPort(), queueSink->getWriter())){
+            
+            if (!scs.addSinkToMngr(queueSink->getPort(), queueSink)){
                 utils::errorMsg("Failed adding writer in SourceManager");
                 scs.subsession->deInitiate();
             }
@@ -284,16 +283,13 @@ namespace handlers
     {
         int wId;
         QueueSink *sink;
-        Writer *writer;
         FramedFilter* filter = NULL;
 
-        writer = new Writer();
         wId = subsession->clientPortNum();
-        sink = QueueSink::createNew(env, writer, wId);
+        sink = QueueSink::createNew(env, wId);
 
         if (sink == NULL){
             utils::errorMsg("Error creating subsession sink");
-            delete writer;
             return false;
         }
 

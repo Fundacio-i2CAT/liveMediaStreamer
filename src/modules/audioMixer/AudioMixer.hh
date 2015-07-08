@@ -35,7 +35,7 @@
 class AudioMixer : public ManyToOneFilter {
 
 public:
-    AudioMixer(FilterRole fRole_ = MASTER, bool sharedFrames = true, int inputChannels = AMIXER_MAX_CHANNELS);
+    AudioMixer(FilterRole fRole_ = MASTER, int inputChannels = AMIXER_MAX_CHANNELS);
     ~AudioMixer();
     FrameQueue *allocQueue(int wId);
     static bool bytesToFloat(unsigned char const* origin, float &dst, SampleFmt fmt); 
@@ -43,10 +43,13 @@ public:
     unsigned getMixingThreshold() {return mixingThreshold;};
     int getInputFrameSamples() {return inputFrameSamples;};
 
-private:
+protected:
     Reader *setReader(int readerID, FrameQueue* queue);
     void doGetState(Jzon::Object &filterNode);
+    FrameQueue *allocQueue(int wFId, int rFId, int wId);
     bool doProcessFrame(std::map<int, Frame*> orgFrames, Frame *dst);
+
+private:
     void initializeEventMap();
     bool pushToBuffer(int mixChId, AudioFrame* frame);
     bool fillChannel(std::queue<float> &buffer, int nOfSamples, unsigned char* data, SampleFmt fmt); 

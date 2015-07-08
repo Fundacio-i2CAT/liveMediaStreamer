@@ -46,7 +46,6 @@ namespace utils
     std::string getAudioCodecAsString(ACodecType codec);
     std::string getVideoCodecAsString(VCodecType codec);
     std::string getFilterTypeAsString(FilterType type);
-    std::string getWorkerTypeAsString(WorkerType type);
     std::string getTxFormatAsString(TxFormat format);
     std::string randomIdGenerator(unsigned int length);
     int getPayloadFromCodec(std::string codec);

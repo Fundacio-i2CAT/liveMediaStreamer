@@ -107,7 +107,7 @@ void WorkerTest::runningProcessor()
     
     CPPUNIT_ASSERT(worker->addProcessor(1, run1));
     CPPUNIT_ASSERT(worker->addProcessor(2, run2));
-    
+       
     CPPUNIT_ASSERT(!worker->isRunning());
     CPPUNIT_ASSERT(worker->start());
     
@@ -123,7 +123,9 @@ void WorkerTest::runningProcessor()
     std::this_thread::sleep_for(std::chrono::seconds(1));
     
     CPPUNIT_ASSERT(worker->isRunning());
+    
     worker->stop();
+    
     CPPUNIT_ASSERT(!worker->isRunning());
     
     delete run1;

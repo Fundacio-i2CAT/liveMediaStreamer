@@ -24,9 +24,9 @@
 
 static unsigned char const start_code[4] = {0x00, 0x00, 0x00, 0x01};
 
-SharedMemory* SharedMemory::createNew(size_t key_, VCodecType codec, FilterRole fRole_, size_t fTime, bool force_, bool sharedFrames_)
+SharedMemory* SharedMemory::createNew(size_t key_, VCodecType codec, FilterRole fRole_)
 {
-    SharedMemory *shm = new SharedMemory(key_, codec, fTime, fRole_, force_, sharedFrames_);
+    SharedMemory *shm = new SharedMemory(key_, codec, fRole_);
 
     if(shm->isEnabled()){
         return shm;
@@ -34,8 +34,8 @@ SharedMemory* SharedMemory::createNew(size_t key_, VCodecType codec, FilterRole 
     return NULL;
 }
 
-SharedMemory::SharedMemory(size_t key_, VCodecType codec_, size_t fTime, FilterRole fRole_, bool force_, bool sharedFrames_):
-    OneToOneFilter(fRole_, fTime), enabled(true), newFrame(false), codec(codec_)
+SharedMemory::SharedMemory(size_t key_, VCodecType codec_, FilterRole fRole_):
+    OneToOneFilter(fRole_), enabled(true), newFrame(false), codec(codec_)
 {
 
     if(!(codec == RAW || codec == H264)){
@@ -123,13 +123,13 @@ bool SharedMemory::doProcessFrame(Frame *org, Frame *dst)
     return true;
 }
 
-FrameQueue* SharedMemory::allocQueue(int wId)
+FrameQueue* SharedMemory::allocQueue(int wFId, int rFId, int wId)
 {
     if (codec == H264) {
-        return VideoFrameQueue::createNew(codec, DEFAULT_VIDEO_FRAMES);
+        return VideoFrameQueue::createNew(wFId, rFId, codec, DEFAULT_VIDEO_FRAMES);
 
     } else if (codec == RAW) {
-        return VideoFrameQueue::createNew(codec, DEFAULT_RAW_VIDEO_FRAMES, RGB24);
+        return VideoFrameQueue::createNew(wFId, rFId, codec, DEFAULT_RAW_VIDEO_FRAMES, RGB24);
         
     } else {
         return NULL;

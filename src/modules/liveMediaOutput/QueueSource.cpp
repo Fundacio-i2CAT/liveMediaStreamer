@@ -1,28 +1,44 @@
 #include "QueueSource.hh"
 #include "SinkManager.hh"
 
-QueueSource* QueueSource::createNew(UsageEnvironment& env, Reader *reader, int readerId) 
+QueueSource* QueueSource::createNew(UsageEnvironment& env, int readerId) 
 {
-  return new QueueSource(env, reader, readerId);
+  return new QueueSource(env, readerId);
 }
 
 
-QueueSource::QueueSource(UsageEnvironment& env, Reader *reader, int readerId)
-  : FramedSource(env), fReader(reader), fReaderId(readerId) 
+QueueSource::QueueSource(UsageEnvironment& env, int readerId)
+  : FramedSource(env), eventTriggerId(0), frame(NULL), fReaderId(readerId) 
 {
-
+    if (eventTriggerId == 0){
+        eventTriggerId = envir().taskScheduler().createEventTrigger(deliverFrame0);
+    }
 }
 
 void QueueSource::doGetNextFrame() 
 {
-    checkStatus();
-    std::chrono::microseconds presentationTime;
+    //TODO: check status
+    if (false) {
+        handleClosure();
+        return;
+    }
+    
+    if (frame) {
+        deliverFrame();
+    }    
+}
 
-    frame = fReader->getFrame();
+void QueueSource::deliverFrame0(void* clientData) {
+  ((QueueSource*)clientData)->deliverFrame();
+}
 
+void QueueSource::deliverFrame()
+{
+    if (!isCurrentlyAwaitingData()) {
+        return; 
+    }
+    
     if (!frame) {
-        nextTask() = envir().taskScheduler().scheduleDelayedTask(POLL_TIME,
-            (TaskFunc*)QueueSource::staticDoGetNextFrame, this);
         return;
     }
 
@@ -38,22 +54,29 @@ void QueueSource::doGetNextFrame()
     }
     
     memcpy(fTo, frame->getDataBuf(), fFrameSize);
-    fReader->removeFrame();
+    frame->setConsumed(true);
+    frame = NULL;
 
     afterGetting(this);
 }
 
-void QueueSource::staticDoGetNextFrame(FramedSource* source) 
+
+bool QueueSource::setFrame(Frame *f)
 {
-    source->doGetNextFrame();
+    if (f && !frame){
+        frame = f;
+        return true;
+    }
+    return false;
 }
 
-void QueueSource::checkStatus()
+bool QueueSource::signalNewFrameData(TaskScheduler* ourScheduler, QueueSource* ourSource) 
 {
-    if (fReader->isConnected()) {
-        return;
-    }
+  if (!ourScheduler || !ourSource) {
+      return false;
+  }
 
-    stopGettingFrames();
+  ourScheduler->triggerEvent(ourSource->getTriggerId(), ourSource);
+  return true;
 }
 

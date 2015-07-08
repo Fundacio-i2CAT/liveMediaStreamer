@@ -30,8 +30,8 @@
 #include <cmath>
 #include <string.h>
 
-AudioMixer::AudioMixer(FilterRole role, bool sharedFrames, int inputChannels) : 
-ManyToOneFilter(role, sharedFrames, inputChannels), channels(DEFAULT_CHANNELS),
+AudioMixer::AudioMixer(FilterRole role, int inputChannels) : 
+ManyToOneFilter(role, inputChannels), channels(DEFAULT_CHANNELS),
 sampleRate(DEFAULT_SAMPLE_RATE), sampleFormat(FLTP), maxMixingChannels(inputChannels),
 front(0), rear(0), masterGain(DEFAULT_MASTER_GAIN), th(COMPRESSION_THRESHOLD),
 syncTs(std::chrono::microseconds(-1))
@@ -54,10 +54,10 @@ AudioMixer::~AudioMixer()
 
 }
 
-FrameQueue *AudioMixer::allocQueue(int wId) 
+FrameQueue *AudioMixer::allocQueue(int wFId, int rFId, int wId) 
 {
-    return AudioCircularBuffer::createNew(channels, sampleRate, DEFAULT_BUFFER_SIZE, 
-                                            sampleFormat, std::chrono::milliseconds(0));
+    return AudioCircularBuffer::createNew(wFId, rFId, channels, sampleRate, DEFAULT_BUFFER_SIZE, 
+                                            sampleFormat, std::chrono::milliseconds(BUFFERING_THRESHOLD));
 }
 
 bool AudioMixer::doProcessFrame(std::map<int, Frame*> orgFrames, Frame *dst) 
@@ -132,7 +132,6 @@ bool AudioMixer::pushToBuffer(int mixChId, AudioFrame* frame)
 
     if (absolutePosition < front) {
         utils::errorMsg("[AudioMixer] Samples from the past ignored");
-        std::cout << "Pos: " << absolutePosition << "   Front: " << front << std::endl;
         return false;
     }
 
@@ -308,7 +307,6 @@ bool AudioMixer::setChannelGain(int id, float value)
 
     return true;
 }
-
 
 bool AudioMixer::changeChannelVolumeEvent(Jzon::Node* params)
 {

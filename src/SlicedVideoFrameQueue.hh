@@ -38,7 +38,7 @@ public:
     * @param maxFrames internal frame queue size 
     * @return NULL if wrong input parameters or wrong init and pointer to new object if success
     */
-    static SlicedVideoFrameQueue* createNew(VCodecType codec, unsigned maxFrames, unsigned maxSliceSize);
+    static SlicedVideoFrameQueue* createNew(int wId, int rId, VCodecType codec, unsigned maxFrames, unsigned maxSliceSize);
 
     /**
     * Class destructor
@@ -56,7 +56,7 @@ public:
     * into a VideoFrame structure.
     * @return input frame pointer or NULL if internal buffer is full
     */
-    void addFrame();
+    int addFrame();
 
     /**
     * It returns the input frame, flushing the internal buffer if the internal buffer is full. It may cause data loss.
@@ -65,7 +65,7 @@ public:
     Frame *forceGetRear();
 
 private:
-    SlicedVideoFrameQueue(VCodecType codec, unsigned maxFrames);
+    SlicedVideoFrameQueue(int wId, int rId, VCodecType codec, unsigned maxFrames);
 
     bool pushBack();
     Frame *innerGetRear();

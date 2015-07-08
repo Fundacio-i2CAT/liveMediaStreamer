@@ -27,9 +27,9 @@
 
 #define MAX_DEVIATION_SAMPLES 64
 
-AudioCircularBuffer* AudioCircularBuffer::createNew(unsigned ch, unsigned sRate, unsigned maxSamples, SampleFmt sFmt, std::chrono::milliseconds bufferingThreshold)
+AudioCircularBuffer* AudioCircularBuffer::createNew(int wId, int rId, unsigned ch, unsigned sRate, unsigned maxSamples, SampleFmt sFmt, std::chrono::milliseconds bufferingThreshold)
 {
-    AudioCircularBuffer* b = new AudioCircularBuffer(ch, sRate, maxSamples, sFmt);
+    AudioCircularBuffer* b = new AudioCircularBuffer(wId, rId, ch, sRate, maxSamples, sFmt);
 
     if (!b->setup()) {
         utils::errorMsg("AudioCircularBuffer setup error!");
@@ -41,8 +41,8 @@ AudioCircularBuffer* AudioCircularBuffer::createNew(unsigned ch, unsigned sRate,
     return b;
 }
 
-AudioCircularBuffer::AudioCircularBuffer(unsigned ch, unsigned sRate, unsigned maxSamples, SampleFmt sFmt)
-: FrameQueue(), channels(ch), sampleRate(sRate), bytesPerSample(0), chMaxSamples(maxSamples), channelMaxLength(0), 
+AudioCircularBuffer::AudioCircularBuffer(int wId, int rId, unsigned ch, unsigned sRate, unsigned maxSamples, SampleFmt sFmt)
+: FrameQueue(wId, rId), channels(ch), sampleRate(sRate), bytesPerSample(0), chMaxSamples(maxSamples), channelMaxLength(0), 
 sampleFormat(sFmt), outputFrameAlreadyRead(true), samplesBufferingThreshold(0), bufferingState(BUFFERING), 
 inputFrame(NULL), outputFrame(NULL), dummyFrame(NULL), synchronized(false), setupSuccess(false), tsDeviationThreshold(0)
 {
@@ -96,7 +96,7 @@ Frame* AudioCircularBuffer::getFront()
     return outputFrame;
 }
 
-void AudioCircularBuffer::addFrame()
+int AudioCircularBuffer::addFrame()
 {
     std::chrono::microseconds inTs;
     std::chrono::microseconds rearTs;
@@ -117,7 +117,7 @@ void AudioCircularBuffer::addFrame()
 
     if (deviation.count() < -tsDeviationThreshold) {
         utils::warningMsg("[AudioCircularBuffer] Timestamp from the past, discarding entire frame");
-        return;
+        return -1;
     }
 
     if (deviation.count() > tsDeviationThreshold) {
@@ -128,25 +128,27 @@ void AudioCircularBuffer::addFrame()
         if (paddingSamples >= chMaxSamples) {
             utils::warningMsg("[AudioCircularBuffer] Time discontinuity. Flushing buffer!");
             flush();
-            return;
+            return -1;
         }
 
         if(!pushBack(dummyFrame->getPlanarDataBuf(), paddingSamples)) {
             utils::warningMsg("[AudioCircularBuffer] Cannot push padding");
-            return;
+            return -1;
         }
     }
 
     if(!pushBack(inputFrame->getPlanarDataBuf(), inputFrame->getSamples())) {
         utils::warningMsg("[AudioCircularBuffer] Cannot push frame");
-        return;
+        return -1;
     }
+    
+    return rFilterId;
 }
 
-void AudioCircularBuffer::removeFrame()
+int AudioCircularBuffer::removeFrame()
 {
     outputFrameAlreadyRead = true;
-    return;
+    return wFilterId;
 }
 
 void AudioCircularBuffer::flush()

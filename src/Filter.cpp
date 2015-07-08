@@ -254,7 +254,7 @@ bool BaseFilter::connect(BaseFilter *R, int writerID, int readerID)
         utils::errorMsg("Could not set the queue to the reader");
         return false;
     }
-    
+
     writers[writerID]->setQueue(queue);
 
     return writers[writerID]->connect(r);
@@ -587,10 +587,6 @@ std::vector<int> BaseFilter::slaveProcessFrame(int& ret)
         return enabledJobs;;
     }
 
-    if (!demandOriginFrames()) {
-        return enabledJobs;
-    }
-
     runDoProcessFrame();
     
     enabledJobs = addFrames();
@@ -653,7 +649,13 @@ HeadFilter::HeadFilter(FilterRole fRole_, size_t fTime, unsigned writersNum, boo
 
 bool HeadFilter::runDoProcessFrame()
 {
-    return doProcessFrame(dFrames);
+    if (doProcessFrame(dFrames)){
+        for (auto it: dFrames){
+            it.second->setSequenceNumber(seqNums[it.first]++);
+        }
+        return true;
+    }
+    return false;
 }
 
 void HeadFilter::pushEvent(Event e)

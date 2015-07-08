@@ -57,7 +57,7 @@ AudioMixer::~AudioMixer()
 FrameQueue *AudioMixer::allocQueue(int wId) 
 {
     return AudioCircularBuffer::createNew(channels, sampleRate, DEFAULT_BUFFER_SIZE, 
-                                            sampleFormat, std::chrono::milliseconds(BUFFERING_THRESHOLD));
+                                            sampleFormat, std::chrono::milliseconds(0));
 }
 
 bool AudioMixer::doProcessFrame(std::map<int, Frame*> orgFrames, Frame *dst) 
@@ -132,7 +132,16 @@ bool AudioMixer::pushToBuffer(int mixChId, AudioFrame* frame)
 
     if (absolutePosition < front) {
         utils::errorMsg("[AudioMixer] Samples from the past ignored");
+        std::cout << "Pos: " << absolutePosition << "   Front: " << front << std::endl;
         return false;
+    }
+
+    if (absolutePosition > front + mixBufferMaxSamples - nOfSamples) {
+        utils::errorMsg("[AudioMixer] Received frame exceeds buffer scope. Resyncing!");
+        front = 0;
+        rear = 0;
+        syncTs = frame->getPresentationTime();
+        absolutePosition = front;
     }
 
     for (int i = 0; i < channels; i++) {

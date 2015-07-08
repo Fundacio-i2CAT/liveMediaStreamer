@@ -114,66 +114,9 @@ PlanarAudioFrame::~PlanarAudioFrame()
     }
 }
 
-int PlanarAudioFrame::getChannelFloatSamples(std::vector<float> &samplesVec, int channel) 
-{
-    short value = 0;
-    float fValue = 0;
-
-    if (sampleFmt != S16P && sampleFmt != FLTP) {
-        utils::errorMsg("[PlanarAudioFrame] Only S16P and FLTP formats are supported when converting to float values");
-        return 0;
-    }
-
-    if ((int)samplesVec.size() != samples) {
-        samplesVec.resize(samples);
-    }
-
-    unsigned char* b = frameBuff[channel];
-
-    if (sampleFmt == FLTP) {
-        for (int i = 0; i < samples; i++) {
-            fValue = *(float*)(b+i*bytesPerSample);
-            samplesVec[i] = fValue;
-        }
-
-    } else if (sampleFmt == S16P) {
-        for (int i=0; i < samples; i++) {
-            value = (short)(b[i*bytesPerSample] | b[i*bytesPerSample + 1] << 8);
-            fValue = value / 32768.0f;
-            samplesVec[i] = fValue;
-        }
-    }
-
-    return samples;
-}
-
-void PlanarAudioFrame::fillBufferWithFloatSamples(std::vector<float> samplesVec, int channel)
-{
-    short value = 0;
-    unsigned char* b = frameBuff[channel];
-
-    if (sampleFmt != S16P && sampleFmt != FLTP) {
-        utils::errorMsg("[PlanarAudioFrame] Only S16P and FLTP formats are supported when converting from float values");
-        return;
-    }
-
-    if (sampleFmt == FLTP) {
-        for (int i = 0; i < samples; i++) {
-            memcpy(b + i*bytesPerSample, &samplesVec[i], bytesPerSample);
-        }
-
-    } else if (sampleFmt == S16P) {
-        for (int i = 0; i < samples; i++) {
-            value = samplesVec[i] * 32768.0;
-            b[i*bytesPerSample] = value & 0xFF; 
-            b[i*bytesPerSample+1] = (value >> 8) & 0xFF;
-        }
-    }
-}
-
 void PlanarAudioFrame::fillWithValue(int value)
 {
-    for (int i = 0; i < channels; i++) {
+    for (unsigned i = 0; i < channels; i++) {
         memset(frameBuff[i], value, bufferMaxLen);
     }
 } 

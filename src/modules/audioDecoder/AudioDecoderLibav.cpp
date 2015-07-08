@@ -82,7 +82,7 @@ AudioDecoderLibav::~AudioDecoderLibav()
 FrameQueue* AudioDecoderLibav::allocQueue(int wId)
 {
     return AudioCircularBuffer::createNew(outChannels, outSampleRate, DEFAULT_BUFFER_SIZE, 
-                                            outSampleFmt, std::chrono::milliseconds(BUFFERING_THRESHOLD));
+                                            outSampleFmt, std::chrono::milliseconds(0));
 }
 
 bool AudioDecoderLibav::doProcessFrame(Frame *org, Frame *dst)

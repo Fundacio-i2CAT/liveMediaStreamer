@@ -54,7 +54,8 @@ bool DashAudioSegmenter::updateConfig()
         return false;
     }
 
-    if (aFrame->getSampleRate() <= 0 || aFrame->getSamples() <= 0 || aFrame->getChannels() <=0 ||  aFrame->getBytesPerSample() <= 0) {
+    if (aFrame->getSampleRate() <= 0 || aFrame->getSamples() <= 0 || 
+        aFrame->getChannels() <=0 || utils::getBytesPerSampleFromFormat(aFrame->getSampleFmt()) <= 0) {
         utils::errorMsg("Error configuring DashAudioSegmenter: frame attributes not valid");
         return false;
     }
@@ -65,7 +66,7 @@ bool DashAudioSegmenter::updateConfig()
     }
 
     if (!setup(segDurInTimeBaseUnits, timeBase, frameDuration, aFrame->getChannels(),
-                        aFrame->getSampleRate(), aFrame->getBytesPerSample()*BYTE_TO_BIT)) {
+                        aFrame->getSampleRate(), utils::getBytesPerSampleFromFormat(aFrame->getSampleFmt())*BYTE_TO_BIT)) {
         utils::errorMsg("Error during Dash Audio Segmenter setup");
         return false;
     }

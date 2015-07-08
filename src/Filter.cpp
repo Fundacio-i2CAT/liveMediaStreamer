@@ -131,7 +131,7 @@ bool BaseFilter::demandOriginFrames()
     for (auto it : readers) {
         if (!it.second->isConnected()) {
             it.second->disconnect();
-            //NOTE: think about readers as shared pointers
+            //NOTE: think about readers and queues as shared pointers
             delete it.second;
             readers.erase(it.first);
             continue;
@@ -214,7 +214,7 @@ std::vector<int> BaseFilter::removeFrames()
     std::lock_guard<std::mutex> guard(readersWritersLck);
     
     for (auto it : readers){
-        if (oFrames[it.first] != NULL && oFrames[it.first]->getConsumed()){
+        if (oFrames[it.first] && oFrames[it.first]->getConsumed()){
             enabledJobs.push_back(it.second->removeFrame());
         }
     }
@@ -384,15 +384,6 @@ void BaseFilter::getState(Jzon::Object &filterNode)
     filterNode.Add("type", utils::getFilterTypeAsString(fType));
     filterNode.Add("role", utils::getRoleAsString(fRole));
     doGetState(filterNode);
-}
-
-bool BaseFilter::hasFrames()
-{
-	if (!demandOriginFrames() || !demandDestinationFrames()) {
-		return false;
-	}
-
-	return true;
 }
 
 bool BaseFilter::updateTimestamp()

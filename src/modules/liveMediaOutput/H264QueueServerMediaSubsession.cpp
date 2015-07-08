@@ -24,6 +24,7 @@
 
 #include "H264QueueServerMediaSubsession.hh"
 
+
 H264QueueServerMediaSubsession*
 H264QueueServerMediaSubsession::createNew(UsageEnvironment& env,
                           StreamReplicator* replica, int readerId,

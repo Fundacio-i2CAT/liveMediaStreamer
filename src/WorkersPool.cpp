@@ -159,7 +159,7 @@ bool WorkersPool::removeFromQueue(int id){
 }
 
 bool WorkersPool::addJob(const int id){
-    if (runnables.count(id) > 0){
+    if (runnables.count(id) > 0 && !runnables[id]->isPeriodic()){
         jobQueue.push_back(runnables[id]);
         jobQueue.sort(RunnableLess());
         qCheck.notify_one();

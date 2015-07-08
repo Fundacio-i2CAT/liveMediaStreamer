@@ -26,13 +26,11 @@
 
 #include <liveMedia.hh>
 #include "QueueServerMediaSubsession.hh"
+#include "../../Utils.hh"
 
 class H264or5QueueServerMediaSubsession: public QueueServerMediaSubsession {
 
 public:
-    void checkForAuxSDPLine1();
-    void afterPlayingDummy1();
-    
     std::vector<int> getReaderIds();
 
 protected:
@@ -41,19 +39,10 @@ protected:
 
     virtual ~H264or5QueueServerMediaSubsession();
 
-    void setDoneFlag() { fDoneFlag = ~0; }
-
-    char const* getAuxSDPLine(RTPSink* rtpSink,
-                    FramedSource* inputSource);
-
     StreamReplicator* replicator;
 
 private:
     int reader;
-    
-    char* fAuxSDPLine;
-    char fDoneFlag; 
-    RTPSink* fDummyRTPSink;
 };
 
 #endif

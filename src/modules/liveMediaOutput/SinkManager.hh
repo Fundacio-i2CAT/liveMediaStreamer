@@ -89,26 +89,27 @@ private:
     bool addMpegTsRTPConnection(std::vector<int> readers, int id, std::string ip, int port);
     void initializeEventMap();
     
-    bool removeConnectionByReaderId(int readerId);
-    bool deleteReader(int id);
+//     bool removeConnectionByReaderId(int readerId);
+//     bool deleteReader(int id);
     
     bool addRTSPConnectionEvent(Jzon::Node* params);
     bool addRTPConnectionEvent(Jzon::Node* params);
     
     Reader *setReader(int readerID, FrameQueue* queue);
 
-    bool doProcessFrame();
+    bool doProcessFrame(std::map<int, Frame*> oFrames);
     void stop();
 
     FrameQueue *allocQueue(int wFId, int rFId, int wId) { return NULL;};
 
     bool addSubsessionByReader(RTSPConnection* connection, int readerId);
 
-    void createVideoQueueSource(VCodecType codec, Reader *reader, int readerId);
-    void createAudioQueueSource(ACodecType codec, Reader *reader, int readerId);
+    void createVideoQueueSource(VCodecType codec, int readerId);
+    void createAudioQueueSource(ACodecType codec, int readerId);
     void doGetState(Jzon::Object &filterNode);
 
     std::map<int, StreamReplicator*> replicators;
+    std::map<int, QueueSource*> sources;
     std::map<int, Connection*> connections;
 
     RTSPServer* rtspServer;

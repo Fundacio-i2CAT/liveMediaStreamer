@@ -1,39 +1,53 @@
 #include "QueueSource.hh"
 #include "SinkManager.hh"
 
-QueueSource* QueueSource::createNew(UsageEnvironment& env, Reader *reader, int readerId) {
-  return new QueueSource(env, reader, readerId);
+QueueSource* QueueSource::createNew(UsageEnvironment& env, int readerId) {
+  return new QueueSource(env, readerId);
 }
 
 
-QueueSource::QueueSource(UsageEnvironment& env, Reader *reader, int readerId)
-  : FramedSource(env), fReader(reader), fReaderId(readerId) {
+QueueSource::QueueSource(UsageEnvironment& env, int readerId)
+  : FramedSource(env), eventTriggerId(0), frame(NULL), fReaderId(readerId) 
+{
+    if (eventTriggerId == 0){
+        eventTriggerId = envir().taskScheduler().createEventTrigger(deliverFrame0);
+    }
 }
 
 void QueueSource::doGetNextFrame() 
 {
-    checkStatus();
-    bool newFrame = false;
-    QueueState state;
-    std::chrono::microseconds presentationTime;
-
-    frame = fReader->getFrame(state, newFrame);
-
-    if ((newFrame && frame == NULL) || (!newFrame && frame != NULL)) {
-        //TODO: sanity check, think about assert
-    }
-
-    if (!newFrame) {
-        nextTask() = envir().taskScheduler().scheduleDelayedTask(POLL_TIME,
-            (TaskFunc*)QueueSource::staticDoGetNextFrame, this);
+    //TODO: check status
+    if (false) {
+        handleClosure();
         return;
     }
+    
+    if (frame) {
+        deliverFrame();
+    }    
+}
+
+void QueueSource::deliverFrame0(void* clientData) {
+  ((QueueSource*)clientData)->deliverFrame();
+}
+
+void QueueSource::deliverFrame()
+{
+    if (!isCurrentlyAwaitingData()) {
+        return; 
+    }
+    
+    if (!frame) {
+        return;
+    }
+    
+    std::chrono::microseconds presentationTime;
 
     presentationTime = duration_cast<std::chrono::microseconds>(frame->getPresentationTime().time_since_epoch());
 
     fPresentationTime.tv_sec = presentationTime.count()/std::micro::den;
     fPresentationTime.tv_usec = presentationTime.count()%std::micro::den;
-
+    
     if (fMaxSize < frame->getLength()){
         fFrameSize = fMaxSize;
         fNumTruncatedBytes = frame->getLength() - fMaxSize;
@@ -43,21 +57,29 @@ void QueueSource::doGetNextFrame()
     }
     
     memcpy(fTo, frame->getDataBuf(), fFrameSize);
-    fReader->removeFrame();
+    frame->setConsumed(true);
+    frame = NULL;
 
     afterGetting(this);
 }
 
-void QueueSource::staticDoGetNextFrame(FramedSource* source) {
-    source->doGetNextFrame();
+
+bool QueueSource::setFrame(Frame *f)
+{
+    if (f && !frame){
+        frame = f;
+        return true;
+    }
+    return false;
 }
 
-void QueueSource::checkStatus()
+bool QueueSource::signalNewFrameData(TaskScheduler* ourScheduler, QueueSource* ourSource) 
 {
-    if (fReader->isConnected()) {
-        return;
-    }
+  if (!ourScheduler || !ourSource) {
+      return false;
+  }
 
-    stopGettingFrames();
+  ourScheduler->triggerEvent(ourSource->getTriggerId(), ourSource);
+  return true;
 }
 

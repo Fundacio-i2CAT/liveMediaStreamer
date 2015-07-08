@@ -181,7 +181,6 @@ protected:
 
     std::vector<int> addFrames();
     std::vector<int> removeFrames();
-    bool hasFrames();
     virtual FrameQueue *allocQueue(int wFId, int rFId, int wId) = 0;
 
     std::chrono::nanoseconds getFrameTime() {return frameTime;};

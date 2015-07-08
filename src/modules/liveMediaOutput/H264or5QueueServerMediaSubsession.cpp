@@ -25,66 +25,13 @@
 
 H264or5QueueServerMediaSubsession::H264or5QueueServerMediaSubsession(UsageEnvironment& env,
                           StreamReplicator* replica, int readerId, Boolean reuseFirstSource)
-: QueueServerMediaSubsession(env, reuseFirstSource), replicator(replica), reader(readerId),
-    fAuxSDPLine(NULL), fDoneFlag(0), fDummyRTPSink(NULL) 
+: QueueServerMediaSubsession(env, reuseFirstSource), replicator(replica), reader(readerId)
 {
 
 }
 
 H264or5QueueServerMediaSubsession::~H264or5QueueServerMediaSubsession() 
 {
-    delete[] fAuxSDPLine;
-}
-
-static void afterPlayingDummy(void* clientData) 
-{
-    H264or5QueueServerMediaSubsession* subsess = (H264or5QueueServerMediaSubsession*)clientData;
-    subsess->afterPlayingDummy1();
-}
-
-void H264or5QueueServerMediaSubsession::afterPlayingDummy1() 
-{
-    envir().taskScheduler().unscheduleDelayedTask(nextTask());
-    setDoneFlag();
-}
-
-static void checkForAuxSDPLine(void* clientData) 
-{
-    H264or5QueueServerMediaSubsession* subsess = (H264or5QueueServerMediaSubsession*)clientData;
-    subsess->checkForAuxSDPLine1();
-}
-
-void H264or5QueueServerMediaSubsession::checkForAuxSDPLine1() 
-{
-    char const* dasl;
-
-    if (fAuxSDPLine != NULL) {
-        setDoneFlag();
-  
-    } else if (fDummyRTPSink != NULL && (dasl = fDummyRTPSink->auxSDPLine()) != NULL) {
-        fAuxSDPLine = strDup(dasl);
-        fDummyRTPSink = NULL;
-        setDoneFlag();
-
-    } else {
-        int uSecsToDelay = 100000; 
-        nextTask() = envir().taskScheduler().scheduleDelayedTask(uSecsToDelay,
-                  (TaskFunc*)checkForAuxSDPLine, this);
-    }
-}
-
-char const* H264or5QueueServerMediaSubsession::getAuxSDPLine(RTPSink* rtpSink, FramedSource* inputSource) 
-{
-    if (fAuxSDPLine != NULL) return fAuxSDPLine; 
-
-    if (fDummyRTPSink == NULL) {
-        fDummyRTPSink = rtpSink;
-        fDummyRTPSink->startPlaying(*inputSource, afterPlayingDummy, this);
-        checkForAuxSDPLine(this);
-    }
-
-    envir().taskScheduler().doEventLoop(&fDoneFlag);
-    return fAuxSDPLine;
 }
 
 std::vector<int> H264or5QueueServerMediaSubsession::getReaderIds()

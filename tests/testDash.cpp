@@ -2,6 +2,7 @@
 #include "../src/modules/liveMediaOutput/SinkManager.hh"
 #include "../src/modules/videoResampler/VideoResampler.hh"
 #include "../src/modules/videoEncoder/VideoEncoderX264.hh"
+#include "../src/modules/videoEncoder/VideoEncoderX265.hh"
 #include "../src/modules/dasher/Dasher.hh"
 #include "../src/AudioFrame.hh"
 #include "../src/Controller.hh"
@@ -10,6 +11,8 @@
 #include <csignal>
 #include <vector>
 #include <string>
+
+#define MAX_VIDEO_QUALITIES 3
 
 #define V_MEDIUM "video"
 #define PROTOCOL "RTP"
@@ -29,7 +32,7 @@
 #define OUT_A_CODEC AAC
 
 #define SEG_DURATION 4 //sec
-#define DASH_FOLDER "/home/palau/nginx_root/dashLMS"
+#define DASH_FOLDER "/tmp/dashLMS"
 #define BASE_NAME "test"
 #define MPD_LOCATION "http://localhost/dashLMS/test.mpd"
 
@@ -269,6 +272,8 @@ int main(int argc, char* argv[])
 
     int vPort = 0;
     int aPort = 0;
+    int numVidQ = 1;
+    std::string vCodec = "H264";
     std::string ip;
     std::string sessionId;
     std::string rtspUri;
@@ -282,11 +287,27 @@ int main(int argc, char* argv[])
         } else if (strcmp(argv[i],"-a")==0) {
             aPort = std::stoi(argv[i+1]);
             utils::infoMsg("audio input port: " + std::to_string(aPort));
+        } else if (strcmp(argv[i],"-nvq")==0) {
+            numVidQ = std::stoi(argv[i+1]);
+            utils::infoMsg("number video qualities: " + std::to_string(numVidQ));
+        } else if (strcmp(argv[i],"-vc")==0) {
+            vCodec = argv[i+1];
+            utils::infoMsg("output video codec: " + vCodec);
         }
     }
     
     if (vPort == 0 && aPort == 0){
-        utils::errorMsg("invalid parameters");
+        utils::errorMsg("Invalid parameters");
+        return 1;
+    }
+
+    if (numVidQ < 1 || numVidQ > MAX_VIDEO_QUALITIES){
+        utils::errorMsg("Number of output video qualities can be 1, 2 or 3");
+        return 1;
+    }
+
+    if (numVidQ < 1 || numVidQ > MAX_VIDEO_QUALITIES){
+        utils::errorMsg("Number of output video qualities can be 1, 2 or 3");
         return 1;
     }
 

@@ -21,7 +21,7 @@
  *
  */
 
- #include "DashVideoSegmenterHEVC.hh"
+#include "DashVideoSegmenterHEVC.hh"
 
 DashVideoSegmenterHEVC::DashVideoSegmenterHEVC(std::chrono::seconds segDur) : 
 DashVideoSegmenter(segDur, VIDEO_CODEC_HEVC), 

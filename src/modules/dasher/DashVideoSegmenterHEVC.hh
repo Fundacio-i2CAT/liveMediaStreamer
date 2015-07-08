@@ -125,6 +125,19 @@ private:
     bool updatedSPS;
     bool updatedPPS;
     bool isVCL;
+
+    int count;
+    int countVPS;
+    int countSPS;
+    int countPPS;
+    int countIDR1;
+    int countIDR2;
+    int countNON0;
+    int countNON1;
+    int countAUD;
+    int countPREFIX;
+    int countSUFFIX;
+    int countCRA;
 };
 
 #endif

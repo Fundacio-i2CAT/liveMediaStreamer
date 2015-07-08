@@ -85,7 +85,10 @@ void SinkManager::stop()
     connections.clear();
 
     for (auto it : replicators) {
-       Medium::close(it.second);
+        if (it.second->numReplicas() == 0){
+            Medium::close(it.second);
+            sources.erase(it.first);
+        }
     }
     replicators.clear();
     

@@ -36,7 +36,7 @@ FrameQueue* createAudioQueue(int wFId, int rFId, unsigned char rtpPayloadFormat,
                              char const* codecName, unsigned channels,
                              unsigned sampleRate);
 
-SourceManager::SourceManager(unsigned writersNum): HeadFilter(SERVER, 0, writersNum)
+SourceManager::SourceManager(unsigned writersNum): HeadFilter(SERVER, writersNum)
 {
     fType = RECEIVER;
 
@@ -135,12 +135,12 @@ bool SourceManager::addSink(unsigned port, QueueSink *sink)
 {
     std::lock_guard<std::mutex> guard(sinksMtx);
     if(sinks.count(port) > 0){
-        utils::warningMsg("writer id must be unique!");
+        utils::warningMsg("sink id must be unique!");
         return false;
     }
     
     if (!sink){
-        utils::warningMsg("writer is NULL, it has not been added!");
+        utils::warningMsg("sink is NULL, it has not been added!");
         return false;
     }
     

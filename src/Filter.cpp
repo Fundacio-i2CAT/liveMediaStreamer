@@ -181,13 +181,20 @@ bool BaseFilter::connect(BaseFilter *R, int writerID, int readerID)
     
     std::lock_guard<std::mutex> guard(readersWritersLck);
       
-    if (writers.size() < maxWriters && writers.count(writerID) <= 0) {
-        writers[writerID] = new Writer();
-        seqNums[writerID] = 0;
-        utils::debugMsg("New writer created " + std::to_string(writerID));
+    if (writers.size() >= maxWriters) {
+        utils::errorMsg("Too many writers!" + std::to_string(maxWriters) + std::to_string(writers.size()));
+        return false;
     }
+    
+    if (writers.count(writerID) > 0){
+        utils::errorMsg("Id must be unique");
+        return false;
+    }
+    
+    writers[writerID] = new Writer();
+    seqNums[writerID] = 0;
 
-    if (writers.count(writerID) > 0 && writers[writerID]->isConnected()) {
+    if (writers[writerID]->isConnected()) {
         utils::errorMsg("Writer " + std::to_string(writerID) + " null or already connected");
         return false;
     }

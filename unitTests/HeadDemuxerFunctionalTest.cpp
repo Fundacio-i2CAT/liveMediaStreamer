@@ -42,8 +42,8 @@ struct TestDataStruct {
     const char *uri;
     int width;
     int height;
-    int channels;
-    int sampleRate;
+    unsigned channels;
+    unsigned sampleRate;
 };
 
 struct TestDataStruct TestData[] = {

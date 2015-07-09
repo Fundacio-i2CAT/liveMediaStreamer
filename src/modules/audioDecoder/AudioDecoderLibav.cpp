@@ -356,8 +356,8 @@ void AudioDecoderLibav::initializeEventMap()
 void AudioDecoderLibav::doGetState(Jzon::Object &filterNode)
 {
     filterNode.Add("codec", utils::getAudioCodecAsString(fCodec));
-    filterNode.Add("sampleRate", outSampleRate);
-    filterNode.Add("channels", outChannels);
+    filterNode.Add("sampleRate", (int)outSampleRate);
+    filterNode.Add("channels", (int)outChannels);
     filterNode.Add("sampleFormat", utils::getSampleFormatAsString(outSampleFmt));
 }
 

@@ -135,6 +135,14 @@ bool AudioMixer::pushToBuffer(int mixChId, AudioFrame* frame)
         return false;
     }
 
+    if (absolutePosition > front + mixBufferMaxSamples - nOfSamples) {
+        utils::errorMsg("[AudioMixer] Received frame exceeds buffer scope. Resyncing!");
+        front = 0;
+        rear = 0;
+        syncTs = frame->getPresentationTime();
+        absolutePosition = front;
+    }
+
     for (int i = 0; i < channels; i++) {
 
         b = frame->getPlanarDataBuf()[i];

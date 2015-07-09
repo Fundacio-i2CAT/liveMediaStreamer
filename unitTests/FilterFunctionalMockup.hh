@@ -186,6 +186,92 @@ private:
     VideoTailFilterMockup *tailF;
 };
 
+class ManyToOneAudioScenarioMockup {
+
+public: 
+    ManyToOneAudioScenarioMockup(ManyToOneFilter* fToTest): filterToTest(fToTest) 
+    {
+        tailF = new AudioTailFilterMockup();
+    };
+    
+    ~ManyToOneAudioScenarioMockup()
+    {
+        disconnectFilters();
+
+        for (auto f : headFilters) {
+            delete f.second;
+        }
+
+        delete tailF;
+    }
+
+    bool addHeadFilter(int id, int channels, int sampleRate, SampleFmt sampleFormat) 
+    {
+        if (headFilters.count(id) > 0) {
+            return false;
+        }
+
+        headFilters[id] = new AudioHeadFilterMockup(channels, sampleRate, sampleFormat);
+        return true;
+    }
+    
+    bool connectFilters() 
+    {
+        if (filterToTest == NULL || headFilters.empty()) {
+            return false;
+        }
+
+        for (auto f : headFilters) {
+            if (!f.second->connectOneToMany(filterToTest, f.first)) {
+                return false;
+            }
+        }
+        
+        if (!filterToTest->connectOneToOne(tailF)) {
+            return false;
+        }
+        
+        return true;
+    };
+    
+    void disconnectFilters() 
+    {
+        for (auto f : headFilters) {
+            f.second->disconnectAll();
+        }
+
+        filterToTest->disconnectAll();
+        tailF->disconnectAll();
+    }
+
+    int processFrame(PlanarAudioFrame* srcFrame)
+    {
+        int ret;
+
+        for (auto f : headFilters) {
+            if (!f.second->inject(srcFrame)) {
+                return 0;
+            }
+            f.second->processFrame(ret);
+        }   
+        
+        filterToTest->processFrame(ret);
+        return ret;
+    }
+    
+    PlanarAudioFrame *extractFrame()
+    {
+        int ret;
+        tailF->processFrame(ret);
+        return tailF->extract();
+    }
+    
+private:
+    std::map<int,AudioHeadFilterMockup*> headFilters;
+    ManyToOneFilter *filterToTest;
+    AudioTailFilterMockup *tailF;
+};
+
 class InterleavedFramesWriter {
 public:
     InterleavedFramesWriter(): file(""){};

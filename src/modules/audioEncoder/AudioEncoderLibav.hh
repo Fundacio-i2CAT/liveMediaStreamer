@@ -72,14 +72,14 @@ private:
     ACodecType          fCodec;
     int                 samplesPerFrame;
 
-    int                 internalChannels;
-    int                 internalSampleRate;
+    unsigned            internalChannels;
+    unsigned            internalSampleRate;
     SampleFmt           internalSampleFmt;
     AVSampleFormat      internalLibavSampleFmt;
     int                 outputBitrate;
 
-    int                 inputChannels;
-    int                 inputSampleRate;
+    unsigned            inputChannels;
+    unsigned            inputSampleRate;
     SampleFmt           inputSampleFmt;
     AVSampleFormat      inputLibavSampleFmt;
 

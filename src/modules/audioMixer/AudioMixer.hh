@@ -37,6 +37,11 @@ class AudioMixer : public ManyToOneFilter {
 public:
     AudioMixer(FilterRole fRole_ = MASTER, int inputChannels = AMIXER_MAX_CHANNELS);
     ~AudioMixer();
+    FrameQueue *allocQueue(int wId);
+    static bool bytesToFloat(unsigned char const* origin, float &dst, SampleFmt fmt); 
+    static bool floatToBytes(unsigned char* dst, float const origin, SampleFmt fmt);
+    unsigned getMixingThreshold() {return mixingThreshold;};
+    int getInputFrameSamples() {return inputFrameSamples;};
 
 protected:
     Reader *setReader(int readerID, FrameQueue* queue);
@@ -48,8 +53,6 @@ private:
     void initializeEventMap();
     bool pushToBuffer(int mixChId, AudioFrame* frame);
     bool fillChannel(std::queue<float> &buffer, int nOfSamples, unsigned char* data, SampleFmt fmt); 
-    bool bytesToFloat(unsigned char const* origin, float &dst, SampleFmt fmt); 
-    bool floatToBytes(unsigned char* dst, float const origin, SampleFmt fmt);
     bool extractMixedFrame(AudioFrame* frame);
     void mixSample(float sample, float* mixBuff, int bufferIdx, float gain);
     bool setChannelGain(int id, float value);

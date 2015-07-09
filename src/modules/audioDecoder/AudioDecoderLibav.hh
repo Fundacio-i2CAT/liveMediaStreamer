@@ -66,15 +66,15 @@ private:
     AVSampleFormat      inLibavSampleFmt;
     AVSampleFormat      outLibavSampleFmt;
 
-    ACodecType          fCodec;
-    SampleFmt           inSampleFmt;
-    SampleFmt           outSampleFmt;
-    int                 inChannels;
-    int                 outChannels;
-    int                 inSampleRate;
-    int                 outSampleRate;
-    unsigned int        bytesPerSample;
-    unsigned char       *auxBuff[1];
+    ACodecType fCodec;
+    SampleFmt inSampleFmt;
+    SampleFmt outSampleFmt;
+    unsigned inChannels;
+    unsigned outChannels;
+    unsigned inSampleRate;
+    unsigned outSampleRate;
+    unsigned bytesPerSample;
+    unsigned char *auxBuff[1];
 
 };
 

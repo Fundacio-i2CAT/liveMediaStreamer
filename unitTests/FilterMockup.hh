@@ -33,6 +33,7 @@
 
 #include "Filter.hh"
 #include "AVFramedQueue.hh"
+#include "AudioCircularBuffer.hh"
 #include "Frame.hh"
 #include "VideoFrame.hh"
 
@@ -287,6 +288,64 @@ private:
     PixType pixFormat;
 };
 
+class AudioHeadFilterMockup : public HeadFilter
+{
+public:
+    AudioHeadFilterMockup(unsigned ch, unsigned sRate, SampleFmt fmt) : HeadFilter(), 
+    srcFrame(NULL), channels(ch), sampleRate(sRate), sampleFormat(fmt)  {};
+
+    bool inject(PlanarAudioFrame* frame) 
+    {
+        if (!frame || frame->getChannels() != channels ||
+            frame->getSampleRate() != sampleRate ||
+            frame->getSampleFmt() != sampleFormat) {
+            return false;
+        }
+        
+        srcFrame = frame;
+        return true;
+    }
+    
+    void doGetState(Jzon::Object &filterNode){};
+    
+protected:
+    bool doProcessFrame(std::map<int, Frame*> dstFrames) {
+        // There is only one frame in the map
+        Frame *dst = dstFrames.begin()->second;
+        PlanarAudioFrame *dstFrame;
+        
+        dstFrame = dynamic_cast<PlanarAudioFrame*>(dst);
+
+        if (!dstFrame) {
+            return false;
+        }
+
+        for (unsigned i = 0; i < channels; i++) {
+            memmove(dstFrame->getPlanarDataBuf()[i], srcFrame->getPlanarDataBuf()[i], srcFrame->getLength());
+        }
+        
+        dstFrame->setLength(srcFrame->getLength());
+        dstFrame->setSamples(srcFrame->getSamples());
+        dstFrame->setChannelNumber(srcFrame->getChannels());
+        dstFrame->setSampleRate(srcFrame->getSampleRate());
+        dstFrame->setPresentationTime(srcFrame->getPresentationTime());
+        dstFrame->setOriginTime(srcFrame->getOriginTime());
+        dstFrame->setConsumed(true);
+        return true;
+    }
+    
+
+private:
+    FrameQueue *allocQueue(int wFId, int rFId, int wId) {
+        return AudioCircularBuffer::createNew(wFId, rFId, channels, sampleRate, DEFAULT_BUFFER_SIZE, sampleFormat, std::chrono::milliseconds(0));
+    };
+
+    PlanarAudioFrame* srcFrame;
+    unsigned channels;
+    unsigned sampleRate;
+    SampleFmt sampleFormat;
+};
+
 class VideoTailFilterMockup : public TailFilter
 {
 public:
@@ -379,7 +438,8 @@ protected:
 
             unsigned char **orgData = orgFrame->getPlanarDataBuf();
             unsigned char **oData = oFrame->getPlanarDataBuf();
-            for (int i=0; i<orgFrame->getChannels(); i++) {
+
+            for (unsigned i=0; i<orgFrame->getChannels(); i++) {
                 memmove(oData[i], orgData[i], sizeof(unsigned char)*orgFrame->getLength());
             }
 

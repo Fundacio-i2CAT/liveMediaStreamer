@@ -350,8 +350,8 @@ int AudioEncoderLibav::resample(AudioFrame* src, AVFrame* dst)
 void AudioEncoderLibav::doGetState(Jzon::Object &filterNode)
 {
     filterNode.Add("codec", utils::getAudioCodecAsString(fCodec));
-    filterNode.Add("sampleRate", internalSampleRate);
-    filterNode.Add("channels", internalChannels);
+    filterNode.Add("sampleRate", (int)internalSampleRate);
+    filterNode.Add("channels", (int)internalChannels);
 }
 
 bool checkSampleFormat(AVCodec *codec, enum AVSampleFormat sampleFmt)

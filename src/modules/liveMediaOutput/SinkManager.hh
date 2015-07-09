@@ -82,6 +82,8 @@ public:
 private:
     SinkManager(unsigned readersNum = MAX_READERS);
     
+    bool readerInConnection(int rId);
+    
     bool isGood() {return rtspServer != NULL;};
     
     bool addStdRTPConnection(std::vector<int> readers, int id, std::string ip, int port);

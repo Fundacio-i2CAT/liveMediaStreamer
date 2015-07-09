@@ -54,7 +54,6 @@ protected:
     unsigned fPort;
     Frame *frame;
     unsigned char *dummyBuffer;
-    size_t seqNum;
     bool nextFrame;
 };
 

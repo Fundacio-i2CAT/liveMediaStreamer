@@ -28,7 +28,6 @@
 #include "Frame.hh"
 #endif
 
-#include <atomic>
 #include <sys/time.h>
 #include <chrono>
 #include "Types.hh"
@@ -48,7 +47,7 @@ public:
     /**
     * Creates a frame object
     */
-    FrameQueue(int wId, int rId) : rear(0), front(0), elements(0), connected(false), firstFrame(false), rFilterId(rId), wFilterId(wId) {};
+    FrameQueue(int wId, int rId) : rear(0), front(0), connected(false), firstFrame(false), rFilterId(rId), wFilterId(wId) {};
     virtual ~FrameQueue() {};
 
     /**
@@ -93,12 +92,6 @@ public:
     virtual Frame *forceGetFront() = 0;
 
     /**
-    * To know if there is a new frame to read
-    * @return true if there is a new frame or false if not
-    */
-    virtual bool frameToRead() = 0;
-
-    /**
     * To know if the queue is connected with a reader and a writer
     * @return true if connected and false if not
     */
@@ -119,12 +112,11 @@ public:
     * Get number of elements in the queue
     * @return elements
     */
-    unsigned getElements() {return elements;};
+    virtual const unsigned getElements() = 0;
 
 protected:
-    unsigned rear;
-    unsigned front;
-    std::atomic<unsigned> elements;
+    size_t rear;
+    size_t front;
     bool connected;
     bool firstFrame;
     const int rFilterId;

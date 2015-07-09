@@ -40,16 +40,16 @@ AVFramedQueue::~AVFramedQueue()
 
 Frame* AVFramedQueue::getRear() 
 {
-    if (elements >= max) {
+    if ((rear + 1) % max == front){
         return NULL;
     }
-
+    
     return frames[rear];
 }
 
 Frame* AVFramedQueue::getFront() 
 {
-    if(!frameToRead()) {
+    if(rear == front) {
         return NULL;
     }
 
@@ -59,24 +59,18 @@ Frame* AVFramedQueue::getFront()
 int AVFramedQueue::addFrame() 
 {
     rear =  (rear + 1) % max;
-    ++elements;
-    firstFrame = true;
     return rFilterId;
 }
 
 int AVFramedQueue::removeFrame() 
 {
     front = (front + 1) % max;
-    --elements;
     return wFilterId;
 }
 
 void AVFramedQueue::flush() 
 {
-    if (elements == max) {
-        rear = (rear + (max - 1)) % max;
-        --elements;
-    }
+    rear = (rear + (max - 1)) % max;
 }
 
 Frame* AVFramedQueue::forceGetRear()
@@ -94,11 +88,11 @@ Frame* AVFramedQueue::forceGetFront()
     return frames[(front + (max - 1)) % max]; 
 }
 
-
-bool AVFramedQueue::frameToRead()
+const unsigned AVFramedQueue::getElements()
 {
-    return elements > 0;
+    return front > rear ? (max - front + rear) : (rear - front);
 }
+
 
 ////////////////////////////////////////////
 //VIDEO FRAME QUEUE METHODS IMPLEMENTATION//

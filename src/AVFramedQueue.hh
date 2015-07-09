@@ -38,8 +38,7 @@ public:
     void flush();
     virtual Frame *forceGetRear();
     Frame *forceGetFront();
-    unsigned getElements() const {return elements;};
-    bool frameToRead();
+    const unsigned getElements();
     const uint8_t *getExtraData() const {return extradata;};
     int getExtraDataSize() const {return extradata_size;};
 

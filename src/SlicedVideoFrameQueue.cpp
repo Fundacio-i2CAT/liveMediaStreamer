@@ -57,7 +57,7 @@ SlicedVideoFrameQueue::~SlicedVideoFrameQueue()
 
 Frame* SlicedVideoFrameQueue::getRear()
 {
-    if (elements >= max) {
+    if ((rear + 1) % max == front){
         return NULL;
     }
 
@@ -77,7 +77,7 @@ Frame* SlicedVideoFrameQueue::forceGetRear()
 
 Frame* SlicedVideoFrameQueue::innerGetRear() 
 {
-    if (elements >= max) {
+    if ((rear + 1) % max == front){
         return NULL;
     }
     
@@ -97,7 +97,6 @@ Frame* SlicedVideoFrameQueue::innerForceGetRear()
 void SlicedVideoFrameQueue::innerAddFrame() 
 {
     rear =  (rear + 1) % max;
-    ++elements;
 }
 
 bool SlicedVideoFrameQueue::setup(unsigned maxSliceSize)

@@ -44,7 +44,7 @@ AudioCircularBuffer* AudioCircularBuffer::createNew(int wId, int rId, unsigned c
 AudioCircularBuffer::AudioCircularBuffer(int wId, int rId, unsigned ch, unsigned sRate, unsigned maxSamples, SampleFmt sFmt)
 : FrameQueue(wId, rId), channels(ch), sampleRate(sRate), bytesPerSample(0), chMaxSamples(maxSamples), channelMaxLength(0), 
 sampleFormat(sFmt), outputFrameAlreadyRead(true), samplesBufferingThreshold(0), bufferingState(BUFFERING), 
-inputFrame(NULL), outputFrame(NULL), dummyFrame(NULL), synchronized(false), setupSuccess(false), tsDeviationThreshold(0)
+inputFrame(NULL), outputFrame(NULL), dummyFrame(NULL), synchronized(false), setupSuccess(false), tsDeviationThreshold(0), elements(0)
 {
 
 }

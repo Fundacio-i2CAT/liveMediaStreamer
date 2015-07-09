@@ -133,8 +133,8 @@ void AudioMixerFunctionalTest::mixingTest()
     mixedFrame = mixScenario->extractFrame();
     CPPUNIT_ASSERT(mixedFrame);
     CPPUNIT_ASSERT(mixedFrame->getPresentationTime() == originTs);
-    CPPUNIT_ASSERT(mixedFrame->getSamples() == mixThresholdSamples);
-    CPPUNIT_ASSERT(mixedFrame->getLength() == mixThresholdSamples*utils::getBytesPerSampleFromFormat(mixedFrame->getSampleFmt()));
+    CPPUNIT_ASSERT(mixedFrame->getSamples() == mixer->getInputFrameSamples());
+    CPPUNIT_ASSERT(mixedFrame->getLength() == mixer->getInputFrameSamples()*utils::getBytesPerSampleFromFormat(mixedFrame->getSampleFmt()));
 
     for (unsigned i = 0; i < mixedFrame->getChannels(); i++) {
         modelFileName = "testsData/audioMixerFunctionalTestModel_channel_" + std::to_string(i);

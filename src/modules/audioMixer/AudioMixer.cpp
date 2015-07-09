@@ -220,7 +220,7 @@ bool AudioMixer::extractMixedFrame(AudioFrame* frame)
     frame->setPresentationTime(ts);
     frame->setLength(outputSamples*bytesPerSample);
     frame->setSamples(outputSamples);
-    frame->setChannelNumber(channels);
+    frame->setChannels(channels);
     frame->setSampleRate(sampleRate);
 
     front += outputSamples;

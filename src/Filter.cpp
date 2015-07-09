@@ -151,7 +151,7 @@ std::vector<int> BaseFilter::addFrames()
             }
         }
     }
-    
+
     return enabledJobs;
 }
 
@@ -170,7 +170,7 @@ std::vector<int> BaseFilter::removeFrames()
             enabledJobs.push_back(it.second->removeFrame());
         }
     }
-    
+
     return enabledJobs;
 }
 
@@ -416,14 +416,14 @@ std::vector<int> BaseFilter::masterProcessFrame(int& ret)
     std::vector<int> enabledJobs;
     
     processEvent();
-      
+     
     if (!demandOriginFrames()) {
-        ret = RETRY/1000;
+        ret = RETRY;
         return enabledJobs;
     }
     
     if (!demandDestinationFrames()) {
-        ret = RETRY/1000;
+        ret = RETRY;
         return enabledJobs;
     }
 

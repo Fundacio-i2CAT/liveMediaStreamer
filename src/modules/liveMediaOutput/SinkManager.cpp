@@ -115,7 +115,7 @@ bool SinkManager::doProcessFrame(std::map<int, Frame*> oFrames)
     }
     
     for (auto it: oFrames){
-        if (sources.count(it.first) > 0 && it.second){
+        if (sources.count(it.first) > 0 && it.second && it.second->getConsumed()){
             it.second->setConsumed(false);
             if (sources[it.first]->setFrame(it.second)){
                 QueueSource::signalNewFrameData(scheduler, sources[it.first]);

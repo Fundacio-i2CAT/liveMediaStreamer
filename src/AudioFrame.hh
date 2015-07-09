@@ -39,7 +39,7 @@ class AudioFrame : public Frame {
         AudioFrame(int ch, int sRate, int maxSmpls, ACodecType codec, SampleFmt sFmt);
         AudioFrame() {};
 
-        void setChannelNumber(int ch) {channels = ch;};
+        void setChannels(int ch) {channels = ch;};
         void setSampleRate(int sRate) {sampleRate = sRate;};
         void setSampleFormat(SampleFmt sFmt) {sampleFmt = sFmt;};
         void setCodec(ACodecType cType) {fCodec = cType;};

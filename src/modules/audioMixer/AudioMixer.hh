@@ -41,7 +41,7 @@ public:
     static bool bytesToFloat(unsigned char const* origin, float &dst, SampleFmt fmt); 
     static bool floatToBytes(unsigned char* dst, float const origin, SampleFmt fmt);
     unsigned getMixingThreshold() {return mixingThreshold;};
-    int getInputFrameSamples() {return inputFrameSamples;};
+    unsigned getInputFrameSamples() {return inputFrameSamples;};
 
 protected:
     Reader *setReader(int readerID, FrameQueue* queue);

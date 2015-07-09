@@ -326,7 +326,7 @@ protected:
         
         dstFrame->setLength(srcFrame->getLength());
         dstFrame->setSamples(srcFrame->getSamples());
-        dstFrame->setChannelNumber(srcFrame->getChannels());
+        dstFrame->setChannels(srcFrame->getChannels());
         dstFrame->setSampleRate(srcFrame->getSampleRate());
         dstFrame->setPresentationTime(srcFrame->getPresentationTime());
         dstFrame->setOriginTime(srcFrame->getOriginTime());
@@ -446,6 +446,10 @@ protected:
             oFrame->setPresentationTime(orgFrame->getPresentationTime());
             oFrame->setOriginTime(orgFrame->getOriginTime());
             oFrame->setSequenceNumber(orgFrame->getSequenceNumber());
+            oFrame->setChannels(orgFrame->getChannels());
+            oFrame->setSampleRate(orgFrame->getSampleRate());
+            oFrame->setSamples(orgFrame->getSamples());
+            oFrame->setLength(orgFrame->getLength());
 
             newFrame = true;
 

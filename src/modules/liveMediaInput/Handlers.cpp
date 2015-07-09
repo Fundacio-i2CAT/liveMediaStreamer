@@ -124,7 +124,7 @@ namespace handlers
             }
             
             if (!scs.addSinkToMngr(queueSink->getPort(), queueSink)){
-                utils::errorMsg("Failed adding writer in SourceManager");
+                utils::errorMsg("Failed adding sink in SourceManager");
                 scs.subsession->deInitiate();
             }
 

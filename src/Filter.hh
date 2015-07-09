@@ -294,7 +294,7 @@ public:
     void pushEvent(Event e);
 
 protected:
-    HeadFilter(FilterRole fRole_ = MASTER, unsigned writersNum = 1, bool periodic = true);
+    HeadFilter(FilterRole fRole_ = MASTER, unsigned writersNum = MAX_WRITERS, bool periodic = true);
     virtual bool doProcessFrame(std::map<int, Frame*> dstFrames) = 0;
     
     int getNullWriterID();

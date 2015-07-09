@@ -34,6 +34,29 @@
 #include "FilterFunctionalMockup.hh"
 #include "modules/audioMixer/AudioMixer.hh"
 
+size_t readFile(char const* fileName, char* dstBuffer, size_t dstBuffLength)
+{
+    size_t inputDataSize;
+    std::ifstream inputDataFile(fileName, std::ios::in|std::ios::binary|std::ios::ate);
+
+    if (!inputDataFile.is_open()) {
+        utils::errorMsg("Error opening file " + std::string(fileName));
+        CPPUNIT_FAIL("Test data upload failed. Check test data file paths\n");
+        return 0;
+    }
+
+    inputDataSize = inputDataFile.tellg();
+
+    if (inputDataSize > dstBuffLength) {
+        utils::errorMsg("Error opening file " + std::string(fileName) + ". Destionation buffer is not enough large.");
+        CPPUNIT_FAIL("Test data upload failed. Check test data file paths\n");
+    }
+
+    inputDataFile.seekg (0, std::ios::beg);
+    inputDataFile.read(dstBuffer, inputDataSize);
+    return inputDataSize;
+}
+
 class AudioMixerFunctionalTest : public CppUnit::TestFixture
 {
     CPPUNIT_TEST_SUITE(AudioMixerFunctionalTest);
@@ -108,6 +131,8 @@ void AudioMixerFunctionalTest::mixingTest()
     unsigned mixThresholdSamples;
     std::string modelFileName;
     std::ofstream fout;
+    char* modelBuff;
+    size_t modelLength;
 
     introducedSamples = 0;
     mixThresholdSamples = mixer->getMixingThreshold();
@@ -136,11 +161,13 @@ void AudioMixerFunctionalTest::mixingTest()
     CPPUNIT_ASSERT(mixedFrame->getSamples() == mixer->getInputFrameSamples());
     CPPUNIT_ASSERT(mixedFrame->getLength() == mixer->getInputFrameSamples()*utils::getBytesPerSampleFromFormat(mixedFrame->getSampleFmt()));
 
+    modelBuff = new char[mixedFrame->getLength()]();
+
     for (unsigned i = 0; i < mixedFrame->getChannels(); i++) {
         modelFileName = "testsData/audioMixerFunctionalTestModel_channel_" + std::to_string(i);
-        fout.open(modelFileName, std::ios::binary | std::ios::out);
-        fout.write((char*)mixedFrame->getPlanarDataBuf()[i], mixedFrame->getLength());
-        fout.close();
+        modelLength = readFile(modelFileName.c_str(), modelBuff, mixedFrame->getLength());
+        CPPUNIT_ASSERT(mixedFrame->getLength() == modelLength);
+        CPPUNIT_ASSERT(memcmp(modelBuff, mixedFrame->getPlanarDataBuf()[i], modelLength) == 0);
     }
 }
 

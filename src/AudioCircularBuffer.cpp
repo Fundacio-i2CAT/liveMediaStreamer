@@ -168,7 +168,7 @@ Frame* AudioCircularBuffer::forceGetRear()
 
 Frame* AudioCircularBuffer::forceGetFront()
 {
-    return NULL;
+    return outputFrame;
 }
 
 bool AudioCircularBuffer::setup()

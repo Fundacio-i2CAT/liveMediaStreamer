@@ -17,7 +17,7 @@ slicedVideoFrameQueueTest_CPPFLAGS = -g -Wall -D__STDC_CONSTANT_MACROS -I../src/
 slicedVideoFrameQueueTest_CXXFLAGS = -std=c++11
 slicedVideoFrameQueueTest_LDFLAGS = -L../src -lcppunit -lavutil -lavcodec -lavformat -lswresample -lfdk-aac
 
-audioMixerFunctionalTest_SOURCES = AudioMixerFunctionalTest.cpp ../src/modules/audioMixer/AudioMixer.cpp ../src/AVFramedQueue.cpp ../src/AudioCircularBuffer.cpp ../src/IOInterface.cpp ../src/Event.cpp ../src/Frame.cpp ../src/VideoFrame.cpp ../src/Jzon.cpp ../src/Utils.cpp ../src/Filter.cpp ../src/AudioFrame.cpp ../src/SlicedVideoFrameQueue.cpp
+audioMixerFunctionalTest_SOURCES = AudioMixerFunctionalTest.cpp ../src/modules/audioMixer/AudioMixer.cpp ../src/AVFramedQueue.cpp ../src/AudioCircularBuffer.cpp ../src/IOInterface.cpp ../src/Event.cpp ../src/Frame.cpp ../src/VideoFrame.cpp ../src/Jzon.cpp ../src/Utils.cpp ../src/Filter.cpp ../src/AudioFrame.cpp ../src/SlicedVideoFrameQueue.cpp ../src/Runnable.cpp
 audioMixerFunctionalTest_CPPFLAGS = -g -Wall -D__STDC_CONSTANT_MACROS -I../src/
 audioMixerFunctionalTest_CXXFLAGS = -std=c++11
 audioMixerFunctionalTest_LDFLAGS = -L../src -lcppunit -lavutil -lavcodec -lavformat -lswresample -lfdk-aac

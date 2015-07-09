@@ -104,7 +104,7 @@ void AudioMixerFunctionalTest::mixingTest()
     std::chrono::microseconds originTs;
     std::chrono::microseconds tsIncrement;
     std::chrono::microseconds ts;
-    int introducedSamples;
+    unsigned introducedSamples;
     unsigned mixThresholdSamples;
     std::string modelFileName;
     std::ofstream fout;
@@ -136,10 +136,10 @@ void AudioMixerFunctionalTest::mixingTest()
     CPPUNIT_ASSERT(mixedFrame->getSamples() == mixThresholdSamples);
     CPPUNIT_ASSERT(mixedFrame->getLength() == mixThresholdSamples*utils::getBytesPerSampleFromFormat(mixedFrame->getSampleFmt()));
 
-    for (int i = 0; i < mixedFrame->getChannels(); i++) {
+    for (unsigned i = 0; i < mixedFrame->getChannels(); i++) {
         modelFileName = "testsData/audioMixerFunctionalTestModel_channel_" + std::to_string(i);
-        fout.open(modelFileName, ios::binary | ios::out);
-        fout.write(mixedFrame->getPlanarDataBuf()[i], mixedFrame->getLength());
+        fout.open(modelFileName, std::ios::binary | std::ios::out);
+        fout.write((char*)mixedFrame->getPlanarDataBuf()[i], mixedFrame->getLength());
         fout.close();
     }
 }

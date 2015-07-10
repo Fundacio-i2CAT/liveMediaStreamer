@@ -62,7 +62,8 @@ public:
     */
     virtual ~VideoEncoderX264or5();
 
-    bool configure(int bitrate_, int fps_, int gop_, int lookahead_, int threads_, bool annexB_, std::string preset_);
+    bool configure(int bitrate, int fps, int gop, int lookahead, int threads, bool annexB, std::string preset);
+    
 protected:
     AVPixelFormat libavInPixFmt;
     AVFrame *midFrame;
@@ -86,6 +87,7 @@ protected:
     void setIntra(){forceIntra = true;};
     bool fill_x264or5_picture(VideoFrame* videoFrame);
 
+    bool configure0(int bitrate_, int fps_, int gop_, int lookahead_, int threads_, bool annexB_, std::string preset_);
     bool forceIntraEvent(Jzon::Node* params);
     bool configEvent(Jzon::Node* params);
     void doGetState(Jzon::Object &filterNode);

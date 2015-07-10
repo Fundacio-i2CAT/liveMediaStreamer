@@ -24,6 +24,11 @@
 #ifndef _TYPES_HH
 #define _TYPES_HH
 
+/** \file Types.hh
+ * A brief file description.
+ * A more elaborated file description.
+*/
+
 #define DEFAULT_HEIGHT 1080
 #define DEFAULT_WIDTH 1920
 #define DEFAULT_BYTES_PER_PIXEL 3
@@ -39,20 +44,41 @@
 #define DEFAULT_FRAME_SAMPLES 960
 #define VIDEO_DEFAULT_FRAMERATE 25  /*!< Default frame rate in frames per second (fps). */
 
+/**
+* Stream types
+*/
 enum StreamType {ST_NONE = -1, AUDIO, VIDEO};
 
+/**
+* Supported video codecs
+*/
 enum VCodecType {VC_NONE = -1, H264, H265, VP8, MJPEG, RAW};
 
+/**
+* Supported video pixel formats
+*/
 enum PixType {P_NONE = -1, RGB24, RGB32, YUV420P, YUV422P, YUV444P, YUYV422, YUVJ420P};
 
+/**
+* Supported audio codecs
+*/
 enum ACodecType {AC_NONE = -1, G711, PCMU, OPUS, PCM, AAC, MP3};
 
+/**
+* Supported audio sample formats
+*/
 enum SampleFmt {S_NONE = -1, U8, S16, FLT, U8P, S16P, FLTP};
 
+/**
+* Filter types
+*/
 enum FilterType {FT_NONE = -1, RECEIVER, TRANSMITTER, VIDEO_DECODER, VIDEO_ENCODER, VIDEO_RESAMPLER, VIDEO_MIXER, AUDIO_DECODER, AUDIO_ENCODER, AUDIO_MIXER, SHARED_MEMORY, DASHER, DEMUXER};
 
 enum FilterRole {FR_NONE = -1, MASTER, SLAVE, SERVER};
 
+/**
+* Supported transmission formats
+*/
 enum TxFormat {TX_NONE = -1, STD_RTP, ULTRAGRID, MPEGTS};
 
 #endif

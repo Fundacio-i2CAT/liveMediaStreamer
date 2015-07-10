@@ -150,7 +150,7 @@ bool VideoMixer::doProcessFrame(std::map<int, Frame*> orgFrames, Frame *dst)
     return true;
 }
 
-bool VideoMixer::configChannel(int id, float width, float height, float x, float y, int layer, bool enabled, float opacity)
+bool VideoMixer::configChannel0(int id, float width, float height, float x, float y, int layer, bool enabled, float opacity)
 {
     if (channelsConfig.count(id) <= 0) {
         return false;
@@ -230,6 +230,7 @@ void VideoMixer::initializeEventMap()
 bool VideoMixer::configChannelEvent(Jzon::Node* params)
 {
     if (!params) {
+        utils::errorMsg("[VideoMixer::configChannelEvent] Params node missing");
         return false;
     }
 
@@ -237,6 +238,7 @@ bool VideoMixer::configChannelEvent(Jzon::Node* params)
             !params->Has("x") || !params->Has("y") || !params->Has("layer") ||
                 !params->Has("enabled") || !params->Has("opacity")) {
 
+        utils::errorMsg("[VideoMixer::configChannelEvent] Params node not complete");
         return false;
     }
 
@@ -249,7 +251,7 @@ bool VideoMixer::configChannelEvent(Jzon::Node* params)
     bool enabled = params->Get("enabled").ToBool();
     float opacity = params->Get("opacity").ToFloat();
 
-    return configChannel(id, width, height, x, y, layer, enabled, opacity);
+    return configChannel0(id, width, height, x, y, layer, enabled, opacity);
 }
 
 void VideoMixer::doGetState(Jzon::Object &filterNode)
@@ -274,4 +276,23 @@ void VideoMixer::doGetState(Jzon::Object &filterNode)
     }
 
     filterNode.Add("channels", jsonChannelConfigs);
+}
+
+bool VideoMixer::configChannel(int id, float width, float height, float x, float y, int layer, bool enabled, float opacity)
+{
+    Jzon::Object root, params;
+    root.Add("action", "configChannel");
+    params.Add("id", id);
+    params.Add("width", width);
+    params.Add("height", height);
+    params.Add("x", x);
+    params.Add("y", y);
+    params.Add("layer", y);
+    params.Add("enabled", enabled);
+    params.Add("opacity", opacity);
+    root.Add("params", params);
+
+    Event e(root, std::chrono::system_clock::now(), 0);
+    pushEvent(e); 
+    return true;
 }

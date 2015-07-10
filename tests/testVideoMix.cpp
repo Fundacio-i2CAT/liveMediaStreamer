@@ -59,20 +59,18 @@ void setupMixer(int mixerId, int transmitterId)
 
     //NOTE: Adding resampler to pipeManager and handle worker
     resampler = new VideoResampler();
-    resampler->configure(0, 0, 0, YUV420P);
     pipe->addFilter(resId, resampler);
+    resampler->configure(0, 0, 0, YUV420P);
 
     //NOTE: Adding encoder to pipeManager and handle worker
     encoder = new VideoEncoderX264();
     //bitrate, fps, gop, lookahead, threads, annexB, preset
-    encoder->configure(4000, 25, 25, 25, 4, true, "superfast");
+    // encoder->configure(4000, 25, 25, 25, 4, true, "superfast");
     pipe->addFilter(encId, encoder);
-
 
     path = pipe->createPath(mixerId, transmitterId, -1, -1, ids);
     pipe->addPath(pathId, path);
     pipe->connectPath(path);
-
 }
 
 void addVideoPath(unsigned port, int receiverId, int mixerId)

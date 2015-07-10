@@ -70,7 +70,7 @@ private:
     unsigned channelMaxLength;
     unsigned char *data[MAX_CHANNELS];
     SampleFmt sampleFormat;
-    bool outputFrameAlreadyRead;
+    bool fillNewFrame;
 
     unsigned samplesBufferingThreshold;
     State bufferingState;

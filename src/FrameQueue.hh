@@ -45,9 +45,15 @@ class FrameQueue {
 
 public:
     /**
-    * Creates a frame object
+    * Class constructor
+    * @param wFId Id of the filter that feeds the queue 
+    * @param rFId Id of the filter that consumes from the queue
     */
-    FrameQueue(int wId, int rId) : rear(0), front(0), connected(false), firstFrame(false), rFilterId(rId), wFilterId(wId) {};
+    FrameQueue(int wFId, int rFId) : rear(0), front(0), connected(false), firstFrame(false), rFilterId(rFId), wFilterId(wFId) {};
+
+    /**
+    * Class destructor
+    */
     virtual ~FrameQueue() {};
 
     /**

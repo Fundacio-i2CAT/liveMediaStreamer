@@ -277,12 +277,12 @@ void SlicedVideoFrameQueueTest::tooManySlices()
     }
     
     queue->addFrame();
-    CPPUNIT_ASSERT(queue->getElements() == maxFrames);
+    CPPUNIT_ASSERT(queue->getElements() == maxFrames - 1);
 
     inputFrame = queue->getRear();
     CPPUNIT_ASSERT(!inputFrame);
 
-    for (unsigned i = 0; i < maxFrames - 1; i++) {
+    for (unsigned i = 0; i < maxFrames - 2; i++) {
         outputFrame = queue->getFront();
         CPPUNIT_ASSERT(outputFrame);
         CPPUNIT_ASSERT(*outputFrame->getDataBuf() == i);

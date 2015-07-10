@@ -512,7 +512,7 @@ bool Dasher::addSegmenter(int readerId)
 {
     VideoFrameQueue *vQueue;
     AudioFrameQueue *aQueue;
-    Reader* r;
+    std::shared_ptr<Reader> r;
     std::string completeSegBasePath;
 
     if (!mpdMngr) {

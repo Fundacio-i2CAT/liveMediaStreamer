@@ -122,7 +122,7 @@ bool SinkManager::deleteReader(int readerId)
 {
     if (readers.count(readerId) > 0){
         readers[readerId]->disconnect();
-        delete readers[readerId];
+        readers[readerId]->removeReader();
         readers.erase(readerId);
         removeConnectionByReaderId(readerId);
         if (sources.count(readerId) > 0){
@@ -185,7 +185,6 @@ bool SinkManager::addRTSPConnection(std::vector<int> readers, int id, TxFormat t
     }
 
     connection = new RTSPConnection(env, txformat, rtspServer, name, info, desc);
-    //TODO: test connection construction
 
     for (auto & reader : readers){
         if (!addSubsessionByReader(connection, reader)) {
@@ -302,7 +301,7 @@ bool SinkManager::addStdRTPConnection(std::vector<int> readers, int id, std::str
     VideoFrameQueue *vQueue;
     AudioFrameQueue *aQueue;
     Connection *conn = NULL;
-    Reader *r;
+    std::shared_ptr<Reader> r;
 
     if (readers.size() != 1) {
         utils::errorMsg("Error in standard RTP connection setup. Multiple readers do not make sense in this type");
@@ -347,7 +346,7 @@ bool SinkManager::addUltraGridRTPConnection(std::vector<int> readers, int id, st
     VideoFrameQueue *vQueue = NULL;
     AudioFrameQueue *aQueue = NULL;
     Connection* conn = NULL;
-    Reader *r;
+    std::shared_ptr<Reader> r;
 
     if (readers.size() != 1) {
         utils::errorMsg("Error in standard Ultragrid connection setup. Multiple readers do not make sense in this type");
@@ -386,7 +385,7 @@ bool SinkManager::addUltraGridRTPConnection(std::vector<int> readers, int id, st
 }
 
 
-Reader *SinkManager::setReader(int readerId, FrameQueue* queue)
+std::shared_ptr<Reader> SinkManager::setReader(int readerId, FrameQueue* queue)
 {
     VideoFrameQueue *vQueue;
     AudioFrameQueue *aQueue;
@@ -396,7 +395,7 @@ Reader *SinkManager::setReader(int readerId, FrameQueue* queue)
         return NULL;
     }
 
-    Reader* r = new Reader();
+    std::shared_ptr<Reader> r (new Reader());
     
 
     if ((vQueue = dynamic_cast<VideoFrameQueue*>(queue)) != NULL){
@@ -410,7 +409,7 @@ Reader *SinkManager::setReader(int readerId, FrameQueue* queue)
     }
     
     if(!queueSrcCreated){
-        delete r;
+        r.reset();
         return NULL;
     }
     
@@ -446,7 +445,7 @@ bool SinkManager::addSubsessionByReader(RTSPConnection* connection ,int readerId
     VideoFrameQueue *vQueue;
     AudioFrameQueue *aQueue;
     
-    Reader* reader = getReader(readerId);
+    std::shared_ptr<Reader> reader = getReader(readerId);
     if (!reader){
         return false;
     }

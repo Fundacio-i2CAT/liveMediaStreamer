@@ -45,7 +45,7 @@ public:
     ACodecType getCodec() {return fCodec;};
 
     bool configure(ACodecType codec, int codedAudioChannels, int codedAudioSampleRate, int bitrate);
-    Reader* setReader(int readerID, FrameQueue* queue);
+    std::shared_ptr<Reader> setReader(int readerID, FrameQueue* queue);
     
 protected:
     FrameQueue* allocQueue(int wFId, int rFId, int wId);

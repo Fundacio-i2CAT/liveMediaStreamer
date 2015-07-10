@@ -29,14 +29,7 @@
 //READER IMPLEMENTATION//
 /////////////////////////
 
-void addReader();
-    void removeReader();
-    
-    unsigned readers;
-    std::atomic<unsigned> pending;
-    std::mutex lck;
-
-Reader::Reader() : readers(0), pending(0)
+Reader::Reader() : filters(0), pending(0)
 {
     queue = NULL;
 }
@@ -51,15 +44,15 @@ void Reader::setQueue(FrameQueue *queue)
     std::lock_guard<std::mutex> guard(lck);
     
     this->queue = queue;
-    readers = 1;
+    filters = 1;
 }
 
 void Reader::addReader()
 {
     std::lock_guard<std::mutex> guard(lck);
     
-    if (readers >= 1 && queue->isConnected()){
-        readers++;
+    if (filters >= 1 && queue->isConnected()){
+        filters++;
     }
 }
 
@@ -67,9 +60,9 @@ void Reader::removeReader()
 {
     std::unique_lock<std::mutex> guard(lck);
     
-    if (readers > 0){
-        readers--;
-        if (readers == 0){
+    if (filters > 0){
+        filters--;
+        if (filters == 0){
             guard.unlock();
             disconnect();
         }
@@ -88,7 +81,7 @@ Frame* Reader::getFrame(bool force)
     }
     
     if (pending == 0){
-        pending = readers;
+        pending = filters;
     }
 
     frame = queue->getFront();
@@ -121,8 +114,8 @@ bool Reader::disconnect()
 {
     std::lock_guard<std::mutex> guard(lck);
     
-    if (readers > 1){
-        readers--;
+    if (filters > 1){
+        filters--;
         return true;
     }
     
@@ -164,7 +157,7 @@ Writer::~Writer()
     disconnect();
 }
 
-bool Writer::connect(Reader *reader) const
+bool Writer::connect(std::shared_ptr<Reader> reader) const
 {
     if (!queue) {
         utils::errorMsg("The queue is NULL");
@@ -192,7 +185,7 @@ bool Writer::disconnect() const
     return true;
 }
 
-bool Writer::disconnect(Reader *reader) const
+bool Writer::disconnect(std::shared_ptr<Reader> reader) const
 {
     if (reader->disconnect()){
         return disconnect();

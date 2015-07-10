@@ -44,7 +44,7 @@ public:
     unsigned getInputFrameSamples() {return inputFrameSamples;};
 
 protected:
-    Reader *setReader(int readerID, FrameQueue* queue);
+    std::shared_ptr<Reader> setReader(int readerID, FrameQueue* queue);
     void doGetState(Jzon::Object &filterNode);
     FrameQueue *allocQueue(int wFId, int rFId, int wId);
     bool doProcessFrame(std::map<int, Frame*> orgFrames, Frame *dst);

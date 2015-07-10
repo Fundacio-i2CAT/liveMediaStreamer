@@ -25,10 +25,10 @@
 #ifndef _IO_INTERFACE_HH
 #define _IO_INTERFACE_HH
 
-#include <atomic>
 #include <mutex>
 #include <utility>
 #include <map>
+#include <memory>
 
 #ifndef _FRAME_HH
 #include "Frame.hh"
@@ -38,10 +38,7 @@
 #include "FrameQueue.hh"
 #endif
 
-#include "Filter.hh"
-
 class Reader;
-class BaseFilter;
 
 /*! Writer class is an IOInterface dedicated to write frames to an specific queue.
 */
@@ -59,14 +56,14 @@ public:
     * @param pointer to Reader object to connect with through specific queue
     * @return true if success on connecting, otherwise returns false
     */
-    bool connect(Reader *reader) const;
+    bool connect(std::shared_ptr<Reader> reader) const;
 
     /**
     * Disconnects specific Reader and itself from queue
     * @param pointer to Reader object to disconnect from specific queue
     * @return true if success on disconnecting, otherwise returns false
     */
-    bool disconnect(Reader *reader) const;
+    bool disconnect(std::shared_ptr<Reader> reader) const;
 
     /**
     * Check if writer has its queue connected
@@ -159,19 +156,25 @@ public:
     * @return true if successful disconnecting, otherwise returns false
     */
     bool disconnect();
+    
+    /**
+    * Increases the number of filters that make use of this reader
+    */
+    void addReader();
+    
+    /**
+    * Decreases the number of filters that make use of this reader. It disconnects if filters number is zero.
+    */
+    void removeReader();
 
 protected:
     mutable FrameQueue *queue;
 
 private:
     friend class Writer;
-    friend class BaseFilter;
     
-    void addReader();
-    void removeReader();
-    
-    unsigned readers;
-    std::atomic<unsigned> pending;
+    unsigned filters;
+    unsigned pending;
     std::mutex lck;
 };
 

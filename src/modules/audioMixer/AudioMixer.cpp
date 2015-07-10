@@ -266,7 +266,7 @@ bool AudioMixer::floatToBytes(unsigned char* dst, float const origin, SampleFmt 
     return true;
 }
 
-Reader* AudioMixer::setReader(int readerID, FrameQueue* queue)
+std::shared_ptr<Reader> AudioMixer::setReader(int readerID, FrameQueue* queue)
 {
     AudioCircularBuffer* inBuffer;
 
@@ -274,7 +274,7 @@ Reader* AudioMixer::setReader(int readerID, FrameQueue* queue)
         return NULL;
     }
 
-    Reader* r = new Reader();
+    std::shared_ptr<Reader> r (new Reader());
     readers[readerID] = r;
 
     inBuffer = dynamic_cast<AudioCircularBuffer*>(queue);

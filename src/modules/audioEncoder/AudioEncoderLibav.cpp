@@ -114,7 +114,7 @@ bool AudioEncoderLibav::doProcessFrame(Frame *org, Frame *dst)
     return true;
 }
 
-Reader* AudioEncoderLibav::setReader(int readerID, FrameQueue* queue)
+std::shared_ptr<Reader> AudioEncoderLibav::setReader(int readerID, FrameQueue* queue)
 {
     AudioCircularBuffer* circularBufferQueue;
     if (readers.size() >= getMaxReaders() || readers.count(readerID) > 0 ) {
@@ -131,7 +131,7 @@ Reader* AudioEncoderLibav::setReader(int readerID, FrameQueue* queue)
     }
     circularBufferQueue->setOutputFrameSamples(samplesPerFrame);
 
-    Reader* r = new Reader();
+    std::shared_ptr<Reader> r (new Reader());
     readers[readerID] = r;
 
     return r;

@@ -104,7 +104,7 @@ private:
     bool addRTSPConnectionEvent(Jzon::Node* params);
     bool addRTPConnectionEvent(Jzon::Node* params);
     
-    Reader *setReader(int readerID, FrameQueue* queue);
+    std::shared_ptr<Reader> setReader(int readerID, FrameQueue* queue);
 
     bool doProcessFrame(std::map<int, Frame*> oFrames);
     void stop();

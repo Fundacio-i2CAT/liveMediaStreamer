@@ -38,7 +38,7 @@ BaseFilter::~BaseFilter()
 {
     std::lock_guard<std::mutex> guard(readersWritersLck);
     for (auto it : readers) {
-        delete it.second;
+        it.second->removeReader();
     }
 
     for (auto it : writers) {
@@ -78,7 +78,7 @@ void BaseFilter::setFrameTime(std::chrono::microseconds fTime)
     frameTime = fTime;
 }
 
-Reader* BaseFilter::getReader(int id)
+std::shared_ptr<Reader> BaseFilter::getReader(int id)
 {
     std::lock_guard<std::mutex> guard(readersWritersLck);
     if (readers.count(id) <= 0) {
@@ -88,14 +88,14 @@ Reader* BaseFilter::getReader(int id)
     return readers[id];
 }
 
-Reader* BaseFilter::setReader(int readerID, FrameQueue* queue)
+std::shared_ptr<Reader> BaseFilter::setReader(int readerID, FrameQueue* queue)
 {
     std::lock_guard<std::mutex> guard(readersWritersLck);
     if (readers.size() >= getMaxReaders() || readers.count(readerID) > 0 ) {
         return NULL;
     }
 
-    Reader* r = new Reader();
+    std::shared_ptr<Reader> r (new Reader());
     readers[readerID] = r;
 
     return r;
@@ -198,7 +198,7 @@ std::vector<int> BaseFilter::removeFrames()
 
 bool BaseFilter::connect(BaseFilter *R, int writerID, int readerID)
 {
-    Reader* r;
+    std::shared_ptr<Reader> r;
     FrameQueue *queue = NULL;
     
     std::lock_guard<std::mutex> guard(readersWritersLck);

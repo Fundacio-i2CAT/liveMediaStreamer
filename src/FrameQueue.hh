@@ -103,11 +103,6 @@ public:
     */
     void setConnected(bool conn) {connected = conn;};
     
-    //TODO: delete
-    //int getId(){
-      //  return rFilterId;
-    //}
-
     /**
     * Get number of elements in the queue
     * @return elements

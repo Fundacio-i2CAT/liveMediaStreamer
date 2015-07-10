@@ -119,7 +119,7 @@ class VideoMixer : public ManyToOneFilter {
         VideoMixer(FilterRole fRole, int inputChannels,
                    int outWidth, int outHeight,
                    std::chrono::microseconds fTime);
-        Reader* setReader(int readerID, FrameQueue* queue);
+        std::shared_ptr<Reader> setReader(int readerID, FrameQueue* queue);
         FrameQueue *allocQueue(int wFId, int rFId, int wId);
         bool doProcessFrame(std::map<int, Frame*> orgFrames, Frame *dst);
         void doGetState(Jzon::Object &filterNode);

@@ -29,6 +29,7 @@
 #include <vector>
 #include <queue>
 #include <mutex>
+#include <memory>
 
 #include "FrameQueue.hh"
 #include "IOInterface.hh"
@@ -44,9 +45,6 @@
 /*! Generic filter class methods. It is an interface to different specific filters
     so it cannot be instantiated
 */
-
-class Reader;
-class Writer;
 
 class BaseFilter : public Runnable {
 
@@ -197,8 +195,8 @@ protected:
 
     std::chrono::microseconds getFrameTime() {return frameTime;};
 
-    virtual Reader *setReader(int readerID, FrameQueue* queue);
-    Reader* getReader(int id);
+    virtual std::shared_ptr<Reader> setReader(int readerID, FrameQueue* queue);
+    std::shared_ptr<Reader> getReader(int id);
 
     bool demandOriginFrames();
     bool demandOriginFramesBestEffort();
@@ -225,7 +223,7 @@ protected:
     bool process;
     std::map<int, BaseFilter*> slaves;
 
-    std::map<int, Reader*> readers;
+    std::map<int, std::shared_ptr<Reader>> readers;
     std::map<int, Writer*> writers;
     std::map<int, Frame*> oFrames;
     std::map<int, Frame*> dFrames;

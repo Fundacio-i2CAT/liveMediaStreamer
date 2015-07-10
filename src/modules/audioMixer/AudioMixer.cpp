@@ -51,7 +51,9 @@ syncTs(std::chrono::microseconds(-1))
 
 AudioMixer::~AudioMixer() 
 {
-
+    for (int i = 0; i < MAX_CHANNELS; i++) {
+        delete mixBuffers[i];
+    }
 }
 
 FrameQueue *AudioMixer::allocQueue(int wFId, int rFId, int wId) 

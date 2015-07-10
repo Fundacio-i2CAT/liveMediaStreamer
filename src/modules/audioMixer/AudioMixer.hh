@@ -32,15 +32,51 @@
 #define DEFAULT_CHANNEL_GAIN 1.0
 #define AMIXER_MAX_CHANNELS 16
 
+/*! Filter that mixes different audio frames in one frame. Each mixing channel is 
+*   identified by and Id which coincides with the reader associated to it. 
+*/
+
 class AudioMixer : public ManyToOneFilter {
 
 public:
+    /**
+    * Class constructor
+    * @param fRole_ Filter role (NETWORK, MASTER, SLAVE)
+    * @param inputChannels Max mixing channels
+    */
     AudioMixer(FilterRole fRole_ = MASTER, int inputChannels = AMIXER_MAX_CHANNELS);
+
+    /**
+    * Class destructor
+    */
     ~AudioMixer();
-    FrameQueue *allocQueue(int wId);
-    static bool bytesToFloat(unsigned char const* origin, float &dst, SampleFmt fmt); 
+
+    /**
+    * It converts a sample from its bytes representation to its float representation
+    * @param origin (in) Pointer to sample bytes
+    * @param dst (out) Float value
+    * @param fmt (in) Sample format (only S16P and FLTP are supported)
+    * @return true on success and false if not
+    */
+    static bool bytesToFloat(unsigned char const* origin, float &dst, SampleFmt fmt);
+
+    /**
+    * It converts a sample from its float reapresentation to its bytes representation
+    * @param dst (out) Pointer to the sample buffer
+    * @param origin (in) Float sample value
+    * @param fmt (in) Sample format (only S16P and FLTP are supported)
+    * @return true on success and false if not
+    */ 
     static bool floatToBytes(unsigned char* dst, float const origin, SampleFmt fmt);
+
+    /**
+    * @return mixing buffering in samples
+    */ 
     unsigned getMixingThreshold() {return mixingThreshold;};
+
+    /**
+    * @return samples requested to each mixing channel
+    */ 
     unsigned getInputFrameSamples() {return inputFrameSamples;};
 
 protected:

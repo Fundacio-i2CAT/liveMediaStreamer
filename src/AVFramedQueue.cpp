@@ -159,7 +159,8 @@ bool VideoFrameQueue::setup()
 
 unsigned getMaxSamples(unsigned sampleRate);
 
-AudioFrameQueue* AudioFrameQueue::createNew(int wId, int rId, ACodecType codec, unsigned maxFrames, unsigned sampleRate, unsigned channels, SampleFmt sFmt, const uint8_t *extradata, int extradata_size)
+AudioFrameQueue* AudioFrameQueue::createNew(int wId, int rId, ACodecType codec, unsigned maxFrames, unsigned sampleRate, 
+                                             unsigned channels, SampleFmt sFmt, const uint8_t *extradata, int extradata_size)
 {
     AudioFrameQueue* q = new AudioFrameQueue(wId, rId, codec, maxFrames, sFmt, sampleRate, channels);
 

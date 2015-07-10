@@ -165,6 +165,8 @@ private:
     ~PipelineManager();
     bool deletePath(Path* path);
     bool createFilter(int id, FilterType type, FilterRole role);
+    
+    bool handleGrouping(int orgFId, int dstFId, int orgWId, int dstRId);
 
     static PipelineManager* pipeMngrInstance;
 

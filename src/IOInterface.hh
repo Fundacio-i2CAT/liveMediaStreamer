@@ -26,6 +26,7 @@
 #define _IO_INTERFACE_HH
 
 #include <atomic>
+#include <mutex>
 #include <utility>
 #include <map>
 
@@ -37,7 +38,10 @@
 #include "FrameQueue.hh"
 #endif
 
+#include "Filter.hh"
+
 class Reader;
+class BaseFilter;
 
 /*! Writer class is an IOInterface dedicated to write frames to an specific queue.
 */
@@ -95,14 +99,6 @@ public:
     * @return true if successful disconnecting, otherwise returns false
     */
     bool disconnect() const;
-    
-    // //TODO: delete it
-    // int getId(){
-    //     if (!queue){
-    //         return -1;
-    //     }
-    //     return queue->getId();
-    // }
 
 protected:
     mutable FrameQueue *queue;
@@ -169,7 +165,14 @@ protected:
 
 private:
     friend class Writer;
-
+    friend class BaseFilter;
+    
+    void addReader();
+    void removeReader();
+    
+    unsigned readers;
+    std::atomic<unsigned> pending;
+    std::mutex lck;
 };
 
 #endif

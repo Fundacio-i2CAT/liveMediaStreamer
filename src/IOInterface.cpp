@@ -29,7 +29,14 @@
 //READER IMPLEMENTATION//
 /////////////////////////
 
-Reader::Reader()
+void addReader();
+    void removeReader();
+    
+    unsigned readers;
+    std::atomic<unsigned> pending;
+    std::mutex lck;
+
+Reader::Reader() : readers(0), pending(0)
 {
     queue = NULL;
 }
@@ -41,16 +48,47 @@ Reader::~Reader()
 
 void Reader::setQueue(FrameQueue *queue)
 {
+    std::lock_guard<std::mutex> guard(lck);
+    
     this->queue = queue;
+    readers = 1;
+}
+
+void Reader::addReader()
+{
+    std::lock_guard<std::mutex> guard(lck);
+    
+    if (readers >= 1 && queue->isConnected()){
+        readers++;
+    }
+}
+
+void Reader::removeReader()
+{
+    std::unique_lock<std::mutex> guard(lck);
+    
+    if (readers > 0){
+        readers--;
+        if (readers == 0){
+            guard.unlock();
+            disconnect();
+        }
+    }
 }
 
 Frame* Reader::getFrame(bool force)
 {
     Frame *frame;
 
+    std::lock_guard<std::mutex> guard(lck);
+    
     if (!queue->isConnected()) {
         utils::errorMsg("The queue is not connected");
         return NULL;
+    }
+    
+    if (pending == 0){
+        pending = readers;
     }
 
     frame = queue->getFront();
@@ -64,7 +102,14 @@ Frame* Reader::getFrame(bool force)
 
 int Reader::removeFrame()
 {
-    return queue->removeFrame();
+    std::lock_guard<std::mutex> guard(lck);
+    
+    if (pending == 0){
+        return queue->removeFrame();
+    } else {
+        pending--;
+        return -1;
+    }
 }
 
 void Reader::setConnection(FrameQueue *queue)
@@ -74,6 +119,13 @@ void Reader::setConnection(FrameQueue *queue)
 
 bool Reader::disconnect()
 {
+    std::lock_guard<std::mutex> guard(lck);
+    
+    if (readers > 1){
+        readers--;
+        return true;
+    }
+    
     if (!queue) {
         return false;
     }

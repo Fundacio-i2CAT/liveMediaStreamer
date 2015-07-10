@@ -51,6 +51,28 @@ BaseFilter::~BaseFilter()
     dFrames.clear();
 }
 
+bool BaseFilter::isWConnected (int wId) 
+{
+    std::lock_guard<std::mutex> guard(readersWritersLck);
+
+    if (writers[wId] && writers[wId]->isConnected()){
+        return true;
+    }
+    
+    return false;
+}
+
+bool BaseFilter::isRConnected (int rId) 
+{
+    std::lock_guard<std::mutex> guard(readersWritersLck);
+
+    if (readers[rId] && readers[rId]->isConnected()){
+        return true;
+    }
+    
+    return false;
+}
+
 void BaseFilter::setFrameTime(std::chrono::microseconds fTime)
 {
     frameTime = fTime;
@@ -187,22 +209,17 @@ bool BaseFilter::connect(BaseFilter *R, int writerID, int readerID)
     }
     
     if (writers.count(writerID) > 0){
-        utils::errorMsg("Id must be unique");
+        utils::errorMsg("Writer id must be unique");
         return false;
     }
     
-    writers[writerID] = new Writer();
-    seqNums[writerID] = 0;
-
-    if (writers[writerID]->isConnected()) {
-        utils::errorMsg("Writer " + std::to_string(writerID) + " null or already connected");
-        return false;
-    }
-
     if (R->getReader(readerID) && R->getReader(readerID)->isConnected()){
         utils::errorMsg("Reader " + std::to_string(readerID) + " null or already connected");
         return false;
     }
+
+    writers[writerID] = new Writer();
+    seqNums[writerID] = 0;
 
     queue = allocQueue(getId(), R->getId(), writerID);
     if (!queue){
@@ -210,7 +227,7 @@ bool BaseFilter::connect(BaseFilter *R, int writerID, int readerID)
     }
 
     if (!(r = R->setReader(readerID, queue))) {
-        utils::errorMsg("Could not set the queue to the reader");
+        utils::errorMsg("Could not create the reader or set the queue");
         return false;
     }
 
@@ -356,12 +373,9 @@ std::vector<int> BaseFilter::processFrame(int& ret)
         case SLAVE:
             enabledJobs = slaveProcessFrame(ret);
             break;
-        case NETWORK:
-            runDoProcessFrame();
-            ret = 0;
-            break;
         case SERVER:
             enabledJobs = serverProcessFrame(ret);
+            break;
         default:
             ret = 0;
             break;
@@ -513,12 +527,28 @@ bool BaseFilter::demandOriginFrames()
     return success;
 }
 
+bool BaseFilter::deleteReader(int readerId)
+{
+    if (readers.count(readerId) > 0){
+        readers[readerId]->removeReader();
+        readers.erase(readerId);
+        return true;
+    }
+    
+    return false;
+}
+
 bool BaseFilter::demandOriginFramesBestEffort() 
 {
     bool someFrame = false;
     Frame* frame;
 
     for (auto r : readers) {
+        if (!r.second->isConnected()) {
+            deleteReader(r.first);
+            continue;
+        }
+        
         frame = r.second->getFrame();
 
         while(frame && frame->getPresentationTime() < syncTs) {
@@ -548,6 +578,10 @@ bool BaseFilter::demandOriginFramesFrameTime()
     bool noFrame = true;
 
     for (auto r : readers) {
+        if (!r.second->isConnected()) {
+            deleteReader(r.first);
+            continue;
+        }
 
         frame = r.second->getFrame();
 

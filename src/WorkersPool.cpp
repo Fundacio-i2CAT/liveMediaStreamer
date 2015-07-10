@@ -63,12 +63,9 @@ WorkersPool::WorkersPool(size_t threads) : run(true)
                         break;
                     }
                     
-                    if (job){
-                        job->setRunning();
-                    } else {
-                        continue;
-                    }
+                    job->setRunning();
                     guard.unlock();
+                    
                     qCheck.notify_one();
                     
                     enabledJobs = job->runProcessFrame();

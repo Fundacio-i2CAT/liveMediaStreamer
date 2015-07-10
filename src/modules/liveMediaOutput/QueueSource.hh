@@ -4,7 +4,6 @@
 #include <liveMedia.hh>
 
 #include "../../FrameQueue.hh"
-#include "../../IOInterface.hh"
 #include "../../Frame.hh"
 
 #define POLL_TIME 1000

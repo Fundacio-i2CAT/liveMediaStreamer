@@ -44,6 +44,10 @@
 /*! Generic filter class methods. It is an interface to different specific filters
     so it cannot be instantiated
 */
+
+class Reader;
+class Writer;
+
 class BaseFilter : public Runnable {
 
 public:
@@ -100,6 +104,8 @@ public:
     * @return True if succeeded and false if not
     */
     bool addSlave(BaseFilter *slave);
+    
+    bool shareReader(BaseFilter *shared, int sharedRId, int rId){return true;};
 
     /**
     * Filter type getter
@@ -167,6 +173,20 @@ public:
     * @param size_t frame time
     */
     void setFrameTime(std::chrono::microseconds fTime);
+    
+    /**
+     * tests if the specfied reader is connected or not
+     * @param readerId of the reader to check
+     * @return true if, and only if, the reader exists and it is connected.
+     */
+    bool isRConnected (int rId);
+    
+    /**
+     * tests if the specfied writer is connected or not
+     * @param writerId of the writer to check
+     * @return true if, and only if, the writer exists and it is connected.
+     */
+    bool isWConnected (int wId);
 
 protected:
     BaseFilter(unsigned readersNum = MAX_READERS, unsigned writersNum = MAX_WRITERS, FilterRole fRole_ = MASTER, bool periodic = false);
@@ -193,6 +213,8 @@ protected:
     std::map<std::string, std::function<bool(Jzon::Node* params)> > eventMap;
 
     virtual bool runDoProcessFrame() = 0;
+    
+    virtual bool deleteReader(int readerId);
 
     bool removeSlave(int id);
 
@@ -276,7 +298,6 @@ private:
     using BaseFilter::demandDestinationFrames;
     using BaseFilter::addFrames;
     using BaseFilter::removeFrames;
-    using BaseFilter::readers;
     using BaseFilter::writers;
     using BaseFilter::oFrames;
     using BaseFilter::dFrames;
@@ -308,7 +329,7 @@ private:
     using BaseFilter::demandOriginFrames;
     using BaseFilter::addFrames;
     using BaseFilter::removeFrames;
-    using BaseFilter::readers;
+    using BaseFilter::writers;
     using BaseFilter::oFrames;
     using BaseFilter::dFrames;
     using BaseFilter::seqNums;
@@ -336,6 +357,7 @@ private:
     using BaseFilter::demandDestinationFrames;
     using BaseFilter::addFrames;
     using BaseFilter::removeFrames;
+    using BaseFilter::writers;
     using BaseFilter::oFrames;
     using BaseFilter::dFrames;
     using BaseFilter::seqNums;

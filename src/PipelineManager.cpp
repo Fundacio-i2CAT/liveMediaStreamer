@@ -262,9 +262,16 @@ bool PipelineManager::connectPath(Path* path)
     int dstFilterId = path->getDestinationFilterID();
 
     std::vector<int> pathFilters = path->getFilters();
+    
+    for (auto id : pathFilters){
+        if (filters.count(id) == 0){
+            return false;
+        }
+    }
 
     if (pathFilters.empty()) {
-        if (filters[orgFilterId]->connectManyToMany(filters[dstFilterId], path->getDstReaderID(), path->getOrgWriterID())) {
+        if (filters[orgFilterId]->connectManyToMany(filters[dstFilterId], path->getDstReaderID(), path->getOrgWriterID()) ||
+            handleGrouping(orgFilterId, dstFilterId, path->getOrgWriterID(), path->getDstReaderID())) {
             return true;
         } else {
             utils::errorMsg("Connecting head to tail!");
@@ -272,7 +279,8 @@ bool PipelineManager::connectPath(Path* path)
         }
     }
 
-    if (!filters[orgFilterId]->connectManyToOne(filters[pathFilters.front()], path->getOrgWriterID())) {
+    if (!filters[orgFilterId]->connectManyToOne(filters[pathFilters.front()], path->getOrgWriterID()) &&
+        !handleGrouping(orgFilterId, pathFilters.front(), path->getOrgWriterID(), DEFAULT_ID)) {
         utils::errorMsg("Connecting path head to first filter!");
         return false;
     }
@@ -286,11 +294,56 @@ bool PipelineManager::connectPath(Path* path)
 
     if (!filters[pathFilters.back()]->connectOneToMany(filters[dstFilterId], path->getDstReaderID())) {
         utils::errorMsg("Connecting path last filter to path tail!");
-
         return false;
     }
 
     return true;
+}
+
+bool PipelineManager::handleGrouping(int orgFId, int dstFId, int orgWId, int dstRId)
+{
+    Path *p;
+    std::vector<int> midFilters;
+    
+    for (auto it : paths){
+        
+        if(!(p = it.second)){
+            continue;
+        }
+        midFilters = p->getFilters();
+        
+        //Sharing origin
+        if (orgFId == p->getOriginFilterID() && 
+            orgWId == p->getOrgWriterID() && 
+            filters[orgFId]->isWConnected(orgWId))
+        {
+            if (midFilters.size() > 0){
+                //TODO share readers!!
+                return filters[midFilters.front()]->groupRunnable(filters[dstFId]);
+            } else {
+                //TODO share readers!!
+                return filters[p->getDestinationFilterID()]->groupRunnable(filters[dstFId]);
+            }
+        }
+        
+        //Sharing midfilter
+        for (unsigned i = 0; i < p->getFilters().size(); i++){
+            if (orgWId == DEFAULT_ID && 
+                orgFId == midFilters[i] && 
+                filters[orgFId]->isWConnected(orgWId))
+            {
+                if (midFilters[i] != midFilters.back()){
+                    //TODO share readers!!
+                    return filters[midFilters[i + 1]]->groupRunnable(filters[dstFId]);
+                } else {
+                    //TODO share readers!!
+                    return filters[p->getDestinationFilterID()]->groupRunnable(filters[dstFId]);
+                }
+            }
+        }
+    }
+    
+    return false;
 }
 
 bool PipelineManager::removePath(int id)

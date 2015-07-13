@@ -109,8 +109,6 @@ private:
     bool doProcessFrame(std::map<int, Frame*> oFrames);
     void stop();
 
-    FrameQueue *allocQueue(int wFId, int rFId, int wId) { return NULL;};
-
     bool addSubsessionByReader(RTSPConnection* connection, int readerId);
 
     void createVideoQueueSource(VCodecType codec, int readerId);

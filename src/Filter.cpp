@@ -62,6 +62,18 @@ bool BaseFilter::isWConnected (int wId)
     return false;
 }
 
+struct ConnectionData BaseFilter::getWConnectionData (int wId) 
+{   
+    std::lock_guard<std::mutex> guard(readersWritersLck);
+
+    if (writers[wId] && writers[wId]->isConnected()){
+        return writers[wId]->getCData();
+    }
+    
+    struct ConnectionData cData;
+    return cData;
+}
+
 bool BaseFilter::isRConnected (int rId) 
 {
     std::lock_guard<std::mutex> guard(readersWritersLck);
@@ -196,10 +208,23 @@ std::vector<int> BaseFilter::removeFrames()
     return enabledJobs;
 }
 
+bool BaseFilter::shareReader(BaseFilter *shared, int sharedRId, int orgRId)
+{
+    std::lock_guard<std::mutex> guard(readersWritersLck);
+    
+    if (!readers[orgRId] || shared->readers[sharedRId]){
+        return false;
+    }
+    
+    shared->readers[sharedRId] = readers[orgRId];
+    return true;
+}
+
 bool BaseFilter::connect(BaseFilter *R, int writerID, int readerID)
 {
     std::shared_ptr<Reader> r;
     FrameQueue *queue = NULL;
+    struct ConnectionData cData;
     
     std::lock_guard<std::mutex> guard(readersWritersLck);
       
@@ -221,7 +246,12 @@ bool BaseFilter::connect(BaseFilter *R, int writerID, int readerID)
     writers[writerID] = new Writer();
     seqNums[writerID] = 0;
 
-    queue = allocQueue(getId(), R->getId(), writerID);
+    cData.wFilterId = getId();
+    cData.writerId = writerID;
+    cData.rFilterId = R->getId();
+    cData.readerId = readerID;
+    
+    queue = allocQueue(cData);
     if (!queue){
         return false;
     }

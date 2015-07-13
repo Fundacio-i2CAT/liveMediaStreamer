@@ -52,8 +52,7 @@ protected:
     void forceGetRearTest();
     void forceGetFrontTest();
 
-    int wFId = 1;
-    int rFId = 2;
+    struct ConnectionData cData;
     unsigned maxFrames = 4;
 
     AVFramedQueue* q;
@@ -61,7 +60,7 @@ protected:
 
 void AVFramedQueueTest::setUp()
 {
-    q = new AVFramedQueueMock(wFId, rFId, maxFrames);
+    q = new AVFramedQueueMock(cData, maxFrames);
 }
 
 void AVFramedQueueTest::tearDown()
@@ -79,7 +78,7 @@ void AVFramedQueueTest::normalBehaviour()
         CPPUNIT_ASSERT(frame);
         frame->setSequenceNumber(seq++);
         CPPUNIT_ASSERT(q->getElements() == i);
-        CPPUNIT_ASSERT(q->addFrame() == rFId);
+        CPPUNIT_ASSERT(q->addFrame() == cData.rFilterId);
         CPPUNIT_ASSERT(q->getElements() == i + 1);
     }
 
@@ -91,7 +90,7 @@ void AVFramedQueueTest::normalBehaviour()
         frame = q->getFront();
         CPPUNIT_ASSERT(frame);
         CPPUNIT_ASSERT(frame->getSequenceNumber() == seq++);
-        CPPUNIT_ASSERT(q->removeFrame() == wFId);
+        CPPUNIT_ASSERT(q->removeFrame() == cData.wFilterId);
     }
 
     frame = q->getFront();
@@ -108,7 +107,7 @@ void AVFramedQueueTest::forceGetRearTest()
         CPPUNIT_ASSERT(frame);
         frame->setSequenceNumber(seq++);
         CPPUNIT_ASSERT(q->getElements() == i);
-        CPPUNIT_ASSERT(q->addFrame() == rFId);
+        CPPUNIT_ASSERT(q->addFrame() == cData.rFilterId);
         CPPUNIT_ASSERT(q->getElements() == i + 1);
     }
 
@@ -119,7 +118,7 @@ void AVFramedQueueTest::forceGetRearTest()
     CPPUNIT_ASSERT(frame);
     frame->setSequenceNumber(seq++);
     CPPUNIT_ASSERT(q->getElements() == maxFrames - 2);
-    CPPUNIT_ASSERT(q->addFrame() == rFId);
+    CPPUNIT_ASSERT(q->addFrame() == cData.rFilterId);
     CPPUNIT_ASSERT(q->getElements() == maxFrames - 1);
 
     seq = 0;
@@ -128,13 +127,13 @@ void AVFramedQueueTest::forceGetRearTest()
         frame = q->getFront();
         CPPUNIT_ASSERT(frame);
         CPPUNIT_ASSERT(frame->getSequenceNumber() == seq++);
-        CPPUNIT_ASSERT(q->removeFrame() == wFId);
+        CPPUNIT_ASSERT(q->removeFrame() == cData.wFilterId);
     }
 
     frame = q->getFront();
     CPPUNIT_ASSERT(frame);
     CPPUNIT_ASSERT(frame->getSequenceNumber() == seq + 1);
-    CPPUNIT_ASSERT(q->removeFrame() == wFId);
+    CPPUNIT_ASSERT(q->removeFrame() == cData.wFilterId);
 
     frame = q->getFront();
     CPPUNIT_ASSERT(!frame);
@@ -150,7 +149,7 @@ void AVFramedQueueTest::forceGetFrontTest()
         CPPUNIT_ASSERT(frame);
         frame->setSequenceNumber(seq++);
         CPPUNIT_ASSERT(q->getElements() == i);
-        CPPUNIT_ASSERT(q->addFrame() == rFId);
+        CPPUNIT_ASSERT(q->addFrame() == cData.rFilterId);
         CPPUNIT_ASSERT(q->getElements() == i + 1);
     }
 
@@ -162,7 +161,7 @@ void AVFramedQueueTest::forceGetFrontTest()
         frame = q->getFront();
         CPPUNIT_ASSERT(frame);
         CPPUNIT_ASSERT(frame->getSequenceNumber() == seq++);
-        CPPUNIT_ASSERT(q->removeFrame() == wFId);
+        CPPUNIT_ASSERT(q->removeFrame() == cData.wFilterId);
     }
 
     frame = q->getFront();

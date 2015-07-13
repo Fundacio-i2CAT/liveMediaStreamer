@@ -48,7 +48,7 @@ public:
     std::shared_ptr<Reader> setReader(int readerID, FrameQueue* queue);
     
 protected:
-    FrameQueue* allocQueue(int wFId, int rFId, int wId);
+    FrameQueue* allocQueue(struct ConnectionData cData);
     bool doProcessFrame(Frame *org, Frame *dst);
 
 private:

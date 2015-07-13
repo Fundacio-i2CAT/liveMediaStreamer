@@ -27,9 +27,9 @@
 
 #define MAX_DEVIATION_SAMPLES 64
 
-AudioCircularBuffer* AudioCircularBuffer::createNew(int wId, int rId, unsigned ch, unsigned sRate, unsigned maxSamples, SampleFmt sFmt, std::chrono::milliseconds bufferingThreshold)
+AudioCircularBuffer* AudioCircularBuffer::createNew(struct ConnectionData cData, unsigned ch, unsigned sRate, unsigned maxSamples, SampleFmt sFmt, std::chrono::milliseconds bufferingThreshold)
 {
-    AudioCircularBuffer* b = new AudioCircularBuffer(wId, rId, ch, sRate, maxSamples, sFmt);
+    AudioCircularBuffer* b = new AudioCircularBuffer(cData, ch, sRate, maxSamples, sFmt);
 
     if (!b->setup()) {
         utils::errorMsg("AudioCircularBuffer setup error!");
@@ -41,8 +41,8 @@ AudioCircularBuffer* AudioCircularBuffer::createNew(int wId, int rId, unsigned c
     return b;
 }
 
-AudioCircularBuffer::AudioCircularBuffer(int wId, int rId, unsigned ch, unsigned sRate, unsigned maxSamples, SampleFmt sFmt)
-: FrameQueue(wId, rId), channels(ch), sampleRate(sRate), bytesPerSample(0), chMaxSamples(maxSamples), channelMaxLength(0), 
+AudioCircularBuffer::AudioCircularBuffer(struct ConnectionData cData, unsigned ch, unsigned sRate, unsigned maxSamples, SampleFmt sFmt)
+: FrameQueue(cData), channels(ch), sampleRate(sRate), bytesPerSample(0), chMaxSamples(maxSamples), channelMaxLength(0), 
 sampleFormat(sFmt), fillNewFrame(true), samplesBufferingThreshold(0), bufferingState(BUFFERING), 
 inputFrame(NULL), outputFrame(NULL), dummyFrame(NULL), synchronized(false), setupSuccess(false), tsDeviationThreshold(0), elements(0)
 {
@@ -142,13 +142,13 @@ int AudioCircularBuffer::addFrame()
         return -1;
     }
     
-    return rFilterId;
+    return connectionData.rFilterId;
 }
 
 int AudioCircularBuffer::removeFrame()
 {
     fillNewFrame = true;
-    return wFilterId;
+    return connectionData.wFilterId;
 }
 
 void AudioCircularBuffer::flush()

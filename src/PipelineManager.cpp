@@ -302,47 +302,28 @@ bool PipelineManager::connectPath(Path* path)
 
 bool PipelineManager::handleGrouping(int orgFId, int dstFId, int orgWId, int dstRId)
 {
-    Path *p;
-    std::vector<int> midFilters;
+    struct ConnectionData cData;
     
-    for (auto it : paths){
-        
-        if(!(p = it.second)){
-            continue;
-        }
-        midFilters = p->getFilters();
-        
-        //Sharing origin
-        if (orgFId == p->getOriginFilterID() && 
-            orgWId == p->getOrgWriterID() && 
-            filters[orgFId]->isWConnected(orgWId))
-        {
-            if (midFilters.size() > 0){
-                //TODO share readers!!
-                return filters[midFilters.front()]->groupRunnable(filters[dstFId]);
-            } else {
-                //TODO share readers!!
-                return filters[p->getDestinationFilterID()]->groupRunnable(filters[dstFId]);
-            }
-        }
-        
-        //Sharing midfilter
-        for (unsigned i = 0; i < p->getFilters().size(); i++){
-            if (orgWId == DEFAULT_ID && 
-                orgFId == midFilters[i] && 
-                filters[orgFId]->isWConnected(orgWId))
-            {
-                if (midFilters[i] != midFilters.back()){
-                    //TODO share readers!!
-                    return filters[midFilters[i + 1]]->groupRunnable(filters[dstFId]);
-                } else {
-                    //TODO share readers!!
-                    return filters[p->getDestinationFilterID()]->groupRunnable(filters[dstFId]);
-                }
-            }
-        }
+    if (!filters[orgFId]->isWConnected(orgWId)){
+        return false;
     }
     
+    cData = filters[orgFId]->getWConnectionData(orgWId);
+    
+    if (!validCData(cData)){
+        return false;
+    }
+    
+    return filters[cData.rFilterId]->shareReader(filters[dstFId], cData.readerId, dstRId) &&
+        filters[cData.rFilterId]->groupRunnable(filters[dstFId]);
+}
+
+bool PipelineManager::validCData(struct ConnectionData cData)
+{
+    if (filters[cData.wFilterId] && filters[cData.wFilterId]->isWConnected(cData.writerId) &&
+        filters[cData.rFilterId] && filters[cData.rFilterId]->isRConnected(cData.readerId)) {
+        return true;
+    }
     return false;
 }
 

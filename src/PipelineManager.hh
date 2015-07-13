@@ -167,6 +167,7 @@ private:
     bool createFilter(int id, FilterType type, FilterRole role);
     
     bool handleGrouping(int orgFId, int dstFId, int orgWId, int dstRId);
+    bool validCData(struct ConnectionData cData);
 
     static PipelineManager* pipeMngrInstance;
 

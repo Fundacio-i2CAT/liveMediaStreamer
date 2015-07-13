@@ -43,7 +43,7 @@ class VideoDecoderLibav : public OneToOneFilter {
         
     private:
         void initializeEventMap();
-        FrameQueue* allocQueue(int wFId, int rFId, int wId);
+        FrameQueue* allocQueue(struct ConnectionData cData);
         bool doProcessFrame(Frame *org, Frame *dst);
         bool toBuffer(VideoFrame *decodedFrame, VideoFrame *codedFrame);
         bool reconfigure(VCodecType codec);

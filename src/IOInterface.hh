@@ -96,6 +96,12 @@ public:
     * @return true if successful disconnecting, otherwise returns false
     */
     bool disconnect() const;
+    
+    /**
+    * gets the connection data of the associated queue
+    * @return the connection data struct of the queue
+    */
+    struct ConnectionData getCData();
 
 protected:
     mutable FrameQueue *queue;

@@ -84,9 +84,9 @@ VideoMixer::~VideoMixer()
     channelsConfig.clear();
 }
 
-FrameQueue* VideoMixer::allocQueue(int wFId, int rFId, int wId)
+FrameQueue* VideoMixer::allocQueue(struct ConnectionData cData)
 {
-    return VideoFrameQueue::createNew(wFId, rFId, RAW, DEFAULT_RAW_VIDEO_FRAMES, RGB24);
+    return VideoFrameQueue::createNew(cData, RAW, DEFAULT_RAW_VIDEO_FRAMES, RGB24);
 }
 
 bool VideoMixer::doProcessFrame(std::map<int, Frame*> orgFrames, Frame *dst)

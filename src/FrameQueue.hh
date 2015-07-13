@@ -36,20 +36,31 @@
 #define SLOW_THRESHOLD 0.4
 #define FAST_THRESHOLD 0.6
 
-using namespace std::chrono;
-
 /*! FrameQueue class is pure abstract class that represents buffering structure
     of the pipeline
 */
+
+/**
+ * A structure to represent four identifiers. The writer ID of the producer filter, producer filter ID, 
+ * reader ID of the consuming filter and consuming filter ID. By default all values are set to -1, which is an invalid id.
+ */
+struct ConnectionData 
+{
+    int wFilterId = -1;
+    int writerId = -1;
+    int rFilterId = -1;
+    int readerId = -1;
+};
+
 class FrameQueue {
 
 public:
     /**
     * Class constructor
-    * @param wFId Id of the filter that feeds the queue 
-    * @param rFId Id of the filter that consumes from the queue
+    * @param connectionData struct that contains reader and writer filters identifiers
     */
-    FrameQueue(int wFId, int rFId) : rear(0), front(0), connected(false), firstFrame(false), rFilterId(rFId), wFilterId(wFId) {};
+    FrameQueue(struct ConnectionData cData) : rear(0), front(0), connected(false), firstFrame(false), 
+                connectionData(cData) {};
 
     /**
     * Class destructor
@@ -114,14 +125,20 @@ public:
     * @return elements
     */
     virtual const unsigned getElements() = 0;
+    
+    /**
+    * Gets the connection cData.
+    * @return the struct that contains the connection data.
+    */
+    struct ConnectionData getCData() const {return connectionData;};
 
 protected:
     size_t rear;
     size_t front;
     bool connected;
     bool firstFrame;
-    const int rFilterId;
-    const int wFilterId;
+    
+    const struct ConnectionData connectionData;
 };
 
 #endif

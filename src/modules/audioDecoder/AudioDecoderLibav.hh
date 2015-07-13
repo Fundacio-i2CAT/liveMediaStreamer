@@ -42,7 +42,7 @@ public:
     
 protected:
     bool doProcessFrame(Frame *org, Frame *dst);
-    FrameQueue* allocQueue(int wFId, int rFId, int wId);
+    FrameQueue* allocQueue(struct ConnectionData cData);
 
 private:
 

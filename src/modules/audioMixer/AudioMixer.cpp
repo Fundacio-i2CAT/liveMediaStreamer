@@ -56,9 +56,9 @@ AudioMixer::~AudioMixer()
     }
 }
 
-FrameQueue *AudioMixer::allocQueue(int wFId, int rFId, int wId) 
+FrameQueue *AudioMixer::allocQueue(struct ConnectionData cData) 
 {
-    return AudioCircularBuffer::createNew(wFId, rFId, channels, sampleRate, DEFAULT_BUFFER_SIZE, 
+    return AudioCircularBuffer::createNew(cData, channels, sampleRate, DEFAULT_BUFFER_SIZE, 
                                             sampleFormat, std::chrono::milliseconds(0));
 }
 

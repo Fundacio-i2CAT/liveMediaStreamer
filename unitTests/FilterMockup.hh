@@ -92,7 +92,7 @@ private:
 class AVFramedQueueMock : public AVFramedQueue
 {
 public:
-    AVFramedQueueMock(int wFId, int rFId, unsigned max) : AVFramedQueue(wFId, rFId, max) {
+    AVFramedQueueMock(struct ConnectionData cData, unsigned max) : AVFramedQueue(cData, max) {
         config();
     };
 
@@ -113,7 +113,7 @@ public:
     using BaseFilter::getReader;
 
 protected:
-    FrameQueue *allocQueue(int wFId, int rFId, int wId) {return new AVFramedQueueMock(wFId, rFId, 4);};
+    FrameQueue *allocQueue(struct ConnectionData cData) {return new AVFramedQueueMock(cData, 4);};
     std::vector<int> masterProcessFrame(int& ret) {
         std::vector<int> enabledJobs;
         ret = 20;
@@ -162,7 +162,7 @@ protected:
     void stop() {};
 
 private:
-    virtual FrameQueue *allocQueue(int wFId, int rFId, int wId) {return new AVFramedQueueMock(wFId, rFId, queueSize);};
+    virtual FrameQueue *allocQueue(struct ConnectionData cData) {return new AVFramedQueueMock(cData, queueSize);};
 
     std::default_random_engine generator;
     std::chrono::microseconds processTime;
@@ -199,7 +199,7 @@ protected:
     void stop() {};
 
 private:
-    virtual FrameQueue *allocQueue(int wFId, int rFId, int wId) {return new AVFramedQueueMock(wFId, rFId, queueSize);};
+    virtual FrameQueue *allocQueue(struct ConnectionData cData) {return new AVFramedQueueMock(cData, queueSize);};
 
     std::default_random_engine generator;
     std::chrono::microseconds processTime;
@@ -216,7 +216,7 @@ public:
     };
 
 protected:
-    FrameQueue *allocQueue(int wFId, int rFId, int wId) {return VideoFrameQueue::createNew(wFId, rFId, codec, DEFAULT_VIDEO_FRAMES);};
+    FrameQueue *allocQueue(struct ConnectionData cData) {return VideoFrameQueue::createNew(cData, codec, DEFAULT_VIDEO_FRAMES);};
 
 private:
     VCodecType codec;
@@ -231,7 +231,7 @@ public:
     };
 
 protected:
-    FrameQueue *allocQueue(int wFId, int rFId, int wId) {return AudioFrameQueue::createNew(wFId, rFId, codec, DEFAULT_AUDIO_FRAMES);};
+    FrameQueue *allocQueue(struct ConnectionData cData) {return AudioFrameQueue::createNew(cData, codec, DEFAULT_AUDIO_FRAMES);};
 
 private:
     ACodecType codec;
@@ -279,8 +279,8 @@ protected:
     
 
 private:
-    FrameQueue *allocQueue(int wFId, int rFId, int wId) {
-        return VideoFrameQueue::createNew(wFId, rFId, codec, 10, pixFormat);
+    FrameQueue *allocQueue(struct ConnectionData cData) {
+        return VideoFrameQueue::createNew(cData, codec, 10, pixFormat);
     };
 
     InterleavedVideoFrame* srcFrame;
@@ -336,8 +336,8 @@ protected:
     
 
 private:
-    FrameQueue *allocQueue(int wFId, int rFId, int wId) {
-        return AudioCircularBuffer::createNew(wFId, rFId, channels, sampleRate, DEFAULT_BUFFER_SIZE, sampleFormat, std::chrono::milliseconds(0));
+    FrameQueue *allocQueue(struct ConnectionData cData) {
+        return AudioCircularBuffer::createNew(cData, channels, sampleRate, DEFAULT_BUFFER_SIZE, sampleFormat, std::chrono::milliseconds(0));
     };
 
     PlanarAudioFrame* srcFrame;

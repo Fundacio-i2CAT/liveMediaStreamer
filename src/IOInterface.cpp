@@ -229,3 +229,14 @@ int Writer::addFrame() const
 {
     return queue->addFrame();
 }
+
+struct ConnectionData Writer::getCData()
+{
+    if (queue && queue->isConnected()){
+        return queue->getCData();
+    }
+    
+    struct ConnectionData cData;
+    return cData;
+    
+}

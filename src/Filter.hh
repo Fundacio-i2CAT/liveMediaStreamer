@@ -103,7 +103,7 @@ public:
     */
     bool addSlave(BaseFilter *slave);
     
-    bool shareReader(BaseFilter *shared, int sharedRId, int rId){return true;};
+    bool shareReader(BaseFilter *shared, int sharedRId, int rId);
 
     /**
     * Filter type getter
@@ -185,13 +185,20 @@ public:
      * @return true if, and only if, the writer exists and it is connected.
      */
     bool isWConnected (int wId);
+    
+    /**
+     * get the connection data of the specified writer
+     * @param writerId of the writer to check
+     * @return the connection data. It is a defaut ConnectionData in case of failure (e.g. filter not connected)
+     */
+    struct ConnectionData getWConnectionData (int wId);
 
 protected:
     BaseFilter(unsigned readersNum = MAX_READERS, unsigned writersNum = MAX_WRITERS, FilterRole fRole_ = MASTER, bool periodic = false);
 
     std::vector<int> addFrames();
     std::vector<int> removeFrames();
-    virtual FrameQueue *allocQueue(int wFId, int rFId, int wId) = 0;
+    virtual FrameQueue *allocQueue(struct ConnectionData cData) = 0;
 
     std::chrono::microseconds getFrameTime() {return frameTime;};
 
@@ -348,7 +355,7 @@ protected:
     using BaseFilter::getFrameTime;
 
 private:
-    FrameQueue *allocQueue(int wFId, int rFId, int wId) {return NULL;};
+    FrameQueue *allocQueue(struct ConnectionData cData) {return NULL;};
     bool runDoProcessFrame();
     virtual bool doProcessFrame(std::map<int, Frame*> orgFrames) = 0;
     using BaseFilter::demandOriginFrames;

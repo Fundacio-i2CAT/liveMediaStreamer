@@ -67,86 +67,88 @@ void FilterUnitTest::tearDown()
 
 void FilterUnitTest::connectOneToOne()
 {
-//     BaseFilter* filterToTest = new BaseFilterMockup(1,1);
-//     BaseFilter* satelliteFilter = new BaseFilterMockup(1,1);
-// 
-//     CPPUNIT_ASSERT(!filterToTest->disconnectWriter(1));
-//     CPPUNIT_ASSERT(!satelliteFilter->disconnectReader(1));
-//     CPPUNIT_ASSERT(filterToTest->connectOneToOne(satelliteFilter));
-//     CPPUNIT_ASSERT(filterToTest->disconnectWriter(1));
-//     CPPUNIT_ASSERT(satelliteFilter->disconnectReader(1));
-// 
-//     delete filterToTest;
-//     delete satelliteFilter;
+    BaseFilter* filterToTest = new BaseFilterMockup(1,1);
+    BaseFilter* satelliteFilter = new BaseFilterMockup(1,1);
+
+    CPPUNIT_ASSERT(!filterToTest->disconnectWriter(1));
+    CPPUNIT_ASSERT(!satelliteFilter->disconnectReader(1));
+    CPPUNIT_ASSERT(filterToTest->connectOneToOne(satelliteFilter));
+    CPPUNIT_ASSERT(filterToTest->disconnectWriter(1));
+    CPPUNIT_ASSERT(satelliteFilter->disconnectReader(1));
+
+    delete filterToTest;
+    delete satelliteFilter;
 }
 
 void FilterUnitTest::connectManyToOne()
 {
-//     BaseFilter* filterToTest = new BaseFilterMockup(1,2);
-//     BaseFilter* satelliteFilter = new BaseFilterMockup(1,1);
-// 
-//     CPPUNIT_ASSERT(filterToTest->connectManyToOne(satelliteFilter, 1));
-//     CPPUNIT_ASSERT(!filterToTest->connectManyToOne(satelliteFilter, 2));
-//     CPPUNIT_ASSERT(!filterToTest->connectManyToOne(satelliteFilter, 3));
-//     CPPUNIT_ASSERT(filterToTest->disconnectWriter(1));
-// 
-//     CPPUNIT_ASSERT(!filterToTest->disconnectWriter(2));
-//     CPPUNIT_ASSERT(!filterToTest->connectManyToOne(satelliteFilter, 2));
-//     CPPUNIT_ASSERT(satelliteFilter->disconnectReader(1));
-//     CPPUNIT_ASSERT(filterToTest->connectManyToOne(satelliteFilter, 2));
-// 
-//     CPPUNIT_ASSERT(!filterToTest->disconnectWriter(3));
-//     CPPUNIT_ASSERT(!filterToTest->connectManyToOne(satelliteFilter, 2));
-// 
-//     delete filterToTest;
-//     delete satelliteFilter;
+    BaseFilter* filterToTest = new BaseFilterMockup(1,2);
+    BaseFilter* satelliteFilter = new BaseFilterMockup(1,1);
+
+    CPPUNIT_ASSERT(filterToTest->connectManyToOne(satelliteFilter, 1));
+    CPPUNIT_ASSERT(!filterToTest->connectManyToOne(satelliteFilter, 3));
+    CPPUNIT_ASSERT(!filterToTest->connectManyToOne(satelliteFilter, 2));
+
+    CPPUNIT_ASSERT(!filterToTest->disconnectWriter(2));
+    CPPUNIT_ASSERT(filterToTest->disconnectWriter(1));
+    CPPUNIT_ASSERT(!filterToTest->disconnectWriter(1));
+
+    CPPUNIT_ASSERT(!filterToTest->connectManyToOne(satelliteFilter, 2));
+    CPPUNIT_ASSERT(satelliteFilter->disconnectReader(1));
+    CPPUNIT_ASSERT(filterToTest->connectManyToOne(satelliteFilter, 2));
+
+    CPPUNIT_ASSERT(!filterToTest->disconnectWriter(3));
+    CPPUNIT_ASSERT(!filterToTest->connectManyToOne(satelliteFilter, 2));
+
+    delete filterToTest;
+    delete satelliteFilter;
 }
 
 void FilterUnitTest::connectOneToMany()
 {
-//     BaseFilter* filterToTest = new BaseFilterMockup(1,1);
-//     BaseFilter* satelliteFilter = new BaseFilterMockup(2,1);
-// 
-//     CPPUNIT_ASSERT(filterToTest->connectOneToMany(satelliteFilter,1));
-//     CPPUNIT_ASSERT(!filterToTest->connectOneToMany(satelliteFilter,1));
-//     CPPUNIT_ASSERT(!filterToTest->connectOneToMany(satelliteFilter,2));
-// 
-//     CPPUNIT_ASSERT(filterToTest->disconnectWriter(1));
-//     CPPUNIT_ASSERT(filterToTest->connectOneToMany(satelliteFilter,2));
-// 
-//     CPPUNIT_ASSERT(satelliteFilter->disconnectReader(1));
-// 
-//     CPPUNIT_ASSERT(filterToTest->disconnectWriter(1));
-//     CPPUNIT_ASSERT(satelliteFilter->disconnectReader(2));
-// 
-//     delete filterToTest;
-//     delete satelliteFilter;
+    BaseFilter* filterToTest = new BaseFilterMockup(1,1);
+    BaseFilter* satelliteFilter = new BaseFilterMockup(2,1);
+
+    CPPUNIT_ASSERT(filterToTest->connectOneToMany(satelliteFilter,1));
+    CPPUNIT_ASSERT(!filterToTest->connectOneToMany(satelliteFilter,1));
+    CPPUNIT_ASSERT(!filterToTest->connectOneToMany(satelliteFilter,2));
+
+    CPPUNIT_ASSERT(filterToTest->disconnectWriter(1));
+    CPPUNIT_ASSERT(filterToTest->connectOneToMany(satelliteFilter,2));
+
+    CPPUNIT_ASSERT(satelliteFilter->disconnectReader(1));
+
+    CPPUNIT_ASSERT(filterToTest->disconnectWriter(1));
+    CPPUNIT_ASSERT(satelliteFilter->disconnectReader(2));
+
+    delete filterToTest;
+    delete satelliteFilter;
 }
 
 void FilterUnitTest::connectManyToMany()
 {
-//     BaseFilter* filterToTest = new BaseFilterMockup(1,2);
-//     BaseFilter* satelliteFilter = new BaseFilterMockup(2,1);
-// 
-//     CPPUNIT_ASSERT(filterToTest->connectManyToMany(satelliteFilter,1,1));
-//     CPPUNIT_ASSERT(filterToTest->connectManyToMany(satelliteFilter,2,2));
-// 
-//     CPPUNIT_ASSERT(!filterToTest->connectManyToMany(satelliteFilter,2,1));
-//     CPPUNIT_ASSERT(!filterToTest->connectManyToMany(satelliteFilter,1,2));
-// 
-//     CPPUNIT_ASSERT(filterToTest->disconnectWriter(1));
-//     CPPUNIT_ASSERT(satelliteFilter->disconnectReader(1));
-//     CPPUNIT_ASSERT(filterToTest->disconnectWriter(2));
-//     CPPUNIT_ASSERT(satelliteFilter->disconnectReader(2));
-// 
-//     CPPUNIT_ASSERT(filterToTest->connectManyToMany(satelliteFilter,2,1));
-//     CPPUNIT_ASSERT(filterToTest->connectManyToMany(satelliteFilter,1,2));
-// 
-//     filterToTest->disconnectAll();
-//     satelliteFilter->disconnectAll();
-// 
-//     delete filterToTest;
-//     delete satelliteFilter;
+    BaseFilter* filterToTest = new BaseFilterMockup(1,2);
+    BaseFilter* satelliteFilter = new BaseFilterMockup(2,1);
+
+    CPPUNIT_ASSERT(filterToTest->connectManyToMany(satelliteFilter,1,1));
+    CPPUNIT_ASSERT(filterToTest->connectManyToMany(satelliteFilter,2,2));
+
+    CPPUNIT_ASSERT(!filterToTest->connectManyToMany(satelliteFilter,2,1));
+    CPPUNIT_ASSERT(!filterToTest->connectManyToMany(satelliteFilter,1,2));
+
+    CPPUNIT_ASSERT(filterToTest->disconnectWriter(1));
+    CPPUNIT_ASSERT(satelliteFilter->disconnectReader(1));
+    CPPUNIT_ASSERT(filterToTest->disconnectWriter(2));
+    CPPUNIT_ASSERT(satelliteFilter->disconnectReader(2));
+
+    CPPUNIT_ASSERT(filterToTest->connectManyToMany(satelliteFilter,2,1));
+    CPPUNIT_ASSERT(filterToTest->connectManyToMany(satelliteFilter,1,2));
+
+    filterToTest->disconnectAll();
+    satelliteFilter->disconnectAll();
+
+    delete filterToTest;
+    delete satelliteFilter;
 }
 
 class FilterFunctionalTest : public CppUnit::TestFixture

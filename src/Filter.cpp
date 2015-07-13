@@ -253,10 +253,14 @@ bool BaseFilter::connect(BaseFilter *R, int writerID, int readerID)
     
     queue = allocQueue(cData);
     if (!queue){
+        delete writers[writerID];
+        writers.erase(writerID);
         return false;
     }
 
     if (!(r = R->setReader(readerID, queue))) {
+        delete writers[writerID];
+        writers.erase(writerID);
         utils::errorMsg("Could not create the reader or set the queue");
         return false;
     }

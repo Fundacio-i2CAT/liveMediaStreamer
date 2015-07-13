@@ -39,13 +39,13 @@ public:
     AudioDecoderLibav(FilterRole fRole_ = MASTER);
     ~AudioDecoderLibav();
     bool configure(SampleFmt sampleFormat, int channels, int sampleRate);
-    
+
 protected:
     bool doProcessFrame(Frame *org, Frame *dst);
     FrameQueue* allocQueue(int wFId, int rFId, int wId);
+    bool configure0(SampleFmt sampleFormat, int channels, int sampleRate);
 
 private:
-
     void initializeEventMap();
     bool resample(AVFrame* src, AudioFrame* dst);
     void checkSampleFormat(int sampleFormat);

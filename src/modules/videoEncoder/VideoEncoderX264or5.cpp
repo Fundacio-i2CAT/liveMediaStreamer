@@ -199,6 +199,7 @@ bool VideoEncoderX264or5::configure(int bitrate, int fps, int gop, int lookahead
 {
     Jzon::Object root, params;
     root.Add("action", "configure");
+    params.Add("bitrate", bitrate);
     params.Add("fps", fps);
     params.Add("gop", gop);
     params.Add("lookahead", lookahead);

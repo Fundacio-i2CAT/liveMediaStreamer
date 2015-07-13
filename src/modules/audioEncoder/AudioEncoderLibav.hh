@@ -41,18 +41,17 @@ public:
     AudioEncoderLibav(FilterRole fRole_ = MASTER);
     ~AudioEncoderLibav();
 
+    bool configure(ACodecType codec, int codedAudioChannels, int codedAudioSampleRate, int bitrate);
     int getSamplesPerFrame(){ return samplesPerFrame;};
     ACodecType getCodec() {return fCodec;};
-
-    bool configure(ACodecType codec, int codedAudioChannels, int codedAudioSampleRate, int bitrate);
-    std::shared_ptr<Reader> setReader(int readerID, FrameQueue* queue);
     
 protected:
     FrameQueue* allocQueue(struct ConnectionData cData);
     bool doProcessFrame(Frame *org, Frame *dst);
+	std::shared_ptr<Reader> setReader(int readerID, FrameQueue* queue);
 
 private:
-    
+    bool configure0(ACodecType codec, int codedAudioChannels, int codedAudioSampleRate, int bitrate);
     void initializeEventMap();
     int resample(AudioFrame* src, AVFrame* dst);
     bool reconfigure(AudioFrame* frame);

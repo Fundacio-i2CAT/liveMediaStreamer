@@ -212,7 +212,16 @@ bool BaseFilter::shareReader(BaseFilter *shared, int sharedRId, int orgRId)
 {
     std::lock_guard<std::mutex> guard(readersWritersLck);
     
-    if (!readers[orgRId] || shared->readers[sharedRId]){
+    if (!readers.count(orgRId) > 0) {
+        utils::errorMsg("The reader to share is not there");
+        return false;
+    }
+    if (!readers[orgRId]->isConnected()){
+        utils::errorMsg("The reader to share is not connected!");
+        return false;
+    }
+    if (shared->isRConnected(sharedRId)){
+        utils::errorMsg("The shared filter has the reader already connected!");
         return false;
     }
     

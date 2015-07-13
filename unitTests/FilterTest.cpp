@@ -42,6 +42,7 @@ class FilterUnitTest : public CppUnit::TestFixture
     CPPUNIT_TEST(connectManyToOne);
     CPPUNIT_TEST(connectOneToMany);
     CPPUNIT_TEST(connectManyToMany);
+    CPPUNIT_TEST(shareReader);
     CPPUNIT_TEST_SUITE_END();
 
 public:
@@ -53,6 +54,7 @@ protected:
     void connectManyToOne();
     void connectOneToMany();
     void connectManyToMany();
+    void shareReader();
 };
 
 void FilterUnitTest::setUp()
@@ -149,6 +151,26 @@ void FilterUnitTest::connectManyToMany()
 
     delete filterToTest;
     delete satelliteFilter;
+}
+
+void FilterUnitTest::shareReader()
+{
+    BaseFilter* filterToTest = new BaseFilterMockup(1,1);
+    BaseFilter* satelliteFilter = new BaseFilterMockup(1,1);
+    BaseFilter* satelliteFilter2 = new BaseFilterMockup(1,1);
+
+    CPPUNIT_ASSERT(!satelliteFilter->shareReader(satelliteFilter2, 1, 1));
+    CPPUNIT_ASSERT(filterToTest->connectOneToOne(satelliteFilter));
+    
+    CPPUNIT_ASSERT(satelliteFilter->shareReader(satelliteFilter2, 1, 1));
+    CPPUNIT_ASSERT(!satelliteFilter->shareReader(satelliteFilter2, 1, 1));
+    
+    CPPUNIT_ASSERT(filterToTest->disconnectWriter(1));
+    CPPUNIT_ASSERT(satelliteFilter->disconnectReader(1));
+
+    delete filterToTest;
+    delete satelliteFilter;
+    delete satelliteFilter2;
 }
 
 class FilterFunctionalTest : public CppUnit::TestFixture

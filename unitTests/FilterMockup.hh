@@ -114,18 +114,8 @@ public:
 
 protected:
     FrameQueue *allocQueue(struct ConnectionData cData) {return new AVFramedQueueMock(cData, 4);};
-    std::vector<int> masterProcessFrame(int& ret) {
-        std::vector<int> enabledJobs;
-        ret = 20;
-        return enabledJobs;
-    };
-    std::vector<int> slaveProcessFrame(int& ret) {
-        std::vector<int> enabledJobs;
-        ret = 20;
-        return enabledJobs;
-    };
+
     void doGetState(Jzon::Object &filterNode) {};
-    void stop() {};
 
 private:
     VCodecType codec;
@@ -138,34 +128,26 @@ private:
 class OneToOneFilterMockup : public OneToOneFilter
 {
 public:
-    OneToOneFilterMockup(std::chrono::microseconds processTime_, size_t queueSize_, bool gotFrame_,
-                         std::chrono::microseconds frameTime, FilterRole role) :
-        OneToOneFilter(role),
-        processTime(processTime_), queueSize(queueSize_), gotFrame(gotFrame_) {
-            setFrameTime(frameTime);
-        };
+    OneToOneFilterMockup(size_t queueSize_, bool gotFrame_,
+                std::chrono::microseconds frameTime, FilterRole role) :
+                OneToOneFilter(role), queueSize(queueSize_), gotFrame(gotFrame_) {
+        setFrameTime(frameTime);
+    };
 
     void setGotFrame(bool gotFrame_) {gotFrame = gotFrame_;};
     using BaseFilter::getReader;
 
 protected:
     bool doProcessFrame(Frame *org, Frame *dst) {
-        size_t realProcessTime;
-        std::uniform_int_distribution<size_t> distribution(processTime.count()/2, processTime.count());
-        realProcessTime = distribution(generator);
-        utils::debugMsg("Process time " + std::to_string(realProcessTime));
-        std::this_thread::sleep_for(std::chrono::microseconds(realProcessTime));
         dst->setConsumed(gotFrame);
         return gotFrame;
     }
     void doGetState(Jzon::Object &filterNode) {};
-    void stop() {};
 
 private:
     virtual FrameQueue *allocQueue(struct ConnectionData cData) {return new AVFramedQueueMock(cData, queueSize);};
 
     std::default_random_engine generator;
-    std::chrono::microseconds processTime;
     size_t queueSize;
     bool gotFrame;
 };
@@ -173,10 +155,10 @@ private:
 class OneToManyFilterMockup : public OneToManyFilter
 {
 public:
-    OneToManyFilterMockup(unsigned maxWriters, std::chrono::microseconds processTime_, size_t queueSize_, bool gotFrame_,
+    OneToManyFilterMockup(unsigned maxWriters, size_t queueSize_, bool gotFrame_,
                          std::chrono::microseconds frameTime, FilterRole role) :
         OneToManyFilter(role, maxWriters),
-        processTime(processTime_), queueSize(queueSize_), gotFrame(gotFrame_) {
+        queueSize(queueSize_), gotFrame(gotFrame_) {
             setFrameTime(frameTime);
         };
 
@@ -185,24 +167,17 @@ public:
 
 protected:
     bool doProcessFrame(Frame *org, std::map<int, Frame *> dstFrames) {
-        size_t realProcessTime;
-        std::uniform_int_distribution<size_t> distribution(processTime.count()/2, processTime.count());
-        realProcessTime = distribution(generator);
-        utils::debugMsg("Process time " + std::to_string(realProcessTime));
-        std::this_thread::sleep_for(std::chrono::microseconds(realProcessTime));
         for (auto dst : dstFrames) {
             dst.second->setConsumed(gotFrame);
         }
         return gotFrame;
     }
     void doGetState(Jzon::Object &filterNode) {};
-    void stop() {};
 
 private:
     virtual FrameQueue *allocQueue(struct ConnectionData cData) {return new AVFramedQueueMock(cData, queueSize);};
 
     std::default_random_engine generator;
-    std::chrono::microseconds processTime;
     size_t queueSize;
     bool gotFrame;
 };
@@ -210,8 +185,7 @@ private:
 class VideoFilterMockup : public OneToOneFilterMockup
 {
 public:
-    VideoFilterMockup(VCodecType c) : OneToOneFilterMockup(std::chrono::microseconds(20000), 
-        4, true, std::chrono::microseconds(40000), MASTER)  {
+    VideoFilterMockup(VCodecType c) : OneToOneFilterMockup(4, true, std::chrono::microseconds(40000), MASTER)  {
         codec = c;
     };
 
@@ -225,8 +199,7 @@ private:
 class AudioFilterMockup : public OneToOneFilterMockup
 {
 public:
-    AudioFilterMockup(ACodecType c) : OneToOneFilterMockup(std::chrono::microseconds(20000), 
-        4, true, std::chrono::microseconds(40000), MASTER)  {
+    AudioFilterMockup(ACodecType c) : OneToOneFilterMockup(4, true, std::chrono::microseconds(40000), MASTER)  {
         codec = c;
     };
 

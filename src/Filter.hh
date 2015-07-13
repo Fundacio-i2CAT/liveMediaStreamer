@@ -103,7 +103,7 @@ public:
     */
     bool addSlave(BaseFilter *slave);
     
-    bool shareReader(BaseFilter *shared, int sharedRId, int rId);
+    bool shareReader(BaseFilter *shared, int sharedRId, int orgRId);
 
     /**
     * Filter type getter

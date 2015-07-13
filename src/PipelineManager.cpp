@@ -221,14 +221,11 @@ Path* PipelineManager::createPath(int orgFilter, int dstFilter, int orgWriter, i
 
     if (filters.count(orgFilter) <= 0) {
         utils::errorMsg("Origin filter does not exist");
+        return NULL;
     }
 
     if (filters.count(dstFilter) <= 0) {
         utils::errorMsg("Destination filter does not exist");
-    }
-
-    if (filters.count(orgFilter) <= 0 || filters.count(dstFilter) <= 0) {
-        utils::errorMsg("Error creating path: origin and/or destination filter do not exist");
         return NULL;
     }
 
@@ -320,8 +317,8 @@ bool PipelineManager::handleGrouping(int orgFId, int dstFId, int orgWId, int dst
 
 bool PipelineManager::validCData(struct ConnectionData cData)
 {
-    if (filters[cData.wFilterId] && filters[cData.wFilterId]->isWConnected(cData.writerId) &&
-        filters[cData.rFilterId] && filters[cData.rFilterId]->isRConnected(cData.readerId)) {
+    if (filters.count(cData.wFilterId) > 0 && filters[cData.wFilterId]->isWConnected(cData.writerId) &&
+        filters.count(cData.rFilterId) > 0 && filters[cData.rFilterId]->isRConnected(cData.readerId)) {
         return true;
     }
     return false;

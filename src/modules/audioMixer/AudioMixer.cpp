@@ -313,20 +313,20 @@ bool AudioMixer::setChannelGain(int id, float value)
 bool AudioMixer::changeChannelVolumeEvent(Jzon::Node* params)
 {
     int id;
-    float volume;
+    float gain;
 
     if (!params) {
         return false;
     }
 
-    if (!params->Has("id") || !params->Has("volume")) {
+    if (!params->Has("id") || !params->Has("gain")) {
         return false;
     }
 
     id = params->Get("id").ToInt();
-    volume = params->Get("volume").ToFloat();
+    gain = params->Get("gain").ToFloat();
 
-    return setChannelGain(id, volume);
+    return setChannelGain(id, gain);
 }
 
 bool AudioMixer::muteChannelEvent(Jzon::Node* params)
@@ -375,18 +375,18 @@ bool AudioMixer::soloChannelEvent(Jzon::Node* params)
 
 bool AudioMixer::changeMasterVolumeEvent(Jzon::Node* params)
 {
-    float volume;
+    float gain;
 
     if (!params) {
         return false;
     }
 
-    if (!params->Has("volume")) {
+    if (!params->Has("gain")) {
         return false;
     }
 
-    volume = params->Get("volume").ToFloat();
-    masterGain = volume;
+    gain = params->Get("gain").ToFloat();
+    masterGain = gain;
 
     return true;
 }
@@ -397,9 +397,68 @@ bool AudioMixer::muteMasterEvent(Jzon::Node* params)
     return true;
 }
 
+bool AudioMixer::changeChannelGain(int id, float value)
+{
+    Jzon::Object root, params;
+    root.Add("action", "changeChannelGain");
+    params.Add("id", id);
+    params.Add("gain", value);
+    root.Add("params", params);
+
+    Event e(root, std::chrono::system_clock::now(), 0);
+    pushEvent(e); 
+    return true;
+}
+
+bool AudioMixer::muteChannel(int id)
+{
+    Jzon::Object root, params;
+    root.Add("action", "muteChannel");
+    params.Add("id", id);
+    root.Add("params", params);
+
+    Event e(root, std::chrono::system_clock::now(), 0);
+    pushEvent(e); 
+    return true;
+}
+
+bool AudioMixer::soloChannel(int id)
+{
+    Jzon::Object root, params;
+    root.Add("action", "soloChannel");
+    params.Add("id", id);
+    root.Add("params", params);
+
+    Event e(root, std::chrono::system_clock::now(), 0);
+    pushEvent(e); 
+    return true;
+}
+
+bool AudioMixer::changeMasterGain(float value)
+{
+    Jzon::Object root, params;
+    root.Add("action", "changeMasterGain");
+    params.Add("gain", value);
+    root.Add("params", params);
+
+    Event e(root, std::chrono::system_clock::now(), 0);
+    pushEvent(e); 
+    return true;
+}
+
+bool AudioMixer::muteMaster()
+{
+    Jzon::Object root;
+    root.Add("action", "muteMaster");
+
+    Event e(root, std::chrono::system_clock::now(), 0);
+    pushEvent(e); 
+    return true;
+}
+
 void AudioMixer::initializeEventMap()
 {
-    eventMap["changeChannelVolume"] = std::bind(&AudioMixer::changeChannelVolumeEvent,
+    eventMap["changeChannelGain"] = std::bind(&AudioMixer::changeChannelVolumeEvent,
                                                  this, std::placeholders::_1);
 
     eventMap["muteChannel"] = std::bind(&AudioMixer::muteChannelEvent, this,
@@ -408,7 +467,7 @@ void AudioMixer::initializeEventMap()
     eventMap["soloChannel"] = std::bind(&AudioMixer::soloChannelEvent, this,
                                          std::placeholders::_1);
 
-    eventMap["changeMasterVolume"] = std::bind(&AudioMixer::changeMasterVolumeEvent, this,
+    eventMap["changeMasterGain"] = std::bind(&AudioMixer::changeMasterVolumeEvent, this,
                                                 std::placeholders::_1);
 
     eventMap["muteMaster"] = std::bind(&AudioMixer::muteMasterEvent, this,

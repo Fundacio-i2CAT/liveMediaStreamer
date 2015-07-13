@@ -79,6 +79,41 @@ public:
     */ 
     unsigned getInputFrameSamples() {return inputFrameSamples;};
 
+    /**
+    * Sets channel gain
+    * @param id channel id
+    * @param value channel gain [0.0, 1.0]
+    * @return always true
+    */ 
+    bool changeChannelGain(int id, float value);
+
+    /**
+    * Mute channel
+    * @param id channel id
+    * @return always true
+    */ 
+    bool muteChannel(int id);
+
+    /**
+    * Mute all channels except one
+    * @param id channel id 
+    * @return always true
+    */ 
+    bool soloChannel(int id);
+
+    /**
+    * Sets master gain
+    * @param value master gain [0.0, 1.0]
+    * @return always true
+    */ 
+    bool changeMasterGain(float value);
+
+    /**
+    * Mutes master
+    * @return always true
+    */ 
+    bool muteMaster();
+
 protected:
     Reader *setReader(int readerID, FrameQueue* queue);
     void doGetState(Jzon::Object &filterNode);

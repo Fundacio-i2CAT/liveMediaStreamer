@@ -116,7 +116,8 @@ bool AudioEncoderLibav::doProcessFrame(Frame *org, Frame *dst)
 
 Reader* AudioEncoderLibav::setReader(int readerID, FrameQueue* queue)
 {
-    AudioCircularBuffer* circularBufferQueue;
+    AudioCircularBuffer* b;
+
     if (readers.size() >= getMaxReaders() || readers.count(readerID) > 0 ) {
         return NULL;
     }
@@ -125,11 +126,15 @@ Reader* AudioEncoderLibav::setReader(int readerID, FrameQueue* queue)
         utils::errorMsg("Error setting audio encoder reader. Samples per frame has 0 value");
         return NULL;
     }
+
+    b = dynamic_cast<AudioCircularBuffer*>(queue);
     
-    if (!(circularBufferQueue = dynamic_cast<AudioCircularBuffer*>(queue))) {
+    if (!b) {
+        utils::errorMsg("[AudioEncoderLibav::setReader] Input queue must be an AudioCircularBuffer");
         return NULL;
     }
-    circularBufferQueue->setOutputFrameSamples(samplesPerFrame);
+
+    b->setOutputFrameSamples(samplesPerFrame);
 
     Reader* r = new Reader();
     readers[readerID] = r;
@@ -137,7 +142,7 @@ Reader* AudioEncoderLibav::setReader(int readerID, FrameQueue* queue)
     return r;
 }
 
-bool AudioEncoderLibav::configure(ACodecType codec, int codedAudioChannels, int codedAudioSampleRate, int bitrate)
+bool AudioEncoderLibav::configure0(ACodecType codec, int codedAudioChannels, int codedAudioSampleRate, int bitrate)
 {
     AVCodecID codecId;
 
@@ -437,10 +442,26 @@ bool AudioEncoderLibav::configEvent(Jzon::Node* params)
         bitrate = params->Get("bitrate").ToInt();
     }
 
-    return configure(codec, codedAudioChannels, codedAudioSampleRate, bitrate);
+    return configure0(codec, codedAudioChannels, codedAudioSampleRate, bitrate);
 }
 
 void AudioEncoderLibav::initializeEventMap()
 {
     eventMap["configure"] = std::bind(&AudioEncoderLibav::configEvent, this, std::placeholders::_1);
 }
+
+bool AudioEncoderLibav::configure(ACodecType codec, int codedAudioChannels, int codedAudioSampleRate, int bitrate)
+{
+    Jzon::Object root, params;
+    root.Add("action", "configure");
+    params.Add("codec", utils::getAudioCodecAsString(codec));
+    params.Add("channels", codedAudioChannels);
+    params.Add("sampleRate", codedAudioSampleRate);
+    params.Add("bitrate", bitrate);
+    root.Add("params", params);
+
+    Event e(root, std::chrono::system_clock::now(), 0);
+    pushEvent(e); 
+    return true;
+}
+

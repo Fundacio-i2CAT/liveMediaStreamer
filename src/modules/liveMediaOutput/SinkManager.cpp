@@ -104,8 +104,18 @@ void SinkManager::stop()
     if (rtspServer){
         Medium::close(rtspServer);
     }
+}
 
-    //watch = 1;
+bool SinkManager::readerInConnection(int rId)
+{
+    for (auto it : connections){
+        for (auto id : it.second->getReaders()){
+            if (id == rId){
+                return true;
+            }
+        }
+    }
+    return false;
 }
 
 bool SinkManager::doProcessFrame(std::map<int, Frame*> oFrames)
@@ -115,12 +125,11 @@ bool SinkManager::doProcessFrame(std::map<int, Frame*> oFrames)
     }
     
     for (auto it: oFrames){
-        if (sources.count(it.first) > 0 && it.second && it.second->getConsumed()){
+        if (it.second && it.second->getConsumed()){
             it.second->setConsumed(false);
-            if (sources[it.first]->setFrame(it.second)){
+            if (sources.count(it.first) > 0 && sources[it.first]->setFrame(it.second)){
                 QueueSource::signalNewFrameData(scheduler, sources[it.first]);
             }
-            
         }
     }
 

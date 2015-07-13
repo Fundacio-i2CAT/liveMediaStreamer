@@ -182,7 +182,7 @@ bool BaseFilter::connect(BaseFilter *R, int writerID, int readerID)
     std::lock_guard<std::mutex> guard(readersWritersLck);
       
     if (writers.size() >= maxWriters) {
-        utils::errorMsg("Too many writers!" + std::to_string(maxWriters) + std::to_string(writers.size()));
+        utils::errorMsg("Too many writers!");
         return false;
     }
     
@@ -482,6 +482,8 @@ std::vector<int> BaseFilter::slaveProcessFrame(int& ret)
     enabledJobs = addFrames();
 
     process = false;
+    ret = 0;
+    
     return enabledJobs;
 }
 

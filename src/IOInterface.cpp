@@ -39,14 +39,6 @@ Reader::~Reader()
     disconnect();
 }
 
-void Reader::setQueue(FrameQueue *queue)
-{
-    std::lock_guard<std::mutex> guard(lck);
-    
-    this->queue = queue;
-    filters = 1;
-}
-
 void Reader::addReader()
 {
     std::lock_guard<std::mutex> guard(lck);
@@ -97,17 +89,22 @@ int Reader::removeFrame()
 {
     std::lock_guard<std::mutex> guard(lck);
     
+    if (pending != 0){
+        pending--;
+    }
+    
     if (pending == 0){
         return queue->removeFrame();
     } else {
-        pending--;
         return -1;
     }
 }
 
 void Reader::setConnection(FrameQueue *queue)
 {
+    std::lock_guard<std::mutex> guard(lck);
     this->queue = queue;
+    filters = 1;
 }
 
 bool Reader::disconnect()

@@ -40,7 +40,6 @@
 #define DEFAULT_ID 1                /*!< Default ID for unique filter's readers and/or writers. */
 #define MAX_WRITERS 16              /*!< Default maximum writers for a filter. */
 #define MAX_READERS 16              /*!< Default maximum readers for a filter. */
-#define RETRY 1000                   /*!< Default retry time in microseconds . */
 
 /*! Generic filter class methods. It is an interface to different specific filters
     so it cannot be instantiated
@@ -94,14 +93,6 @@ public:
     * Disconnects and cleans all readers and writers
     */
     void disconnectAll();
-
-    /**
-    * If it is a master filter a new slave filter is added to the master's list
-    * @param Integer slave filter ID
-    * @param BaseFilter pointer of the slave filter to be added
-    * @return True if succeeded and false if not
-    */
-    bool addSlave(BaseFilter *slave);
     
     bool shareReader(BaseFilter *shared, int sharedRId, int orgRId);
 
@@ -160,7 +151,7 @@ public:
 
     //NOTE: these are public just for testing purposes
     /**
-    * Processes frames depending on its role (MASTER or SLAVE)
+    * Processes frames
     * @param integer this integer contains the delay until the method can be executed again
     * @return A vector containing the ids of the filters that can be exectued after 
     * this process (e.g new data has been generated)
@@ -221,14 +212,11 @@ protected:
     
     virtual bool deleteReader(int readerId);
 
-    bool removeSlave(int id);
-
     void setSyncTs(std::chrono::microseconds ts){syncTs = ts;};
     std::chrono::microseconds getSyncTs(){return syncTs;};
 
 protected:
     bool process;
-    std::map<int, BaseFilter*> slaves;
 
     std::map<int, std::shared_ptr<Reader>> readers;
     std::map<int, Writer*> writers;
@@ -244,18 +232,14 @@ protected:
 private:
     bool connect(BaseFilter *R, int writerID, int readerID);
     std::vector<int> masterProcessFrame(int& ret);
-    std::vector<int> slaveProcessFrame(int& ret);
     std::vector<int> serverProcessFrame(int& ret);
-    void processAll();
-    bool runningSlaves();
+
     void execute() {process = true;};
     bool isProcessing() {return process;};
     void updateFrames(std::map<int, Frame*> oFrames_);
 
 private:
     std::priority_queue<Event> eventQueue;
-    std::mutex eventQueueMutex;
-    std::mutex readersWritersLck;
     
     bool enabled;
     FilterRole const fRole;
@@ -282,10 +266,10 @@ private:
     using BaseFilter::dFrames;
     using BaseFilter::seqNums;
     using BaseFilter::processEvent;
-    using BaseFilter::addSlave;
     using BaseFilter::frameTime;
     using BaseFilter::maxReaders;
     using BaseFilter::maxWriters;
+    using BaseFilter::mtx;
 };
 
 class OneToManyFilter : public BaseFilter {
@@ -308,11 +292,11 @@ private:
     using BaseFilter::dFrames;
     using BaseFilter::seqNums;
     using BaseFilter::processEvent;
-    using BaseFilter::addSlave;
 
     using BaseFilter::frameTime;
     using BaseFilter::maxReaders;
     using BaseFilter::maxWriters;
+    using BaseFilter::mtx;
 };
 
 class HeadFilter : public BaseFilter {
@@ -339,10 +323,10 @@ private:
     using BaseFilter::dFrames;
     using BaseFilter::seqNums;
     using BaseFilter::processEvent;
-    using BaseFilter::addSlave;
     using BaseFilter::frameTime;
     using BaseFilter::maxReaders;
     using BaseFilter::maxWriters;
+    using BaseFilter::mtx;
 };
 
 class TailFilter : public BaseFilter {
@@ -370,6 +354,7 @@ private:
     using BaseFilter::frameTime;
     using BaseFilter::maxReaders;
     using BaseFilter::maxWriters;
+    using BaseFilter::mtx;
 };
 
 class ManyToOneFilter : public BaseFilter {
@@ -392,10 +377,10 @@ private:
     using BaseFilter::dFrames;
     using BaseFilter::seqNums;
     using BaseFilter::processEvent;
-    using BaseFilter::addSlave;
     using BaseFilter::frameTime;
     using BaseFilter::maxReaders;
     using BaseFilter::maxWriters;
+    using BaseFilter::mtx;
 };
 
 #endif

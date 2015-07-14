@@ -37,10 +37,10 @@
 
 #define WORKER_DELETE_SLEEPING_TIME 1000 //us
 
-PipelineManager::PipelineManager()
+PipelineManager::PipelineManager(unsigned threads)
 {
     pipeMngrInstance = this;
-    pool = new WorkersPool();
+    pool = new WorkersPool(threads);
 }
 
 PipelineManager::~PipelineManager()
@@ -52,13 +52,13 @@ PipelineManager::~PipelineManager()
     pipeMngrInstance = NULL;
 }
 
-PipelineManager* PipelineManager::getInstance()
+PipelineManager* PipelineManager::getInstance(unsigned threads)
 {
     if (pipeMngrInstance != NULL) {
         return pipeMngrInstance;
     }
 
-    return new PipelineManager();
+    return new PipelineManager(threads);
 }
 
 void PipelineManager::destroyInstance()
@@ -230,12 +230,20 @@ Path* PipelineManager::createPath(int orgFilter, int dstFilter, int orgWriter, i
     }
 
     for (auto it : midFilters) {
-        if (filters.count(it) <= 0) {
-            utils::errorMsg("Error creating path: one or more of the mid filters do no exist");
+        if (filters.count(it) <= 0 || it == orgFilter || it == dstFilter) {
+            utils::errorMsg("Error creating path: invalid mid filters");
             return NULL;
         }
     }
-
+        
+    std::vector<int> midCopy = midFilters;
+    std::sort(midCopy.begin(), midCopy.end());
+    std::vector<int> unique(midCopy.begin(), std::unique(midCopy.begin(), midCopy.end()));
+    if (unique.size() != midFilters.size()){
+        utils::errorMsg("Error creating path: duplicated mid filters");
+        return NULL;
+    }
+    
     originFilter = filters[orgFilter];
     destinationFilter = filters[dstFilter];
 
@@ -311,7 +319,7 @@ bool PipelineManager::handleGrouping(int orgFId, int dstFId, int orgWId, int dst
         return false;
     }
     
-    return filters[cData.rFilterId]->shareReader(filters[dstFId], cData.readerId, dstRId) &&
+    return filters[cData.rFilterId]->shareReader(filters[dstFId], dstRId, cData.readerId) &&
         filters[cData.rFilterId]->groupRunnable(filters[dstFId]);
 }
 
@@ -532,49 +540,6 @@ void PipelineManager::removePathEvent(Jzon::Node* params, Jzon::Object &outputNo
         outputNode.Add("error", "Error removing path. Internal error...");
         return;
     }
-
-    outputNode.Add("error", Jzon::null);
-}
-
-void PipelineManager::addSlavesToFilterEvent(Jzon::Node* params, Jzon::Object &outputNode)
-{
-    BaseFilter *slave, *master;
-    int masterId;
-
-    if(!params) {
-        outputNode.Add("error", "Error adding slaves to worker. Invalid JSON format...");
-        return;
-    }
-
-    if (!params->Has("master")) {
-        outputNode.Add("error", "Error adding slaves to filter. Invalid JSON format...");
-        return;
-    }
-
-    if (!params->Has("slaves") || !params->Get("slaves").IsArray()) {
-        outputNode.Add("error", "Error adding slaves to filter. Invalid JSON format...");
-        return;
-    }
-
-    masterId = params->Get("master").ToInt();
-    Jzon::Array& jsonSlavesIds = params->Get("slaves").AsArray();
-
-    master = getFilter(masterId);
-
-    if (!master) {
-        outputNode.Add("error", "Error adding slaves to filter. Invalid Master ID...");
-        return;
-    }
-
-    for (Jzon::Array::iterator it = jsonSlavesIds.begin(); it != jsonSlavesIds.end(); ++it) {
-       if ((slave = getFilter((*it).ToInt())) && slave->getRole() == SLAVE){
-           if (!master->addSlave(slave)){
-               outputNode.Add("error", "Error adding slave, check the role and the filter id!");
-           }
-       } else {
-           outputNode.Add("error", "Error adding slaves to filter. Invalid Slave...");
-       }
-   }
 
     outputNode.Add("error", Jzon::null);
 }

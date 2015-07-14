@@ -37,10 +37,6 @@
 #include "Frame.hh"
 #include "VideoFrame.hh"
 
-#define READERS 1
-#define WRITERS 1
-
-
 class FrameMock : public Frame {
 public:
     ~FrameMock(){};
@@ -83,7 +79,7 @@ public:
     virtual bool isPlanar() {return false;};
 
 protected:
-    unsigned char buff[4] = {1,1,1,1};
+    unsigned char buff[4] = {1,2,1,2};
 
 private:
     VideoFrameMock(): InterleavedVideoFrame(RAW, 1920, 1080, YUV420P) {};
@@ -139,7 +135,13 @@ public:
 
 protected:
     bool doProcessFrame(Frame *org, Frame *dst) {
-        dst->setConsumed(gotFrame);
+        if (!org->isPlanar() && !dst->isPlanar()){
+            memcpy(dst->getDataBuf(), org->getDataBuf(), org->getLength());
+            dst->setSequenceNumber(org->getSequenceNumber());
+            dst->setLength(org->getLength());
+            dst->setConsumed(gotFrame);
+        } 
+        
         return gotFrame;
     }
     void doGetState(Jzon::Object &filterNode) {};
@@ -208,6 +210,97 @@ protected:
 
 private:
     ACodecType codec;
+};
+
+
+class HeadFilterMockup : public HeadFilter
+{
+public:
+    HeadFilterMockup() : HeadFilter(), srcFrame(NULL), newFrame(false) {};
+    
+    bool inject(Frame *f){
+        if (!f || newFrame){
+            return false;
+        }
+        
+        srcFrame = f;
+        newFrame = true;
+        
+        return true;
+    }
+    
+    void doGetState(Jzon::Object &filterNode){};
+    
+protected:
+    bool doProcessFrame(std::map<int, Frame*> dstFrames) {
+        if (!newFrame){
+            return false;
+        }
+        
+        newFrame = false;
+               
+        for (auto it : dstFrames){
+            if (!it.second->isPlanar()){
+                memcpy(it.second->getDataBuf(), srcFrame->getDataBuf(), srcFrame->getLength());
+                it.second->setSequenceNumber(srcFrame->getSequenceNumber());
+                it.second->setLength(srcFrame->getLength());
+                it.second->setConsumed(true);
+            } else {
+                return false;
+            }
+        }
+        return true;
+    }
+    
+    Frame* srcFrame;
+    bool newFrame;
+    
+private:
+    FrameQueue *allocQueue(struct ConnectionData cData) {
+        return new AVFramedQueueMock(cData, 4);
+    };
+};
+
+class TailFilterMockup : public TailFilter
+{
+public:
+    TailFilterMockup() : TailFilter(), frames(0), frame(NULL), newFrame(false) {
+        frame = FrameMock::createNew(0);
+    };
+    
+    Frame* extract(){
+        if (!newFrame){
+            return NULL;
+        }
+        newFrame = false;
+        return frame;
+    }
+    
+    size_t getFrames() {return frames;};
+    
+    void doGetState(Jzon::Object &filterNode){};
+    
+protected:
+    bool doProcessFrame(std::map<int, Frame*> orgFrames) { 
+        for (auto it : orgFrames){
+            if (!it.second->isPlanar()){
+                memcpy(frame->getDataBuf(), it.second->getDataBuf(), it.second->getLength());
+                frame->setSequenceNumber(it.second->getSequenceNumber());
+                frame->setLength(it.second->getLength());
+                frames++;
+                newFrame = true;
+            } else {
+                return false;
+            }
+        }
+        
+        return true;
+    }
+    
+    size_t frames;
+    Frame* frame;
+    bool newFrame;
+    
 };
 
 class VideoHeadFilterMockup : public HeadFilter

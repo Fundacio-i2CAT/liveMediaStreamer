@@ -30,6 +30,7 @@
 #include <vector>
 #include <set>
 #include <memory>
+#include <mutex>
 
 #include "Utils.hh"
 
@@ -59,7 +60,7 @@ public:
      * Gets the runnable Id, if Id < 0 it means unset ID, only zero or higher values are allowed
      * @return id of the filter, it is a unique value.
      */
-    int getId() {return id;};
+    int getId() const {return id;};
 
     /**
     * Operator definition to make Runnable objects comparable
@@ -133,6 +134,8 @@ private:
 protected:
     std::chrono::system_clock::time_point time;
     std::set<Runnable*> group;
+    std::mutex mtx;
+    bool run;
 
 private:
     const bool periodic;

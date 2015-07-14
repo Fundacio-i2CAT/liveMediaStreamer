@@ -31,8 +31,8 @@
 
 #include "Runnable.hh"
 
-#define IDLE 100
-#define ALL_RUNNING 1000
+#define IDLE 10
+
 
 class WorkersPool
 {
@@ -44,7 +44,7 @@ public:
     bool removeTask(const int id);
     
 private:
-    bool addJob(int id);
+    unsigned addJob(int id);
     bool removeFromQueue(int id);
 
 private:

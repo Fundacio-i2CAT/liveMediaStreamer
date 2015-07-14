@@ -119,12 +119,6 @@ public:
     ~Reader();
 
     /**
-    * Sets reader's pointer to FrameQueue object
-    * @param FramQueue object pointer
-    */
-    void setQueue(FrameQueue *queue);
-
-    /**
     * Checks if has a queue and if it is connected to
     * @return true if connected, otherwise return false
     */

@@ -27,7 +27,7 @@
 #include "Runnable.hh"
 
 
-Runnable::Runnable(bool periodic_) : periodic(periodic_), running(new unsigned(0)), id(-1)
+Runnable::Runnable(bool periodic_) : run(false), periodic(periodic_), running(new unsigned(0)), id(-1)
 {
     group.insert(this);
 }
@@ -81,8 +81,10 @@ void Runnable::setId(int id_){
 void Runnable::setRunning()
 {
     if ((*running) == 0){
+        std::lock_guard<std::mutex> guard(mtx);
         (*running) = group.size();
     }
+    run = true;
 }
 
 void Runnable::unsetRunning()
@@ -90,15 +92,23 @@ void Runnable::unsetRunning()
     if ((*running) > 0){
         (*running)--;
     }
+    
+    if ((*running) == 0){
+        for(auto runnable : group){
+            runnable->run = false;
+        }
+    }
 }
 
-bool Runnable::isRunning() {
-    return (*running) > 0;
+bool Runnable::isRunning() 
+{
+    return run;
 }
 
 std::vector<int> Runnable::getGroupIds()
 {
     std::vector<int> ids;
+    std::lock_guard<std::mutex> guard(mtx);
     
     for(auto r : group){
         ids.push_back(r->getId());
@@ -121,6 +131,7 @@ bool Runnable::groupRunnable(Runnable *r)
 
 void Runnable::addInGroup(Runnable *r, std::shared_ptr<unsigned> run)
 {
+    std::lock_guard<std::mutex> guard(mtx);
     group.insert(r);
     if (run){
         running = run;

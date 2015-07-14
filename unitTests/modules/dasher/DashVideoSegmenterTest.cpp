@@ -158,7 +158,7 @@ void DashVideoSegmenterTest::manageSetInternalValues()
     idrNal->setSize(WIDTH, HEIGHT);
 
     CPPUNIT_ASSERT(segmenter->manageFrame(idrNal, newFrame));
-    CPPUNIT_ASSERT(segmenter->getCurrentTimestamp() == std::chrono::system_clock::time_point(timestamp));
+    CPPUNIT_ASSERT(segmenter->getCurrentTimestamp() == timestamp);
     CPPUNIT_ASSERT(segmenter->getWidth() == WIDTH);
     CPPUNIT_ASSERT(segmenter->getHeight() == HEIGHT);
 }

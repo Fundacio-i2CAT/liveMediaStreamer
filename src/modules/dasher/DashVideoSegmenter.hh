@@ -114,28 +114,28 @@ public:
     size_t getPPSsize() {return lastPPS.size();};
 
     /**
-    * Return the last stored PPS size
+    * Return the last stored frame size
     * @return size in bytes
     */
-    size_t getFrameDataSize() {return frameData.size();};
+    size_t getFrameDataSize() {return vFrame->getLength();};
 
     /**
     * Return the presentation timestamp of the last NALU managed by manageFrame method
     * @return timestamp in milliseconds
     */
-    std::chrono::system_clock::time_point getCurrentTimestamp() {return currTimestamp;};
+    std::chrono::microseconds getCurrentTimestamp() {return vFrame->getPresentationTime();};
 
     /**
     * Return the width of the last complete frame managed by manageFrame method
     * @return width in pixels
     */
-    size_t getWidth() {return width;};
+    size_t getWidth() {return vFrame->getWidth();};
 
     /**
     * Return the height of the last complete frame managed by manageFrame method
     * @return height in pixels
     */
-    size_t getHeight() {return height;};
+    size_t getHeight() {return vFrame->getHeight();};
 
     /**
     * Return the framerate, which is calculated by the difference between currtimestamp and lastTs
@@ -160,7 +160,8 @@ private:
     bool appendNalToFrame(unsigned char* nalData, unsigned nalDataLength, bool &newFrame);
     bool updateTimeValues();
 
-    std::vector<unsigned char> frameData;
+    InterleavedVideoFrame* vFrame;
+
     std::vector<unsigned char> lastSPS;
     std::vector<unsigned char> lastPPS;
     bool updatedSPS;
@@ -168,10 +169,6 @@ private:
     size_t frameRate;
     bool isIntra;
     bool isVCL;
-    std::chrono::system_clock::time_point currTimestamp;
-    std::chrono::nanoseconds currDuration;
-    size_t width;
-    size_t height;
 };
 
 #endif

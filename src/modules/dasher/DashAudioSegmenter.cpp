@@ -79,20 +79,21 @@ bool DashAudioSegmenter::appendFrameToDashSegment(DashSegment* segment)
     unsigned char* dataWithoutADTS;
     size_t dataLengthWithoutADTS;
     size_t addSampleReturn;
+    size_t timeBasePts;
 
-    if (!aFrame || !aFrame->getDataBuf() || aFrame->getLength() <= 0 || !dashContext) {
+    if (!aFrame->getDataBuf() || aFrame->getLength() <= 0 || !dashContext) {
         utils::errorMsg("Error appeding frame to segment: frame not valid");
         return false;
     }
 
-    // theoricPts = customTimestamp(aFrame->getPresentationTime());
-    theoricPts = customTimestamp(std::chrono::system_clock::now());
+    timeBasePts = microsToTimeBase(aFrame->getPresentationTime());
+
 
     dataWithoutADTS = aFrame->getDataBuf() + ADTS_HEADER_LENGTH;
     dataLengthWithoutADTS = aFrame->getLength() - ADTS_HEADER_LENGTH;
 
-    addSampleReturn = add_audio_sample(dataWithoutADTS, dataLengthWithoutADTS, frameDuration, theoricPts, theoricPts, segment->getSeqNumber(), &dashContext);
-    aFrame = NULL;
+    addSampleReturn = add_audio_sample(dataWithoutADTS, dataLengthWithoutADTS, frameDuration, 
+                                        timeBasePts, timeBasePts, segment->getSeqNumber(), &dashContext);
 
     if (addSampleReturn != I2OK) {
         utils::errorMsg("Error adding video sample. Code error: " + std::to_string(addSampleReturn));

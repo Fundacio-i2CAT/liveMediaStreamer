@@ -26,9 +26,9 @@
 DashVideoSegmenter::DashVideoSegmenter(std::chrono::seconds segDur) : 
 DashSegmenter(segDur, DASH_VIDEO_TIME_BASE), 
 updatedSPS(false), updatedPPS(false), frameRate(0), isIntra(false), 
-isVCL(false), width(0), height(0)
+isVCL(false)
 {
-
+    vFrame = InterleavedVideoFrame::createNew(H264, 5000000);
 }
 
 DashVideoSegmenter::~DashVideoSegmenter()
@@ -52,32 +52,20 @@ bool DashVideoSegmenter::manageFrame(Frame* frame, bool &newFrame)
         return false;
     }
 
-    currDuration = nal->getDuration();
-    // currTimestamp = nal->getPresentationTime();
-    currTimestamp = std::chrono::system_clock::now();
-    width = nal->getWidth();
-    height = nal->getHeight();
-
+    vFrame->setSize(nal->getWidth(), nal->getHeight());
+    vFrame->setPresentationTime(nal->getPresentationTime());
     return true;
 }
 
 bool DashVideoSegmenter::updateConfig()
 {
-    if (!updateTimeValues()) {
-        utils::errorMsg("Error updating time values of DashVideoSegmenter: timestamp not valid");
-        frameData.clear();
-        return false;
-    }
-
-    if (width <= 0 || height <= 0 || timeBase <= 0 || frameDuration <= 0 || frameRate <= 0) {
+    if (vFrame->getWidth() <= 0 || vFrame->getHeight() <= 0 || timeBase <= 0) {
         utils::errorMsg("Error configuring DashVideoSegmenter: some config values are not valid");
-        frameData.clear();
         return false;
     }
 
-    if(!setup(segDurInTimeBaseUnits, timeBase, frameDuration, width, height, frameRate)) {
+    if(!setup(segDurInTimeBaseUnits, timeBase, frameDuration, vFrame->getWidth(), vFrame->getHeight(), frameRate)) {
         utils::errorMsg("Error during Dash Video Segmenter setup");
-        frameData.clear();
         return false;
     }
 
@@ -109,12 +97,12 @@ bool DashVideoSegmenter::parseNal(VideoFrame* nal, bool &newFrame)
 
 bool DashVideoSegmenter::updateTimeValues()
 {
-    if (currDuration.count() == 0) {
-        return false;
-    }
+    // if (currDuration.count() == 0) {
+    //     return false;
+    // }
 
-    frameDuration = nanosToTimeBase(currDuration);
-    frameRate = std::nano::den/currDuration.count();
+    // frameDuration = nanosToTimeBase(currDuration);
+    // frameRate = std::nano::den/currDuration.count();
     return true;
 }
 
@@ -182,25 +170,18 @@ bool DashVideoSegmenter::generateInitData(DashSegment* segment)
 
 bool DashVideoSegmenter::appendFrameToDashSegment(DashSegment* segment)
 {
-    unsigned char* data;
-    unsigned dataLength;
     size_t addSampleReturn;
+    size_t timeBasePts;
 
-    if (frameData.empty()) {
+    if (!vFrame->getDataBuf() || vFrame->getLength() <= 0 || !dashContext) {
+        utils::errorMsg("Error appeding frame to segment: frame not valid");
         return false;
     }
 
-    data = reinterpret_cast<unsigned char*> (&frameData[0]);
-    dataLength = frameData.size();
+    timeBasePts = microsToTimeBase(vFrame->getPresentationTime());
 
-    if (!data) {
-        return false;
-    }
-
-    theoricPts = customTimestamp(currTimestamp);
-
-    addSampleReturn = add_video_sample(data, dataLength, frameDuration, theoricPts, theoricPts, segment->getSeqNumber(), isIntra, &dashContext);
-    frameData.clear();
+    addSampleReturn = add_video_sample(vFrame->getDataBuf(), vFrame->getLength(), frameDuration, 
+                                        timeBasePts, timeBasePts, segment->getSeqNumber(), isIntra, &dashContext);
 
     if (addSampleReturn != I2OK) {
         utils::errorMsg("Error adding video sample. Code error: " + std::to_string(addSampleReturn));
@@ -215,10 +196,6 @@ bool DashVideoSegmenter::generateSegment(DashSegment* segment)
     size_t segmentSize = 0;
     uint32_t segTimestamp;
     uint32_t segDuration;
-
-    if (frameData.empty()) {
-        return false;
-    }
 
     segmentSize = generate_video_segment(isIntra, segment->getDataBuffer(), &dashContext, &segTimestamp, &segDuration);
 
@@ -285,12 +262,14 @@ bool DashVideoSegmenter::appendNalToFrame(unsigned char* nalData, unsigned nalDa
     }
 
     if (nalType == IDR || nalType == NON_IDR) {
-        frameData.insert(frameData.end(), (nalDataLength >> 24) & 0xFF);
-        frameData.insert(frameData.end(), (nalDataLength >> 16) & 0xFF);
-        frameData.insert(frameData.end(), (nalDataLength >> 8) & 0xFF);
-        frameData.insert(frameData.end(), nalDataLength & 0xFF);
+        vFrame->getDataBuf()[vFrame->getLength()] = (nalDataLength >> 24) & 0xFF;
+        vFrame->getDataBuf()[vFrame->getLength()+1] = (nalDataLength >> 16) & 0xFF;
+        vFrame->getDataBuf()[vFrame->getLength()+2] = (nalDataLength >> 8) & 0xFF;
+        vFrame->getDataBuf()[vFrame->getLength()+3] = nalDataLength & 0xFF;
+        vFrame->setLength(vFrame->getLength() + 4);
 
-        frameData.insert(frameData.end(), nalData, nalData + nalDataLength);
+        memcpy(vFrame->getDataBuf() + vFrame->getLength(), nalData, nalDataLength);
+        vFrame->setLength(vFrame->getLength() + nalDataLength);
     }
 
     return true;

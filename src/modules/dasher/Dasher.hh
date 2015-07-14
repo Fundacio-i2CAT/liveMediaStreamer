@@ -197,18 +197,10 @@ public:
     size_t getTimeBase() {return timeBase;};
 
     /**
-    * Return the timestamp offset, which corresponds to the timestamp of the first frame
-    * managed by manageFrame method. Each timestamp will be relative to this one.
-    * @return timestamp in milliseconds
-    */
-    std::chrono::system_clock::time_point getTsOffset() {return tsOffset;};
-
-    /**
     * It returns the last segment timestamp
     * @return timestamp in timeBase units
     */
     size_t getSegmentTimestamp();
-    void setOffset(std::chrono::system_clock::time_point offs);
 
     /**
     * Return the segment duration
@@ -228,16 +220,15 @@ protected:
     std::string getSegmentName();
     size_t customTimestamp(std::chrono::system_clock::time_point timestamp);
     size_t nanosToTimeBase(std::chrono::nanoseconds nanosValue);
+    size_t microsToTimeBase(std::chrono::microseconds microValue);
 
     std::chrono::seconds segDur;
-    std::chrono::system_clock::time_point tsOffset;
 
     i2ctx* dashContext;
     size_t timeBase;
     size_t segDurInTimeBaseUnits;
     size_t frameDuration;
     std::vector<unsigned char> metadata;
-    size_t theoricPts;
     size_t bitrateInBitsPerSec;
 };
 

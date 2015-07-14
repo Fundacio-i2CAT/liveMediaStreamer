@@ -172,11 +172,6 @@ public:
     virtual bool manageFrame(Frame* frame, bool &newFrame) = 0;
 
     /**
-    * Implemented by DashVideoSegmenter::updateConfig and DashAudioSegmenter::updateConfig
-    */
-    virtual bool updateConfig() = 0;
-
-    /**
     * Generates and writes to disk an Init Segment if possible (or necessary)
     */
     bool generateInitSegment(DashSegment* segment);

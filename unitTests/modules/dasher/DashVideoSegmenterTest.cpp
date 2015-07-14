@@ -63,7 +63,6 @@ class DashVideoSegmenterTest : public CppUnit::TestFixture
     CPPUNIT_TEST(manageNonVCLNals);
     CPPUNIT_TEST(manageIDRNals);
     CPPUNIT_TEST(manageNonIDRNals);
-    CPPUNIT_TEST(updateConfig);
     CPPUNIT_TEST(generateInitSegment);
     CPPUNIT_TEST(appendFrameToDashSegment);
     CPPUNIT_TEST(generateSegment);
@@ -79,7 +78,6 @@ protected:
     void manageNonVCLNals();
     void manageIDRNals();
     void manageNonIDRNals();
-    void updateConfig();
     void generateInitSegment();
     void appendFrameToDashSegment();
     void generateSegment();
@@ -228,27 +226,6 @@ void DashVideoSegmenterTest::manageNonIDRNals()
     CPPUNIT_ASSERT(segmenter->isVCLFrame());
 }
 
-void DashVideoSegmenterTest::updateConfig()
-{
-    bool newFrame;
-
-    CPPUNIT_ASSERT(!segmenter->updateConfig());
-
-    std::chrono::microseconds ts(1000);
-    idrNal->setPresentationTime(ts);
-    idrNal->setDuration(nanoFrameTime);
-    idrNal->setSize(WIDTH, HEIGHT);
-    audNal->setPresentationTime(ts);
-    audNal->setDuration(nanoFrameTime);
-    audNal->setSize(WIDTH, HEIGHT);
-
-    segmenter->manageFrame(idrNal, newFrame);
-    segmenter->manageFrame(audNal, newFrame);
-
-    CPPUNIT_ASSERT(segmenter->updateConfig());
-    CPPUNIT_ASSERT(segmenter->getFramerate() == (size_t)std::nano::den/nanoFrameTime.count());
-}
-
 void DashVideoSegmenterTest::generateInitSegment()
 {
     char* initModel = new char[MAX_DAT];
@@ -268,10 +245,6 @@ void DashVideoSegmenterTest::generateInitSegment()
 
     segmenter->manageFrame(spsNal, newFrame);
     segmenter->manageFrame(ppsNal, newFrame);
-
-    if (!segmenter->updateConfig()) {
-        CPPUNIT_FAIL("Segmenter updateConfig failed when testing general workflow\n");
-    }
 
     CPPUNIT_ASSERT(segmenter->generateInitSegment(initSegment));
     CPPUNIT_ASSERT(!segmenter->generateInitSegment(initSegment));
@@ -296,10 +269,6 @@ void DashVideoSegmenterTest::appendFrameToDashSegment()
     nonIdrNal->setSize(WIDTH, HEIGHT);
 
     segmenter->manageFrame(nonIdrNal, newFrame);
-
-    if (!segmenter->updateConfig()) {
-        CPPUNIT_FAIL("Segmenter updateConfig failed when testing general workflow\n");
-    }
 
     CPPUNIT_ASSERT(!segmenter->appendFrameToDashSegment(segment));
     CPPUNIT_ASSERT(!segmenter->appendFrameToDashSegment(segment));
@@ -340,9 +309,6 @@ void DashVideoSegmenterTest::generateSegment()
             continue;
         }
 
-        if (!segmenter->updateConfig()) {
-            CPPUNIT_FAIL("Segmenter updateConfig failed when testing general workflow\n");
-        }
         ts += frameTime;
 
         if (segmenter->generateSegment(segment)) {

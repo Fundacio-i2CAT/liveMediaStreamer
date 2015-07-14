@@ -57,22 +57,16 @@ public:
     bool manageFrame(Frame* frame, bool &newFrame);
 
     /**
-    * It setups internal stuff using the last frame stored by manageFrame method
-    * @return true if succeeded and false if not
-    */
-    bool updateConfig();
-
-    /**
     * It returns the last configured sample rate
     * @return sample rate in Hz
     */
-    size_t getSampleRate() {return lastSeenSampleRate;};
+    size_t getSampleRate();
     
     /**
     * It returns the last configured audio channels number
     * @return number of audio channels
     */
-    size_t getChannels() {return lastSeenChannels;};
+    size_t getChannels();
 
     bool appendFrameToDashSegment(DashSegment* segment);
     bool generateSegment(DashSegment* segment);
@@ -83,22 +77,18 @@ private:
     bool updateMetadata();
     bool generateInitData(DashSegment* segment);
 
-    bool setup(size_t segmentDuration, size_t timeBase, size_t sampleDuration, size_t channels, size_t sampleRate, size_t bitsPerSample);
+    bool setup(size_t channels, size_t sampleRate, size_t samples, size_t bitsPerSample);
     unsigned char getProfileFromADTSHeader(unsigned char* adtsHeader);
     unsigned char getSamplingFreqIdxFromADTSHeader(unsigned char* adtsHeader);
     unsigned char getChannelConfFromADTSHeader(unsigned char* adtsHeader);
     unsigned char getMetadata1stByte(unsigned char audioObjectType, unsigned char samplingFrequencyIndex);
     unsigned char getMetadata2ndByte(unsigned char samplingFrequencyIndex, unsigned char channelConfiguration);
-    bool updateTimeValues(int sampleRate, int samples);
 
     unsigned char profile;
     unsigned char audioObjectType;
     unsigned char samplingFrequencyIndex;
     unsigned char channelConfiguration;
     AudioFrame* aFrame;
-
-    size_t lastSeenSampleRate;
-    size_t lastSeenChannels;
 };
 
 #endif

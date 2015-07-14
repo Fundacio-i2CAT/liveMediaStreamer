@@ -84,12 +84,6 @@ public:
     bool manageFrame(Frame* frame, bool &newFrame);
 
     /**
-    * It setups internal stuff using internal information, set by manageFrame method
-    * @return true if succeeded and false if not
-    */
-    bool updateConfig();
-
-    /**
     * Returns the isIntra flag, set by the last execution of manageFrame method
     * @return true if intraFrame and false if not
     */

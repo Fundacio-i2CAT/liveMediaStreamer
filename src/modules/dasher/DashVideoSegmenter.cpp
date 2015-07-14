@@ -57,34 +57,6 @@ bool DashVideoSegmenter::manageFrame(Frame* frame, bool &newFrame)
     return true;
 }
 
-bool DashVideoSegmenter::updateConfig()
-{
-    return true;
-}
-
-bool DashVideoSegmenter::parseNal(VideoFrame* nal, bool &newFrame)
-{
-    int startCodeOffset;
-    unsigned char* nalData;
-    int nalDataLength;
-
-    startCodeOffset = detectStartCode(nal->getDataBuf());
-    nalData = nal->getDataBuf() + startCodeOffset;
-    nalDataLength = nal->getLength() - startCodeOffset;
-
-    if (!nalData || nalDataLength <= 0) {
-        utils::errorMsg("Error parsing NAL: invalid data pointer or length");
-        return false;
-    }
-
-    if (!appendNalToFrame(nalData, nalDataLength, newFrame)) {
-        utils::errorMsg("Error parsing NAL: invalid NALU type");
-        return false;
-    }
-
-    return true;
-}
-
 bool DashVideoSegmenter::setup(size_t segmentDuration, size_t timeBase, size_t width, size_t height)
 {
     uint8_t i2error = I2OK;
@@ -104,18 +76,6 @@ bool DashVideoSegmenter::setup(size_t segmentDuration, size_t timeBase, size_t w
     }
 
     set_segment_duration(segmentDuration, &dashContext);
-    return true;
-}
-
-bool DashVideoSegmenter::updateMetadata()
-{
-    if (!updatedSPS || !updatedPPS) {
-        return false;
-    }
-
-    createMetadata();
-    updatedSPS = false;
-    updatedPPS = false;
     return true;
 }
 
@@ -152,6 +112,29 @@ bool DashVideoSegmenter::generateInitData(DashSegment* segment)
     return true;
 }
 
+bool DashVideoSegmenter::generateSegment(DashSegment* segment)
+{
+    size_t segmentSize = 0;
+    uint32_t segTimestamp;
+    uint32_t segDuration;
+    size_t timeBasePts;
+
+    timeBasePts = microsToTimeBase(vFrame->getPresentationTime());
+    segmentSize = generate_video_segment(isIntra, timeBasePts, segment->getDataBuffer(), &dashContext, &segTimestamp, &segDuration);
+
+
+    if (segmentSize <= I2ERROR_MAX) {
+        return false;
+    }
+
+    std::cout << "New video segment with ts " << segTimestamp << " and duration " << segDuration << std::endl;
+
+    segment->setTimestamp(segTimestamp);
+    segment->setDuration(segDuration);
+    segment->setDataLength(segmentSize);
+    return true;
+}
+
 bool DashVideoSegmenter::appendFrameToDashSegment(DashSegment* segment)
 {
     size_t addSampleReturn;
@@ -177,24 +160,15 @@ bool DashVideoSegmenter::appendFrameToDashSegment(DashSegment* segment)
     return true;
 }
 
-bool DashVideoSegmenter::generateSegment(DashSegment* segment)
+bool DashVideoSegmenter::updateMetadata()
 {
-    size_t segmentSize = 0;
-    uint32_t segTimestamp;
-    uint32_t segDuration;
-    size_t timeBasePts;
-
-    timeBasePts = microsToTimeBase(vFrame->getPresentationTime());
-    segmentSize = generate_video_segment(isIntra, timeBasePts, segment->getDataBuffer(), &dashContext, &segTimestamp, &segDuration);
-
-
-    if (segmentSize <= I2ERROR_MAX) {
+    if (!updatedSPS || !updatedPPS) {
         return false;
     }
 
-    segment->setTimestamp(segTimestamp);
-    segment->setDuration(segDuration);
-    segment->setDataLength(segmentSize);
+    createMetadata();
+    updatedSPS = false;
+    updatedPPS = false;
     return true;
 }
 
@@ -205,6 +179,29 @@ bool DashVideoSegmenter::flushDashContext()
     }
 
     context_refresh(&dashContext, VIDEO_TYPE);
+    return true;
+}
+
+bool DashVideoSegmenter::parseNal(VideoFrame* nal, bool &newFrame)
+{
+    int startCodeOffset;
+    unsigned char* nalData;
+    int nalDataLength;
+
+    startCodeOffset = detectStartCode(nal->getDataBuf());
+    nalData = nal->getDataBuf() + startCodeOffset;
+    nalDataLength = nal->getLength() - startCodeOffset;
+
+    if (!nalData || nalDataLength <= 0) {
+        utils::errorMsg("Error parsing NAL: invalid data pointer or length");
+        return false;
+    }
+
+    if (!appendNalToFrame(nalData, nalDataLength, newFrame)) {
+        utils::errorMsg("Error parsing NAL: invalid NALU type");
+        return false;
+    }
+
     return true;
 }
 

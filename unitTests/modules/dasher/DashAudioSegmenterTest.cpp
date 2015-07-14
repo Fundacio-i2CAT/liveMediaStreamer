@@ -60,7 +60,6 @@ class DashAudioSegmenterTest : public CppUnit::TestFixture
 {
     CPPUNIT_TEST_SUITE(DashAudioSegmenterTest);
     CPPUNIT_TEST(manageFrame);
-    CPPUNIT_TEST(updateConfig);
     CPPUNIT_TEST(generateInitSegment);
     CPPUNIT_TEST(appendFrameToDashSegment);
     CPPUNIT_TEST(generateSegment);
@@ -72,7 +71,6 @@ public:
 
 protected:
     void manageFrame();
-    void updateConfig();
     void generateInitSegment();
     void appendFrameToDashSegment();
     void generateSegment();
@@ -106,22 +104,6 @@ void DashAudioSegmenterTest::manageFrame()
     CPPUNIT_ASSERT(newFrame);
 }
 
-void DashAudioSegmenterTest::updateConfig()
-{
-    std::chrono::microseconds ts(std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now().time_since_epoch()));
-    std::chrono::microseconds ts0(0);
-
-    modelFrame->setPresentationTime(ts0);
-    segmenter->manageFrame(modelFrame, newFrame);
-    CPPUNIT_ASSERT(!segmenter->updateConfig());
-
-    modelFrame->setPresentationTime(ts);
-    modelFrame->setSamples(AAC_FRAME_SAMPLES);
-    segmenter->manageFrame(modelFrame, newFrame);
-    CPPUNIT_ASSERT(segmenter->updateConfig());
-    CPPUNIT_ASSERT(segmenter->getFrameDuration() == AAC_FRAME_SAMPLES*segmenter->getTimeBase()/SAMPLE_RATE);
-}
-
 void DashAudioSegmenterTest::generateInitSegment()
 {
     char* initModel = new char[MAX_DAT];
@@ -135,10 +117,6 @@ void DashAudioSegmenterTest::generateInitSegment()
     modelFrame->setPresentationTime(ts);
 
     segmenter->manageFrame(modelFrame, newFrame);
-
-    if (!segmenter->updateConfig()) {
-        CPPUNIT_FAIL("Segmenter updateConfig failed when testing general workflow\n");
-    }
 
     CPPUNIT_ASSERT(segmenter->generateInitSegment(initSegment));
     CPPUNIT_ASSERT(!segmenter->generateInitSegment(initSegment));
@@ -158,10 +136,6 @@ void DashAudioSegmenterTest::appendFrameToDashSegment()
     CPPUNIT_ASSERT(!segmenter->appendFrameToDashSegment(segment));
 
     segmenter->manageFrame(modelFrame, newFrame);
-
-    if (!segmenter->updateConfig()) {
-        CPPUNIT_FAIL("Segmenter updateConfig failed when testing general workflow\n");
-    }
 
     CPPUNIT_ASSERT(segmenter->appendFrameToDashSegment(segment));
     CPPUNIT_ASSERT(!segmenter->appendFrameToDashSegment(segment));
@@ -187,9 +161,6 @@ void DashAudioSegmenterTest::generateSegment()
         modelFrame->setPresentationTime(ts);
         segmenter->manageFrame(modelFrame, newFrame);
 
-        if (!segmenter->updateConfig()) {
-            CPPUNIT_FAIL("Segmenter updateConfig failed when testing general workflow\n");
-        }
         ts += frameTime;
 
         if (segmenter->generateSegment(segment)) {

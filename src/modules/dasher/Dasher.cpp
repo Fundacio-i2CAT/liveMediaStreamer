@@ -130,11 +130,6 @@ bool Dasher::doProcessFrame(std::map<int, Frame*> orgFrames)
             continue;
         }
 
-        if (!segmenter->updateConfig()) {
-            utils::errorMsg("[DashSegmenter] Error updating config");
-            continue;
-        }
-
         if (!generateInitSegment(fr.first, segmenter)) {
             utils::errorMsg("[DashSegmenter] Error generating init segment");
             continue;

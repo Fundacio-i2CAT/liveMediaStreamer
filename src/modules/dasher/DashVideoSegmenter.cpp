@@ -59,16 +59,6 @@ bool DashVideoSegmenter::manageFrame(Frame* frame, bool &newFrame)
 
 bool DashVideoSegmenter::updateConfig()
 {
-    if (vFrame->getWidth() <= 0 || vFrame->getHeight() <= 0 || timeBase <= 0) {
-        utils::errorMsg("Error configuring DashVideoSegmenter: some config values are not valid");
-        return false;
-    }
-
-    if(!setup(segDurInTimeBaseUnits, timeBase, frameDuration, vFrame->getWidth(), vFrame->getHeight(), frameRate)) {
-        utils::errorMsg("Error during Dash Video Segmenter setup");
-        return false;
-    }
-
     return true;
 }
 
@@ -95,18 +85,7 @@ bool DashVideoSegmenter::parseNal(VideoFrame* nal, bool &newFrame)
     return true;
 }
 
-bool DashVideoSegmenter::updateTimeValues()
-{
-    // if (currDuration.count() == 0) {
-    //     return false;
-    // }
-
-    // frameDuration = nanosToTimeBase(currDuration);
-    // frameRate = std::nano::den/currDuration.count();
-    return true;
-}
-
-bool DashVideoSegmenter::setup(size_t segmentDuration, size_t timeBase, size_t sampleDuration, size_t width, size_t height, size_t framerate)
+bool DashVideoSegmenter::setup(size_t segmentDuration, size_t timeBase, size_t width, size_t height)
 {
     uint8_t i2error = I2OK;
 
@@ -118,7 +97,7 @@ bool DashVideoSegmenter::setup(size_t segmentDuration, size_t timeBase, size_t s
         return false;
     }
 
-    i2error = fill_video_context(&dashContext, width, height, framerate, timeBase, sampleDuration);
+    i2error = fill_video_context(&dashContext, width, height, timeBase);
 
     if (i2error != I2OK) {
         return false;
@@ -145,6 +124,11 @@ bool DashVideoSegmenter::generateInitData(DashSegment* segment)
     size_t initSize = 0;
     unsigned char* data;
     unsigned dataLength;
+
+    if (!setup(segDurInTimeBaseUnits, timeBase, vFrame->getWidth(), vFrame->getHeight())) {
+        utils::errorMsg("Error during Dash Video Segmenter setup");
+        return false;
+    }
 
     if (!dashContext || metadata.empty() || !segment || !segment->getDataBuffer()) {
         return false;
@@ -180,8 +164,10 @@ bool DashVideoSegmenter::appendFrameToDashSegment(DashSegment* segment)
 
     timeBasePts = microsToTimeBase(vFrame->getPresentationTime());
 
-    addSampleReturn = add_video_sample(vFrame->getDataBuf(), vFrame->getLength(), frameDuration, 
-                                        timeBasePts, timeBasePts, segment->getSeqNumber(), isIntra, &dashContext);
+    addSampleReturn = add_video_sample(vFrame->getDataBuf(), vFrame->getLength(), timeBasePts, 
+                                        timeBasePts, segment->getSeqNumber(), isIntra, &dashContext);
+
+    vFrame->setLength(0);
 
     if (addSampleReturn != I2OK) {
         utils::errorMsg("Error adding video sample. Code error: " + std::to_string(addSampleReturn));
@@ -196,8 +182,10 @@ bool DashVideoSegmenter::generateSegment(DashSegment* segment)
     size_t segmentSize = 0;
     uint32_t segTimestamp;
     uint32_t segDuration;
+    size_t timeBasePts;
 
-    segmentSize = generate_video_segment(isIntra, segment->getDataBuffer(), &dashContext, &segTimestamp, &segDuration);
+    timeBasePts = microsToTimeBase(vFrame->getPresentationTime());
+    segmentSize = generate_video_segment(isIntra, timeBasePts, segment->getDataBuffer(), &dashContext, &segTimestamp, &segDuration);
 
     if (segmentSize <= I2ERROR_MAX) {
         return false;
@@ -224,6 +212,8 @@ bool DashVideoSegmenter::appendNalToFrame(unsigned char* nalData, unsigned nalDa
     unsigned char nalType;
 
     nalType = nalData[0] & H264_NALU_TYPE_MASK;
+
+    std::cout << "Nal: " << (unsigned)nalType << std::endl;
 
     switch (nalType) {
         case SPS:

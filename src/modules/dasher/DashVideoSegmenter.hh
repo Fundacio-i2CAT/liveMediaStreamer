@@ -151,7 +151,7 @@ private:
     bool updateMetadata();
     bool generateInitData(DashSegment* segment);
 
-    bool setup(size_t segmentDuration, size_t timeBase, size_t sampleDuration, size_t width, size_t height, size_t framerate);
+    bool setup(size_t segmentDuration, size_t timeBase, size_t width, size_t height);
     bool parseNal(VideoFrame* nal, bool &newFrame);
     int detectStartCode(unsigned char const* ptr);
     void saveSPS(unsigned char* data, int dataLength);

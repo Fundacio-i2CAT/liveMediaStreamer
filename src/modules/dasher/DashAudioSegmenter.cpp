@@ -88,7 +88,6 @@ bool DashAudioSegmenter::appendFrameToDashSegment(DashSegment* segment)
 
     timeBasePts = microsToTimeBase(aFrame->getPresentationTime());
 
-
     dataWithoutADTS = aFrame->getDataBuf() + ADTS_HEADER_LENGTH;
     dataLengthWithoutADTS = aFrame->getLength() - ADTS_HEADER_LENGTH;
 

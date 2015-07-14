@@ -32,6 +32,7 @@ BaseFilter::BaseFilter(unsigned readersNum, unsigned writersNum, FilterRole fRol
 process(false), maxReaders(readersNum), maxWriters(writersNum),  frameTime(std::chrono::microseconds(0)), 
 fRole(fRole_), syncTs(std::chrono::microseconds(0))
 {
+
 }
 
 BaseFilter::~BaseFilter()
@@ -365,6 +366,14 @@ std::vector<int> BaseFilter::processFrame(int& ret)
         default:
             ret = 0;
             break;
+    }
+
+    if (fType == DASHER) {
+        std::cout << "Enabled: ";
+        for (auto e : enabledJobs) {
+            std::cout << e  << " ";
+        }
+        std::cout << std::endl;
     }
 
     return enabledJobs;

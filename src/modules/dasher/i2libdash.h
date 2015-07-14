@@ -35,7 +35,7 @@
 
 uint8_t generate_context(i2ctx **context, uint32_t media_type); 
 
-uint8_t fill_video_context(i2ctx **context, uint32_t width, uint32_t height, uint32_t framerate, uint32_t t_base, uint32_t sample_duration);
+uint8_t fill_video_context(i2ctx **context, uint32_t width, uint32_t height, uint32_t t_base);
 
 uint8_t fill_audio_context(i2ctx **context, uint32_t channels, uint32_t sample_rate, uint32_t sample_size, uint32_t t_base, uint32_t sample_duration); 
 
@@ -55,21 +55,20 @@ void set_segment_duration(uint32_t segment_duration, i2ctx **context);
 
 uint32_t get_segment_duration(i2ctx *context);
 
-uint32_t get_frame_rate(i2ctx *context);
-
 void set_sample_rate(uint32_t sample_rate, i2ctx **context);
 
 uint32_t get_sample_rate(i2ctx *context);
 
-uint32_t generate_video_segment(uint8_t nextFrameIsIntra, byte *output_data, i2ctx **context, uint32_t* segmentTimestamp, uint32_t* segmentDuration);
+uint32_t generate_video_segment(uint8_t nextFrameIsIntra, uint32_t nextFramePts, byte *output_data, 
+                                 i2ctx **context, uint32_t* segmentTimestamp, uint32_t* segmentDuration);
 
 uint32_t generate_audio_segment(byte *output_data, i2ctx **context, uint32_t* segmentTimestamp, uint32_t* segmentDuration);
 
 uint32_t force_generate_audio_segment(byte *output_data, i2ctx **context, uint32_t* segmentTimestamp, uint32_t* segmentDuration);
 
-uint32_t add_video_sample(byte *input_data, uint32_t input_data_length, uint32_t sample_duration, 
+uint32_t add_video_sample(byte *input_data, uint32_t input_data_length, uint32_t pts, 
+                           uint32_t dts, uint32_t seqNumber, uint8_t is_intra, i2ctx **context);
 
-                          uint32_t pts, uint32_t dts, uint32_t seqNumber, uint8_t is_intra, i2ctx **context);
 uint32_t add_audio_sample(byte *input_data, uint32_t input_data_length, uint32_t sample_duration, 
                           uint32_t pts, uint32_t dts, uint32_t seqNumber, i2ctx **context);
 

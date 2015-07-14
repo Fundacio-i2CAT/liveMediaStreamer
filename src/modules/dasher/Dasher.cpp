@@ -111,7 +111,7 @@ bool Dasher::doProcessFrame(std::map<int, Frame*> orgFrames)
 
     for (auto fr : orgFrames) {
 
-        if (!fr.second) {
+        if (!fr.second || !fr.second->getConsumed()) {
             continue;
         }
 

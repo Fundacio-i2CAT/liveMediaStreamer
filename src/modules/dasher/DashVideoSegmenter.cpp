@@ -187,10 +187,11 @@ bool DashVideoSegmenter::generateSegment(DashSegment* segment)
     timeBasePts = microsToTimeBase(vFrame->getPresentationTime());
     segmentSize = generate_video_segment(isIntra, timeBasePts, segment->getDataBuffer(), &dashContext, &segTimestamp, &segDuration);
 
+
     if (segmentSize <= I2ERROR_MAX) {
         return false;
     }
-    
+
     segment->setTimestamp(segTimestamp);
     segment->setDuration(segDuration);
     segment->setDataLength(segmentSize);
@@ -212,8 +213,6 @@ bool DashVideoSegmenter::appendNalToFrame(unsigned char* nalData, unsigned nalDa
     unsigned char nalType;
 
     nalType = nalData[0] & H264_NALU_TYPE_MASK;
-
-    std::cout << "Nal: " << (unsigned)nalType << std::endl;
 
     switch (nalType) {
         case SPS:

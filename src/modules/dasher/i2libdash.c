@@ -35,7 +35,8 @@ void video_sample_context_initializer(i2ctx_video **ctxVideo);
 
 uint8_t is_key_frame(byte *input_data, uint32_t size_input);
 
-void set_segment_duration(uint32_t segment_duration, i2ctx **context){
+void set_segment_duration(uint32_t segment_duration, i2ctx **context)
+{
     (*context)->duration = segment_duration;
 }
 
@@ -306,7 +307,7 @@ uint32_t generate_video_segment(uint8_t nextFrameIsIntra, uint32_t nextFramePts,
                                  i2ctx **context, uint32_t* segmentTimestamp, uint32_t* segmentDuration)
 {
     uint32_t segDataLength;
-    uint32_t nOfSamples;
+    int sampleIdx;
     uint32_t lastSampleDuration = 0;
 
     segDataLength = 0;
@@ -323,14 +324,16 @@ uint32_t generate_video_segment(uint8_t nextFrameIsIntra, uint32_t nextFramePts,
         return I2ERROR_IS_INTRA;
     }
 
-    nOfSamples = (*context)->ctxvideo->ctxsample->mdat_sample_length;
+    sampleIdx = (*context)->ctxvideo->ctxsample->mdat_sample_length - 1;
 
-    if (nOfSamples > 0) {
-        lastSampleDuration = nextFramePts - (*context)->ctxvideo->ctxsample->mdat[nOfSamples].presentation_timestamp;
+    if (sampleIdx < 0) {
+        return segDataLength;
     }
 
-    if ((nextFrameIsIntra == TRUE) && ((((*context)->duration - (*context)->threshold)) <= ((*context)->ctxvideo->current_video_duration + lastSampleDuration))) {
-        (*context)->ctxvideo->ctxsample->mdat[nOfSamples].duration = lastSampleDuration;
+    lastSampleDuration = nextFramePts - (*context)->ctxvideo->ctxsample->mdat[sampleIdx].presentation_timestamp;
+
+    if ((nextFrameIsIntra == TRUE) && ((((*context)->duration - lastSampleDuration)) <= ((*context)->ctxvideo->current_video_duration + lastSampleDuration))) {
+        (*context)->ctxvideo->ctxsample->mdat[sampleIdx].duration = lastSampleDuration;
         (*context)->ctxvideo->current_video_duration += lastSampleDuration;
 
         segDataLength = segmentGenerator((*context)->ctxvideo->segment_data, (*context)->ctxvideo->segment_data_size, output_data, VIDEO_TYPE, context);
@@ -443,7 +446,7 @@ uint32_t add_video_sample(byte *input_data, uint32_t input_data_length, uint32_t
     ctxSample->mdat[samp_len].presentation_timestamp = pts;
     ctxSample->mdat[samp_len].decode_timestamp = dts;
     ctxSample->mdat[samp_len].key = is_intra;
-    
+
     if (ctxSample->mdat_sample_length == 0) {
         (*context)->ctxvideo->earliest_presentation_time = pts;
         (*context)->ctxvideo->sequence_number = seqNumber;

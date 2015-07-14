@@ -67,7 +67,7 @@ public:
 private:
     SlicedVideoFrameQueue(int wId, int rId, VCodecType codec, unsigned maxFrames);
 
-    bool pushBack();
+    void pushBackSliceGroup(Slice* slices, int sliceNum);
     Frame *innerGetRear();
     Frame *innerForceGetRear();
     void innerAddFrame();

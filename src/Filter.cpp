@@ -156,23 +156,24 @@ std::vector<int> BaseFilter::addFrames()
     return enabledJobs;
 }
 
-std::vector<int> BaseFilter::removeFrames()
+bool BaseFilter::removeFrames()
 {
-    std::vector<int> enabledJobs;
-    
-    if (maxReaders == 0){
-        return enabledJobs;
+    bool executeAgain = false;
+
+    if (maxReaders == 0) {
+        return executeAgain;
     }
     
     std::lock_guard<std::mutex> guard(readersWritersLck);
     
-    for (auto it : readers){
+    for (auto it : readers) {
         if (oFrames[it.first] && oFrames[it.first]->getConsumed()){
-            enabledJobs.push_back(it.second->removeFrame());
+            it.second->removeFrame();
+            executeAgain |= (it.second->getQueueElements() > 0);
         }
     }
 
-    return enabledJobs;
+    return executeAgain;
 }
 
 bool BaseFilter::connect(BaseFilter *R, int writerID, int readerID)
@@ -368,14 +369,6 @@ std::vector<int> BaseFilter::processFrame(int& ret)
             break;
     }
 
-    if (fType == DASHER) {
-        std::cout << "Enabled: ";
-        for (auto e : enabledJobs) {
-            std::cout << e  << " ";
-        }
-        std::cout << std::endl;
-    }
-
     return enabledJobs;
 }
 
@@ -445,7 +438,10 @@ std::vector<int> BaseFilter::masterProcessFrame(int& ret)
     }
 
     enabledJobs = addFrames();
-    removeFrames();
+    
+    if (removeFrames()) {
+        enabledJobs.push_back(getId());
+    }
 
     return enabledJobs;
 }

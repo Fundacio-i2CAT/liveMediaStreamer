@@ -97,6 +97,16 @@ bool Reader::isConnected()
     return queue->isConnected();
 }
 
+size_t Reader::getQueueElements()
+{
+    if (!queue) {
+        return 0;
+    }
+
+    return queue->getElements();
+}
+
+
 
 /////////////////////////
 //WRITER IMPLEMENTATION//

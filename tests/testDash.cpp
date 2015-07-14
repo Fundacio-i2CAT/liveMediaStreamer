@@ -122,7 +122,7 @@ void addVideoPath(unsigned port, Dasher* dasher, int dasherId, int receiverID,
 {
     PipelineManager *pipe = Controller::getInstance()->pipelineManager();
 
-    int decId = rand();
+    int decId = 11000;
     int resId = 2000;
     int encId = 1000;
     int dstReader1 = 3000;

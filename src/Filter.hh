@@ -172,7 +172,7 @@ protected:
     BaseFilter(unsigned readersNum = MAX_READERS, unsigned writersNum = MAX_WRITERS, FilterRole fRole_ = MASTER, bool periodic = false);
 
     std::vector<int> addFrames();
-    std::vector<int> removeFrames();
+    bool removeFrames();
     virtual FrameQueue *allocQueue(int wFId, int rFId, int wId) = 0;
 
     std::chrono::microseconds getFrameTime() {return frameTime;};

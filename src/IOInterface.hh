@@ -117,6 +117,10 @@ public:
     * Creates a reader object
     */
     Reader();
+
+    /**
+    * Class destructor
+    */
     ~Reader();
 
     /**
@@ -163,6 +167,12 @@ public:
     * @return true if successful disconnecting, otherwise returns false
     */
     bool disconnect();
+
+    /**
+    * Get FrameQueue elements number
+    * @return FrameQueue elements number
+    */
+    size_t getQueueElements();
 
 protected:
     mutable FrameQueue *queue;

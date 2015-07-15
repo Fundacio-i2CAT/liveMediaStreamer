@@ -219,7 +219,7 @@ protected:
     bool process;
 
     std::map<int, std::shared_ptr<Reader>> readers;
-    std::map<int, Writer*> writers;
+    std::map<int, std::shared_ptr<Writer>> writers;
     std::map<int, Frame*> oFrames;
     std::map<int, Frame*> dFrames;
     std::map<int, size_t> seqNums;

@@ -41,10 +41,6 @@ BaseFilter::~BaseFilter()
         it.second->removeReader();
     }
 
-    for (auto it : writers) {
-        delete it.second;
-    }
-
     readers.clear();
     writers.clear();
     oFrames.clear();
@@ -157,7 +153,6 @@ bool BaseFilter::demandDestinationFrames()
     for (auto it : writers){
         if (!it.second->isConnected()){
             it.second->disconnect();
-            delete it.second;
             writers.erase(it.first);
             continue;
         }
@@ -254,7 +249,8 @@ bool BaseFilter::connect(BaseFilter *R, int writerID, int readerID)
         return false;
     }
 
-    writers[writerID] = new Writer();
+    std::shared_ptr<Writer> w (new Writer());
+    writers[writerID] = w;
     seqNums[writerID] = 0;
 
     cData.wFilterId = getId();
@@ -264,13 +260,11 @@ bool BaseFilter::connect(BaseFilter *R, int writerID, int readerID)
     
     queue = allocQueue(cData);
     if (!queue){
-        delete writers[writerID];
         writers.erase(writerID);
         return false;
     }
 
     if (!(r = R->setReader(readerID, queue))) {
-        delete writers[writerID];
         writers.erase(writerID);
         utils::errorMsg("Could not create the reader or set the queue");
         return false;

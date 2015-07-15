@@ -702,8 +702,6 @@ bool DashSegmenter::generateSegment(DashSegment* segment, bool force)
         return false;
     }
 
-    std::cout << "New segment with timestamp " << segTimestamp << " and duration " << segDuration << std::endl;
-
     segment->setTimestamp(segTimestamp);
     segment->setDuration(segDuration);
     segment->setDataLength(segmentSize);
@@ -726,12 +724,10 @@ size_t DashSegmenter::microsToTimeBase(std::chrono::microseconds microValue)
 // DashSegment //
 /////////////////
 
-DashSegment::DashSegment(size_t maxSize)
+DashSegment::DashSegment(size_t maxSize) : 
+dataLength(0), seqNumber(0), timestamp(0), duration(0), complete(false)
 {
     data = new unsigned char[maxSize];
-    timestamp = 0;
-    dataLength = 0;
-    seqNumber = 0;
 }
 
 DashSegment::~DashSegment()

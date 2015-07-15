@@ -63,7 +63,7 @@ void HeadDemuxerLibav::reset()
     streams.clear();
 }
 
-bool HeadDemuxerLibav::doProcessFrame(std::map<int, Frame*> dstFrames)
+bool HeadDemuxerLibav::doProcessFrame(std::map<int, Frame*> &dstFrames)
 {
     if (!av_ctx) return false;
 

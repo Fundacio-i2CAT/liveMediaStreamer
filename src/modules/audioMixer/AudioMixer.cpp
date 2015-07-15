@@ -62,7 +62,7 @@ FrameQueue *AudioMixer::allocQueue(struct ConnectionData cData)
                                             sampleFormat, std::chrono::milliseconds(0));
 }
 
-bool AudioMixer::doProcessFrame(std::map<int, Frame*> orgFrames, Frame *dst) 
+bool AudioMixer::doProcessFrame(std::map<int, Frame*> &orgFrames, Frame *dst) 
 {
     AudioFrame* aFrame;
     AudioFrame* aDstFrame;

@@ -116,7 +116,7 @@ protected:
 private:
     VCodecType codec;
 
-    bool runDoProcessFrame() {
+    bool runDoProcessFrame(std::map<int, Frame*> &oFrames, std::map<int, Frame*> &dFrames) {
         return true;
     };
 };
@@ -168,7 +168,7 @@ public:
     using BaseFilter::getReader;
 
 protected:
-    bool doProcessFrame(Frame *org, std::map<int, Frame *> dstFrames) {
+    bool doProcessFrame(Frame *org, std::map<int, Frame *> &dstFrames) {
         for (auto dst : dstFrames) {
             dst.second->setConsumed(gotFrame);
         }
@@ -232,7 +232,7 @@ public:
     void doGetState(Jzon::Object &filterNode){};
     
 protected:
-    bool doProcessFrame(std::map<int, Frame*> dstFrames) {
+    bool doProcessFrame(std::map<int, Frame*> &dstFrames) {
         if (!newFrame){
             return false;
         }
@@ -281,7 +281,7 @@ public:
     void doGetState(Jzon::Object &filterNode){};
     
 protected:
-    bool doProcessFrame(std::map<int, Frame*> orgFrames) { 
+    bool doProcessFrame(std::map<int, Frame*> &orgFrames) { 
         bool gotframe = false;
         for (auto it : orgFrames){
             if (!it.second->isPlanar() && it.second->getConsumed()){
@@ -323,7 +323,7 @@ public:
     void doGetState(Jzon::Object &filterNode){};
     
 protected:
-    bool doProcessFrame(std::map<int, Frame*> dstFrames) {
+    bool doProcessFrame(std::map<int, Frame*> &dstFrames) {
         // There is only one frame in the map
         Frame *dst = dstFrames.begin()->second;
         InterleavedVideoFrame *dstFrame;
@@ -375,7 +375,7 @@ public:
     void doGetState(Jzon::Object &filterNode){};
     
 protected:
-    bool doProcessFrame(std::map<int, Frame*> dstFrames) {
+    bool doProcessFrame(std::map<int, Frame*> &dstFrames) {
         // There is only one frame in the map
         Frame *dst = dstFrames.begin()->second;
         PlanarAudioFrame *dstFrame;
@@ -434,7 +434,7 @@ public:
     void doGetState(Jzon::Object &filterNode){};
     
 protected:
-    bool doProcessFrame(std::map<int, Frame*> orgFrames) {
+    bool doProcessFrame(std::map<int, Frame*> &orgFrames) {
         InterleavedVideoFrame *orgFrame;
  
         if ((orgFrame = dynamic_cast<InterleavedVideoFrame*>(orgFrames.begin()->second)) != NULL){
@@ -489,7 +489,7 @@ public:
     void doGetState(Jzon::Object &filterNode){};
 
 protected:
-    bool doProcessFrame(std::map<int, Frame*> orgFrames) {
+    bool doProcessFrame(std::map<int, Frame*> &orgFrames) {
         PlanarAudioFrame *orgFrame;
 
         if ((orgFrame = dynamic_cast<PlanarAudioFrame*>(orgFrames.begin()->second)) != NULL){

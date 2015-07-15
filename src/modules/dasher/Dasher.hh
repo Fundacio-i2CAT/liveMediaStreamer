@@ -108,7 +108,7 @@ public:
 private:
     Dasher(int readersNum);
     bool configure(std::string dashFolder, std::string baseName_, size_t segDurInSeconds);
-    bool doProcessFrame(std::map<int, Frame*> orgFrames);
+    bool doProcessFrame(std::map<int, Frame*> &orgFrames);
     void doGetState(Jzon::Object &filterNode);
     void initializeEventMap();
     bool generateInitSegment(size_t id, DashSegmenter* segmenter);

@@ -117,7 +117,7 @@ private:
     friend bool StreamClientState::addSinkToMngr(unsigned port, QueueSink* sink);
     bool addSink(unsigned port, QueueSink *sink);
 
-    bool doProcessFrame(std::map<int, Frame*>);
+    bool doProcessFrame(std::map<int, Frame*> &dFrames);
     void addConnection(int wId, MediaSubsession* subsession);
 
     static void* startServer(void *args);

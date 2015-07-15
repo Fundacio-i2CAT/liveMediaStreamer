@@ -99,7 +99,7 @@ bool Dasher::configure(std::string dashFolder, std::string baseName_, size_t seg
     return true;
 }
 
-bool Dasher::doProcessFrame(std::map<int, Frame*> orgFrames)
+bool Dasher::doProcessFrame(std::map<int, Frame*> &orgFrames)
 {
     DashSegmenter* segmenter;
     bool newFrame;

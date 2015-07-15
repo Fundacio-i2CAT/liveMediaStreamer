@@ -43,8 +43,6 @@ BaseFilter::~BaseFilter()
 
     readers.clear();
     writers.clear();
-    oFrames.clear();
-    dFrames.clear();
 }
 
 bool BaseFilter::isWConnected (int wId) 
@@ -141,7 +139,7 @@ unsigned BaseFilter::generateWriterID()
     return id;
 }
 
-bool BaseFilter::demandDestinationFrames()
+bool BaseFilter::demandDestinationFrames(std::map<int, Frame*> &dFrames)
 {
     std::lock_guard<std::mutex> guard(mtx);
     
@@ -166,7 +164,7 @@ bool BaseFilter::demandDestinationFrames()
     return newFrame;
 }
 
-std::vector<int> BaseFilter::addFrames()
+std::vector<int> BaseFilter::addFrames(std::map<int, Frame*> &dFrames)
 {
     std::lock_guard<std::mutex> guard(mtx);
     
@@ -184,7 +182,7 @@ std::vector<int> BaseFilter::addFrames()
     return enabledJobs;
 }
 
-std::vector<int> BaseFilter::removeFrames()
+std::vector<int> BaseFilter::removeFrames(std::map<int, Frame*> &oFrames)
 {
     std::vector<int> enabledJobs;
     
@@ -426,24 +424,26 @@ std::vector<int> BaseFilter::regularProcessFrame(int& ret)
     std::chrono::microseconds enlapsedTime;
     std::chrono::microseconds frameTime_;
     std::vector<int> enabledJobs;
+    std::map<int, Frame*> oFrames;
+    std::map<int, Frame*> dFrames;
     
     processEvent();
      
-    if (!demandOriginFrames()) {
+    if (!demandOriginFrames(oFrames)) {
         ret = 0;
         return enabledJobs;
     }
     
-    if (!demandDestinationFrames()) {
+    if (!demandDestinationFrames(dFrames)) {
         ret = 0;
         return enabledJobs;
     }
 
-    runDoProcessFrame();
+    runDoProcessFrame(oFrames, dFrames);
 
 
-    enabledJobs = addFrames();
-    removeFrames();
+    enabledJobs = addFrames(dFrames);
+    removeFrames(oFrames);
 
     return enabledJobs;
 }
@@ -451,28 +451,25 @@ std::vector<int> BaseFilter::regularProcessFrame(int& ret)
 std::vector<int> BaseFilter::serverProcessFrame(int& ret)
 {
     std::vector<int> enabledJobs;
+    std::map<int, Frame*> oFrames;
+    std::map<int, Frame*> dFrames;
 
     processEvent();
       
-    demandOriginFrames();
-    demandDestinationFrames();
+    demandOriginFrames(oFrames);
+    demandDestinationFrames(dFrames);
 
-    runDoProcessFrame();
+    runDoProcessFrame(oFrames, dFrames);
 
-    enabledJobs = addFrames();
-    removeFrames();
+    enabledJobs = addFrames(dFrames);
+    removeFrames(oFrames);
     
     ret = 0;
     
     return enabledJobs;
 }
 
-void BaseFilter::updateFrames(std::map<int, Frame*> oFrames_)
-{
-    oFrames = oFrames_;
-}
-
-bool BaseFilter::demandOriginFrames()
+bool BaseFilter::demandOriginFrames(std::map<int, Frame*> &oFrames)
 {
     bool success;
 
@@ -485,9 +482,9 @@ bool BaseFilter::demandOriginFrames()
     }
 
     if (frameTime.count() <= 0) {
-        success = demandOriginFramesBestEffort();
+        success = demandOriginFramesBestEffort(oFrames);
     } else {
-        success = demandOriginFramesFrameTime();
+        success = demandOriginFramesFrameTime(oFrames);
     }
 
     return success;
@@ -504,7 +501,7 @@ bool BaseFilter::deleteReader(int readerId)
     return false;
 }
 
-bool BaseFilter::demandOriginFramesBestEffort() 
+bool BaseFilter::demandOriginFramesBestEffort(std::map<int, Frame*> &oFrames) 
 {
     bool someFrame = false;
     Frame* frame;
@@ -537,7 +534,7 @@ bool BaseFilter::demandOriginFramesBestEffort()
     return someFrame;
 }
 
-bool BaseFilter::demandOriginFramesFrameTime() 
+bool BaseFilter::demandOriginFramesFrameTime(std::map<int, Frame*> &oFrames) 
 {
     Frame* frame;
     std::chrono::microseconds outOfScopeTs = std::chrono::microseconds(-1);
@@ -606,7 +603,7 @@ OneToOneFilter::OneToOneFilter(FilterRole fRole_, bool periodic) :
 {
 }
 
-bool OneToOneFilter::runDoProcessFrame()
+bool OneToOneFilter::runDoProcessFrame(std::map<int, Frame*> &oFrames, std::map<int, Frame*> &dFrames)
 {
     std::chrono::microseconds outTimestamp;
 
@@ -633,7 +630,7 @@ OneToManyFilter::OneToManyFilter(unsigned writersNum, FilterRole fRole_, bool pe
 {
 }
 
-bool OneToManyFilter::runDoProcessFrame()
+bool OneToManyFilter::runDoProcessFrame(std::map<int, Frame*> &oFrames, std::map<int, Frame*> &dFrames)
 {
     if (!doProcessFrame(oFrames.begin()->second, dFrames)) {
         return false;
@@ -653,7 +650,7 @@ HeadFilter::HeadFilter(unsigned writersNum, FilterRole fRole_, bool periodic) :
 {
 }
 
-bool HeadFilter::runDoProcessFrame()
+bool HeadFilter::runDoProcessFrame(std::map<int, Frame*> &oFrames, std::map<int, Frame*> &dFrames)
 {
     if (!doProcessFrame(dFrames)) {
         return false;
@@ -690,7 +687,7 @@ TailFilter::TailFilter(unsigned readersNum, FilterRole fRole_, bool periodic) :
 {
 }
 
-bool TailFilter::runDoProcessFrame()
+bool TailFilter::runDoProcessFrame(std::map<int, Frame*> &oFrames, std::map<int, Frame*> &dFrames)
 {
     //TODO: handle frameTime
     return doProcessFrame(oFrames);
@@ -722,7 +719,7 @@ ManyToOneFilter::ManyToOneFilter(unsigned readersNum, FilterRole fRole_, bool pe
 {
 }
 
-bool ManyToOneFilter::runDoProcessFrame()
+bool ManyToOneFilter::runDoProcessFrame(std::map<int, Frame*> &oFrames, std::map<int, Frame*> &dFrames)
 {
     if (!doProcessFrame(oFrames, dFrames.begin()->second)) {
         return false;

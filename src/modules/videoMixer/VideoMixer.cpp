@@ -89,7 +89,7 @@ FrameQueue* VideoMixer::allocQueue(struct ConnectionData cData)
     return VideoFrameQueue::createNew(cData, RAW, DEFAULT_RAW_VIDEO_FRAMES, RGB24);
 }
 
-bool VideoMixer::doProcessFrame(std::map<int, Frame*> orgFrames, Frame *dst)
+bool VideoMixer::doProcessFrame(std::map<int, Frame*> &orgFrames, Frame *dst)
 {
     int frameNumber = orgFrames.size();
     std::chrono::microseconds outTs = std::chrono::microseconds(0);

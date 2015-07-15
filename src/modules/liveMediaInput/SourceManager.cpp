@@ -62,7 +62,7 @@ void SourceManager::stop()
     
 }
 
-bool SourceManager::doProcessFrame(std::map<int, Frame*> dFrames)
+bool SourceManager::doProcessFrame(std::map<int, Frame*> &dFrames)
 {
     if (envir() == NULL){
         return false;

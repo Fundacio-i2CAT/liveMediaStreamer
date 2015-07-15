@@ -134,7 +134,7 @@ bool SinkManager::deleteReader(int readerId)
     return false;
 }
 
-bool SinkManager::doProcessFrame(std::map<int, Frame*> oFrames)
+bool SinkManager::doProcessFrame(std::map<int, Frame*> &oFrames)
 {
     if (envir() == NULL){
         return false;

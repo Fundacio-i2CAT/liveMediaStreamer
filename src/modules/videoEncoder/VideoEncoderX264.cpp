@@ -27,8 +27,8 @@
 
 #define MAX_PLANES_PER_PICTURE 4
 
-VideoEncoderX264::VideoEncoderX264(FilterRole fRole) :
-VideoEncoderX264or5(fRole), encoder(NULL)
+VideoEncoderX264::VideoEncoderX264() :
+VideoEncoderX264or5(), encoder(NULL)
 {
     pts = 0;
     x264_picture_init(&picIn);

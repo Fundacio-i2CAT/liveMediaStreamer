@@ -119,7 +119,7 @@ bool PipelineManager::addPath(int id, Path* path)
 }
 
 
-bool PipelineManager::createFilter(int id, FilterType type, FilterRole role)
+bool PipelineManager::createFilter(int id, FilterType type)
 {
     BaseFilter* filter = NULL;
     
@@ -136,25 +136,25 @@ bool PipelineManager::createFilter(int id, FilterType type, FilterRole role)
             filter = SinkManager::createNew();
             break;
         case VIDEO_DECODER:
-            filter = new VideoDecoderLibav(role);
+            filter = new VideoDecoderLibav();
             break;
         case VIDEO_ENCODER:
-            filter = new VideoEncoderX264(role);
+            filter = new VideoEncoderX264();
             break;
          case VIDEO_RESAMPLER:
-            filter = new VideoResampler(role);
+            filter = new VideoResampler();
             break;
         case VIDEO_MIXER:
-            filter = VideoMixer::createNew(role);
+            filter = VideoMixer::createNew();
             break;
         case AUDIO_DECODER:
-            filter = new AudioDecoderLibav(role);
+            filter = new AudioDecoderLibav();
             break;
         case AUDIO_ENCODER:
-            filter = new AudioEncoderLibav(role);
+            filter = new AudioEncoderLibav();
             break;
         case AUDIO_MIXER:
-            filter = new AudioMixer(role);
+            filter = new AudioMixer();
             break;
         //TODO include sharedMemory and Dasher filters
         default:
@@ -432,14 +432,13 @@ void PipelineManager::createFilterEvent(Jzon::Node* params, Jzon::Object &output
 {
     int id;
     FilterType fType;
-    FilterRole role;
 
     if(!params) {
         outputNode.Add("error", "Error creating filter. Invalid JSON format...");
         return;
     }
 
-    if (!params->Has("id") || !params->Has("type") || !params->Has("role")) {
+    if (!params->Has("id") || !params->Has("type")) {
         outputNode.Add("error", "Error creating filter. Invalid JSON format...");
         return;
     }
@@ -449,16 +448,10 @@ void PipelineManager::createFilterEvent(Jzon::Node* params, Jzon::Object &output
         return;
     }
     
-    role = utils::getRoleTypeFromString(params->Get("role").ToString());
-    if (role == FR_NONE){
-        utils::warningMsg("Unkown role, assuming MASTER");
-        role = MASTER;
-    }
-    
     id = params->Get("id").ToInt();
     fType = utils::getFilterTypeFromString(params->Get("type").ToString());
     
-    if (! createFilter(id, fType, role)){
+    if (! createFilter(id, fType)){
         outputNode.Add("error", "Error creating filter.");
     }
 

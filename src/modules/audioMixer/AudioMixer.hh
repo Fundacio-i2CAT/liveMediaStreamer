@@ -41,10 +41,9 @@ class AudioMixer : public ManyToOneFilter {
 public:
     /**
     * Class constructor
-    * @param fRole_ Filter role (NETWORK, MASTER, SLAVE)
     * @param inputChannels Max mixing channels
     */
-    AudioMixer(FilterRole fRole_ = MASTER, int inputChannels = AMIXER_MAX_CHANNELS);
+    AudioMixer(int inputChannels = AMIXER_MAX_CHANNELS);
 
     /**
     * Class destructor

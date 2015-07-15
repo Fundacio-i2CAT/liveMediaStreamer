@@ -50,7 +50,7 @@ Dasher* Dasher::createNew(std::string dashFolder, std::string baseName, size_t s
 
 
 Dasher::Dasher(int readersNum) :
-TailFilter(MASTER, readersNum), mpdMngr(NULL), hasVideo(false), videoStarted(false)
+TailFilter(readersNum), mpdMngr(NULL), hasVideo(false), videoStarted(false)
 {
     fType = DASHER;
     initializeEventMap();

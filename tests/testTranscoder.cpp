@@ -50,7 +50,7 @@ void signalHandler( int signum )
 
 void addAudioPath(unsigned port, int receiverID, int transmitterID)
 {
-    PipelineManager *pipe = Controller::getInstance()->pipelineManager();
+    PipelineManager *pipe = PipelineManager::getInstance(1);
 
     int decId = rand();
     int encId = rand();

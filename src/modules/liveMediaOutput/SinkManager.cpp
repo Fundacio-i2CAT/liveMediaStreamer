@@ -47,7 +47,7 @@ SinkManager* SinkManager::createNew(unsigned readersNum)
 }
 
 SinkManager::SinkManager(unsigned readersNum) :
-TailFilter(SERVER, readersNum, true), rtspServer(NULL)
+TailFilter(readersNum, SERVER, true), rtspServer(NULL)
 {
     scheduler = BasicTaskScheduler::createNew();
     env = BasicUsageEnvironment::createNew(*scheduler);

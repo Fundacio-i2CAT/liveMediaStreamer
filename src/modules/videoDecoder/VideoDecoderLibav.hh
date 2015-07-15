@@ -37,7 +37,7 @@ extern "C" {
 class VideoDecoderLibav : public OneToOneFilter {
 
     public:
-        VideoDecoderLibav(FilterRole fRole_ = MASTER);
+        VideoDecoderLibav();
         ~VideoDecoderLibav();
         
     private:

@@ -30,8 +30,8 @@
 #include <cmath>
 #include <string.h>
 
-AudioMixer::AudioMixer(FilterRole role, int inputChannels) : 
-ManyToOneFilter(role, inputChannels), channels(DEFAULT_CHANNELS),
+AudioMixer::AudioMixer(int inputChannels) : 
+ManyToOneFilter(inputChannels), channels(DEFAULT_CHANNELS),
 sampleRate(DEFAULT_SAMPLE_RATE), sampleFormat(FLTP), maxMixingChannels(inputChannels),
 front(0), rear(0), masterGain(DEFAULT_MASTER_GAIN), th(COMPRESSION_THRESHOLD),
 syncTs(std::chrono::microseconds(-1))

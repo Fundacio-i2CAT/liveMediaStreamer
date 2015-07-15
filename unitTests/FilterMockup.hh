@@ -125,8 +125,8 @@ class OneToOneFilterMockup : public OneToOneFilter
 {
 public:
     OneToOneFilterMockup(size_t queueSize_, bool gotFrame_,
-                std::chrono::microseconds frameTime, FilterRole role) :
-                OneToOneFilter(role), queueSize(queueSize_), gotFrame(gotFrame_) {
+                std::chrono::microseconds frameTime) :
+                OneToOneFilter(), queueSize(queueSize_), gotFrame(gotFrame_) {
         setFrameTime(frameTime);
     };
 
@@ -158,8 +158,8 @@ class OneToManyFilterMockup : public OneToManyFilter
 {
 public:
     OneToManyFilterMockup(unsigned maxWriters, size_t queueSize_, bool gotFrame_,
-                         std::chrono::microseconds frameTime, FilterRole role) :
-        OneToManyFilter(role, maxWriters),
+                         std::chrono::microseconds frameTime) :
+        OneToManyFilter(maxWriters),
         queueSize(queueSize_), gotFrame(gotFrame_) {
             setFrameTime(frameTime);
         };
@@ -187,7 +187,7 @@ private:
 class VideoFilterMockup : public OneToOneFilterMockup
 {
 public:
-    VideoFilterMockup(VCodecType c) : OneToOneFilterMockup(4, true, std::chrono::microseconds(40000), MASTER)  {
+    VideoFilterMockup(VCodecType c) : OneToOneFilterMockup(4, true, std::chrono::microseconds(40000))  {
         codec = c;
     };
 
@@ -201,7 +201,7 @@ private:
 class AudioFilterMockup : public OneToOneFilterMockup
 {
 public:
-    AudioFilterMockup(ACodecType c) : OneToOneFilterMockup(4, true, std::chrono::microseconds(40000), MASTER)  {
+    AudioFilterMockup(ACodecType c) : OneToOneFilterMockup(4, true, std::chrono::microseconds(0))  {
         codec = c;
     };
 

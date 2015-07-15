@@ -63,7 +63,7 @@ void PipelineManagerTest::createAndConnectPath()
     Path *path;
     HeadFilter *head = new HeadFilterMockup();
     TailFilter *tail = new TailFilterMockup();
-    OneToOneFilter *midF = new OneToOneFilterMockup(4, true, std::chrono::microseconds(0), MASTER);
+    OneToOneFilter *midF = new OneToOneFilterMockup(4, true, std::chrono::microseconds(0));
     
     CPPUNIT_ASSERT(pipe->addFilter(1, head));
     CPPUNIT_ASSERT(pipe->addFilter(3, tail));
@@ -121,7 +121,7 @@ private:
 
 void PipelineManagerFunctionalTest::setUp() 
 {
-    pipe = PipelineManager::getInstance(1);
+    pipe = PipelineManager::getInstance(3);
 }
 
 void PipelineManagerFunctionalTest::tearDown()
@@ -133,7 +133,7 @@ void PipelineManagerFunctionalTest::lineConnection()
 {
     HeadFilterMockup *head = new HeadFilterMockup();
     TailFilterMockup *tail = new TailFilterMockup();
-    OneToOneFilter *mid = new OneToOneFilterMockup(4, true, std::chrono::microseconds(0), MASTER);
+    OneToOneFilter *mid = new OneToOneFilterMockup(4, true, std::chrono::microseconds(0));
     
     CPPUNIT_ASSERT(pipe->addFilter(1, head));
     CPPUNIT_ASSERT(pipe->addFilter(3, tail));
@@ -161,8 +161,8 @@ void PipelineManagerFunctionalTest::diamondConnection()
 {
     HeadFilterMockup *head = new HeadFilterMockup();
     TailFilterMockup *tail = new TailFilterMockup();
-    OneToOneFilter *mid = new OneToOneFilterMockup(4, true, std::chrono::microseconds(0), MASTER);
-    OneToOneFilter *mid2 = new OneToOneFilterMockup(4, true, std::chrono::microseconds(0), MASTER);
+    OneToOneFilter *mid = new OneToOneFilterMockup(4, true, std::chrono::microseconds(0));
+    OneToOneFilter *mid2 = new OneToOneFilterMockup(4, true, std::chrono::microseconds(0));
     
     CPPUNIT_ASSERT(pipe->addFilter(1, head));
     CPPUNIT_ASSERT(pipe->addFilter(4, tail));
@@ -198,7 +198,7 @@ void PipelineManagerFunctionalTest::forkConnectionOrigin()
     HeadFilterMockup *head = new HeadFilterMockup();
     TailFilterMockup *tail = new TailFilterMockup();
     TailFilterMockup *tail2 = new TailFilterMockup();
-    OneToOneFilter *mid = new OneToOneFilterMockup(4, true, std::chrono::microseconds(0), MASTER);
+    OneToOneFilter *mid = new OneToOneFilterMockup(4, true, std::chrono::microseconds(0));
     Frame *frame;
     
     CPPUNIT_ASSERT(pipe->addFilter(1, head));
@@ -250,7 +250,7 @@ void PipelineManagerFunctionalTest::forkConnectionEnding()
     HeadFilterMockup *head = new HeadFilterMockup();
     TailFilterMockup *tail = new TailFilterMockup();
     TailFilterMockup *tail2 = new TailFilterMockup();
-    OneToOneFilter *mid = new OneToOneFilterMockup(4, true, std::chrono::microseconds(0), MASTER);
+    OneToOneFilter *mid = new OneToOneFilterMockup(4, true, std::chrono::microseconds(0));
     Frame *frame;
     
     CPPUNIT_ASSERT(pipe->addFilter(1, head));
@@ -302,8 +302,8 @@ void PipelineManagerFunctionalTest::forkedDiamondConnectionOrigin()
     HeadFilterMockup *head = new HeadFilterMockup();
     TailFilterMockup *tail = new TailFilterMockup();
     TailFilterMockup *tail2 = new TailFilterMockup();
-    OneToOneFilter *mid = new OneToOneFilterMockup(4, true, std::chrono::microseconds(0), MASTER);
-    OneToOneFilter *mid2 = new OneToOneFilterMockup(4, true, std::chrono::microseconds(0), MASTER);
+    OneToOneFilter *mid = new OneToOneFilterMockup(4, true, std::chrono::microseconds(0));
+    OneToOneFilter *mid2 = new OneToOneFilterMockup(4, true, std::chrono::microseconds(0));
     
     CPPUNIT_ASSERT(pipe->addFilter(1, head));
     CPPUNIT_ASSERT(pipe->addFilter(4, tail));
@@ -346,8 +346,8 @@ void PipelineManagerFunctionalTest::forkedDiamondConnectionEnding()
     HeadFilterMockup *head = new HeadFilterMockup();
     TailFilterMockup *tail = new TailFilterMockup();
     TailFilterMockup *tail2 = new TailFilterMockup();
-    OneToOneFilter *mid = new OneToOneFilterMockup(4, true, std::chrono::microseconds(0), MASTER);
-    OneToOneFilter *mid2 = new OneToOneFilterMockup(4, true, std::chrono::microseconds(0), MASTER);
+    OneToOneFilter *mid = new OneToOneFilterMockup(4, true, std::chrono::microseconds(0));
+    OneToOneFilter *mid2 = new OneToOneFilterMockup(4, true, std::chrono::microseconds(0));
     
     CPPUNIT_ASSERT(pipe->addFilter(1, head));
     CPPUNIT_ASSERT(pipe->addFilter(4, tail));

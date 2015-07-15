@@ -36,7 +36,7 @@ FrameQueue* createAudioQueue(struct ConnectionData cData, unsigned char rtpPaylo
                              char const* codecName, unsigned channels,
                              unsigned sampleRate);
 
-SourceManager::SourceManager(unsigned writersNum): HeadFilter(SERVER, writersNum)
+SourceManager::SourceManager(unsigned writersNum): HeadFilter(writersNum, SERVER)
 {
     fType = RECEIVER;
 

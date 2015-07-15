@@ -57,7 +57,7 @@ protected:
 
 void VideoMixerFunctionalTest::setUp()
 {
-    mixer = VideoMixer::createNew(MASTER, channels, mixWidth, mixHeight);
+    mixer = VideoMixer::createNew(channels, mixWidth, mixHeight);
     mixScenario = new ManyToOneVideoScenarioMockup(mixer);
     reader = new AVFramesReader();
 

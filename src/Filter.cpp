@@ -412,8 +412,8 @@ std::vector<int> BaseFilter::processFrame(int& ret)
     std::vector<int> enabledJobs;
 
     switch(fRole) {
-        case MASTER:
-            enabledJobs = masterProcessFrame(ret);
+        case REGULAR:
+            enabledJobs = regularProcessFrame(ret);
             break;
         case SERVER:
             enabledJobs = serverProcessFrame(ret);
@@ -427,7 +427,7 @@ std::vector<int> BaseFilter::processFrame(int& ret)
 }
 
 
-std::vector<int> BaseFilter::masterProcessFrame(int& ret)
+std::vector<int> BaseFilter::regularProcessFrame(int& ret)
 {
     std::chrono::microseconds enlapsedTime;
     std::chrono::microseconds frameTime_;
@@ -634,7 +634,7 @@ bool OneToOneFilter::runDoProcessFrame()
 }
 
 
-OneToManyFilter::OneToManyFilter(FilterRole fRole_, unsigned writersNum, bool periodic) :
+OneToManyFilter::OneToManyFilter(unsigned writersNum, FilterRole fRole_, bool periodic) :
     BaseFilter(1, writersNum, fRole_, periodic)
 {
 }
@@ -654,7 +654,7 @@ bool OneToManyFilter::runDoProcessFrame()
 }
 
 
-HeadFilter::HeadFilter(FilterRole fRole_, unsigned writersNum, bool periodic) :
+HeadFilter::HeadFilter(unsigned writersNum, FilterRole fRole_, bool periodic) :
     BaseFilter(0, writersNum, fRole_, periodic)
 {
 }
@@ -691,7 +691,7 @@ void HeadFilter::pushEvent(Event e)
     }
 }
 
-TailFilter::TailFilter(FilterRole fRole_, unsigned readersNum, bool periodic) :
+TailFilter::TailFilter(unsigned readersNum, FilterRole fRole_, bool periodic) :
     BaseFilter(readersNum, 0, fRole_, periodic)
 {
 }
@@ -723,7 +723,7 @@ void TailFilter::pushEvent(Event e)
 }
 
 
-ManyToOneFilter::ManyToOneFilter(FilterRole fRole_, unsigned readersNum, bool periodic) :
+ManyToOneFilter::ManyToOneFilter(unsigned readersNum, FilterRole fRole_, bool periodic) :
     BaseFilter(readersNum, 1, fRole_, periodic)
 {
 }

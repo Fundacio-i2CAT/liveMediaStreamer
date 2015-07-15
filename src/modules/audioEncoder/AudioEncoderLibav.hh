@@ -38,7 +38,7 @@ extern "C" {
 class AudioEncoderLibav : public OneToOneFilter {
 
 public:
-    AudioEncoderLibav(FilterRole fRole_ = MASTER);
+    AudioEncoderLibav();
     ~AudioEncoderLibav();
 
     bool configure(ACodecType codec, int codedAudioChannels, int codedAudioSampleRate, int bitrate);

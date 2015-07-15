@@ -173,7 +173,7 @@ std::vector<int> BaseFilter::addFrames(std::map<int, Frame*> &dFrames)
     for (auto it : dFrames){
         if (it.second->getConsumed()) {
             int wId = it.first;
-            if (writers[wId]->isConnected()){
+            if (writers.count(wId) > 0 && writers[wId]->isConnected()){
                 enabledJobs.push_back(writers[wId]->addFrame());
             }
         }
@@ -193,7 +193,7 @@ std::vector<int> BaseFilter::removeFrames(std::map<int, Frame*> &oFrames)
     std::lock_guard<std::mutex> guard(mtx);
     
     for (auto it : readers){
-        if (oFrames[it.first] && oFrames[it.first]->getConsumed()){
+        if (oFrames.count(it.first) > 0 && oFrames[it.first]->getConsumed()){
             enabledJobs.push_back(it.second->removeFrame());
         }
     }

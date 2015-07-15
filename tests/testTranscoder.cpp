@@ -41,6 +41,9 @@
 #define SEG_DURATION 4 //sec
 #define BASE_NAME "test"
 
+#define BYPASS_VIDEO_PATH 3113
+#define BYPASS_AUDIO_PATH 4224
+
 void signalHandler( int signum )
 {
     utils::infoMsg("Interruption signal received");
@@ -84,7 +87,7 @@ void addAudioPath(unsigned port, int receiverID, int transmitterID)
         pipe->removePath(port);
         return;
     }
-
+    
     utils::infoMsg("Audio path created from port " + std::to_string(port));
 }
 
@@ -134,7 +137,7 @@ void addVideoPath(unsigned port, int receiverID, int transmitterID,
         pipe->removePath(port);
         return;
     }
-
+  
     utils::infoMsg("Video path created from port " + std::to_string(port));
 }
 
@@ -258,7 +261,7 @@ bool publishRTSPSession(std::vector<int> readers, SinkManager *transmitter)
     if (!transmitter->addRTSPConnection(readers, 2, MPEGTS, sessionId)){
         return false;
     }
-
+    
     return true;
 }
 
@@ -301,8 +304,8 @@ int main(int argc, char* argv[])
             utils::infoMsg("Ignoring any audio or video input port, just RTSP inputs");
         } else if (strcmp(argv[i],"-c")==0) {
             cPort = std::stoi(argv[i+1]);
-            utils::infoMsg("audio input port: " + std::to_string(aPort));
-        }
+            utils::infoMsg("events listening port: " + std::to_string(cPort));
+        } 
     }
 
     if (vPort == 0 && aPort == 0 && rtspUri.length() == 0){

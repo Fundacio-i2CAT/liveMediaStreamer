@@ -136,13 +136,14 @@ bool SinkManager::deleteReader(int readerId)
 
 bool SinkManager::doProcessFrame(std::map<int, Frame*> &oFrames)
 {
+    Frame *f;
     if (envir() == NULL){
         return false;
     }
     
     for (auto it: oFrames){
         if (it.second && it.second->getConsumed()){
-            it.second->setConsumed(false);
+            oFrames.erase(it.first);
             if (sources.count(it.first) > 0 && sources[it.first]->setFrame(it.second)){
                 QueueSource::signalNewFrameData(scheduler, sources[it.first]);
             }
@@ -150,6 +151,13 @@ bool SinkManager::doProcessFrame(std::map<int, Frame*> &oFrames)
     }
 
     scheduler->SingleStep();
+    
+    for (auto it : sources){
+        f = it.second->getFrame();
+        if (f){
+            oFrames[it.first] = f;
+        }
+    }
 
     return true;
 }

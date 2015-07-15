@@ -320,7 +320,7 @@ int main(int argc, char* argv[])
             utils::infoMsg("sharing memory key set to: "+ std::to_string(sharingMemoryKey));
         } else if (strcmp(argv[i],"-c")==0) {
             cPort = std::stoi(argv[i+1]);
-            utils::infoMsg("audio input port: " + std::to_string(aPort));
+            utils::infoMsg("control port: " + std::to_string(cPort));
         }
     }
 

@@ -24,6 +24,8 @@
 #include "Dasher.hh"
 #include "../../AVFramedQueue.hh"
 #include "DashVideoSegmenter.hh"
+#include "DashVideoSegmenterAVC.hh"
+#include "DashVideoSegmenterHEVC.hh"
 #include "DashAudioSegmenter.hh"
 
 #include <map>
@@ -35,24 +37,8 @@
 
 std::chrono::microseconds tsOffset = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now().time_since_epoch());
 
-Dasher* Dasher::createNew(std::string dashFolder, std::string baseName, size_t segDurInSeconds, int readersNum)
-{
-    Dasher* dasher = NULL;
-
-    dasher = new Dasher(readersNum);
-
-    if (!dasher->configure(dashFolder, baseName, segDurInSeconds)) {
-        utils::errorMsg("Error configuring Dasher");
-        delete dasher;
-        return NULL;
-    }
-
-    return dasher;
-}
-
-
-Dasher::Dasher(int readersNum) :
-TailFilter(MASTER, readersNum), mpdMngr(NULL), hasVideo(false), videoStarted(false)
+Dasher::Dasher(FilterRole fRole_, unsigned readersNum) :
+TailFilter(fRole_, readersNum), mpdMngr(NULL), hasVideo(false), videoStarted(false)
 {
     fType = DASHER;
     initializeEventMap();
@@ -116,7 +102,6 @@ bool Dasher::doProcessFrame(std::map<int, Frame*> orgFrames)
         if (!fr.second || !fr.second->getConsumed()) {
             continue;
         }
-
 
         segmenter = getSegmenter(fr.first);
 
@@ -243,7 +228,7 @@ bool Dasher::generateSegment(size_t id, DashSegmenter* segmenter)
         }
 
         mpdMngr->updateVideoAdaptationSet(V_ADAPT_SET_ID, segmenters[id]->getTimeBase(), vSegTempl, vInitSegTempl);
-        mpdMngr->updateVideoRepresentation(V_ADAPT_SET_ID, std::to_string(id), VIDEO_CODEC, vSeg->getWidth(),
+        mpdMngr->updateVideoRepresentation(V_ADAPT_SET_ID, std::to_string(id), vSeg->getVideoFormat(), vSeg->getWidth(),
                                             vSeg->getHeight(), vSeg->getBitrate(), vSeg->getFramerate());
 
         if (!forceAudioSegmentsGeneration()) {
@@ -569,12 +554,17 @@ bool Dasher::addSegmenter(int readerId)
 
     if ((vQueue = dynamic_cast<VideoFrameQueue*>(r->getQueue())) != NULL) {
 
-        if (vQueue->getCodec() != H264) {
-            utils::errorMsg("Error setting dasher reader: only H264 codec is supported for video");
+        if (vQueue->getCodec() != H264 && vQueue->getCodec() != H265) {
+            utils::errorMsg("Error setting dasher reader: only H264 & H265 codecs are supported for video");
             return false;
         }
 
-        segmenters[readerId] = new DashVideoSegmenter(segDur);
+        if (vQueue->getCodec() == H264) segmenters[readerId] = new DashVideoSegmenterAVC(segDur);
+        else if (vQueue->getCodec() == H265) segmenters[readerId] = new DashVideoSegmenterHEVC(segDur);
+        else {
+            utils::errorMsg("Error setting dasher video segmenter: only H264 & H265 codecs are supported for video");
+            return false;
+        }
         vSegments[readerId] = new DashSegment();
         initSegments[readerId] = new DashSegment();
         hasVideo = true;
@@ -720,7 +710,6 @@ bool DashSegmenter::generateSegment(DashSegment* segment, bool force)
     segment->setComplete(true);
     return true;
 }
-
 
 size_t DashSegmenter::nanosToTimeBase(std::chrono::nanoseconds nanosValue)
 {

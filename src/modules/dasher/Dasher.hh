@@ -37,13 +37,14 @@ extern "C" {
 #include <map>
 #include <string>
 
-#define DASH_VIDEO_TIME_BASE 12800
-#define V_ADAPT_SET_ID "0"
-#define A_ADAPT_SET_ID "1"
-#define VIDEO_CODEC "avc1.42c01e"
-#define AUDIO_CODEC "mp4a.40.2"
-#define V_EXT ".m4v"
-#define A_EXT ".m4a"
+#define DASH_VIDEO_TIME_BASE    12800
+#define V_ADAPT_SET_ID          "0"
+#define A_ADAPT_SET_ID          "1"
+#define VIDEO_CODEC_AVC         "avc1.42c01e"
+#define VIDEO_CODEC_HEVC        "hev1"
+#define AUDIO_CODEC             "mp4a.40.2"
+#define V_EXT                   ".m4v"
+#define A_EXT                   ".m4a"
 
 class DashSegmenter;
 class DashSegment;
@@ -60,12 +61,14 @@ public:
     * @param segDurInSeconds is the time duration in seconds
     * @return Pointer to the object if succeded and NULL if not
     */
-    static Dasher* createNew(std::string dashFolder, std::string baseName, size_t segDurInSeconds, int readersNum = MAX_READERS);
+    Dasher(FilterRole fRole_ = MASTER, unsigned readersNum = MAX_READERS);
 
     /**
     * Class destructor
     */
     ~Dasher();
+
+    bool configure(std::string dashFolder, std::string baseName_, size_t segDurInSeconds);
 
     /**
     * Adds a new segmenter associated to an existance reader. Only one segmenter can be associated to each reader
@@ -106,8 +109,6 @@ public:
     bool setDashSegmenterBitrate(int id, size_t kbps);
 
 private:
-    Dasher(int readersNum);
-    bool configure(std::string dashFolder, std::string baseName_, size_t segDurInSeconds);
     bool doProcessFrame(std::map<int, Frame*> orgFrames);
     void doGetState(Jzon::Object &filterNode);
     void initializeEventMap();

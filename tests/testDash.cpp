@@ -2,16 +2,15 @@
 #include "../src/modules/audioDecoder/AudioDecoderLibav.hh"
 #include "../src/modules/audioMixer/AudioMixer.hh"
 #include "../src/modules/videoEncoder/VideoEncoderX264.hh"
+#include "../src/modules/videoEncoder/VideoEncoderX265.hh"
 #include "../src/modules/videoDecoder/VideoDecoderLibav.hh"
 #include "../src/modules/videoMixer/VideoMixer.hh"
 #include "../src/modules/videoResampler/VideoResampler.hh"
 #include "../src/modules/liveMediaInput/SourceManager.hh"
-#include "../src/modules/liveMediaOutput/SinkManager.hh"
 #include "../src/modules/dasher/Dasher.hh"
 #include "../src/AudioFrame.hh"
 #include "../src/Controller.hh"
 #include "../src/Utils.hh"
-#include "../src/modules/sharedMemory/SharedMemory.hh"
 
 #include <csignal>
 #include <vector>
@@ -27,7 +26,6 @@
 
 #define A_MEDIUM "audio"
 #define A_PAYLOAD 97
-// #define A_CODEC "MPEG4-GENERIC"
 #define A_CODEC "OPUS"
 #define A_BANDWITH 128
 #define A_TIME_STMP_FREQ 48000
@@ -39,35 +37,47 @@
 
 #define RETRIES 60
 
+#define MAX_VIDEO_QUALITIES 3
+#define DEFAULT_OUTPUT_VIDEO_QUALITIES 3
+#define DEFAULT_FIRST_VIDEO_QUALITY 2000
+
 #define SEG_DURATION 4 //sec
 #define DASH_FOLDER "/tmp/dash"
 #define BASE_NAME "test"
+
+enum DashVideoCodecType { DVCT_NONE = -1, DVCT_H264, DVCT_H265 };
 
 bool run = true;
 
 void signalHandler( int signum )
 {
     utils::infoMsg("Interruption signal received");
-    Controller::getInstance()->pipelineManager()->stop();
     run = false;
+    Controller::getInstance()->pipelineManager()->stop();
+    Controller::destroyInstance();
+    PipelineManager::destroyInstance();
     exit(0);
 }
 
-Dasher* setupDasher(int dasherId)
+Dasher* setupDasher(int dasherId, std::string dash_folder, int segDuration)
 {
     Dasher* dasher = NULL;
 
     PipelineManager *pipe = Controller::getInstance()->pipelineManager();
 
-    dasher = Dasher::createNew(std::string(DASH_FOLDER), std::string(BASE_NAME), SEG_DURATION);
+    dasher = new Dasher();
 
     if(!dasher) {
-        utils::errorMsg("Error configure dasher: exist testTranscoder");
+        utils::errorMsg("Error creating dasher: exit");
         exit(1);
     }
 
-    pipe->addFilter(dasherId, dasher);
+    if(!dasher->configure(dash_folder, std::string(BASE_NAME), segDuration)){
+        utils::errorMsg("Error configuring dasher: exit");
+        exit(1);        
+    }
 
+    pipe->addFilter(dasherId, dasher);
     return dasher;
 }
 
@@ -98,8 +108,10 @@ void addAudioPath(unsigned port, Dasher* dasher, int dasherId, int receiverID)
 
     pipe->addFilter(encId, encoder);
 
+    //NOTE: add filter to path
     path = pipe->createPath(receiverID, dasherId, port, dstReader, ids);
     pipe->addPath(port, path);
+    
     if (!pipe->connectPath(path)){
         utils::errorMsg("Failed! Path not connected");
         pipe->removePath(port);
@@ -112,30 +124,45 @@ void addAudioPath(unsigned port, Dasher* dasher, int dasherId, int receiverID)
 
     if (dasher != NULL && !dasher->setDashSegmenterBitrate(dstReader, OUT_A_BITRATE)) {
         utils::errorMsg("Error setting bitrate to segmenter");
-    }
+    } 
+
+    pipe->startWorkers();
 
     utils::infoMsg("Audio path created from port " + std::to_string(port));
 }
 
-void addVideoPath(unsigned port, Dasher* dasher, int dasherId, int receiverID, 
-                    unsigned width = 0, unsigned height = 0)
+void addVideoPath(unsigned port, Dasher* dasher, int dasherId, int receiverID,
+                    DashVideoCodecType codec, int nQ, int maxBitRate, unsigned width = 0, unsigned height = 0)
 {
     PipelineManager *pipe = Controller::getInstance()->pipelineManager();
 
-    int decId = 11000;
+    int wResId = 4000;
+    int wEncId = 5000;
+    int wDecId = 6000;
+    int decId = 7000;
+    int resIdM = 2000;
+    int encIdM = 1000;
+    int dstReaderM = 3000;
     int resId = 2000;
     int encId = 1000;
-    int dstReader1 = 3000;
+    int dstReader = 3000;
+    int slavePathId = 8000;
 
-    std::vector<int> ids;
-    ids = {decId, resId, encId};
+    std::vector<int> ids({decId, resId, encId});
+    std::vector<int> slaveId;
 
     std::string sessionId;
     std::string sdp;
 
     VideoDecoderLibav *decoder;
+    VideoResampler *resamplerM;
     VideoResampler *resampler;
-    VideoEncoderX264 *encoder;
+    VideoEncoderX264 *encoderX264M;
+    VideoEncoderX265 *encoderX265M;    
+    VideoEncoderX264 *encoderX264;
+    VideoEncoderX265 *encoderX265;
+    encoderX264M = new VideoEncoderX264();
+    encoderX265M = new VideoEncoderX265();
 
     Path *path;
 
@@ -143,33 +170,107 @@ void addVideoPath(unsigned port, Dasher* dasher, int dasherId, int receiverID,
     decoder = new VideoDecoderLibav();
     pipe->addFilter(decId, decoder);
 
-    //NOTE: Adding resampler to pipeManager and handle worker
-    resampler = new VideoResampler();
-    pipe->addFilter(resId, resampler);
-    resampler->configure(1280, 720, 0, YUV420P);
+    resamplerM = new VideoResampler();
+    resamplerM->configure(1280, 720, 0, YUV420P);
+    pipe->addFilter(resIdM, resamplerM);
 
-    //NOTE: Adding encoder to pipeManager and handle worker
-    encoder = new VideoEncoderX264();
-    pipe->addFilter(encId, encoder);
-
-    //bitrate, fps, gop, lookahead, threads, annexB, preset
-    encoder->configure(4000, 25, 25, 25, 4, true, "superfast");
-
-    path = pipe->createPath(receiverID, dasherId, port, dstReader1, ids);
-    
-    pipe->addPath(port, path);
-    if (!pipe->connectPath(path)){
-        utils::errorMsg("Failed! Path not connected");
-        pipe->removePath(port);
-        return;
+    switch (codec) {
+        case DVCT_H264:
+            pipe->addFilter(encIdM, encoderX264M);
+            wEnc = new Worker();
+            wEnc->addProcessor(encIdM, encoderX264M);
+            encoderX264M->setWorkerId(wEncId);
+            pipe->addWorker(wEncId, wEnc);
+            encoderX264M->configure(maxBitRate, 25, 25, 25, 4, true, "superfast");
+            utils::infoMsg("Master reader: " + std::to_string(dstReaderM));
+            path = pipe->createPath(receiverID, dasherId, port, dstReaderM, ids);
+            pipe->addPath(port, path);
+            pipe->connectPath(path);
+            break;
+        case DVCT_H265:
+            pipe->addFilter(encIdM, encoderX265M);
+            wEnc = new Worker();
+            wEnc->addProcessor(encIdM, encoderX265M);
+            encoderX265M->setWorkerId(wEncId);
+            pipe->addWorker(wEncId, wEnc);
+            encoderX265M->configure(maxBitRate, 25, 25, 25, 4, true, "superfast");
+            utils::infoMsg("Master reader: " + std::to_string(dstReaderM));
+            path = pipe->createPath(receiverID, dasherId, port, dstReader, ids);
+            pipe->addPath(port, path);
+            pipe->connectPath(path);
+            break;
+        default:
+            utils::errorMsg("Only H264 and H265 are supported... exiting...");
+            exit(1);
+            break;
     }
 
-    if (!dasher->addSegmenter(dstReader1)) {
+    if (!dasher->addSegmenter(dstReader)) {
         utils::errorMsg("Error adding segmenter");
     }
-    if (!dasher->setDashSegmenterBitrate(dstReader1, 4000*1000)) {
+    if (!dasher->setDashSegmenterBitrate(dstReader, maxBitRate*1000)) {
         utils::errorMsg("Error setting bitrate to segmenter");
     } 
+
+    for (int n = 1; n < nQ; n++){
+        resId = resIdM + n;
+        if (n < 2) wResId += n;
+        encId = encIdM + n;
+        wEncId += n;
+        dstReader = dstReaderM + n;
+        slavePathId += n;
+        slaveId = {encId};
+        resampler = new VideoResampler(SLAVE);
+        pipe->addFilter(resId, resampler);
+        if (n < 2) wRes = new Worker();
+        wRes->addProcessor(resId, resampler);
+        resampler->setWorkerId(wResId);
+        resampler->configure(1280, 720, 0, YUV420P);
+        if (n < 2) pipe->addWorker(wResId, wRes);
+        ((BaseFilter*)resamplerM)->addSlave(resId, resampler);
+
+        switch (codec) {
+            case DVCT_H264:
+                encoderX264 = new VideoEncoderX264(SLAVE, false);
+                pipe->addFilter(encId, encoderX264);
+                wEnc = new Worker();
+                wEnc->addProcessor(encId, encoderX264);
+                encoderX264->setWorkerId(wEncId);
+                pipe->addWorker(wEncId, wEnc);
+                ((BaseFilter*)encoderX264M)->addSlave(wEncId, encoderX264);
+                //bitrate, fps, gop, lookahead, threads, annexB, preset
+                encoderX264->configure(maxBitRate/(n*2), 25, 25, 25, 4, true, "superfast");
+                break;
+            case DVCT_H265:
+                encoderX265 = new VideoEncoderX265(SLAVE, false);
+                pipe->addFilter(encId, encoderX265);
+                wEnc = new Worker();
+                wEnc->addProcessor(encId, encoderX265);
+                encoderX265->setWorkerId(wEncId);
+                pipe->addWorker(wEncId, wEnc);
+                ((BaseFilter*)encoderX265M)->addSlave(wEncId, encoderX265);
+                //bitrate, fps, gop, lookahead, threads, annexB, preset
+                encoderX265->configure(maxBitRate/(n*2), 25, 25, 25, 4, true, "superfast");
+                break;
+            default:
+                utils::errorMsg("Only H264 and H265 are supported... exiting...");
+                exit(1);
+                break;
+        }
+        utils::infoMsg("Slave reader: " + std::to_string(dstReader));
+        path = pipe->createPath(resId, dasherId, -1, dstReader, slaveId);
+        pipe->addPath(slavePathId, path);
+        pipe->connectPath(path);
+
+        if (!dasher->addSegmenter(dstReader)) {
+            utils::errorMsg("Error adding segmenter");
+        }
+        if (!dasher->setDashSegmenterBitrate(dstReader, maxBitRate*1000/(n*2))) {
+            utils::errorMsg("Error setting bitrate to segmenter");
+        } 
+    }
+    
+    pipe->startWorkers();
 
     utils::infoMsg("Video path created from port " + std::to_string(port));
 }
@@ -226,7 +327,8 @@ bool addAudioSDPSession(unsigned port, SourceManager *receiver, std::string code
 }
 
 bool addRTSPsession(std::string rtspUri, Dasher* dasher, int dasherId,
-                    SourceManager *receiver, int receiverID)
+                    SourceManager *receiver, int receiverID,
+                    DashVideoCodecType codec, int nQ, int maxBitRate)
 {
     Session* session;
     std::string sessionId = utils::randomIdGenerator(ID_LENGTH);
@@ -270,7 +372,7 @@ bool addRTSPsession(std::string rtspUri, Dasher* dasher, int dasherId,
         medium = subsession->mediumName();
 
         if (medium.compare("video") == 0){
-            addVideoPath(subsession->clientPortNum(), dasher, dasherId, receiverID);
+            addVideoPath(subsession->clientPortNum(), dasher, dasherId, receiverID, codec, nQ, maxBitRate);
         } else if (medium.compare("audio") == 0){
             addAudioPath(subsession->clientPortNum(), dasher, dasherId, receiverID);
         }
@@ -279,85 +381,166 @@ bool addRTSPsession(std::string rtspUri, Dasher* dasher, int dasherId,
     return true;
 }
 
-bool publishRTSPSession(std::vector<int> readers, SinkManager *transmitter)
-{
-    std::string sessionId;
-
-    sessionId = "plainrtp";
-    utils::infoMsg("Adding plain RTP session...");
-    if (!transmitter->addRTSPConnection(readers, 1, STD_RTP, sessionId)){
-        return false;
-    }
-
-    sessionId = "mpegts";
-    utils::infoMsg("Adding plain MPEGTS session...");
-    if (!transmitter->addRTSPConnection(readers, 2, MPEGTS, sessionId)){
-        return false;
-    }
-
-    return true;
+void usage(){
+    utils::infoMsg("usage: \n\r \
+        testdash -v <RTP input video port> -a <RTP input audio port> -r <input RTSP URI> -c <socket control port> -nvq <number of output video qualities> -vc <output video codec> -f <dash folder> -b <max video bit rate> -s <segment duration> \
+        \n INPUTS: RTP or RTSP \n QUALITIES: from 1 to "+std::to_string(MAX_VIDEO_QUALITIES)+"                      \
+        \n OUTPUT VIDEO CODECS: H264 or H265                                                                        \
+        \n FOLDER: specify system folder where to write DASH MPD, INIT and SEGMENTS files.                          \
+    ");
 }
 
+//TODO: Define width and height of the master stream and fps
+//      define each parameter per stream
 int main(int argc, char* argv[])
 {
     int vPort = 0;
     int aPort = 0;
-    std::string rtspUri;
+    int cPort = 7777;
+    int numVidQ = DEFAULT_OUTPUT_VIDEO_QUALITIES;
+    std::string vCodec = V_CODEC;
+    DashVideoCodecType vCodecType = DVCT_H264;
+    std::string dFolder = DASH_FOLDER;
+    int maxVideoBitRate = DEFAULT_FIRST_VIDEO_QUALITY;
+    int segDuration = SEG_DURATION;
+    std::string ip;
+    std::string rtspUri = "none";
     Dasher* dasher = NULL;
     int dasherId = 4000;
+    std::vector<int> readers;
+
     int receiverID = rand();
+    int receiWorkID = rand();
 
     SourceManager* receiver = NULL;
     PipelineManager *pipe;
+    LiveMediaWorker *lW;
 
     utils::setLogLevel(INFO);
 
     for (int i = 1; i < argc; i++) {
         if (strcmp(argv[i],"-v")==0) {
             vPort = std::stoi(argv[i+1]);
-            utils::infoMsg("video input port: " + std::to_string(vPort));
+            utils::infoMsg("configuring video input port: " + std::to_string(vPort));
         } else if (strcmp(argv[i],"-a")==0) {
             aPort = std::stoi(argv[i+1]);
-            utils::infoMsg("audio input port: " + std::to_string(aPort));
+            utils::infoMsg("configuring audio input port: " + std::to_string(aPort));
         } else if (strcmp(argv[i],"-r")==0) {
             rtspUri = argv[i+1];
-            utils::infoMsg("input RTSP URI: " + rtspUri);
+            utils::infoMsg("configuring input RTSP URI: " + rtspUri);
             utils::infoMsg("Ignoring any audio or video input port, just RTSP inputs");
+        } else if (strcmp(argv[i],"-c")==0) {
+            cPort = std::stoi(argv[i+1]);
+            utils::infoMsg("configuring control port: " + std::to_string(cPort));
+        } else if (strcmp(argv[i],"-nvq")==0) {
+            numVidQ = std::stoi(argv[i+1]);
+            utils::infoMsg("configuring number of video qualities: " + std::to_string(numVidQ));
+        } else if (strcmp(argv[i],"-vc")==0) {
+            vCodec = argv[i+1];
+            utils::infoMsg("configuring output video codec: " + vCodec);
+        } else if (strcmp(argv[i],"-f")==0) {
+            dFolder = argv[i+1];
+            utils::infoMsg("configuring dash folder: " + dFolder);
+        } else if (strcmp(argv[i],"-b")==0) {
+            maxVideoBitRate = std::stoi(argv[i+1]);
+            utils::infoMsg("configuring maximum video bitrate: " + std::to_string(maxVideoBitRate));
+        } else if (strcmp(argv[i],"-s")==0) {
+            segDuration = std::stoi(argv[i+1]);
+            utils::infoMsg("configuring dash segments duration: " + std::to_string(segDuration));
         }
     }
 
-    if (vPort == 0 && aPort == 0 && rtspUri.length() == 0){
+    if (vPort == 0 && aPort == 0 && rtspUri.length() == 4){
         utils::errorMsg("invalid parameters");
+        usage();
         return 1;
     }
 
+    if (numVidQ < 1 || numVidQ > MAX_VIDEO_QUALITIES){
+        utils::errorMsg("Number of output video qualities can be 1, 2 or 3");
+        usage();
+        return 1;
+    }
+
+    if (vCodec != "H264" && vCodec != "H265"){
+        utils::errorMsg("Only H264 and H265 ouput codecs are supported");
+        usage();
+        return 1;
+    } else if (vCodec == "H264"){
+        vCodecType = DVCT_H264;
+    } else {
+        vCodecType = DVCT_H265;
+    }
+
+
+    if (access(dFolder.c_str(), W_OK) != 0) {
+        utils::errorMsg("Error configuring Dasher: provided folder is not writable or does not exist");
+        usage();
+        return false;
+    }
+
+    utils::infoMsg("Running testDasher:                                                      \
+        \n\t\t\t\t - video receiver port: " + std::to_string(vPort) + "                      \
+        \n\t\t\t\t - audio receiver port: " + std::to_string(aPort) + "                      \
+        \n\t\t\t\t - input RTSP URI: " + rtspUri + "                                         \
+        \n\t\t\t\t - output video codec: " + vCodec + "                                      \
+        \n\t\t\t\t - number of output video qualities: " + std::to_string(numVidQ) + "       \
+        \n\t\t\t\t - dash folder: " + dFolder + "                                            \
+    ");
+
     receiver = new SourceManager();
     pipe = Controller::getInstance()->pipelineManager();
-
-    dasher = setupDasher(dasherId);
+    
+    dasher = setupDasher(dasherId, dFolder, segDuration);
+    
+    lW = new LiveMediaWorker();
+    pipe->addWorker(receiWorkID, lW);
     pipe->addFilter(receiverID, receiver);
+    pipe->addFilterToWorker(receiWorkID, receiverID);
+
+    pipe->startWorkers();
 
     signal(SIGINT, signalHandler);
 
-    if (vPort != 0 && rtspUri.length() == 0){
+    if (vPort != 0 && rtspUri.length() == 4){
         addVideoSDPSession(vPort, receiver);
-        addVideoPath(vPort, dasher, dasherId, receiverID);
+        addVideoPath(vPort, dasher, dasherId, receiverID, vCodecType, numVidQ, maxVideoBitRate);
     }
 
-    if (aPort != 0 && rtspUri.length() == 0){
+    if (aPort != 0 && rtspUri.length() == 4){
         addAudioSDPSession(aPort, receiver);
         addAudioPath(aPort, dasher, dasherId, receiverID);
     }
 
-    if (rtspUri.length() > 0){
-        if (!addRTSPsession(rtspUri, dasher, dasherId, receiver, receiverID)){
+    if (rtspUri.length() > 4){
+        if (!addRTSPsession(rtspUri, dasher, dasherId, receiver, receiverID, vCodecType, numVidQ, maxVideoBitRate)){
             utils::errorMsg("Couldn't start rtsp client session!");
+            usage();
             return 1;
         }
     }
 
-    while(run) {
-        std::this_thread::sleep_for(std::chrono::seconds(1));
+    for (auto it : pipe->getPaths()) {
+        readers.push_back(it.second->getDstReaderID());
+    }
+
+    Controller* ctrl = Controller::getInstance();
+
+    if (!ctrl->createSocket(cPort)) {
+        exit(1);
+    }
+
+    while (run) {
+        if (!ctrl->listenSocket()) {
+            continue;
+        }
+
+        if (!ctrl->readAndParse()) {
+            //TDODO: error msg
+            continue;
+        }
+
+        ctrl->processRequest();
     }
 
     return 0;

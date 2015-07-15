@@ -18,17 +18,17 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  *  Authors:  Marc Palau <marc.palau@i2cat.net>
+ *            Gerard Castillo <gerard.castillo@i2cat.net>  
  *
  */
 
  #include "DashVideoSegmenter.hh"
 
-DashVideoSegmenter::DashVideoSegmenter(std::chrono::seconds segDur) : 
+DashVideoSegmenter::DashVideoSegmenter(std::chrono::seconds segDur, std::string video_format_) : 
 DashSegmenter(segDur, DASH_VIDEO_TIME_BASE), 
-updatedSPS(false), updatedPPS(false), frameRate(0), isIntra(false), 
-isVCL(false)
+isIntra(false), video_format(video_format_)
 {
-    vFrame = InterleavedVideoFrame::createNew(H264, 5000000);
+
 }
 
 DashVideoSegmenter::~DashVideoSegmenter()
@@ -62,7 +62,7 @@ bool DashVideoSegmenter::setup(size_t segmentDuration, size_t timeBase, size_t w
     uint8_t i2error = I2OK;
 
     if (!dashContext) {
-        i2error = generate_context(&dashContext, VIDEO_TYPE);
+        i2error = generateContext();
     }
 
     if (i2error != I2OK || !dashContext) {
@@ -146,28 +146,6 @@ bool DashVideoSegmenter::appendFrameToDashSegment(DashSegment* segment)
     return true;
 }
 
-bool DashVideoSegmenter::updateMetadata()
-{
-    if (!updatedSPS || !updatedPPS) {
-        return false;
-    }
-
-    createMetadata();
-    updatedSPS = false;
-    updatedPPS = false;
-    return true;
-}
-
-bool DashVideoSegmenter::flushDashContext()
-{
-    if (!dashContext) {
-        return false;
-    }
-
-    context_refresh(&dashContext, VIDEO_TYPE);
-    return true;
-}
-
 bool DashVideoSegmenter::parseNal(VideoFrame* nal, bool &newFrame)
 {
     int startCodeOffset;
@@ -191,106 +169,15 @@ bool DashVideoSegmenter::parseNal(VideoFrame* nal, bool &newFrame)
     return true;
 }
 
-bool DashVideoSegmenter::appendNalToFrame(unsigned char* nalData, unsigned nalDataLength, bool &newFrame)
-{
-    unsigned char nalType;
-
-    nalType = nalData[0] & H264_NALU_TYPE_MASK;
-
-    switch (nalType) {
-        case SPS:
-            saveSPS(nalData, nalDataLength);
-            isVCL = false;
-            isIntra = false;
-            newFrame = false;
-            break;
-        case PPS:
-            savePPS(nalData, nalDataLength);
-            isVCL = false;
-            isIntra = false;
-            newFrame = false;
-            break;
-        case SEI:
-            isVCL = false;
-            isIntra = false;
-            newFrame = false;
-            break;
-        case AUD:
-            newFrame = isVCL;
-            break;
-        case IDR:
-            isVCL = true;
-            isIntra = true;
-            newFrame = false;
-            break;
-        case NON_IDR:
-            isVCL = true;
-            isIntra = false;
-            newFrame = false;
-            break;
-        default:
-            utils::errorMsg("Error parsing NAL: NalType " + std::to_string(nalType) + " not contemplated");
-            return false;
-    }
-
-    if (nalType == IDR || nalType == NON_IDR) {
-        vFrame->getDataBuf()[vFrame->getLength()] = (nalDataLength >> 24) & 0xFF;
-        vFrame->getDataBuf()[vFrame->getLength()+1] = (nalDataLength >> 16) & 0xFF;
-        vFrame->getDataBuf()[vFrame->getLength()+2] = (nalDataLength >> 8) & 0xFF;
-        vFrame->getDataBuf()[vFrame->getLength()+3] = nalDataLength & 0xFF;
-        vFrame->setLength(vFrame->getLength() + 4);
-
-        memcpy(vFrame->getDataBuf() + vFrame->getLength(), nalData, nalDataLength);
-        vFrame->setLength(vFrame->getLength() + nalDataLength);
-    }
-
-    return true;
-}
-
-
-void DashVideoSegmenter::saveSPS(unsigned char* data, int dataLength)
-{
-    lastSPS.clear();
-    lastSPS.insert(lastSPS.begin(), data, data + dataLength);
-    updatedSPS = true;
-}
-
-void DashVideoSegmenter::savePPS(unsigned char* data, int dataLength)
-{
-    lastPPS.clear();
-    lastPPS.insert(lastPPS.begin(), data, data + dataLength);
-    updatedPPS = true;
-}
-
-void DashVideoSegmenter::createMetadata()
-{
-    int spsLength = lastSPS.size();
-    int ppsLength = lastPPS.size();
-
-    metadata.clear();
-
-    metadata.insert(metadata.end(), H264_METADATA_VERSION_FLAG);
-    metadata.insert(metadata.end(), lastSPS.begin(), lastSPS.begin() + 3);
-    metadata.insert(metadata.end(), METADATA_RESERVED_BYTES1 + AVCC_HEADER_BYTES_MINUS_ONE);
-    metadata.insert(metadata.end(), METADATA_RESERVED_BYTES2 + NUMBER_OF_SPS);
-    metadata.insert(metadata.end(), (spsLength >> 8) & 0xFF);
-    metadata.insert(metadata.end(), spsLength & 0xFF);
-    metadata.insert(metadata.end(), lastSPS.begin(), lastSPS.end());
-    metadata.insert(metadata.end(), NUMBER_OF_PPS);
-    metadata.insert(metadata.end(), (ppsLength >> 8) & 0xFF);
-    metadata.insert(metadata.end(), ppsLength & 0xFF);
-    metadata.insert(metadata.end(), lastPPS.begin(), lastPPS.end());
-}
-
 int DashVideoSegmenter::detectStartCode(unsigned char const* ptr)
 {
     u_int32_t bytes = 0|(ptr[0]<<16)|(ptr[1]<<8)|ptr[2];
-    if (bytes == H264_NALU_START_CODE) {
+    if (bytes == H264or5_NALU_START_CODE) {
         return SHORT_START_CODE_LENGTH;
     }
 
     bytes = (ptr[0]<<24)|(ptr[1]<<16)|(ptr[2]<<8)|ptr[3];
-    if (bytes == H264_NALU_START_CODE) {
+    if (bytes == H264or5_NALU_START_CODE) {
         return LONG_START_CODE_LENGTH;
     }
     return 0;

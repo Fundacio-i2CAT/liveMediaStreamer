@@ -98,7 +98,7 @@ headDemuxerFunctionalTest_LDFLAGS = -llog4cplus -lcppunit -lpthread -lavcodec -l
 pipelineManagerTest_SOURCES =  PipelineManagerTest.cpp
 pipelineManagerTest_CPPFLAGS = -g -Wall -g -D__STDC_CONSTANT_MACROS -I../src -I.
 pipelineManagerTest_CXXFLAGS = -std=c++11
-pipelineManagerTest_LDFLAGS = -llog4cplus -lcppunit -lpthread -llivemediastreamer
+pipelineManagerTest_LDFLAGS = -llog4cplus -lcppunit -lpthread -llivemediastreamer -L../src
 pipelineManagerTest_DEPENDENCIES = ../src/liblivemediastreamer.la
 
 

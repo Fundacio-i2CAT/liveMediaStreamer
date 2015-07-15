@@ -33,6 +33,8 @@
 #include <unistd.h>
 #include <math.h>
 
+std::chrono::microseconds tsOffset = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now().time_since_epoch());
+
 Dasher* Dasher::createNew(std::string dashFolder, std::string baseName, size_t segDurInSeconds, int readersNum)
 {
     Dasher* dasher = NULL;
@@ -114,6 +116,7 @@ bool Dasher::doProcessFrame(std::map<int, Frame*> orgFrames)
         if (!fr.second || !fr.second->getConsumed()) {
             continue;
         }
+
 
         segmenter = getSegmenter(fr.first);
 
@@ -334,16 +337,16 @@ bool Dasher::writeAudioSegments()
         }
     }
 
-    if (!writeSegmentsToDisk(aSegments, ts, V_EXT)) {
+    if (!writeSegmentsToDisk(aSegments, ts, A_EXT)) {
         utils::errorMsg("Error writing DASH video segment to disk");
         return false;
     }
 
-    rmTimestamp = mpdMngr->updateAdaptationSetTimestamp(V_ADAPT_SET_ID, ts, dur);
+    rmTimestamp = mpdMngr->updateAdaptationSetTimestamp(A_ADAPT_SET_ID, ts, dur);
 
     mpdMngr->writeToDisk(mpdPath.c_str());
 
-    if (rmTimestamp > 0 && !cleanSegments(aSegments, rmTimestamp, V_EXT)) {
+    if (rmTimestamp > 0 && !cleanSegments(aSegments, rmTimestamp, A_EXT)) {
         utils::warningMsg("Error cleaning dash video segments");
     }
 
@@ -709,6 +712,8 @@ bool DashSegmenter::generateSegment(DashSegment* segment, bool force)
         return false;
     }
 
+    std::cout << "New segment with timestamp " << segTimestamp << " and duration " << segDuration << std::endl;
+
     segment->setTimestamp(segTimestamp);
     segment->setDuration(segDuration);
     segment->setDataLength(segmentSize);
@@ -724,7 +729,7 @@ size_t DashSegmenter::nanosToTimeBase(std::chrono::nanoseconds nanosValue)
 
 size_t DashSegmenter::microsToTimeBase(std::chrono::microseconds microValue)
 {
-    return microValue.count()*timeBase/std::micro::den;
+    return (microValue-tsOffset).count()*timeBase/std::micro::den;
 }
 
 

@@ -116,6 +116,9 @@ private:
     bool appendFrameToSegment(size_t id, DashSegmenter* segmenter);
     DashSegmenter* getSegmenter(size_t id);
     bool forceAudioSegmentsGeneration();
+    bool writeVideoSegments();
+    bool writeAudioSegments();
+
 
     bool updateTimestampControl(std::map<int,DashSegment*> segments, size_t &timestamp, size_t &duration);
     bool writeSegmentsToDisk(std::map<int,DashSegment*> segments, size_t timestamp, std::string segExt);
@@ -314,12 +317,16 @@ public:
     */
     bool isEmpty() {return (dataLength == 0 && seqNumber == 0 && timestamp == 0);};
 
+    bool isComplete() {return complete;};
+    void setComplete(bool c) {complete = c;};
+
 private:
     unsigned char* data;
     size_t dataLength;
     size_t seqNumber;
     size_t timestamp;
     size_t duration;
+    bool complete;
 };
 
 #endif

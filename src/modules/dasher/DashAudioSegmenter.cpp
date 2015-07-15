@@ -124,6 +124,7 @@ bool DashAudioSegmenter::generateSegment(DashSegment* segment)
     segment->setTimestamp(segTimestamp);
     segment->setDuration(segDuration);
     segment->setDataLength(segmentSize);
+    segment->setComplete(true);
     return true;
 }
 
@@ -170,6 +171,7 @@ bool DashAudioSegmenter::forceGenerateSegment(DashSegment* segment)
     segment->setTimestamp(segTimestamp);
     segment->setDuration(segDuration);
     segment->setDataLength(segmentSize);
+    segment->setComplete(true);
     return true;
 }
 

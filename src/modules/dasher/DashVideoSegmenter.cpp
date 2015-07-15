@@ -132,6 +132,7 @@ bool DashVideoSegmenter::generateSegment(DashSegment* segment)
     segment->setTimestamp(segTimestamp);
     segment->setDuration(segDuration);
     segment->setDataLength(segmentSize);
+    segment->setComplete(true);
     return true;
 }
 

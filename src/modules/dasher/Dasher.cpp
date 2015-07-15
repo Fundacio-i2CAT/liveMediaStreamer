@@ -145,6 +145,14 @@ bool Dasher::doProcessFrame(std::map<int, Frame*> orgFrames)
         }
     }
 
+    if (writeVideoSegments()) {
+        utils::debugMsg("[DashSegmenter] Video segments to disk");
+    }
+
+    if (writeAudioSegments()) {
+        utils::debugMsg("[DashSegmenter] Audio segments to disk");
+    }
+
     return true;
 }
 
@@ -224,9 +232,6 @@ bool Dasher::generateSegment(size_t id, DashSegmenter* segmenter)
 {
     DashVideoSegmenter* vSeg;
     DashAudioSegmenter* aSeg;
-    size_t refTimestamp;
-    size_t refDuration;
-    size_t rmTimestamp;
 
     if ((vSeg = dynamic_cast<DashVideoSegmenter*>(segmenter)) != NULL) {
 
@@ -238,25 +243,8 @@ bool Dasher::generateSegment(size_t id, DashSegmenter* segmenter)
         mpdMngr->updateVideoRepresentation(V_ADAPT_SET_ID, std::to_string(id), VIDEO_CODEC, vSeg->getWidth(),
                                             vSeg->getHeight(), vSeg->getBitrate(), vSeg->getFramerate());
 
-        if (!updateTimestampControl(vSegments, refTimestamp, refDuration)) {
-            return false;
-        }
-
         if (!forceAudioSegmentsGeneration()) {
             utils::errorMsg("Error forcing the generation of audio segments. This may cause errors!");
-        }
-
-        if (!writeSegmentsToDisk(vSegments, refTimestamp, V_EXT)) {
-            utils::errorMsg("Error writing DASH video segment to disk");
-            return false;
-        }
-
-        rmTimestamp = mpdMngr->updateAdaptationSetTimestamp(V_ADAPT_SET_ID, refTimestamp, refDuration);
-
-        mpdMngr->writeToDisk(mpdPath.c_str());
-
-        if (rmTimestamp > 0 && !cleanSegments(vSegments, rmTimestamp, V_EXT)) {
-            utils::warningMsg("Error cleaning dash video segments");
         }
     }
 
@@ -269,23 +257,6 @@ bool Dasher::generateSegment(size_t id, DashSegmenter* segmenter)
         mpdMngr->updateAudioAdaptationSet(A_ADAPT_SET_ID, segmenters[id]->getTimeBase(), aSegTempl, aInitSegTempl);
         mpdMngr->updateAudioRepresentation(A_ADAPT_SET_ID, std::to_string(id), AUDIO_CODEC, 
                                             aSeg->getSampleRate(), aSeg->getBitrate(), aSeg->getChannels());
-
-        if (!updateTimestampControl(aSegments, refTimestamp, refDuration)) {
-            return false;
-        }
-
-        if (!writeSegmentsToDisk(aSegments, refTimestamp, A_EXT)) {
-            utils::errorMsg("Error writing DASH audio segment to disk");
-            return false;
-        }
-
-        rmTimestamp = mpdMngr->updateAdaptationSetTimestamp(A_ADAPT_SET_ID, refTimestamp, segmenter->getSegDurInTimeBaseUnits());
-
-        mpdMngr->writeToDisk(mpdPath.c_str());
-
-        if (rmTimestamp > 0 && !cleanSegments(aSegments, rmTimestamp, A_EXT)) {
-            utils::warningMsg("Error cleaning dash audio segments");
-        }
     }
 
     if (!vSeg && !aSeg) {
@@ -295,13 +266,94 @@ bool Dasher::generateSegment(size_t id, DashSegmenter* segmenter)
     return true;
 }
 
+bool Dasher::writeVideoSegments()
+{
+    size_t ts;
+    size_t dur;
+    size_t rmTimestamp;
+
+    if (vSegments.empty()) {
+        return false;
+    }
+
+    for (auto seg : vSegments) {
+        if (!seg.second->isComplete()) {
+            return false;
+        }
+    }
+
+    ts = vSegments.begin()->second->getTimestamp();
+    dur = vSegments.begin()->second->getDuration();
+
+    for (auto seg : vSegments) {
+        if (seg.second->getTimestamp() != ts || seg.second->getDuration() != dur) {
+            utils::errorMsg("Segments of the same adaptation set have different timestamps");
+            return false;
+        }
+    }
+
+    if (!writeSegmentsToDisk(vSegments, ts, V_EXT)) {
+        utils::errorMsg("Error writing DASH video segment to disk");
+        return false;
+    }
+
+    rmTimestamp = mpdMngr->updateAdaptationSetTimestamp(V_ADAPT_SET_ID, ts, dur);
+
+    mpdMngr->writeToDisk(mpdPath.c_str());
+
+    if (rmTimestamp > 0 && !cleanSegments(vSegments, rmTimestamp, V_EXT)) {
+        utils::warningMsg("Error cleaning dash video segments");
+    }
+
+    return true;
+}
+
+bool Dasher::writeAudioSegments()
+{
+    size_t ts;
+    size_t dur;
+    size_t rmTimestamp;
+
+    if (aSegments.empty()) {
+        return false;
+    }
+
+    for (auto seg : aSegments) {
+        if (!seg.second->isComplete()) {
+            return false;
+        }
+    }
+
+    ts = aSegments.begin()->second->getTimestamp();
+    dur = aSegments.begin()->second->getDuration();
+
+    for (auto seg : aSegments) {
+        if (seg.second->getTimestamp() != ts || seg.second->getDuration() != dur) {
+            utils::errorMsg("Segments of the same adaptation set have different timestamps");
+            return false;
+        }
+    }
+
+    if (!writeSegmentsToDisk(aSegments, ts, V_EXT)) {
+        utils::errorMsg("Error writing DASH video segment to disk");
+        return false;
+    }
+
+    rmTimestamp = mpdMngr->updateAdaptationSetTimestamp(V_ADAPT_SET_ID, ts, dur);
+
+    mpdMngr->writeToDisk(mpdPath.c_str());
+
+    if (rmTimestamp > 0 && !cleanSegments(aSegments, rmTimestamp, V_EXT)) {
+        utils::warningMsg("Error cleaning dash video segments");
+    }
+
+    return true;
+}
+
 bool Dasher::forceAudioSegmentsGeneration()
 {
     DashSegmenter* segmenter;
     DashAudioSegmenter* aSeg;
-    size_t refTimestamp;
-    size_t refDuration;
-    size_t rmTimestamp;
 
     for (auto seg : aSegments) {
 
@@ -325,21 +377,6 @@ bool Dasher::forceAudioSegmentsGeneration()
         mpdMngr->updateAudioAdaptationSet(A_ADAPT_SET_ID, segmenters[seg.first]->getTimeBase(), aSegTempl, aInitSegTempl);
         mpdMngr->updateAudioRepresentation(A_ADAPT_SET_ID, std::to_string(seg.first), AUDIO_CODEC, 
                                             aSeg->getSampleRate(), aSeg->getBitrate(), aSeg->getChannels());
-
-         if (!updateTimestampControl(aSegments, refTimestamp, refDuration)) {
-            continue;
-        }
-
-        if (!writeSegmentsToDisk(aSegments, refTimestamp, A_EXT)) {
-            utils::errorMsg("Error writing DASH audio segment to disk");
-            return false;
-        }
-
-        rmTimestamp = mpdMngr->updateAdaptationSetTimestamp(A_ADAPT_SET_ID, refTimestamp, refDuration);
-
-        if (rmTimestamp > 0 && !cleanSegments(aSegments, rmTimestamp, A_EXT)) {
-            utils::warningMsg("Error cleaning dash audio segments");
-        }
     }
 
     return true;
@@ -727,4 +764,5 @@ void DashSegment::clear()
     timestamp = 0;
     duration = 0;
     dataLength = 0;
+    complete = false;
 }

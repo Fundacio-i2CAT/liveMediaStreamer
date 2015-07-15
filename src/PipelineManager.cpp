@@ -184,10 +184,12 @@ bool PipelineManager::addFilter(int id, BaseFilter* filter)
         return false;
     }
 
-    filters[id] = filter;
-    if ((run = dynamic_cast<Runnable*>(filter))){
-        run->setId(id);
+    if (!(run = dynamic_cast<Runnable*>(filter)) || !run->setId(id)){
+        utils::errorMsg("Could not set filter ID");
+        return false;
     }
+    
+    filters[id] = filter;
 
     return pool->addTask(filter);
 }

@@ -64,18 +64,20 @@ std::vector<int> Runnable::runProcessFrame()
     return enabledJobs;
 }
 
-void Runnable::setId(int id_){
+bool Runnable::setId(int id_){
     if (id_ < 0){
         utils::errorMsg("invalid filter Id, only positive values are allowed");
-        return;
+        return false;
     }
     
     if (id >= 0){
         utils::errorMsg("You cannot re-assign the filter Id");
-        return;
+        return false;
     }
     
     id = id_;
+    
+    return true;
 }
 
 void Runnable::setRunning()

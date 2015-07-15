@@ -113,14 +113,14 @@ std::shared_ptr<Reader> BaseFilter::setReader(int readerID, FrameQueue* queue)
     return r;
 }
 
-int BaseFilter::generateReaderID()
+unsigned BaseFilter::generateReaderID()
 {
     std::lock_guard<std::mutex> guard(mtx);
     if (maxReaders == 1) {
         return DEFAULT_ID;
     }
 
-    int id = rand();
+    unsigned id = rand();
 
     while (readers.count(id) > 0) {
         id = rand();
@@ -129,14 +129,14 @@ int BaseFilter::generateReaderID()
     return id;
 }
 
-int BaseFilter::generateWriterID()
+unsigned BaseFilter::generateWriterID()
 {
     std::lock_guard<std::mutex> guard(mtx);
     if (maxWriters == 1) {
         return DEFAULT_ID;
     }
 
-    int id = rand();
+    unsigned id = rand();
 
     while (writers.count(id) > 0) {
         id = rand();
@@ -415,8 +415,6 @@ std::vector<int> BaseFilter::processFrame(int& ret)
         case MASTER:
             enabledJobs = masterProcessFrame(ret);
             break;
-        case SLAVE:
-            break;
         case SERVER:
             enabledJobs = serverProcessFrame(ret);
             break;
@@ -647,10 +645,8 @@ bool OneToManyFilter::runDoProcessFrame()
         return false;
     }
 
-	//TODO: implement timestamp setting
+    //TODO: implement timestamp setting
     for (auto it : dFrames) {
-        // it.second->setPresentationTime(outTimestamp);
-        // it.second->setDuration(oFrames.begin()->second->getDuration());
         it.second->setSequenceNumber(oFrames.begin()->second->getSequenceNumber());
     }
 
@@ -702,6 +698,7 @@ TailFilter::TailFilter(FilterRole fRole_, unsigned readersNum, bool periodic) :
 
 bool TailFilter::runDoProcessFrame()
 {
+    //TODO: handle frameTime
     return doProcessFrame(oFrames);
 }
 
@@ -737,8 +734,6 @@ bool ManyToOneFilter::runDoProcessFrame()
         return false;
     }
 
-    //TODO: duration??
-    // dFrames.begin()->second->setDuration(oFrames.begin()->second->getDuration());
     seqNums[dFrames.begin()->first]++;
     dFrames.begin()->second->setSequenceNumber(seqNums[dFrames.begin()->first]);
     return true;

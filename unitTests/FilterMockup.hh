@@ -135,7 +135,7 @@ public:
 
 protected:
     bool doProcessFrame(Frame *org, Frame *dst) {
-        if (!org->isPlanar() && !dst->isPlanar()){
+        if (!org->isPlanar() && !dst->isPlanar() && org->getConsumed()){
             memcpy(dst->getDataBuf(), org->getDataBuf(), org->getLength());
             dst->setSequenceNumber(org->getSequenceNumber());
             dst->setLength(org->getLength());
@@ -237,6 +237,7 @@ protected:
             return false;
         }
         
+        bool gotFrame = false;
         newFrame = false;
                
         for (auto it : dstFrames){
@@ -245,11 +246,10 @@ protected:
                 it.second->setSequenceNumber(srcFrame->getSequenceNumber());
                 it.second->setLength(srcFrame->getLength());
                 it.second->setConsumed(true);
-            } else {
-                return false;
+                gotFrame = true;
             }
         }
-        return true;
+        return gotFrame;
     }
     
     Frame* srcFrame;
@@ -282,19 +282,19 @@ public:
     
 protected:
     bool doProcessFrame(std::map<int, Frame*> orgFrames) { 
+        bool gotframe = false;
         for (auto it : orgFrames){
-            if (!it.second->isPlanar()){
+            if (!it.second->isPlanar() && it.second->getConsumed()){
                 memcpy(frame->getDataBuf(), it.second->getDataBuf(), it.second->getLength());
                 frame->setSequenceNumber(it.second->getSequenceNumber());
                 frame->setLength(it.second->getLength());
                 frames++;
                 newFrame = true;
-            } else {
-                return false;
+                gotframe = true;
             }
         }
         
-        return true;
+        return gotframe;
     }
     
     size_t frames;

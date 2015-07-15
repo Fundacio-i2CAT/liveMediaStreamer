@@ -111,12 +111,12 @@ public:
     * Generates a new and random reader ID
     * @return filter role
     */
-    int generateReaderID();
+    unsigned generateReaderID();
     /**
     * Generates a new and random writer ID
     * @return filter role
     */
-    int generateWriterID();
+    unsigned generateWriterID();
     /**
     * Maximum writers getter
     * @return maximum number of possible writers for this filter

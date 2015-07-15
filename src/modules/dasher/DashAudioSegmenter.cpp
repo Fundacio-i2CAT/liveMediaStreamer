@@ -107,25 +107,17 @@ bool DashAudioSegmenter::generateInitData(DashSegment* segment)
     return true;
 }
 
-bool DashAudioSegmenter::generateSegment(DashSegment* segment)
+unsigned DashAudioSegmenter::customGenerateSegment(unsigned char *segBuffer, unsigned &segTimestamp, unsigned &segDuration, bool force)
 {
-    size_t segmentSize = 0;
-    uint32_t segTimestamp;
-    uint32_t segDuration;
+    unsigned segSize;
 
-    segmentSize = generate_audio_segment(segment->getDataBuffer(), &dashContext, &segTimestamp, &segDuration);
-
-    if (segmentSize <= I2ERROR_MAX) {
-        return false;
+    if (force) {
+        segSize = force_generate_audio_segment(segBuffer, &dashContext, &segTimestamp, &segDuration);
+    } else {
+        segSize = generate_audio_segment(segBuffer, &dashContext, &segTimestamp, &segDuration);
     }
 
-    std::cout << "New audio segment with ts " << segTimestamp << " and duration " << segDuration << std::endl;
-
-    segment->setTimestamp(segTimestamp);
-    segment->setDuration(segDuration);
-    segment->setDataLength(segmentSize);
-    segment->setComplete(true);
-    return true;
+    return segSize;
 }
 
 bool DashAudioSegmenter::appendFrameToDashSegment(DashSegment* segment)
@@ -155,26 +147,6 @@ bool DashAudioSegmenter::appendFrameToDashSegment(DashSegment* segment)
 
     return true;
 }
-
-bool DashAudioSegmenter::forceGenerateSegment(DashSegment* segment)
-{
-    size_t segmentSize = 0;
-    uint32_t segTimestamp;
-    uint32_t segDuration;
-
-    segmentSize = force_generate_audio_segment(segment->getDataBuffer(), &dashContext, &segTimestamp, &segDuration);
-
-    if (segmentSize <= I2ERROR_MAX) {
-        return false;
-    }
-
-    segment->setTimestamp(segTimestamp);
-    segment->setDuration(segDuration);
-    segment->setDataLength(segmentSize);
-    segment->setComplete(true);
-    return true;
-}
-
 
 bool DashAudioSegmenter::flushDashContext()
 {

@@ -138,12 +138,12 @@ public:
     size_t getFramerate() {return frameRate;};
 
     bool appendFrameToDashSegment(DashSegment* segment);
-    bool generateSegment(DashSegment* segment);
     bool flushDashContext();
 
 private:
     bool updateMetadata();
     bool generateInitData(DashSegment* segment);
+    unsigned customGenerateSegment(unsigned char *segBuffer, unsigned &segTimestamp, unsigned &segDuration, bool force);
 
     bool setup(size_t segmentDuration, size_t timeBase, size_t width, size_t height);
     bool parseNal(VideoFrame* nal, bool &newFrame);

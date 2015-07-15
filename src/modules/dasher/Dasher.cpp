@@ -369,7 +369,7 @@ bool Dasher::forceAudioSegmentsGeneration()
             continue;
         }
 
-        if (!aSeg->forceGenerateSegment(seg.second)) {
+        if (!aSeg->generateSegment(seg.second, true)) {
             utils::errorMsg("Error forcing audio segment generation");
             return false;
         }
@@ -696,6 +696,26 @@ bool DashSegmenter::generateInitSegment(DashSegment* segment)
 
     return true;
 }
+
+bool DashSegmenter::generateSegment(DashSegment* segment, bool force)
+{
+    size_t segmentSize = 0;
+    uint32_t segTimestamp;
+    uint32_t segDuration;
+
+    segmentSize = customGenerateSegment(segment->getDataBuffer(), segTimestamp, segDuration, force);
+
+    if (segmentSize <= I2ERROR_MAX) {
+        return false;
+    }
+
+    segment->setTimestamp(segTimestamp);
+    segment->setDuration(segDuration);
+    segment->setDataLength(segmentSize);
+    segment->setComplete(true);
+    return true;
+}
+
 
 size_t DashSegmenter::nanosToTimeBase(std::chrono::nanoseconds nanosValue)
 {

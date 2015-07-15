@@ -181,7 +181,7 @@ public:
 
 
     virtual bool appendFrameToDashSegment(DashSegment* segment) = 0;
-    virtual bool generateSegment(DashSegment* segment) = 0;
+    bool generateSegment(DashSegment* segment, bool force = false);
     /**
     * Returns average frame duration
     * @return duration in time base
@@ -214,6 +214,8 @@ public:
 protected:
     virtual bool updateMetadata() = 0;
     virtual bool generateInitData(DashSegment* segment) = 0;
+    virtual unsigned customGenerateSegment(unsigned char *segBuffer, unsigned &segTimestamp, unsigned &segDuration, bool force) = 0;
+    
     std::string getInitSegmentName();
     std::string getSegmentName();
     size_t customTimestamp(std::chrono::system_clock::time_point timestamp);

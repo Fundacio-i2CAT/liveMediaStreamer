@@ -69,13 +69,13 @@ public:
     size_t getChannels();
 
     bool appendFrameToDashSegment(DashSegment* segment);
-    bool generateSegment(DashSegment* segment);
-    bool forceGenerateSegment(DashSegment* segment);
     bool flushDashContext();
 
 private:
     bool updateMetadata();
     bool generateInitData(DashSegment* segment);
+    unsigned customGenerateSegment(unsigned char *segBuffer, unsigned &segTimestamp, unsigned &segDuration, bool force);
+
 
     bool setup(size_t channels, size_t sampleRate, size_t samples, size_t bitsPerSample);
     unsigned char getProfileFromADTSHeader(unsigned char* adtsHeader);

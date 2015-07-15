@@ -112,28 +112,13 @@ bool DashVideoSegmenter::generateInitData(DashSegment* segment)
     return true;
 }
 
-bool DashVideoSegmenter::generateSegment(DashSegment* segment)
+unsigned DashVideoSegmenter::customGenerateSegment(unsigned char *segBuffer, unsigned &segTimestamp, unsigned &segDuration, bool force)
 {
-    size_t segmentSize = 0;
-    uint32_t segTimestamp;
-    uint32_t segDuration;
     size_t timeBasePts;
 
     timeBasePts = microsToTimeBase(vFrame->getPresentationTime());
-    segmentSize = generate_video_segment(isIntra, timeBasePts, segment->getDataBuffer(), &dashContext, &segTimestamp, &segDuration);
 
-
-    if (segmentSize <= I2ERROR_MAX) {
-        return false;
-    }
-
-    std::cout << "New video segment with ts " << segTimestamp << " and duration " << segDuration << std::endl;
-
-    segment->setTimestamp(segTimestamp);
-    segment->setDuration(segDuration);
-    segment->setDataLength(segmentSize);
-    segment->setComplete(true);
-    return true;
+    return generate_video_segment(isIntra, timeBasePts, segBuffer, &dashContext, &segTimestamp, &segDuration);
 }
 
 bool DashVideoSegmenter::appendFrameToDashSegment(DashSegment* segment)

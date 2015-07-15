@@ -61,7 +61,7 @@ public:
     * @param segDurInSeconds is the time duration in seconds
     * @return Pointer to the object if succeded and NULL if not
     */
-    Dasher(FilterRole fRole_ = MASTER, unsigned readersNum = MAX_READERS);
+    Dasher(unsigned readersNum = MAX_READERS);
 
     /**
     * Class destructor
@@ -109,7 +109,7 @@ public:
     bool setDashSegmenterBitrate(int id, size_t kbps);
 
 private:
-    bool doProcessFrame(std::map<int, Frame*> orgFrames);
+    bool doProcessFrame(std::map<int, Frame*> &orgFrames);
     void doGetState(Jzon::Object &filterNode);
     void initializeEventMap();
     bool generateInitSegment(size_t id, DashSegmenter* segmenter);

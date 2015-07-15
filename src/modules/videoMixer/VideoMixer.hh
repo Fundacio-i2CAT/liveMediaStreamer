@@ -82,11 +82,9 @@ class VideoMixer : public ManyToOneFilter {
         * @param outWidth Mixed frames width in pixels
         * @param outHeight Mixed frames height in pixels
         * @param fTime Frame time in microseconds
-        * @param fRole_ Filter role (NETWORK, MASTER, SLAVE)
         * @return Pointer to new object if succeed of NULL if not
         */
-        static VideoMixer* createNew(FilterRole fRole_ = MASTER,
-                   int inputChannels = VMIXER_MAX_CHANNELS,
+        static VideoMixer* createNew(int inputChannels = VMIXER_MAX_CHANNELS,
                    int outputWidth = DEFAULT_WIDTH,
                    int outputHeight = DEFAULT_HEIGHT,
                    std::chrono::microseconds fTime = std::chrono::microseconds(0));
@@ -115,12 +113,12 @@ class VideoMixer : public ManyToOneFilter {
 
     protected:
         //Protected for testing purposes
-        VideoMixer(FilterRole fRole, int inputChannels,
+        VideoMixer(int inputChannels,
                    int outWidth, int outHeight,
                    std::chrono::microseconds fTime);
         std::shared_ptr<Reader> setReader(int readerID, FrameQueue* queue);
         FrameQueue *allocQueue(struct ConnectionData cData);
-        bool doProcessFrame(std::map<int, Frame*> orgFrames, Frame *dst);
+        bool doProcessFrame(std::map<int, Frame*> &orgFrames, Frame *dst);
         void doGetState(Jzon::Object &filterNode);
         bool configChannel0(int id, float width, float height, float x, float y, int layer, bool enabled, float opacity);
 

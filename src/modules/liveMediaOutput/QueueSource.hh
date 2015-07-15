@@ -13,6 +13,7 @@ class QueueSource: public FramedSource {
 public:
     static QueueSource* createNew(UsageEnvironment& env, int readerId);
     bool setFrame(Frame *f);
+    Frame* getFrame();
     EventTriggerId getTriggerId() const {return eventTriggerId;};
     static bool signalNewFrameData(TaskScheduler* ourScheduler, QueueSource* ourSource);
 
@@ -21,12 +22,12 @@ protected:
     QueueSource(UsageEnvironment& env, int readerId);
     static void deliverFrame0(void* clientData);
     virtual void deliverFrame();
-    
 
 protected:
     EventTriggerId eventTriggerId;
     Frame* frame;
     int fReaderId;
+    bool processedFrame;
 };
 
 #endif

@@ -52,10 +52,8 @@ class VideoEncoderX264or5 : public OneToOneFilter {
 public:
     /**
     * Class constructor
-    * @param fRole Filter role (NETWORK, MASTER, SLAVE)
-    * @param sharedFrames If true and fRole is MASTER, it will share input frames with its slave filters
     */
-    VideoEncoderX264or5(FilterRole fRole);
+    VideoEncoderX264or5();
 
     /**
     * Class destructor

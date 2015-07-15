@@ -37,8 +37,8 @@
 
 std::chrono::microseconds tsOffset = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now().time_since_epoch());
 
-Dasher::Dasher(FilterRole fRole_, unsigned readersNum) :
-TailFilter(fRole_, readersNum), mpdMngr(NULL), hasVideo(false), videoStarted(false)
+Dasher::Dasher(unsigned readersNum) :
+TailFilter(readersNum), mpdMngr(NULL), hasVideo(false), videoStarted(false)
 {
     fType = DASHER;
     initializeEventMap();
@@ -87,7 +87,7 @@ bool Dasher::configure(std::string dashFolder, std::string baseName_, size_t seg
     return true;
 }
 
-bool Dasher::doProcessFrame(std::map<int, Frame*> orgFrames)
+bool Dasher::doProcessFrame(std::map<int, Frame*> &orgFrames)
 {
     DashSegmenter* segmenter;
     bool newFrame;

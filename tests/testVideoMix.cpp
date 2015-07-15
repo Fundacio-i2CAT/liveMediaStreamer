@@ -54,7 +54,7 @@ void setupMixer(int mixerId, int transmitterId)
     std::vector<int> ids = {resId, encId};
 
     //NOTE: Adding decoder to pipeManager and handle worker
-    mixer = VideoMixer::createNew(MASTER, MIX_CHANNELS, MIX_WIDTH, MIX_HEIGHT, std::chrono::microseconds(40000));
+    mixer = VideoMixer::createNew(MIX_CHANNELS, MIX_WIDTH, MIX_HEIGHT, std::chrono::microseconds(40000));
     pipe->addFilter(mixerId, mixer);
 
     //NOTE: Adding resampler to pipeManager and handle worker

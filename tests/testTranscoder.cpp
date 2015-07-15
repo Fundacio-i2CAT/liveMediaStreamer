@@ -41,6 +41,9 @@
 #define SEG_DURATION 4 //sec
 #define BASE_NAME "test"
 
+#define BYPASS_VIDEO_PATH 3113
+#define BYPASS_AUDIO_PATH 4224
+
 void signalHandler( int signum )
 {
     utils::infoMsg("Interruption signal received");
@@ -50,7 +53,7 @@ void signalHandler( int signum )
 
 void addAudioPath(unsigned port, int receiverID, int transmitterID)
 {
-    PipelineManager *pipe = Controller::getInstance()->pipelineManager();
+    PipelineManager *pipe = PipelineManager::getInstance(1);
 
     int decId = rand();
     int encId = rand();
@@ -96,16 +99,10 @@ void addVideoPath(unsigned port, int receiverID, int transmitterID,
     int decId = rand();
     int resId = 2000;
     int encId = 1000;
-    int shmId = rand();
-    SharedMemory *shm;
 
     std::vector<int> ids;
 
-    if(sharingMemoryKey > 0){
-        ids = {decId, shmId, resId, encId};
-    } else {
-        ids = {decId, resId, encId};
-    }
+    ids = {decId, resId, encId};
 
     std::string sessionId;
     std::string sdp;
@@ -119,16 +116,6 @@ void addVideoPath(unsigned port, int receiverID, int transmitterID,
     //NOTE: Adding decoder to pipeManager and handle worker
     decoder = new VideoDecoderLibav();
     pipe->addFilter(decId, decoder);
-
-    //NOTE: Adding sharedMemory to pipeManager and handle worker
-    if(sharingMemoryKey > 0){
-        shm = SharedMemory::createNew(sharingMemoryKey, RAW);
-        if(!shm){
-            utils::errorMsg("Could not initiate sharedMemory filter");
-            exit(1);
-        }
-        pipe->addFilter(shmId, shm);
-    }
 
     //NOTE: Adding resampler to pipeManager and handle worker
     resampler = new VideoResampler();
@@ -315,9 +302,6 @@ int main(int argc, char* argv[])
             rtspUri = argv[i+1];
             utils::infoMsg("input RTSP URI: " + rtspUri);
             utils::infoMsg("Ignoring any audio or video input port, just RTSP inputs");
-        } else if (strcmp(argv[i],"-s")==0) {
-            sharingMemoryKey = std::stoi(argv[i+1]);
-            utils::infoMsg("sharing memory key set to: "+ std::to_string(sharingMemoryKey));
         } else if (strcmp(argv[i],"-c")==0) {
             cPort = std::stoi(argv[i+1]);
             utils::infoMsg("control port: " + std::to_string(cPort));

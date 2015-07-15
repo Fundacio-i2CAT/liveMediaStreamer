@@ -35,7 +35,7 @@ class VideoMixerMock : public VideoMixer {
 
 public:
     VideoMixerMock(int channels, int width, int height, std::chrono::microseconds fTime) :
-    VideoMixer(MASTER, channels, width, height, fTime) {}; 
+    VideoMixer(channels, width, height, fTime) {}; 
     using VideoMixer::setReader;
     using VideoMixer::configChannel0;
 };
@@ -68,39 +68,39 @@ void VideoMixerTest::constructorTest()
     int tooLargeHeight = 2160;
     std::chrono::microseconds negTime(-200);
 
-    mixer = VideoMixer::createNew(MASTER, channels, negWidth, height);
+    mixer = VideoMixer::createNew(channels, negWidth, height);
     CPPUNIT_ASSERT(!mixer);
-    mixer = VideoMixer::createNew(MASTER, channels, zeroWidth, height);
+    mixer = VideoMixer::createNew(channels, zeroWidth, height);
     CPPUNIT_ASSERT(!mixer);
-    mixer = VideoMixer::createNew(MASTER, channels, tooLargeWidth, height);
+    mixer = VideoMixer::createNew(channels, tooLargeWidth, height);
     CPPUNIT_ASSERT(!mixer);
-    mixer = VideoMixer::createNew(MASTER, channels, width, negHeight);
+    mixer = VideoMixer::createNew(channels, width, negHeight);
     CPPUNIT_ASSERT(!mixer);
-    mixer = VideoMixer::createNew(MASTER, channels, width, zeroHeight);
+    mixer = VideoMixer::createNew(channels, width, zeroHeight);
     CPPUNIT_ASSERT(!mixer);
-    mixer = VideoMixer::createNew(MASTER, channels, width, tooLargeHeight);
+    mixer = VideoMixer::createNew(channels, width, tooLargeHeight);
     CPPUNIT_ASSERT(!mixer);
-    mixer = VideoMixer::createNew(MASTER, channels, negWidth, negHeight);
+    mixer = VideoMixer::createNew(channels, negWidth, negHeight);
     CPPUNIT_ASSERT(!mixer);
-    mixer = VideoMixer::createNew(MASTER, channels, negWidth, zeroHeight);
+    mixer = VideoMixer::createNew(channels, negWidth, zeroHeight);
     CPPUNIT_ASSERT(!mixer);
-    mixer = VideoMixer::createNew(MASTER, channels, negWidth, tooLargeHeight);
+    mixer = VideoMixer::createNew(channels, negWidth, tooLargeHeight);
     CPPUNIT_ASSERT(!mixer);
-    mixer = VideoMixer::createNew(MASTER, channels, zeroWidth, negHeight);
+    mixer = VideoMixer::createNew(channels, zeroWidth, negHeight);
     CPPUNIT_ASSERT(!mixer);
-    mixer = VideoMixer::createNew(MASTER, channels, zeroWidth, zeroHeight);
+    mixer = VideoMixer::createNew(channels, zeroWidth, zeroHeight);
     CPPUNIT_ASSERT(!mixer);
-    mixer = VideoMixer::createNew(MASTER, channels, zeroWidth, tooLargeHeight);
+    mixer = VideoMixer::createNew(channels, zeroWidth, tooLargeHeight);
     CPPUNIT_ASSERT(!mixer);
-    mixer = VideoMixer::createNew(MASTER, channels, tooLargeWidth, negHeight);
+    mixer = VideoMixer::createNew(channels, tooLargeWidth, negHeight);
     CPPUNIT_ASSERT(!mixer);
-    mixer = VideoMixer::createNew(MASTER, channels, tooLargeWidth, zeroHeight);
+    mixer = VideoMixer::createNew(channels, tooLargeWidth, zeroHeight);
     CPPUNIT_ASSERT(!mixer);
-    mixer = VideoMixer::createNew(MASTER, channels, tooLargeWidth, tooLargeHeight);
+    mixer = VideoMixer::createNew(channels, tooLargeWidth, tooLargeHeight);
     CPPUNIT_ASSERT(!mixer);
-    mixer = VideoMixer::createNew(MASTER, channels, width, height, negTime);
+    mixer = VideoMixer::createNew(channels, width, height, negTime);
     CPPUNIT_ASSERT(!mixer);
-    mixer = VideoMixer::createNew(MASTER, channels, width, height);
+    mixer = VideoMixer::createNew(channels, width, height);
     CPPUNIT_ASSERT(mixer);
 
     delete mixer;

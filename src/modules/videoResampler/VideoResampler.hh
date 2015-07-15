@@ -37,7 +37,7 @@ extern "C" {
 class VideoResampler : public OneToOneFilter {
 
     public:
-        VideoResampler(FilterRole fRole_ = MASTER);
+        VideoResampler();
         ~VideoResampler();
         bool configure(int width, int height, int period, PixType pixelFormat);
         

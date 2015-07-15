@@ -41,10 +41,9 @@ class AudioMixer : public ManyToOneFilter {
 public:
     /**
     * Class constructor
-    * @param fRole_ Filter role (NETWORK, MASTER, SLAVE)
     * @param inputChannels Max mixing channels
     */
-    AudioMixer(FilterRole fRole_ = MASTER, int inputChannels = AMIXER_MAX_CHANNELS);
+    AudioMixer(int inputChannels = AMIXER_MAX_CHANNELS);
 
     /**
     * Class destructor
@@ -118,7 +117,7 @@ protected:
     std::shared_ptr<Reader> setReader(int readerID, FrameQueue* queue);
     void doGetState(Jzon::Object &filterNode);
     FrameQueue *allocQueue(struct ConnectionData cData);
-    bool doProcessFrame(std::map<int, Frame*> orgFrames, Frame *dst);
+    bool doProcessFrame(std::map<int, Frame*> &orgFrames, Frame *dst);
 
 private:
     void initializeEventMap();

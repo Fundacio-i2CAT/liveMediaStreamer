@@ -29,12 +29,71 @@
 #include "PipelineManager.hh"
 #include "FilterMockup.hh"
 
-#define TIME_WAIT 500
+#define TIME_WAIT 100
 
 class PipelineManagerTest : public CppUnit::TestFixture
 {
     CPPUNIT_TEST_SUITE(PipelineManagerTest);
-    CPPUNIT_TEST(createPath);
+    CPPUNIT_TEST(createAndConnectPath);
+    CPPUNIT_TEST_SUITE_END();
+
+public:
+    void setUp();
+    void tearDown();
+
+protected:
+    void createAndConnectPath();
+
+private:
+    PipelineManager *pipe;
+};
+
+void PipelineManagerTest::setUp() 
+{
+    pipe = PipelineManager::getInstance(1);
+}
+
+void PipelineManagerTest::tearDown()
+{
+    PipelineManager::destroyInstance();
+}
+
+void PipelineManagerTest::createAndConnectPath()
+{
+    Path *path;
+    HeadFilter *head = new HeadFilterMockup();
+    TailFilter *tail = new TailFilterMockup();
+    OneToOneFilter *midF = new OneToOneFilterMockup(4, true, std::chrono::microseconds(0));
+    
+    CPPUNIT_ASSERT(pipe->addFilter(1, head));
+    CPPUNIT_ASSERT(pipe->addFilter(3, tail));
+    CPPUNIT_ASSERT(pipe->addFilter(2, midF));
+    
+    std::vector<int> mid(1,2);
+    
+    path = pipe->createPath(1, 3, -1, -1, mid);
+    
+    CPPUNIT_ASSERT(path != NULL);
+    
+    mid = std::vector<int>(1,1);
+    CPPUNIT_ASSERT((pipe->createPath(1, 3, -1, -1, mid)) == NULL);
+    
+    mid = std::vector<int>(1,3);
+    CPPUNIT_ASSERT((pipe->createPath(1, 3, -1, -1, mid)) == NULL);
+    
+    mid = std::vector<int>(2,2);
+    CPPUNIT_ASSERT((pipe->createPath(1, 3, -1, -1, mid)) == NULL);
+    
+    CPPUNIT_ASSERT(pipe->addPath(1, path));
+    
+    CPPUNIT_ASSERT(pipe->connectPath(path));
+    CPPUNIT_ASSERT(pipe->removePath(1));
+    CPPUNIT_ASSERT(!pipe->removePath(2));
+}
+
+class PipelineManagerFunctionalTest : public CppUnit::TestFixture
+{
+    CPPUNIT_TEST_SUITE(PipelineManagerFunctionalTest);
     CPPUNIT_TEST(lineConnection);
     CPPUNIT_TEST(diamondConnection);
     CPPUNIT_TEST(forkConnectionOrigin);
@@ -48,7 +107,6 @@ public:
     void tearDown();
 
 protected:
-    void createPath();
     void lineConnection();
     void diamondConnection();
     void forkConnectionOrigin();
@@ -61,53 +119,21 @@ private:
     Path *first, *second, *third;
 };
 
-void PipelineManagerTest::setUp() 
+void PipelineManagerFunctionalTest::setUp() 
 {
-    pipe = PipelineManager::getInstance(2);
+    pipe = PipelineManager::getInstance(3);
 }
 
-void PipelineManagerTest::tearDown()
+void PipelineManagerFunctionalTest::tearDown()
 {
     PipelineManager::destroyInstance();
 }
 
-void PipelineManagerTest::createPath()
-{
-    HeadFilter *head = new HeadFilterMockup();
-    TailFilter *tail = new TailFilterMockup();
-    OneToOneFilter *midF = new OneToOneFilterMockup(4, true, std::chrono::microseconds(0), MASTER);
-    
-    CPPUNIT_ASSERT(pipe->addFilter(1, head));
-    CPPUNIT_ASSERT(pipe->addFilter(3, tail));
-    CPPUNIT_ASSERT(pipe->addFilter(2, midF));
-    
-    std::vector<int> mid(1,2);
-    
-    first = pipe->createPath(1, 3, -1, -1, mid);
-    
-    CPPUNIT_ASSERT(first != NULL);
-    
-    mid = std::vector<int>(1,1);
-    CPPUNIT_ASSERT((pipe->createPath(1, 3, -1, -1, mid)) == NULL);
-    
-    mid = std::vector<int>(1,3);
-    CPPUNIT_ASSERT((pipe->createPath(1, 3, -1, -1, mid)) == NULL);
-    
-    mid = std::vector<int>(2,2);
-    CPPUNIT_ASSERT((pipe->createPath(1, 3, -1, -1, mid)) == NULL);
-    
-    CPPUNIT_ASSERT(pipe->addPath(1, first));
-    
-    CPPUNIT_ASSERT(pipe->connectPath(first));
-    CPPUNIT_ASSERT(pipe->removePath(1));
-    CPPUNIT_ASSERT(!pipe->removePath(2));
-}
-
-void PipelineManagerTest::lineConnection()
+void PipelineManagerFunctionalTest::lineConnection()
 {
     HeadFilterMockup *head = new HeadFilterMockup();
     TailFilterMockup *tail = new TailFilterMockup();
-    OneToOneFilter *mid = new OneToOneFilterMockup(4, true, std::chrono::microseconds(0), MASTER);
+    OneToOneFilter *mid = new OneToOneFilterMockup(4, true, std::chrono::microseconds(0));
     
     CPPUNIT_ASSERT(pipe->addFilter(1, head));
     CPPUNIT_ASSERT(pipe->addFilter(3, tail));
@@ -131,25 +157,25 @@ void PipelineManagerTest::lineConnection()
     
 }
 
-void PipelineManagerTest::diamondConnection()
+void PipelineManagerFunctionalTest::diamondConnection()
 {
     HeadFilterMockup *head = new HeadFilterMockup();
     TailFilterMockup *tail = new TailFilterMockup();
-    OneToOneFilter *mid = new OneToOneFilterMockup(4, true, std::chrono::microseconds(0), MASTER);
-    OneToOneFilter *mid2 = new OneToOneFilterMockup(4, true, std::chrono::microseconds(0), MASTER);
+    OneToOneFilter *mid = new OneToOneFilterMockup(4, true, std::chrono::microseconds(0));
+    OneToOneFilter *mid2 = new OneToOneFilterMockup(4, true, std::chrono::microseconds(0));
     
     CPPUNIT_ASSERT(pipe->addFilter(1, head));
     CPPUNIT_ASSERT(pipe->addFilter(4, tail));
     CPPUNIT_ASSERT(pipe->addFilter(2, mid));
-    CPPUNIT_ASSERT(pipe->addFilter(3, mid2));
+    CPPUNIT_ASSERT(pipe->addFilter(3, mid2));  
     
-    std::vector<int> midFilters(1,2);
+    std::vector<int> midFilters({2});
     
-    first = pipe->createPath(1, 4, 1, 2, midFilters);
+    first = pipe->createPath(1, 4, 1, -1, midFilters);
     
-    std::vector<int> midFilters2(1,3);
+    std::vector<int> midFilters2({3});
     
-    second = pipe->createPath(1, 4, 2, 1, midFilters2);
+    second = pipe->createPath(1, 4, 2, -1, midFilters2);
     
     CPPUNIT_ASSERT(first != NULL && second != NULL);
     
@@ -167,12 +193,12 @@ void PipelineManagerTest::diamondConnection()
     CPPUNIT_ASSERT(tail->getFrames() == 4);
 }
 
-void PipelineManagerTest::forkConnectionOrigin()
+void PipelineManagerFunctionalTest::forkConnectionOrigin()
 {
     HeadFilterMockup *head = new HeadFilterMockup();
     TailFilterMockup *tail = new TailFilterMockup();
     TailFilterMockup *tail2 = new TailFilterMockup();
-    OneToOneFilter *mid = new OneToOneFilterMockup(4, true, std::chrono::microseconds(0), MASTER);
+    OneToOneFilter *mid = new OneToOneFilterMockup(4, true, std::chrono::microseconds(0));
     Frame *frame;
     
     CPPUNIT_ASSERT(pipe->addFilter(1, head));
@@ -180,7 +206,7 @@ void PipelineManagerTest::forkConnectionOrigin()
     CPPUNIT_ASSERT(pipe->addFilter(4, tail));
     CPPUNIT_ASSERT(pipe->addFilter(3, tail2));
     
-    std::vector<int> midFilters(1,2);
+    std::vector<int> midFilters({2});
     
     first = pipe->createPath(1, 4, 1, -1, midFilters);
     
@@ -219,22 +245,148 @@ void PipelineManagerTest::forkConnectionOrigin()
     CPPUNIT_ASSERT(frame && frame->getSequenceNumber() == 1);
 }
 
-void PipelineManagerTest::forkConnectionEnding()
+void PipelineManagerFunctionalTest::forkConnectionEnding()
 {
+    HeadFilterMockup *head = new HeadFilterMockup();
+    TailFilterMockup *tail = new TailFilterMockup();
+    TailFilterMockup *tail2 = new TailFilterMockup();
+    OneToOneFilter *mid = new OneToOneFilterMockup(4, true, std::chrono::microseconds(0));
+    Frame *frame;
     
+    CPPUNIT_ASSERT(pipe->addFilter(1, head));
+    CPPUNIT_ASSERT(pipe->addFilter(2, mid));
+    CPPUNIT_ASSERT(pipe->addFilter(4, tail));
+    CPPUNIT_ASSERT(pipe->addFilter(3, tail2));
+    
+    std::vector<int> midFilters({2});
+    
+    first = pipe->createPath(1, 3, 1, -1, midFilters);
+    
+    std::vector<int> midFilters2;
+    
+    second = pipe->createPath(1, 4, 1, -1, midFilters2);
+    
+    CPPUNIT_ASSERT(first != NULL && second != NULL);
+    
+    pipe->addPath(1, first);
+    pipe->addPath(2, second);
+    
+    CPPUNIT_ASSERT(pipe->connectPath(first));
+    CPPUNIT_ASSERT(pipe->connectPath(second));
+    
+    CPPUNIT_ASSERT(head->inject(FrameMock::createNew(0)));
+    std::this_thread::sleep_for(std::chrono::milliseconds(TIME_WAIT));
+    CPPUNIT_ASSERT(tail->getFrames() == 1);
+    CPPUNIT_ASSERT(tail2->getFrames() == 1);
+    
+    frame = tail->extract();
+    CPPUNIT_ASSERT(frame && frame->getSequenceNumber() == 0);
+    
+    frame = tail2->extract();
+    CPPUNIT_ASSERT(frame && frame->getSequenceNumber() == 0);
+    
+    head->inject(FrameMock::createNew(1));
+    std::this_thread::sleep_for(std::chrono::milliseconds(TIME_WAIT));
+    CPPUNIT_ASSERT(tail->getFrames() == 2);
+    CPPUNIT_ASSERT(tail2->getFrames() == 2);
+    
+    frame = tail->extract();
+    CPPUNIT_ASSERT(frame && frame->getSequenceNumber() == 1);
+    
+    frame = tail2->extract();
+    CPPUNIT_ASSERT(frame && frame->getSequenceNumber() == 1);
 }
 
-void PipelineManagerTest::forkedDiamondConnectionOrigin()
+void PipelineManagerFunctionalTest::forkedDiamondConnectionOrigin()
 {
+    HeadFilterMockup *head = new HeadFilterMockup();
+    TailFilterMockup *tail = new TailFilterMockup();
+    TailFilterMockup *tail2 = new TailFilterMockup();
+    OneToOneFilter *mid = new OneToOneFilterMockup(4, true, std::chrono::microseconds(0));
+    OneToOneFilter *mid2 = new OneToOneFilterMockup(4, true, std::chrono::microseconds(0));
     
+    CPPUNIT_ASSERT(pipe->addFilter(1, head));
+    CPPUNIT_ASSERT(pipe->addFilter(4, tail));
+    CPPUNIT_ASSERT(pipe->addFilter(5, tail2));
+    CPPUNIT_ASSERT(pipe->addFilter(2, mid));
+    CPPUNIT_ASSERT(pipe->addFilter(3, mid2));  
+    
+    std::vector<int> midFilters({2});
+    first = pipe->createPath(1, 4, 1, -1, midFilters);
+    
+    std::vector<int> midFilters2({3});
+    second = pipe->createPath(1, 4, 2, -1, midFilters2);
+    
+    std::vector<int> midFilters3;
+    third = pipe->createPath(1, 5, 3, -1, midFilters3);
+    
+    CPPUNIT_ASSERT(first != NULL && second != NULL);
+    
+    pipe->addPath(1, first);
+    pipe->addPath(2, second);
+    pipe->addPath(3, third);
+    
+    CPPUNIT_ASSERT(pipe->connectPath(first));
+    CPPUNIT_ASSERT(pipe->connectPath(second));
+    CPPUNIT_ASSERT(pipe->connectPath(third));
+    
+    CPPUNIT_ASSERT(head->inject(FrameMock::createNew(0)));
+    std::this_thread::sleep_for(std::chrono::milliseconds(TIME_WAIT));
+    CPPUNIT_ASSERT(tail->getFrames() == 2);
+    CPPUNIT_ASSERT(tail2->getFrames() == 1);
+    
+    head->inject(FrameMock::createNew(1));
+    std::this_thread::sleep_for(std::chrono::milliseconds(TIME_WAIT));
+    CPPUNIT_ASSERT(tail->getFrames() == 4);
+    CPPUNIT_ASSERT(tail2->getFrames() == 2);
 }
 
-void PipelineManagerTest::forkedDiamondConnectionEnding()
+void PipelineManagerFunctionalTest::forkedDiamondConnectionEnding()
 {
+    HeadFilterMockup *head = new HeadFilterMockup();
+    TailFilterMockup *tail = new TailFilterMockup();
+    TailFilterMockup *tail2 = new TailFilterMockup();
+    OneToOneFilter *mid = new OneToOneFilterMockup(4, true, std::chrono::microseconds(0));
+    OneToOneFilter *mid2 = new OneToOneFilterMockup(4, true, std::chrono::microseconds(0));
     
+    CPPUNIT_ASSERT(pipe->addFilter(1, head));
+    CPPUNIT_ASSERT(pipe->addFilter(4, tail));
+    CPPUNIT_ASSERT(pipe->addFilter(5, tail2));
+    CPPUNIT_ASSERT(pipe->addFilter(2, mid));
+    CPPUNIT_ASSERT(pipe->addFilter(3, mid2));  
+    
+    std::vector<int> midFilters({2});
+    first = pipe->createPath(1, 4, 1, -1, midFilters);
+    
+    std::vector<int> midFilters2({3});
+    second = pipe->createPath(1, 4, 2, -1, midFilters2);
+    
+    std::vector<int> midFilters3;
+    third = pipe->createPath(3, 5, -1, -1, midFilters3);
+    
+    CPPUNIT_ASSERT(first != NULL && second != NULL);
+    
+    pipe->addPath(1, first);
+    pipe->addPath(2, second);
+    pipe->addPath(3, third);
+    
+    CPPUNIT_ASSERT(pipe->connectPath(first));
+    CPPUNIT_ASSERT(pipe->connectPath(second));
+    CPPUNIT_ASSERT(pipe->connectPath(third));
+    
+    CPPUNIT_ASSERT(head->inject(FrameMock::createNew(0)));
+    std::this_thread::sleep_for(std::chrono::milliseconds(TIME_WAIT));
+    CPPUNIT_ASSERT(tail->getFrames() == 2);
+    CPPUNIT_ASSERT(tail2->getFrames() == 1);
+    
+    head->inject(FrameMock::createNew(1));
+    std::this_thread::sleep_for(std::chrono::milliseconds(TIME_WAIT));
+    CPPUNIT_ASSERT(tail->getFrames() == 4);
+    CPPUNIT_ASSERT(tail2->getFrames() == 2);
 }
 
 CPPUNIT_TEST_SUITE_REGISTRATION(PipelineManagerTest);
+CPPUNIT_TEST_SUITE_REGISTRATION(PipelineManagerFunctionalTest);
 
 int main(int argc, char* argv[])
 {

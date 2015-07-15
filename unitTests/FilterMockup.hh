@@ -116,7 +116,7 @@ protected:
 private:
     VCodecType codec;
 
-    bool runDoProcessFrame() {
+    bool runDoProcessFrame(std::map<int, Frame*> &oFrames, std::map<int, Frame*> &dFrames) {
         return true;
     };
 };
@@ -125,8 +125,8 @@ class OneToOneFilterMockup : public OneToOneFilter
 {
 public:
     OneToOneFilterMockup(size_t queueSize_, bool gotFrame_,
-                std::chrono::microseconds frameTime, FilterRole role) :
-                OneToOneFilter(role), queueSize(queueSize_), gotFrame(gotFrame_) {
+                std::chrono::microseconds frameTime) :
+                OneToOneFilter(), queueSize(queueSize_), gotFrame(gotFrame_) {
         setFrameTime(frameTime);
     };
 
@@ -135,7 +135,7 @@ public:
 
 protected:
     bool doProcessFrame(Frame *org, Frame *dst) {
-        if (!org->isPlanar() && !dst->isPlanar()){
+        if (!org->isPlanar() && !dst->isPlanar() && org->getConsumed()){
             memcpy(dst->getDataBuf(), org->getDataBuf(), org->getLength());
             dst->setSequenceNumber(org->getSequenceNumber());
             dst->setLength(org->getLength());
@@ -158,8 +158,8 @@ class OneToManyFilterMockup : public OneToManyFilter
 {
 public:
     OneToManyFilterMockup(unsigned maxWriters, size_t queueSize_, bool gotFrame_,
-                         std::chrono::microseconds frameTime, FilterRole role) :
-        OneToManyFilter(role, maxWriters),
+                         std::chrono::microseconds frameTime) :
+        OneToManyFilter(maxWriters),
         queueSize(queueSize_), gotFrame(gotFrame_) {
             setFrameTime(frameTime);
         };
@@ -168,7 +168,7 @@ public:
     using BaseFilter::getReader;
 
 protected:
-    bool doProcessFrame(Frame *org, std::map<int, Frame *> dstFrames) {
+    bool doProcessFrame(Frame *org, std::map<int, Frame *> &dstFrames) {
         for (auto dst : dstFrames) {
             dst.second->setConsumed(gotFrame);
         }
@@ -187,7 +187,7 @@ private:
 class VideoFilterMockup : public OneToOneFilterMockup
 {
 public:
-    VideoFilterMockup(VCodecType c) : OneToOneFilterMockup(4, true, std::chrono::microseconds(40000), MASTER)  {
+    VideoFilterMockup(VCodecType c) : OneToOneFilterMockup(4, true, std::chrono::microseconds(40000))  {
         codec = c;
     };
 
@@ -201,7 +201,7 @@ private:
 class AudioFilterMockup : public OneToOneFilterMockup
 {
 public:
-    AudioFilterMockup(ACodecType c) : OneToOneFilterMockup(4, true, std::chrono::microseconds(40000), MASTER)  {
+    AudioFilterMockup(ACodecType c) : OneToOneFilterMockup(4, true, std::chrono::microseconds(0))  {
         codec = c;
     };
 
@@ -232,11 +232,12 @@ public:
     void doGetState(Jzon::Object &filterNode){};
     
 protected:
-    bool doProcessFrame(std::map<int, Frame*> dstFrames) {
+    bool doProcessFrame(std::map<int, Frame*> &dstFrames) {
         if (!newFrame){
             return false;
         }
         
+        bool gotFrame = false;
         newFrame = false;
                
         for (auto it : dstFrames){
@@ -245,11 +246,10 @@ protected:
                 it.second->setSequenceNumber(srcFrame->getSequenceNumber());
                 it.second->setLength(srcFrame->getLength());
                 it.second->setConsumed(true);
-            } else {
-                return false;
+                gotFrame = true;
             }
         }
-        return true;
+        return gotFrame;
     }
     
     Frame* srcFrame;
@@ -281,20 +281,20 @@ public:
     void doGetState(Jzon::Object &filterNode){};
     
 protected:
-    bool doProcessFrame(std::map<int, Frame*> orgFrames) { 
+    bool doProcessFrame(std::map<int, Frame*> &orgFrames) { 
+        bool gotframe = false;
         for (auto it : orgFrames){
-            if (!it.second->isPlanar()){
+            if (!it.second->isPlanar() && it.second->getConsumed()){
                 memcpy(frame->getDataBuf(), it.second->getDataBuf(), it.second->getLength());
                 frame->setSequenceNumber(it.second->getSequenceNumber());
                 frame->setLength(it.second->getLength());
                 frames++;
                 newFrame = true;
-            } else {
-                return false;
+                gotframe = true;
             }
         }
         
-        return true;
+        return gotframe;
     }
     
     size_t frames;
@@ -323,7 +323,7 @@ public:
     void doGetState(Jzon::Object &filterNode){};
     
 protected:
-    bool doProcessFrame(std::map<int, Frame*> dstFrames) {
+    bool doProcessFrame(std::map<int, Frame*> &dstFrames) {
         // There is only one frame in the map
         Frame *dst = dstFrames.begin()->second;
         InterleavedVideoFrame *dstFrame;
@@ -375,7 +375,7 @@ public:
     void doGetState(Jzon::Object &filterNode){};
     
 protected:
-    bool doProcessFrame(std::map<int, Frame*> dstFrames) {
+    bool doProcessFrame(std::map<int, Frame*> &dstFrames) {
         // There is only one frame in the map
         Frame *dst = dstFrames.begin()->second;
         PlanarAudioFrame *dstFrame;
@@ -434,7 +434,7 @@ public:
     void doGetState(Jzon::Object &filterNode){};
     
 protected:
-    bool doProcessFrame(std::map<int, Frame*> orgFrames) {
+    bool doProcessFrame(std::map<int, Frame*> &orgFrames) {
         InterleavedVideoFrame *orgFrame;
  
         if ((orgFrame = dynamic_cast<InterleavedVideoFrame*>(orgFrames.begin()->second)) != NULL){
@@ -489,7 +489,7 @@ public:
     void doGetState(Jzon::Object &filterNode){};
 
 protected:
-    bool doProcessFrame(std::map<int, Frame*> orgFrames) {
+    bool doProcessFrame(std::map<int, Frame*> &orgFrames) {
         PlanarAudioFrame *orgFrame;
 
         if ((orgFrame = dynamic_cast<PlanarAudioFrame*>(orgFrames.begin()->second)) != NULL){

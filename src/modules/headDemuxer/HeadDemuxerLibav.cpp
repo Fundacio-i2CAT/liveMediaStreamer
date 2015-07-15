@@ -23,7 +23,7 @@
 #include "HeadDemuxerLibav.hh"
 #include "../../AVFramedQueue.hh"
 
-HeadDemuxerLibav::HeadDemuxerLibav() : HeadFilter (MASTER, 2)
+HeadDemuxerLibav::HeadDemuxerLibav() : HeadFilter (2)
 {
     // Initialize libav
     av_register_all();
@@ -63,7 +63,7 @@ void HeadDemuxerLibav::reset()
     streams.clear();
 }
 
-bool HeadDemuxerLibav::doProcessFrame(std::map<int, Frame*> dstFrames)
+bool HeadDemuxerLibav::doProcessFrame(std::map<int, Frame*> &dstFrames)
 {
     if (!av_ctx) return false;
 

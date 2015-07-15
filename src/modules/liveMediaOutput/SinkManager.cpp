@@ -118,6 +118,22 @@ bool SinkManager::readerInConnection(int rId)
     return false;
 }
 
+bool SinkManager::deleteReader(int readerId)
+{
+    if (readers.count(readerId) > 0){
+        readers[readerId]->disconnect();
+        readers[readerId]->removeReader();
+        readers.erase(readerId);
+        removeConnectionByReaderId(readerId);
+        if (sources.count(readerId) > 0){
+            delete sources[readerId];
+            sources.erase(readerId);
+        }
+        return true;
+    }
+    return false;
+}
+
 bool SinkManager::doProcessFrame(std::map<int, Frame*> oFrames)
 {
     if (envir() == NULL){
@@ -169,7 +185,6 @@ bool SinkManager::addRTSPConnection(std::vector<int> readers, int id, TxFormat t
     }
 
     connection = new RTSPConnection(env, txformat, rtspServer, name, info, desc);
-    //TODO: test connection construction
 
     for (auto & reader : readers){
         if (!addSubsessionByReader(connection, reader)) {
@@ -286,7 +301,7 @@ bool SinkManager::addStdRTPConnection(std::vector<int> readers, int id, std::str
     VideoFrameQueue *vQueue;
     AudioFrameQueue *aQueue;
     Connection *conn = NULL;
-    Reader *r;
+    std::shared_ptr<Reader> r;
 
     if (readers.size() != 1) {
         utils::errorMsg("Error in standard RTP connection setup. Multiple readers do not make sense in this type");
@@ -331,7 +346,7 @@ bool SinkManager::addUltraGridRTPConnection(std::vector<int> readers, int id, st
     VideoFrameQueue *vQueue = NULL;
     AudioFrameQueue *aQueue = NULL;
     Connection* conn = NULL;
-    Reader *r;
+    std::shared_ptr<Reader> r;
 
     if (readers.size() != 1) {
         utils::errorMsg("Error in standard Ultragrid connection setup. Multiple readers do not make sense in this type");
@@ -370,7 +385,7 @@ bool SinkManager::addUltraGridRTPConnection(std::vector<int> readers, int id, st
 }
 
 
-Reader *SinkManager::setReader(int readerId, FrameQueue* queue)
+std::shared_ptr<Reader> SinkManager::setReader(int readerId, FrameQueue* queue)
 {
     VideoFrameQueue *vQueue;
     AudioFrameQueue *aQueue;
@@ -380,7 +395,7 @@ Reader *SinkManager::setReader(int readerId, FrameQueue* queue)
         return NULL;
     }
 
-    Reader* r = new Reader();
+    std::shared_ptr<Reader> r (new Reader());
     
 
     if ((vQueue = dynamic_cast<VideoFrameQueue*>(queue)) != NULL){
@@ -394,7 +409,7 @@ Reader *SinkManager::setReader(int readerId, FrameQueue* queue)
     }
     
     if(!queueSrcCreated){
-        delete r;
+        r.reset();
         return NULL;
     }
     
@@ -430,7 +445,7 @@ bool SinkManager::addSubsessionByReader(RTSPConnection* connection ,int readerId
     VideoFrameQueue *vQueue;
     AudioFrameQueue *aQueue;
     
-    Reader* reader = getReader(readerId);
+    std::shared_ptr<Reader> reader = getReader(readerId);
     if (!reader){
         return false;
     }
@@ -448,62 +463,59 @@ bool SinkManager::addSubsessionByReader(RTSPConnection* connection ,int readerId
     return false;
 }
 
-//TODO: shall we keep it?
-// bool SinkManager::removeConnectionByReaderId(int readerId)
-// {
-//     std::vector<int> readers;
-//     std::vector<int> connToDelete;
-//     bool ret = false;
-//     Connection* conn;
-//     
-//     for (auto it : connections){
-//         readers = it.second->getReaders();
-//         for (auto ti : readers){
-//             if (ti == readerId){
-//                 it.second->stopPlaying();
-//                 connToDelete.push_back(it.first);
-//             }
-//         }
-//     }
-//     
-//     for (auto id : connToDelete){
-//         conn = connections[id];
-//         connections.erase(id);
-//         delete conn;
-//         ret |= true;
-//     }
-//     
-//     return ret;
-// }
-// 
-// bool SinkManager::deleteReader(int id)
-// {
-//     Reader* reader = getReader(id);
-//     if (reader == NULL){
-//         return false;
-//     }
-// 
-//     removeConnectionByReaderId(id);
-// 
-//     if (reader->isConnected()) {
-//         return false;
-//     }
-// 
-//     delete reader;
-//     readers.erase(id);
-//     
-//     if (sources.count(id) > 0 && sources[id]){
-//         delete sources[id];
-//         sources.erase(id);
-//     }
-// 
-//     return true;
-// }
+
+bool SinkManager::removeConnectionByReaderId(int readerId)
+{
+    std::vector<int> readers;
+    std::vector<int> connToDelete;
+    bool ret = false;
+    Connection* conn;
+    
+    for (auto it : connections){
+        readers = it.second->getReaders();
+        for (auto ti : readers){
+            if (ti == readerId){
+                it.second->stopPlaying();
+                connToDelete.push_back(it.first);
+            }
+        }
+    }
+    
+    for (auto id : connToDelete){
+        conn = connections[id];
+        connections.erase(id);
+        delete conn;
+        ret |= true;
+    }
+    
+    return ret;
+}
 
 void SinkManager::initializeEventMap()
 {
     eventMap["addRTSPConnection"] = std::bind(&SinkManager::addRTSPConnectionEvent, this, std::placeholders::_1);
     eventMap["addRTPConnection"] = std::bind(&SinkManager::addRTPConnectionEvent, this, std::placeholders::_1);
+    eventMap["removeConnection"] = std::bind(&SinkManager::removeConnectionEvent, this, std::placeholders::_1);
+}
+
+bool SinkManager::removeConnectionEvent(Jzon::Node* params)
+{
+    int connectionId;
+    
+    if (!params){
+        return false;
+    }
+    
+    if (!params->Has("id")){
+        return false;
+    }
+    
+    if (!params->Get("id").IsNumber()){
+        return false;
+    }
+    
+    connectionId = params->Get("id").ToInt();
+    return removeConnection(connectionId);
 }
 
 bool SinkManager::addRTSPConnectionEvent(Jzon::Node* params)
@@ -523,7 +535,11 @@ bool SinkManager::addRTSPConnectionEvent(Jzon::Node* params)
         return false;
     }
 
-    if (!params->Has("readers") || !params->Get("readers").IsArray()) {
+    if (!params->Has("readers")){
+        return false;
+    }
+    
+    if (!params->Get("readers").IsArray() || !params->Get("id").IsNumber()){
         return false;
     }
 
@@ -570,7 +586,11 @@ bool SinkManager::addRTPConnectionEvent(Jzon::Node* params)
         return false;
     }
 
-    if (!params->Has("readers") || !params->Get("readers").IsArray()) {
+    if (!params->Has("readers")){
+        return false;
+    }
+    
+    if (!params->Get("readers").IsArray()){
         return false;
     }
 

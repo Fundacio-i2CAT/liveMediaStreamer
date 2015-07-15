@@ -29,7 +29,7 @@
 //READER IMPLEMENTATION//
 /////////////////////////
 
-Reader::Reader()
+Reader::Reader() : filters(0), pending(0)
 {
     queue = NULL;
 }
@@ -39,18 +39,41 @@ Reader::~Reader()
     disconnect();
 }
 
-void Reader::setQueue(FrameQueue *queue)
+void Reader::addReader()
 {
-    this->queue = queue;
+    std::lock_guard<std::mutex> guard(lck);
+    
+    if (filters >= 1 && queue->isConnected()){
+        filters++;
+    }
+}
+
+void Reader::removeReader()
+{
+    std::unique_lock<std::mutex> guard(lck);
+    
+    if (filters > 0){
+        filters--;
+        if (filters == 0){
+            guard.unlock();
+            disconnect();
+        }
+    }
 }
 
 Frame* Reader::getFrame(bool force)
 {
     Frame *frame;
 
+    std::lock_guard<std::mutex> guard(lck);
+    
     if (!queue->isConnected()) {
         utils::errorMsg("The queue is not connected");
         return NULL;
+    }
+    
+    if (pending == 0){
+        pending = filters;
     }
 
     frame = queue->getFront();
@@ -64,16 +87,35 @@ Frame* Reader::getFrame(bool force)
 
 int Reader::removeFrame()
 {
-    return queue->removeFrame();
+    std::lock_guard<std::mutex> guard(lck);
+    
+    if (pending != 0){
+        pending--;
+    }
+    
+    if (pending == 0){
+        return queue->removeFrame();
+    } else {
+        return -1;
+    }
 }
 
 void Reader::setConnection(FrameQueue *queue)
 {
+    std::lock_guard<std::mutex> guard(lck);
     this->queue = queue;
+    filters = 1;
 }
 
 bool Reader::disconnect()
 {
+    std::lock_guard<std::mutex> guard(lck);
+    
+    if (filters > 1){
+        filters--;
+        return true;
+    }
+    
     if (!queue) {
         return false;
     }
@@ -122,7 +164,7 @@ Writer::~Writer()
     disconnect();
 }
 
-bool Writer::connect(Reader *reader) const
+bool Writer::connect(std::shared_ptr<Reader> reader) const
 {
     if (!queue) {
         utils::errorMsg("The queue is NULL");
@@ -150,7 +192,7 @@ bool Writer::disconnect() const
     return true;
 }
 
-bool Writer::disconnect(Reader *reader) const
+bool Writer::disconnect(std::shared_ptr<Reader> reader) const
 {
     if (reader->disconnect()){
         return disconnect();
@@ -193,4 +235,15 @@ Frame* Writer::getFrame(bool force) const
 int Writer::addFrame() const
 {
     return queue->addFrame();
+}
+
+struct ConnectionData Writer::getCData()
+{
+    if (queue && queue->isConnected()){
+        return queue->getCData();
+    }
+    
+    struct ConnectionData cData;
+    return cData;
+    
 }

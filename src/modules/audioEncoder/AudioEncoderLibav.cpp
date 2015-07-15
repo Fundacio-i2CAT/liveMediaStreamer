@@ -60,9 +60,9 @@ AudioEncoderLibav::~AudioEncoderLibav()
     av_free_packet(&pkt);
 }
 
-FrameQueue* AudioEncoderLibav::allocQueue(int wFId, int rFId, int wId)
+FrameQueue* AudioEncoderLibav::allocQueue(struct ConnectionData cData)
 {
-    return AudioFrameQueue::createNew(wFId, rFId, fCodec, DEFAULT_AUDIO_FRAMES, internalSampleRate, internalChannels, internalSampleFmt);
+    return AudioFrameQueue::createNew(cData, fCodec, DEFAULT_AUDIO_FRAMES, internalSampleRate, internalChannels, internalSampleFmt);
 }
 
 bool AudioEncoderLibav::doProcessFrame(Frame *org, Frame *dst)
@@ -114,7 +114,7 @@ bool AudioEncoderLibav::doProcessFrame(Frame *org, Frame *dst)
     return true;
 }
 
-Reader* AudioEncoderLibav::setReader(int readerID, FrameQueue* queue)
+std::shared_ptr<Reader> AudioEncoderLibav::setReader(int readerID, FrameQueue* queue)
 {
     AudioCircularBuffer* b;
 
@@ -136,7 +136,7 @@ Reader* AudioEncoderLibav::setReader(int readerID, FrameQueue* queue)
 
     b->setOutputFrameSamples(samplesPerFrame);
 
-    Reader* r = new Reader();
+    std::shared_ptr<Reader> r (new Reader());
     readers[readerID] = r;
 
     return r;

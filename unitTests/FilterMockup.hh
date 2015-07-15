@@ -37,10 +37,6 @@
 #include "Frame.hh"
 #include "VideoFrame.hh"
 
-#define READERS 1
-#define WRITERS 1
-
-
 class FrameMock : public Frame {
 public:
     ~FrameMock(){};
@@ -83,7 +79,7 @@ public:
     virtual bool isPlanar() {return false;};
 
 protected:
-    unsigned char buff[4] = {1,1,1,1};
+    unsigned char buff[4] = {1,2,1,2};
 
 private:
     VideoFrameMock(): InterleavedVideoFrame(RAW, 1920, 1080, YUV420P) {};
@@ -92,7 +88,7 @@ private:
 class AVFramedQueueMock : public AVFramedQueue
 {
 public:
-    AVFramedQueueMock(int wFId, int rFId, unsigned max) : AVFramedQueue(wFId, rFId, max) {
+    AVFramedQueueMock(struct ConnectionData cData, unsigned max) : AVFramedQueue(cData, max) {
         config();
     };
 
@@ -113,19 +109,9 @@ public:
     using BaseFilter::getReader;
 
 protected:
-    FrameQueue *allocQueue(int wFId, int rFId, int wId) {return new AVFramedQueueMock(wFId, rFId, 4);};
-    std::vector<int> masterProcessFrame(int& ret) {
-        std::vector<int> enabledJobs;
-        ret = 20;
-        return enabledJobs;
-    };
-    std::vector<int> slaveProcessFrame(int& ret) {
-        std::vector<int> enabledJobs;
-        ret = 20;
-        return enabledJobs;
-    };
+    FrameQueue *allocQueue(struct ConnectionData cData) {return new AVFramedQueueMock(cData, 4);};
+
     void doGetState(Jzon::Object &filterNode) {};
-    void stop() {};
 
 private:
     VCodecType codec;
@@ -138,34 +124,32 @@ private:
 class OneToOneFilterMockup : public OneToOneFilter
 {
 public:
-    OneToOneFilterMockup(std::chrono::microseconds processTime_, size_t queueSize_, bool gotFrame_,
-                         std::chrono::microseconds frameTime, FilterRole role) :
-        OneToOneFilter(role),
-        processTime(processTime_), queueSize(queueSize_), gotFrame(gotFrame_) {
-            setFrameTime(frameTime);
-        };
+    OneToOneFilterMockup(size_t queueSize_, bool gotFrame_,
+                std::chrono::microseconds frameTime, FilterRole role) :
+                OneToOneFilter(role), queueSize(queueSize_), gotFrame(gotFrame_) {
+        setFrameTime(frameTime);
+    };
 
     void setGotFrame(bool gotFrame_) {gotFrame = gotFrame_;};
     using BaseFilter::getReader;
 
 protected:
     bool doProcessFrame(Frame *org, Frame *dst) {
-        size_t realProcessTime;
-        std::uniform_int_distribution<size_t> distribution(processTime.count()/2, processTime.count());
-        realProcessTime = distribution(generator);
-        utils::debugMsg("Process time " + std::to_string(realProcessTime));
-        std::this_thread::sleep_for(std::chrono::microseconds(realProcessTime));
-        dst->setConsumed(gotFrame);
+        if (!org->isPlanar() && !dst->isPlanar()){
+            memcpy(dst->getDataBuf(), org->getDataBuf(), org->getLength());
+            dst->setSequenceNumber(org->getSequenceNumber());
+            dst->setLength(org->getLength());
+            dst->setConsumed(gotFrame);
+        } 
+        
         return gotFrame;
     }
     void doGetState(Jzon::Object &filterNode) {};
-    void stop() {};
 
 private:
-    virtual FrameQueue *allocQueue(int wFId, int rFId, int wId) {return new AVFramedQueueMock(wFId, rFId, queueSize);};
+    virtual FrameQueue *allocQueue(struct ConnectionData cData) {return new AVFramedQueueMock(cData, queueSize);};
 
     std::default_random_engine generator;
-    std::chrono::microseconds processTime;
     size_t queueSize;
     bool gotFrame;
 };
@@ -173,10 +157,10 @@ private:
 class OneToManyFilterMockup : public OneToManyFilter
 {
 public:
-    OneToManyFilterMockup(unsigned maxWriters, std::chrono::microseconds processTime_, size_t queueSize_, bool gotFrame_,
+    OneToManyFilterMockup(unsigned maxWriters, size_t queueSize_, bool gotFrame_,
                          std::chrono::microseconds frameTime, FilterRole role) :
         OneToManyFilter(role, maxWriters),
-        processTime(processTime_), queueSize(queueSize_), gotFrame(gotFrame_) {
+        queueSize(queueSize_), gotFrame(gotFrame_) {
             setFrameTime(frameTime);
         };
 
@@ -185,24 +169,17 @@ public:
 
 protected:
     bool doProcessFrame(Frame *org, std::map<int, Frame *> dstFrames) {
-        size_t realProcessTime;
-        std::uniform_int_distribution<size_t> distribution(processTime.count()/2, processTime.count());
-        realProcessTime = distribution(generator);
-        utils::debugMsg("Process time " + std::to_string(realProcessTime));
-        std::this_thread::sleep_for(std::chrono::microseconds(realProcessTime));
         for (auto dst : dstFrames) {
             dst.second->setConsumed(gotFrame);
         }
         return gotFrame;
     }
     void doGetState(Jzon::Object &filterNode) {};
-    void stop() {};
 
 private:
-    virtual FrameQueue *allocQueue(int wFId, int rFId, int wId) {return new AVFramedQueueMock(wFId, rFId, queueSize);};
+    virtual FrameQueue *allocQueue(struct ConnectionData cData) {return new AVFramedQueueMock(cData, queueSize);};
 
     std::default_random_engine generator;
-    std::chrono::microseconds processTime;
     size_t queueSize;
     bool gotFrame;
 };
@@ -210,13 +187,12 @@ private:
 class VideoFilterMockup : public OneToOneFilterMockup
 {
 public:
-    VideoFilterMockup(VCodecType c) : OneToOneFilterMockup(std::chrono::microseconds(20000), 
-        4, true, std::chrono::microseconds(40000), MASTER)  {
+    VideoFilterMockup(VCodecType c) : OneToOneFilterMockup(4, true, std::chrono::microseconds(40000), MASTER)  {
         codec = c;
     };
 
 protected:
-    FrameQueue *allocQueue(int wFId, int rFId, int wId) {return VideoFrameQueue::createNew(wFId, rFId, codec, DEFAULT_VIDEO_FRAMES);};
+    FrameQueue *allocQueue(struct ConnectionData cData) {return VideoFrameQueue::createNew(cData, codec, DEFAULT_VIDEO_FRAMES);};
 
 private:
     VCodecType codec;
@@ -225,16 +201,106 @@ private:
 class AudioFilterMockup : public OneToOneFilterMockup
 {
 public:
-    AudioFilterMockup(ACodecType c) : OneToOneFilterMockup(std::chrono::microseconds(20000), 
-        4, true, std::chrono::microseconds(40000), MASTER)  {
+    AudioFilterMockup(ACodecType c) : OneToOneFilterMockup(4, true, std::chrono::microseconds(40000), MASTER)  {
         codec = c;
     };
 
 protected:
-    FrameQueue *allocQueue(int wFId, int rFId, int wId) {return AudioFrameQueue::createNew(wFId, rFId, codec, DEFAULT_AUDIO_FRAMES);};
+    FrameQueue *allocQueue(struct ConnectionData cData) {return AudioFrameQueue::createNew(cData, codec, DEFAULT_AUDIO_FRAMES);};
 
 private:
     ACodecType codec;
+};
+
+
+class HeadFilterMockup : public HeadFilter
+{
+public:
+    HeadFilterMockup() : HeadFilter(), srcFrame(NULL), newFrame(false) {};
+    
+    bool inject(Frame *f){
+        if (!f || newFrame){
+            return false;
+        }
+        
+        srcFrame = f;
+        newFrame = true;
+        
+        return true;
+    }
+    
+    void doGetState(Jzon::Object &filterNode){};
+    
+protected:
+    bool doProcessFrame(std::map<int, Frame*> dstFrames) {
+        if (!newFrame){
+            return false;
+        }
+        
+        newFrame = false;
+               
+        for (auto it : dstFrames){
+            if (!it.second->isPlanar()){
+                memcpy(it.second->getDataBuf(), srcFrame->getDataBuf(), srcFrame->getLength());
+                it.second->setSequenceNumber(srcFrame->getSequenceNumber());
+                it.second->setLength(srcFrame->getLength());
+                it.second->setConsumed(true);
+            } else {
+                return false;
+            }
+        }
+        return true;
+    }
+    
+    Frame* srcFrame;
+    bool newFrame;
+    
+private:
+    FrameQueue *allocQueue(struct ConnectionData cData) {
+        return new AVFramedQueueMock(cData, 4);
+    };
+};
+
+class TailFilterMockup : public TailFilter
+{
+public:
+    TailFilterMockup() : TailFilter(), frames(0), frame(NULL), newFrame(false) {
+        frame = FrameMock::createNew(0);
+    };
+    
+    Frame* extract(){
+        if (!newFrame){
+            return NULL;
+        }
+        newFrame = false;
+        return frame;
+    }
+    
+    size_t getFrames() {return frames;};
+    
+    void doGetState(Jzon::Object &filterNode){};
+    
+protected:
+    bool doProcessFrame(std::map<int, Frame*> orgFrames) { 
+        for (auto it : orgFrames){
+            if (!it.second->isPlanar()){
+                memcpy(frame->getDataBuf(), it.second->getDataBuf(), it.second->getLength());
+                frame->setSequenceNumber(it.second->getSequenceNumber());
+                frame->setLength(it.second->getLength());
+                frames++;
+                newFrame = true;
+            } else {
+                return false;
+            }
+        }
+        
+        return true;
+    }
+    
+    size_t frames;
+    Frame* frame;
+    bool newFrame;
+    
 };
 
 class VideoHeadFilterMockup : public HeadFilter
@@ -279,8 +345,8 @@ protected:
     
 
 private:
-    FrameQueue *allocQueue(int wFId, int rFId, int wId) {
-        return VideoFrameQueue::createNew(wFId, rFId, codec, 10, pixFormat);
+    FrameQueue *allocQueue(struct ConnectionData cData) {
+        return VideoFrameQueue::createNew(cData, codec, 10, pixFormat);
     };
 
     InterleavedVideoFrame* srcFrame;
@@ -336,8 +402,8 @@ protected:
     
 
 private:
-    FrameQueue *allocQueue(int wFId, int rFId, int wId) {
-        return AudioCircularBuffer::createNew(wFId, rFId, channels, sampleRate, DEFAULT_BUFFER_SIZE, sampleFormat, std::chrono::milliseconds(0));
+    FrameQueue *allocQueue(struct ConnectionData cData) {
+        return AudioCircularBuffer::createNew(cData, channels, sampleRate, DEFAULT_BUFFER_SIZE, sampleFormat, std::chrono::milliseconds(0));
     };
 
     PlanarAudioFrame* srcFrame;

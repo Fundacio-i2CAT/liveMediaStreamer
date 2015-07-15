@@ -44,7 +44,7 @@ public:
     * instance for first time or returns the same instance if it already exists.
     * @return PipelineManager instance pointer
     */
-    static PipelineManager* getInstance();
+    static PipelineManager* getInstance(unsigned threads = 0);
 
     /**
     * If PipelineManager instance exists it is destroyed.
@@ -150,21 +150,18 @@ public:
     void removePathEvent(Jzon::Node* params, Jzon::Object &outputNode);
 
     /**
-    * Sets outputNode jzon object with the results coming from add slave to filter
-    * event filled by incoming jzon object params
-    */
-    void addSlavesToFilterEvent(Jzon::Node* params, Jzon::Object &outputNode);
-
-    /**
     * Sets outputNode jzon object with results of pipeline stop event
     */
     void stopEvent(Jzon::Node* params, Jzon::Object &outputNode);
 
 private:
-    PipelineManager();
+    PipelineManager(unsigned threads = 0);
     ~PipelineManager();
     bool deletePath(Path* path);
     bool createFilter(int id, FilterType type, FilterRole role);
+    
+    bool handleGrouping(int orgFId, int dstFId, int orgWId, int dstRId);
+    bool validCData(struct ConnectionData cData);
 
     static PipelineManager* pipeMngrInstance;
 

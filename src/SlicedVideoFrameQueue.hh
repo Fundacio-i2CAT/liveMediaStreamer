@@ -38,7 +38,7 @@ public:
     * @param maxFrames internal frame queue size 
     * @return NULL if wrong input parameters or wrong init and pointer to new object if success
     */
-    static SlicedVideoFrameQueue* createNew(int wId, int rId, VCodecType codec, unsigned maxFrames, unsigned maxSliceSize);
+    static SlicedVideoFrameQueue* createNew(struct ConnectionData cData, VCodecType codec, unsigned maxFrames, unsigned maxSliceSize);
 
     /**
     * Class destructor
@@ -65,7 +65,7 @@ public:
     Frame *forceGetRear();
 
 private:
-    SlicedVideoFrameQueue(int wId, int rId, VCodecType codec, unsigned maxFrames);
+    SlicedVideoFrameQueue(struct ConnectionData cData, VCodecType codec, unsigned maxFrames);
 
     void pushBackSliceGroup(Slice* slices, int sliceNum);
     Frame *innerGetRear();

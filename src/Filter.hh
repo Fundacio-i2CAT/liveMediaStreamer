@@ -29,6 +29,7 @@
 #include <vector>
 #include <queue>
 #include <mutex>
+#include <memory>
 
 #include "FrameQueue.hh"
 #include "IOInterface.hh"
@@ -39,11 +40,11 @@
 #define DEFAULT_ID 1                /*!< Default ID for unique filter's readers and/or writers. */
 #define MAX_WRITERS 16              /*!< Default maximum writers for a filter. */
 #define MAX_READERS 16              /*!< Default maximum readers for a filter. */
-#define RETRY 1000                   /*!< Default retry time in microseconds . */
 
 /*! Generic filter class methods. It is an interface to different specific filters
     so it cannot be instantiated
 */
+
 class BaseFilter : public Runnable {
 
 public:
@@ -92,14 +93,8 @@ public:
     * Disconnects and cleans all readers and writers
     */
     void disconnectAll();
-
-    /**
-    * If it is a master filter a new slave filter is added to the master's list
-    * @param Integer slave filter ID
-    * @param BaseFilter pointer of the slave filter to be added
-    * @return True if succeeded and false if not
-    */
-    bool addSlave(BaseFilter *slave);
+    
+    bool shareReader(BaseFilter *shared, int sharedRId, int orgRId);
 
     /**
     * Filter type getter
@@ -156,7 +151,7 @@ public:
 
     //NOTE: these are public just for testing purposes
     /**
-    * Processes frames depending on its role (MASTER or SLAVE)
+    * Processes frames
     * @param integer this integer contains the delay until the method can be executed again
     * @return A vector containing the ids of the filters that can be exectued after 
     * this process (e.g new data has been generated)
@@ -167,18 +162,39 @@ public:
     * @param size_t frame time
     */
     void setFrameTime(std::chrono::microseconds fTime);
+    
+    /**
+     * tests if the specfied reader is connected or not
+     * @param readerId of the reader to check
+     * @return true if, and only if, the reader exists and it is connected.
+     */
+    bool isRConnected (int rId);
+    
+    /**
+     * tests if the specfied writer is connected or not
+     * @param writerId of the writer to check
+     * @return true if, and only if, the writer exists and it is connected.
+     */
+    bool isWConnected (int wId);
+    
+    /**
+     * get the connection data of the specified writer
+     * @param writerId of the writer to check
+     * @return the connection data. It is a defaut ConnectionData in case of failure (e.g. filter not connected)
+     */
+    struct ConnectionData getWConnectionData (int wId);
 
 protected:
     BaseFilter(unsigned readersNum = MAX_READERS, unsigned writersNum = MAX_WRITERS, FilterRole fRole_ = MASTER, bool periodic = false);
 
     std::vector<int> addFrames();
     bool removeFrames();
-    virtual FrameQueue *allocQueue(int wFId, int rFId, int wId) = 0;
+    virtual FrameQueue *allocQueue(struct ConnectionData cData) = 0;
 
     std::chrono::microseconds getFrameTime() {return frameTime;};
 
-    virtual Reader *setReader(int readerID, FrameQueue* queue);
-    Reader* getReader(int id);
+    virtual std::shared_ptr<Reader> setReader(int readerID, FrameQueue* queue);
+    std::shared_ptr<Reader> getReader(int id);
 
     bool demandOriginFrames();
     bool demandOriginFramesBestEffort();
@@ -193,17 +209,16 @@ protected:
     std::map<std::string, std::function<bool(Jzon::Node* params)> > eventMap;
 
     virtual bool runDoProcessFrame() = 0;
-
-    bool removeSlave(int id);
+    
+    virtual bool deleteReader(int readerId);
 
     void setSyncTs(std::chrono::microseconds ts){syncTs = ts;};
     std::chrono::microseconds getSyncTs(){return syncTs;};
 
 protected:
     bool process;
-    std::map<int, BaseFilter*> slaves;
 
-    std::map<int, Reader*> readers;
+    std::map<int, std::shared_ptr<Reader>> readers;
     std::map<int, Writer*> writers;
     std::map<int, Frame*> oFrames;
     std::map<int, Frame*> dFrames;
@@ -217,18 +232,14 @@ protected:
 private:
     bool connect(BaseFilter *R, int writerID, int readerID);
     std::vector<int> masterProcessFrame(int& ret);
-    std::vector<int> slaveProcessFrame(int& ret);
     std::vector<int> serverProcessFrame(int& ret);
-    void processAll();
-    bool runningSlaves();
+
     void execute() {process = true;};
     bool isProcessing() {return process;};
     void updateFrames(std::map<int, Frame*> oFrames_);
 
 private:
     std::priority_queue<Event> eventQueue;
-    std::mutex eventQueueMutex;
-    std::mutex readersWritersLck;
     
     bool enabled;
     FilterRole const fRole;
@@ -255,10 +266,10 @@ private:
     using BaseFilter::dFrames;
     using BaseFilter::seqNums;
     using BaseFilter::processEvent;
-    using BaseFilter::addSlave;
     using BaseFilter::frameTime;
     using BaseFilter::maxReaders;
     using BaseFilter::maxWriters;
+    using BaseFilter::mtx;
 };
 
 class OneToManyFilter : public BaseFilter {
@@ -276,17 +287,16 @@ private:
     using BaseFilter::demandDestinationFrames;
     using BaseFilter::addFrames;
     using BaseFilter::removeFrames;
-    using BaseFilter::readers;
     using BaseFilter::writers;
     using BaseFilter::oFrames;
     using BaseFilter::dFrames;
     using BaseFilter::seqNums;
     using BaseFilter::processEvent;
-    using BaseFilter::addSlave;
 
     using BaseFilter::frameTime;
     using BaseFilter::maxReaders;
     using BaseFilter::maxWriters;
+    using BaseFilter::mtx;
 };
 
 class HeadFilter : public BaseFilter {
@@ -308,15 +318,15 @@ private:
     using BaseFilter::demandOriginFrames;
     using BaseFilter::addFrames;
     using BaseFilter::removeFrames;
-    using BaseFilter::readers;
+    using BaseFilter::writers;
     using BaseFilter::oFrames;
     using BaseFilter::dFrames;
     using BaseFilter::seqNums;
     using BaseFilter::processEvent;
-    using BaseFilter::addSlave;
     using BaseFilter::frameTime;
     using BaseFilter::maxReaders;
     using BaseFilter::maxWriters;
+    using BaseFilter::mtx;
 };
 
 class TailFilter : public BaseFilter {
@@ -329,13 +339,14 @@ protected:
     using BaseFilter::getFrameTime;
 
 private:
-    FrameQueue *allocQueue(int wFId, int rFId, int wId) {return NULL;};
+    FrameQueue *allocQueue(struct ConnectionData cData) {return NULL;};
     bool runDoProcessFrame();
     virtual bool doProcessFrame(std::map<int, Frame*> orgFrames) = 0;
     using BaseFilter::demandOriginFrames;
     using BaseFilter::demandDestinationFrames;
     using BaseFilter::addFrames;
     using BaseFilter::removeFrames;
+    using BaseFilter::writers;
     using BaseFilter::oFrames;
     using BaseFilter::dFrames;
     using BaseFilter::seqNums;
@@ -343,6 +354,7 @@ private:
     using BaseFilter::frameTime;
     using BaseFilter::maxReaders;
     using BaseFilter::maxWriters;
+    using BaseFilter::mtx;
 };
 
 class ManyToOneFilter : public BaseFilter {
@@ -365,10 +377,10 @@ private:
     using BaseFilter::dFrames;
     using BaseFilter::seqNums;
     using BaseFilter::processEvent;
-    using BaseFilter::addSlave;
     using BaseFilter::frameTime;
     using BaseFilter::maxReaders;
     using BaseFilter::maxWriters;
+    using BaseFilter::mtx;
 };
 
 #endif

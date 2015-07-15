@@ -76,11 +76,19 @@ public:
     * @return True if succeded, the connected with the given id has been stopped and deteled
     */
     bool removeConnection(int id);
+    
+    /**
+     * Removes the connection determined by the id included in params field of Jzon::Node*
+     * @return True if the connection was successfully removed, False otherwise
+     */
+    bool removeConnectionEvent(Jzon::Node* params);
 
     UsageEnvironment* envir() {return env;}
 
 private:
     SinkManager(unsigned readersNum = MAX_READERS);
+    
+    bool deleteReader(int readerId);
     
     bool readerInConnection(int rId);
     
@@ -91,18 +99,15 @@ private:
     bool addMpegTsRTPConnection(std::vector<int> readers, int id, std::string ip, int port);
     void initializeEventMap();
     
-//     bool removeConnectionByReaderId(int readerId);
-//     bool deleteReader(int id);
+    bool removeConnectionByReaderId(int readerId);
     
     bool addRTSPConnectionEvent(Jzon::Node* params);
     bool addRTPConnectionEvent(Jzon::Node* params);
     
-    Reader *setReader(int readerID, FrameQueue* queue);
+    std::shared_ptr<Reader> setReader(int readerID, FrameQueue* queue);
 
     bool doProcessFrame(std::map<int, Frame*> oFrames);
     void stop();
-
-    FrameQueue *allocQueue(int wFId, int rFId, int wId) { return NULL;};
 
     bool addSubsessionByReader(RTSPConnection* connection, int readerId);
 

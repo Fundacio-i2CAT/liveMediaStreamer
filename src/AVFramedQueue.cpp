@@ -26,7 +26,7 @@
 #include "AudioFrame.hh"
 #include "Utils.hh"
 
-AVFramedQueue::AVFramedQueue(int wId, int rId, unsigned maxFrames) : FrameQueue(wId, rId), max(maxFrames)
+AVFramedQueue::AVFramedQueue(struct ConnectionData cData, unsigned maxFrames) : FrameQueue(cData), max(maxFrames)
 {
 
 }
@@ -59,13 +59,13 @@ Frame* AVFramedQueue::getFront()
 int AVFramedQueue::addFrame() 
 {
     rear =  (rear + 1) % max;
-    return rFilterId;
+    return connectionData.rFilterId;
 }
 
 int AVFramedQueue::removeFrame() 
 {
     front = (front + 1) % max;
-    return wFilterId;
+    return connectionData.wFilterId;
 }
 
 void AVFramedQueue::flush() 
@@ -98,9 +98,9 @@ const unsigned AVFramedQueue::getElements()
 //VIDEO FRAME QUEUE METHODS IMPLEMENTATION//
 ////////////////////////////////////////////
 
-VideoFrameQueue* VideoFrameQueue::createNew(int wId, int rId, VCodecType codec, unsigned maxFrames, PixType pixelFormat, const uint8_t *extradata, int extradata_size)
+VideoFrameQueue* VideoFrameQueue::createNew(struct ConnectionData cData, VCodecType codec, unsigned maxFrames, PixType pixelFormat, const uint8_t *extradata, int extradata_size)
 {
-    VideoFrameQueue* q = new VideoFrameQueue(wId, rId, codec, maxFrames, pixelFormat);
+    VideoFrameQueue* q = new VideoFrameQueue(cData, codec, maxFrames, pixelFormat);
 
     if (!q->setup()) {
         utils::errorMsg("VideoFrameQueue setup error!");
@@ -115,8 +115,8 @@ VideoFrameQueue* VideoFrameQueue::createNew(int wId, int rId, VCodecType codec, 
 }
 
 
-VideoFrameQueue::VideoFrameQueue(int wId, int rId, VCodecType codec_, unsigned maxFrames, PixType pixelFormat_) :
-AVFramedQueue(wId, rId, maxFrames), codec(codec_), pixelFormat(pixelFormat_)
+VideoFrameQueue::VideoFrameQueue(struct ConnectionData cData, VCodecType codec_, unsigned maxFrames, PixType pixelFormat_) :
+AVFramedQueue(cData, maxFrames), codec(codec_), pixelFormat(pixelFormat_)
 {
 
 }
@@ -159,10 +159,10 @@ bool VideoFrameQueue::setup()
 
 unsigned getMaxSamples(unsigned sampleRate);
 
-AudioFrameQueue* AudioFrameQueue::createNew(int wId, int rId, ACodecType codec, unsigned maxFrames, unsigned sampleRate, 
+AudioFrameQueue* AudioFrameQueue::createNew(struct ConnectionData cData, ACodecType codec, unsigned maxFrames, unsigned sampleRate, 
                                              unsigned channels, SampleFmt sFmt, const uint8_t *extradata, int extradata_size)
 {
-    AudioFrameQueue* q = new AudioFrameQueue(wId, rId, codec, maxFrames, sFmt, sampleRate, channels);
+    AudioFrameQueue* q = new AudioFrameQueue(cData, codec, maxFrames, sFmt, sampleRate, channels);
 
     if (!q->setup()) {
         utils::errorMsg("AudioFrameQueue setup error!");
@@ -176,8 +176,8 @@ AudioFrameQueue* AudioFrameQueue::createNew(int wId, int rId, ACodecType codec, 
     return q;
 }
 
-AudioFrameQueue::AudioFrameQueue(int wId, int rId, ACodecType codec_, unsigned maxFrames, SampleFmt sFmt, unsigned sampleRate_, unsigned channels_)
-: AVFramedQueue(wId, rId, maxFrames), codec(codec_), sampleFormat(sFmt), sampleRate(sampleRate_), channels(channels_)
+AudioFrameQueue::AudioFrameQueue(struct ConnectionData cData, ACodecType codec_, unsigned maxFrames, SampleFmt sFmt, unsigned sampleRate_, unsigned channels_)
+: AVFramedQueue(cData, maxFrames), codec(codec_), sampleFormat(sFmt), sampleRate(sampleRate_), channels(channels_)
 {
 
 }

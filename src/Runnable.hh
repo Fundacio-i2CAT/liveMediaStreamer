@@ -28,6 +28,9 @@
 #include <chrono>
 #include <functional>
 #include <vector>
+#include <set>
+#include <memory>
+#include <mutex>
 
 #include "Utils.hh"
 
@@ -38,7 +41,7 @@
 class Runnable {
 
 public:
-    virtual ~Runnable(){};
+    virtual ~Runnable();
 
     std::vector<int> runProcessFrame();
 
@@ -57,7 +60,7 @@ public:
      * Gets the runnable Id, if Id < 0 it means unset ID, only zero or higher values are allowed
      * @return id of the filter, it is a unique value.
      */
-    int getId() {return id;};
+    int getId() const {return id;};
 
     /**
     * Operator definition to make Runnable objects comparable
@@ -70,17 +73,23 @@ public:
      * Returns the value of the running flag
      * @return True if the runnable is currently running, False otherwise
      */
-    bool isRunning() {return running;};
+    bool isRunning();
     
     /**
      * Sets the running flag to true
      */
-    void setRunning() {running = true;};
+    void setRunning();
     
     /**
      * Sets the running flag to false
      */
-    void unsetRunning() {running = false;};
+    void unsetRunning();
+    
+    /**
+     * get the ids of the grouped Runnables
+     * @return a vector containing the ids of the group
+     */
+    std::vector<int> getGroupIds();
 
     /**
     * Get next time point of processFrame execution
@@ -97,6 +106,12 @@ public:
     //TODO should be a private method
     void setId(int id_);
     
+    /**
+     * Groups two runnables
+     * @param Runnable this is the other runnable to get grouped with
+     * @return true if succeded false otherwise
+     */
+    bool groupRunnable(Runnable *r);
 
 protected:
     /**
@@ -113,12 +128,18 @@ protected:
      */
     virtual std::vector<int> processFrame(int& ret) = 0;
     
+private:
+    void addInGroup(Runnable *r, std::shared_ptr<unsigned> run = NULL);
+    
 protected:
     std::chrono::system_clock::time_point time;
+    std::set<Runnable*> group;
+    std::mutex mtx;
+    bool run;
 
 private:
     const bool periodic;
-    bool running;
+    std::shared_ptr<unsigned> running;
     int id;
 };
 

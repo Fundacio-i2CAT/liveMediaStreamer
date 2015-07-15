@@ -35,7 +35,7 @@
  class AudioCircularBuffer : public FrameQueue {
 
 public:
-    static AudioCircularBuffer* createNew(int wId, int rId, unsigned ch, unsigned sRate, unsigned maxSamples, SampleFmt sFmt, std::chrono::milliseconds bufferingThreshold);
+    static AudioCircularBuffer* createNew(struct ConnectionData cData, unsigned ch, unsigned sRate, unsigned maxSamples, SampleFmt sFmt, std::chrono::milliseconds bufferingThreshold);
     ~AudioCircularBuffer();
     void setOutputFrameSamples(int samples); 
 
@@ -53,7 +53,7 @@ public:
     const unsigned getElements() {return elements;};
 
 private:
-    AudioCircularBuffer(int wId, int rId, unsigned ch, unsigned sRate, unsigned maxSamples, SampleFmt sFmt);
+    AudioCircularBuffer(struct ConnectionData cData, unsigned ch, unsigned sRate, unsigned maxSamples, SampleFmt sFmt);
 
     enum State {BUFFERING, OK, FULL};
 

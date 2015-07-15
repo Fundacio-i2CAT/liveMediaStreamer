@@ -84,9 +84,9 @@ VideoMixer::~VideoMixer()
     channelsConfig.clear();
 }
 
-FrameQueue* VideoMixer::allocQueue(int wFId, int rFId, int wId)
+FrameQueue* VideoMixer::allocQueue(struct ConnectionData cData)
 {
-    return VideoFrameQueue::createNew(wFId, rFId, RAW, DEFAULT_RAW_VIDEO_FRAMES, RGB24);
+    return VideoFrameQueue::createNew(cData, RAW, DEFAULT_RAW_VIDEO_FRAMES, RGB24);
 }
 
 bool VideoMixer::doProcessFrame(std::map<int, Frame*> orgFrames, Frame *dst)
@@ -208,13 +208,13 @@ void VideoMixer::pasteToLayout(int frameID, VideoFrame* vFrame)
     }
 }
 
-Reader* VideoMixer::setReader(int readerId, FrameQueue* queue)
+std::shared_ptr<Reader> VideoMixer::setReader(int readerId, FrameQueue* queue)
 {
     if (readers.count(readerId) > 0) {
         return NULL;
     }
 
-    Reader* r = new Reader();
+    std::shared_ptr<Reader> r(new Reader());
     readers[readerId] = r;
 
     channelsConfig[readerId] = new ChannelConfig();

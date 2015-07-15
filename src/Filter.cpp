@@ -37,9 +37,9 @@ fRole(fRole_), syncTs(std::chrono::microseconds(0))
 
 BaseFilter::~BaseFilter()
 {
-    std::lock_guard<std::mutex> guard(readersWritersLck);
+    std::lock_guard<std::mutex> guard(mtx);
     for (auto it : readers) {
-        delete it.second;
+        it.second->removeReader();
     }
 
     for (auto it : writers) {
@@ -52,14 +52,48 @@ BaseFilter::~BaseFilter()
     dFrames.clear();
 }
 
+bool BaseFilter::isWConnected (int wId) 
+{
+    std::lock_guard<std::mutex> guard(mtx);
+
+    if (writers.count(wId) > 0 && writers[wId]->isConnected()){
+        return true;
+    }
+    
+    return false;
+}
+
+struct ConnectionData BaseFilter::getWConnectionData (int wId) 
+{   
+    std::lock_guard<std::mutex> guard(mtx);
+
+    if (writers.count(wId) > 0 && writers[wId]->isConnected()){
+        return writers[wId]->getCData();
+    }
+    
+    struct ConnectionData cData;
+    return cData;
+}
+
+bool BaseFilter::isRConnected (int rId) 
+{
+    std::lock_guard<std::mutex> guard(mtx);
+
+    if (readers.count(rId) > 0 && readers[rId]->isConnected()){
+        return true;
+    }
+    
+    return false;
+}
+
 void BaseFilter::setFrameTime(std::chrono::microseconds fTime)
 {
     frameTime = fTime;
 }
 
-Reader* BaseFilter::getReader(int id)
+std::shared_ptr<Reader> BaseFilter::getReader(int id)
 {
-    std::lock_guard<std::mutex> guard(readersWritersLck);
+    std::lock_guard<std::mutex> guard(mtx);
     if (readers.count(id) <= 0) {
         return NULL;
     }
@@ -67,14 +101,14 @@ Reader* BaseFilter::getReader(int id)
     return readers[id];
 }
 
-Reader* BaseFilter::setReader(int readerID, FrameQueue* queue)
+std::shared_ptr<Reader> BaseFilter::setReader(int readerID, FrameQueue* queue)
 {
-    std::lock_guard<std::mutex> guard(readersWritersLck);
+    std::lock_guard<std::mutex> guard(mtx);
     if (readers.size() >= getMaxReaders() || readers.count(readerID) > 0 ) {
         return NULL;
     }
 
-    Reader* r = new Reader();
+    std::shared_ptr<Reader> r (new Reader());
     readers[readerID] = r;
 
     return r;
@@ -82,7 +116,7 @@ Reader* BaseFilter::setReader(int readerID, FrameQueue* queue)
 
 int BaseFilter::generateReaderID()
 {
-    std::lock_guard<std::mutex> guard(readersWritersLck);
+    std::lock_guard<std::mutex> guard(mtx);
     if (maxReaders == 1) {
         return DEFAULT_ID;
     }
@@ -98,7 +132,7 @@ int BaseFilter::generateReaderID()
 
 int BaseFilter::generateWriterID()
 {
-    std::lock_guard<std::mutex> guard(readersWritersLck);
+    std::lock_guard<std::mutex> guard(mtx);
     if (maxWriters == 1) {
         return DEFAULT_ID;
     }
@@ -114,7 +148,7 @@ int BaseFilter::generateWriterID()
 
 bool BaseFilter::demandDestinationFrames()
 {
-    std::lock_guard<std::mutex> guard(readersWritersLck);
+    std::lock_guard<std::mutex> guard(mtx);
     
     if (maxWriters == 0) {
         return true;
@@ -140,7 +174,7 @@ bool BaseFilter::demandDestinationFrames()
 
 std::vector<int> BaseFilter::addFrames()
 {
-    std::lock_guard<std::mutex> guard(readersWritersLck);
+    std::lock_guard<std::mutex> guard(mtx);
     
     std::vector<int> enabledJobs;
     
@@ -164,7 +198,7 @@ bool BaseFilter::removeFrames()
         return executeAgain;
     }
     
-    std::lock_guard<std::mutex> guard(readersWritersLck);
+    std::lock_guard<std::mutex> guard(mtx);
     
     for (auto it : readers) {
         if (oFrames[it.first] && oFrames[it.first]->getConsumed()){
@@ -176,12 +210,36 @@ bool BaseFilter::removeFrames()
     return executeAgain;
 }
 
+bool BaseFilter::shareReader(BaseFilter *shared, int sharedRId, int orgRId)
+{
+    std::lock_guard<std::mutex> guard(mtx);
+    
+    if (!readers.count(orgRId) > 0) {
+        utils::errorMsg("The reader to share is not there");
+        return false;
+    }
+    if (!readers[orgRId]->isConnected()){
+        utils::errorMsg("The reader to share is not connected!");
+        return false;
+    }
+    if (shared->isRConnected(sharedRId)){
+        utils::errorMsg("The shared filter has the reader already connected!");
+        return false;
+    }
+    
+    shared->readers[sharedRId] = readers[orgRId];
+    readers[orgRId]->addReader();
+    
+    return true;
+}
+
 bool BaseFilter::connect(BaseFilter *R, int writerID, int readerID)
 {
-    Reader* r;
+    std::shared_ptr<Reader> r;
     FrameQueue *queue = NULL;
+    struct ConnectionData cData;
     
-    std::lock_guard<std::mutex> guard(readersWritersLck);
+    std::lock_guard<std::mutex> guard(mtx);
       
     if (writers.size() >= maxWriters) {
         utils::errorMsg("Too many writers!");
@@ -189,30 +247,34 @@ bool BaseFilter::connect(BaseFilter *R, int writerID, int readerID)
     }
     
     if (writers.count(writerID) > 0){
-        utils::errorMsg("Id must be unique");
+        utils::errorMsg("Writer id must be unique");
         return false;
     }
     
-    writers[writerID] = new Writer();
-    seqNums[writerID] = 0;
-
-    if (writers[writerID]->isConnected()) {
-        utils::errorMsg("Writer " + std::to_string(writerID) + " null or already connected");
-        return false;
-    }
-
     if (R->getReader(readerID) && R->getReader(readerID)->isConnected()){
         utils::errorMsg("Reader " + std::to_string(readerID) + " null or already connected");
         return false;
     }
 
-    queue = allocQueue(getId(), R->getId(), writerID);
+    writers[writerID] = new Writer();
+    seqNums[writerID] = 0;
+
+    cData.wFilterId = getId();
+    cData.writerId = writerID;
+    cData.rFilterId = R->getId();
+    cData.readerId = readerID;
+    
+    queue = allocQueue(cData);
     if (!queue){
+        delete writers[writerID];
+        writers.erase(writerID);
         return false;
     }
 
     if (!(r = R->setReader(readerID, queue))) {
-        utils::errorMsg("Could not set the queue to the reader");
+        delete writers[writerID];
+        writers.erase(writerID);
+        utils::errorMsg("Could not create the reader or set the queue");
         return false;
     }
 
@@ -249,7 +311,7 @@ bool BaseFilter::disconnectWriter(int writerId)
 {
     bool ret;
     
-    std::lock_guard<std::mutex> guard(readersWritersLck);
+    std::lock_guard<std::mutex> guard(mtx);
     
     if (writers.count(writerId) <= 0) {
         return false;
@@ -266,7 +328,7 @@ bool BaseFilter::disconnectReader(int readerId)
 {
     bool ret;
     
-    std::lock_guard<std::mutex> guard(readersWritersLck);
+    std::lock_guard<std::mutex> guard(mtx);
     
     if (readers.count(readerId) <= 0) {
         return false;
@@ -281,7 +343,7 @@ bool BaseFilter::disconnectReader(int readerId)
 
 void BaseFilter::disconnectAll()
 {
-    std::lock_guard<std::mutex> guard(readersWritersLck);
+    std::lock_guard<std::mutex> guard(mtx);
     
     for (auto it : writers) {
         it.second->disconnect();
@@ -297,7 +359,7 @@ void BaseFilter::processEvent()
     std::string action;
     Jzon::Node* params;
 
-    std::lock_guard<std::mutex> guard(eventQueueMutex);
+    std::lock_guard<std::mutex> guard(mtx);
 
     while(newEvent()) {
 
@@ -335,13 +397,13 @@ bool BaseFilter::newEvent()
 
 void BaseFilter::pushEvent(Event e)
 {
-    std::lock_guard<std::mutex> guard(eventQueueMutex);
+    std::lock_guard<std::mutex> guard(mtx);
     eventQueue.push(e);
 }
 
 void BaseFilter::getState(Jzon::Object &filterNode)
 {
-    std::lock_guard<std::mutex> guard(eventQueueMutex);
+    std::lock_guard<std::mutex> guard(mtx);
     filterNode.Add("type", utils::getFilterTypeAsString(fType));
     filterNode.Add("role", utils::getRoleAsString(fRole));
     doGetState(filterNode);
@@ -356,14 +418,10 @@ std::vector<int> BaseFilter::processFrame(int& ret)
             enabledJobs = masterProcessFrame(ret);
             break;
         case SLAVE:
-            enabledJobs = slaveProcessFrame(ret);
-            break;
-        case NETWORK:
-            runDoProcessFrame();
-            ret = 0;
             break;
         case SERVER:
             enabledJobs = serverProcessFrame(ret);
+            break;
         default:
             ret = 0;
             break;
@@ -372,44 +430,6 @@ std::vector<int> BaseFilter::processFrame(int& ret)
     return enabledJobs;
 }
 
-void BaseFilter::processAll()
-{
-    for (auto it : slaves) {
-        it.second->updateFrames(oFrames);
-        it.second->execute();
-    }
-}
-
-bool BaseFilter::runningSlaves()
-{
-    bool running = false;
-    for (auto it : slaves){
-        running |= it.second->isProcessing();
-    }
-    return running;
-}
-
-bool BaseFilter::addSlave(BaseFilter *slave)
-{
-    if (slave->fRole != SLAVE){
-        utils::warningMsg("Could not add slave, invalid role");
-        return false;
-    }
-    
-    if (slave->getId() < 0){
-        utils::warningMsg("Could not add slave, invalid id");
-        return false;
-    }
-
-    if (slaves.count(slave->getId()) > 0){
-        utils::warningMsg("Could not add slave, id must be unique");
-        return false;
-    }
-
-    slaves[slave->getId()] = slave;
-
-    return true;
-}
 
 std::vector<int> BaseFilter::masterProcessFrame(int& ret)
 {
@@ -420,22 +440,17 @@ std::vector<int> BaseFilter::masterProcessFrame(int& ret)
     processEvent();
      
     if (!demandOriginFrames()) {
-        ret = RETRY;
+        ret = 0;
         return enabledJobs;
     }
     
     if (!demandDestinationFrames()) {
-        ret = RETRY;
+        ret = 0;
         return enabledJobs;
     }
 
-    processAll();
-
     runDoProcessFrame();
 
-    while (runningSlaves()){
-        std::this_thread::sleep_for(std::chrono::microseconds(RETRY));
-    }
 
     enabledJobs = addFrames();
     
@@ -460,33 +475,6 @@ std::vector<int> BaseFilter::serverProcessFrame(int& ret)
     enabledJobs = addFrames();
     removeFrames();
     
-    ret = 0;
-    
-    return enabledJobs;
-}
-
-std::vector<int> BaseFilter::slaveProcessFrame(int& ret)
-{
-    std::vector<int> enabledJobs;
-    ret = RETRY;
-
-    if (!process) {
-        ret = RETRY;
-        return enabledJobs;
-    }
-
-    processEvent();
-
-    //TODO: decide policy to set run to true/false if retry
-    if (!demandDestinationFrames()){
-        return enabledJobs;
-    }
-
-    runDoProcessFrame();
-    
-    enabledJobs = addFrames();
-
-    process = false;
     ret = 0;
     
     return enabledJobs;
@@ -518,12 +506,28 @@ bool BaseFilter::demandOriginFrames()
     return success;
 }
 
+bool BaseFilter::deleteReader(int readerId)
+{
+    if (readers.count(readerId) > 0){
+        readers[readerId]->removeReader();
+        readers.erase(readerId);
+        return true;
+    }
+    
+    return false;
+}
+
 bool BaseFilter::demandOriginFramesBestEffort() 
 {
     bool someFrame = false;
     Frame* frame;
 
     for (auto r : readers) {
+        if (!r.second->isConnected()) {
+            deleteReader(r.first);
+            continue;
+        }
+        
         frame = r.second->getFrame();
 
         while(frame && frame->getPresentationTime() < syncTs) {
@@ -553,6 +557,10 @@ bool BaseFilter::demandOriginFramesFrameTime()
     bool noFrame = true;
 
     for (auto r : readers) {
+        if (!r.second->isConnected()) {
+            deleteReader(r.first);
+            continue;
+        }
 
         frame = r.second->getFrame();
 

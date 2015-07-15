@@ -79,9 +79,9 @@ AudioDecoderLibav::~AudioDecoderLibav()
     av_free_packet(&pkt);
 }
 
-FrameQueue* AudioDecoderLibav::allocQueue(int wFId, int rFId, int wId)
+FrameQueue* AudioDecoderLibav::allocQueue(struct ConnectionData cData)
 {
-    return AudioCircularBuffer::createNew(wFId, rFId, outChannels, outSampleRate, DEFAULT_BUFFER_SIZE, 
+    return AudioCircularBuffer::createNew(cData, outChannels, outSampleRate, DEFAULT_BUFFER_SIZE, 
                                             outSampleFmt, std::chrono::milliseconds(0));
 }
 

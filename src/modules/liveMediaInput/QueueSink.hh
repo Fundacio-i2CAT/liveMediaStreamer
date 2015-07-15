@@ -27,7 +27,6 @@
 #include <liveMedia.hh>
 
 #include "../../Frame.hh"
-#include "../../IOInterface.hh"
 
 #define DUMMY_RECEIVE_BUFFER_SIZE 200000
 

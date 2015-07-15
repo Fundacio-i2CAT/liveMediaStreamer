@@ -303,8 +303,8 @@ namespace utils
            fRole = MASTER;
         } else if (stringRoleType.compare("slave") == 0) {
            fRole = SLAVE;
-        }  else if (stringRoleType.compare("network") == 0) {
-           fRole = NETWORK;
+        }  else if (stringRoleType.compare("server") == 0) {
+           fRole = SERVER;
         }  else {
            fRole = FR_NONE;
         }
@@ -322,8 +322,8 @@ namespace utils
             case SLAVE:
                 stringRole = "slave";
                 break;
-            case NETWORK:
-                stringRole = "network";
+            case SERVER:
+                stringRole = "server";
                 break;
             default:
                 stringRole = "";

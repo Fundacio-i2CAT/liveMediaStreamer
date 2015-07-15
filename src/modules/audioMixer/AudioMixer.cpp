@@ -56,9 +56,9 @@ AudioMixer::~AudioMixer()
     }
 }
 
-FrameQueue *AudioMixer::allocQueue(int wFId, int rFId, int wId) 
+FrameQueue *AudioMixer::allocQueue(struct ConnectionData cData) 
 {
-    return AudioCircularBuffer::createNew(wFId, rFId, channels, sampleRate, DEFAULT_BUFFER_SIZE, 
+    return AudioCircularBuffer::createNew(cData, channels, sampleRate, DEFAULT_BUFFER_SIZE, 
                                             sampleFormat, std::chrono::milliseconds(0));
 }
 
@@ -268,7 +268,7 @@ bool AudioMixer::floatToBytes(unsigned char* dst, float const origin, SampleFmt 
     return true;
 }
 
-Reader* AudioMixer::setReader(int readerID, FrameQueue* queue)
+std::shared_ptr<Reader> AudioMixer::setReader(int readerID, FrameQueue* queue)
 {
     AudioCircularBuffer* inBuffer;
 
@@ -276,7 +276,7 @@ Reader* AudioMixer::setReader(int readerID, FrameQueue* queue)
         return NULL;
     }
 
-    Reader* r = new Reader();
+    std::shared_ptr<Reader> r (new Reader());
     readers[readerID] = r;
 
     inBuffer = dynamic_cast<AudioCircularBuffer*>(queue);

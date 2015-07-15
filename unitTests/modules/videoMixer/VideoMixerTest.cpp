@@ -111,7 +111,7 @@ void VideoMixerTest::channelConfigTest()
     int id = 1;
     std::chrono::microseconds fTime(0);
     VideoMixerMock* mixer;
-    Reader* r;
+    std::shared_ptr<Reader> r;
 
     mixer = new VideoMixerMock(channels, width, height, fTime);
 

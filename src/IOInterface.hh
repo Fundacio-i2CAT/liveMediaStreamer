@@ -25,9 +25,10 @@
 #ifndef _IO_INTERFACE_HH
 #define _IO_INTERFACE_HH
 
-#include <atomic>
+#include <mutex>
 #include <utility>
 #include <map>
+#include <memory>
 
 #ifndef _FRAME_HH
 #include "Frame.hh"
@@ -55,14 +56,14 @@ public:
     * @param pointer to Reader object to connect with through specific queue
     * @return true if success on connecting, otherwise returns false
     */
-    bool connect(Reader *reader) const;
+    bool connect(std::shared_ptr<Reader> reader) const;
 
     /**
     * Disconnects specific Reader and itself from queue
     * @param pointer to Reader object to disconnect from specific queue
     * @return true if success on disconnecting, otherwise returns false
     */
-    bool disconnect(Reader *reader) const;
+    bool disconnect(std::shared_ptr<Reader> reader) const;
 
     /**
     * Check if writer has its queue connected
@@ -96,13 +97,11 @@ public:
     */
     bool disconnect() const;
     
-    // //TODO: delete it
-    // int getId(){
-    //     if (!queue){
-    //         return -1;
-    //     }
-    //     return queue->getId();
-    // }
+    /**
+    * gets the connection data of the associated queue
+    * @return the connection data struct of the queue
+    */
+    struct ConnectionData getCData();
 
 protected:
     mutable FrameQueue *queue;
@@ -122,12 +121,6 @@ public:
     * Class destructor
     */
     ~Reader();
-
-    /**
-    * Sets reader's pointer to FrameQueue object
-    * @param FramQueue object pointer
-    */
-    void setQueue(FrameQueue *queue);
 
     /**
     * Checks if has a queue and if it is connected to
@@ -167,6 +160,16 @@ public:
     * @return true if successful disconnecting, otherwise returns false
     */
     bool disconnect();
+    
+    /**
+    * Increases the number of filters that make use of this reader
+    */
+    void addReader();
+    
+    /**
+    * Decreases the number of filters that make use of this reader. It disconnects if filters number is zero.
+    */
+    void removeReader();
 
     /**
     * Get FrameQueue elements number
@@ -179,7 +182,10 @@ protected:
 
 private:
     friend class Writer;
-
+    
+    unsigned filters;
+    unsigned pending;
+    std::mutex lck;
 };
 
 #endif

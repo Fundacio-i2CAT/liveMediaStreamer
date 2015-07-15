@@ -39,10 +39,10 @@ public:
     AudioDecoderLibav(FilterRole fRole_ = MASTER);
     ~AudioDecoderLibav();
     bool configure(SampleFmt sampleFormat, int channels, int sampleRate);
-
+    
 protected:
     bool doProcessFrame(Frame *org, Frame *dst);
-    FrameQueue* allocQueue(int wFId, int rFId, int wId);
+    FrameQueue* allocQueue(struct ConnectionData cData);
     bool configure0(SampleFmt sampleFormat, int channels, int sampleRate);
 
 private:

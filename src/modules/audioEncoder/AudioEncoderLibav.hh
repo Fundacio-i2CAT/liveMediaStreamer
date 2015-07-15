@@ -46,9 +46,9 @@ public:
     ACodecType getCodec() {return fCodec;};
     
 protected:
+    FrameQueue* allocQueue(struct ConnectionData cData);
     bool doProcessFrame(Frame *org, Frame *dst);
-    FrameQueue* allocQueue(int wFId, int rFId, int wId);
-    Reader* setReader(int readerID, FrameQueue* queue);
+	std::shared_ptr<Reader> setReader(int readerID, FrameQueue* queue);
 
 private:
     bool configure0(ACodecType codec, int codedAudioChannels, int codedAudioSampleRate, int bitrate);

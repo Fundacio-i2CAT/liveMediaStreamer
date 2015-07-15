@@ -37,10 +37,10 @@
 
 #define WORKER_DELETE_SLEEPING_TIME 1000 //us
 
-PipelineManager::PipelineManager()
+PipelineManager::PipelineManager(unsigned threads)
 {
     pipeMngrInstance = this;
-    pool = new WorkersPool();
+    pool = new WorkersPool(threads);
 }
 
 PipelineManager::~PipelineManager()
@@ -52,13 +52,13 @@ PipelineManager::~PipelineManager()
     pipeMngrInstance = NULL;
 }
 
-PipelineManager* PipelineManager::getInstance()
+PipelineManager* PipelineManager::getInstance(unsigned threads)
 {
     if (pipeMngrInstance != NULL) {
         return pipeMngrInstance;
     }
 
-    return new PipelineManager();
+    return new PipelineManager(threads);
 }
 
 void PipelineManager::destroyInstance()
@@ -221,24 +221,29 @@ Path* PipelineManager::createPath(int orgFilter, int dstFilter, int orgWriter, i
 
     if (filters.count(orgFilter) <= 0) {
         utils::errorMsg("Origin filter does not exist");
+        return NULL;
     }
 
     if (filters.count(dstFilter) <= 0) {
         utils::errorMsg("Destination filter does not exist");
-    }
-
-    if (filters.count(orgFilter) <= 0 || filters.count(dstFilter) <= 0) {
-        utils::errorMsg("Error creating path: origin and/or destination filter do not exist");
         return NULL;
     }
 
     for (auto it : midFilters) {
-        if (filters.count(it) <= 0) {
-            utils::errorMsg("Error creating path: one or more of the mid filters do no exist");
+        if (filters.count(it) <= 0 || it == orgFilter || it == dstFilter) {
+            utils::errorMsg("Error creating path: invalid mid filters");
             return NULL;
         }
     }
-
+        
+    std::vector<int> midCopy = midFilters;
+    std::sort(midCopy.begin(), midCopy.end());
+    std::vector<int> unique(midCopy.begin(), std::unique(midCopy.begin(), midCopy.end()));
+    if (unique.size() != midFilters.size()){
+        utils::errorMsg("Error creating path: duplicated mid filters");
+        return NULL;
+    }
+    
     originFilter = filters[orgFilter];
     destinationFilter = filters[dstFilter];
 
@@ -262,9 +267,16 @@ bool PipelineManager::connectPath(Path* path)
     int dstFilterId = path->getDestinationFilterID();
 
     std::vector<int> pathFilters = path->getFilters();
+    
+    for (auto id : pathFilters){
+        if (filters.count(id) == 0){
+            return false;
+        }
+    }
 
     if (pathFilters.empty()) {
-        if (filters[orgFilterId]->connectManyToMany(filters[dstFilterId], path->getDstReaderID(), path->getOrgWriterID())) {
+        if (filters[orgFilterId]->connectManyToMany(filters[dstFilterId], path->getDstReaderID(), path->getOrgWriterID()) ||
+            handleGrouping(orgFilterId, dstFilterId, path->getOrgWriterID(), path->getDstReaderID())) {
             return true;
         } else {
             utils::errorMsg("Connecting head to tail!");
@@ -272,7 +284,8 @@ bool PipelineManager::connectPath(Path* path)
         }
     }
 
-    if (!filters[orgFilterId]->connectManyToOne(filters[pathFilters.front()], path->getOrgWriterID())) {
+    if (!filters[orgFilterId]->connectManyToOne(filters[pathFilters.front()], path->getOrgWriterID()) &&
+        !handleGrouping(orgFilterId, pathFilters.front(), path->getOrgWriterID(), DEFAULT_ID)) {
         utils::errorMsg("Connecting path head to first filter!");
         return false;
     }
@@ -286,11 +299,37 @@ bool PipelineManager::connectPath(Path* path)
 
     if (!filters[pathFilters.back()]->connectOneToMany(filters[dstFilterId], path->getDstReaderID())) {
         utils::errorMsg("Connecting path last filter to path tail!");
-
         return false;
     }
 
     return true;
+}
+
+bool PipelineManager::handleGrouping(int orgFId, int dstFId, int orgWId, int dstRId)
+{
+    struct ConnectionData cData;
+    
+    if (!filters[orgFId]->isWConnected(orgWId)){
+        return false;
+    }
+    
+    cData = filters[orgFId]->getWConnectionData(orgWId);
+    
+    if (!validCData(cData)){
+        return false;
+    }
+    
+    return filters[cData.rFilterId]->shareReader(filters[dstFId], dstRId, cData.readerId) &&
+        filters[cData.rFilterId]->groupRunnable(filters[dstFId]);
+}
+
+bool PipelineManager::validCData(struct ConnectionData cData)
+{
+    if (filters.count(cData.wFilterId) > 0 && filters[cData.wFilterId]->isWConnected(cData.writerId) &&
+        filters.count(cData.rFilterId) > 0 && filters[cData.rFilterId]->isRConnected(cData.readerId)) {
+        return true;
+    }
+    return false;
 }
 
 bool PipelineManager::removePath(int id)
@@ -501,49 +540,6 @@ void PipelineManager::removePathEvent(Jzon::Node* params, Jzon::Object &outputNo
         outputNode.Add("error", "Error removing path. Internal error...");
         return;
     }
-
-    outputNode.Add("error", Jzon::null);
-}
-
-void PipelineManager::addSlavesToFilterEvent(Jzon::Node* params, Jzon::Object &outputNode)
-{
-    BaseFilter *slave, *master;
-    int masterId;
-
-    if(!params) {
-        outputNode.Add("error", "Error adding slaves to worker. Invalid JSON format...");
-        return;
-    }
-
-    if (!params->Has("master")) {
-        outputNode.Add("error", "Error adding slaves to filter. Invalid JSON format...");
-        return;
-    }
-
-    if (!params->Has("slaves") || !params->Get("slaves").IsArray()) {
-        outputNode.Add("error", "Error adding slaves to filter. Invalid JSON format...");
-        return;
-    }
-
-    masterId = params->Get("master").ToInt();
-    Jzon::Array& jsonSlavesIds = params->Get("slaves").AsArray();
-
-    master = getFilter(masterId);
-
-    if (!master) {
-        outputNode.Add("error", "Error adding slaves to filter. Invalid Master ID...");
-        return;
-    }
-
-    for (Jzon::Array::iterator it = jsonSlavesIds.begin(); it != jsonSlavesIds.end(); ++it) {
-       if ((slave = getFilter((*it).ToInt())) && slave->getRole() == SLAVE){
-           if (!master->addSlave(slave)){
-               outputNode.Add("error", "Error adding slave, check the role and the filter id!");
-           }
-       } else {
-           outputNode.Add("error", "Error adding slaves to filter. Invalid Slave...");
-       }
-   }
 
     outputNode.Add("error", Jzon::null);
 }

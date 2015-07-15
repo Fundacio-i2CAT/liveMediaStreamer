@@ -118,8 +118,8 @@ class VideoMixer : public ManyToOneFilter {
         VideoMixer(FilterRole fRole, int inputChannels,
                    int outWidth, int outHeight,
                    std::chrono::microseconds fTime);
-        Reader* setReader(int readerID, FrameQueue* queue);
-        FrameQueue *allocQueue(int wFId, int rFId, int wId);
+        std::shared_ptr<Reader> setReader(int readerID, FrameQueue* queue);
+        FrameQueue *allocQueue(struct ConnectionData cData);
         bool doProcessFrame(std::map<int, Frame*> orgFrames, Frame *dst);
         void doGetState(Jzon::Object &filterNode);
         bool configChannel0(int id, float width, float height, float x, float y, int layer, bool enabled, float opacity);

@@ -65,9 +65,21 @@ bool DashVideoSegmenterHEVC::flushDashContext()
     return true;
 }
 
-bool DashVideoSegmenterHEVC::appendNalToFrame(unsigned char* nalData, unsigned nalDataLength, bool &newFrame)
+bool DashVideoSegmenterHEVC::parseNal(VideoFrame* nal, bool &newFrame)
 {
+    int startCodeOffset;
+    unsigned char* nalData;
+    int nalDataLength;
     unsigned char nalType;
+
+    startCodeOffset = detectStartCode(nal->getDataBuf());
+    nalData = nal->getDataBuf() + startCodeOffset;
+    nalDataLength = nal->getLength() - startCodeOffset;
+
+    if (!nalData || nalDataLength <= 0) {
+        utils::errorMsg("Error parsing NAL: invalid data pointer or length");
+        return false;
+    }
 
     nalType = (nalData[0] & H265_NALU_TYPE_MASK) >> 1;
 
@@ -117,16 +129,12 @@ bool DashVideoSegmenterHEVC::appendNalToFrame(unsigned char* nalData, unsigned n
             return false;
     }
 
-    //TODO: set as function
     if (nalType == IDR1 || nalType == IDR2 || nalType == CRA || nalType == NON_TSA_STSA_0 || nalType == NON_TSA_STSA_1) {
-        vFrame->getDataBuf()[vFrame->getLength()] = (nalDataLength >> 24) & 0xFF;
-        vFrame->getDataBuf()[vFrame->getLength()+1] = (nalDataLength >> 16) & 0xFF;
-        vFrame->getDataBuf()[vFrame->getLength()+2] = (nalDataLength >> 8) & 0xFF;
-        vFrame->getDataBuf()[vFrame->getLength()+3] = nalDataLength & 0xFF;
-        vFrame->setLength(vFrame->getLength() + 4);
-
-        memcpy(vFrame->getDataBuf() + vFrame->getLength(), nalData, nalDataLength);
-        vFrame->setLength(vFrame->getLength() + nalDataLength);
+        
+        if (!appendNalToFrame(nalData, nalDataLength, nal->getWidth(), nal->getHeight(), nal->getPresentationTime())) {
+            utils::errorMsg("[DashVideoSegmenterHEVC::parseNal] Error appending NAL to frame");
+            return false;
+        }
     }
 
     return true;

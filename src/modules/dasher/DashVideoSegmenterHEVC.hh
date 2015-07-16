@@ -115,8 +115,8 @@ private:
     void saveSPS(unsigned char* data, int dataLength);
     void savePPS(unsigned char* data, int dataLength);
     void createMetadata();
-    bool appendNalToFrame(unsigned char* nalData, unsigned nalDataLength, bool &newFrame);
     uint8_t generateContext();
+    bool parseNal(VideoFrame* nal, bool &newFrame);
 
     std::vector<unsigned char> lastVPS;
     std::vector<unsigned char> lastSPS;

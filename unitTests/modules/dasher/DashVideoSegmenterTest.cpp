@@ -161,7 +161,11 @@ void DashVideoSegmenterAVCTest::manageSetInternalValues()
     std::chrono::microseconds timestamp(tsValue);
     idrNal->setPresentationTime(timestamp);
     idrNal->setSize(WIDTH, HEIGHT);
+    audNal->setPresentationTime(timestamp);
+    audNal->setSize(WIDTH, HEIGHT);
 
+    CPPUNIT_ASSERT(segmenter->manageFrame(idrNal, newFrame));
+    CPPUNIT_ASSERT(!newFrame);
     CPPUNIT_ASSERT(segmenter->manageFrame(idrNal, newFrame));
     CPPUNIT_ASSERT(segmenter->getCurrentTimestamp() == timestamp);
     CPPUNIT_ASSERT(segmenter->getWidth() == WIDTH);
@@ -245,8 +249,6 @@ void DashVideoSegmenterAVCTest::generateInitSegment()
     ppsNal->setSize(WIDTH, HEIGHT);
     spsNal->setPresentationTime(ts);
     ppsNal->setPresentationTime(ts);
-    spsNal->setDuration(nanoFrameTime);
-    ppsNal->setDuration(nanoFrameTime);
 
     initModelLength = readFile("testsData/modules/dasher/dashVideoSegmenterAVCTest/initModel.m4v", initModel);
 
@@ -269,10 +271,8 @@ void DashVideoSegmenterAVCTest::appendFrameToDashSegment()
     CPPUNIT_ASSERT(!segmenter->appendFrameToDashSegment(segment));
 
     idrNal->setPresentationTime(ts);
-    idrNal->setDuration(nanoFrameTime);
     idrNal->setSize(WIDTH, HEIGHT);
     nonIdrNal->setPresentationTime(ts);
-    nonIdrNal->setDuration(nanoFrameTime);
     nonIdrNal->setSize(WIDTH, HEIGHT);
 
     segmenter->manageFrame(nonIdrNal, newFrame);
@@ -308,7 +308,6 @@ void DashVideoSegmenterAVCTest::generateSegment()
         dataLength = readFile(strName.c_str(), (char*)dummyNal->getDataBuf());
         dummyNal->setLength(dataLength);
         dummyNal->setPresentationTime(ts);
-        dummyNal->setDuration(std::chrono::duration_cast<std::chrono::nanoseconds>(frameTime));
         segmenter->manageFrame(dummyNal, newFrame);
         nalCounter++;
 
@@ -376,7 +375,6 @@ protected:
     VideoFrame *nonTsaNal;
     VideoFrame *dummyNal;
     std::chrono::microseconds frameTime;
-    std::chrono::nanoseconds nanoFrameTime;
 };
 
 void DashVideoSegmenterHEVCTest::setUp()
@@ -384,7 +382,6 @@ void DashVideoSegmenterHEVCTest::setUp()
     size_t dataLength;
 
     frameTime = std::chrono::microseconds(40000);
-    nanoFrameTime = std::chrono::duration_cast<std::chrono::nanoseconds>(frameTime);
 
     segmenter = new DashVideoSegmenterHEVC(std::chrono::seconds(SEG_DURATION));
     dummyNal = InterleavedVideoFrame::createNew(H265, MAX_H264_OR_5_NAL_SIZE);
@@ -568,9 +565,6 @@ void DashVideoSegmenterHEVCTest::generateInitSegment()
     vpsNal->setPresentationTime(ts);
     spsNal->setPresentationTime(ts);
     ppsNal->setPresentationTime(ts);
-    vpsNal->setDuration(nanoFrameTime);
-    spsNal->setDuration(nanoFrameTime);
-    ppsNal->setDuration(nanoFrameTime);
 
     initModelLength = readFile("testsData/modules/dasher/dashVideoSegmenterHEVCTest/initModel.m4v", initModel);
 
@@ -594,10 +588,8 @@ void DashVideoSegmenterHEVCTest::appendFrameToDashSegment()
     CPPUNIT_ASSERT(!segmenter->appendFrameToDashSegment(segment));
 
     idr1Nal->setPresentationTime(ts);
-    idr1Nal->setDuration(nanoFrameTime);
     idr1Nal->setSize(WIDTH, HEIGHT);
     nonTsaNal->setPresentationTime(ts);
-    nonTsaNal->setDuration(nanoFrameTime);
     nonTsaNal->setSize(WIDTH, HEIGHT);
 
     segmenter->manageFrame(nonTsaNal, newFrame);
@@ -633,7 +625,6 @@ void DashVideoSegmenterHEVCTest::generateSegment()
         dataLength = readFile(strName.c_str(), (char*)dummyNal->getDataBuf());
         dummyNal->setLength(dataLength);
         dummyNal->setPresentationTime(ts);
-        dummyNal->setDuration(std::chrono::duration_cast<std::chrono::nanoseconds>(frameTime));
         segmenter->manageFrame(dummyNal, newFrame);
         nalCounter++;
 

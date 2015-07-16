@@ -30,7 +30,6 @@
 #define H264_NALU_TYPE_MASK 0x1F
 #define H264_METADATA_VERSION_FLAG 0x01
 #define METADATA_RESERVED_BYTES1 0xFC
-#define AVCC_HEADER_BYTES_MINUS_ONE 0x03
 #define METADATA_RESERVED_BYTES2 0xE0
 #define NUMBER_OF_SPS 0x01
 #define NUMBER_OF_PPS 0x01
@@ -89,9 +88,8 @@ private:
     void saveSPS(unsigned char* data, int dataLength);
     void savePPS(unsigned char* data, int dataLength);
     void createMetadata();
-    bool appendNalToFrame(unsigned char* nalData, unsigned nalDataLength, bool &newFrame);
     uint8_t generateContext();
-
+    bool parseNal(VideoFrame* nal, bool &newFrame);
 
     std::vector<unsigned char> lastSPS;
     std::vector<unsigned char> lastPPS;

@@ -27,6 +27,7 @@
 #include "Dasher.hh"
 
 #define H264or5_NALU_START_CODE 0x00000001
+#define AVCC_HEADER_BYTES_MINUS_ONE 0x03
 #define SHORT_START_CODE_LENGTH 3
 #define LONG_START_CODE_LENGTH 4
 
@@ -97,14 +98,15 @@ protected:
     virtual ~DashVideoSegmenter();
 
     virtual bool updateMetadata() = 0;
-    virtual bool appendNalToFrame(unsigned char* nalData, unsigned nalDataLength, bool &newFrame) = 0;
     virtual void createMetadata() = 0;
     virtual uint8_t generateContext() = 0;
+    virtual bool parseNal(VideoFrame* nal, bool &newFrame) = 0;
 
+    bool appendNalToFrame(unsigned char* nalData, unsigned nalDataLength, 
+                           unsigned nalWidth, unsigned nalHeight, std::chrono::microseconds ts);
     int detectStartCode(unsigned char const* ptr);
     bool setup(size_t width, size_t height);
     bool generateInitData(DashSegment* segment);
-    bool parseNal(VideoFrame* nal, bool &newFrame);
     unsigned customGenerateSegment(unsigned char *segBuffer, unsigned &segTimestamp, unsigned &segDuration, bool force);
 
     InterleavedVideoFrame* vFrame;

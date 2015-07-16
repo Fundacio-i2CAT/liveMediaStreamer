@@ -52,10 +52,7 @@ bool DashVideoSegmenter::manageFrame(Frame* frame, bool &newFrame)
         return false;
     }
 
-    vFrame->setSize(nal->getWidth(), nal->getHeight());
-    vFrame->setPresentationTime(nal->getPresentationTime());
-
-    if (newFrame && !setup(nal->getWidth(), nal->getHeight())) {
+    if (newFrame && !setup(vFrame->getWidth(), vFrame->getHeight())) {
         utils::errorMsg("Error during Dash Audio Segmenter setup");
         return false;
     }
@@ -147,28 +144,28 @@ bool DashVideoSegmenter::appendFrameToDashSegment(DashSegment* segment)
     return true;
 }
 
-bool DashVideoSegmenter::parseNal(VideoFrame* nal, bool &newFrame)
+bool DashVideoSegmenter::appendNalToFrame(unsigned char* nalData, unsigned nalDataLength, 
+                                           unsigned nalWidth, unsigned nalHeight, std::chrono::microseconds ts)
 {
-    int startCodeOffset;
-    unsigned char* nalData;
-    int nalDataLength;
-
-    startCodeOffset = detectStartCode(nal->getDataBuf());
-    nalData = nal->getDataBuf() + startCodeOffset;
-    nalDataLength = nal->getLength() - startCodeOffset;
-
-    if (!nalData || nalDataLength <= 0) {
-        utils::errorMsg("Error parsing NAL: invalid data pointer or length");
+    if (vFrame->getLength() + nalDataLength + AVCC_HEADER_BYTES_MINUS_ONE + 1 > vFrame->getMaxLength()) {
+        utils::errorMsg("[DashVideoSegmenter::appendNalToFrame] Nal exceeds frame max length");
         return false;
     }
 
-    if (!appendNalToFrame(nalData, nalDataLength, newFrame)) {
-        utils::errorMsg("Error parsing NAL: invalid NALU type");
-        return false;
-    }
+    vFrame->getDataBuf()[vFrame->getLength()] = (nalDataLength >> 24) & 0xFF;
+    vFrame->getDataBuf()[vFrame->getLength()+1] = (nalDataLength >> 16) & 0xFF;
+    vFrame->getDataBuf()[vFrame->getLength()+2] = (nalDataLength >> 8) & 0xFF;
+    vFrame->getDataBuf()[vFrame->getLength()+3] = nalDataLength & 0xFF;
+    vFrame->setLength(vFrame->getLength() + 4);
 
+    memcpy(vFrame->getDataBuf() + vFrame->getLength(), nalData, nalDataLength);
+    vFrame->setLength(vFrame->getLength() + nalDataLength);
+
+    vFrame->setSize(nalWidth, nalHeight);
+    vFrame->setPresentationTime(ts);
     return true;
 }
+
 
 int DashVideoSegmenter::detectStartCode(unsigned char const* ptr)
 {

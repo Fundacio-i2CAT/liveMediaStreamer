@@ -102,7 +102,7 @@ protected:
     virtual uint8_t generateContext() = 0;
 
     int detectStartCode(unsigned char const* ptr);
-    bool setup(size_t segmentDuration, size_t timeBase, size_t width, size_t height);
+    bool setup(size_t width, size_t height);
     bool generateInitData(DashSegment* segment);
     bool parseNal(VideoFrame* nal, bool &newFrame);
     unsigned customGenerateSegment(unsigned char *segBuffer, unsigned &segTimestamp, unsigned &segDuration, bool force);

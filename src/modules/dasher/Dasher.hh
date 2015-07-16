@@ -180,7 +180,6 @@ public:
     */
     bool generateInitSegment(DashSegment* segment);
 
-
     virtual bool appendFrameToDashSegment(DashSegment* segment) = 0;
     bool generateSegment(DashSegment* segment, bool force = false);
     /**

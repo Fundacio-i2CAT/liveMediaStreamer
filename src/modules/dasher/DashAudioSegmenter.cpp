@@ -43,6 +43,12 @@ bool DashAudioSegmenter::manageFrame(Frame* frame, bool &newFrame)
         return false;
     }
 
+    if (!setup(aFrame->getChannels(), aFrame->getSampleRate(), aFrame->getSamples(),
+        utils::getBytesPerSampleFromFormat(aFrame->getSampleFmt())*BYTE_TO_BIT)) {
+        utils::errorMsg("Error during Dash Audio Segmenter setup");
+        return false;
+    }
+
     newFrame = true;
     return true;
 }
@@ -50,7 +56,6 @@ bool DashAudioSegmenter::manageFrame(Frame* frame, bool &newFrame)
 bool DashAudioSegmenter::setup(size_t channels, size_t sampleRate, size_t samples, size_t bitsPerSample)
 {
     uint8_t i2error = I2OK;
-    unsigned segmentDuration;
 
     if (!dashContext) {
         i2error = generate_context(&dashContext, AUDIO_TYPE);
@@ -62,7 +67,7 @@ bool DashAudioSegmenter::setup(size_t channels, size_t sampleRate, size_t sample
 
     timeBase = sampleRate;
     frameDuration = samples;
-    segmentDuration = segDur.count()*timeBase;
+    segDurInTimeBaseUnits = segDur.count()*timeBase;
 
     i2error = fill_audio_context(&dashContext, channels, sampleRate, bitsPerSample, timeBase, frameDuration);
 
@@ -70,7 +75,7 @@ bool DashAudioSegmenter::setup(size_t channels, size_t sampleRate, size_t sample
         return false;
     }
 
-    set_segment_duration(segmentDuration, &dashContext);
+    set_segment_duration(segDurInTimeBaseUnits, &dashContext);
     return true;
 }
 
@@ -79,11 +84,6 @@ bool DashAudioSegmenter::generateInitData(DashSegment* segment)
     size_t initSize = 0;
     unsigned char* data;
     unsigned dataLength;
-
-    if (!setup(aFrame->getChannels(), aFrame->getSampleRate(), aFrame->getSamples(),
-        utils::getBytesPerSampleFromFormat(aFrame->getSampleFmt())*BYTE_TO_BIT)) {
-        utils::errorMsg("Error during Dash Audio Segmenter setup");
-    }
 
     if (!dashContext || metadata.empty() || !segment || !segment->getDataBuffer()) {
         return false;
@@ -127,7 +127,7 @@ bool DashAudioSegmenter::appendFrameToDashSegment(DashSegment* segment)
     size_t addSampleReturn;
     size_t timeBasePts;
 
-    if (!aFrame->getDataBuf() || aFrame->getLength() <= 0 || !dashContext) {
+    if (!aFrame || !aFrame->getDataBuf() || aFrame->getLength() <= 0 || !dashContext) {
         utils::errorMsg("Error appeding frame to segment: frame not valid");
         return false;
     }
@@ -144,6 +144,8 @@ bool DashAudioSegmenter::appendFrameToDashSegment(DashSegment* segment)
         utils::errorMsg("Error adding video sample. Code error: " + std::to_string(addSampleReturn));
         return false;
     }
+
+    aFrame = NULL;
 
     return true;
 }

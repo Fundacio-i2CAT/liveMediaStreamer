@@ -54,10 +54,16 @@ bool DashVideoSegmenter::manageFrame(Frame* frame, bool &newFrame)
 
     vFrame->setSize(nal->getWidth(), nal->getHeight());
     vFrame->setPresentationTime(nal->getPresentationTime());
+
+    if (newFrame && !setup(nal->getWidth(), nal->getHeight())) {
+        utils::errorMsg("Error during Dash Audio Segmenter setup");
+        return false;
+    }
+
     return true;
 }
 
-bool DashVideoSegmenter::setup(size_t segmentDuration, size_t timeBase, size_t width, size_t height)
+bool DashVideoSegmenter::setup(size_t width, size_t height)
 {
     uint8_t i2error = I2OK;
 
@@ -75,7 +81,7 @@ bool DashVideoSegmenter::setup(size_t segmentDuration, size_t timeBase, size_t w
         return false;
     }
 
-    set_segment_duration(segmentDuration, &dashContext);
+    set_segment_duration(segDurInTimeBaseUnits, &dashContext);
     return true;
 }
 
@@ -84,11 +90,6 @@ bool DashVideoSegmenter::generateInitData(DashSegment* segment)
     size_t initSize = 0;
     unsigned char* data;
     unsigned dataLength;
-
-    if (!setup(segDurInTimeBaseUnits, timeBase, vFrame->getWidth(), vFrame->getHeight())) {
-        utils::errorMsg("Error during Dash Video Segmenter setup");
-        return false;
-    }
 
     if (!dashContext || metadata.empty() || !segment || !segment->getDataBuffer()) {
         return false;

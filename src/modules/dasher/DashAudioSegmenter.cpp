@@ -24,7 +24,7 @@
  #include "DashAudioSegmenter.hh"
 
 DashAudioSegmenter::DashAudioSegmenter(std::chrono::seconds segDur) :
-DashSegmenter(segDur, 0), aFrame(NULL)
+DashSegmenter(segDur, 0)
 {
 
 }
@@ -34,23 +34,29 @@ DashAudioSegmenter::~DashAudioSegmenter()
 
 }
 
-bool DashAudioSegmenter::manageFrame(Frame* frame, bool &newFrame)
+Frame* DashAudioSegmenter::manageFrame(Frame* frame)
 {
+    AudioFrame* aFrame;
+
     aFrame = dynamic_cast<AudioFrame*>(frame);
 
     if (!aFrame) {
         utils::errorMsg("Error managing frame: it MUST be an audio frame");
-        return false;
+        return NULL;
     }
 
     if (!setup(aFrame->getChannels(), aFrame->getSampleRate(), aFrame->getSamples(),
         utils::getBytesPerSampleFromFormat(aFrame->getSampleFmt())*BYTE_TO_BIT)) {
         utils::errorMsg("Error during Dash Audio Segmenter setup");
-        return false;
+        return NULL;
     }
 
-    newFrame = true;
-    return true;
+    if (!updateMetadata(aFrame)) {
+        utils::errorMsg("[DashAudioSegmenter::manageFrame] Error updating metadata");
+        return NULL;
+    }
+
+    return aFrame;
 }
 
 bool DashAudioSegmenter::setup(size_t channels, size_t sampleRate, size_t samples, size_t bitsPerSample)
@@ -79,7 +85,7 @@ bool DashAudioSegmenter::setup(size_t channels, size_t sampleRate, size_t sample
     return true;
 }
 
-bool DashAudioSegmenter::generateInitData(DashSegment* segment)
+bool DashAudioSegmenter::generateInitSegment(DashSegment* segment)
 {
     size_t initSize = 0;
     unsigned char* data;
@@ -103,11 +109,12 @@ bool DashAudioSegmenter::generateInitData(DashSegment* segment)
     }
 
     segment->setDataLength(initSize);
-
+    metadata.clear();
     return true;
 }
 
-unsigned DashAudioSegmenter::customGenerateSegment(unsigned char *segBuffer, unsigned &segTimestamp, unsigned &segDuration, bool force)
+unsigned DashAudioSegmenter::customGenerateSegment(unsigned char *segBuffer, std::chrono::microseconds nextFrameTs, 
+                                                    unsigned &segTimestamp, unsigned &segDuration, bool force)
 {
     unsigned segSize;
 
@@ -120,22 +127,22 @@ unsigned DashAudioSegmenter::customGenerateSegment(unsigned char *segBuffer, uns
     return segSize;
 }
 
-bool DashAudioSegmenter::appendFrameToDashSegment(DashSegment* segment)
+bool DashAudioSegmenter::appendFrameToDashSegment(DashSegment* segment, Frame* frame)
 {
     unsigned char* dataWithoutADTS;
     size_t dataLengthWithoutADTS;
     size_t addSampleReturn;
     size_t timeBasePts;
 
-    if (!aFrame || !aFrame->getDataBuf() || aFrame->getLength() <= 0 || !dashContext) {
+    if (!frame || !frame->getDataBuf() || frame->getLength() <= 0 || !dashContext) {
         utils::errorMsg("Error appeding frame to segment: frame not valid");
         return false;
     }
 
-    timeBasePts = microsToTimeBase(aFrame->getPresentationTime());
+    timeBasePts = microsToTimeBase(frame->getPresentationTime());
 
-    dataWithoutADTS = aFrame->getDataBuf() + ADTS_HEADER_LENGTH;
-    dataLengthWithoutADTS = aFrame->getLength() - ADTS_HEADER_LENGTH;
+    dataWithoutADTS = frame->getDataBuf() + ADTS_HEADER_LENGTH;
+    dataLengthWithoutADTS = frame->getLength() - ADTS_HEADER_LENGTH;
 
     addSampleReturn = add_audio_sample(dataWithoutADTS, dataLengthWithoutADTS, frameDuration, 
                                         timeBasePts, timeBasePts, segment->getSeqNumber(), &dashContext);
@@ -144,8 +151,6 @@ bool DashAudioSegmenter::appendFrameToDashSegment(DashSegment* segment)
         utils::errorMsg("Error adding video sample. Code error: " + std::to_string(addSampleReturn));
         return false;
     }
-
-    aFrame = NULL;
 
     return true;
 }
@@ -160,7 +165,7 @@ bool DashAudioSegmenter::flushDashContext()
     return true;
 }
 
-bool DashAudioSegmenter::updateMetadata()
+bool DashAudioSegmenter::updateMetadata(AudioFrame* aFrame)
 {
     unsigned char* data;
 
@@ -179,7 +184,7 @@ bool DashAudioSegmenter::updateMetadata()
     if (profile == getProfileFromADTSHeader(data) && samplingFrequencyIndex == getSamplingFreqIdxFromADTSHeader(data) &&
         channelConfiguration == getChannelConfFromADTSHeader(data) && !metadata.empty())
     {
-        return false;
+        return true;
     }
 
     profile = getProfileFromADTSHeader(data);

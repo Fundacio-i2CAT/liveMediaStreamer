@@ -113,15 +113,13 @@ private:
     void doGetState(Jzon::Object &filterNode);
     void initializeEventMap();
     bool generateInitSegment(size_t id, DashSegmenter* segmenter);
-    bool generateSegment(size_t id, DashSegmenter* segmenter);
-    bool appendFrameToSegment(size_t id, DashSegmenter* segmenter);
+    bool generateSegment(size_t id, Frame* frame, DashSegmenter* segmenter);
+    bool appendFrameToSegment(size_t id, Frame* frame, DashSegmenter* segmenter);
     DashSegmenter* getSegmenter(size_t id);
-    bool forceAudioSegmentsGeneration();
+    bool forceAudioSegmentsGeneration(Frame* frame);
     bool writeVideoSegments();
     bool writeAudioSegments();
 
-
-    bool updateTimestampControl(std::map<int,DashSegment*> segments, size_t &timestamp, size_t &duration);
     bool writeSegmentsToDisk(std::map<int,DashSegment*> segments, size_t timestamp, std::string segExt);
     bool cleanSegments(std::map<int,DashSegment*> segments, size_t timestamp, std::string segExt);
     bool configureEvent(Jzon::Node* params);
@@ -173,15 +171,15 @@ public:
     /**
     * Implemented by DashVideoSegmenter::manageFrame and DashAudioSegmenter::manageFrame
     */
-    virtual bool manageFrame(Frame* frame, bool &newFrame) = 0;
+    virtual Frame* manageFrame(Frame* frame) = 0;
 
     /**
     * Generates and writes to disk an Init Segment if possible (or necessary)
     */
-    bool generateInitSegment(DashSegment* segment);
+    virtual bool generateInitSegment(DashSegment* segment) = 0;
 
-    virtual bool appendFrameToDashSegment(DashSegment* segment) = 0;
-    bool generateSegment(DashSegment* segment, bool force = false);
+    virtual bool appendFrameToDashSegment(DashSegment* segment, Frame* frame) = 0;
+    bool generateSegment(DashSegment* segment, Frame* frame, bool force = false);
     /**
     * Returns average frame duration
     * @return duration in time base
@@ -212,9 +210,8 @@ public:
     size_t getBitrate() {return bitrateInBitsPerSec;};
 
 protected:
-    virtual bool updateMetadata() = 0;
-    virtual bool generateInitData(DashSegment* segment) = 0;
-    virtual unsigned customGenerateSegment(unsigned char *segBuffer, unsigned &segTimestamp, unsigned &segDuration, bool force) = 0;
+    virtual unsigned customGenerateSegment(unsigned char *segBuffer, std::chrono::microseconds nextFrameTs, 
+                                            unsigned &segTimestamp, unsigned &segDuration, bool force) = 0;
     
     std::string getInitSegmentName();
     std::string getSegmentName();

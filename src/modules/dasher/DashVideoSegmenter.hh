@@ -45,33 +45,26 @@ public:
     * @param newFrame Passed as reference, it indicates if there is a complete frame in the internal frame buffer
     * @return false if error and true if the NAL has been managed correctly
     */
-    bool manageFrame(Frame* frame, bool &newFrame);
-
-    size_t getFrameDataSize() {return vFrame->getLength();};
-
-    /**
-    * Return the presentation timestamp of the last NALU managed by manageFrame method
-    * @return timestamp in milliseconds
-    */
-    std::chrono::microseconds getCurrentTimestamp() {return vFrame->getPresentationTime();};
+    Frame* manageFrame(Frame* frame);
 
     /**
     * Return the width of the last complete frame managed by manageFrame method
     * @return width in pixels
     */
-    size_t getWidth() {return vFrame->getWidth();};
+    size_t getWidth();
 
     /**
     * Return the height of the last complete frame managed by manageFrame method
     * @return height in pixels
     */
-    size_t getHeight() {return vFrame->getHeight();};
+    size_t getHeight();
 
+    //TODO
     /**
-    * Return the framerate, which is calculated by the difference between currtimestamp and lastTs
-    * @return framerate in frames per second
+    * Return the height of the last complete frame managed by manageFrame method
+    * @return height in pixels
     */
-    size_t getFramerate() {return frameRate;};
+    size_t getFramerate(){return 0;};
 
     /**
     * Return the video format string (i.e.: avc or hevc types)
@@ -83,7 +76,7 @@ public:
     * Processes incoming frames to be appended to current segment
     * @return true if success, false otherwise.
     */
-    bool appendFrameToDashSegment(DashSegment* segment);
+    bool appendFrameToDashSegment(DashSegment* segment, Frame* frame);
 
     /**
     * Virtual method that flushes segment context at children classes
@@ -92,24 +85,24 @@ public:
     virtual bool flushDashContext() = 0;
 
     bool isIntraFrame() {return isIntra;};
+    bool generateInitSegment(DashSegment* segment);
 
 protected:
     DashVideoSegmenter(std::chrono::seconds segDur, std::string video_format_);
     virtual ~DashVideoSegmenter();
 
-    virtual bool updateMetadata() = 0;
+    virtual void updateMetadata() = 0;
     virtual void createMetadata() = 0;
     virtual uint8_t generateContext() = 0;
-    virtual bool parseNal(VideoFrame* nal, bool &newFrame) = 0;
+    virtual VideoFrame* parseNal(VideoFrame* nal) = 0;
 
-    bool appendNalToFrame(unsigned char* nalData, unsigned nalDataLength, 
+    bool appendNalToFrame(VideoFrame* frame, unsigned char* nalData, unsigned nalDataLength, 
                            unsigned nalWidth, unsigned nalHeight, std::chrono::microseconds ts);
     int detectStartCode(unsigned char const* ptr);
     bool setup(size_t width, size_t height);
-    bool generateInitData(DashSegment* segment);
-    unsigned customGenerateSegment(unsigned char *segBuffer, unsigned &segTimestamp, unsigned &segDuration, bool force);
+    unsigned customGenerateSegment(unsigned char *segBuffer, std::chrono::microseconds nextFrameTs, 
+                                    unsigned &segTimestamp, unsigned &segDuration, bool force);
 
-    InterleavedVideoFrame* vFrame;
 
     size_t frameRate;
     bool isIntra;

@@ -63,39 +63,35 @@ public:
     * Return the last stored SPS size
     * @return size in bytes
     */
-    size_t getSPSsize() {return lastSPS.size();};
+    size_t getSPSsize() {return sps.size();};
 
     /**
     * Return the last stored PPS size
     * @return size in bytes
     */
-    size_t getPPSsize() {return lastPPS.size();};
+    size_t getPPSsize() {return pps.size();};
 
-    /**
-    * Returns the isVCL flag, set by the last execution of manageFrame method
-    * @return true if VCL NAL (IDR and NON-IDR) and false if not (SPS, PPS, SEI)
-    */
-    bool isVCLFrame() {return isVCL;};
-    
     /**
     * Flushes segment context
     * @return true if success, false otherwise.
     */
     bool flushDashContext();
+    size_t getFrameDataSize() {return vFrame->getLength();};
+    
 
 private:
-    bool updateMetadata();
+    void updateMetadata();
     void saveSPS(unsigned char* data, int dataLength);
     void savePPS(unsigned char* data, int dataLength);
     void createMetadata();
     uint8_t generateContext();
-    bool parseNal(VideoFrame* nal, bool &newFrame);
+    VideoFrame* parseNal(VideoFrame* nal);
 
-    std::vector<unsigned char> lastSPS;
-    std::vector<unsigned char> lastPPS;
-    bool updatedSPS;
-    bool updatedPPS;
-    bool isVCL;
+    InterleavedVideoFrame* vFrame;
+
+    std::vector<unsigned char> sps;
+    std::vector<unsigned char> pps;
+    bool newFrame;
 };
 
 #endif

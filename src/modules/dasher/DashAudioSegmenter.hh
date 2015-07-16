@@ -54,7 +54,7 @@ public:
     * @param newFrame Passed by referenc.In audio case, it is set always to true
     * @return false if error and true if the NAL has been managed correctly
     */
-    bool manageFrame(Frame* frame, bool &newFrame);
+    Frame* manageFrame(Frame* frame);
 
     /**
     * It returns the last configured sample rate
@@ -68,13 +68,14 @@ public:
     */
     size_t getChannels();
 
-    bool appendFrameToDashSegment(DashSegment* segment);
+    bool appendFrameToDashSegment(DashSegment* segment, Frame* frame);
     bool flushDashContext();
+    bool generateInitSegment(DashSegment* segment);
 
 private:
-    bool updateMetadata();
-    bool generateInitData(DashSegment* segment);
-    unsigned customGenerateSegment(unsigned char *segBuffer, unsigned &segTimestamp, unsigned &segDuration, bool force);
+    bool updateMetadata(AudioFrame* aFrame);
+    unsigned customGenerateSegment(unsigned char *segBuffer, std::chrono::microseconds nextFrameTs, 
+                                    unsigned &segTimestamp, unsigned &segDuration, bool force);
 
 
     bool setup(size_t channels, size_t sampleRate, size_t samples, size_t bitsPerSample);
@@ -88,7 +89,6 @@ private:
     unsigned char audioObjectType;
     unsigned char samplingFrequencyIndex;
     unsigned char channelConfiguration;
-    AudioFrame* aFrame;
 };
 
 #endif

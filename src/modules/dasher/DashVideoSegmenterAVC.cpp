@@ -24,9 +24,7 @@
  #include "DashVideoSegmenterAVC.hh"
 
 DashVideoSegmenterAVC::DashVideoSegmenterAVC(std::chrono::seconds segDur) : 
-DashVideoSegmenter(segDur, VIDEO_CODEC_AVC), 
-updatedSPS(false), updatedPPS(false),
-isVCL(false)
+DashVideoSegmenter(segDur, VIDEO_CODEC_AVC), newFrame(true)
 {
     vFrame = InterleavedVideoFrame::createNew(H264, 5000000);
 }
@@ -41,16 +39,16 @@ uint8_t DashVideoSegmenterAVC::generateContext()
     return generate_context(&dashContext, VIDEO_TYPE_AVC);
 }
 
-bool DashVideoSegmenterAVC::updateMetadata()
+void DashVideoSegmenterAVC::updateMetadata()
 {
-    if (!updatedSPS || !updatedPPS) {
-        return false;
+    if (sps.empty() || pps.empty()) {
+        return;
     }
 
     createMetadata();
-    updatedSPS = false;
-    updatedPPS = false;
-    return true;
+    sps.clear();
+    pps.clear();
+    return;
 }
 
 bool DashVideoSegmenterAVC::flushDashContext()
@@ -63,7 +61,7 @@ bool DashVideoSegmenterAVC::flushDashContext()
     return true;
 }
 
-bool DashVideoSegmenterAVC::parseNal(VideoFrame* nal, bool &newFrame)
+VideoFrame* DashVideoSegmenterAVC::parseNal(VideoFrame* nal)
 {
     int startCodeOffset;
     unsigned char* nalData;
@@ -76,7 +74,7 @@ bool DashVideoSegmenterAVC::parseNal(VideoFrame* nal, bool &newFrame)
 
     if (!nalData || nalDataLength <= 0) {
         utils::errorMsg("Error parsing NAL: invalid data pointer or length");
-        return false;
+        return NULL;
     }
 
     nalType = nalData[0] & H264_NALU_TYPE_MASK;
@@ -84,81 +82,73 @@ bool DashVideoSegmenterAVC::parseNal(VideoFrame* nal, bool &newFrame)
     switch (nalType) {
         case SPS_AVC:
             saveSPS(nalData, nalDataLength);
-            isVCL = false;
             isIntra = false;
-            newFrame = false;
             break;
         case PPS_AVC:
             savePPS(nalData, nalDataLength);
-            isVCL = false;
             isIntra = false;
-            newFrame = false;
             break;
         case SEI:
-            isVCL = false;
             isIntra = false;
-            newFrame = false;
-            break;
-        case AUD_AVC:
-            newFrame = isVCL;
             break;
         case IDR:
-            isVCL = true;
             isIntra = true;
-            newFrame = false;
             break;
         case NON_IDR:
-            isVCL = true;
             isIntra = false;
-            newFrame = false;
             break;
+        case AUD_AVC:
+            newFrame = true;
+            return vFrame;
         default:
             utils::errorMsg("Error parsing NAL: NalType " + std::to_string(nalType) + " not contemplated");
-            return false;
+            return NULL;
     }
 
-    //TODO: set as function
     if (nalType == IDR || nalType == NON_IDR) {
 
-        if (!appendNalToFrame(nalData, nalDataLength, nal->getWidth(), nal->getHeight(), nal->getPresentationTime())) {
+        if (newFrame) {
+            vFrame->setLength(0);
+            newFrame = false;
+        }
+
+        if (!appendNalToFrame(vFrame, nalData, nalDataLength, nal->getWidth(), nal->getHeight(), nal->getPresentationTime())) {
             utils::errorMsg("[DashVideoSegmenterHEVC::parseNal] Error appending NAL to frame");
-            return false;
+            return NULL;
         }
     }
 
-    return true;
+    return NULL;
 }
 
 void DashVideoSegmenterAVC::saveSPS(unsigned char* data, int dataLength)
 {
-    lastSPS.clear();
-    lastSPS.insert(lastSPS.begin(), data, data + dataLength);
-    updatedSPS = true;
+    sps.clear();
+    sps.insert(sps.begin(), data, data + dataLength);
 }
 
 void DashVideoSegmenterAVC::savePPS(unsigned char* data, int dataLength)
 {
-    lastPPS.clear();
-    lastPPS.insert(lastPPS.begin(), data, data + dataLength);
-    updatedPPS = true;
+    pps.clear();
+    pps.insert(pps.begin(), data, data + dataLength);
 }
 
 void DashVideoSegmenterAVC::createMetadata()
 {
-    int spsLength = lastSPS.size();
-    int ppsLength = lastPPS.size();
+    int spsLength = sps.size();
+    int ppsLength = pps.size();
 
     metadata.clear();
 
     metadata.insert(metadata.end(), H264_METADATA_VERSION_FLAG);
-    metadata.insert(metadata.end(), lastSPS.begin(), lastSPS.begin() + 3);
+    metadata.insert(metadata.end(), sps.begin(), sps.begin() + 3);
     metadata.insert(metadata.end(), METADATA_RESERVED_BYTES1 + AVCC_HEADER_BYTES_MINUS_ONE);
     metadata.insert(metadata.end(), METADATA_RESERVED_BYTES2 + NUMBER_OF_SPS);
     metadata.insert(metadata.end(), (spsLength >> 8) & 0xFF);
     metadata.insert(metadata.end(), spsLength & 0xFF);
-    metadata.insert(metadata.end(), lastSPS.begin(), lastSPS.end());
+    metadata.insert(metadata.end(), sps.begin(), sps.end());
     metadata.insert(metadata.end(), NUMBER_OF_PPS);
     metadata.insert(metadata.end(), (ppsLength >> 8) & 0xFF);
     metadata.insert(metadata.end(), ppsLength & 0xFF);
-    metadata.insert(metadata.end(), lastPPS.begin(), lastPPS.end());
+    metadata.insert(metadata.end(), pps.begin(), pps.end());
 }

@@ -90,7 +90,7 @@ bool Dasher::configure(std::string dashFolder, std::string baseName_, size_t seg
 bool Dasher::doProcessFrame(std::map<int, Frame*> &orgFrames)
 {
     DashSegmenter* segmenter;
-    bool newFrame;
+    Frame* frame;
 
     if (!mpdMngr) {
         utils::errorMsg("Dasher MUST be configured in order to process frames");
@@ -109,49 +109,46 @@ bool Dasher::doProcessFrame(std::map<int, Frame*> &orgFrames)
             continue;
         }
 
-        if (!segmenter->manageFrame(fr.second, newFrame)) {
-            utils::errorMsg("Error managing frame");
-            continue;
-        }
+        frame = segmenter->manageFrame(fr.second);
 
-        if (!newFrame ) {
+        if (!frame) {
             continue;
         }
 
         if (!generateInitSegment(fr.first, segmenter)) {
-            utils::errorMsg("[DashSegmenter] Error generating init segment");
+            utils::errorMsg("[Dasher::doProcessFrame] Error generating init segment");
             continue;
         }
 
-        if (generateSegment(fr.first, segmenter)) {
-            utils::debugMsg("[DashSegmenter] New segment generated");
+        if (generateSegment(fr.first, frame, segmenter)) {
+            utils::debugMsg("[Dasher::doProcessFrame] New segment generated");
         }
 
-        if (!appendFrameToSegment(fr.first, segmenter)) {
-            utils::errorMsg("[DashSegmenter] Error generating init segment");
+        if (!appendFrameToSegment(fr.first, frame, segmenter)) {
+            utils::errorMsg("[Dasher::doProcessFrame] Error appnding frame to segment");
             continue;
         }
     }
 
     if (writeVideoSegments()) {
-        utils::debugMsg("[DashSegmenter] Video segments to disk");
+        utils::debugMsg("[Dasher::doProcessFrame] Video segments to disk");
     }
 
     if (writeAudioSegments()) {
-        utils::debugMsg("[DashSegmenter] Audio segments to disk");
+        utils::debugMsg("[Dasher::doProcessFrame] Audio segments to disk");
     }
 
     return true;
 }
 
-bool Dasher::appendFrameToSegment(size_t id, DashSegmenter* segmenter)
+bool Dasher::appendFrameToSegment(size_t id, Frame* frame, DashSegmenter* segmenter)
 {
     DashVideoSegmenter* vSeg;
     DashAudioSegmenter* aSeg;
 
     if ((vSeg = dynamic_cast<DashVideoSegmenter*>(segmenter)) != NULL) {
 
-        if (!vSeg->appendFrameToDashSegment(vSegments[id])) {
+        if (!vSeg->appendFrameToDashSegment(vSegments[id], frame)) {
             utils::errorMsg("Error appending video frame to segment");
             return false;
         }
@@ -167,7 +164,7 @@ bool Dasher::appendFrameToSegment(size_t id, DashSegmenter* segmenter)
             return true;
         }
 
-        if (!aSeg->appendFrameToDashSegment(aSegments[id])) {
+        if (!aSeg->appendFrameToDashSegment(aSegments[id], frame)) {
             utils::errorMsg("Error appending audio frame to segment");
             return false;
         }
@@ -216,14 +213,14 @@ bool Dasher::generateInitSegment(size_t id, DashSegmenter* segmenter)
     return true;
 }
 
-bool Dasher::generateSegment(size_t id, DashSegmenter* segmenter)
+bool Dasher::generateSegment(size_t id, Frame* frame, DashSegmenter* segmenter)
 {
     DashVideoSegmenter* vSeg;
     DashAudioSegmenter* aSeg;
 
     if ((vSeg = dynamic_cast<DashVideoSegmenter*>(segmenter)) != NULL) {
 
-        if (!vSeg->generateSegment(vSegments[id])) {
+        if (!vSeg->generateSegment(vSegments[id], frame)) {
             return false;
         }
 
@@ -231,14 +228,14 @@ bool Dasher::generateSegment(size_t id, DashSegmenter* segmenter)
         mpdMngr->updateVideoRepresentation(V_ADAPT_SET_ID, std::to_string(id), vSeg->getVideoFormat(), vSeg->getWidth(),
                                             vSeg->getHeight(), vSeg->getBitrate(), vSeg->getFramerate());
 
-        if (!forceAudioSegmentsGeneration()) {
+        if (!forceAudioSegmentsGeneration(frame)) {
             utils::errorMsg("Error forcing the generation of audio segments. This may cause errors!");
         }
     }
 
     if ((aSeg = dynamic_cast<DashAudioSegmenter*>(segmenter)) != NULL) {
 
-        if (!aSeg->generateSegment(aSegments[id])) {
+        if (!aSeg->generateSegment(aSegments[id], frame)) {
             return false;
         }
 
@@ -338,7 +335,7 @@ bool Dasher::writeAudioSegments()
     return true;
 }
 
-bool Dasher::forceAudioSegmentsGeneration()
+bool Dasher::forceAudioSegmentsGeneration(Frame* frame)
 {
     DashSegmenter* segmenter;
     DashAudioSegmenter* aSeg;
@@ -357,7 +354,7 @@ bool Dasher::forceAudioSegmentsGeneration()
             continue;
         }
 
-        if (!aSeg->generateSegment(seg.second, true)) {
+        if (!aSeg->generateSegment(seg.second, frame, true)) {
             utils::errorMsg("Error forcing audio segment generation");
             return false;
         }
@@ -367,37 +364,6 @@ bool Dasher::forceAudioSegmentsGeneration()
                                             aSeg->getSampleRate(), aSeg->getBitrate(), aSeg->getChannels());
     }
 
-    return true;
-}
-
-bool Dasher::updateTimestampControl(std::map<int,DashSegment*> segments, size_t &timestamp, size_t &duration)
-{
-    size_t refTimestamp = 0;
-    size_t refDuration = 0;
-
-    for (auto seg : segments) {
-
-        if (seg.second->getTimestamp() <= 0 || seg.second->getTimestamp() <= 0) {
-            return false;
-        }
-
-        if (refTimestamp == 0 && refDuration == 0) {
-            refTimestamp = seg.second->getTimestamp();
-            refDuration = seg.second->getDuration();
-        }
-
-        if (refTimestamp != seg.second->getTimestamp() || refDuration != seg.second->getDuration()) {
-            utils::warningMsg("Segments of the same Adaptation Set have different timestamps and/or durations");
-            utils::warningMsg("Setting timestamp and/or duration to a reference one: this may cause playing errors");
-        }
-    }
-
-    if (refTimestamp == 0 || refDuration == 0) {
-        return false;
-    }
-
-    timestamp = refTimestamp;
-    duration = refDuration;
     return true;
 }
 
@@ -676,27 +642,17 @@ DashSegmenter::~DashSegmenter()
 
 }
 
-bool DashSegmenter::generateInitSegment(DashSegment* segment)
-{
-    if (!updateMetadata()) {
-        return false;
-    }
-
-    if (!generateInitData(segment)) {
-        utils::errorMsg("Error generating video init segment");
-        return false;
-    }
-
-    return true;
-}
-
-bool DashSegmenter::generateSegment(DashSegment* segment, bool force)
+bool DashSegmenter::generateSegment(DashSegment* segment, Frame* frame, bool force)
 {
     size_t segmentSize = 0;
     uint32_t segTimestamp;
     uint32_t segDuration;
 
-    segmentSize = customGenerateSegment(segment->getDataBuffer(), segTimestamp, segDuration, force);
+    if (!frame) {
+        return false;
+    }
+
+    segmentSize = customGenerateSegment(segment->getDataBuffer(), frame->getPresentationTime(), segTimestamp, segDuration, force);
 
     if (segmentSize <= I2ERROR_MAX) {
         return false;

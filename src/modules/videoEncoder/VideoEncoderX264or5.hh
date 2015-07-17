@@ -31,6 +31,7 @@
 #include "../../Filter.hh"
 #include "../../FrameQueue.hh"
 #include "../../Types.hh"
+#include "../../StreamInfo.hh"
 
 extern "C" {
 #include <libswscale/swscale.h>
@@ -69,7 +70,6 @@ protected:
     AVFrame *midFrame;
     
     PixType inPixFmt;
-    bool annexB;
     bool forceIntra;
     int fps;
     int bitrate;
@@ -78,6 +78,8 @@ protected:
     int lookahead;
     bool needsConfig;
     std::string preset;
+
+    StreamInfo *outputStreamInfo;
     
     bool doProcessFrame(Frame *org, Frame *dst);
     void initializeEventMap();      

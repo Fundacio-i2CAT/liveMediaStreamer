@@ -32,6 +32,7 @@ extern "C" {
 #include "../../VideoFrame.hh"
 #include "../../FrameQueue.hh"
 #include "../../Filter.hh"
+#include "../../StreamInfo.hh"
 
 
 class VideoDecoderLibav : public OneToOneFilter {
@@ -48,6 +49,8 @@ class VideoDecoderLibav : public OneToOneFilter {
         bool reconfigure(VCodecType codec);
         bool inputConfig();
         void doGetState(Jzon::Object &filterNode);
+
+        StreamInfo *outputStreamInfo;
         
         AVCodec             *codec;
         AVCodecContext      *codecCtx;

@@ -28,35 +28,7 @@ extern "C" {
 }
 
 #include "../../Filter.hh"
-
-/** Internal description of each of the streams in the currently set URI.
-  * It is made public through #BaseFilter::getState() which returns a Json representation.
-  * #extradata is passed to the queues built on #HeadDemuxerLibav::allocQueue() as const, so it cannot
-  * be modified.
-  */
-struct DemuxerStreamInfo {
-    StreamType type; //!< AUDIO or VIDEO, basically
-    uint8_t *extradata; //!< Codec-specific info. This array belongs to this struct, no-one but us should free it.
-    int extradata_size; //!< Amount of bytes in #extradata
-    int time_base_num; //!< Multiplier for frame timestamps
-    int time_base_den; //!< Divider for frame timestamps
-    union {
-        /** Audio-specific data */
-        struct {
-            ACodecType codec;
-            unsigned sampleRate;
-            unsigned channels;
-            SampleFmt sampleFormat;
-        } audio;
-        /** Video-specific data */
-        struct {
-            VCodecType codec;
-            int width;
-            int height;
-        } video;
-    };
-};
-
+#include "../../StreamInfo.hh"
 /** Source + Demuxer filter based on libav.
   * Its only configuration is an input URI, which instantiates the adecuate
   * source (file or network) and demuxer.
@@ -82,12 +54,16 @@ class HeadDemuxerLibav : public HeadFilter {
         /** URI currently being played */
         std::string uri;
 
-        /** Maps writer IDs to #DemuxerStreamInfo.
+        /** Maps writer IDs to #StreamInfo.
          * We use libav stream index as writer ID.
          * The struct is allocated by the demuxer and it belongs to the demuxer,
          * including extradata, even though a pointer to extradata might be
          * shared with the queues. */
-        std::map<int, DemuxerStreamInfo*> streams;
+        std::map<int, StreamInfo*> outputStreamInfos;
+
+        /** Maps writer IDs to the time base needed to convert libav PTS to seconds
+         */
+        std::map<int, double> streamTimeBase;
 
         /** Libav media context. Created on #setURI(), destroyed on filter destruction
          * or subsequent #setURI(). */
@@ -98,6 +74,11 @@ class HeadDemuxerLibav : public HeadFilter {
 
         /** Convert from Libav SampleFormat enum to ours */
         SampleFmt getSampleFormatFromLibav(AVSampleFormat libavSampleFmt);
+
+         /** Multiplier for frame timestamps */
+        int time_base_num;
+         /** Divider for frame timestamps */
+        int time_base_den;
 };
 
 #endif

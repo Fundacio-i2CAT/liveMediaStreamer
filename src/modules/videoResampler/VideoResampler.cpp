@@ -40,10 +40,13 @@ VideoResampler::VideoResampler(FilterRole fRole_) : OneToOneFilter(fRole_)
     outputHeight = 0;
     discartPeriod = 0;
     discartCount = 1;
-    outPixFmt = RGB24;
     libavOutPixFmt = getLibavPixFmt(outPixFmt);
 
     needsConfig = false;
+
+    outputStreamInfo = new StreamInfo(VIDEO);
+    outputStreamInfo->video.codec = RAW;
+    outputStreamInfo->video.pixelFormat = RGB24;
 
     initializeEventMap();
 }
@@ -53,11 +56,13 @@ VideoResampler::~VideoResampler()
     av_free(inFrame);
     av_free(outFrame);
     sws_freeContext(imgConvertCtx);
+
+    delete outputStreamInfo;
 }
 
 FrameQueue* VideoResampler::allocQueue(struct ConnectionData cData)
 {
-    return VideoFrameQueue::createNew(cData, RAW, DEFAULT_RAW_VIDEO_FRAMES, outPixFmt);
+    return VideoFrameQueue::createNew(cData, outputStreamInfo, DEFAULT_RAW_VIDEO_FRAMES);
 }
 
 bool VideoResampler::reconfigure(VideoFrame* orgFrame)

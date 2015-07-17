@@ -33,6 +33,7 @@ extern "C" {
 #include "../../VideoFrame.hh"
 #include "../../FrameQueue.hh"
 #include "../../Filter.hh"
+#include "../../StreamInfo.hh"
 
 class VideoResampler : public OneToOneFilter {
 
@@ -54,6 +55,8 @@ class VideoResampler : public OneToOneFilter {
         struct SwsContext   *imgConvertCtx;
         AVFrame             *inFrame, *outFrame;
         AVPixelFormat       libavInPixFmt, libavOutPixFmt;
+
+        StreamInfo          *outputStreamInfo;
 
         int                 outputWidth;
         int                 outputHeight;

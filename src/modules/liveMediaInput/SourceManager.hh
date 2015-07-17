@@ -24,6 +24,7 @@
 #define _SOURCE_MANAGER_HH
 
 #include "../../Filter.hh"
+#include "../../StreamInfo.hh"
 #include "Handlers.hh"
 #include "QueueSink.hh"
 
@@ -45,7 +46,7 @@ public:
     StreamClientState(std::string id_, SourceManager *const  manager);
     virtual ~StreamClientState();
 
-    std::string getId(){return id;};
+    std::string getId(){return id;}
 
     bool addSinkToMngr(unsigned id, QueueSink* sink);
 
@@ -126,6 +127,9 @@ private:
     void stop();
 
     std::map<std::string, Session*> sessionMap;
+
+    /* StreamInfo indexed by writerID */
+    std::map<int, StreamInfo *> outputStreamInfos;
     std::map<int, QueueSink*> sinks;
     std::mutex sinksMtx;
 

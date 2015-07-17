@@ -73,6 +73,10 @@ ManyToOneFilter(fRole_, inputChannels), outputWidth(outWidth), outputHeight(outH
     layoutImg = cv::Mat(outputHeight, outputWidth, CV_8UC3);
     initializeEventMap();
     fType = VIDEO_MIXER;
+
+    outputStreamInfo = new StreamInfo(VIDEO);
+    outputStreamInfo->video.codec = RAW;
+    outputStreamInfo->video.pixelFormat = RGB24;
 }
 
 VideoMixer::~VideoMixer()
@@ -82,11 +86,13 @@ VideoMixer::~VideoMixer()
     }
 
     channelsConfig.clear();
+
+    delete outputStreamInfo;
 }
 
 FrameQueue* VideoMixer::allocQueue(struct ConnectionData cData)
 {
-    return VideoFrameQueue::createNew(cData, RAW, DEFAULT_RAW_VIDEO_FRAMES, RGB24);
+    return VideoFrameQueue::createNew(cData, outputStreamInfo, DEFAULT_RAW_VIDEO_FRAMES);
 }
 
 bool VideoMixer::doProcessFrame(std::map<int, Frame*> orgFrames, Frame *dst)
@@ -208,7 +214,7 @@ void VideoMixer::pasteToLayout(int frameID, VideoFrame* vFrame)
     }
 }
 
-std::shared_ptr<Reader> VideoMixer::setReader(int readerId, FrameQueue* queue)
+std::shared_ptr<Reader> VideoMixer::setReader(int readerId, FrameQueue*)
 {
     if (readers.count(readerId) > 0) {
         return NULL;
@@ -287,7 +293,7 @@ bool VideoMixer::configChannel(int id, float width, float height, float x, float
     params.Add("height", height);
     params.Add("x", x);
     params.Add("y", y);
-    params.Add("layer", y);
+    params.Add("layer", layer);
     params.Add("enabled", enabled);
     params.Add("opacity", opacity);
     root.Add("params", params);

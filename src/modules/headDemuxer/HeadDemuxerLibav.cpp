@@ -54,13 +54,13 @@ void HeadDemuxerLibav::reset()
     av_ctx = NULL;
 
     // Free extradatas and stream infos
-    for (auto sinfo : streams) {
+    for (auto sinfo : outputStreamInfos) {
         if (sinfo.second->extradata) {
             delete []sinfo.second->extradata;
         }
         delete sinfo.second;
     }
-    streams.clear();
+    outputStreamInfos.clear();
 }
 
 bool HeadDemuxerLibav::doProcessFrame(std::map<int, Frame*> dstFrames)
@@ -81,15 +81,16 @@ bool HeadDemuxerLibav::doProcessFrame(std::map<int, Frame*> dstFrames)
     if (f != NULL) {
         // If the output for this stream index is connected, copy payload
         // (Otherwise, discard packet)
-        DemuxerStreamInfo *sinfo = streams[pkt.stream_index];
         uint8_t *data = f->getDataBuf();
         memcpy (data, pkt.data, pkt.size);
         f->setConsumed(true);
         f->setLength(pkt.size);
         f->setPresentationTime(
-            std::chrono::microseconds(1000000 * pkt.pts * sinfo->time_base_num / sinfo->time_base_den));
+            std::chrono::microseconds(
+                (int64_t)(1000000 * pkt.pts * streamTimeBase[pkt.stream_index])));
         f->setDuration(
-            std::chrono::nanoseconds(1000000000 * pkt.duration * sinfo->time_base_num / sinfo->time_base_den));
+            std::chrono::nanoseconds(
+                (int64_t)(1000000000 * pkt.duration * streamTimeBase[pkt.stream_index])));
     }
     av_free_packet(&pkt);
 
@@ -99,15 +100,12 @@ bool HeadDemuxerLibav::doProcessFrame(std::map<int, Frame*> dstFrames)
 FrameQueue *HeadDemuxerLibav::allocQueue(struct ConnectionData cData)
 {
     // Create output queue for the kind of stream associated with this wId
-    const DemuxerStreamInfo *info = streams[cData.writerId];
-    switch (info->type) {
+    const StreamInfo *si = outputStreamInfos[cData.writerId];
+    switch (si->type) {
         case AUDIO:
-            return AudioFrameQueue::createNew(cData, info->audio.codec, DEFAULT_AUDIO_FRAMES,
-                    info->audio.sampleRate, info->audio.channels,
-                    info->audio.sampleFormat, info->extradata, info->extradata_size);
+            return AudioFrameQueue::createNew(cData, si, DEFAULT_AUDIO_FRAMES);
         case VIDEO:
-            return VideoFrameQueue::createNew(cData, info->video.codec, DEFAULT_VIDEO_FRAMES,
-                    P_NONE, info->extradata, info->extradata_size);
+            return VideoFrameQueue::createNew(cData, si, DEFAULT_VIDEO_FRAMES);
         default:
             break;
     }
@@ -118,7 +116,7 @@ void HeadDemuxerLibav::doGetState(Jzon::Object &filterNode)
 {
     filterNode.Add("uri", uri);
     Jzon::Array jstreams;
-    for (auto it : streams) {
+    for (auto it : outputStreamInfos) {
         Jzon::Object s;
         s.Add("wId", it.first);
         s.Add("type", it.second->type);
@@ -131,8 +129,6 @@ void HeadDemuxerLibav::doGetState(Jzon::Object &filterNode)
                 break;
             case VIDEO:
                 s.Add("codec", it.second->video.codec);
-                s.Add("width", it.second->video.width);
-                s.Add("height", it.second->video.height);
                 break;
             default:
                 break;
@@ -169,43 +165,42 @@ bool HeadDemuxerLibav::setURI(const std::string URI)
         return false;
     }
 
-    // Build DemuxerStreamInfos and map them through wId
+    // Build StreamInfos and map them through wId
     for (unsigned int i=0; i<av_ctx->nb_streams; i++) {
         const AVCodecDescriptor* cdesc =
                 avcodec_descriptor_get(av_ctx->streams[i]->codec->codec_id);
-        DemuxerStreamInfo *sinfo = new DemuxerStreamInfo;
-        sinfo->type = ST_NONE;
-        sinfo->extradata = NULL;
+        StreamInfo *si = new StreamInfo();
+        si->type = ST_NONE;
+        si->extradata = NULL;
         if (cdesc) {
             switch (cdesc->type) {
                 case AVMEDIA_TYPE_AUDIO:
-                    sinfo->type = AUDIO;
-                    sinfo->audio.codec = utils::getAudioCodecFromLibavString(cdesc->name);
-                    sinfo->audio.sampleRate = av_ctx->streams[i]->codec->sample_rate;
-                    sinfo->audio.channels = av_ctx->streams[i]->codec->channels;
-                    sinfo->audio.sampleFormat = getSampleFormatFromLibav (
+                    si->type = AUDIO;
+                    si->audio.codec = utils::getAudioCodecFromLibavString(cdesc->name);
+                    si->audio.sampleRate = av_ctx->streams[i]->codec->sample_rate;
+                    si->audio.channels = av_ctx->streams[i]->codec->channels;
+                    si->audio.sampleFormat = getSampleFormatFromLibav (
                             av_ctx->streams[i]->codec->sample_fmt);
                     break;
                 case AVMEDIA_TYPE_VIDEO:
-                    sinfo->type = VIDEO;
-                    sinfo->video.codec = utils::getVideoCodecFromLibavString(cdesc->name);
-                    sinfo->video.width = av_ctx->streams[i]->codec->width;
-                    sinfo->video.height = av_ctx->streams[i]->codec->height;
+                    si->type = VIDEO;
+                    si->video.codec = utils::getVideoCodecFromLibavString(cdesc->name);
                     break;
                 default:
                     // Ignore this stream
                     break;
             }
-            sinfo->time_base_num = av_ctx->streams[i]->time_base.num;
-            sinfo->time_base_den = av_ctx->streams[i]->time_base.den;
-            sinfo->extradata_size = av_ctx->streams[i]->codec->extradata_size;
-            if (sinfo->extradata_size > 0) {
-                sinfo->extradata = new uint8_t[sinfo->extradata_size];
-                memcpy (sinfo->extradata, av_ctx->streams[i]->codec->extradata,
-                        sinfo->extradata_size);
+            si->extradata_size = av_ctx->streams[i]->codec->extradata_size;
+            if (si->extradata_size > 0) {
+                si->extradata = new uint8_t[si->extradata_size];
+                memcpy (si->extradata, av_ctx->streams[i]->codec->extradata,
+                        si->extradata_size);
             }
+            double timeBase = (double)av_ctx->streams[i]->time_base.num /
+                    av_ctx->streams[i]->time_base.den;
+            streamTimeBase[i] = timeBase;
         }
-        streams[i] = sinfo;
+        outputStreamInfos[i] = si;
     }
 
     return true;

@@ -98,7 +98,7 @@ void SinkManager::stop()
     sources.clear();
     
     // NOTE: this crashes because rtsp sessions are destroyed inside each RTSP connection and 
-    // Medium::close(rtspServer) seemms to do this internally, generating a segFault. Check deeper 
+    // Medium::close(rtspServer) seems to do this internally, generating a segFault. Check deeper 
     // if not closing RTSP server is the best solution (port binding has been checked and it works
     // properly -- no port binding when stopping)
     if (rtspServer){
@@ -270,10 +270,10 @@ bool SinkManager::addMpegTsRTPConnection(std::vector<int> inputReaders, int id, 
         }
 
         if (vQueue && !hasVideo) {
-            success = conn->addVideoSource(replicators[inReader]->createStreamReplica(), vQueue->getCodec(), inReader);
+            success = conn->addVideoSource(replicators[inReader]->createStreamReplica(), vQueue->getStreamInfo()->video.codec, inReader);
             hasVideo = true;
         } else if (aQueue && !hasAudio) {
-            success = conn->addAudioSource(replicators[inReader]->createStreamReplica(), aQueue->getCodec(), inReader);
+            success = conn->addAudioSource(replicators[inReader]->createStreamReplica(), aQueue->getStreamInfo()->audio.codec, inReader);
             hasAudio = true;
         } else {
             utils::errorMsg("Error creating MpegTSRTPConnection. Only one video and/or one audio is supported");
@@ -317,13 +317,14 @@ bool SinkManager::addStdRTPConnection(std::vector<int> readers, int id, std::str
 
     if ((vQueue = dynamic_cast<VideoFrameQueue*>(r->getQueue())) != NULL) {
         conn = new VideoConnection(envir(), replicators[readers.front()]->createStreamReplica(),
-                                   ip, port, vQueue->getCodec(), readers.front());
+                ip, port, vQueue->getStreamInfo()->video.codec, readers.front());
     }
 
     if ((aQueue = dynamic_cast<AudioFrameQueue*>(r->getQueue())) != NULL){
+        const StreamInfo *si = aQueue->getStreamInfo();
         conn = new AudioConnection(envir(), replicators[readers.front()]->createStreamReplica(),
-                                   ip, port, aQueue->getCodec(), aQueue->getChannels(),
-                                   aQueue->getSampleRate(), aQueue->getSampleFmt(), readers.front());
+                ip, port, si->audio.codec, si->audio.channels,
+                si->audio.sampleRate, si->audio.sampleFormat, readers.front());
     }
 
     if (!conn) {
@@ -361,12 +362,17 @@ bool SinkManager::addUltraGridRTPConnection(std::vector<int> readers, int id, st
     }
 
     if ((vQueue = dynamic_cast<VideoFrameQueue*>(r->getQueue())) != NULL) {
-        conn = new UltraGridVideoConnection(envir(), replicators[readers.front()]->createStreamReplica(), ip, port, vQueue->getCodec(), readers.front());
+        conn = new UltraGridVideoConnection(envir(),
+                replicators[readers.front()]->createStreamReplica(), ip, port,
+                vQueue->getStreamInfo()->video.codec, readers.front());
     }
 
     if ((aQueue = dynamic_cast<AudioFrameQueue*>(r->getQueue())) != NULL) {
-        conn = new UltraGridAudioConnection(envir(), replicators[readers.front()]->createStreamReplica(), ip, port,
-                        aQueue->getCodec(), aQueue->getChannels(), aQueue->getSampleRate(), aQueue->getSampleFmt(), readers.front());
+        const StreamInfo *si = aQueue->getStreamInfo();
+        conn = new UltraGridAudioConnection(envir(),
+                replicators[readers.front()]->createStreamReplica(), ip, port,
+                si->audio.codec, si->audio.channels, si->audio.sampleRate,
+                si->audio.sampleFormat, readers.front());
     }
 
     if (!conn) {
@@ -399,12 +405,12 @@ std::shared_ptr<Reader> SinkManager::setReader(int readerId, FrameQueue* queue)
     
 
     if ((vQueue = dynamic_cast<VideoFrameQueue*>(queue)) != NULL){
-        createVideoQueueSource(vQueue->getCodec(), readerId);
+        createVideoQueueSource(vQueue->getStreamInfo()->video.codec, readerId);
         queueSrcCreated = true;
     }
 
     if ((aQueue = dynamic_cast<AudioFrameQueue*>(queue)) != NULL){
-        createAudioQueueSource(aQueue->getCodec(), readerId);
+        createAudioQueueSource(aQueue->getStreamInfo()->audio.codec, readerId);
         queueSrcCreated = true;
     }
     
@@ -451,13 +457,15 @@ bool SinkManager::addSubsessionByReader(RTSPConnection* connection ,int readerId
     }
 
     if ((vQueue = dynamic_cast<VideoFrameQueue*>(reader->getQueue())) != NULL){
-        return connection->addVideoSubsession(vQueue->getCodec(), replicators[readerId], readerId);
+        return connection->addVideoSubsession(vQueue->getStreamInfo()->video.codec,
+                replicators[readerId], readerId);
     }
 
     if ((aQueue = dynamic_cast<AudioFrameQueue*>(reader->getQueue())) != NULL){
-        return connection->addAudioSubsession(aQueue->getCodec(), replicators[readerId], 
-                                              aQueue->getChannels(), aQueue->getSampleRate(), 
-                                              aQueue->getSampleFmt(), readerId);
+        const StreamInfo *si = aQueue->getStreamInfo();
+        return connection->addAudioSubsession(si->audio.codec, replicators[readerId], 
+                si->audio.channels, si->audio.sampleRate,
+                si->audio.sampleFormat, readerId);
     }
 
     return false;

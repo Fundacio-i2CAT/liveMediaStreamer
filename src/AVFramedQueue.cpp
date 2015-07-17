@@ -26,9 +26,14 @@
 #include "AudioFrame.hh"
 #include "Utils.hh"
 
-AVFramedQueue::AVFramedQueue(struct ConnectionData cData, unsigned maxFrames) : FrameQueue(cData), max(maxFrames)
+AVFramedQueue::AVFramedQueue(struct ConnectionData cData, const StreamInfo *si, unsigned maxFrames) :
+        FrameQueue(cData, si), max(maxFrames)
 {
-
+    if (max > MAX_FRAMES) {
+        utils::errorMsg(std::string("Created an AVFramedQueue with ") + std::to_string(max) + " frames. " +
+                "Reducing to " + std::to_string(MAX_FRAMES));
+        max = MAX_FRAMES;
+    }
 }
 
 AVFramedQueue::~AVFramedQueue()
@@ -88,7 +93,7 @@ Frame* AVFramedQueue::forceGetFront()
     return frames[(front + (max - 1)) % max]; 
 }
 
-const unsigned AVFramedQueue::getElements()
+unsigned AVFramedQueue::getElements()
 {
     return front > rear ? (max - front + rear) : (rear - front);
 }
@@ -98,9 +103,10 @@ const unsigned AVFramedQueue::getElements()
 //VIDEO FRAME QUEUE METHODS IMPLEMENTATION//
 ////////////////////////////////////////////
 
-VideoFrameQueue* VideoFrameQueue::createNew(struct ConnectionData cData, VCodecType codec, unsigned maxFrames, PixType pixelFormat, const uint8_t *extradata, int extradata_size)
+VideoFrameQueue* VideoFrameQueue::createNew(struct ConnectionData cData, const StreamInfo *si,
+        unsigned maxFrames)
 {
-    VideoFrameQueue* q = new VideoFrameQueue(cData, codec, maxFrames, pixelFormat);
+    VideoFrameQueue* q = new VideoFrameQueue(cData, si, maxFrames);
 
     if (!q->setup()) {
         utils::errorMsg("VideoFrameQueue setup error!");
@@ -108,41 +114,38 @@ VideoFrameQueue* VideoFrameQueue::createNew(struct ConnectionData cData, VCodecT
         return NULL;
     }
 
-    q->extradata = extradata;
-    q->extradata_size = extradata_size;
-
     return q;
 }
 
 
-VideoFrameQueue::VideoFrameQueue(struct ConnectionData cData, VCodecType codec_, unsigned maxFrames, PixType pixelFormat_) :
-AVFramedQueue(cData, maxFrames), codec(codec_), pixelFormat(pixelFormat_)
+VideoFrameQueue::VideoFrameQueue(struct ConnectionData cData, const StreamInfo *si,
+        unsigned maxFrames) : AVFramedQueue(cData, si, maxFrames)
 {
-
 }
 
 bool VideoFrameQueue::setup()
 {
-    switch(codec) {
+    switch(streamInfo->video.codec) {
         case H264:
         case H265:
             for (unsigned i=0; i<max; i++) {
-                frames[i] = InterleavedVideoFrame::createNew(codec, MAX_H264_OR_5_NAL_SIZE);
+                frames[i] = InterleavedVideoFrame::createNew(streamInfo->video.codec, MAX_H264_OR_5_NAL_SIZE);
             }
             break;
         case VP8:
             for (unsigned i=0; i<max; i++) {
-                frames[i] = InterleavedVideoFrame::createNew(codec, LENGTH_VP8);
+                frames[i] = InterleavedVideoFrame::createNew(streamInfo->video.codec, LENGTH_VP8);
             }
             break;
         case RAW:
-            if (pixelFormat == P_NONE) {
+            if (streamInfo->video.pixelFormat == P_NONE) {
                 utils::errorMsg("No pixel fromat defined");
                 return false;
                 break;
             }
             for (unsigned i=0; i<max; i++) {
-                frames[i] = InterleavedVideoFrame::createNew(codec, DEFAULT_WIDTH, DEFAULT_HEIGHT, pixelFormat);
+                frames[i] = InterleavedVideoFrame::createNew(streamInfo->video.codec,
+                        DEFAULT_WIDTH, DEFAULT_HEIGHT, streamInfo->video.pixelFormat);
             }
             break;
         default:
@@ -159,10 +162,10 @@ bool VideoFrameQueue::setup()
 
 unsigned getMaxSamples(unsigned sampleRate);
 
-AudioFrameQueue* AudioFrameQueue::createNew(struct ConnectionData cData, ACodecType codec, unsigned maxFrames, unsigned sampleRate, 
-                                             unsigned channels, SampleFmt sFmt, const uint8_t *extradata, int extradata_size)
+AudioFrameQueue* AudioFrameQueue::createNew(struct ConnectionData cData, const StreamInfo *si,
+        unsigned maxFrames)
 {
-    AudioFrameQueue* q = new AudioFrameQueue(cData, codec, maxFrames, sFmt, sampleRate, channels);
+    AudioFrameQueue* q = new AudioFrameQueue(cData, si, maxFrames);
 
     if (!q->setup()) {
         utils::errorMsg("AudioFrameQueue setup error!");
@@ -170,38 +173,46 @@ AudioFrameQueue* AudioFrameQueue::createNew(struct ConnectionData cData, ACodecT
         return NULL;
     }
 
-    q->extradata = extradata;
-    q->extradata_size = extradata_size;
-
     return q;
 }
 
-AudioFrameQueue::AudioFrameQueue(struct ConnectionData cData, ACodecType codec_, unsigned maxFrames, SampleFmt sFmt, unsigned sampleRate_, unsigned channels_)
-: AVFramedQueue(cData, maxFrames), codec(codec_), sampleFormat(sFmt), sampleRate(sampleRate_), channels(channels_)
+AudioFrameQueue::AudioFrameQueue(struct ConnectionData cData, const StreamInfo *si,
+        unsigned maxFrames) : AVFramedQueue(cData, si, maxFrames)
 {
-
 }
 
 bool AudioFrameQueue::setup()
 {
-    switch(codec) {
+    switch(streamInfo->audio.codec) {
         case OPUS:
         case AAC:
         case MP3:
-            sampleFormat = S16;
             for (unsigned i=0; i<max; i++) {
-                frames[i] = InterleavedAudioFrame::createNew(channels, sampleRate, AudioFrame::getMaxSamples(sampleRate), codec, sampleFormat);
+                frames[i] = InterleavedAudioFrame::createNew(streamInfo->audio.channels,
+                        streamInfo->audio.sampleRate,
+                        AudioFrame::getMaxSamples(streamInfo->audio.sampleRate),
+                        streamInfo->audio.codec, streamInfo->audio.sampleFormat);
             }
             break;
         case PCMU:
         case PCM:
-            if (sampleFormat == U8 || sampleFormat == S16 || sampleFormat == FLT) {
+            if (streamInfo->audio.sampleFormat == U8 || streamInfo->audio.sampleFormat == S16 || streamInfo->audio.sampleFormat == FLT) {
                 for (unsigned i=0; i<max; i++) {
-                    frames[i] = InterleavedAudioFrame::createNew(channels, sampleRate, AudioFrame::getMaxSamples(sampleRate), codec, sampleFormat);
+                    frames[i] = InterleavedAudioFrame::createNew(
+                            streamInfo->audio.channels,
+                            streamInfo->audio.sampleRate,
+                            AudioFrame::getMaxSamples(streamInfo->audio.sampleRate),
+                            streamInfo->audio.codec, streamInfo->audio.sampleFormat);
                 }
-            } else if (sampleFormat == U8P || sampleFormat == S16P || sampleFormat == FLTP) {
+            } else if (streamInfo->audio.sampleFormat == U8P ||
+                       streamInfo->audio.sampleFormat == S16P ||
+                       streamInfo->audio.sampleFormat == FLTP) {
                 for (unsigned i=0; i<max; i++) {
-                    frames[i] = PlanarAudioFrame::createNew(channels, sampleRate, AudioFrame::getMaxSamples(sampleRate), codec, sampleFormat);
+                    frames[i] = PlanarAudioFrame::createNew(
+                            streamInfo->audio.channels,
+                            streamInfo->audio.sampleRate,
+                            AudioFrame::getMaxSamples(streamInfo->audio.sampleRate),
+                            streamInfo->audio.codec, streamInfo->audio.sampleFormat);
                 }
             } else {
                  utils::errorMsg("[Audio Frame Queue] Sample format not supported!");
@@ -209,11 +220,12 @@ bool AudioFrameQueue::setup()
             }
             break;
         case G711:
-            channels = 1;
-            sampleRate = 8000;
-            sampleFormat = U8;
             for (unsigned i=0; i<max; i++) {
-                frames[i] = InterleavedAudioFrame::createNew(channels, sampleRate, AudioFrame::getMaxSamples(sampleRate), codec, sampleFormat);
+                frames[i] = InterleavedAudioFrame::createNew(
+                        streamInfo->audio.channels,
+                        streamInfo->audio.sampleRate,
+                        AudioFrame::getMaxSamples(streamInfo->audio.sampleRate),
+                        streamInfo->audio.codec, streamInfo->audio.sampleFormat);
             }
             break;
         default:

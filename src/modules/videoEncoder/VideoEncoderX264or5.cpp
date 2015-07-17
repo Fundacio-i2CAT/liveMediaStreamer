@@ -24,10 +24,12 @@
 #include "VideoEncoderX264or5.hh"
 
 VideoEncoderX264or5::VideoEncoderX264or5(FilterRole fRole_) :
-OneToOneFilter(fRole_), inPixFmt(P_NONE), annexB(false), forceIntra(false), fps(0), bitrate(0), gop(0), threads(0), needsConfig(false)
+OneToOneFilter(fRole_), inPixFmt(P_NONE), forceIntra(false), fps(0), bitrate(0), gop(0), threads(0), needsConfig(false)
 {
     fType = VIDEO_ENCODER;
     midFrame = av_frame_alloc();
+    outputStreamInfo = new StreamInfo(VIDEO);
+    outputStreamInfo->video.h264or5.annexb = false;
     initializeEventMap();
     configure0(DEFAULT_BITRATE, VIDEO_DEFAULT_FRAMERATE, DEFAULT_GOP, 
               DEFAULT_LOOKAHEAD, DEFAULT_THREADS, DEFAULT_ANNEXB, DEFAULT_PRESET);
@@ -104,7 +106,8 @@ bool VideoEncoderX264or5::configure0(int bitrate_, int fps_, int gop_, int looka
     gop = gop_;
     lookahead = lookahead_;
     threads = threads_;
-    annexB = annexB_;
+
+    outputStreamInfo->video.h264or5.annexb = annexB_;
     preset = preset_;
 
     if (fps_ <= 0) {
@@ -138,7 +141,7 @@ bool VideoEncoderX264or5::configEvent(Jzon::Node* params)
     tmpGop = gop;
     tmpLookahead = lookahead;
     tmpThreads = threads;
-    tmpAnnexB = annexB;
+    tmpAnnexB = outputStreamInfo->video.h264or5.annexb;
     tmpPreset = preset;
 
     if (params->Has("bitrate")) {
@@ -172,7 +175,7 @@ bool VideoEncoderX264or5::configEvent(Jzon::Node* params)
     return configure0(tmpBitrate, tmpFps, tmpGop, tmpLookahead, tmpThreads, tmpAnnexB, tmpPreset);
 }
 
-bool VideoEncoderX264or5::forceIntraEvent(Jzon::Node* params)
+bool VideoEncoderX264or5::forceIntraEvent(Jzon::Node*)
 {
     forceIntra = true;
     return true;
@@ -191,7 +194,7 @@ void VideoEncoderX264or5::doGetState(Jzon::Object &filterNode)
     filterNode.Add("gop", std::to_string(gop));
     filterNode.Add("lookahead", std::to_string(lookahead));
     filterNode.Add("threads", std::to_string(threads));
-    filterNode.Add("annexb", std::to_string(annexB));
+    filterNode.Add("annexb", std::to_string(outputStreamInfo->video.h264or5.annexb));
     filterNode.Add("preset", preset);
 }
 

@@ -390,7 +390,7 @@ CPPUNIT_TEST_SUITE_REGISTRATION(PipelineManagerFunctionalTest);
 
 int main(int argc, char* argv[])
 {
-    std::ofstream xmlout("FilterTest.xml");
+    std::ofstream xmlout("PipelineManagerTest.xml");
     CPPUNIT_NS::TextTestRunner runner;
     CPPUNIT_NS::XmlOutputter *outputter = new CPPUNIT_NS::XmlOutputter(&runner.result(), xmlout);
 

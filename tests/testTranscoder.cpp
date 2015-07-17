@@ -53,7 +53,7 @@ void signalHandler( int signum )
 
 void addAudioPath(unsigned port, int receiverID, int transmitterID)
 {
-    PipelineManager *pipe = PipelineManager::getInstance(1);
+    PipelineManager *pipe = PipelineManager::getInstance(2);
 
     int decId = rand();
     int encId = rand();
@@ -127,7 +127,7 @@ void addVideoPath(unsigned port, int receiverID, int transmitterID,
     pipe->addFilter(encId, encoder);
 
     //bitrate, fps, gop, lookahead, threads, annexB, preset
-    encoder->configure(4000, 25, 25, 25, 4, true, "superfast");
+    encoder->configure(4000, 5, 25, 25, 4, true, "superfast");
 
     path = pipe->createPath(receiverID, transmitterID, port, -1, ids);
 
@@ -276,7 +276,7 @@ int main(int argc, char* argv[])
     size_t sharingMemoryKey = 0;
     std::vector<int> readers;
 
-    int transmitterID = rand();
+    int transmitterID = 1024;
     int receiverID = rand();
 
     SinkManager* transmitter = NULL;

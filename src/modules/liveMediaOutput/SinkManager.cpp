@@ -122,7 +122,7 @@ bool SinkManager::deleteReader(int readerId)
 {
     if (readers.count(readerId) > 0){
         readers[readerId]->disconnect();
-        readers[readerId]->removeReader();
+        readers[readerId]->removeReader(getId());
         readers.erase(readerId);
         removeConnectionByReaderId(readerId);
         if (sources.count(readerId) > 0){
@@ -136,25 +136,25 @@ bool SinkManager::deleteReader(int readerId)
 
 bool SinkManager::doProcessFrame(std::map<int, Frame*> &oFrames)
 {
-    Frame *f;
     if (envir() == NULL){
         return false;
     }
     
     for (auto it: oFrames){
         if (it.second && it.second->getConsumed()){
-            oFrames.erase(it.first);
             if (sources.count(it.first) > 0 && sources[it.first]->setFrame(it.second)){
                 QueueSource::signalNewFrameData(scheduler, sources[it.first]);
             }
+            oFrames.erase(it.first);
         }
     }
 
     scheduler->SingleStep();
     
     for (auto it : sources){
-        f = it.second->getFrame();
+        Frame *f = it.second->getFrame();
         if (f){
+            f->setConsumed(true);
             oFrames[it.first] = f;
         }
     }

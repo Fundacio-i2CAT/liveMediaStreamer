@@ -235,71 +235,66 @@ void DashVideoSegmenterAVCTest::generateInitSegment()
 
 void DashVideoSegmenterAVCTest::appendFrameToDashSegment()
 {
-    // bool newFrame;
-    // DashSegment* segment = new DashSegment();
-    // std::chrono::microseconds ts(1000);
+    Frame* frame = NULL;
+    DashSegment* segment = new DashSegment();
+    std::chrono::microseconds ts(1000);
 
-    // CPPUNIT_ASSERT(!segmenter->appendFrameToDashSegment(segment));
+    CPPUNIT_ASSERT(!segmenter->appendFrameToDashSegment(segment, frame));
 
-    // idrNal->setPresentationTime(ts);
-    // idrNal->setSize(WIDTH, HEIGHT);
-    // nonIdrNal->setPresentationTime(ts);
-    // nonIdrNal->setSize(WIDTH, HEIGHT);
+    idrNal->setPresentationTime(ts);
+    idrNal->setSize(WIDTH, HEIGHT);
+    audNal->setPresentationTime(ts);
 
-    // segmenter->manageFrame(nonIdrNal, newFrame);
+    frame = segmenter->manageFrame(idrNal);
+    CPPUNIT_ASSERT(!frame);
 
-    // CPPUNIT_ASSERT(!segmenter->appendFrameToDashSegment(segment));
-    // CPPUNIT_ASSERT(!segmenter->appendFrameToDashSegment(segment));
+    frame = segmenter->manageFrame(audNal);
+    CPPUNIT_ASSERT(frame);
 
-    // segmenter->manageFrame(idrNal, newFrame);
-
-    // CPPUNIT_ASSERT(segmenter->appendFrameToDashSegment(segment));
+    CPPUNIT_ASSERT(segmenter->appendFrameToDashSegment(segment, frame));
 }
 
 void DashVideoSegmenterAVCTest::generateSegment()
 {
-    // char* segmentModel = new char[MAX_DAT];
-    // size_t segmentModelLength;
-    // DashSegment* segment = new DashSegment();
+    char* segmentModel = new char[MAX_DAT];
+    size_t segmentModelLength;
+    DashSegment* segment = new DashSegment();
 
-    // bool newFrame;
-    // std::chrono::microseconds ts(1000);
-    // size_t nalCounter = 0;
-    // size_t dataLength = 0;
-    // std::string strName;
+    Frame* frame = NULL;
+    std::chrono::microseconds ts(1000);
+    size_t nalCounter = 0;
+    size_t dataLength = 0;
+    std::string strName;
 
-    // segmentModelLength = readFile("testsData/modules/dasher/dashVideoSegmenterAVCTest/segmentModel.m4v", segmentModel);
+    segmentModelLength = readFile("testsData/modules/dasher/dashVideoSegmenterAVCTest/segmentModel.m4v", segmentModel);
 
-    // dummyNal->setSize(WIDTH, HEIGHT);
+    dummyNal->setSize(WIDTH, HEIGHT);
+    CPPUNIT_ASSERT(!segmenter->generateSegment(segment, frame));
 
-    // CPPUNIT_ASSERT(!segmenter->generateSegment(segment));
+    while (true) {
+        strName = "testsData/modules/dasher/dashVideoSegmenterAVCTest/nalModels/nal_" + std::to_string(nalCounter);
+        dataLength = readFile(strName.c_str(), (char*)dummyNal->getDataBuf());
+        dummyNal->setLength(dataLength);
+        dummyNal->setPresentationTime(ts);
+        frame = segmenter->manageFrame(dummyNal);
+        nalCounter++;
 
-    // while (true) {
-    //     strName = "testsData/modules/dasher/dashVideoSegmenterAVCTest/nalModels/nal_" + std::to_string(nalCounter);
-    //     dataLength = readFile(strName.c_str(), (char*)dummyNal->getDataBuf());
-    //     dummyNal->setLength(dataLength);
-    //     dummyNal->setPresentationTime(ts);
-    //     segmenter->manageFrame(dummyNal, newFrame);
-    //     nalCounter++;
+        if (!frame) {
+            continue;
+        }
 
-    //     if (!newFrame) {
-    //         continue;
-    //     }
+        ts += frameTime;
 
-    //     ts += frameTime;
+        if (segmenter->generateSegment(segment, frame)) {
+            break;
+        }
 
-    //     if (segmenter->generateSegment(segment)) {
-    //         break;
-    //     }
+        if(!segmenter->appendFrameToDashSegment(segment, frame)) {
+            CPPUNIT_FAIL("Segmenter appendFrameToDashSegment failed when testing general workflow\n");
+        }
+    }
 
-    //     if(!segmenter->appendFrameToDashSegment(segment)) {
-    //         CPPUNIT_FAIL("Segmenter appendFrameToDashSegment failed when testing general workflow\n");
-    //     }
-    // }
-
-    // CPPUNIT_ASSERT(segmentModelLength == segment->getDataLength());
-    // CPPUNIT_ASSERT(memcmp(segmentModel, segment->getDataBuffer(), segment->getDataLength()) == 0);
-
+    CPPUNIT_ASSERT(segmentModelLength == segment->getDataLength());
 }
 
 /*

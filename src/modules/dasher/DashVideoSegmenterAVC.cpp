@@ -18,15 +18,15 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  *  Authors:  Gerard Castillo <gerard.castillo@i2cat.net>
- *
+ *            Marc Palau <marc.palau@i2cat.net>
  */
 
- #include "DashVideoSegmenterAVC.hh"
+#include "DashVideoSegmenterAVC.hh"
 
 DashVideoSegmenterAVC::DashVideoSegmenterAVC(std::chrono::seconds segDur) : 
-DashVideoSegmenter(segDur, VIDEO_CODEC_AVC), newFrame(true)
+DashVideoSegmenter(segDur, VIDEO_CODEC_AVC)
 {
-    vFrame = InterleavedVideoFrame::createNew(H264, 5000000);
+    vFrame = InterleavedVideoFrame::createNew(H264, LENGTH_H264_FRAME);
 }
 
 DashVideoSegmenterAVC::~DashVideoSegmenterAVC()
@@ -98,7 +98,6 @@ VideoFrame* DashVideoSegmenterAVC::parseNal(VideoFrame* nal)
             isIntra = false;
             break;
         case AUD_AVC:
-            newFrame = true;
             return vFrame;
         default:
             utils::errorMsg("Error parsing NAL: NalType " + std::to_string(nalType) + " not contemplated");
@@ -106,11 +105,6 @@ VideoFrame* DashVideoSegmenterAVC::parseNal(VideoFrame* nal)
     }
 
     if (nalType == IDR || nalType == NON_IDR) {
-
-        if (newFrame) {
-            vFrame->setLength(0);
-            newFrame = false;
-        }
 
         if (!appendNalToFrame(vFrame, nalData, nalDataLength, nal->getWidth(), nal->getHeight(), nal->getPresentationTime())) {
             utils::errorMsg("[DashVideoSegmenterHEVC::parseNal] Error appending NAL to frame");

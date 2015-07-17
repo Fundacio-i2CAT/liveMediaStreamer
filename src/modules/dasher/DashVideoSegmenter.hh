@@ -95,6 +95,8 @@ protected:
     virtual void createMetadata() = 0;
     virtual uint8_t generateContext() = 0;
     virtual VideoFrame* parseNal(VideoFrame* nal) = 0;
+    virtual void resetFrame() = 0;
+
 
     bool appendNalToFrame(VideoFrame* frame, unsigned char* nalData, unsigned nalDataLength, 
                            unsigned nalWidth, unsigned nalHeight, std::chrono::microseconds ts);

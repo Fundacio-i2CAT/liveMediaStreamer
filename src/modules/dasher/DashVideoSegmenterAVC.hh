@@ -86,12 +86,12 @@ private:
     void createMetadata();
     uint8_t generateContext();
     VideoFrame* parseNal(VideoFrame* nal);
+    void resetFrame(){vFrame->setLength(0);};
 
     InterleavedVideoFrame* vFrame;
 
     std::vector<unsigned char> sps;
     std::vector<unsigned char> pps;
-    bool newFrame;
 };
 
 #endif

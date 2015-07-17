@@ -113,27 +113,13 @@ private:
     void createMetadata();
     uint8_t generateContext();
     VideoFrame* parseNal(VideoFrame* nal);
+    void resetFrame(){vFrame->setLength(0);};
 
     InterleavedVideoFrame* vFrame;
 
     std::vector<unsigned char> vps;
     std::vector<unsigned char> sps;
     std::vector<unsigned char> pps;
-
-    bool newFrame;
-
-    int count;
-    int countVPS;
-    int countSPS;
-    int countPPS;
-    int countIDR1;
-    int countIDR2;
-    int countNON0;
-    int countNON1;
-    int countAUD;
-    int countPREFIX;
-    int countSUFFIX;
-    int countCRA;
 };
 
 #endif

@@ -144,6 +144,8 @@ bool DashVideoSegmenter::appendFrameToDashSegment(DashSegment* segment, Frame* f
         return false;
     }
 
+    resetFrame();
+
     return true;
 }
 

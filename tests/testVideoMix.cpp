@@ -54,7 +54,7 @@ void setupMixer(int mixerId, int transmitterId)
     std::vector<int> ids = {resId, encId};
 
     //NOTE: Adding decoder to pipeManager and handle worker
-    mixer = VideoMixer::createNew(MIX_CHANNELS, MIX_WIDTH, MIX_HEIGHT, std::chrono::microseconds(40000));
+    mixer = VideoMixer::createNew(MIX_CHANNELS, MIX_WIDTH, MIX_HEIGHT, std::chrono::microseconds(0));
     pipe->addFilter(mixerId, mixer);
 
     //NOTE: Adding resampler to pipeManager and handle worker
@@ -65,7 +65,7 @@ void setupMixer(int mixerId, int transmitterId)
     //NOTE: Adding encoder to pipeManager and handle worker
     encoder = new VideoEncoderX264();
     //bitrate, fps, gop, lookahead, threads, annexB, preset
-    // encoder->configure(4000, 25, 25, 25, 4, true, "superfast");
+    encoder->configure(4000, 0, 25, 25, 4, true, "superfast");
     pipe->addFilter(encId, encoder);
 
     path = pipe->createPath(mixerId, transmitterId, -1, -1, ids);
@@ -221,9 +221,9 @@ int main(int argc, char* argv[])
 
     std::string rtspUri;
 
-    int transmitterID = rand();
-    int receiverId = rand();
-    int mixerId = rand();
+    int transmitterID = 11;
+    int receiverId = 10;
+    int mixerId = 15;
 
     int port;
 

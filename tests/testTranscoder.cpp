@@ -127,7 +127,7 @@ void addVideoPath(unsigned port, int receiverID, int transmitterID,
     pipe->addFilter(encId, encoder);
 
     //bitrate, fps, gop, lookahead, threads, annexB, preset
-    encoder->configure(4000, 5, 25, 25, 4, true, "superfast");
+    encoder->configure(4000, 15, 25, 25, 4, true, "superfast");
 
     path = pipe->createPath(receiverID, transmitterID, port, -1, ids);
 

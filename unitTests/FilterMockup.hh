@@ -36,6 +36,7 @@
 #include "AudioCircularBuffer.hh"
 #include "Frame.hh"
 #include "VideoFrame.hh"
+#include "StreamInfo.hh"
 
 class FrameMock : public Frame {
 public:
@@ -88,7 +89,8 @@ private:
 class AVFramedQueueMock : public AVFramedQueue
 {
 public:
-    AVFramedQueueMock(struct ConnectionData cData, unsigned max) : AVFramedQueue(cData, max) {
+    AVFramedQueueMock(struct ConnectionData cData, const StreamInfo *si, unsigned max) :
+            AVFramedQueue(cData, si, max) {
         config();
     };
 
@@ -101,6 +103,8 @@ protected:
     }
 };
 
+static const StreamInfo mockStreamInfo = {ST_NONE};
+
 class BaseFilterMockup : public BaseFilter
 {
 public:
@@ -109,7 +113,7 @@ public:
     using BaseFilter::getReader;
 
 protected:
-    FrameQueue *allocQueue(struct ConnectionData cData) {return new AVFramedQueueMock(cData, 4);};
+    FrameQueue *allocQueue(struct ConnectionData cData) {return new AVFramedQueueMock(cData, &mockStreamInfo, 4);};
 
     void doGetState(Jzon::Object &filterNode) {};
 
@@ -147,7 +151,7 @@ protected:
     void doGetState(Jzon::Object &filterNode) {};
 
 private:
-    virtual FrameQueue *allocQueue(struct ConnectionData cData) {return new AVFramedQueueMock(cData, queueSize);};
+    virtual FrameQueue *allocQueue(struct ConnectionData cData) {return new AVFramedQueueMock(cData, &mockStreamInfo, queueSize);};
 
     std::default_random_engine generator;
     size_t queueSize;
@@ -177,7 +181,9 @@ protected:
     void doGetState(Jzon::Object &filterNode) {};
 
 private:
-    virtual FrameQueue *allocQueue(struct ConnectionData cData) {return new AVFramedQueueMock(cData, queueSize);};
+    virtual FrameQueue *allocQueue(struct ConnectionData cData) {
+        return new AVFramedQueueMock(cData, &mockStreamInfo, queueSize);
+    };
 
     std::default_random_engine generator;
     size_t queueSize;
@@ -188,28 +194,38 @@ class VideoFilterMockup : public OneToOneFilterMockup
 {
 public:
     VideoFilterMockup(VCodecType c) : OneToOneFilterMockup(4, true, std::chrono::microseconds(40000), MASTER)  {
-        codec = c;
+        outputStreamInfo = new StreamInfo(VIDEO);
+        outputStreamInfo->video.codec = c;
     };
 
+    ~VideoFilterMockup() { delete outputStreamInfo; }
+
 protected:
-    FrameQueue *allocQueue(struct ConnectionData cData) {return VideoFrameQueue::createNew(cData, codec, DEFAULT_VIDEO_FRAMES);};
+    FrameQueue *allocQueue(struct ConnectionData cData) {
+        return VideoFrameQueue::createNew(cData, outputStreamInfo, DEFAULT_VIDEO_FRAMES);
+    };
 
 private:
-    VCodecType codec;
+    StreamInfo *outputStreamInfo;
 };
 
 class AudioFilterMockup : public OneToOneFilterMockup
 {
 public:
-    AudioFilterMockup(ACodecType c) : OneToOneFilterMockup(4, true, std::chrono::microseconds(40000), MASTER)  {
-        codec = c;
+    AudioFilterMockup(ACodecType c) : OneToOneFilterMockup(4, true, std::chrono::microseconds(40000), MASTER) {
+        outputStreamInfo = new StreamInfo(AUDIO);
+        outputStreamInfo->audio.codec = c;
     };
 
+    ~AudioFilterMockup() { delete outputStreamInfo; }
+
 protected:
-    FrameQueue *allocQueue(struct ConnectionData cData) {return AudioFrameQueue::createNew(cData, codec, DEFAULT_AUDIO_FRAMES);};
+    FrameQueue *allocQueue(struct ConnectionData cData) {
+        return AudioFrameQueue::createNew(cData, outputStreamInfo, DEFAULT_AUDIO_FRAMES);
+    };
 
 private:
-    ACodecType codec;
+    StreamInfo *outputStreamInfo;
 };
 
 
@@ -257,7 +273,7 @@ protected:
     
 private:
     FrameQueue *allocQueue(struct ConnectionData cData) {
-        return new AVFramedQueueMock(cData, 4);
+        return new AVFramedQueueMock(cData, &mockStreamInfo, 4);
     };
 };
 
@@ -306,12 +322,17 @@ protected:
 class VideoHeadFilterMockup : public HeadFilter
 {
 public:
-    VideoHeadFilterMockup(VCodecType c, PixType pix = P_NONE) :
-        HeadFilter(), srcFrame(NULL), codec(c), pixFormat(pix){};
+    VideoHeadFilterMockup(VCodecType c, PixType pix = P_NONE) : HeadFilter(), srcFrame(NULL) {
+        outputStreamInfo = new StreamInfo (VIDEO);
+        outputStreamInfo->video.codec = c;
+        outputStreamInfo->video.pixelFormat = pix;
+    };
+
+    ~VideoHeadFilterMockup() { delete outputStreamInfo; }
 
     bool inject(InterleavedVideoFrame* frame){
-        if (! frame || frame->getCodec() != codec || 
-            frame->getPixelFormat() != pixFormat){
+        if (! frame || frame->getCodec() != outputStreamInfo->video.codec || 
+            frame->getPixelFormat() != outputStreamInfo->video.pixelFormat){
             return false;
         }
         
@@ -342,32 +363,36 @@ protected:
         
         return false;
     }
-    
 
 private:
     FrameQueue *allocQueue(struct ConnectionData cData) {
-        return VideoFrameQueue::createNew(cData, codec, 10, pixFormat);
+        return VideoFrameQueue::createNew(cData, outputStreamInfo, 10);
     };
 
     InterleavedVideoFrame* srcFrame;
-    VCodecType codec;
-    PixType pixFormat;
+    StreamInfo *outputStreamInfo;
 };
 
 class AudioHeadFilterMockup : public HeadFilter
 {
 public:
-    AudioHeadFilterMockup(unsigned ch, unsigned sRate, SampleFmt fmt) : HeadFilter(), 
-    srcFrame(NULL), channels(ch), sampleRate(sRate), sampleFormat(fmt)  {};
+    AudioHeadFilterMockup(unsigned ch, unsigned sRate, SampleFmt fmt) : HeadFilter(), srcFrame(NULL) {
+        outputStreamInfo = new StreamInfo (AUDIO);
+        outputStreamInfo->audio.channels = ch;
+        outputStreamInfo->audio.sampleRate = sRate;
+        outputStreamInfo->audio.sampleFormat = fmt;
+    };
+
+    ~AudioHeadFilterMockup() { delete outputStreamInfo; }
 
     bool inject(PlanarAudioFrame* frame) 
     {
-        if (!frame || frame->getChannels() != channels ||
-            frame->getSampleRate() != sampleRate ||
-            frame->getSampleFmt() != sampleFormat) {
+        if (!frame || frame->getChannels() != outputStreamInfo->audio.channels ||
+                frame->getSampleRate() != outputStreamInfo->audio.sampleRate ||
+                frame->getSampleFmt() != outputStreamInfo->audio.sampleFormat) {
             return false;
         }
-        
+
         srcFrame = frame;
         return true;
     }
@@ -386,7 +411,7 @@ protected:
             return false;
         }
 
-        for (unsigned i = 0; i < channels; i++) {
+        for (unsigned i = 0; i < outputStreamInfo->audio.channels; i++) {
             memmove(dstFrame->getPlanarDataBuf()[i], srcFrame->getPlanarDataBuf()[i], srcFrame->getLength());
         }
         
@@ -399,17 +424,16 @@ protected:
         dstFrame->setConsumed(true);
         return true;
     }
-    
 
 private:
     FrameQueue *allocQueue(struct ConnectionData cData) {
-        return AudioCircularBuffer::createNew(cData, channels, sampleRate, DEFAULT_BUFFER_SIZE, sampleFormat, std::chrono::milliseconds(0));
+        return AudioCircularBuffer::createNew(cData, outputStreamInfo->audio.channels,
+                outputStreamInfo->audio.sampleRate, DEFAULT_BUFFER_SIZE,
+                outputStreamInfo->audio.sampleFormat, std::chrono::milliseconds(0));
     };
 
     PlanarAudioFrame* srcFrame;
-    unsigned channels;
-    unsigned sampleRate;
-    SampleFmt sampleFormat;
+    StreamInfo *outputStreamInfo;
 };
 
 class VideoTailFilterMockup : public TailFilter

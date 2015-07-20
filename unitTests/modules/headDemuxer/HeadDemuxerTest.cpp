@@ -83,8 +83,6 @@ void HeadDemuxerTest::demuxingTest()
     CPPUNIT_ASSERT (vnode.Get("wId").ToInt() == 0);
     CPPUNIT_ASSERT (vnode.Get("type").ToInt() == VIDEO);
     CPPUNIT_ASSERT (vnode.Get("codec").ToInt() == H264);
-    CPPUNIT_ASSERT (vnode.Get("width").ToInt() == 854);
-    CPPUNIT_ASSERT (vnode.Get("height").ToInt() == 480);
 
     Jzon::Node &anode = array.Get(1);
     CPPUNIT_ASSERT (anode.Get("wId").ToInt() == 1);

@@ -32,11 +32,14 @@
 
 #include "SlicedVideoFrameQueue.hh"
 #include "Utils.hh"
+#include "StreamInfo.hh"
 
 typedef struct {
     unsigned char *data;
     unsigned size;
 } Buffer;
+
+static StreamInfo mockStreamInfo = { VIDEO };
 
 class SlicedVideoFrameQueueTest : public CppUnit::TestFixture
 {
@@ -60,15 +63,17 @@ protected:
     void tooManySlices();
 
     SlicedVideoFrameQueue* queue;
-    unsigned maxFrames = 4;
-    VCodecType codec = H264; 
-    unsigned maxSliceSize = 16;
+    unsigned maxFrames;
+    unsigned maxSliceSize;
     struct ConnectionData cData;
 };
 
 void SlicedVideoFrameQueueTest::setUp()
 {
-    queue = SlicedVideoFrameQueue::createNew(cData, codec, maxFrames, maxSliceSize);
+    mockStreamInfo.video.codec = H264;
+    maxFrames = 4;
+    maxSliceSize = 16;
+    queue = SlicedVideoFrameQueue::createNew(cData, &mockStreamInfo, maxFrames, maxSliceSize);
 
     if (!queue) {
         CPPUNIT_FAIL("SlicedVideoFrameQueueTest failed. Error creating SlicedVideoFrameQueue in setUp()\n");
@@ -88,22 +93,22 @@ void SlicedVideoFrameQueueTest::create()
 
     tmpMaxFrames = 0;
     tmpMaxSliceSize = 0;
-    tmpqueue = SlicedVideoFrameQueue::createNew(cData, codec, tmpMaxFrames, tmpMaxSliceSize);
+    tmpqueue = SlicedVideoFrameQueue::createNew(cData, &mockStreamInfo, tmpMaxFrames, tmpMaxSliceSize);
     CPPUNIT_ASSERT(!tmpqueue);
 
     tmpMaxFrames = 0;
     tmpMaxSliceSize = 16;
-    tmpqueue = SlicedVideoFrameQueue::createNew(cData, codec, tmpMaxFrames, tmpMaxSliceSize);
+    tmpqueue = SlicedVideoFrameQueue::createNew(cData, &mockStreamInfo, tmpMaxFrames, tmpMaxSliceSize);
     CPPUNIT_ASSERT(!tmpqueue);
 
     tmpMaxFrames = 16;
     tmpMaxSliceSize = 0;
-    tmpqueue = SlicedVideoFrameQueue::createNew(cData, codec, tmpMaxFrames, tmpMaxSliceSize);
+    tmpqueue = SlicedVideoFrameQueue::createNew(cData, &mockStreamInfo, tmpMaxFrames, tmpMaxSliceSize);
     CPPUNIT_ASSERT(!tmpqueue);
 
     tmpMaxFrames = 16;
     tmpMaxSliceSize = 16;
-    tmpqueue = SlicedVideoFrameQueue::createNew(cData, codec, tmpMaxFrames, tmpMaxSliceSize);
+    tmpqueue = SlicedVideoFrameQueue::createNew(cData, &mockStreamInfo, tmpMaxFrames, tmpMaxSliceSize);
     CPPUNIT_ASSERT(tmpqueue);
 
     delete tmpqueue;

@@ -12,6 +12,8 @@ liblivemediastreamer_la_SOURCES = modules/audioDecoder/AudioDecoderLibav.cpp \
                                   modules/videoResampler/VideoResampler.cpp \
                                   modules/dasher/Dasher.cpp \
                                   modules/dasher/DashVideoSegmenter.cpp \
+                                  modules/dasher/DashVideoSegmenterAVC.cpp \
+                                  modules/dasher/DashVideoSegmenterHEVC.cpp \
                                   modules/dasher/DashAudioSegmenter.cpp \
                                   modules/dasher/MpdManager.cpp \
                                   modules/dasher/i2libdash.c \

@@ -184,23 +184,24 @@ std::vector<int> BaseFilter::addFrames(std::map<int, Frame*> &dFrames)
     return enabledJobs;
 }
 
-std::vector<int> BaseFilter::removeFrames(std::map<int, Frame*> &oFrames)
+bool BaseFilter::removeFrames(std::map<int, Frame*> &oFrames)
 {
-    std::vector<int> enabledJobs;
-    
-    if (maxReaders == 0){
-        return enabledJobs;
+    bool executeAgain = false;
+
+    if (maxReaders == 0) {
+        return executeAgain;
     }
     
     std::lock_guard<std::mutex> guard(mtx);
     
     for (auto it : oFrames){
-        if (readers.count(it.first) > 0 && it.second->getConsumed()){            
-            enabledJobs.push_back(readers[it.first]->removeFrame(getId()));
+        if (readers.count(it.first) > 0 && it.second->getConsumed()){
+			readers[it.first]->removeFrame(getId());
+            executeAgain |= (readers[it.first]->getQueueElements() > 0);
         }
     }
 
-    return enabledJobs;
+    return executeAgain;
 }
 
 bool BaseFilter::shareReader(BaseFilter *shared, int sharedRId, int orgRId)
@@ -430,7 +431,7 @@ std::vector<int> BaseFilter::regularProcessFrame(int& ret)
     std::map<int, Frame*> dFrames;
     
     processEvent();
-        
+     
     if (!demandOriginFrames(oFrames)) {
         ret = WAIT;
         removeFrames(oFrames);
@@ -441,12 +442,15 @@ std::vector<int> BaseFilter::regularProcessFrame(int& ret)
         ret = WAIT;
         return enabledJobs;
     }
-    
+
     runDoProcessFrame(oFrames, dFrames);
 
     //TODO: manage ret value
     enabledJobs = addFrames(dFrames);
-    removeFrames(oFrames);
+    
+    if (removeFrames(oFrames)) {
+        enabledJobs.push_back(getId());
+    }
 
     return enabledJobs;
 }

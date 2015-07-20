@@ -188,7 +188,7 @@ protected:
     BaseFilter(unsigned readersNum = MAX_READERS, unsigned writersNum = MAX_WRITERS, FilterRole fRole_ = REGULAR, bool periodic = false);
 
     std::vector<int> addFrames(std::map<int, Frame*> &dFrames);
-    std::vector<int> removeFrames(std::map<int, Frame*> &oFrames);
+    bool removeFrames(std::map<int, Frame*> &oFrames);
     virtual FrameQueue *allocQueue(struct ConnectionData cData) = 0;
 
     std::chrono::microseconds getFrameTime() {return frameTime;};

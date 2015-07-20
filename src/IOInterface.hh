@@ -116,6 +116,10 @@ public:
     * Creates a reader object
     */
     Reader();
+
+    /**
+    * Class destructor
+    */
     ~Reader();
 
     /**
@@ -167,6 +171,12 @@ public:
     * @param int the id of the filter requesting the removal
     */
     void removeReader(int id);
+
+    /**
+    * Get FrameQueue elements number
+    * @return FrameQueue elements number
+    */
+    size_t getQueueElements();
 
 protected:
     FrameQueue *queue;

@@ -42,7 +42,7 @@ public:
     ~AudioEncoderLibav();
 
     bool configure(ACodecType codec, int codedAudioChannels, int codedAudioSampleRate, int bitrate);
-    int getSamplesPerFrame(){ return samplesPerFrame;};
+    unsigned getSamplesPerFrame(){ return samplesPerFrame;};
     ACodecType getCodec() {return fCodec;};
     
 protected:
@@ -69,7 +69,7 @@ private:
     int                 gotFrame;
 
     ACodecType          fCodec;
-    int                 samplesPerFrame;
+    unsigned            samplesPerFrame;
 
     unsigned            internalChannels;
     unsigned            internalSampleRate;

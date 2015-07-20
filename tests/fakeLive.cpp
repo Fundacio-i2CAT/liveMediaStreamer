@@ -28,7 +28,7 @@ int main(int argc, char** argv) {
   // access to the server.
 #endif
 
-  OutPacketBuffer::maxSize = 1000000;
+  OutPacketBuffer::maxSize = 1066804;
   
     std::string vStreamName = "";
     std::string aStreamName = "";

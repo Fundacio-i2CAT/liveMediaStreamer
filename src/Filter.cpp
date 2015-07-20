@@ -27,6 +27,8 @@
 
 #include <thread>
 
+#define WAIT 1000 //usec
+
 
 BaseFilter::BaseFilter(unsigned readersNum, unsigned writersNum, FilterRole fRole_, bool periodic): Runnable(periodic), 
 process(false), maxReaders(readersNum), maxWriters(writersNum),  frameTime(std::chrono::microseconds(0)), 
@@ -39,7 +41,7 @@ BaseFilter::~BaseFilter()
 {
     std::lock_guard<std::mutex> guard(mtx);
     for (auto it : readers) {
-        it.second->removeReader();
+        it.second->removeReader(getId());
     }
 
     readers.clear();
@@ -195,7 +197,7 @@ bool BaseFilter::removeFrames(std::map<int, Frame*> &oFrames)
     
     for (auto it : readers) {
         if (oFrames.count(it.first) > 0 && oFrames[it.first]->getConsumed()){
-            it.second->removeFrame();
+            it.second->removeFrame(getId());
             executeAgain |= (it.second->getQueueElements() > 0);
         }
     }
@@ -432,18 +434,19 @@ std::vector<int> BaseFilter::regularProcessFrame(int& ret)
     processEvent();
      
     if (!demandOriginFrames(oFrames)) {
-        ret = 0;
+        ret = WAIT;
+        removeFrames(oFrames);
         return enabledJobs;
     }
     
     if (!demandDestinationFrames(dFrames)) {
-        ret = 0;
+        ret = WAIT;
         return enabledJobs;
     }
 
     runDoProcessFrame(oFrames, dFrames);
 
-
+    //TODO: manage ret value
     enabledJobs = addFrames(dFrames);
     
     if (removeFrames(oFrames)) {
@@ -498,7 +501,7 @@ bool BaseFilter::demandOriginFrames(std::map<int, Frame*> &oFrames)
 bool BaseFilter::deleteReader(int readerId)
 {
     if (readers.count(readerId) > 0){
-        readers[readerId]->removeReader();
+        readers[readerId]->removeReader(getId());
         readers.erase(readerId);
         return true;
     }
@@ -517,15 +520,10 @@ bool BaseFilter::demandOriginFramesBestEffort(std::map<int, Frame*> &oFrames)
             continue;
         }
         
-        frame = r.second->getFrame();
-
-        while(frame && frame->getPresentationTime() < syncTs) {
-            r.second->removeFrame();
-            frame = r.second->getFrame();
-        }
+        frame = r.second->getFrame(getId());
 
         if (!frame) {
-            frame = r.second->getFrame(true);
+            frame = r.second->getFrame(getId(), true);
             frame->setConsumed(false);
             oFrames[r.first] = frame;
             continue;
@@ -551,18 +549,11 @@ bool BaseFilter::demandOriginFramesFrameTime(std::map<int, Frame*> &oFrames)
             continue;
         }
 
-        frame = r.second->getFrame();
-
-        // In case a frame is earliear than syncTs, we will discard frames
-        // until we found a valid one or until we found a NULL (which will treat later) 
-        while(frame && frame->getPresentationTime() < syncTs) {
-            r.second->removeFrame();
-            frame = r.second->getFrame();
-        }
+        frame = r.second->getFrame(getId());
 
         // If there is no frame get the previous one from the queue
         if (!frame) {
-            frame = r.second->getFrame(true);
+            frame = r.second->getFrame(getId(), true);
             frame->setConsumed(false);
             oFrames[r.first] = frame;
             continue;
@@ -571,7 +562,7 @@ bool BaseFilter::demandOriginFramesFrameTime(std::map<int, Frame*> &oFrames)
         // If the current frame is out of our mixing scope, 
         // we get the previous one from the queue
         if (frame->getPresentationTime() >= syncTs + frameTime) {
-            frame->setConsumed(false);
+            frame->setConsumed(true);
             oFrames[r.first] = frame;
 
             if (outOfScopeTs.count() < 0) {
@@ -616,6 +607,7 @@ bool OneToOneFilter::runDoProcessFrame(std::map<int, Frame*> &oFrames, std::map<
         return false;
     }
 
+    //TODO: how I do that in Many to One!!
     if (frameTime.count() <= 0) {
         outTimestamp = oFrames.begin()->second->getPresentationTime();
         setSyncTs(outTimestamp);
@@ -726,6 +718,7 @@ ManyToOneFilter::ManyToOneFilter(unsigned readersNum, FilterRole fRole_, bool pe
 
 bool ManyToOneFilter::runDoProcessFrame(std::map<int, Frame*> &oFrames, std::map<int, Frame*> &dFrames)
 {
+    //TODO: how to manage syncTS!
     if (!doProcessFrame(oFrames, dFrames.begin()->second)) {
         return false;
     }

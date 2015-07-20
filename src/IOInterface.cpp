@@ -29,9 +29,8 @@
 //READER IMPLEMENTATION//
 /////////////////////////
 
-Reader::Reader() : filters(0), pending(0)
+Reader::Reader() : queue(NULL), frame(NULL), filters(0), pending(0)
 {
-    queue = NULL;
 }
 
 Reader::~Reader()
@@ -48,12 +47,15 @@ void Reader::addReader()
     }
 }
 
-void Reader::removeReader()
+void Reader::removeReader(int id)
 {
     std::unique_lock<std::mutex> guard(lck);
     
     if (filters > 0){
         filters--;
+        if (requests.count(id) > 0 && requests[id] && pending > 0){
+            pending--;
+        }
         if (filters == 0){
             guard.unlock();
             disconnect();
@@ -61,10 +63,8 @@ void Reader::removeReader()
     }
 }
 
-Frame* Reader::getFrame(bool force)
+Frame* Reader::getFrame(int fId, bool force)
 {
-    Frame *frame;
-
     std::lock_guard<std::mutex> guard(lck);
     
     if (!queue->isConnected()) {
@@ -72,28 +72,42 @@ Frame* Reader::getFrame(bool force)
         return NULL;
     }
     
-    if (pending == 0){
-        pending = filters;
+    if (!frame){
+        frame = queue->getFront();
     }
+    
+    if (frame){
 
-    frame = queue->getFront();
-
-    if (force && frame == NULL) {
-        frame = queue->forceGetFront();
+        if (pending == 0){
+            pending = filters;
+        }
+        
+        if (requests.count(fId) == 0){
+            requests[fId] = true;
+        } else if (!force){
+            return NULL;
+        }
+    }
+    
+    if (force && !frame) {
+        return queue->forceGetFront();
     }
 
     return frame;
 }
 
-int Reader::removeFrame()
+int Reader::removeFrame(int fId)
 {
     std::lock_guard<std::mutex> guard(lck);
     
-    if (pending != 0){
+    if (pending != 0 && requests.count(fId) > 0 && requests[fId]){
         pending--;
+        requests[fId] = false;
     }
     
     if (pending == 0){
+        frame = NULL;
+        requests.clear();
         return queue->removeFrame();
     } else {
         return -1;
@@ -102,6 +116,10 @@ int Reader::removeFrame()
 
 void Reader::setConnection(FrameQueue *queue)
 {
+    if (isConnected() || !queue){
+        return;
+    }
+    
     std::lock_guard<std::mutex> guard(lck);
     this->queue = queue;
     filters = 1;

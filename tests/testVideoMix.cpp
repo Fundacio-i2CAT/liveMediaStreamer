@@ -37,7 +37,7 @@ void signalHandler( int signum )
     exit(0);
 }
 
-void setupMixer(int mixerId, int transmitterId) 
+bool setupMixer(int mixerId, int transmitterId) 
 {
     PipelineManager *pipe = Controller::getInstance()->pipelineManager();
 
@@ -45,32 +45,36 @@ void setupMixer(int mixerId, int transmitterId)
     VideoEncoderX264* encoder;
     VideoResampler* resampler;
 
-    Path* path;
-
     int encId = rand();
     int resId = rand();
     int pathId = rand();
 
     std::vector<int> ids = {resId, encId};
 
-    //NOTE: Adding decoder to pipeManager and handle worker
     mixer = VideoMixer::createNew(MIX_CHANNELS, MIX_WIDTH, MIX_HEIGHT, std::chrono::microseconds(40000));
     pipe->addFilter(mixerId, mixer);
 
-    //NOTE: Adding resampler to pipeManager and handle worker
     resampler = new VideoResampler();
     pipe->addFilter(resId, resampler);
     resampler->configure(0, 0, 0, YUV420P);
 
-    //NOTE: Adding encoder to pipeManager and handle worker
     encoder = new VideoEncoderX264();
     //bitrate, fps, gop, lookahead, threads, annexB, preset
-    // encoder->configure(4000, 25, 25, 25, 4, true, "superfast");
     pipe->addFilter(encId, encoder);
+    encoder->configure(4000, 25, 25, 25, 4, true, "superfast");
 
-    path = pipe->createPath(mixerId, transmitterId, -1, -1, ids);
-    pipe->addPath(pathId, path);
-    pipe->connectPath(path);
+    if (!pipe->createPath(pathId, mixerId, transmitterId, -1, -1, ids)) {
+        utils::errorMsg("Error creating path");
+        return false;
+    }
+
+    if (!pipe->connectPath(pathId)) {
+        utils::errorMsg("Error creating path");
+        pipe->removePath(pathId);
+        return false;
+    }
+
+    return true;
 }
 
 void addVideoPath(unsigned port, int receiverId, int mixerId)
@@ -89,20 +93,23 @@ void addVideoPath(unsigned port, int receiverId, int mixerId)
     VideoResampler *resampler;
     VideoMixer* mixer;
 
-    Path *path;
-
-    //NOTE: Adding decoder to pipeManager and handle worker
     decoder = new VideoDecoderLibav();
     pipe->addFilter(decId, decoder);
 
-    //NOTE: Adding resampler to pipeManager and handle worker
     resampler = new VideoResampler();
     resampler->configure(MIX_WIDTH*0.5, MIX_HEIGHT*0.5, 0, RGB24);
     pipe->addFilter(resId, resampler);
 
-    path = pipe->createPath(receiverId, mixerId, port, port, ids);
-    pipe->addPath(port, path);
-    pipe->connectPath(path);
+    if (!pipe->createPath(port, receiverId, mixerId, port, port, ids)) {
+        utils::errorMsg("Error creating audio path");
+        return;
+    }
+
+    if (!pipe->connectPath(port)) {
+        utils::errorMsg("Error connecting path");
+        pipe->removePath(port);
+        return;
+    }
 
     mixer = dynamic_cast<VideoMixer*>(pipe->getFilter(mixerId));
 

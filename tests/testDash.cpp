@@ -88,8 +88,6 @@ void addAudioPath(unsigned port, Dasher* dasher, int dasherId, int receiverID)
     AudioDecoderLibav *decoder;
     AudioEncoderLibav *encoder;
 
-    Path *path;
-
     //NOTE: Adding decoder to pipeManager and handle worker
     decoder = new AudioDecoderLibav();
     pipe->addFilter(decId, decoder);
@@ -103,34 +101,36 @@ void addAudioPath(unsigned port, Dasher* dasher, int dasherId, int receiverID)
 
     pipe->addFilter(encId, encoder);
 
-    path = pipe->createPath(receiverID, dasherId, port, dstReader, ids);
-    pipe->addPath(port, path);
-    if (!pipe->connectPath(path)){
-        utils::errorMsg("Failed! Path not connected");
+    if (!pipe->createPath(port, receiverID, dasherId, port, dstReader, ids)) {
+        utils::errorMsg("Error creating audio path");
+        return;
+    }
+
+    if (!pipe->connectPath(port)){
+        utils::errorMsg("Error connecting path");
         pipe->removePath(port);
         return;
     }
 
-    if (dasher != NULL && !dasher->addSegmenter(dstReader)) {
+    if (!dasher->addSegmenter(dstReader)) {
         utils::errorMsg("Error adding segmenter");
     }
 
-    if (dasher != NULL && !dasher->setDashSegmenterBitrate(dstReader, OUT_A_BITRATE)) {
+    if (!dasher->setDashSegmenterBitrate(dstReader, OUT_A_BITRATE)) {
         utils::errorMsg("Error setting bitrate to segmenter");
     }
 
     utils::infoMsg("Audio path created from port " + std::to_string(port));
 }
 
-void addVideoPath(unsigned port, Dasher* dasher, int dasherId, int receiverID, 
-                    unsigned width = 0, unsigned height = 0)
+void addVideoPath(unsigned port, Dasher* dasher, int dasherId, int receiverID) 
 {
     PipelineManager *pipe = Controller::getInstance()->pipelineManager();
 
     int decId = 11000;
     int resId = 2000;
     int encId = 1000;
-    int dstReader1 = 3000;
+    int dstReader = 3000;
 
     std::vector<int> ids;
     ids = {decId, resId, encId};
@@ -141,8 +141,6 @@ void addVideoPath(unsigned port, Dasher* dasher, int dasherId, int receiverID,
     VideoDecoderLibav *decoder;
     VideoResampler *resampler;
     VideoEncoderX264 *encoder;
-
-    Path *path;
 
     //NOTE: Adding decoder to pipeManager and handle worker
     decoder = new VideoDecoderLibav();
@@ -160,19 +158,21 @@ void addVideoPath(unsigned port, Dasher* dasher, int dasherId, int receiverID,
     //bitrate, fps, gop, lookahead, threads, annexB, preset
     encoder->configure(4000, 25, 25, 25, 4, true, "superfast");
 
-    path = pipe->createPath(receiverID, dasherId, port, dstReader1, ids);
-    
-    pipe->addPath(port, path);
-    if (!pipe->connectPath(path)){
-        utils::errorMsg("Failed! Path not connected");
+   if (!pipe->createPath(port, receiverID, dasherId, port, dstReader, ids)) {
+        utils::errorMsg("Error creating audio path");
+        return;
+    }
+
+    if (!pipe->connectPath(port)){
+        utils::errorMsg("Error connecting path");
         pipe->removePath(port);
         return;
     }
 
-    if (!dasher->addSegmenter(dstReader1)) {
+    if (!dasher->addSegmenter(dstReader)) {
         utils::errorMsg("Error adding segmenter");
     }
-    if (!dasher->setDashSegmenterBitrate(dstReader1, 4000*1000)) {
+    if (!dasher->setDashSegmenterBitrate(dstReader, 4000*1000)) {
         utils::errorMsg("Error setting bitrate to segmenter");
     } 
 

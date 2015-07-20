@@ -32,74 +32,10 @@
 #include <cstring>
 
 #include "Filter.hh"
-#include "AVFramedQueue.hh"
+#include "AVFramedQueueMockup.hh"
 #include "AudioCircularBuffer.hh"
-#include "Frame.hh"
 #include "VideoFrame.hh"
-
-class FrameMock : public Frame {
-public:
-    ~FrameMock(){};
-    virtual unsigned char *getDataBuf() {
-        return buff;
-    };
-
-    static FrameMock* createNew(size_t seqNum) {
-        FrameMock *frame = new FrameMock();
-        frame->setSequenceNumber(seqNum);
-        return frame;
-    }
-
-    virtual unsigned char **getPlanarDataBuf() {return NULL;};
-    virtual unsigned int getLength() {return 4;};
-    virtual unsigned int getMaxLength() {return 4;};
-    virtual void setLength(unsigned int length) {};
-    virtual bool isPlanar() {return false;};
-
-protected:
-    unsigned char buff[4];
-};
-
-class VideoFrameMock : public InterleavedVideoFrame
-{
-public:
-    ~VideoFrameMock(){};
-    virtual unsigned char *getDataBuf() {
-        return buff;
-    };
-
-    static VideoFrameMock* createNew() {
-        return new VideoFrameMock();
-    };
-
-    virtual unsigned char **getPlanarDataBuf() {return NULL;};
-    virtual unsigned int getLength() {return 4;};
-    virtual unsigned int getMaxLength() {return 4;};
-    virtual void setLength(unsigned int length) {};
-    virtual bool isPlanar() {return false;};
-
-protected:
-    unsigned char buff[4] = {1,2,1,2};
-
-private:
-    VideoFrameMock(): InterleavedVideoFrame(RAW, 1920, 1080, YUV420P) {};
-};
-
-class AVFramedQueueMock : public AVFramedQueue
-{
-public:
-    AVFramedQueueMock(struct ConnectionData cData, unsigned max) : AVFramedQueue(cData, max) {
-        config();
-    };
-
-protected:
-    virtual bool config() {
-        for (unsigned i=0; i<max; i++) {
-                frames[i] = FrameMock::createNew(i+1);
-        }
-        return true;
-    }
-};
+#include "FrameMockup.hh"
 
 class BaseFilterMockup : public BaseFilter
 {

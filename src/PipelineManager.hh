@@ -57,14 +57,16 @@ public:
     bool stop();
 
     /**
-    * Creates a path
+    * Creates a path and adds it to the internal paths map
+    * @param id path id (must be unique)
     * @param origin filter Id
     * @param destination filter Id
     * @param origin writer Id
     * @param destination reader Id
     * @param list of middle id filters
+    * @return true if success, false if not
     */
-    Path* createPath(int orgFilter, int dstFilter, int orgWriter,
+    bool createPath(int id, int orgFilter, int dstFilter, int orgWriter,
                      int dstReader, std::vector<int> midFilters);
 
     /**
@@ -73,14 +75,6 @@ public:
     * @return Filter Id from the FilterType specified
     */
     int searchFilterIDByType(FilterType type);
-
-    /**
-    * Adds a path by specifing its Id and the path object
-    * @param Id of the path to add
-    * @param path object pointer
-    * @return return true if succes, otherwise returns false
-    */
-    bool addPath(int id, Path* path);
 
     /**
     * Adds a filter by specifing its Id and the filter object
@@ -115,9 +109,10 @@ public:
     /**
     * Manage and carries out a path connection: connectManyToMany, connectManyToOne,
     * connectOneToOne and connectOneToMany
+    * @param id path id
     * @return true if success, otherwise return false
     */
-    bool connectPath(Path* path); //NOTE: it should have the id as a parameter, not the path itself
+    bool connectPath(int id);
     
     /**
      * Remove the path related to the specified id and the related filters

@@ -27,11 +27,9 @@
 #include "Types.hh"
 #include <string.h> // For memcpy
 
-/** Description of each of the streams in the currently set URI.
-  * It is made public through #BaseFilter::getState() which returns a Json representation.
-  * #extradata is passed to the queues built on #HeadDemuxerLibav::allocQueue() as const, so it cannot
-  * be modified.
-  */
+/** Description of a stream. It is created by filters and shared with queues through const pointers, so
+ * only the filter can destroy it. #extradata belongs to this struct, do not free.
+ */
 struct StreamInfo {
     StreamType type; //!< AUDIO or VIDEO, basically
     uint8_t *extradata; //!< Codec-specific info. This array belongs to this struct, no-one but us should free it.
@@ -56,6 +54,8 @@ struct StreamInfo {
         } video;
     };
 
+    /** Preferred method to set the #extradata, since it takes care of disposing of previous values.
+     * Pass NULL to free current #extradata. */
     void setExtraData(uint8_t *data, int size) {
         if (extradata) {
             delete[] extradata;
@@ -69,6 +69,8 @@ struct StreamInfo {
         }
     }
 
+    /** Sets default values for some attributes, based on the #type and the specific codec.
+     * These default values where in use throughout LMS before the introduction of #StreamInfo */
     void setCodecDefaults() {
         switch (type) {
             case VIDEO:
@@ -94,6 +96,7 @@ struct StreamInfo {
         }
     }
 
+    /** Just provide as much information as you want, the rest is initialized to sane defaults. */
     StreamInfo(StreamType type = ST_NONE, uint8_t *extradata = NULL, int extradata_size = 0) :
         type(type), extradata(extradata), extradata_size(extradata_size) {}
 

@@ -60,8 +60,8 @@ bool setupMixer(int mixerId, int transmitterId)
 
     encoder = new VideoEncoderX264();
     //bitrate, fps, gop, lookahead, threads, annexB, preset
+    encoder->configure(4000, 50, 25, 25, 4, true, "superfast");
     pipe->addFilter(encId, encoder);
-    encoder->configure(4000, 25, 25, 25, 4, true, "superfast");
 
     if (!pipe->createPath(pathId, mixerId, transmitterId, -1, -1, ids)) {
         utils::errorMsg("Error creating path");
@@ -228,9 +228,9 @@ int main(int argc, char* argv[])
 
     std::string rtspUri;
 
-    int transmitterID = rand();
-    int receiverId = rand();
-    int mixerId = rand();
+    int transmitterID = 11;
+    int receiverId = 10;
+    int mixerId = 15;
 
     int port;
 

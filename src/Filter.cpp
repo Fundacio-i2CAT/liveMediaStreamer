@@ -195,10 +195,10 @@ bool BaseFilter::removeFrames(std::map<int, Frame*> &oFrames)
     
     std::lock_guard<std::mutex> guard(mtx);
     
-    for (auto it : readers) {
-        if (oFrames.count(it.first) > 0 && oFrames[it.first]->getConsumed()){
-            it.second->removeFrame(getId());
-            executeAgain |= (it.second->getQueueElements() > 0);
+    for (auto it : oFrames){
+        if (readers.count(it.first) > 0 && it.second->getConsumed()){
+			readers[it.first]->removeFrame(getId());
+            executeAgain |= (readers[it.first]->getQueueElements() > 0);
         }
     }
 
@@ -542,6 +542,8 @@ bool BaseFilter::demandOriginFramesFrameTime(std::map<int, Frame*> &oFrames)
     Frame* frame;
     std::chrono::microseconds outOfScopeTs = std::chrono::microseconds(-1);
     bool noFrame = true;
+    bool validFrame = false;
+    bool outDated = false;
 
     for (auto r : readers) {
         if (!r.second->isConnected()) {
@@ -558,35 +560,43 @@ bool BaseFilter::demandOriginFramesFrameTime(std::map<int, Frame*> &oFrames)
             oFrames[r.first] = frame;
             continue;
         }
+        
+        //We have a new frame
+        frame->setConsumed(true);
+        oFrames[r.first] = frame;
+        noFrame = false;
 
         // If the current frame is out of our mixing scope, 
-        // we get the previous one from the queue
-        if (frame->getPresentationTime() >= syncTs + frameTime) {
-            frame->setConsumed(true);
-            oFrames[r.first] = frame;
-
+        // we do not consider it as a new mixing frame (keep noFrame value)
+        if (frame->getPresentationTime() > syncTs + frameTime) {
             if (outOfScopeTs.count() < 0) {
                 outOfScopeTs = frame->getPresentationTime();
             } else {
                 outOfScopeTs = std::min(frame->getPresentationTime(), outOfScopeTs);
             }
-
+            continue;
+        }
+        
+        if (frame->getPresentationTime() < syncTs){
+            outDated = true;
             continue;
         }
 
         // Normal case, which means that the frame is in our mixing scope (syncTime -> syncTime+frameTime)
-        frame->setConsumed(true);
-        oFrames[r.first] = frame;
-        noFrame = false;
+        validFrame = true;
     }
 
-    // After all, there was no valid frame, so we return false
-    // This case is nearly impossible
-    if (noFrame) {
-        if (outOfScopeTs.count() > 0) {
+    // There is no new frame
+    if (noFrame){
+        return false;
+    }
+    
+    if (!validFrame) {
+        if (outOfScopeTs > syncTs && !outDated) {
             syncTs = outOfScopeTs;
         }
-        return false;
+        //We return true if there are no outDated frames
+        return !outDated;
     } 
 
     // Finally set syncTs

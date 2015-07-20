@@ -74,13 +74,13 @@ void PipelineManagerTest::createAndConnectPath()
     CPPUNIT_ASSERT(!pipe->createPath(1, 1, 3, -1, -1, mid));
     
     mid = std::vector<int>(1,1);
-    CPPUNIT_ASSERT((pipe->createPath(2, 1, 3, -1, -1, mid)) == NULL);
+    CPPUNIT_ASSERT((pipe->createPath(2, 1, 3, -1, -1, mid)));
     
     mid = std::vector<int>(1,3);
-    CPPUNIT_ASSERT((pipe->createPath(3, 1, 3, -1, -1, mid)) == NULL);
+    CPPUNIT_ASSERT((pipe->createPath(3, 1, 3, -1, -1, mid)));
     
     mid = std::vector<int>(2,2);
-    CPPUNIT_ASSERT((pipe->createPath(4, 1, 3, -1, -1, mid)) == NULL);
+    CPPUNIT_ASSERT((pipe->createPath(4, 1, 3, -1, -1, mid)));
     
     CPPUNIT_ASSERT(pipe->connectPath(1));
     CPPUNIT_ASSERT(pipe->removePath(1));

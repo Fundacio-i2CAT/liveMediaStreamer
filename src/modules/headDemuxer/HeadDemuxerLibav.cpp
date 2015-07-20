@@ -55,9 +55,6 @@ void HeadDemuxerLibav::reset()
 
     // Free extradatas and stream infos
     for (auto sinfo : outputStreamInfos) {
-        if (sinfo.second->extradata) {
-            delete []sinfo.second->extradata;
-        }
         delete sinfo.second;
     }
     outputStreamInfos.clear();
@@ -170,8 +167,6 @@ bool HeadDemuxerLibav::setURI(const std::string URI)
         const AVCodecDescriptor* cdesc =
                 avcodec_descriptor_get(av_ctx->streams[i]->codec->codec_id);
         StreamInfo *si = new StreamInfo();
-        si->type = ST_NONE;
-        si->extradata = NULL;
         if (cdesc) {
             switch (cdesc->type) {
                 case AVMEDIA_TYPE_AUDIO:
@@ -190,11 +185,9 @@ bool HeadDemuxerLibav::setURI(const std::string URI)
                     // Ignore this stream
                     break;
             }
-            si->extradata_size = av_ctx->streams[i]->codec->extradata_size;
-            if (si->extradata_size > 0) {
-                si->extradata = new uint8_t[si->extradata_size];
-                memcpy (si->extradata, av_ctx->streams[i]->codec->extradata,
-                        si->extradata_size);
+            if (av_ctx->streams[i]->codec->extradata_size > 0) {
+                si->setExtraData(av_ctx->streams[i]->codec->extradata,
+                        av_ctx->streams[i]->codec->extradata_size);
             }
             double timeBase = (double)av_ctx->streams[i]->time_base.num /
                     av_ctx->streams[i]->time_base.den;

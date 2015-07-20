@@ -176,10 +176,14 @@ bool HeadDemuxerLibav::setURI(const std::string URI)
                     si->audio.channels = av_ctx->streams[i]->codec->channels;
                     si->audio.sampleFormat = getSampleFormatFromLibav (
                             av_ctx->streams[i]->codec->sample_fmt);
+                    // Overwrite libav values with our per-codec defaults
+                    si->setCodecDefaults();
                     break;
                 case AVMEDIA_TYPE_VIDEO:
                     si->type = VIDEO;
                     si->video.codec = utils::getVideoCodecFromLibavString(cdesc->name);
+                    // Overwrite libav values with our per-codec defaults
+                    si->setCodecDefaults();
                     break;
                 default:
                     // Ignore this stream

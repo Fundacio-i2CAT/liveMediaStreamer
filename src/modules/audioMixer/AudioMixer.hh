@@ -116,7 +116,7 @@ public:
 protected:
     std::shared_ptr<Reader> setReader(int readerID, FrameQueue* queue);
     void doGetState(Jzon::Object &filterNode);
-    FrameQueue *allocQueue(struct ConnectionData cData);
+    FrameQueue *allocQueue(ConnectionData cData);
     bool doProcessFrame(std::map<int, Frame*> &orgFrames, Frame *dst);
 
 private:

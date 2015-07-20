@@ -42,7 +42,7 @@ public:
     
 protected:
     bool doProcessFrame(Frame *org, Frame *dst);
-    FrameQueue* allocQueue(struct ConnectionData cData);
+    FrameQueue* allocQueue(ConnectionData cData);
     bool configure0(SampleFmt sampleFormat, int channels, int sampleRate);
 
 private:

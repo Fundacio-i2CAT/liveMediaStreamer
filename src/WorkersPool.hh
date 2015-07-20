@@ -44,7 +44,7 @@ public:
     bool removeTask(const int id);
     
 private:
-    unsigned addJob(int id);
+    bool addJob(int id);
     bool removeFromQueue(int id);
 
 private:

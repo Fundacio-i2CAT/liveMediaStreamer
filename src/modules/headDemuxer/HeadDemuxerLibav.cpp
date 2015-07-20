@@ -96,7 +96,7 @@ bool HeadDemuxerLibav::doProcessFrame(std::map<int, Frame*> &dstFrames)
     return true;
 }
 
-FrameQueue *HeadDemuxerLibav::allocQueue(struct ConnectionData cData)
+FrameQueue *HeadDemuxerLibav::allocQueue(ConnectionData cData)
 {
     // Create output queue for the kind of stream associated with this wId
     const DemuxerStreamInfo *info = streams[cData.writerId];

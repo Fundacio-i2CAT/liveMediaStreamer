@@ -98,7 +98,7 @@ private:
     bool doProcessFrame(Frame *org, Frame *dst);
     void initializeEventMap();
     void doGetState(Jzon::Object &filterNode);
-    FrameQueue* allocQueue(struct ConnectionData cData);
+    FrameQueue* allocQueue(ConnectionData cData);
 
     void copyOrgToDstFrame(InterleavedVideoFrame *org, InterleavedVideoFrame *dst);
 

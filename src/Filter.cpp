@@ -58,7 +58,7 @@ bool BaseFilter::isWConnected (int wId)
     return false;
 }
 
-struct ConnectionData BaseFilter::getWConnectionData (int wId) 
+ConnectionData BaseFilter::getWConnectionData (int wId) 
 {   
     std::lock_guard<std::mutex> guard(mtx);
 
@@ -66,7 +66,7 @@ struct ConnectionData BaseFilter::getWConnectionData (int wId)
         return writers[wId]->getCData();
     }
     
-    struct ConnectionData cData;
+    ConnectionData cData;
     return cData;
 }
 
@@ -231,7 +231,7 @@ bool BaseFilter::connect(BaseFilter *R, int writerID, int readerID)
 {
     std::shared_ptr<Reader> r;
     FrameQueue *queue = NULL;
-    struct ConnectionData cData;
+    ConnectionData cData;
     
     std::lock_guard<std::mutex> guard(mtx);
       
@@ -469,7 +469,9 @@ std::vector<int> BaseFilter::serverProcessFrame(int& ret)
     runDoProcessFrame(oFrames, dFrames);
 
     enabledJobs = addFrames(dFrames);
-    removeFrames(oFrames);
+    if (removeFrames(oFrames)){
+        enabledJobs.push_back(getId());
+    }
     
     ret = 0;
     

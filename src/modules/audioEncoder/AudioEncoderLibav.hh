@@ -46,7 +46,7 @@ public:
     ACodecType getCodec() {return fCodec;};
     
 protected:
-    FrameQueue* allocQueue(struct ConnectionData cData);
+    FrameQueue* allocQueue(ConnectionData cData);
     bool doProcessFrame(Frame *org, Frame *dst);
 	std::shared_ptr<Reader> setReader(int readerID, FrameQueue* queue);
 

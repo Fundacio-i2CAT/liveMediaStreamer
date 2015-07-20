@@ -60,7 +60,7 @@ AudioEncoderLibav::~AudioEncoderLibav()
     av_free_packet(&pkt);
 }
 
-FrameQueue* AudioEncoderLibav::allocQueue(struct ConnectionData cData)
+FrameQueue* AudioEncoderLibav::allocQueue(ConnectionData cData)
 {
     return AudioFrameQueue::createNew(cData, fCodec, DEFAULT_AUDIO_FRAMES, internalSampleRate, internalChannels, internalSampleFmt);
 }

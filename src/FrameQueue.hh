@@ -130,7 +130,7 @@ public:
     * Gets the connection cData.
     * @return the struct that contains the connection data.
     */
-    struct ConnectionData getCData() const {return connectionData;};
+    ConnectionData getCData() const {return connectionData;};
 
 protected:
     size_t rear;
@@ -138,7 +138,7 @@ protected:
     bool connected;
     bool firstFrame;
     
-    const struct ConnectionData connectionData;
+    const ConnectionData connectionData;
 };
 
 #endif

@@ -136,7 +136,7 @@ bool VideoEncoderX265::encodeHeadersFrame(VideoFrame* frame)
     return true;
 }
 
-FrameQueue* VideoEncoderX265::allocQueue(struct ConnectionData cData)
+FrameQueue* VideoEncoderX265::allocQueue(ConnectionData cData)
 {
     return SlicedVideoFrameQueue::createNew(cData, H265, DEFAULT_VIDEO_FRAMES, MAX_H264_OR_5_NAL_SIZE);
 }

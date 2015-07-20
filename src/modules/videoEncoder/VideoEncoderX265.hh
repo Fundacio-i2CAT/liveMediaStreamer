@@ -44,7 +44,7 @@ public:
     ~VideoEncoderX265();
 
 private:
-    FrameQueue* allocQueue(struct ConnectionData cData);
+    FrameQueue* allocQueue(ConnectionData cData);
     void initializeEventMap();
 
     x265_picture    *picIn;

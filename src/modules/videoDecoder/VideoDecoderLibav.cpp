@@ -54,7 +54,7 @@ VideoDecoderLibav::~VideoDecoderLibav()
 }
 
 
-FrameQueue* VideoDecoderLibav::allocQueue(struct ConnectionData cData)
+FrameQueue* VideoDecoderLibav::allocQueue(ConnectionData cData)
 {
     return VideoFrameQueue::createNew(cData, RAW, DEFAULT_RAW_VIDEO_FRAMES, RGB24);
 }

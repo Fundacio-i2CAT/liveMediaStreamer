@@ -45,6 +45,7 @@ WorkersPool::WorkersPool(size_t threads) : run(true)
                     std::unique_lock<std::mutex> guard(mtx);
                     iter = jobQueue.begin();
                     while (run) {
+
                         if (iter == jobQueue.end()){
                             qCheck.wait_for(guard, std::chrono::milliseconds(IDLE));
                         } else if (!(*iter)->isRunning() && !(*iter)->ready()) {
@@ -63,7 +64,7 @@ WorkersPool::WorkersPool(size_t threads) : run(true)
                     if(!run){
                         break;
                     }
-                    
+
                     job->setRunning();
                     guard.unlock();
                     
@@ -162,6 +163,7 @@ bool WorkersPool::removeFromQueue(int id){
 
 unsigned WorkersPool::addJob(const int id){
     unsigned num = 0;
+
     if (runnables.count(id) > 0 && !runnables[id]->isPeriodic()){
         for (auto runId : runnables[id]->getGroupIds()){
             if (runnables.count(runId) > 0 && !runnables[runId]->isPeriodic()){
@@ -169,7 +171,9 @@ unsigned WorkersPool::addJob(const int id){
                 num++;
             }
         }
+
         jobQueue.sort(RunnableLess());
     }
+
     return num;
 }

@@ -511,6 +511,7 @@ bool BaseFilter::deleteReader(int readerId)
 
 bool BaseFilter::demandOriginFramesBestEffort(std::map<int, Frame*> &oFrames) 
 {
+    bool newFrame;
     bool someFrame = false;
     Frame* frame;
 
@@ -520,18 +521,16 @@ bool BaseFilter::demandOriginFramesBestEffort(std::map<int, Frame*> &oFrames)
             continue;
         }
         
-        frame = r.second->getFrame(getId());
+        frame = r.second->getFrame(getId(), newFrame);
 
         if (!frame) {
-            frame = r.second->getFrame(getId(), true);
-            frame->setConsumed(false);
-            oFrames[r.first] = frame;
+            utils::errorMsg("[BaseFilter::demandOriginFramesBestEffort] Reader->getFrame() returned NULL. It cannot happen...");
             continue;
         }
 
-        frame->setConsumed(true);
+        frame->setConsumed(newFrame);
         oFrames[r.first] = frame;
-        someFrame = true;
+        someFrame |= newFrame;
     }
 
     return someFrame;
@@ -541,7 +540,8 @@ bool BaseFilter::demandOriginFramesFrameTime(std::map<int, Frame*> &oFrames)
 {
     Frame* frame;
     std::chrono::microseconds outOfScopeTs = std::chrono::microseconds(-1);
-    bool noFrame = true;
+    bool newFrame;
+    bool someFrame = false;
     bool validFrame = false;
     bool outDated = false;
 
@@ -551,20 +551,20 @@ bool BaseFilter::demandOriginFramesFrameTime(std::map<int, Frame*> &oFrames)
             continue;
         }
 
-        frame = r.second->getFrame(getId());
+        frame = r.second->getFrame(getId(), newFrame);
 
-        // If there is no frame get the previous one from the queue
         if (!frame) {
-            frame = r.second->getFrame(getId(), true);
-            frame->setConsumed(false);
-            oFrames[r.first] = frame;
+            utils::errorMsg("[BaseFilter::demandOriginFramesFrameTime] Reader->getFrame() returned NULL. It cannot happen...");
             continue;
         }
-        
-        //We have a new frame
-        frame->setConsumed(true);
+
+        frame->setConsumed(newFrame);
         oFrames[r.first] = frame;
-        noFrame = false;
+        someFrame |= newFrame;
+
+        if (!newFrame) {
+            continue;
+        }
 
         // If the current frame is out of our mixing scope, 
         // we do not consider it as a new mixing frame (keep noFrame value)
@@ -587,7 +587,7 @@ bool BaseFilter::demandOriginFramesFrameTime(std::map<int, Frame*> &oFrames)
     }
 
     // There is no new frame
-    if (noFrame){
+    if (!someFrame) {
         return false;
     }
     

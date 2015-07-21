@@ -71,6 +71,10 @@ Frame* Reader::getFrame(int fId, bool force)
         utils::errorMsg("The queue is not connected");
         return NULL;
     }
+
+    if (force) {
+        return queue->forceGetFront();
+    }
     
     if (!frame){
         frame = queue->getFront();
@@ -88,10 +92,6 @@ Frame* Reader::getFrame(int fId, bool force)
             return NULL;
         }
     }
-    
-    if (force && !frame) {
-        return queue->forceGetFront();
-    }
 
     return frame;
 }
@@ -99,7 +99,7 @@ Frame* Reader::getFrame(int fId, bool force)
 int Reader::removeFrame(int fId)
 {
     std::lock_guard<std::mutex> guard(lck);
-    
+
     if (pending != 0 && requests.count(fId) > 0 && requests[fId]){
         pending--;
         requests[fId] = false;

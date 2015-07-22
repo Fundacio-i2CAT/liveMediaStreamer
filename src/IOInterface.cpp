@@ -72,6 +72,10 @@ Frame* Reader::getFrame(int fId, bool force)
         return NULL;
     }
     
+    if (force) {
+        return queue->forceGetFront();
+    }
+    
     if (!frame){
         frame = queue->getFront();
     }
@@ -87,10 +91,6 @@ Frame* Reader::getFrame(int fId, bool force)
         } else if (!force){
             return NULL;
         }
-    }
-    
-    if (force && !frame) {
-        return queue->forceGetFront();
     }
 
     return frame;

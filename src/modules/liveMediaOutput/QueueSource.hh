@@ -22,12 +22,14 @@ protected:
     QueueSource(UsageEnvironment& env, int readerId);
     static void deliverFrame0(void* clientData);
     virtual void deliverFrame();
+    void doStopGettingFrames();
 
 protected:
     EventTriggerId eventTriggerId;
     Frame* frame;
     int fReaderId;
     bool processedFrame;
+    bool stopFrames;
 };
 
 #endif

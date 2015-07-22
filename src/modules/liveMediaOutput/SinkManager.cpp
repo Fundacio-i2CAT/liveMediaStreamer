@@ -404,19 +404,17 @@ bool SinkManager::specificReaderConfig(int readerId, FrameQueue* queue)
     AudioFrameQueue *aQueue;  
 
     if ((vQueue = dynamic_cast<VideoFrameQueue*>(queue)) != NULL){
-        createVideoQueueSource(vQueue->getCodec(), readerId);
-        return true;
+        return createVideoQueueSource(vQueue->getCodec(), readerId);
     }
 
     if ((aQueue = dynamic_cast<AudioFrameQueue*>(queue)) != NULL){
-        createAudioQueueSource(aQueue->getCodec(), readerId);
-        return true;
+        return createAudioQueueSource(aQueue->getCodec(), readerId);
     }
     
     return false;
 }
 
-void SinkManager::createVideoQueueSource(VCodecType codec, int readerId)
+bool SinkManager::createVideoQueueSource(VCodecType codec, int readerId)
 {
     switch(codec){
         case H264:
@@ -425,17 +423,30 @@ void SinkManager::createVideoQueueSource(VCodecType codec, int readerId)
             replicators[readerId] = StreamReplicator::createNew(*(envir()), sources[readerId], False);
             break;
         case VP8:
-        default:
             sources[readerId] = QueueSource::createNew(*(envir()), readerId);
             replicators[readerId] =  StreamReplicator::createNew(*(envir()), sources[readerId], False);
             break;
+        default:
+            break;
     }
+    if (!replicators[readerId] || !sources[readerId]){
+        replicators.erase(readerId);
+        sources.erase(readerId);
+        return false;
+    }
+    return true;
 }
 
-void SinkManager::createAudioQueueSource(ACodecType codec, int readerId)
+bool SinkManager::createAudioQueueSource(ACodecType codec, int readerId)
 {    
     sources[readerId] = QueueSource::createNew(*(envir()), readerId);
     replicators[readerId] = StreamReplicator::createNew(*(envir()), sources[readerId], False);
+    if (!replicators[readerId] || !sources[readerId]){
+        replicators.erase(readerId);
+        sources.erase(readerId);
+        return false;
+    }
+    return true;
 }
 
 bool SinkManager::addSubsessionByReader(RTSPConnection* connection ,int readerId)

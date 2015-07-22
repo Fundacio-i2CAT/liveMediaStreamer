@@ -208,7 +208,7 @@ void VideoMixer::pasteToLayout(int frameID, VideoFrame* vFrame)
     }
 }
 
-bool VideoMixer::specificReaderConfig(int readerId, FrameQueue* queue)
+bool VideoMixer::specificReaderConfig(int readerId, FrameQueue* /*queue*/)
 {
     channelsConfig[readerId] = new ChannelConfig();
 

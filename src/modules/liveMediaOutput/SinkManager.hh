@@ -111,8 +111,8 @@ private:
 
     bool addSubsessionByReader(RTSPConnection* connection, int readerId);
 
-    void createVideoQueueSource(VCodecType codec, int readerId);
-    void createAudioQueueSource(ACodecType codec, int readerId);
+    bool createVideoQueueSource(VCodecType codec, int readerId);
+    bool createAudioQueueSource(ACodecType codec, int readerId);
     void doGetState(Jzon::Object &filterNode);
 
     std::map<int, StreamReplicator*> replicators;

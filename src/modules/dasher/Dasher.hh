@@ -116,7 +116,7 @@ private:
     bool generateSegment(size_t id, Frame* frame, DashSegmenter* segmenter);
     bool appendFrameToSegment(size_t id, Frame* frame, DashSegmenter* segmenter);
     DashSegmenter* getSegmenter(size_t id);
-    bool forceAudioSegmentsGeneration(Frame* frame);
+    bool forceAudioSegmentsGeneration();
     bool writeVideoSegments();
     bool writeAudioSegments();
 

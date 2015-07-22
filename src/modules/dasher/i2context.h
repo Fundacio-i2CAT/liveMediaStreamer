@@ -31,7 +31,7 @@ typedef unsigned char byte;
 #define VIDEO_TYPE_HEVC 2            //AVC1_VIDEO_TYPE  &   HEV1_VIDEO_TYPE
 #define AUDIO_TYPE 3
 #define MAX_MDAT_SAMPLE 65536   //H265 -> 119296
-#define MAX_DAT 100*1024*1024 
+#define MAX_DAT 10*1024*1024 
 //TODO: error negative values
 #define I2ERROR_MAX 10
 #define I2ERROR_SPS_PPS 9

@@ -2,6 +2,7 @@
 #include "../src/modules/audioDecoder/AudioDecoderLibav.hh"
 #include "../src/modules/audioMixer/AudioMixer.hh"
 #include "../src/modules/videoEncoder/VideoEncoderX264.hh"
+#include "../src/modules/videoEncoder/VideoEncoderX265.hh"
 #include "../src/modules/videoDecoder/VideoDecoderLibav.hh"
 #include "../src/modules/videoMixer/VideoMixer.hh"
 #include "../src/modules/videoResampler/VideoResampler.hh"
@@ -39,8 +40,8 @@
 
 #define RETRIES 60
 
-#define SEG_DURATION 4 //sec
-#define DASH_FOLDER "/tmp/dash"
+#define SEG_DURATION 2 //sec
+#define DASH_FOLDER "/home/gerardcl/dashSegmentsLMS"
 #define BASE_NAME "test"
 
 bool run = true;
@@ -140,7 +141,7 @@ void addVideoPath(unsigned port, Dasher* dasher, int dasherId, int receiverID,
 
     VideoDecoderLibav *decoder;
     VideoResampler *resampler;
-    VideoEncoderX264 *encoder;
+    VideoEncoderX265 *encoder;
 
     Path *path;
 
@@ -154,7 +155,7 @@ void addVideoPath(unsigned port, Dasher* dasher, int dasherId, int receiverID,
     resampler->configure(1280, 720, 0, YUV420P);
 
     //NOTE: Adding encoder to pipeManager and handle worker
-    encoder = new VideoEncoderX264();
+    encoder = new VideoEncoderX265();
     pipe->addFilter(encId, encoder);
 
     //bitrate, fps, gop, lookahead, threads, annexB, preset

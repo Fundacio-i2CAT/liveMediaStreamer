@@ -71,7 +71,6 @@ bool VideoEncoderX264or5::doProcessFrame(Frame *org, Frame *dst)
     }
 
     codedFrame->setSize(rawFrame->getWidth(), rawFrame->getHeight());
-
     dst->setConsumed(true);
     return true;
 }

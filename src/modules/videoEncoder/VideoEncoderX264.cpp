@@ -163,7 +163,7 @@ bool VideoEncoderX264::reconfigure(VideoFrame* orgFrame, VideoFrame* dstFrame)
             colorspace = X264_CSP_I444;
             break;
         default:
-            utils::debugMsg("Uncompatibe input pixel format");
+            utils::errorMsg("Uncompatibe input pixel format");
             libavInPixFmt = AV_PIX_FMT_NONE;
             colorspace = X264_CSP_NONE;
             return false;

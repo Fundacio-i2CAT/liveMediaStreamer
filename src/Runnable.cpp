@@ -82,21 +82,25 @@ bool Runnable::setId(int id_){
 
 void Runnable::setRunning()
 {
+    std::lock_guard<std::mutex> guard(mtx);
+    
     if ((*running) == 0){
-        std::lock_guard<std::mutex> guard(mtx);
         (*running) = group.size();
     }
+
     run = true;
 }
 
 void Runnable::unsetRunning()
 {
+    std::lock_guard<std::mutex> guard(mtx);
+
     if ((*running) > 0){
         (*running)--;
     }
-    
+
     if ((*running) == 0){
-        for(auto runnable : group){
+        for(auto runnable : group) {
             runnable->run = false;
         }
     }
@@ -125,7 +129,10 @@ bool Runnable::groupRunnable(Runnable *r)
         return false;
     }
     
-    r->addInGroup(this, this->running);
+    for (auto runnable : group) {
+        r->addInGroup(runnable, this->running);
+        runnable->addInGroup(r, this->running);
+    }
     addInGroup(r);
     
     return true;

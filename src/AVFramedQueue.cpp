@@ -23,7 +23,6 @@
 
 #include "AVFramedQueue.hh"
 #include "VideoFrame.hh"
-#include "AudioFrame.hh"
 #include "Utils.hh"
 
 AVFramedQueue::AVFramedQueue(struct ConnectionData cData, unsigned maxFrames) : FrameQueue(cData), max(maxFrames)
@@ -58,12 +57,18 @@ Frame* AVFramedQueue::getFront()
 
 int AVFramedQueue::addFrame() 
 {
+    if ((rear + 1) % max == front){
+        return connectionData.rFilterId;
+    }
     rear =  (rear + 1) % max;
     return connectionData.rFilterId;
 }
 
 int AVFramedQueue::removeFrame() 
 {
+    if (rear == front){
+        return -1;
+    }
     front = (front + 1) % max;
     return connectionData.wFilterId;
 }

@@ -104,6 +104,11 @@ std::shared_ptr<Reader> BaseFilter::setReader(int readerID, FrameQueue* queue)
     }
 
     std::shared_ptr<Reader> r (new Reader());
+    
+    if (!specificReaderConfig(readerID, queue)){
+        r.reset();
+    }
+    
     readers[readerID] = r;
 
     return r;
@@ -196,7 +201,7 @@ bool BaseFilter::removeFrames(std::map<int, Frame*> &oFrames)
     
     for (auto it : oFrames){
         if (readers.count(it.first) > 0 && it.second->getConsumed()){
-			readers[it.first]->removeFrame(getId());
+            readers[it.first]->removeFrame(getId());
             executeAgain |= (readers[it.first]->getQueueElements() > 0);
         }
     }
@@ -218,6 +223,10 @@ bool BaseFilter::shareReader(BaseFilter *shared, int sharedRId, int orgRId)
     }
     if (shared->isRConnected(sharedRId)){
         utils::errorMsg("The shared filter has the reader already connected!");
+        return false;
+    }
+    
+    if (!shared->specificReaderConfig(sharedRId, readers[orgRId]->getQueue())){
         return false;
     }
     
@@ -250,8 +259,7 @@ bool BaseFilter::connect(BaseFilter *R, int writerID, int readerID)
         return false;
     }
 
-    std::shared_ptr<Writer> w (new Writer());
-    writers[writerID] = w;
+    writers[writerID] = std::shared_ptr<Writer>(new Writer());
     seqNums[writerID] = 0;
 
     cData.wFilterId = getId();

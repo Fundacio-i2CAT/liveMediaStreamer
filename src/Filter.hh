@@ -193,8 +193,11 @@ protected:
 
     std::chrono::microseconds getFrameTime() {return frameTime;};
 
-    virtual std::shared_ptr<Reader> setReader(int readerID, FrameQueue* queue);
+    std::shared_ptr<Reader> setReader(int readerID, FrameQueue* queue);
     std::shared_ptr<Reader> getReader(int id);
+    
+    //TODO: this should get stream info parameters insted of FrameQueue or get from reader.
+    virtual bool specificReaderConfig(int readerID, FrameQueue* queue) = 0;
 
     bool demandOriginFrames(std::map<int, Frame*> &oFrames);
     bool demandOriginFramesBestEffort(std::map<int, Frame*> &oFrames);
@@ -306,6 +309,8 @@ protected:
 
 private: 
     bool runDoProcessFrame(std::map<int, Frame*> &oFrames, std::map<int, Frame*> &dFrames);
+    //There is no need of specific reader configuration
+    bool specificReaderConfig(int /*readerID*/, FrameQueue* /*queue*/)  {return true;};
 
     using BaseFilter::demandDestinationFrames;
     using BaseFilter::demandOriginFrames;

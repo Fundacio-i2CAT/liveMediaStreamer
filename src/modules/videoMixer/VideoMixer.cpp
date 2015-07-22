@@ -208,18 +208,11 @@ void VideoMixer::pasteToLayout(int frameID, VideoFrame* vFrame)
     }
 }
 
-std::shared_ptr<Reader> VideoMixer::setReader(int readerId, FrameQueue* queue)
+bool VideoMixer::specificReaderConfig(int readerId, FrameQueue* queue)
 {
-    if (readers.count(readerId) > 0) {
-        return NULL;
-    }
-
-    std::shared_ptr<Reader> r(new Reader());
-    readers[readerId] = r;
-
     channelsConfig[readerId] = new ChannelConfig();
 
-    return r;
+    return true;
 }
 
 void VideoMixer::initializeEventMap()

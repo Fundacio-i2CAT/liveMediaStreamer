@@ -146,7 +146,7 @@ void addVideoPath(unsigned port, int receiverID, int transmitterID,
         pipe->removePath(port);
         return;
     }
-
+    
     path = pipe->createPath(receiverID, transmitterID, port, -1, ids);
 
     pipe->addPath(port, path);

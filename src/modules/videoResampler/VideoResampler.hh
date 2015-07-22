@@ -51,6 +51,9 @@ class VideoResampler : public OneToOneFilter {
         bool reconfigure(VideoFrame* orgFrame);
         bool setAVFrame(AVFrame *aFrame, VideoFrame* vFrame, AVPixelFormat format);
         
+        //There is no need of specific reader configuration
+        bool specificReaderConfig(int /*readerID*/, FrameQueue* /*queue*/)  {return true;};
+        
         struct SwsContext   *imgConvertCtx;
         AVFrame             *inFrame, *outFrame;
         AVPixelFormat       libavInPixFmt, libavOutPixFmt;

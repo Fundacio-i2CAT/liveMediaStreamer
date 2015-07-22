@@ -83,7 +83,16 @@ void addAudioPath(unsigned port, int receiverID, int transmitterID)
     
     pipe->addPath(port, path);
     if (!pipe->connectPath(path)){
-        utils::errorMsg("Failed! Path not connected");
+        utils::errorMsg("Failed! Audio path not connected");
+        pipe->removePath(port);
+        return;
+    }
+    
+    path = pipe->createPath(receiverID, transmitterID, port, 8000, std::vector<int>({}));
+    
+    pipe->addPath(8000, path);
+    if (!pipe->connectPath(path)){
+        utils::errorMsg("Failed! Bypass audio path not connected");
         pipe->removePath(port);
         return;
     }
@@ -127,13 +136,22 @@ void addVideoPath(unsigned port, int receiverID, int transmitterID,
     pipe->addFilter(encId, encoder);
 
     //bitrate, fps, gop, lookahead, threads, annexB, preset
-    encoder->configure(4000, 15, 25, 25, 4, true, "superfast");
+    encoder->configure(4000, 25, 25, 25, 4, true, "superfast");
+    
+    path = pipe->createPath(receiverID, transmitterID, port, 7000, std::vector<int>({}));
+
+    pipe->addPath(7000, path);
+    if (!pipe->connectPath(path)){
+        utils::errorMsg("Failed! Bypass video path not connected");
+        pipe->removePath(port);
+        return;
+    }
 
     path = pipe->createPath(receiverID, transmitterID, port, -1, ids);
 
     pipe->addPath(port, path);
     if (!pipe->connectPath(path)){
-        utils::errorMsg("Failed! Path not connected");
+        utils::errorMsg("Failed! Video path not connected");
         pipe->removePath(port);
         return;
     }
@@ -249,6 +267,7 @@ bool addRTSPsession(std::string rtspUri, size_t sharingMemory,
 bool publishRTSPSession(std::vector<int> readers, SinkManager *transmitter)
 {
     std::string sessionId;
+    std::vector<int> byPassReaders;
 
     sessionId = "plainrtp";
     utils::infoMsg("Adding plain RTP session...");
@@ -262,6 +281,21 @@ bool publishRTSPSession(std::vector<int> readers, SinkManager *transmitter)
         return false;
     }
 
+    
+    if (transmitter->isRConnected(8000)){
+        byPassReaders.push_back(8000);
+    }
+    
+    if (transmitter->isRConnected(7000)){
+        byPassReaders.push_back(7000);
+    }
+    
+    sessionId = "bypass";
+    utils::infoMsg("Adding bypass session...");
+    if (!transmitter->addRTSPConnection(byPassReaders, 3, STD_RTP, sessionId)){
+        return false;
+    }
+    
     return true;
 }
 
@@ -347,7 +381,14 @@ int main(int argc, char* argv[])
     }
 
     for (auto it : pipe->getPaths()) {
-        readers.push_back(it.second->getDstReaderID());
+        if (it.second->getDstReaderID() != 7000 && it.second->getDstReaderID() != 8000){
+            readers.push_back(it.second->getDstReaderID());
+        }
+    }
+    
+    if (readers.empty()){
+        utils::errorMsg("No readers provided!");
+        return 1;
     }
 
     if (!publishRTSPSession(readers, transmitter)){

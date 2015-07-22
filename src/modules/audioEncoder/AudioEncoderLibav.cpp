@@ -114,32 +114,26 @@ bool AudioEncoderLibav::doProcessFrame(Frame *org, Frame *dst)
     return true;
 }
 
-std::shared_ptr<Reader> AudioEncoderLibav::setReader(int readerID, FrameQueue* queue)
+
+bool AudioEncoderLibav::specificReaderConfig(int /*readerID*/, FrameQueue* queue)
 {
     AudioCircularBuffer* b;
 
-    if (readers.size() >= getMaxReaders() || readers.count(readerID) > 0 ) {
-        return NULL;
-    }
-
     if (samplesPerFrame == 0) {
         utils::errorMsg("Error setting audio encoder reader. Samples per frame has 0 value");
-        return NULL;
+        return false;
     }
 
     b = dynamic_cast<AudioCircularBuffer*>(queue);
     
     if (!b) {
         utils::errorMsg("[AudioEncoderLibav::setReader] Input queue must be an AudioCircularBuffer");
-        return NULL;
+        return false;
     }
 
     b->setOutputFrameSamples(samplesPerFrame);
 
-    std::shared_ptr<Reader> r (new Reader());
-    readers[readerID] = r;
-
-    return r;
+    return true;
 }
 
 bool AudioEncoderLibav::configure0(ACodecType codec, int codedAudioChannels, int codedAudioSampleRate, int bitrate)

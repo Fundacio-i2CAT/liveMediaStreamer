@@ -126,6 +126,9 @@ class VideoMixer : public ManyToOneFilter {
         void initializeEventMap();
         void pasteToLayout(int frameID, VideoFrame* vFrame);
         bool configChannelEvent(Jzon::Node* params);
+        
+        //There is no need of specific reader configuration
+        bool specificReaderConfig(int /*readerID*/, FrameQueue* /*queue*/)  {return true;};
 
         std::map<int, ChannelConfig*> channelsConfig;
         int outputWidth;

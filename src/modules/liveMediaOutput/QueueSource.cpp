@@ -8,7 +8,7 @@ QueueSource* QueueSource::createNew(UsageEnvironment& env, int readerId)
 
 
 QueueSource::QueueSource(UsageEnvironment& env, int readerId)
-  : FramedSource(env), eventTriggerId(0), frame(NULL), fReaderId(readerId) 
+  : FramedSource(env), eventTriggerId(0), frame(NULL), fReaderId(readerId), processedFrame(false) 
 {
     if (eventTriggerId == 0){
         eventTriggerId = envir().taskScheduler().createEventTrigger(deliverFrame0);
@@ -54,12 +54,22 @@ void QueueSource::deliverFrame()
     }
     
     memcpy(fTo, frame->getDataBuf(), fFrameSize);
-    frame->setConsumed(true);
-    frame = NULL;
-
+    processedFrame = true;
+    
     afterGetting(this);
 }
 
+Frame* QueueSource::getFrame()
+{
+    Frame* f = frame;
+    
+    if (processedFrame){
+        frame = NULL;
+        processedFrame = false;
+        return f;
+    }
+    return NULL;
+}
 
 bool QueueSource::setFrame(Frame *f)
 {

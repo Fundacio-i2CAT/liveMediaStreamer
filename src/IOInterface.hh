@@ -116,6 +116,10 @@ public:
     * Creates a reader object
     */
     Reader();
+
+    /**
+    * Class destructor
+    */
     ~Reader();
 
     /**
@@ -127,16 +131,16 @@ public:
     /**
     * Gets front frame object from queue if possible. If force is set to true and
     * frame is NULL this will flush queue until having a frame object from front
-    * @param bool to check if there is a newFrame or not
+    * @param integer to identify the filter that is actually requesting the frame.
     * @param bool to force having frame object or not (default set to false)
     * @return Frame object from its queue
     */
-    Frame* getFrame(bool force = false);
+    Frame* getFrame(int fId, bool force = false);
 
     /**
     * Removes frame element from queue
     */
-    int removeFrame();
+    int removeFrame(int fId);
 
     /**
     * Sets queue to connect to
@@ -164,16 +168,25 @@ public:
     
     /**
     * Decreases the number of filters that make use of this reader. It disconnects if filters number is zero.
+    * @param int the id of the filter requesting the removal
     */
-    void removeReader();
+    void removeReader(int id);
+
+    /**
+    * Get FrameQueue elements number
+    * @return FrameQueue elements number
+    */
+    size_t getQueueElements();
 
 protected:
-    mutable FrameQueue *queue;
+    FrameQueue *queue;
 
 private:
     friend class Writer;
-    
+     
+    Frame *frame;
     unsigned filters;
+    std::map<int, bool> requests;
     unsigned pending;
     std::mutex lck;
 };

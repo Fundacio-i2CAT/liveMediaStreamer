@@ -80,7 +80,7 @@ public:
     virtual ~AVFramedQueue();
 
 protected:
-    AVFramedQueue(struct ConnectionData cData, const StreamInfo *si, unsigned maxFrames);
+    AVFramedQueue(ConnectionData cData, const StreamInfo *si, unsigned maxFrames);
     void flush();
     Frame* frames[MAX_FRAMES];
     unsigned max;
@@ -97,11 +97,11 @@ public:
     * @param maxFrames queue max frames
     * @return pointer to a new object or NULL if invalid parameters
     */
-    static VideoFrameQueue* createNew(struct ConnectionData cData, const StreamInfo *si,
+    static VideoFrameQueue* createNew(ConnectionData cData, const StreamInfo *si,
             unsigned maxFrames);
 
 protected:
-    VideoFrameQueue(struct ConnectionData cData, const StreamInfo *si, unsigned maxFrames);
+    VideoFrameQueue(ConnectionData cData, const StreamInfo *si, unsigned maxFrames);
 
 private:
     bool setup();
@@ -120,11 +120,11 @@ public:
     * @param maxFrames queue max frames
     * @return pointer to a new object or NULL if invalid parameters
     */
-    static AudioFrameQueue* createNew(struct ConnectionData cData, const StreamInfo *si,
+    static AudioFrameQueue* createNew(ConnectionData cData, const StreamInfo *si,
             unsigned maxFrames);
 
 protected:
-    AudioFrameQueue(struct ConnectionData cData, const StreamInfo *si, unsigned maxFrames);
+    AudioFrameQueue(ConnectionData cData, const StreamInfo *si, unsigned maxFrames);
 
 private:
     bool setup();

@@ -39,15 +39,15 @@ extern "C" {
 class AudioEncoderLibav : public OneToOneFilter {
 
 public:
-    AudioEncoderLibav(FilterRole fRole_ = MASTER);
+    AudioEncoderLibav();
     ~AudioEncoderLibav();
 
     bool configure(ACodecType codec, int codedAudioChannels, int codedAudioSampleRate, int bitrate);
-    int getSamplesPerFrame(){ return samplesPerFrame;};
+    unsigned getSamplesPerFrame(){ return samplesPerFrame;};
     ACodecType getCodec() {return outputStreamInfo->audio.codec;};
     
 protected:
-    FrameQueue* allocQueue(struct ConnectionData cData);
+    FrameQueue* allocQueue(ConnectionData cData);
     bool doProcessFrame(Frame *org, Frame *dst);
 	std::shared_ptr<Reader> setReader(int readerID, FrameQueue* queue);
 
@@ -71,7 +71,7 @@ private:
     SwrContext          *resampleCtx;
     int                 gotFrame;
 
-    int                 samplesPerFrame;
+    unsigned            samplesPerFrame;
 
     AVSampleFormat      internalLibavSampleFmt;
     int                 outputBitrate;

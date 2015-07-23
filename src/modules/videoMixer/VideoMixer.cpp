@@ -49,7 +49,7 @@ void ChannelConfig::config(float width, float height, float x, float y, int laye
 //                VideoMixer Class               //
 ///////////////////////////////////////////////////
 
-VideoMixer* VideoMixer::createNew(FilterRole fRole, int inputChannels, int outWidth, int outHeight, std::chrono::microseconds fTime)
+VideoMixer* VideoMixer::createNew(int inputChannels, int outWidth, int outHeight, std::chrono::microseconds fTime)
 {
     if (outWidth <= 0 || outWidth > DEFAULT_WIDTH || outHeight <= 0 || outHeight > DEFAULT_HEIGHT) {
         utils::errorMsg("[VideoMixer] Error creating VideoMixer, output size range is  (0," + 
@@ -62,12 +62,12 @@ VideoMixer* VideoMixer::createNew(FilterRole fRole, int inputChannels, int outWi
         return NULL;
     }
 
-    return new VideoMixer(fRole, inputChannels, outWidth, outHeight, fTime);
+    return new VideoMixer(inputChannels, outWidth, outHeight, fTime);
 }
 
-VideoMixer::VideoMixer(FilterRole fRole_, int inputChannels, 
+VideoMixer::VideoMixer(int inputChannels, 
                        int outWidth, int outHeight, std::chrono::microseconds fTime) :
-ManyToOneFilter(fRole_, inputChannels), outputWidth(outWidth), outputHeight(outHeight), maxChannels(inputChannels)
+ManyToOneFilter(inputChannels), outputWidth(outWidth), outputHeight(outHeight), maxChannels(inputChannels)
 {
     setFrameTime(fTime);
     layoutImg = cv::Mat(outputHeight, outputWidth, CV_8UC3);
@@ -90,12 +90,12 @@ VideoMixer::~VideoMixer()
     delete outputStreamInfo;
 }
 
-FrameQueue* VideoMixer::allocQueue(struct ConnectionData cData)
+FrameQueue* VideoMixer::allocQueue(ConnectionData cData)
 {
     return VideoFrameQueue::createNew(cData, outputStreamInfo, DEFAULT_RAW_VIDEO_FRAMES);
 }
 
-bool VideoMixer::doProcessFrame(std::map<int, Frame*> orgFrames, Frame *dst)
+bool VideoMixer::doProcessFrame(std::map<int, Frame*> &orgFrames, Frame *dst)
 {
     int frameNumber = orgFrames.size();
     std::chrono::microseconds outTs = std::chrono::microseconds(0);

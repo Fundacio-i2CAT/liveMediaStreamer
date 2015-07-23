@@ -107,7 +107,7 @@ private:
     
     std::shared_ptr<Reader> setReader(int readerID, FrameQueue* queue);
 
-    bool doProcessFrame(std::map<int, Frame*> oFrames);
+    bool doProcessFrame(std::map<int, Frame*> &oFrames);
     void stop();
 
     bool addSubsessionByReader(RTSPConnection* connection, int readerId);

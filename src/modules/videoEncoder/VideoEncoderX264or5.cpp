@@ -23,8 +23,8 @@
 
 #include "VideoEncoderX264or5.hh"
 
-VideoEncoderX264or5::VideoEncoderX264or5(FilterRole fRole_) :
-OneToOneFilter(fRole_), inPixFmt(P_NONE), forceIntra(false), fps(0), bitrate(0), gop(0), threads(0), needsConfig(false)
+VideoEncoderX264or5::VideoEncoderX264or5() :
+OneToOneFilter(), inPixFmt(P_NONE), forceIntra(false), fps(0), bitrate(0), gop(0), threads(0), needsConfig(false)
 {
     fType = VIDEO_ENCODER;
     midFrame = av_frame_alloc();

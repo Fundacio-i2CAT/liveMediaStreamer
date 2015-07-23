@@ -26,7 +26,7 @@
 #include "AudioFrame.hh"
 #include "Utils.hh"
 
-AVFramedQueue::AVFramedQueue(struct ConnectionData cData, const StreamInfo *si, unsigned maxFrames) :
+AVFramedQueue::AVFramedQueue(ConnectionData cData, const StreamInfo *si, unsigned maxFrames) :
         FrameQueue(cData, si), max(maxFrames)
 {
     if (max > MAX_FRAMES) {
@@ -103,7 +103,7 @@ unsigned AVFramedQueue::getElements()
 //VIDEO FRAME QUEUE METHODS IMPLEMENTATION//
 ////////////////////////////////////////////
 
-VideoFrameQueue* VideoFrameQueue::createNew(struct ConnectionData cData, const StreamInfo *si,
+VideoFrameQueue* VideoFrameQueue::createNew(ConnectionData cData, const StreamInfo *si,
         unsigned maxFrames)
 {
     VideoFrameQueue* q = new VideoFrameQueue(cData, si, maxFrames);
@@ -118,7 +118,7 @@ VideoFrameQueue* VideoFrameQueue::createNew(struct ConnectionData cData, const S
 }
 
 
-VideoFrameQueue::VideoFrameQueue(struct ConnectionData cData, const StreamInfo *si,
+VideoFrameQueue::VideoFrameQueue(ConnectionData cData, const StreamInfo *si,
         unsigned maxFrames) : AVFramedQueue(cData, si, maxFrames)
 {
 }
@@ -162,7 +162,7 @@ bool VideoFrameQueue::setup()
 
 unsigned getMaxSamples(unsigned sampleRate);
 
-AudioFrameQueue* AudioFrameQueue::createNew(struct ConnectionData cData, const StreamInfo *si,
+AudioFrameQueue* AudioFrameQueue::createNew(ConnectionData cData, const StreamInfo *si,
         unsigned maxFrames)
 {
     AudioFrameQueue* q = new AudioFrameQueue(cData, si, maxFrames);
@@ -176,7 +176,7 @@ AudioFrameQueue* AudioFrameQueue::createNew(struct ConnectionData cData, const S
     return q;
 }
 
-AudioFrameQueue::AudioFrameQueue(struct ConnectionData cData, const StreamInfo *si,
+AudioFrameQueue::AudioFrameQueue(ConnectionData cData, const StreamInfo *si,
         unsigned maxFrames) : AVFramedQueue(cData, si, maxFrames)
 {
 }

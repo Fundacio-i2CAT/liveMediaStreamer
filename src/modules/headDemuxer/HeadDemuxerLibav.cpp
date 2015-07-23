@@ -23,7 +23,7 @@
 #include "HeadDemuxerLibav.hh"
 #include "../../AVFramedQueue.hh"
 
-HeadDemuxerLibav::HeadDemuxerLibav() : HeadFilter (MASTER, 2)
+HeadDemuxerLibav::HeadDemuxerLibav() : HeadFilter (2)
 {
     // Initialize libav
     av_register_all();
@@ -60,7 +60,7 @@ void HeadDemuxerLibav::reset()
     outputStreamInfos.clear();
 }
 
-bool HeadDemuxerLibav::doProcessFrame(std::map<int, Frame*> dstFrames)
+bool HeadDemuxerLibav::doProcessFrame(std::map<int, Frame*> &dstFrames)
 {
     if (!av_ctx) return false;
 
@@ -94,7 +94,7 @@ bool HeadDemuxerLibav::doProcessFrame(std::map<int, Frame*> dstFrames)
     return true;
 }
 
-FrameQueue *HeadDemuxerLibav::allocQueue(struct ConnectionData cData)
+FrameQueue *HeadDemuxerLibav::allocQueue(ConnectionData cData)
 {
     // Create output queue for the kind of stream associated with this wId
     const StreamInfo *si = outputStreamInfos[cData.writerId];

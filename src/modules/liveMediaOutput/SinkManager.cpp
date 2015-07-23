@@ -47,7 +47,7 @@ SinkManager* SinkManager::createNew(unsigned readersNum)
 }
 
 SinkManager::SinkManager(unsigned readersNum) :
-TailFilter(SERVER, readersNum, true), rtspServer(NULL)
+TailFilter(readersNum, SERVER, true), rtspServer(NULL)
 {
     scheduler = BasicTaskScheduler::createNew();
     env = BasicUsageEnvironment::createNew(*scheduler);
@@ -122,7 +122,7 @@ bool SinkManager::deleteReader(int readerId)
 {
     if (readers.count(readerId) > 0){
         readers[readerId]->disconnect();
-        readers[readerId]->removeReader();
+        readers[readerId]->removeReader(getId());
         readers.erase(readerId);
         removeConnectionByReaderId(readerId);
         if (sources.count(readerId) > 0){
@@ -134,7 +134,7 @@ bool SinkManager::deleteReader(int readerId)
     return false;
 }
 
-bool SinkManager::doProcessFrame(std::map<int, Frame*> oFrames)
+bool SinkManager::doProcessFrame(std::map<int, Frame*> &oFrames)
 {
     if (envir() == NULL){
         return false;
@@ -142,14 +142,22 @@ bool SinkManager::doProcessFrame(std::map<int, Frame*> oFrames)
     
     for (auto it: oFrames){
         if (it.second && it.second->getConsumed()){
-            it.second->setConsumed(false);
             if (sources.count(it.first) > 0 && sources[it.first]->setFrame(it.second)){
                 QueueSource::signalNewFrameData(scheduler, sources[it.first]);
             }
+            oFrames.erase(it.first);
         }
     }
 
     scheduler->SingleStep();
+    
+    for (auto it : sources){
+        Frame *f = it.second->getFrame();
+        if (f){
+            f->setConsumed(true);
+            oFrames[it.first] = f;
+        }
+    }
 
     return true;
 }

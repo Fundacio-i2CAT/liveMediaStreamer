@@ -17,6 +17,8 @@
  *
  *  Authors:  Marc Palau <marc.palau@i2cat.net>
  *            David Cassany <david.cassany@i2cat.net>
+ *            Gerard Castillo <gerard.castillo@i2cat.net>
+ *
  */
 
 #include <string>
@@ -31,7 +33,6 @@
 #include <cppunit/XmlOutputter.h>
 
 #include "modules/videoEncoder/VideoEncoderX264or5.hh"
-#include "modules/videoEncoder/VideoEncoderX264.hh"
 
 class VideoEncoderX264or5Mock : public VideoEncoderX264or5 
 {

@@ -38,12 +38,12 @@ extern "C" {
 class VideoDecoderLibav : public OneToOneFilter {
 
     public:
-        VideoDecoderLibav(FilterRole fRole_ = MASTER);
+        VideoDecoderLibav();
         ~VideoDecoderLibav();
         
     private:
         void initializeEventMap();
-        FrameQueue* allocQueue(struct ConnectionData cData);
+        FrameQueue* allocQueue(ConnectionData cData);
         bool doProcessFrame(Frame *org, Frame *dst);
         bool toBuffer(VideoFrame *decodedFrame, VideoFrame *codedFrame);
         bool reconfigure(VCodecType codec);

@@ -158,7 +158,7 @@ private:
     PipelineManager(unsigned threads = 0);
     ~PipelineManager();
     bool deletePath(Path* path);
-    bool createFilter(int id, FilterType type, FilterRole role);
+    bool createFilter(int id, FilterType type);
     
     bool handleGrouping(int orgFId, int dstFId, int orgWId, int dstRId);
     bool validCData(struct ConnectionData cData);

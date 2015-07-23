@@ -103,8 +103,11 @@ public:
      */
     bool isPeriodic() const {return periodic;};
     
-    //TODO should be a private method
-    void setId(int id_);
+    /**
+     * This method sets the runnable ID. I can be set only one with a positive value.
+     * @return false if the ID could not be set, returns true otherwise.
+     */
+    bool setId(int id_);
     
     /**
      * Groups two runnables

@@ -84,7 +84,7 @@ static StreamInfo *createStreamInfo(const MediaSubsession *mss)
     return si;
 }
 
-SourceManager::SourceManager(unsigned writersNum): HeadFilter(SERVER, writersNum)
+SourceManager::SourceManager(unsigned writersNum): HeadFilter(writersNum, SERVER)
 {
     fType = RECEIVER;
 
@@ -114,7 +114,7 @@ void SourceManager::stop()
     
 }
 
-bool SourceManager::doProcessFrame(std::map<int, Frame*> dFrames)
+bool SourceManager::doProcessFrame(std::map<int, Frame*> &dFrames)
 {
     if (envir() == NULL){
         return false;
@@ -201,7 +201,7 @@ bool SourceManager::addSink(unsigned port, QueueSink *sink)
     return true;
 }
 
-FrameQueue *SourceManager::allocQueue(struct ConnectionData cData)
+FrameQueue *SourceManager::allocQueue(ConnectionData cData)
 {
     MediaSubsession *mSubsession;
     StreamInfo *si = NULL;

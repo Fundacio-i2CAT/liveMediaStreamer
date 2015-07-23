@@ -87,8 +87,7 @@ void H264or5QueueSource::deliverFrame()
     }
     
     memcpy(fTo, buff, fFrameSize);
-    frame->setConsumed(true);
-    frame = NULL;
+    processedFrame = true;
     
     afterGetting(this);
 }

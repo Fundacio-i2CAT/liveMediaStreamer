@@ -29,7 +29,7 @@ bool checkSampleFormat(AVCodec *codec, enum AVSampleFormat sampleFmt);
 bool checkSampleRateSupport(AVCodec *codec, int sampleRate);
 bool checkChannelLayoutSupport(AVCodec *codec, uint64_t channelLayout);
 
-AudioEncoderLibav::AudioEncoderLibav(FilterRole fRole_) : OneToOneFilter(fRole_),
+AudioEncoderLibav::AudioEncoderLibav() : OneToOneFilter(),
         samplesPerFrame(0), internalLibavSampleFmt(AV_SAMPLE_FMT_NONE),
         outputBitrate(0), inputChannels(0), inputSampleRate(0), inputSampleFmt(S_NONE),
         inputLibavSampleFmt(AV_SAMPLE_FMT_NONE)
@@ -68,7 +68,7 @@ AudioEncoderLibav::~AudioEncoderLibav()
     delete outputStreamInfo;
 }
 
-FrameQueue* AudioEncoderLibav::allocQueue(struct ConnectionData cData)
+FrameQueue* AudioEncoderLibav::allocQueue(ConnectionData cData)
 {
     return AudioFrameQueue::createNew(cData, outputStreamInfo, DEFAULT_AUDIO_FRAMES);
 }

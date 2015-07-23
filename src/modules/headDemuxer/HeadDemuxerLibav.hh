@@ -46,8 +46,8 @@ class HeadDemuxerLibav : public HeadFilter {
         bool setURI(const std::string URI);
 
     protected:
-        virtual bool doProcessFrame(std::map<int, Frame*> dstFrames);
-        virtual FrameQueue *allocQueue(struct ConnectionData cData);
+        virtual bool doProcessFrame(std::map<int, Frame*> &dstFrames);
+        virtual FrameQueue *allocQueue(ConnectionData cData);
         virtual void doGetState(Jzon::Object &filterNode);
 
     private:

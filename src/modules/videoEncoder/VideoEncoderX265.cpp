@@ -28,8 +28,8 @@
 
 #define MAX_PLANES_PER_PICTURE 3
 
-VideoEncoderX265::VideoEncoderX265(FilterRole fRole) :
-VideoEncoderX264or5(fRole), encoder(NULL)
+VideoEncoderX265::VideoEncoderX265() :
+VideoEncoderX264or5(), encoder(NULL)
 {
     pts = 0;
     outputStreamInfo->video.codec = H265;
@@ -133,7 +133,7 @@ bool VideoEncoderX265::encodeHeadersFrame(VideoFrame* frame)
     return true;
 }
 
-FrameQueue* VideoEncoderX265::allocQueue(struct ConnectionData cData)
+FrameQueue* VideoEncoderX265::allocQueue(ConnectionData cData)
 {
     return SlicedVideoFrameQueue::createNew(cData, outputStreamInfo, DEFAULT_VIDEO_FRAMES, MAX_H264_OR_5_NAL_SIZE);
 }

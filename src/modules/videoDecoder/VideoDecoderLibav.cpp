@@ -27,7 +27,7 @@
 
 PixType getPixelFormat(AVPixelFormat format);
 
-VideoDecoderLibav::VideoDecoderLibav(FilterRole fRole_) : OneToOneFilter(fRole_)
+VideoDecoderLibav::VideoDecoderLibav() : OneToOneFilter()
 {
     avcodec_register_all();
 
@@ -60,7 +60,7 @@ VideoDecoderLibav::~VideoDecoderLibav()
 }
 
 
-FrameQueue* VideoDecoderLibav::allocQueue(struct ConnectionData cData)
+FrameQueue* VideoDecoderLibav::allocQueue(ConnectionData cData)
 {
     return VideoFrameQueue::createNew(cData, outputStreamInfo, DEFAULT_RAW_VIDEO_FRAMES);
 }

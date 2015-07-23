@@ -68,7 +68,7 @@ public:
     * @return SharedMemory object or NULL if any error while creating
     * @see OneToOneFilter to check the inherated input params
     */
-    static SharedMemory* createNew(size_t key_, VCodecType codec, FilterRole fRole_ = MASTER);
+    static SharedMemory* createNew(size_t key_, VCodecType codec);
     /**
     * Class destructor
     */
@@ -80,7 +80,7 @@ public:
     size_t getSharedMemoryID() { return SharedMemoryID;};
 
 protected:
-    SharedMemory(size_t key_, VCodecType codec_, FilterRole fRole_ = MASTER);
+    SharedMemory(size_t key_, VCodecType codec_);
     bool isEnabled() {return enabled;};
     void writeSharedMemoryH264();
     bool appendNalToFrame(unsigned char* nalData, unsigned nalDataLength, int startCodeOffset, bool &newFrame);
@@ -98,7 +98,7 @@ private:
     bool doProcessFrame(Frame *org, Frame *dst);
     void initializeEventMap();
     void doGetState(Jzon::Object &filterNode);
-    FrameQueue* allocQueue(struct ConnectionData cData);
+    FrameQueue* allocQueue(ConnectionData cData);
 
     void copyOrgToDstFrame(InterleavedVideoFrame *org, InterleavedVideoFrame *dst);
 

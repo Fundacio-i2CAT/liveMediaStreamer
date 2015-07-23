@@ -40,11 +40,11 @@ extern "C" {
 class VideoEncoderX265 : public VideoEncoderX264or5 {
 
 public:
-    VideoEncoderX265(FilterRole fRole = MASTER);
+    VideoEncoderX265();
     ~VideoEncoderX265();
 
 private:
-    FrameQueue* allocQueue(struct ConnectionData cData);
+    FrameQueue* allocQueue(ConnectionData cData);
     void initializeEventMap();
 
     x265_picture    *picIn;

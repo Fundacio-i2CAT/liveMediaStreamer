@@ -24,9 +24,9 @@
 
 static unsigned char const start_code[4] = {0x00, 0x00, 0x00, 0x01};
 
-SharedMemory* SharedMemory::createNew(size_t key_, VCodecType codec, FilterRole fRole_)
+SharedMemory* SharedMemory::createNew(size_t key_, VCodecType codec)
 {
-    SharedMemory *shm = new SharedMemory(key_, codec, fRole_);
+    SharedMemory *shm = new SharedMemory(key_, codec);
 
     if(shm->isEnabled()){
         return shm;
@@ -34,8 +34,8 @@ SharedMemory* SharedMemory::createNew(size_t key_, VCodecType codec, FilterRole 
     return NULL;
 }
 
-SharedMemory::SharedMemory(size_t key_, VCodecType codec_, FilterRole fRole_):
-    OneToOneFilter(fRole_), enabled(true), newFrame(false), codec(codec_)
+SharedMemory::SharedMemory(size_t key_, VCodecType codec_):
+    OneToOneFilter(), enabled(true), newFrame(false), codec(codec_)
 {
 
     if(!(codec == RAW || codec == H264)){
@@ -123,7 +123,7 @@ bool SharedMemory::doProcessFrame(Frame *org, Frame *dst)
     return true;
 }
 
-FrameQueue* SharedMemory::allocQueue(struct ConnectionData cData)
+FrameQueue* SharedMemory::allocQueue(ConnectionData cData)
 {
     if (codec != H264 && codec !=RAW) {
         return NULL;

@@ -27,7 +27,7 @@
 
 AVPixelFormat getLibavPixFmt(PixType pixType);
 
-VideoResampler::VideoResampler(FilterRole fRole_) : OneToOneFilter(fRole_)
+VideoResampler::VideoResampler() : OneToOneFilter()
 {
     fType = VIDEO_RESAMPLER;
 
@@ -60,7 +60,7 @@ VideoResampler::~VideoResampler()
     delete outputStreamInfo;
 }
 
-FrameQueue* VideoResampler::allocQueue(struct ConnectionData cData)
+FrameQueue* VideoResampler::allocQueue(ConnectionData cData)
 {
     return VideoFrameQueue::createNew(cData, outputStreamInfo, DEFAULT_RAW_VIDEO_FRAMES);
 }

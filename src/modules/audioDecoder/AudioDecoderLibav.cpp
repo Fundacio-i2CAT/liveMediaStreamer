@@ -47,8 +47,8 @@ AVSampleFormat getAVSampleFormatFromtIntCode(int id)
     return sampleFmt;
 }
 
-AudioDecoderLibav::AudioDecoderLibav(FilterRole fRole_)
-: OneToOneFilter(fRole_)
+AudioDecoderLibav::AudioDecoderLibav()
+: OneToOneFilter()
 {
     avcodec_register_all();
 
@@ -64,6 +64,7 @@ AudioDecoderLibav::AudioDecoderLibav(FilterRole fRole_)
     inChannels = 0;
     inSampleRate = 0;
     inFrame = av_frame_alloc();
+    inLibavSampleFmt = AV_SAMPLE_FMT_NONE;
 
     initializeEventMap();
 
@@ -79,7 +80,7 @@ AudioDecoderLibav::~AudioDecoderLibav()
     av_free_packet(&pkt);
 }
 
-FrameQueue* AudioDecoderLibav::allocQueue(struct ConnectionData cData)
+FrameQueue* AudioDecoderLibav::allocQueue(ConnectionData cData)
 {
     return AudioCircularBuffer::createNew(cData, outChannels, outSampleRate, DEFAULT_BUFFER_SIZE, 
                                             outSampleFmt, std::chrono::milliseconds(0));

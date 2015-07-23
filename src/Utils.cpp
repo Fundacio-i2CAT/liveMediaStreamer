@@ -299,11 +299,9 @@ namespace utils
     {
         FilterRole fRole;
 
-        if (stringRoleType.compare("master") == 0) {
-           fRole = MASTER;
-        } else if (stringRoleType.compare("slave") == 0) {
-           fRole = SLAVE;
-        }  else if (stringRoleType.compare("server") == 0) {
+        if (stringRoleType.compare("regular") == 0) {
+           fRole = REGULAR;
+        } else if (stringRoleType.compare("server") == 0) {
            fRole = SERVER;
         }  else {
            fRole = FR_NONE;
@@ -316,11 +314,8 @@ namespace utils
         std::string stringRole;
 
         switch(role) {
-            case MASTER:
-                stringRole = "master";
-                break;
-            case SLAVE:
-                stringRole = "slave";
+            case REGULAR:
+                stringRole = "regular";
                 break;
             case SERVER:
                 stringRole = "server";

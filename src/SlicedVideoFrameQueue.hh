@@ -67,7 +67,7 @@ public:
 private:
     SlicedVideoFrameQueue(struct ConnectionData cData, const StreamInfo *si, unsigned maxFrames);
 
-    bool pushBack();
+    void pushBackSliceGroup(Slice* slices, int sliceNum);
     Frame *innerGetRear();
     Frame *innerForceGetRear();
     void innerAddFrame();

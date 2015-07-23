@@ -60,7 +60,7 @@ public:
     * @param connectionData struct that contains reader and writer filters identifiers
     * @param si description of the stream passing through this queue
     */
-    FrameQueue(struct ConnectionData cData, const StreamInfo *si = NULL) :
+    FrameQueue(ConnectionData cData, const StreamInfo *si = NULL) :
             rear(0), front(0), connected(false), firstFrame(false),
             connectionData(cData), streamInfo(si) {};
 
@@ -132,7 +132,7 @@ public:
     * Gets the connection cData.
     * @return the struct that contains the connection data.
     */
-    struct ConnectionData getCData() const {return connectionData;};
+    ConnectionData getCData() const {return connectionData;};
 
     /**
     * Gets the StreamInfo for the stream passing through this queue.
@@ -146,7 +146,7 @@ protected:
     bool connected;
     bool firstFrame;
     
-    const struct ConnectionData connectionData;
+    const ConnectionData connectionData;
 
     const StreamInfo *streamInfo;
 };

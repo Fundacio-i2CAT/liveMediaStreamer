@@ -63,16 +63,16 @@ void QueueSource::deliverFrame()
     afterGetting(this);
 }
 
-Frame* QueueSource::getFrame()
-{
-    Frame* f = frame;
-    
+bool QueueSource::gotFrame()
+{   
     if (processedFrame || stopFrames){
-        frame = NULL;
         processedFrame = false;
-        return f;
+        if (frame){
+            frame = NULL;
+            return true;
+        }
     }
-    return NULL;
+    return false;
 }
 
 bool QueueSource::setFrame(Frame *f)

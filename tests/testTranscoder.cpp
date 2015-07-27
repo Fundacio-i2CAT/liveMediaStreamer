@@ -53,7 +53,7 @@ void signalHandler( int signum )
 
 void addAudioPath(unsigned port, int receiverID, int transmitterID)
 {
-    PipelineManager *pipe = PipelineManager::getInstance(2);
+    PipelineManager *pipe = PipelineManager::getInstance(1);
 
     int decId = rand();
     int encId = rand();
@@ -62,13 +62,9 @@ void addAudioPath(unsigned port, int receiverID, int transmitterID)
     AudioDecoderLibav *decoder;
     AudioEncoderLibav *encoder;
 
-    Path *path;
-
-    //NOTE: Adding decoder to pipeManager and handle worker
     decoder = new AudioDecoderLibav();
     pipe->addFilter(decId, decoder);
 
-    //NOTE: Adding encoder to pipeManager and handle worker
     encoder = new AudioEncoderLibav();
     if (!encoder->configure(OUT_A_CODEC, A_CHANNELS, OUT_A_FREQ, OUT_A_BITRATE)) {
         utils::errorMsg("Error configuring audio encoder. Check provided parameters");
@@ -76,23 +72,25 @@ void addAudioPath(unsigned port, int receiverID, int transmitterID)
     }
 
     pipe->addFilter(encId, encoder);
-
-    //NOTE: add filter to path
     
-    path = pipe->createPath(receiverID, transmitterID, port, -1, ids);
-    
-    pipe->addPath(port, path);
-    if (!pipe->connectPath(path)){
-        utils::errorMsg("Failed! Audio path not connected");
-        pipe->removePath(port);
+    if (!pipe->createPath(port, receiverID, transmitterID, port, -1, ids)) {
+        utils::errorMsg("Error creating audio path");
         return;
     }
     
-    path = pipe->createPath(receiverID, transmitterID, port, 8000, std::vector<int>({}));
+    if (!pipe->connectPath(port)){
+        utils::errorMsg("Failed! Path not connected");
+        pipe->removePath(port);
+        return;
+    }
+
+    if (!pipe->createPath(8000, receiverID, transmitterID, port, 8000, std::vector<int>({}))) {
+        utils::errorMsg("Error creating audio path");
+        return;
+    }
     
-    pipe->addPath(8000, path);
-    if (!pipe->connectPath(path)){
-        utils::errorMsg("Failed! Bypass audio path not connected");
+    if (!pipe->connectPath(8000)){
+        utils::errorMsg("Failed! Path not connected");
         pipe->removePath(port);
         return;
     }
@@ -100,8 +98,7 @@ void addAudioPath(unsigned port, int receiverID, int transmitterID)
     utils::infoMsg("Audio path created from port " + std::to_string(port));
 }
 
-void addVideoPath(unsigned port, int receiverID, int transmitterID,
-                  size_t sharingMemoryKey = 0,  unsigned width = 0, unsigned height = 0)
+void addVideoPath(unsigned port, int receiverID, int transmitterID)
 {
     PipelineManager *pipe = Controller::getInstance()->pipelineManager();
 
@@ -120,38 +117,37 @@ void addVideoPath(unsigned port, int receiverID, int transmitterID,
     VideoEncoderX264 *encoder;
     VideoDecoderLibav *decoder;
 
-    Path *path;
-
-    //NOTE: Adding decoder to pipeManager and handle worker
     decoder = new VideoDecoderLibav();
     pipe->addFilter(decId, decoder);
 
-    //NOTE: Adding resampler to pipeManager and handle worker
     resampler = new VideoResampler();
     pipe->addFilter(resId, resampler);
     resampler->configure(1280, 720, 0, YUV420P);
 
-    //NOTE: Adding encoder to pipeManager and handle worker
     encoder = new VideoEncoderX264();
     pipe->addFilter(encId, encoder);
 
     //bitrate, fps, gop, lookahead, threads, annexB, preset
     encoder->configure(4000, 25, 25, 25, 4, true, "superfast");
-    
-    path = pipe->createPath(receiverID, transmitterID, port, 7000, std::vector<int>({}));
 
-    pipe->addPath(7000, path);
-    if (!pipe->connectPath(path)){
-        utils::errorMsg("Failed! Bypass video path not connected");
+    if (!pipe->createPath(7000, receiverID, transmitterID, port, 7000, std::vector<int>({}))) {
+        utils::errorMsg("Error creating video path");
+        return;
+    }
+
+    if (!pipe->connectPath(7000)) {
+        utils::errorMsg("Failed! Path not connected");
         pipe->removePath(port);
         return;
     }
     
-    path = pipe->createPath(receiverID, transmitterID, port, -1, ids);
+    if (!pipe->createPath(port, receiverID, transmitterID, port, -1, ids)) {
+        utils::errorMsg("Error creating video path");
+        return;
+    }   
 
-    pipe->addPath(port, path);
-    if (!pipe->connectPath(path)){
-        utils::errorMsg("Failed! Video path not connected");
+    if (!pipe->connectPath(port)) {
+        utils::errorMsg("Failed! Path not connected");
         pipe->removePath(port);
         return;
     }
@@ -210,8 +206,7 @@ bool addAudioSDPSession(unsigned port, SourceManager *receiver, std::string code
     return true;
 }
 
-bool addRTSPsession(std::string rtspUri, size_t sharingMemory,
-                    SourceManager *receiver, int receiverID, int transmitterID)
+bool addRTSPsession(std::string rtspUri, SourceManager *receiver, int receiverID, int transmitterID)
 {
     Session* session;
     std::string sessionId = utils::randomIdGenerator(ID_LENGTH);
@@ -255,7 +250,7 @@ bool addRTSPsession(std::string rtspUri, size_t sharingMemory,
         medium = subsession->mediumName();
 
         if (medium.compare("video") == 0){
-            addVideoPath(subsession->clientPortNum(), receiverID, transmitterID, sharingMemory);
+            addVideoPath(subsession->clientPortNum(), receiverID, transmitterID);
         } else if (medium.compare("audio") == 0){
             addAudioPath(subsession->clientPortNum(), receiverID, transmitterID);
         }
@@ -307,7 +302,6 @@ int main(int argc, char* argv[])
     int cPort = 7777;
     std::string ip;
     std::string rtspUri;
-    size_t sharingMemoryKey = 0;
     std::vector<int> readers;
 
     int transmitterID = 1024;
@@ -349,7 +343,6 @@ int main(int argc, char* argv[])
 
     receiver = new SourceManager();
     pipe = Controller::getInstance()->pipelineManager();
-
     
     transmitter = SinkManager::createNew();
     if (!transmitter){
@@ -358,14 +351,13 @@ int main(int argc, char* argv[])
     }
 
     pipe->addFilter(transmitterID, transmitter);        
-
     pipe->addFilter(receiverID, receiver);
 
     signal(SIGINT, signalHandler);
 
     if (vPort != 0 && rtspUri.length() == 0){
         addVideoSDPSession(vPort, receiver);
-        addVideoPath(vPort, receiverID, transmitterID, sharingMemoryKey);
+        addVideoPath(vPort, receiverID, transmitterID);
     }
 
     if (aPort != 0 && rtspUri.length() == 0){
@@ -374,7 +366,7 @@ int main(int argc, char* argv[])
     }
 
     if (rtspUri.length() > 0){
-        if (!addRTSPsession(rtspUri, sharingMemoryKey, receiver, receiverID, transmitterID)){
+        if (!addRTSPsession(rtspUri, receiver, receiverID, transmitterID)){
             utils::errorMsg("Couldn't start rtsp client session!");
             return 1;
         }

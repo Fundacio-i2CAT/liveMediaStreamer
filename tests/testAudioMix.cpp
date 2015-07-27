@@ -36,14 +36,12 @@ void signalHandler( int signum )
     exit(0);
 }
 
-void setupMixer(int mixerId, int transmitterId) 
+bool setupMixer(int mixerId, int transmitterId) 
 {
     PipelineManager *pipe = Controller::getInstance()->pipelineManager();
 
     AudioMixer* mixer;
     AudioEncoderLibav* encoder;
-
-    Path* path;
 
     int encId = rand();
     int pathId = rand();
@@ -57,14 +55,23 @@ void setupMixer(int mixerId, int transmitterId)
     encoder = new AudioEncoderLibav();
     if (!encoder->configure(OUT_A_CODEC, A_CHANNELS, OUT_A_FREQ, OUT_A_BITRATE)) {
         utils::errorMsg("Error configuring audio encoder. Check provided parameters");
-        return;
+        return false;
     }
 
     pipe->addFilter(encId, encoder);
 
-    path = pipe->createPath(mixerId, transmitterId, -1, -1, ids);
-    pipe->addPath(pathId, path);
-    pipe->connectPath(path);
+    if (!pipe->createPath(pathId, mixerId, transmitterId, -1, -1, ids)) {
+        utils::errorMsg("Error creating path");
+        return false;
+    }
+
+    if (!pipe->connectPath(pathId)) {
+        utils::errorMsg("Error creating path");
+        pipe->removePath(pathId);
+        return false;
+    }
+
+    return true;
 }
 
 void addAudioPath(unsigned port, int receiverId, int mixerId)
@@ -75,15 +82,20 @@ void addAudioPath(unsigned port, int receiverId, int mixerId)
     std::vector<int> ids({decId});
 
     AudioDecoderLibav *decoder;
-    Path *path;
 
-    //NOTE: Adding decoder to pipeManager and handle worker
     decoder = new AudioDecoderLibav();
     pipe->addFilter(decId, decoder);
 
-    path = pipe->createPath(receiverId, mixerId, port, port, ids);
-    pipe->addPath(port, path);
-    pipe->connectPath(path);
+    if (!pipe->createPath(port, receiverId, mixerId, port, port, ids)) {
+        utils::errorMsg("Error creating audio path");
+        return;
+    }
+
+    if (!pipe->connectPath(port)) {
+        utils::errorMsg("Error connecting path");
+        pipe->removePath(port);
+        return;
+    }
 
     utils::infoMsg("Audio path created from port " + std::to_string(port));
 }
@@ -236,7 +248,10 @@ int main(int argc, char* argv[])
     pipe->addFilter(transmitterId, transmitter);
     pipe->addFilter(receiverId, receiver);
 
-    setupMixer(mixerId, transmitterId);
+    if (!setupMixer(mixerId, transmitterId)) {
+        utils::errorMsg("Mixer setup failed");
+        return 1;
+    }
 
     signal(SIGINT, signalHandler);
 

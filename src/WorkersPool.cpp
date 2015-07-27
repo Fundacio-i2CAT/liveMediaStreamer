@@ -75,7 +75,6 @@ WorkersPool::WorkersPool(size_t threads) : run(true)
                     
                     guard.lock();
                     job->unsetRunning();
-
                     
                     for(auto job : enabledJobs){
                         added |= addJob(job);

@@ -13,7 +13,7 @@ class QueueSource: public FramedSource {
 public:
     static QueueSource* createNew(UsageEnvironment& env, int readerId);
     bool setFrame(Frame *f);
-    Frame* getFrame();
+    bool gotFrame();
     EventTriggerId getTriggerId() const {return eventTriggerId;};
     static bool signalNewFrameData(TaskScheduler* ourScheduler, QueueSource* ourSource);
 

@@ -140,22 +140,28 @@ bool SinkManager::doProcessFrame(std::map<int, Frame*> &oFrames)
         return false;
     }
     
-    for (auto it: oFrames){
+    int newFrames = 0;
+       
+    for (auto it : oFrames){
         if (it.second && it.second->getConsumed()){
             if (sources.count(it.first) > 0 && sources[it.first]->setFrame(it.second)){
                 QueueSource::signalNewFrameData(scheduler, sources[it.first]);
+                newFrames++;
             }
-            oFrames.erase(it.first);
         }
     }
-
-    scheduler->SingleStep();
     
-    for (auto it : sources){
-        Frame *f = it.second->getFrame();
-        if (f){
-            f->setConsumed(true);
-            oFrames[it.first] = f;
+    if (newFrames == 0){
+        scheduler->SingleStep();
+        return false;
+    }
+    
+    while (newFrames > 0){
+        scheduler->SingleStep();
+        for (auto it : sources){
+            if (it.second && it.second->gotFrame()){
+                newFrames--;
+            }
         }
     }
 

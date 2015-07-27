@@ -188,7 +188,7 @@ protected:
     BaseFilter(unsigned readersNum = MAX_READERS, unsigned writersNum = MAX_WRITERS, FilterRole fRole_ = REGULAR, bool periodic = false);
 
     std::vector<int> addFrames(std::map<int, Frame*> &dFrames);
-    bool removeFrames(std::map<int, Frame*> &oFrames);
+    bool removeFrames(std::vector<int> framesToRemove);
     virtual FrameQueue *allocQueue(struct ConnectionData cData) = 0;
 
     std::chrono::microseconds getFrameTime() {return frameTime;};
@@ -199,9 +199,9 @@ protected:
     //TODO: this should get stream info parameters insted of FrameQueue or get from reader.
     virtual bool specificReaderConfig(int readerID, FrameQueue* queue) = 0;
 
-    bool demandOriginFrames(std::map<int, Frame*> &oFrames);
-    bool demandOriginFramesBestEffort(std::map<int, Frame*> &oFrames);
-    bool demandOriginFramesFrameTime(std::map<int, Frame*> &oFrames); 
+    std::vector<int> demandOriginFrames(std::map<int, Frame*> &oFrames);
+    std::vector<int> demandOriginFramesBestEffort(std::map<int, Frame*> &oFrames);
+    std::vector<int> demandOriginFramesFrameTime(std::map<int, Frame*> &oFrames); 
 
     bool demandDestinationFrames(std::map<int, Frame*> &dFrames);
 

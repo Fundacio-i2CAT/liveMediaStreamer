@@ -74,6 +74,7 @@ struct StreamInfo {
     void setCodecDefaults() {
         switch (type) {
             case VIDEO:
+                video.h264or5.annexb = false;
                 break;
             case AUDIO:
                 switch (audio.codec) {
@@ -98,7 +99,23 @@ struct StreamInfo {
 
     /** Just provide as much information as you want, the rest is initialized to sane defaults. */
     StreamInfo(StreamType type = ST_NONE, uint8_t *extradata = NULL, int extradata_size = 0) :
-        type(type), extradata(extradata), extradata_size(extradata_size) {}
+        type(type), extradata(extradata), extradata_size(extradata_size) {
+            switch (type) {
+                case AUDIO:
+                    audio.codec = AC_NONE;
+                    audio.sampleRate = 0;
+                    audio.channels = 0;
+                    audio.sampleFormat = S_NONE;
+                    break;
+                case VIDEO:
+                    video.codec = VC_NONE;
+                    video.pixelFormat = P_NONE;
+                    video.h264or5.annexb = false;
+                    break;
+                default:
+                    break;
+            }
+        }
 
 
     ~StreamInfo() {

@@ -73,22 +73,24 @@ bool HeadDemuxerLibav::doProcessFrame(std::map<int, Frame*> &dstFrames)
         return false;
     }
 
-    // Find the stream index of the packet and the corresponding output frame
-    Frame *f = dstFrames[pkt.stream_index];
-    if (f != NULL) {
-        // If the output for this stream index is connected, copy payload
-        // (Otherwise, discard packet)
-        uint8_t *data = f->getDataBuf();
-        memcpy (data, pkt.data, pkt.size);
-        f->setConsumed(true);
-        f->setLength(pkt.size);
-        f->setPresentationTime(
-            std::chrono::microseconds(
-                (int64_t)(1000000 * pkt.pts * streamTimeBase[pkt.stream_index])));
-        f->setDuration(
-            std::chrono::nanoseconds(
-                (int64_t)(1000000000 * pkt.duration * streamTimeBase[pkt.stream_index])));
+    if (dstFrames.count(pkt.stream_index) == 0) {
+        // Discard packet if output corresponding to this stream is not connected
+        av_free_packet(&pkt);
+        return false;
     }
+
+    // Find corresponding output frame
+    Frame *f = dstFrames[pkt.stream_index];
+    uint8_t *data = f->getDataBuf();
+    memcpy (data, pkt.data, pkt.size);
+    f->setConsumed(true);
+    f->setLength(pkt.size);
+    f->setPresentationTime(
+        std::chrono::microseconds(
+            (int64_t)(1000000 * pkt.pts * streamTimeBase[pkt.stream_index])));
+    f->setDuration(
+        std::chrono::nanoseconds(
+            (int64_t)(1000000000 * pkt.duration * streamTimeBase[pkt.stream_index])));
     av_free_packet(&pkt);
 
     return true;

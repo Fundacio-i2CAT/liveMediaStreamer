@@ -194,6 +194,15 @@ bool HeadDemuxerLibav::setURI(const std::string URI)
             if (av_ctx->streams[i]->codec->extradata_size > 0) {
                 si->setExtraData(av_ctx->streams[i]->codec->extradata,
                         av_ctx->streams[i]->codec->extradata_size);
+                // Detect H264/5 AnnexB format
+                if (av_ctx->streams[i]->codec->extradata_size > 4 &&
+                        si->type == VIDEO &&
+                            (si->video.codec == H264 || si->video.codec == H265)) {
+                    const uint8_t *data = av_ctx->streams[i]->codec->extradata;
+                    if (data[0] == 0 && data[1] == 0 && data[2] == 0 && data[3] == 1) {
+                        si->video.h264or5.annexb = true;
+                    }
+                }
             }
             double timeBase = (double)av_ctx->streams[i]->time_base.num /
                     av_ctx->streams[i]->time_base.den;

@@ -23,7 +23,7 @@
 #include "HeadDemuxerLibav.hh"
 #include "../../AVFramedQueue.hh"
 
-HeadDemuxerLibav::HeadDemuxerLibav() : HeadFilter (2)
+HeadDemuxerLibav::HeadDemuxerLibav() : HeadFilter ()
 {
     // Initialize libav
     av_register_all();

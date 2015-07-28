@@ -128,6 +128,7 @@ private:
     bool setChannelGain(int id, float value);
     
     bool specificReaderConfig(int readerID, FrameQueue* queue);
+    bool specificReaderDelete(int readerID);
 
     bool changeChannelVolumeEvent(Jzon::Node* params);
     bool muteChannelEvent(Jzon::Node* params);

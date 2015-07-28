@@ -118,17 +118,12 @@ bool SinkManager::readerInConnection(int rId)
     return false;
 }
 
-bool SinkManager::deleteReader(int readerId)
+bool SinkManager::specificReaderDelete(int readerId)
 {
-    if (readers.count(readerId) > 0){
-        readers[readerId]->disconnect();
-        readers[readerId]->removeReader(getId());
-        readers.erase(readerId);
-        removeConnectionByReaderId(readerId);
-        if (sources.count(readerId) > 0){
-            delete sources[readerId];
-            sources.erase(readerId);
-        }
+    removeConnectionByReaderId(readerId);
+    if (sources.count(readerId) > 0){
+        delete sources[readerId];
+        sources.erase(readerId);
         return true;
     }
     return false;

@@ -215,6 +215,14 @@ bool VideoMixer::specificReaderConfig(int readerId, FrameQueue* /*queue*/)
     return true;
 }
 
+bool VideoMixer::specificReaderDelete(int readerID)
+{
+    delete channelsConfig[readerID];
+    channelsConfig.erase(readerID);
+    
+    return true;
+}
+
 void VideoMixer::initializeEventMap()
 {
     eventMap["configChannel"] = std::bind(&VideoMixer::configChannelEvent, this, std::placeholders::_1);

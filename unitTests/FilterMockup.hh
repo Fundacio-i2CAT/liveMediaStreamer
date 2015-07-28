@@ -54,6 +54,7 @@ private:
     
     //There is no need of specific reader configuration
     bool specificReaderConfig(int /*readerID*/, FrameQueue* /*queue*/)  {return true;};
+    bool specificReaderDelete(int /*readerID*/) {return true;};
 
     bool runDoProcessFrame(std::map<int, Frame*> &oFrames, std::map<int, Frame*> &dFrames, std::vector<int> newFrames) {
         return true;
@@ -89,6 +90,7 @@ private:
     virtual FrameQueue *allocQueue(struct ConnectionData cData) {return new AVFramedQueueMock(cData, queueSize);};
     //There is no need of specific reader configuration
     bool specificReaderConfig(int /*readerID*/, FrameQueue* /*queue*/)  {return true;};
+    bool specificReaderDelete(int /*readerID*/) {return true;};
 
     std::default_random_engine generator;
     size_t queueSize;
@@ -121,6 +123,7 @@ private:
     virtual FrameQueue *allocQueue(struct ConnectionData cData) {return new AVFramedQueueMock(cData, queueSize);};
     //There is no need of specific reader configuration
     bool specificReaderConfig(int /*readerID*/, FrameQueue* /*queue*/)  {return true;};
+    bool specificReaderDelete(int /*readerID*/) {return true;};
 
     std::default_random_engine generator;
     size_t queueSize;
@@ -244,6 +247,7 @@ protected:
         
     //There is no need of specific reader configuration
     bool specificReaderConfig(int /*readerID*/, FrameQueue* /*queue*/)  {return true;};
+    bool specificReaderDelete(int /*readerID*/) {return true;};
     
     size_t frames;
     Frame* frame;
@@ -412,6 +416,7 @@ protected:
 private:
     //There is no need of specific reader configuration
     bool specificReaderConfig(int /*readerID*/, FrameQueue* /*queue*/)  {return true;};
+    bool specificReaderDelete(int /*readerID*/) {return true;};
     
     InterleavedVideoFrame* oFrame;
     bool newFrame;
@@ -480,6 +485,7 @@ protected:
 private:
     //There is no need of specific reader configuration
     bool specificReaderConfig(int /*readerID*/, FrameQueue* /*queue*/)  {return true;};
+    bool specificReaderDelete(int /*readerID*/) {return true;};
     
     PlanarAudioFrame* oFrame;
     bool newFrame;

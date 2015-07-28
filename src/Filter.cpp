@@ -516,7 +516,7 @@ bool BaseFilter::deleteReader(int readerId)
     if (readers.count(readerId) > 0){
         readers[readerId]->removeReader(getId());
         readers.erase(readerId);
-        return true;
+        return specificReaderDelete(readerId);
     }
     
     return false;

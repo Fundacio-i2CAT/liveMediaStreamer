@@ -88,8 +88,6 @@ public:
 private:
     SinkManager(unsigned readersNum = MAX_READERS);
     
-    bool deleteReader(int readerId);
-    
     bool readerInConnection(int rId);
     
     bool isGood() {return rtspServer != NULL;};
@@ -105,6 +103,7 @@ private:
     bool addRTPConnectionEvent(Jzon::Node* params);
     
     bool specificReaderConfig(int readerID, FrameQueue* queue);
+    bool specificReaderDelete(int readerID);
 
     bool doProcessFrame(std::map<int, Frame*> &oFrames, std::vector<int> newFrames);
     void stop();

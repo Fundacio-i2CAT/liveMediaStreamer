@@ -64,7 +64,7 @@ bool VideoDecoderLibav::doProcessFrame(Frame *org, Frame *dst)
     int len, gotFrame = 0;
     VideoFrame* vDecodedFrame = dynamic_cast<VideoFrame*>(dst);
     VideoFrame* vCodedFrame = dynamic_cast<VideoFrame*>(org);
-
+    
     if (!reconfigure(vCodedFrame->getCodec())){
         return false;
     }

@@ -281,6 +281,15 @@ bool AudioMixer::specificReaderConfig(int readerID, FrameQueue* queue)
     return true;
 }
 
+bool AudioMixer::specificReaderDelete(int readerID)
+{
+    if (gains.count(readerID) > 0){
+        gains.erase(readerID);
+        return true;
+    }
+    return false;
+}
+
 bool AudioMixer::setChannelGain(int id, float value)
 {
     if (gains.count(id) <= 0) {

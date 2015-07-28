@@ -129,17 +129,6 @@ void addVideoPath(unsigned port, int receiverID, int transmitterID)
 
     //bitrate, fps, gop, lookahead, threads, annexB, preset
     encoder->configure(4000, 25, 25, 25, 4, true, "superfast");
-
-    if (!pipe->createPath(7000, receiverID, transmitterID, port, 7000, std::vector<int>({}))) {
-        utils::errorMsg("Error creating video path");
-        return;
-    }
-
-    if (!pipe->connectPath(7000)) {
-        utils::errorMsg("Failed! Path not connected");
-        pipe->removePath(port);
-        return;
-    }
     
     if (!pipe->createPath(port, receiverID, transmitterID, port, -1, ids)) {
         utils::errorMsg("Error creating video path");
@@ -147,6 +136,17 @@ void addVideoPath(unsigned port, int receiverID, int transmitterID)
     }   
 
     if (!pipe->connectPath(port)) {
+        utils::errorMsg("Failed! Path not connected");
+        pipe->removePath(port);
+        return;
+    }
+    
+    if (!pipe->createPath(7000, receiverID, transmitterID, port, 7000, std::vector<int>({}))) {
+        utils::errorMsg("Error creating video path");
+        return;
+    }
+
+    if (!pipe->connectPath(7000)) {
         utils::errorMsg("Failed! Path not connected");
         pipe->removePath(port);
         return;

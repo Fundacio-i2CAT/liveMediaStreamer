@@ -104,6 +104,7 @@ private:
     
     //There is no need of specific reader configuration
     bool specificReaderConfig(int /*readerID*/, FrameQueue* /*queue*/)  {return true;};
+    bool specificReaderDelete(int /*readerID*/) {return true;};
 
     uint16_t getCodecFromVCodec(VCodecType codec);
     uint16_t getPixelFormatFromPixType(PixType pxlFrmt);

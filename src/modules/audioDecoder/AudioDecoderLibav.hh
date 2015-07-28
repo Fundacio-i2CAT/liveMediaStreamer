@@ -57,6 +57,7 @@ private:
 
     //There is no need of specific reader configuration
     bool specificReaderConfig(int /*readerID*/, FrameQueue* /*queue*/)  {return true;};
+    bool specificReaderDelete(int /*readerID*/) {return true;};
     
     AVCodec             *codec;
     AVCodecContext      *codecCtx;

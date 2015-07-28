@@ -198,6 +198,7 @@ protected:
     
     //TODO: this should get stream info parameters insted of FrameQueue or get from reader.
     virtual bool specificReaderConfig(int readerID, FrameQueue* queue) = 0;
+    virtual bool specificReaderDelete(int readerID) = 0;
 
     std::vector<int> demandOriginFrames(std::map<int, Frame*> &oFrames);
     std::vector<int> demandOriginFramesBestEffort(std::map<int, Frame*> &oFrames);
@@ -212,8 +213,6 @@ protected:
     std::map<std::string, std::function<bool(Jzon::Node* params)> > eventMap;
 
     virtual bool runDoProcessFrame(std::map<int, Frame*> &oFrames, std::map<int, Frame*> &dFrames, std::vector<int> newFrames) = 0;
-    
-    virtual bool deleteReader(int readerId);
 
     void setSyncTs(std::chrono::microseconds ts){syncTs = ts;};
     std::chrono::microseconds getSyncTs(){return syncTs;};
@@ -234,6 +233,7 @@ private:
     bool connect(BaseFilter *R, int writerID, int readerID);
     std::vector<int> regularProcessFrame(int& ret);
     std::vector<int> serverProcessFrame(int& ret);
+    bool deleteReader(int readerId);
 
     void execute() {process = true;};
     bool isProcessing() {return process;};
@@ -262,6 +262,7 @@ private:
     using BaseFilter::addFrames;
     using BaseFilter::removeFrames;
     using BaseFilter::writers;
+    using BaseFilter::readers;
     using BaseFilter::seqNums;
     using BaseFilter::processEvent;
     using BaseFilter::frameTime;
@@ -286,6 +287,7 @@ private:
     using BaseFilter::addFrames;
     using BaseFilter::removeFrames;
     using BaseFilter::writers;
+    using BaseFilter::readers;
     using BaseFilter::seqNums;
     using BaseFilter::processEvent;
 
@@ -311,12 +313,14 @@ private:
     bool runDoProcessFrame(std::map<int, Frame*> &oFrames, std::map<int, Frame*> &dFrames, std::vector<int> /*newFrames*/);
     //There is no need of specific reader configuration
     bool specificReaderConfig(int /*readerID*/, FrameQueue* /*queue*/)  {return true;};
+    bool specificReaderDelete(int /*readerID*/) {return true;};
 
     using BaseFilter::demandDestinationFrames;
     using BaseFilter::demandOriginFrames;
     using BaseFilter::addFrames;
     using BaseFilter::removeFrames;
     using BaseFilter::writers;
+    using BaseFilter::readers;
     using BaseFilter::seqNums;
     using BaseFilter::processEvent;
     using BaseFilter::frameTime;
@@ -343,6 +347,7 @@ private:
     using BaseFilter::addFrames;
     using BaseFilter::removeFrames;
     using BaseFilter::writers;
+    using BaseFilter::readers;
     using BaseFilter::seqNums;
     using BaseFilter::processEvent;
     using BaseFilter::frameTime;
@@ -367,6 +372,7 @@ private:
     using BaseFilter::addFrames;
     using BaseFilter::removeFrames;
     using BaseFilter::writers;
+    using BaseFilter::readers;
     using BaseFilter::seqNums;
     using BaseFilter::processEvent;
     using BaseFilter::frameTime;

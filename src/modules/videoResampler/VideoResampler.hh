@@ -53,6 +53,7 @@ class VideoResampler : public OneToOneFilter {
         
         //There is no need of specific reader configuration
         bool specificReaderConfig(int /*readerID*/, FrameQueue* /*queue*/)  {return true;};
+        bool specificReaderDelete(int /*readerID*/) {return true;};
         
         struct SwsContext   *imgConvertCtx;
         AVFrame             *inFrame, *outFrame;

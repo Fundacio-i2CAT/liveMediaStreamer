@@ -121,7 +121,7 @@ private:
     void addConnection(int wId, MediaSubsession* subsession);
 
     static void* startServer(void *args);
-    FrameQueue *allocQueue(struct ConnectionData cData);
+    FrameQueue *allocQueue(ConnectionData cData);
 
     void stop();
 

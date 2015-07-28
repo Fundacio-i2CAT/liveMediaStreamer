@@ -55,7 +55,7 @@ VideoResampler::~VideoResampler()
     sws_freeContext(imgConvertCtx);
 }
 
-FrameQueue* VideoResampler::allocQueue(struct ConnectionData cData)
+FrameQueue* VideoResampler::allocQueue(ConnectionData cData)
 {
     return VideoFrameQueue::createNew(cData, RAW, DEFAULT_RAW_VIDEO_FRAMES, outPixFmt);
 }

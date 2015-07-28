@@ -39,13 +39,12 @@ WorkersPool::WorkersPool(size_t threads) : run(true)
                 Runnable* job = NULL;
                 std::list<Runnable*>::iterator iter;
                 std::vector<int> enabledJobs;
-                unsigned added = 0;
+                bool added = false;
                 
                 while(true) {
                     std::unique_lock<std::mutex> guard(mtx);
                     iter = jobQueue.begin();
                     while (run) {
-
                         if (iter == jobQueue.end()){
                             qCheck.wait_for(guard, std::chrono::milliseconds(IDLE));
                         } else if (!(*iter)->isRunning() && !(*iter)->ready()) {
@@ -64,7 +63,9 @@ WorkersPool::WorkersPool(size_t threads) : run(true)
                     if(!run){
                         break;
                     }
-
+                    
+                    added = false;
+                    
                     job->setRunning();
                     guard.unlock();
                     
@@ -74,23 +75,21 @@ WorkersPool::WorkersPool(size_t threads) : run(true)
                     
                     guard.lock();
                     job->unsetRunning();
+
                     
-                    if(!run){
-                        break;
-                    }
-                                      
                     for(auto job : enabledJobs){
-                        added = addJob(job);
+                        added |= addJob(job);
                     }
                     
                     if (job->isPeriodic()){
                         jobQueue.push_back(job);
+                        addGroupJob(job->getGroupIds());
                         jobQueue.sort(RunnableLess());
-                        added++;
+                        added = true;
                     }
                     
                     guard.unlock();
-                    for (; added > 0; added--){
+                    if (added){
                         qCheck.notify_one();
                     }
                 }
@@ -161,19 +160,23 @@ bool WorkersPool::removeFromQueue(int id){
     return found;
 }
 
-unsigned WorkersPool::addJob(const int id){
-    unsigned num = 0;
-
+bool WorkersPool::addJob(const int id){
+    bool added = false;
     if (runnables.count(id) > 0 && !runnables[id]->isPeriodic()){
-        for (auto runId : runnables[id]->getGroupIds()){
-            if (runnables.count(runId) > 0 && !runnables[runId]->isPeriodic()){
-                jobQueue.push_back(runnables[runId]);
-                num++;
-            }
-        }
-
+        added = addGroupJob(runnables[id]->getGroupIds());
         jobQueue.sort(RunnableLess());
     }
+    return added;
+}
 
-    return num;
+bool WorkersPool::addGroupJob(std::vector<int> group)
+{
+    bool added = false;
+    for (auto runId : group){
+        if (runnables.count(runId) > 0 && !runnables[runId]->isPeriodic()){
+            jobQueue.push_back(runnables[runId]);
+            added = true;
+        }
+    }
+    return added;
 }

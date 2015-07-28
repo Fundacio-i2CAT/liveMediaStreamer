@@ -123,7 +123,7 @@ bool SharedMemory::doProcessFrame(Frame *org, Frame *dst)
     return true;
 }
 
-FrameQueue* SharedMemory::allocQueue(struct ConnectionData cData)
+FrameQueue* SharedMemory::allocQueue(ConnectionData cData)
 {
     if (codec == H264) {
         return VideoFrameQueue::createNew(cData, codec, DEFAULT_VIDEO_FRAMES);

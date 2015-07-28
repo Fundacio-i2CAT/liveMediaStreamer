@@ -25,7 +25,7 @@
 #include "VideoFrame.hh"
 #include "Utils.hh"
 
-AVFramedQueue::AVFramedQueue(struct ConnectionData cData, unsigned maxFrames) : FrameQueue(cData), max(maxFrames)
+AVFramedQueue::AVFramedQueue(ConnectionData cData, unsigned maxFrames) : FrameQueue(cData), max(maxFrames)
 {
 
 }
@@ -103,7 +103,7 @@ const unsigned AVFramedQueue::getElements()
 //VIDEO FRAME QUEUE METHODS IMPLEMENTATION//
 ////////////////////////////////////////////
 
-VideoFrameQueue* VideoFrameQueue::createNew(struct ConnectionData cData, VCodecType codec, unsigned maxFrames, PixType pixelFormat, const uint8_t *extradata, int extradata_size)
+VideoFrameQueue* VideoFrameQueue::createNew(ConnectionData cData, VCodecType codec, unsigned maxFrames, PixType pixelFormat, const uint8_t *extradata, int extradata_size)
 {
     VideoFrameQueue* q = new VideoFrameQueue(cData, codec, maxFrames, pixelFormat);
 
@@ -120,7 +120,7 @@ VideoFrameQueue* VideoFrameQueue::createNew(struct ConnectionData cData, VCodecT
 }
 
 
-VideoFrameQueue::VideoFrameQueue(struct ConnectionData cData, VCodecType codec_, unsigned maxFrames, PixType pixelFormat_) :
+VideoFrameQueue::VideoFrameQueue(ConnectionData cData, VCodecType codec_, unsigned maxFrames, PixType pixelFormat_) :
 AVFramedQueue(cData, maxFrames), codec(codec_), pixelFormat(pixelFormat_)
 {
 
@@ -164,7 +164,7 @@ bool VideoFrameQueue::setup()
 
 unsigned getMaxSamples(unsigned sampleRate);
 
-AudioFrameQueue* AudioFrameQueue::createNew(struct ConnectionData cData, ACodecType codec, unsigned maxFrames, unsigned sampleRate, 
+AudioFrameQueue* AudioFrameQueue::createNew(ConnectionData cData, ACodecType codec, unsigned maxFrames, unsigned sampleRate, 
                                              unsigned channels, SampleFmt sFmt, const uint8_t *extradata, int extradata_size)
 {
     AudioFrameQueue* q = new AudioFrameQueue(cData, codec, maxFrames, sFmt, sampleRate, channels);
@@ -181,7 +181,7 @@ AudioFrameQueue* AudioFrameQueue::createNew(struct ConnectionData cData, ACodecT
     return q;
 }
 
-AudioFrameQueue::AudioFrameQueue(struct ConnectionData cData, ACodecType codec_, unsigned maxFrames, SampleFmt sFmt, unsigned sampleRate_, unsigned channels_)
+AudioFrameQueue::AudioFrameQueue(ConnectionData cData, ACodecType codec_, unsigned maxFrames, SampleFmt sFmt, unsigned sampleRate_, unsigned channels_)
 : AVFramedQueue(cData, maxFrames), codec(codec_), sampleFormat(sFmt), sampleRate(sampleRate_), channels(channels_)
 {
 

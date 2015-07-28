@@ -114,9 +114,9 @@ public:
     bool muteMaster();
 
 protected:
-    std::shared_ptr<Reader> setReader(int readerID, FrameQueue* queue);
+    
     void doGetState(Jzon::Object &filterNode);
-    FrameQueue *allocQueue(struct ConnectionData cData);
+    FrameQueue *allocQueue(ConnectionData cData);
     bool doProcessFrame(std::map<int, Frame*> &orgFrames, Frame *dst);
 
 private:
@@ -126,6 +126,8 @@ private:
     bool extractMixedFrame(AudioFrame* frame);
     void mixSample(float sample, float* mixBuff, int bufferIdx, float gain);
     bool setChannelGain(int id, float value);
+    
+    bool specificReaderConfig(int readerID, FrameQueue* queue);
 
     bool changeChannelVolumeEvent(Jzon::Node* params);
     bool muteChannelEvent(Jzon::Node* params);

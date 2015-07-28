@@ -44,7 +44,7 @@ public:
     ~VideoEncoderX264();
 
 private:
-    FrameQueue* allocQueue(struct ConnectionData cData);
+    FrameQueue* allocQueue(ConnectionData cData);
     void initializeEventMap();
 
     x264_picture_t picIn;

@@ -186,6 +186,11 @@ bool SinkManager::addRTSPConnection(std::vector<int> readers, int id, TxFormat t
         utils::errorMsg("Unitialized RTSPServer");
         return false;
     }
+    
+    if (readers.empty()){
+        utils::errorMsg("RTSP Connection not added, no readers provided!");
+        return false;
+    }
 
     if (connections.count(id) > 0){
         utils::errorMsg("Failed, this connection already exists");
@@ -393,37 +398,22 @@ bool SinkManager::addUltraGridRTPConnection(std::vector<int> readers, int id, st
 }
 
 
-std::shared_ptr<Reader> SinkManager::setReader(int readerId, FrameQueue* queue)
+bool SinkManager::specificReaderConfig(int readerId, FrameQueue* queue)
 {
     VideoFrameQueue *vQueue;
-    AudioFrameQueue *aQueue;
-    bool queueSrcCreated = false;
-
-    if (readers.size() >= getMaxReaders() || readers.count(readerId) > 0 ) {
-        return NULL;
-    }
-
-    std::shared_ptr<Reader> r (new Reader());
-    
+    AudioFrameQueue *aQueue;  
 
     if ((vQueue = dynamic_cast<VideoFrameQueue*>(queue)) != NULL){
         createVideoQueueSource(vQueue->getCodec(), readerId);
-        queueSrcCreated = true;
+        return true;
     }
 
     if ((aQueue = dynamic_cast<AudioFrameQueue*>(queue)) != NULL){
         createAudioQueueSource(aQueue->getCodec(), readerId);
-        queueSrcCreated = true;
+        return true;
     }
     
-    if(!queueSrcCreated){
-        r.reset();
-        return NULL;
-    }
-    
-    readers[readerId] = r;
-    
-    return r;
+    return false;
 }
 
 void SinkManager::createVideoQueueSource(VCodecType codec, int readerId)
@@ -455,6 +445,7 @@ bool SinkManager::addSubsessionByReader(RTSPConnection* connection ,int readerId
     
     std::shared_ptr<Reader> reader = getReader(readerId);
     if (!reader){
+        utils::errorMsg("Failed! Reader not found!");
         return false;
     }
 

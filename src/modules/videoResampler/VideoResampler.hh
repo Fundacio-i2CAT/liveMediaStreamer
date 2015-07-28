@@ -44,12 +44,15 @@ class VideoResampler : public OneToOneFilter {
     private:
         bool configure0(int width, int height, int period, PixType pixelFormat);
         bool doProcessFrame(Frame *org, Frame *dst);
-        FrameQueue* allocQueue(struct ConnectionData cData);
+        FrameQueue* allocQueue(ConnectionData cData);
         void initializeEventMap();
         bool configEvent(Jzon::Node* params);
         void doGetState(Jzon::Object &filterNode);
         bool reconfigure(VideoFrame* orgFrame);
         bool setAVFrame(AVFrame *aFrame, VideoFrame* vFrame, AVPixelFormat format);
+        
+        //There is no need of specific reader configuration
+        bool specificReaderConfig(int /*readerID*/, FrameQueue* /*queue*/)  {return true;};
         
         struct SwsContext   *imgConvertCtx;
         AVFrame             *inFrame, *outFrame;

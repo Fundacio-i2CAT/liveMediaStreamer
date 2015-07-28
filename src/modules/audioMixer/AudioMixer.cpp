@@ -56,7 +56,7 @@ AudioMixer::~AudioMixer()
     }
 }
 
-FrameQueue *AudioMixer::allocQueue(struct ConnectionData cData) 
+FrameQueue *AudioMixer::allocQueue(ConnectionData cData) 
 {
     return AudioCircularBuffer::createNew(cData, channels, sampleRate, DEFAULT_BUFFER_SIZE, 
                                             sampleFormat, std::chrono::milliseconds(0));
@@ -268,16 +268,9 @@ bool AudioMixer::floatToBytes(unsigned char* dst, float const origin, SampleFmt 
     return true;
 }
 
-std::shared_ptr<Reader> AudioMixer::setReader(int readerID, FrameQueue* queue)
+bool AudioMixer::specificReaderConfig(int readerID, FrameQueue* queue)
 {
     AudioCircularBuffer* inBuffer;
-
-    if (readers.count(readerID) > 0) {
-        return NULL;
-    }
-
-    std::shared_ptr<Reader> r (new Reader());
-    readers[readerID] = r;
 
     inBuffer = dynamic_cast<AudioCircularBuffer*>(queue);
 
@@ -290,7 +283,7 @@ std::shared_ptr<Reader> AudioMixer::setReader(int readerID, FrameQueue* queue)
 
     gains[readerID] = DEFAULT_CHANNEL_GAIN;
 
-    return r;
+    return true;
 }
 
 bool AudioMixer::setChannelGain(int id, float value)

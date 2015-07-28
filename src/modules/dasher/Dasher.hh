@@ -126,6 +126,9 @@ private:
     bool addSegmenterEvent(Jzon::Node* params);
     bool removeSegmenterEvent(Jzon::Node* params);
     bool setBitrateEvent(Jzon::Node* params);
+    
+    //There is no need of specific reader configuration
+    bool specificReaderConfig(int /*readerID*/, FrameQueue* /*queue*/)  {return true;};
 
     std::map<int, DashSegmenter*> segmenters;
     std::map<int, DashSegment*> vSegments;

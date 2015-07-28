@@ -35,6 +35,8 @@ HeadDemuxerLibav::HeadDemuxerLibav() : HeadFilter (2)
 
     // Clear all internal data
     reset();
+
+    initializeEventMap();
 }
 
 HeadDemuxerLibav::~HeadDemuxerLibav()
@@ -96,7 +98,7 @@ bool HeadDemuxerLibav::doProcessFrame(std::map<int, Frame*> &dstFrames)
     return true;
 }
 
-FrameQueue *HeadDemuxerLibav::allocQueue(struct ConnectionData cData)
+FrameQueue *HeadDemuxerLibav::allocQueue(ConnectionData cData)
 {
     // Create output queue for the kind of stream associated with this wId
     const DemuxerStreamInfo *info = streams[cData.writerId];
@@ -221,5 +223,27 @@ SampleFmt HeadDemuxerLibav::getSampleFormatFromLibav(AVSampleFormat libavSampleF
         case AV_SAMPLE_FMT_S16P: return S16P;
         case AV_SAMPLE_FMT_FLTP: return FLTP;
         default: return S_NONE;
+    }
+}
+
+void HeadDemuxerLibav::initializeEventMap()
+{
+    eventMap["configure"] = std::bind(&HeadDemuxerLibav::configureEvent, this, std::placeholders::_1);
+}
+
+bool HeadDemuxerLibav::configureEvent(Jzon::Node* params)
+{
+    if (!params) {
+        return false;
+    }
+
+    if (params->Has("uri")) {
+        if(setURI(params->Get("uri").ToString())){
+            return true;
+        } else {
+            return false;
+        }
+    } else {
+        return false;
     }
 }

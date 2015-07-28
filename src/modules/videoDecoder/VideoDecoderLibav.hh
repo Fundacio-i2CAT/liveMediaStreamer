@@ -36,26 +36,29 @@ extern "C" {
 
 class VideoDecoderLibav : public OneToOneFilter {
 
-    public:
-        VideoDecoderLibav();
-        ~VideoDecoderLibav();
+public:
+    VideoDecoderLibav();
+    ~VideoDecoderLibav();
         
-    private:
-        void initializeEventMap();
-        FrameQueue* allocQueue(struct ConnectionData cData);
-        bool doProcessFrame(Frame *org, Frame *dst);
-        bool toBuffer(VideoFrame *decodedFrame, VideoFrame *codedFrame);
-        bool reconfigure(VCodecType codec);
-        bool inputConfig();
-        void doGetState(Jzon::Object &filterNode);
-        
-        AVCodec             *codec;
-        AVCodecContext      *codecCtx;
-        AVFrame             *frame, *frameCopy;
-        AVPacket            pkt;
-        AVCodecID           libavCodecId;
+private:
+    void initializeEventMap();
+    FrameQueue* allocQueue(ConnectionData cData);
+    bool doProcessFrame(Frame *org, Frame *dst);
+    bool toBuffer(VideoFrame *decodedFrame, VideoFrame *codedFrame);
+    bool reconfigure(VCodecType codec);
+    bool inputConfig();
+    void doGetState(Jzon::Object &filterNode);
+    
+    //There is no need of specific reader configuration
+    bool specificReaderConfig(int /*readerID*/, FrameQueue* /*queue*/)  {return true;};
+    
+    AVCodec             *codec;
+    AVCodecContext      *codecCtx;
+    AVFrame             *frame, *frameCopy;
+    AVPacket            pkt;
+    AVCodecID           libavCodecId;
 
-        VCodecType          fCodec;
+    VCodecType          fCodec;
 };
 
 #endif

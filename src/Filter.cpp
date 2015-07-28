@@ -59,7 +59,7 @@ bool BaseFilter::isWConnected (int wId)
     return false;
 }
 
-struct ConnectionData BaseFilter::getWConnectionData (int wId) 
+ConnectionData BaseFilter::getWConnectionData (int wId) 
 {   
     std::lock_guard<std::mutex> guard(mtx);
 
@@ -67,7 +67,7 @@ struct ConnectionData BaseFilter::getWConnectionData (int wId)
         return writers[wId]->getCData();
     }
     
-    struct ConnectionData cData;
+    ConnectionData cData;
     return cData;
 }
 
@@ -105,6 +105,11 @@ std::shared_ptr<Reader> BaseFilter::setReader(int readerID, FrameQueue* queue)
     }
 
     std::shared_ptr<Reader> r (new Reader());
+    
+    if (!specificReaderConfig(readerID, queue)){
+        r.reset();
+    }
+    
     readers[readerID] = r;
 
     return r;
@@ -197,7 +202,7 @@ bool BaseFilter::removeFrames(std::map<int, Frame*> &oFrames)
     
     for (auto it : oFrames){
         if (readers.count(it.first) > 0 && it.second->getConsumed()){
-			readers[it.first]->removeFrame(getId());
+            readers[it.first]->removeFrame(getId());
             executeAgain |= (readers[it.first]->getQueueElements() > 0);
         }
     }
@@ -222,6 +227,10 @@ bool BaseFilter::shareReader(BaseFilter *shared, int sharedRId, int orgRId)
         return false;
     }
     
+    if (!shared->specificReaderConfig(sharedRId, readers[orgRId]->getQueue())){
+        return false;
+    }
+    
     shared->readers[sharedRId] = readers[orgRId];
     readers[orgRId]->addReader();
     
@@ -232,7 +241,7 @@ bool BaseFilter::connect(BaseFilter *R, int writerID, int readerID)
 {
     std::shared_ptr<Reader> r;
     FrameQueue *queue = NULL;
-    struct ConnectionData cData;
+    ConnectionData cData;
     
     std::lock_guard<std::mutex> guard(mtx);
       
@@ -251,8 +260,7 @@ bool BaseFilter::connect(BaseFilter *R, int writerID, int readerID)
         return false;
     }
 
-    std::shared_ptr<Writer> w (new Writer());
-    writers[writerID] = w;
+    writers[writerID] = std::shared_ptr<Writer>(new Writer());
     seqNums[writerID] = 0;
 
     cData.wFilterId = getId();
@@ -470,7 +478,9 @@ std::vector<int> BaseFilter::serverProcessFrame(int& ret)
     runDoProcessFrame(oFrames, dFrames);
 
     enabledJobs = addFrames(dFrames);
-    removeFrames(oFrames);
+    if (removeFrames(oFrames)){
+        enabledJobs.push_back(getId());
+    }
     
     ret = 0;
     

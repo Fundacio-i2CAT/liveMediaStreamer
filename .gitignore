@@ -20,8 +20,9 @@ stamp-h1
 testtranscoder
 testtranscoderaactoisoff
 testtranscoderh264toisoff
-
-
+fakelive
+testdemuxer
+teststreamer
 
 autom4te.cache/
 config.log
@@ -47,6 +48,7 @@ rec_trans
 audio_rtp_only
 
 doc/
+doxygen/
 
 *.xml
 *.mp4
@@ -58,6 +60,7 @@ doc/
 
 *~
 *.swp
+*.swo
 
 *.dirstamp
 m4/
@@ -67,3 +70,25 @@ m4/
 
 cscope.*
 tags
+
+unitTests/connectionTest
+unitTests/dashAudioSegmenterTest
+unitTests/dashVideoSegmenterTest
+unitTests/dasherTest
+unitTests/encodingDecodingTest
+unitTests/filterTest
+unitTests/headDemuxerFunctionalTest
+unitTests/headDemuxerTest
+unitTests/mpdManagerTest
+unitTests/sharedMemoryTest
+unitTests/sinkManagerTest
+unitTests/slicedVideoFrameQueueTest
+unitTests/testsData/modules/dasher/test.mpd
+unitTests/testsData/videoVectorTest_out_2000kbps.h264
+unitTests/testsData/videoVectorTest_out_2000kbps.h265
+unitTests/testsData/videoVectorTest_out_4000kbps.h264
+unitTests/testsData/videoVectorTest_out_4000kbps.h265
+unitTests/testsData/videoVectorTest_out_500kbps.h264
+unitTests/testsData/videoVectorTest_out_500kbps.h265
+unitTests/workerTest
+

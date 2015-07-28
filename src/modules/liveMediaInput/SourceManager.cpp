@@ -149,7 +149,7 @@ bool SourceManager::addSink(unsigned port, QueueSink *sink)
     return true;
 }
 
-FrameQueue *SourceManager::allocQueue(struct ConnectionData cData)
+FrameQueue *SourceManager::allocQueue(ConnectionData cData)
 {
     MediaSubsession *mSubsession;
 

@@ -84,7 +84,7 @@ VideoMixer::~VideoMixer()
     channelsConfig.clear();
 }
 
-FrameQueue* VideoMixer::allocQueue(struct ConnectionData cData)
+FrameQueue* VideoMixer::allocQueue(ConnectionData cData)
 {
     return VideoFrameQueue::createNew(cData, RAW, DEFAULT_RAW_VIDEO_FRAMES, RGB24);
 }

@@ -42,7 +42,7 @@ public:
     
 protected:
     bool doProcessFrame(Frame *org, Frame *dst);
-    FrameQueue* allocQueue(struct ConnectionData cData);
+    FrameQueue* allocQueue(ConnectionData cData);
     bool configure0(SampleFmt sampleFormat, int channels, int sampleRate);
 
 private:
@@ -55,8 +55,9 @@ private:
     bool configEvent(Jzon::Node* params);
     void doGetState(Jzon::Object &filterNode);
 
-
-
+    //There is no need of specific reader configuration
+    bool specificReaderConfig(int /*readerID*/, FrameQueue* /*queue*/)  {return true;};
+    
     AVCodec             *codec;
     AVCodecContext      *codecCtx;
     AVFrame             *inFrame;

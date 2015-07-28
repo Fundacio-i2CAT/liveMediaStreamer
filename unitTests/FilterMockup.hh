@@ -51,6 +51,9 @@ protected:
 
 private:
     VCodecType codec;
+    
+    //There is no need of specific reader configuration
+    bool specificReaderConfig(int /*readerID*/, FrameQueue* /*queue*/)  {return true;};
 
     bool runDoProcessFrame(std::map<int, Frame*> &oFrames, std::map<int, Frame*> &dFrames) {
         return true;
@@ -84,6 +87,8 @@ protected:
 
 private:
     virtual FrameQueue *allocQueue(struct ConnectionData cData) {return new AVFramedQueueMock(cData, queueSize);};
+    //There is no need of specific reader configuration
+    bool specificReaderConfig(int /*readerID*/, FrameQueue* /*queue*/)  {return true;};
 
     std::default_random_engine generator;
     size_t queueSize;
@@ -114,6 +119,8 @@ protected:
 
 private:
     virtual FrameQueue *allocQueue(struct ConnectionData cData) {return new AVFramedQueueMock(cData, queueSize);};
+    //There is no need of specific reader configuration
+    bool specificReaderConfig(int /*readerID*/, FrameQueue* /*queue*/)  {return true;};
 
     std::default_random_engine generator;
     size_t queueSize;
@@ -195,6 +202,7 @@ private:
     FrameQueue *allocQueue(struct ConnectionData cData) {
         return new AVFramedQueueMock(cData, 4);
     };
+
 };
 
 class TailFilterMockup : public TailFilter
@@ -232,6 +240,10 @@ protected:
         
         return gotframe;
     }
+    
+        
+    //There is no need of specific reader configuration
+    bool specificReaderConfig(int /*readerID*/, FrameQueue* /*queue*/)  {return true;};
     
     size_t frames;
     Frame* frame;
@@ -398,6 +410,9 @@ protected:
     
 
 private:
+    //There is no need of specific reader configuration
+    bool specificReaderConfig(int /*readerID*/, FrameQueue* /*queue*/)  {return true;};
+    
     InterleavedVideoFrame* oFrame;
     bool newFrame;
 };
@@ -463,6 +478,9 @@ protected:
 
 
 private:
+    //There is no need of specific reader configuration
+    bool specificReaderConfig(int /*readerID*/, FrameQueue* /*queue*/)  {return true;};
+    
     PlanarAudioFrame* oFrame;
     bool newFrame;
 };

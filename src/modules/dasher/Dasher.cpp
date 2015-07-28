@@ -273,10 +273,7 @@ bool Dasher::writeVideoSegments()
 
     for (auto seg : vSegments) {
         if (seg.second->getTimestamp() != ts || seg.second->getDuration() != dur) {
-            utils::errorMsg("Segments of the same adaptation set have different timestamps");
-            std::cout << "Ref ts: " << ts << std::endl;
-            std::cout << "Segment ts: " << seg.second->getTimestamp() << std::endl;
-            return false;
+            utils::warningMsg("Segments of the same adaptation set have different timestamps");
         }
     }
 
@@ -317,8 +314,7 @@ bool Dasher::writeAudioSegments()
 
     for (auto seg : aSegments) {
         if (seg.second->getTimestamp() != ts || seg.second->getDuration() != dur) {
-            utils::errorMsg("Segments of the same adaptation set have different timestamps");
-            return false;
+            utils::warningMsg("Segments of the same adaptation set have different timestamps");
         }
     }
 

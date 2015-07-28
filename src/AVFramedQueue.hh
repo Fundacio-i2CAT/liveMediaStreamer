@@ -73,7 +73,7 @@ public:
     virtual ~AVFramedQueue();
 
 protected:
-    AVFramedQueue(struct ConnectionData cData, unsigned maxFrames);
+    AVFramedQueue(ConnectionData cData, unsigned maxFrames);
     void flush();
     Frame* frames[MAX_FRAMES];
     unsigned max;
@@ -94,7 +94,7 @@ public:
     * @param pixelFormat pixel format of the data stored in queue frames, mandatory if codec == RAW. See #PixType.
     * @return pointer to a new object or NULL if invalid parameters
     */
-    static VideoFrameQueue* createNew(struct ConnectionData cData, VCodecType codec, unsigned maxFrames, PixType pixelFormat = P_NONE, 
+    static VideoFrameQueue* createNew(ConnectionData cData, VCodecType codec, unsigned maxFrames, PixType pixelFormat = P_NONE, 
                                       const uint8_t *extradata = NULL, int extradata_size = 0);
 
     /**
@@ -103,7 +103,7 @@ public:
     const VCodecType getCodec() const {return codec;};
 
 protected:
-    VideoFrameQueue(struct ConnectionData cData, VCodecType codec, unsigned maxFrames, PixType pixelFormat = P_NONE);
+    VideoFrameQueue(ConnectionData cData, VCodecType codec, unsigned maxFrames, PixType pixelFormat = P_NONE);
     VCodecType codec;
     PixType pixelFormat;
 
@@ -127,7 +127,7 @@ public:
     * @param sFmt sample format of the data stored in queue frames. See #SampleFmt
     * @return pointer to a new object or NULL if invalid parameters
     */
-    static AudioFrameQueue* createNew(struct ConnectionData cData, ACodecType codec, unsigned maxFrames, 
+    static AudioFrameQueue* createNew(ConnectionData cData, ACodecType codec, unsigned maxFrames, 
                                       unsigned sampleRate = DEFAULT_SAMPLE_RATE, 
                                       unsigned channels = DEFAULT_CHANNELS, SampleFmt sFmt = S16,
                                       const uint8_t *extradata = NULL, int extradata_size = 0);
@@ -153,7 +153,7 @@ public:
     const SampleFmt getSampleFmt() const {return sampleFormat;};
 
 protected:
-    AudioFrameQueue(struct ConnectionData cData, ACodecType codec, unsigned maxFrames, SampleFmt sFmt, unsigned sampleRate, unsigned channels);
+    AudioFrameQueue(ConnectionData cData, ACodecType codec, unsigned maxFrames, SampleFmt sFmt, unsigned sampleRate, unsigned channels);
 
     ACodecType codec;
     SampleFmt sampleFormat;

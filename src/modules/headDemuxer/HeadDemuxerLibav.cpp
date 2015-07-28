@@ -199,7 +199,9 @@ bool HeadDemuxerLibav::setURI(const std::string URI)
                         si->type == VIDEO &&
                             (si->video.codec == H264 || si->video.codec == H265)) {
                     const uint8_t *data = av_ctx->streams[i]->codec->extradata;
-                    if (data[0] == 0 && data[1] == 0 && data[2] == 0 && data[3] == 1) {
+                    // First byte of AVCC extradata is always 1 (version)
+                    // AnnexB extradata starts with either 0x000001 or 0x00000001
+                    if (data[0] == 0) {
                         si->video.h264or5.annexb = true;
                     }
                 }

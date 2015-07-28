@@ -199,6 +199,7 @@ bool HeadDemuxerLibav::setURI(const std::string URI)
                     av_ctx->streams[i]->time_base.den;
             streamTimeBase[i] = timeBase;
         }
+        utils::infoMsg("Found stream " + std::to_string(i) + ": " + utils::getStreamInfoAsString(si));
         outputStreamInfos[i] = si;
     }
 

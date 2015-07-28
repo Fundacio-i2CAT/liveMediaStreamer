@@ -424,8 +424,6 @@ std::vector<int> BaseFilter::processFrame(int& ret)
 
 std::vector<int> BaseFilter::regularProcessFrame(int& ret)
 {
-    std::chrono::microseconds enlapsedTime;
-    std::chrono::microseconds frameTime_;
     std::vector<int> enabledJobs;
     std::map<int, Frame*> oFrames;
     std::map<int, Frame*> dFrames;

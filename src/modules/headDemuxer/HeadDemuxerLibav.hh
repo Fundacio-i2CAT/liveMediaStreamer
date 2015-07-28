@@ -25,6 +25,7 @@
 
 extern "C" {
 #include <libavformat/avformat.h>
+#include <libavutil/avutil.h>
 }
 
 #include "../../Filter.hh"
@@ -68,6 +69,8 @@ class HeadDemuxerLibav : public HeadFilter {
         /** Libav media context. Created on #setURI(), destroyed on filter destruction
          * or subsequent #setURI(). */
         AVFormatContext *av_ctx;
+
+        AVBitStreamFilterContext *av_filter_annexb;
 
         /** Clear all data, close all files */
         void reset();

@@ -30,6 +30,7 @@ HeadDemuxerLibav::HeadDemuxerLibav() : HeadFilter (2)
     avformat_network_init();
 
     av_ctx = NULL;
+    av_filter_annexb = NULL;
 
     fType = DEMUXER;
 
@@ -52,6 +53,11 @@ void HeadDemuxerLibav::reset()
         avformat_close_input (&av_ctx);
     }
     av_ctx = NULL;
+
+    if (av_filter_annexb) {
+        av_bitstream_filter_close(av_filter_annexb);
+    }
+    av_filter_annexb = NULL;
 
     // Free extradatas and stream infos
     for (auto sinfo : outputStreamInfos) {
@@ -82,9 +88,23 @@ bool HeadDemuxerLibav::doProcessFrame(std::map<int, Frame*> &dstFrames)
     // Find corresponding output frame
     Frame *f = dstFrames[pkt.stream_index];
     uint8_t *data = f->getDataBuf();
-    memcpy (data, pkt.data, pkt.size);
+    int data_size = pkt.size;
+    if (av_filter_annexb) {
+        // Conversion to AnnexB has been requested
+        uint8_t *out;
+        int res;
+        res = av_bitstream_filter_filter (av_filter_annexb, av_ctx->streams[pkt.stream_index]->codec,
+                NULL, &out, &data_size, pkt.data, pkt.size, pkt.flags & AV_PKT_FLAG_KEY);
+        memcpy(data, out, data_size);
+        if (res > 0) {
+            free(out);
+        }
+    } else {
+        // No conversion needed, just copy
+        memcpy (data, pkt.data, pkt.size);
+    }
     f->setConsumed(true);
-    f->setLength(pkt.size);
+    f->setLength(data_size);
     f->setPresentationTime(
         std::chrono::microseconds(
             (int64_t)(1000000 * pkt.pts * streamTimeBase[pkt.stream_index])));
@@ -201,9 +221,12 @@ bool HeadDemuxerLibav::setURI(const std::string URI)
                     const uint8_t *data = av_ctx->streams[i]->codec->extradata;
                     // First byte of AVCC extradata is always 1 (version)
                     // AnnexB extradata starts with either 0x000001 or 0x00000001
-                    if (data[0] == 0) {
-                        si->video.h264or5.annexb = true;
+                    if (data[0] == 1) {
+                        // This is AVCC, we need conversion
+                        av_filter_annexb = av_bitstream_filter_init ("h264_mp4toannexb");
                     }
+                    // Always report AnnexB format
+                    si->video.h264or5.annexb = true;
                 }
             }
             double timeBase = (double)av_ctx->streams[i]->time_base.num /

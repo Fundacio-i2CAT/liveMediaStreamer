@@ -316,20 +316,20 @@ bool BaseFilter::connectOneToMany(BaseFilter *R, int readerID)
 }
 
 bool BaseFilter::disconnectWriter(int writerId)
-{
-    bool ret;
-    
+{    
     std::lock_guard<std::mutex> guard(mtx);
     
     if (writers.count(writerId) <= 0) {
-        return false;
+        utils::warningMsg("Required writer does not exist");
+        return true;
     }
 
-    ret = writers[writerId]->disconnect();
-    if (ret){
+    if (writers[writerId]->disconnect()){
         writers.erase(writerId);
+        return true;
     }
-    return ret;
+    
+    return false;
 }
 
 bool BaseFilter::disconnectReader(int readerId)

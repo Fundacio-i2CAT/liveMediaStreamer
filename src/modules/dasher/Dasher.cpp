@@ -223,9 +223,6 @@ bool Dasher::generateSegment(size_t id, Frame* frame, DashSegmenter* segmenter)
         mpdMngr->updateVideoRepresentation(V_ADAPT_SET_ID, std::to_string(id), vSeg->getVideoFormat(), vSeg->getWidth(),
                                             vSeg->getHeight(), vSeg->getBitrate(), vSeg->getFramerate());
 
-        if (!forceAudioSegmentsGeneration(frame)) {
-            utils::errorMsg("Error forcing the generation of audio segments. This may cause errors!");
-        }
     }
 
     if ((aSeg = dynamic_cast<DashAudioSegmenter*>(segmenter)) != NULL) {
@@ -262,13 +259,16 @@ bool Dasher::writeVideoSegments()
         }
     }
 
+    if (!forceAudioSegmentsGeneration()) {
+        utils::errorMsg("Error forcing the generation of audio segments. This may cause errors!");
+    }
+
     ts = vSegments.begin()->second->getTimestamp();
     dur = vSegments.begin()->second->getDuration();
 
     for (auto seg : vSegments) {
         if (seg.second->getTimestamp() != ts || seg.second->getDuration() != dur) {
-            utils::errorMsg("Segments of the same adaptation set have different timestamps");
-            return false;
+            utils::warningMsg("Segments of the same adaptation set have different timestamps");
         }
     }
 
@@ -309,8 +309,7 @@ bool Dasher::writeAudioSegments()
 
     for (auto seg : aSegments) {
         if (seg.second->getTimestamp() != ts || seg.second->getDuration() != dur) {
-            utils::errorMsg("Segments of the same adaptation set have different timestamps");
-            return false;
+            utils::warningMsg("Segments of the same adaptation set have different timestamps");
         }
     }
 
@@ -330,7 +329,7 @@ bool Dasher::writeAudioSegments()
     return true;
 }
 
-bool Dasher::forceAudioSegmentsGeneration(Frame* frame)
+bool Dasher::forceAudioSegmentsGeneration()
 {
     DashSegmenter* segmenter;
     DashAudioSegmenter* aSeg;
@@ -349,7 +348,7 @@ bool Dasher::forceAudioSegmentsGeneration(Frame* frame)
             continue;
         }
 
-        if (!aSeg->generateSegment(seg.second, frame, true)) {
+        if (!aSeg->generateSegment(seg.second, NULL, true)) {
             utils::errorMsg("Error forcing audio segment generation");
             return false;
         }
@@ -642,12 +641,17 @@ bool DashSegmenter::generateSegment(DashSegment* segment, Frame* frame, bool for
     size_t segmentSize = 0;
     uint32_t segTimestamp;
     uint32_t segDuration;
+    std::chrono::microseconds frameTs = std::chrono::microseconds(0);
 
-    if (!frame) {
+    if (!frame && !force) {
         return false;
     }
 
-    segmentSize = customGenerateSegment(segment->getDataBuffer(), frame->getPresentationTime(), segTimestamp, segDuration, force);
+    if (frame) {
+        frameTs = frame->getPresentationTime();
+    }
+
+    segmentSize = customGenerateSegment(segment->getDataBuffer(), frameTs, segTimestamp, segDuration, force);
 
     if (segmentSize <= I2ERROR_MAX) {
         return false;

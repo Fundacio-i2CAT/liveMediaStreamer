@@ -23,7 +23,7 @@
 #include "HeadDemuxerLibav.hh"
 #include "../../AVFramedQueue.hh"
 
-HeadDemuxerLibav::HeadDemuxerLibav() : HeadFilter (2)
+HeadDemuxerLibav::HeadDemuxerLibav() : HeadFilter ()
 {
     // Initialize libav
     av_register_all();
@@ -35,6 +35,8 @@ HeadDemuxerLibav::HeadDemuxerLibav() : HeadFilter (2)
 
     // Clear all internal data
     reset();
+
+    initializeEventMap();
 }
 
 HeadDemuxerLibav::~HeadDemuxerLibav()
@@ -221,5 +223,27 @@ SampleFmt HeadDemuxerLibav::getSampleFormatFromLibav(AVSampleFormat libavSampleF
         case AV_SAMPLE_FMT_S16P: return S16P;
         case AV_SAMPLE_FMT_FLTP: return FLTP;
         default: return S_NONE;
+    }
+}
+
+void HeadDemuxerLibav::initializeEventMap()
+{
+    eventMap["configure"] = std::bind(&HeadDemuxerLibav::configureEvent, this, std::placeholders::_1);
+}
+
+bool HeadDemuxerLibav::configureEvent(Jzon::Node* params)
+{
+    if (!params) {
+        return false;
+    }
+
+    if (params->Has("uri")) {
+        if(setURI(params->Get("uri").ToString())){
+            return true;
+        } else {
+            return false;
+        }
+    } else {
+        return false;
     }
 }

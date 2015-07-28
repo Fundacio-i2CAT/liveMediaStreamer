@@ -105,7 +105,6 @@ int main(int argc, char* argv[])
     }
 
     if (aWId >= 0) {
-        ;
         if (!pipe->createPath(aWId, receiverID, transmitterID, aWId, 2, ids)) {
             utils::errorMsg("Could not create Audio path");
         }

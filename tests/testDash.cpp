@@ -7,10 +7,12 @@
 #include "../src/modules/videoMixer/VideoMixer.hh"
 #include "../src/modules/videoResampler/VideoResampler.hh"
 #include "../src/modules/liveMediaInput/SourceManager.hh"
+#include "../src/modules/liveMediaOutput/SinkManager.hh"
 #include "../src/modules/dasher/Dasher.hh"
 #include "../src/AudioFrame.hh"
 #include "../src/Controller.hh"
 #include "../src/Utils.hh"
+#include "../src/modules/sharedMemory/SharedMemory.hh"
 
 #include <csignal>
 #include <vector>
@@ -26,6 +28,7 @@
 
 #define A_MEDIUM "audio"
 #define A_PAYLOAD 97
+// #define A_CODEC "MPEG4-GENERIC"
 #define A_CODEC "OPUS"
 #define A_BANDWITH 128
 #define A_TIME_STMP_FREQ 48000
@@ -60,6 +63,7 @@ void signalHandler( int signum )
 Dasher* setupDasher(int dasherId, std::string dash_folder, int segDuration)
 {
     Dasher* dasher = NULL;
+
     PipelineManager *pipe = Controller::getInstance()->pipelineManager();
 
     dasher = new Dasher();
@@ -91,11 +95,9 @@ void addAudioPath(unsigned port, Dasher* dasher, int dasherId, int receiverID)
     AudioDecoderLibav *decoder;
     AudioEncoderLibav *encoder;
 
-    //NOTE: Adding decoder to pipeManager and handle worker
     decoder = new AudioDecoderLibav();
     pipe->addFilter(decId, decoder);
 
-    //NOTE: Adding encoder to pipeManager and handle worker
     encoder = new AudioEncoderLibav();
     if (!encoder->configure(OUT_A_CODEC, A_CHANNELS, OUT_A_FREQ, OUT_A_BITRATE)) {
         utils::errorMsg("Error configuring audio encoder. Check provided parameters");
@@ -148,7 +150,6 @@ void addVideoPath(unsigned port, Dasher* dasher, int dasherId, int receiverID,
     VideoEncoderX264 *encoderX264;
     VideoEncoderX265 *encoderX265;
 
-    //NOTE: Adding decoder to pipeManager and handle worker
     decoder = new VideoDecoderLibav();
     pipe->addFilter(decId, decoder);
 
@@ -178,10 +179,11 @@ void addVideoPath(unsigned port, Dasher* dasher, int dasherId, int receiverID,
     if (!pipe->createPath(port, receiverID, dasherId, port, dstReader, ids)) {
         utils::errorMsg("Error creating video path");
         return;
-    }
+    }  
 
-    if (!pipe->connectPath(port)) {
-        utils::errorMsg("Error connecting video path");
+    if (!pipe->connectPath(port)){
+        utils::errorMsg("Failed! Path not connected");
+        pipe->removePath(port);
         return;
     }
 

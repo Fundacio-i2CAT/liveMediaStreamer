@@ -128,7 +128,7 @@ void addVideoPath(unsigned port, int receiverID, int transmitterID)
     pipe->addFilter(encId, encoder);
 
     //bitrate, fps, gop, lookahead, threads, annexB, preset
-    encoder->configure(4000, 25, 25, 0, 4, true, "superfast");
+    encoder->configure(4000, 25, 25, 25, 4, true, "superfast");
 
     if (!pipe->createPath(7000, receiverID, transmitterID, port, 7000, std::vector<int>({}))) {
         utils::errorMsg("Error creating video path");

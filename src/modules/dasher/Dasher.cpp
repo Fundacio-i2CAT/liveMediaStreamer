@@ -87,7 +87,7 @@ bool Dasher::configure(std::string dashFolder, std::string baseName_, size_t seg
     return true;
 }
 
-bool Dasher::doProcessFrame(std::map<int, Frame*> &orgFrames)
+bool Dasher::doProcessFrame(std::map<int, Frame*> &orgFrames, std::vector<int> newFrames)
 {
     DashSegmenter* segmenter;
     Frame* frame;
@@ -97,34 +97,29 @@ bool Dasher::doProcessFrame(std::map<int, Frame*> &orgFrames)
         return false;
     }
 
-    for (auto fr : orgFrames) {
-
-        if (!fr.second || !fr.second->getConsumed()) {
-            continue;
-        }
-
-        segmenter = getSegmenter(fr.first);
+    for (auto id : newFrames) {
+        segmenter = getSegmenter(id);
 
         if (!segmenter) {
             continue;
         }
 
-        frame = segmenter->manageFrame(fr.second);
+        frame = segmenter->manageFrame(orgFrames[id]);
 
         if (!frame) {
             continue;
         }
 
-        if (!generateInitSegment(fr.first, segmenter)) {
+        if (!generateInitSegment(id, segmenter)) {
             utils::errorMsg("[Dasher::doProcessFrame] Error generating init segment");
             continue;
         }
 
-        if (generateSegment(fr.first, frame, segmenter)) {
+        if (generateSegment(id, frame, segmenter)) {
             utils::debugMsg("[Dasher::doProcessFrame] New segment generated");
         }
 
-        if (!appendFrameToSegment(fr.first, frame, segmenter)) {
+        if (!appendFrameToSegment(id, frame, segmenter)) {
             utils::errorMsg("[Dasher::doProcessFrame] Error appnding frame to segment");
             continue;
         }

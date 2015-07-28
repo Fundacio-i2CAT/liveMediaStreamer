@@ -189,7 +189,6 @@ bool VideoDecoderLibav::toBuffer(VideoFrame *decodedFrame, VideoFrame *codedFram
     decodedFrame->setLength(length);
     decodedFrame->setSize(frame->width, frame->height);
     decodedFrame->setPresentationTime(codedFrame->getPresentationTime());
-    decodedFrame->setOriginTime(codedFrame->getOriginTime());
     decodedFrame->setPixelFormat(getPixelFormat((AVPixelFormat) frame->format));
     
     return true;

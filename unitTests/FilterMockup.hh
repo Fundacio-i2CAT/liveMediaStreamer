@@ -55,7 +55,7 @@ private:
     //There is no need of specific reader configuration
     bool specificReaderConfig(int /*readerID*/, FrameQueue* /*queue*/)  {return true;};
 
-    bool runDoProcessFrame(std::map<int, Frame*> &oFrames, std::map<int, Frame*> &dFrames) {
+    bool runDoProcessFrame(std::map<int, Frame*> &oFrames, std::map<int, Frame*> &dFrames, std::vector<int> newFrames) {
         return true;
     };
 };
@@ -225,7 +225,7 @@ public:
     void doGetState(Jzon::Object &filterNode){};
     
 protected:
-    bool doProcessFrame(std::map<int, Frame*> &orgFrames) { 
+    bool doProcessFrame(std::map<int, Frame*> &orgFrames, std::vector<int> /*newFrames*/) { 
         bool gotframe = false;
         for (auto it : orgFrames){
             if (!it.second->isPlanar() && it.second->getConsumed()){
@@ -382,7 +382,7 @@ public:
     void doGetState(Jzon::Object &filterNode){};
     
 protected:
-    bool doProcessFrame(std::map<int, Frame*> &orgFrames) {
+    bool doProcessFrame(std::map<int, Frame*> &orgFrames, std::vector<int> /*newFrame*/) {
         InterleavedVideoFrame *orgFrame;
  
         if ((orgFrame = dynamic_cast<InterleavedVideoFrame*>(orgFrames.begin()->second)) != NULL){
@@ -440,7 +440,7 @@ public:
     void doGetState(Jzon::Object &filterNode){};
 
 protected:
-    bool doProcessFrame(std::map<int, Frame*> &orgFrames) {
+    bool doProcessFrame(std::map<int, Frame*> &orgFrames, std::vector<int> /*newFrame*/) {
         PlanarAudioFrame *orgFrame;
 
         if ((orgFrame = dynamic_cast<PlanarAudioFrame*>(orgFrames.begin()->second)) != NULL){

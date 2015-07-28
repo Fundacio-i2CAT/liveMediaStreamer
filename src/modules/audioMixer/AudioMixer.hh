@@ -117,7 +117,7 @@ protected:
     
     void doGetState(Jzon::Object &filterNode);
     FrameQueue *allocQueue(ConnectionData cData);
-    bool doProcessFrame(std::map<int, Frame*> &orgFrames, Frame *dst);
+    bool doProcessFrame(std::map<int, Frame*> &orgFrames, Frame *dst, std::vector<int> newFrames);
 
 private:
     void initializeEventMap();

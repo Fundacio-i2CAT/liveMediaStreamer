@@ -130,10 +130,10 @@ bool AudioDecoderLibav::doProcessFrame(Frame *org, Frame *dst)
             return false;
         }
 
-        dst->setConsumed(true);
-        return true;
+        break;
     }
 
+    dst->setPresentationTime(org->getPresentationTime());
     dst->setConsumed(true);
     return true;
 }

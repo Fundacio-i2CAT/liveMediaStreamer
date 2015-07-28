@@ -211,7 +211,7 @@ protected:
 
     std::map<std::string, std::function<bool(Jzon::Node* params)> > eventMap;
 
-    virtual bool runDoProcessFrame(std::map<int, Frame*> &oFrames, std::map<int, Frame*> &dFrames) = 0;
+    virtual bool runDoProcessFrame(std::map<int, Frame*> &oFrames, std::map<int, Frame*> &dFrames, std::vector<int> newFrames) = 0;
     
     virtual bool deleteReader(int readerId);
 
@@ -255,7 +255,7 @@ protected:
     using BaseFilter::getFrameTime;
 
 private:
-    bool runDoProcessFrame(std::map<int, Frame*> &oFrames, std::map<int, Frame*> &dFrames);
+    bool runDoProcessFrame(std::map<int, Frame*> &oFrames, std::map<int, Frame*> &dFrames, std::vector<int> /*newFrames*/);
     
     using BaseFilter::demandOriginFrames;
     using BaseFilter::demandDestinationFrames;
@@ -279,7 +279,7 @@ protected:
     using BaseFilter::getFrameTime;
 
 private:
-    bool runDoProcessFrame(std::map<int, Frame*> &oFrames, std::map<int, Frame*> &dFrames);
+    bool runDoProcessFrame(std::map<int, Frame*> &oFrames, std::map<int, Frame*> &dFrames, std::vector<int> /*newFrames*/);
 
     using BaseFilter::demandOriginFrames;
     using BaseFilter::demandDestinationFrames;
@@ -308,7 +308,7 @@ protected:
     using BaseFilter::getFrameTime;
 
 private: 
-    bool runDoProcessFrame(std::map<int, Frame*> &oFrames, std::map<int, Frame*> &dFrames);
+    bool runDoProcessFrame(std::map<int, Frame*> &oFrames, std::map<int, Frame*> &dFrames, std::vector<int> /*newFrames*/);
     //There is no need of specific reader configuration
     bool specificReaderConfig(int /*readerID*/, FrameQueue* /*queue*/)  {return true;};
 
@@ -336,8 +336,8 @@ protected:
 
 private:
     FrameQueue *allocQueue(struct ConnectionData cData) {return NULL;};
-    bool runDoProcessFrame(std::map<int, Frame*> &oFrames, std::map<int, Frame*> &dFrames);
-    virtual bool doProcessFrame(std::map<int, Frame*> &orgFrames) = 0;
+    bool runDoProcessFrame(std::map<int, Frame*> &oFrames, std::map<int, Frame*> &dFrames, std::vector<int> newFrames);
+    virtual bool doProcessFrame(std::map<int, Frame*> &orgFrames, std::vector<int> newFrames) = 0;
     using BaseFilter::demandOriginFrames;
     using BaseFilter::demandDestinationFrames;
     using BaseFilter::addFrames;
@@ -355,12 +355,12 @@ class ManyToOneFilter : public BaseFilter {
 
 protected:
     ManyToOneFilter(unsigned readersNum = MAX_READERS, FilterRole fRole_ = REGULAR, bool periodic = false);
-    virtual bool doProcessFrame(std::map<int, Frame *> &orgFrames, Frame *dst) = 0;
+    virtual bool doProcessFrame(std::map<int, Frame *> &orgFrames, Frame *dst, std::vector<int> newFrames) = 0;
     using BaseFilter::setFrameTime;
     using BaseFilter::getFrameTime;
 
 private:   
-    bool runDoProcessFrame(std::map<int, Frame*> &oFrames, std::map<int, Frame*> &dFrames);
+    bool runDoProcessFrame(std::map<int, Frame*> &oFrames, std::map<int, Frame*> &dFrames, std::vector<int> newFrames);
 
     using BaseFilter::demandOriginFrames;
     using BaseFilter::demandDestinationFrames;

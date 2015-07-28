@@ -65,13 +65,19 @@ bool VideoEncoderX264or5::doProcessFrame(Frame *org, Frame *dst)
         return false;
     }
 
+    if (pTimes.size() <= lookahead){
+        pTimes.push(org->getPresentationTime());
+    }
+    
     if (!encodeFrame(codedFrame)) {
-        utils::errorMsg("Could not encode video frame");
+        utils::warningMsg("Could not encode video frame");
         return false;
     }
-
+    
     codedFrame->setSize(rawFrame->getWidth(), rawFrame->getHeight());
     dst->setConsumed(true);
+    dst->setPresentationTime(pTimes.front());
+    pTimes.pop();
     return true;
 }
 
@@ -92,7 +98,7 @@ bool VideoEncoderX264or5::fill_x264or5_picture(VideoFrame* videoFrame)
     return true;
 }
 
-bool VideoEncoderX264or5::configure0(int bitrate_, int fps_, int gop_, int lookahead_, int threads_, bool annexB_, std::string preset_)
+bool VideoEncoderX264or5::configure0(unsigned bitrate_, unsigned fps_, unsigned gop_, unsigned lookahead_, unsigned threads_, bool annexB_, std::string preset_)
 {
     if (bitrate_ <= 0 || gop_ <= 0 || lookahead_ < 0 || threads_ <= 0 || preset_.empty()) {
         utils::errorMsg("Error configuring VideoEncoderX264or5: invalid configuration values");
@@ -120,11 +126,11 @@ bool VideoEncoderX264or5::configure0(int bitrate_, int fps_, int gop_, int looka
 
 bool VideoEncoderX264or5::configEvent(Jzon::Node* params)
 {
-    int tmpBitrate;
-    int tmpFps;
-    int tmpGop;
-    int tmpLookahead;
-    int tmpThreads;
+    unsigned tmpBitrate;
+    unsigned tmpFps;
+    unsigned tmpGop;
+    unsigned tmpLookahead;
+    unsigned tmpThreads;
     bool tmpAnnexB;
     std::string tmpPreset;
 

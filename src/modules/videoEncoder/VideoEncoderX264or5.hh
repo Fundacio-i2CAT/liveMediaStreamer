@@ -69,13 +69,14 @@ protected:
     PixType inPixFmt;
     bool annexB;
     bool forceIntra;
-    int fps;
-    int bitrate;
-    int gop;
-    int threads;
-    int lookahead;
+    unsigned fps;
+    unsigned bitrate;
+    unsigned gop;
+    unsigned threads;
+    unsigned lookahead;
     bool needsConfig;
     std::string preset;
+    std::queue<std::chrono::microseconds> pTimes;
     
     bool doProcessFrame(Frame *org, Frame *dst);
     void initializeEventMap();      
@@ -85,7 +86,7 @@ protected:
     void setIntra(){forceIntra = true;};
     bool fill_x264or5_picture(VideoFrame* videoFrame);
 
-    bool configure0(int bitrate_, int fps_, int gop_, int lookahead_, int threads_, bool annexB_, std::string preset_);
+    bool configure0(unsigned bitrate_, unsigned fps_, unsigned gop_, unsigned lookahead_, unsigned threads_, bool annexB_, std::string preset_);
     bool forceIntraEvent(Jzon::Node* params);
     bool configEvent(Jzon::Node* params);
     void doGetState(Jzon::Object &filterNode);

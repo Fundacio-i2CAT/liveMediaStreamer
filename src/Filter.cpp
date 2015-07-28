@@ -257,7 +257,7 @@ bool BaseFilter::connect(BaseFilter *R, int writerID, int readerID)
     }
     
     if (writers.count(writerID) > 0){
-        utils::errorMsg("Writer id must be unique");
+        utils::warningMsg("Writer id must be unique");
         return false;
     }
     
@@ -429,7 +429,7 @@ std::vector<int> BaseFilter::processFrame(int& ret)
             enabledJobs = serverProcessFrame(ret);
             break;
         default:
-            ret = 0;
+            ret = WAIT;
             break;
     }
 
@@ -442,13 +442,13 @@ std::vector<int> BaseFilter::regularProcessFrame(int& ret)
     std::vector<int> enabledJobs;
     std::map<int, Frame*> oFrames;
     std::map<int, Frame*> dFrames;
-    std::vector<int> framesToRemove;
+    std::vector<int> newFrames;
     
     processEvent();
     
-    framesToRemove = demandOriginFrames(oFrames);
+    newFrames = demandOriginFrames(oFrames);
     
-    if (framesToRemove.empty()) {
+    if (newFrames.empty()) {
         ret = WAIT;
         return enabledJobs;
     }
@@ -458,12 +458,12 @@ std::vector<int> BaseFilter::regularProcessFrame(int& ret)
         return enabledJobs;
     }
 
-    runDoProcessFrame(oFrames, dFrames);
+    runDoProcessFrame(oFrames, dFrames, newFrames);
 
     //TODO: manage ret value
     enabledJobs = addFrames(dFrames);
     
-    if (removeFrames(framesToRemove)) {
+    if (removeFrames(newFrames)) {
         enabledJobs.push_back(getId());
     }
 
@@ -475,17 +475,17 @@ std::vector<int> BaseFilter::serverProcessFrame(int& ret)
     std::vector<int> enabledJobs;
     std::map<int, Frame*> oFrames;
     std::map<int, Frame*> dFrames;
-    std::vector<int> framesToRemove;
+    std::vector<int> newFrames;
     
     processEvent();
     
-    framesToRemove = demandOriginFrames(oFrames);
+    newFrames = demandOriginFrames(oFrames);
     demandDestinationFrames(dFrames);
 
-    runDoProcessFrame(oFrames, dFrames);
+    runDoProcessFrame(oFrames, dFrames, newFrames);
 
     enabledJobs = addFrames(dFrames);
-    if (removeFrames(framesToRemove)){
+    if (removeFrames(newFrames)){
         enabledJobs.push_back(getId());
     }
     
@@ -535,7 +535,6 @@ std::vector<int> BaseFilter::demandOriginFramesBestEffort(std::map<int, Frame*> 
         }
         
         frame = r.second->getFrame(getId(), newFrame);
-        
 
         if (!frame) {
             utils::errorMsg("[BaseFilter::demandOriginFramesBestEffort] Reader->getFrame() returned NULL. It cannot happen...");
@@ -627,7 +626,7 @@ OneToOneFilter::OneToOneFilter(FilterRole fRole_, bool periodic) :
 {
 }
 
-bool OneToOneFilter::runDoProcessFrame(std::map<int, Frame*> &oFrames, std::map<int, Frame*> &dFrames)
+bool OneToOneFilter::runDoProcessFrame(std::map<int, Frame*> &oFrames, std::map<int, Frame*> &dFrames, std::vector<int> /*newFrames*/)
 {
     std::chrono::microseconds outTimestamp;
 
@@ -635,16 +634,7 @@ bool OneToOneFilter::runDoProcessFrame(std::map<int, Frame*> &oFrames, std::map<
         return false;
     }
 
-    //TODO: how I do that in Many to One!!
-    if (frameTime.count() <= 0) {
-        outTimestamp = oFrames.begin()->second->getPresentationTime();
-        setSyncTs(outTimestamp);
-    } else {
-        outTimestamp = getSyncTs();
-    }
-    
-    dFrames.begin()->second->setPresentationTime(outTimestamp);
-    dFrames.begin()->second->setDuration(oFrames.begin()->second->getDuration());
+    dFrames.begin()->second->setOriginTime(oFrames.begin()->second->getOriginTime());
     dFrames.begin()->second->setSequenceNumber(oFrames.begin()->second->getSequenceNumber());
     return true;
 }
@@ -655,14 +645,14 @@ OneToManyFilter::OneToManyFilter(unsigned writersNum, FilterRole fRole_, bool pe
 {
 }
 
-bool OneToManyFilter::runDoProcessFrame(std::map<int, Frame*> &oFrames, std::map<int, Frame*> &dFrames)
+bool OneToManyFilter::runDoProcessFrame(std::map<int, Frame*> &oFrames, std::map<int, Frame*> &dFrames, std::vector<int> /*newFrames*/)
 {
     if (!doProcessFrame(oFrames.begin()->second, dFrames)) {
         return false;
     }
 
-    //TODO: implement timestamp setting
     for (auto it : dFrames) {
+        it.second->setOriginTime(oFrames.begin()->second->getOriginTime());
         it.second->setSequenceNumber(oFrames.begin()->second->getSequenceNumber());
     }
 
@@ -675,15 +665,18 @@ HeadFilter::HeadFilter(unsigned writersNum, FilterRole fRole_, bool periodic) :
 {
 }
 
-bool HeadFilter::runDoProcessFrame(std::map<int, Frame*> &oFrames, std::map<int, Frame*> &dFrames)
+bool HeadFilter::runDoProcessFrame(std::map<int, Frame*> &oFrames, std::map<int, Frame*> &dFrames, std::vector<int> /*newFrames*/)
 {
     if (!doProcessFrame(dFrames)) {
         return false;
     }
 
-   for (auto it : dFrames) {
-       it.second->setSequenceNumber(seqNums[it.first]++);
-   }
+    for (auto it : dFrames) {
+        if (it.second->getConsumed()){
+            it.second->setOriginTime(std::chrono::high_resolution_clock::now());
+            it.second->setSequenceNumber(seqNums[it.first]++);
+        }
+    }
 
    return true;
 }
@@ -712,10 +705,9 @@ TailFilter::TailFilter(unsigned readersNum, FilterRole fRole_, bool periodic) :
 {
 }
 
-bool TailFilter::runDoProcessFrame(std::map<int, Frame*> &oFrames, std::map<int, Frame*> &dFrames)
+bool TailFilter::runDoProcessFrame(std::map<int, Frame*> &oFrames, std::map<int, Frame*> &dFrames, std::vector<int> newFrames)
 {
-    //TODO: handle frameTime
-    return doProcessFrame(oFrames);
+    return doProcessFrame(oFrames, newFrames);
 }
 
 
@@ -744,15 +736,14 @@ ManyToOneFilter::ManyToOneFilter(unsigned readersNum, FilterRole fRole_, bool pe
 {
 }
 
-bool ManyToOneFilter::runDoProcessFrame(std::map<int, Frame*> &oFrames, std::map<int, Frame*> &dFrames)
+bool ManyToOneFilter::runDoProcessFrame(std::map<int, Frame*> &oFrames, std::map<int, Frame*> &dFrames, std::vector<int> newFrames)
 {
-    //TODO: how to manage syncTS!
-    if (!doProcessFrame(oFrames, dFrames.begin()->second)) {
+    if (!doProcessFrame(oFrames, dFrames.begin()->second, newFrames)) {
         return false;
     }
 
-    seqNums[dFrames.begin()->first]++;
-    dFrames.begin()->second->setSequenceNumber(seqNums[dFrames.begin()->first]);
+    dFrames.begin()->second->setOriginTime(std::chrono::high_resolution_clock::now());
+    dFrames.begin()->second->setSequenceNumber(seqNums[dFrames.begin()->first]++);
     return true;
 }
 

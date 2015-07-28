@@ -62,18 +62,13 @@ FrameQueue *AudioMixer::allocQueue(ConnectionData cData)
                                             sampleFormat, std::chrono::milliseconds(0));
 }
 
-bool AudioMixer::doProcessFrame(std::map<int, Frame*> &orgFrames, Frame *dst) 
+bool AudioMixer::doProcessFrame(std::map<int, Frame*> &orgFrames, Frame *dst, std::vector<int> newFrames) 
 {
     AudioFrame* aFrame;
     AudioFrame* aDstFrame;
 
-    for (auto frame : orgFrames) {
-
-        if (!frame.second || !frame.second->getConsumed()) {
-            continue;
-        }
-
-        aFrame = dynamic_cast<AudioFrame*>(frame.second);
+    for (auto id : newFrames) {
+        aFrame = dynamic_cast<AudioFrame*>(orgFrames[id]);
 
         if (!aFrame) {
             utils::errorMsg("[AudioMixer] Input frames must be AudioFrames");
@@ -81,7 +76,7 @@ bool AudioMixer::doProcessFrame(std::map<int, Frame*> &orgFrames, Frame *dst)
         }
 
 
-        if (!pushToBuffer(frame.first, aFrame)) {
+        if (!pushToBuffer(id, aFrame)) {
             utils::errorMsg("[AudioMixer] Error pushing samples to the internal buffer");
             continue;
         }

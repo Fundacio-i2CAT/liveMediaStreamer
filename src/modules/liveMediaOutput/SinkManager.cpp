@@ -134,33 +134,33 @@ bool SinkManager::deleteReader(int readerId)
     return false;
 }
 
-bool SinkManager::doProcessFrame(std::map<int, Frame*> &oFrames)
+bool SinkManager::doProcessFrame(std::map<int, Frame*> &oFrames, std::vector<int> newFrames)
 {
     if (envir() == NULL){
         return false;
     }
     
-    int newFrames = 0;
+    int pFrames = 0;
        
-    for (auto it : oFrames){
-        if (it.second && it.second->getConsumed()){
-            if (sources.count(it.first) > 0 && sources[it.first]->setFrame(it.second)){
-                QueueSource::signalNewFrameData(scheduler, sources[it.first]);
-                newFrames++;
+    for (auto id : newFrames){
+        if (oFrames.count(id) > 0){
+            if (sources.count(id) > 0 && sources[id]->setFrame(oFrames[id])){
+                QueueSource::signalNewFrameData(scheduler, sources[id]);
+                pFrames++;
             }
         }
     }
     
-    if (newFrames == 0){
+    if (pFrames == 0){
         scheduler->SingleStep();
         return false;
     }
     
-    while (newFrames > 0){
+    while (pFrames > 0){
         scheduler->SingleStep();
         for (auto it : sources){
             if (it.second && it.second->gotFrame()){
-                newFrames--;
+                pFrames--;
             }
         }
     }

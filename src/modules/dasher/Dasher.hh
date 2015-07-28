@@ -109,7 +109,7 @@ public:
     bool setDashSegmenterBitrate(int id, size_t kbps);
 
 private:
-    bool doProcessFrame(std::map<int, Frame*> &orgFrames);
+    bool doProcessFrame(std::map<int, Frame*> &orgFrames, std::vector<int> newFrames);
     void doGetState(Jzon::Object &filterNode);
     void initializeEventMap();
     bool generateInitSegment(size_t id, DashSegmenter* segmenter);

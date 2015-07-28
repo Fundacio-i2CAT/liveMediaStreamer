@@ -155,11 +155,10 @@ void SharedMemory::copyOrgToDstFrame(InterleavedVideoFrame*org, InterleavedVideo
 {
     dst->setLength(org->getLength());
     dst->setSize(org->getWidth(), org->getHeight());
-    dst->setOriginTime(org->getOriginTime());
     dst->setPixelFormat(org->getPixelFormat());
-    dst->setOriginTime(org->getOriginTime());
     dst->setDuration(org->getDuration());
     dst->setConsumed(true);
+    dst->setPresentationTime(org->getPresentationTime());
 
     memcpy(dst->getDataBuf(), org->getDataBuf(),org->getLength());
 }

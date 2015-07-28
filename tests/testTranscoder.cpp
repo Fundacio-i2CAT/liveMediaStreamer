@@ -36,7 +36,7 @@
 #define OUT_A_FREQ 48000
 #define OUT_A_BITRATE 192000
 
-#define RETRIES 60
+#define RETRIES 10
 
 #define SEG_DURATION 4 //sec
 #define BASE_NAME "test"
@@ -53,7 +53,7 @@ void signalHandler( int signum )
 
 void addAudioPath(unsigned port, int receiverID, int transmitterID)
 {
-    PipelineManager *pipe = PipelineManager::getInstance(1);
+    PipelineManager *pipe = PipelineManager::getInstance(2);
 
     int decId = rand();
     int encId = rand();
@@ -128,7 +128,7 @@ void addVideoPath(unsigned port, int receiverID, int transmitterID)
     pipe->addFilter(encId, encoder);
 
     //bitrate, fps, gop, lookahead, threads, annexB, preset
-    encoder->configure(4000, 25, 25, 25, 4, true, "superfast");
+    encoder->configure(4000, 25, 25, 0, 4, true, "superfast");
 
     if (!pipe->createPath(7000, receiverID, transmitterID, port, 7000, std::vector<int>({}))) {
         utils::errorMsg("Error creating video path");

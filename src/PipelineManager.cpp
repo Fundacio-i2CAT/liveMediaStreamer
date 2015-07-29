@@ -461,9 +461,10 @@ void PipelineManager::createFilterEvent(Jzon::Node* params, Jzon::Object &output
     
     if (! createFilter(id, fType)){
         outputNode.Add("error", "Error creating filter.");
+    } else {
+        outputNode.Add("error", Jzon::null);
     }
 
-    outputNode.Add("error", Jzon::null);
 }
 
 void PipelineManager::createPathEvent(Jzon::Node* params, Jzon::Object &outputNode)

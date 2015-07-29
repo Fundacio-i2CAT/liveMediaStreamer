@@ -23,6 +23,9 @@ testtranscoderh264toisoff
 fakelive
 testdemuxer
 teststreamer
+testaudiomix
+testdash
+testvideomix
 
 autom4te.cache/
 config.log
@@ -91,4 +94,12 @@ unitTests/testsData/videoVectorTest_out_4000kbps.h265
 unitTests/testsData/videoVectorTest_out_500kbps.h264
 unitTests/testsData/videoVectorTest_out_500kbps.h265
 unitTests/workerTest
+unitTests/audioCircularBufferTest
+unitTests/audioMixerFunctionalTest
+unitTests/avFramedQueueTest
+unitTests/pipelineManagerTest
+unitTests/videoMixerFunctionalTest
+unitTests/videoMixerTest
+unitTests/workersPoolTest
+
 

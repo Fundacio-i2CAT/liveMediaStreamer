@@ -72,7 +72,7 @@ void FilterUnitTest::connectOneToOne()
     BaseFilter* filterToTest = new BaseFilterMockup(1,1);
     BaseFilter* satelliteFilter = new BaseFilterMockup(1,1);
 
-    CPPUNIT_ASSERT(!filterToTest->disconnectWriter(1));
+    CPPUNIT_ASSERT(filterToTest->disconnectWriter(1));
     CPPUNIT_ASSERT(!satelliteFilter->disconnectReader(1));
     CPPUNIT_ASSERT(filterToTest->connectOneToOne(satelliteFilter));
     CPPUNIT_ASSERT(filterToTest->disconnectWriter(1));
@@ -91,15 +91,15 @@ void FilterUnitTest::connectManyToOne()
     CPPUNIT_ASSERT(!filterToTest->connectManyToOne(satelliteFilter, 3));
     CPPUNIT_ASSERT(!filterToTest->connectManyToOne(satelliteFilter, 2));
 
-    CPPUNIT_ASSERT(!filterToTest->disconnectWriter(2));
+    CPPUNIT_ASSERT(filterToTest->disconnectWriter(2));
     CPPUNIT_ASSERT(filterToTest->disconnectWriter(1));
-    CPPUNIT_ASSERT(!filterToTest->disconnectWriter(1));
+    CPPUNIT_ASSERT(filterToTest->disconnectWriter(1));
 
     CPPUNIT_ASSERT(!filterToTest->connectManyToOne(satelliteFilter, 2));
     CPPUNIT_ASSERT(satelliteFilter->disconnectReader(1));
     CPPUNIT_ASSERT(filterToTest->connectManyToOne(satelliteFilter, 2));
 
-    CPPUNIT_ASSERT(!filterToTest->disconnectWriter(3));
+    CPPUNIT_ASSERT(filterToTest->disconnectWriter(3));
     CPPUNIT_ASSERT(!filterToTest->connectManyToOne(satelliteFilter, 2));
 
     delete filterToTest;

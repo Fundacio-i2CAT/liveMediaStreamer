@@ -66,6 +66,7 @@ void SharedMemoryTest::tearDown()
     if (sharedMemoryFilter) {
         sharedMemoryFilter->disconnectAll();
         delete sharedMemoryFilter;
+        sharedMemoryFilter = NULL;
     }
     delete sharedMemoryFilterErr;
     delete satelliteFilterHead;

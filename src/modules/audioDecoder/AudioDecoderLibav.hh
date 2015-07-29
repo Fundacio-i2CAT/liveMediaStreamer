@@ -55,8 +55,10 @@ private:
     bool configEvent(Jzon::Node* params);
     void doGetState(Jzon::Object &filterNode);
 
-
-
+    //There is no need of specific reader configuration
+    bool specificReaderConfig(int /*readerID*/, FrameQueue* /*queue*/)  {return true;};
+    bool specificReaderDelete(int /*readerID*/) {return true;};
+    
     AVCodec             *codec;
     AVCodecContext      *codecCtx;
     AVFrame             *inFrame;

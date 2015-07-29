@@ -97,22 +97,18 @@ int main(int argc, char* argv[])
     std::vector<int> ids;
     std::vector<int> readers;
     if (vWId >= 0) {
-        Path *vPath = pipe->createPath(receiverID, transmitterID, vWId, 1, ids);
-        if (!vPath) {
+        if (!pipe->createPath(vWId, receiverID, transmitterID, vWId, 1, ids)) {
             utils::errorMsg("Could not create Video path");
         }
-        pipe->addPath(1, vPath);
-        pipe->connectPath(vPath);
+        pipe->connectPath(vWId);
         readers.push_back(1);
     }
 
     if (aWId >= 0) {
-        Path *aPath = pipe->createPath(receiverID, transmitterID, aWId, 2, ids);
-        if (!aPath) {
+        if (!pipe->createPath(aWId, receiverID, transmitterID, aWId, 2, ids)) {
             utils::errorMsg("Could not create Audio path");
         }
-        pipe->addPath(2, aPath);
-        pipe->connectPath(aPath);
+        pipe->connectPath(aWId);
         readers.push_back(2);
     }
 

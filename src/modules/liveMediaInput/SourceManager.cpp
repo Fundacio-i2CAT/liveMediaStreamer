@@ -109,11 +109,6 @@ SourceManager::~SourceManager()
     }
 }
 
-void SourceManager::stop()
-{
-    
-}
-
 bool SourceManager::doProcessFrame(std::map<int, Frame*> &dFrames)
 {
     if (envir() == NULL){
@@ -161,6 +156,7 @@ bool SourceManager::removeSession(std::string id)
         subsession = it.second->getScs()->iter->next();
         while (subsession != NULL) {
             if (sinks.count(subsession->clientPortNum()) > 0){
+                Medium::close(sinks[subsession->clientPortNum()]);
                 sinks.erase(subsession->clientPortNum());
                 disconnectWriter(subsession->clientPortNum());
             }
@@ -236,6 +232,19 @@ FrameQueue *SourceManager::allocQueue(ConnectionData cData)
 void SourceManager::initializeEventMap()
 {
     eventMap["addSession"] = std::bind(&SourceManager::addSessionEvent, this, std::placeholders::_1);
+    eventMap["removeSession"] = std::bind(&SourceManager::removeSessionEvent, this, std::placeholders::_1);
+}
+
+bool SourceManager::removeSessionEvent(Jzon::Node* params)
+{
+    std::string sessionId;
+    
+    if (params->Has("id")) {
+        sessionId = params->Get("id").ToString();
+        return removeSession(sessionId);
+    } 
+    
+    return false;
 }
 
 bool SourceManager::addSessionEvent(Jzon::Node* params)

@@ -111,8 +111,10 @@ public:
 private:
     void initializeEventMap();
     friend bool handlers::addSubsessionSink(UsageEnvironment& env, MediaSubsession *subsession);
+    
     void doGetState(Jzon::Object &filterNode);
     bool addSessionEvent(Jzon::Node* params);
+    bool removeSessionEvent(Jzon::Node* params);
 
     friend bool Session::initiateSession();
     friend bool StreamClientState::addSinkToMngr(unsigned port, QueueSink* sink);
@@ -123,8 +125,6 @@ private:
 
     static void* startServer(void *args);
     FrameQueue *allocQueue(ConnectionData cData);
-
-    void stop();
 
     std::map<std::string, Session*> sessionMap;
 

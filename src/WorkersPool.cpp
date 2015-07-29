@@ -75,7 +75,6 @@ WorkersPool::WorkersPool(size_t threads) : run(true)
                     
                     guard.lock();
                     job->unsetRunning();
-
                     
                     for(auto job : enabledJobs){
                         added |= addJob(job);
@@ -83,6 +82,7 @@ WorkersPool::WorkersPool(size_t threads) : run(true)
                     
                     if (job->isPeriodic()){
                         jobQueue.push_back(job);
+                        addGroupJob(job->getGroupIds());
                         jobQueue.sort(RunnableLess());
                         added = true;
                     }
@@ -162,13 +162,20 @@ bool WorkersPool::removeFromQueue(int id){
 bool WorkersPool::addJob(const int id){
     bool added = false;
     if (runnables.count(id) > 0 && !runnables[id]->isPeriodic()){
-        for (auto runId : runnables[id]->getGroupIds()){
-            if (runnables.count(runId) > 0 && !runnables[runId]->isPeriodic()){
-                jobQueue.push_back(runnables[runId]);
-                added = true;
-            }
-        }
+        added = addGroupJob(runnables[id]->getGroupIds());
         jobQueue.sort(RunnableLess());
+    }
+    return added;
+}
+
+bool WorkersPool::addGroupJob(std::vector<int> group)
+{
+    bool added = false;
+    for (auto runId : group){
+        if (runnables.count(runId) > 0 && !runnables[runId]->isPeriodic()){
+            jobQueue.push_back(runnables[runId]);
+            added = true;
+        }
     }
     return added;
 }

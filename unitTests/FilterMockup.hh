@@ -54,8 +54,12 @@ protected:
 
 private:
     VCodecType codec;
+    
+    //There is no need of specific reader configuration
+    bool specificReaderConfig(int /*readerID*/, FrameQueue* /*queue*/)  {return true;};
+    bool specificReaderDelete(int /*readerID*/) {return true;};
 
-    bool runDoProcessFrame(std::map<int, Frame*> &oFrames, std::map<int, Frame*> &dFrames) {
+    bool runDoProcessFrame(std::map<int, Frame*> &oFrames, std::map<int, Frame*> &dFrames, std::vector<int> newFrames) {
         return true;
     };
 };
@@ -87,6 +91,9 @@ protected:
 
 private:
     virtual FrameQueue *allocQueue(ConnectionData cData) {return new AVFramedQueueMock(cData, &mockStreamInfo, queueSize);};
+    //There is no need of specific reader configuration
+    bool specificReaderConfig(int /*readerID*/, FrameQueue* /*queue*/)  {return true;};
+    bool specificReaderDelete(int /*readerID*/) {return true;};
 
     std::default_random_engine generator;
     size_t queueSize;
@@ -119,6 +126,9 @@ private:
     virtual FrameQueue *allocQueue(ConnectionData cData) {
         return new AVFramedQueueMock(cData, &mockStreamInfo, queueSize);
     };
+    //There is no need of specific reader configuration
+    bool specificReaderConfig(int /*readerID*/, FrameQueue* /*queue*/)  {return true;};
+    bool specificReaderDelete(int /*readerID*/) {return true;};
 
     std::default_random_engine generator;
     size_t queueSize;
@@ -234,7 +244,7 @@ public:
     void doGetState(Jzon::Object &filterNode){};
     
 protected:
-    bool doProcessFrame(std::map<int, Frame*> &orgFrames) { 
+    bool doProcessFrame(std::map<int, Frame*> &orgFrames, std::vector<int> /*newFrames*/) { 
         bool gotframe = false;
         for (auto it : orgFrames){
             if (!it.second->isPlanar() && it.second->getConsumed()){
@@ -249,6 +259,11 @@ protected:
         
         return gotframe;
     }
+    
+        
+    //There is no need of specific reader configuration
+    bool specificReaderConfig(int /*readerID*/, FrameQueue* /*queue*/)  {return true;};
+    bool specificReaderDelete(int /*readerID*/) {return true;};
     
     size_t frames;
     Frame* frame;
@@ -395,7 +410,7 @@ public:
     void doGetState(Jzon::Object &filterNode){};
     
 protected:
-    bool doProcessFrame(std::map<int, Frame*> &orgFrames) {
+    bool doProcessFrame(std::map<int, Frame*> &orgFrames, std::vector<int> /*newFrame*/) {
         InterleavedVideoFrame *orgFrame;
  
         if ((orgFrame = dynamic_cast<InterleavedVideoFrame*>(orgFrames.begin()->second)) != NULL){
@@ -423,6 +438,10 @@ protected:
     
 
 private:
+    //There is no need of specific reader configuration
+    bool specificReaderConfig(int /*readerID*/, FrameQueue* /*queue*/)  {return true;};
+    bool specificReaderDelete(int /*readerID*/) {return true;};
+    
     InterleavedVideoFrame* oFrame;
     bool newFrame;
 };
@@ -450,7 +469,7 @@ public:
     void doGetState(Jzon::Object &filterNode){};
 
 protected:
-    bool doProcessFrame(std::map<int, Frame*> &orgFrames) {
+    bool doProcessFrame(std::map<int, Frame*> &orgFrames, std::vector<int> /*newFrame*/) {
         PlanarAudioFrame *orgFrame;
 
         if ((orgFrame = dynamic_cast<PlanarAudioFrame*>(orgFrames.begin()->second)) != NULL){
@@ -488,6 +507,10 @@ protected:
 
 
 private:
+    //There is no need of specific reader configuration
+    bool specificReaderConfig(int /*readerID*/, FrameQueue* /*queue*/)  {return true;};
+    bool specificReaderDelete(int /*readerID*/) {return true;};
+    
     PlanarAudioFrame* oFrame;
     bool newFrame;
 };

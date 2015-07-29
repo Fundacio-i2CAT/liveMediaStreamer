@@ -37,7 +37,7 @@
 
 #define SEG_DURATION 2
 #define BASE_NAME_AVC "testsData/modules/dasher/dashVideoSegmenterAVCTest/test"
-#define BASE_NAME_HEVC "testsData/modules/dasher/dashVideoSegmenterAVCTest/test"
+#define BASE_NAME_HEVC "testsData/modules/dasher/dashVideoSegmenterHEVCTest/test"
 #define WIDTH 1280
 #define HEIGHT 534
 #define FRAMERATE 25
@@ -623,6 +623,8 @@ void DashVideoSegmenterHEVCTest::generateInitSegment()
     ppsNal->setPresentationTime(ts);
     idr1Nal->setPresentationTime(ts);
     idr1Nal->setSize(WIDTH,HEIGHT);
+    idr2Nal->setPresentationTime(ts);
+    idr2Nal->setSize(WIDTH,HEIGHT);
     audNal->setPresentationTime(ts);
 
     initModelLength = readFile("testsData/modules/dasher/dashVideoSegmenterHEVCTest/initModel.m4v", initModel);
@@ -640,12 +642,15 @@ void DashVideoSegmenterHEVCTest::generateInitSegment()
 
     frame = segmenter->manageFrame(idr1Nal);
     CPPUNIT_ASSERT(!frame);
+    
+    frame = segmenter->manageFrame(idr2Nal);
+    CPPUNIT_ASSERT(!frame);
 
     frame = segmenter->manageFrame(audNal);
     CPPUNIT_ASSERT(frame);
 
     CPPUNIT_ASSERT(segmenter->generateInitSegment(initSegment));
-    CPPUNIT_ASSERT(!segmenter->generateInitSegment(initSegment));
+
     CPPUNIT_ASSERT(initModelLength == initSegment->getDataLength());
     CPPUNIT_ASSERT(memcmp(initModel, initSegment->getDataBuffer(), initSegment->getDataLength()) == 0);
 }
@@ -676,6 +681,8 @@ void DashVideoSegmenterHEVCTest::generateSegment()
     char* segmentModel = new char[MAX_DAT];
     size_t segmentModelLength;
     DashSegment* segment = new DashSegment();
+
+    std::ofstream segmentS;
 
     Frame* frame = NULL;
     std::chrono::microseconds ts(1000);

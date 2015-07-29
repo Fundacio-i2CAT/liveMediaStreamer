@@ -109,24 +109,27 @@ public:
     bool setDashSegmenterBitrate(int id, size_t kbps);
 
 private:
-    bool doProcessFrame(std::map<int, Frame*> &orgFrames);
+    bool doProcessFrame(std::map<int, Frame*> &orgFrames, std::vector<int> newFrames);
     void doGetState(Jzon::Object &filterNode);
     void initializeEventMap();
     bool generateInitSegment(size_t id, DashSegmenter* segmenter);
     bool generateSegment(size_t id, Frame* frame, DashSegmenter* segmenter);
     bool appendFrameToSegment(size_t id, Frame* frame, DashSegmenter* segmenter);
     DashSegmenter* getSegmenter(size_t id);
-    bool forceAudioSegmentsGeneration(Frame* frame);
+    bool forceAudioSegmentsGeneration();
     bool writeVideoSegments();
     bool writeAudioSegments();
 
-    bool updateTimestampControl(std::map<int,DashSegment*> segments, size_t &timestamp, size_t &duration);
     bool writeSegmentsToDisk(std::map<int,DashSegment*> segments, size_t timestamp, std::string segExt);
     bool cleanSegments(std::map<int,DashSegment*> segments, size_t timestamp, std::string segExt);
     bool configureEvent(Jzon::Node* params);
     bool addSegmenterEvent(Jzon::Node* params);
     bool removeSegmenterEvent(Jzon::Node* params);
     bool setBitrateEvent(Jzon::Node* params);
+    
+    //There is no need of specific reader configuration
+    bool specificReaderConfig(int /*readerID*/, FrameQueue* /*queue*/)  {return true;};
+    bool specificReaderDelete(int /*readerID*/) {return true;};
 
     std::map<int, DashSegmenter*> segmenters;
     std::map<int, DashSegment*> vSegments;

@@ -49,7 +49,8 @@ public:
 protected:
     FrameQueue* allocQueue(ConnectionData cData);
     bool doProcessFrame(Frame *org, Frame *dst);
-	std::shared_ptr<Reader> setReader(int readerID, FrameQueue* queue);
+    bool specificReaderConfig(int /*readerID*/, FrameQueue* queue);
+    bool specificReaderDelete(int /*readerID*/) {return true;};
 
 private:
     bool configure0(ACodecType codec, int codedAudioChannels, int codedAudioSampleRate, int bitrate);

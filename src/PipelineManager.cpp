@@ -107,18 +107,6 @@ int PipelineManager::searchFilterIDByType(FilterType type)
     return -1;
 }
 
-bool PipelineManager::addPath(int id, Path* path)
-{
-    if (paths.count(id) > 0) {
-        return false;
-    }
-
-    paths[id] = path;
-
-    return true;
-}
-
-
 bool PipelineManager::createFilter(int id, FilterType type)
 {
     BaseFilter* filter = NULL;
@@ -213,7 +201,7 @@ Path* PipelineManager::getPath(int id)
     return paths[id];
 }
 
-Path* PipelineManager::createPath(int orgFilter, int dstFilter, int orgWriter, int dstReader, std::vector<int> midFilters)
+bool PipelineManager::createPath(int id, int orgFilter, int dstFilter, int orgWriter, int dstReader, std::vector<int> midFilters)
 {
     Path* path;
     BaseFilter* originFilter;
@@ -221,20 +209,25 @@ Path* PipelineManager::createPath(int orgFilter, int dstFilter, int orgWriter, i
     int realOrgWriter = orgWriter;
     int realDstReader = dstReader;
 
+    if (paths.count(id) > 0) {
+        utils::errorMsg("[PipelineManager::createPath] Path id already exists");
+        return false;
+    }
+
     if (filters.count(orgFilter) <= 0) {
-        utils::errorMsg("Origin filter does not exist");
-        return NULL;
+        utils::errorMsg("[PipelineManager::createPath] Origin filter does not exist");
+        return false;
     }
 
     if (filters.count(dstFilter) <= 0) {
-        utils::errorMsg("Destination filter does not exist");
-        return NULL;
+        utils::errorMsg("[PipelineManager::createPath] Destination filter does not exist");
+        return false;
     }
 
     for (auto it : midFilters) {
         if (filters.count(it) <= 0 || it == orgFilter || it == dstFilter) {
-            utils::errorMsg("Error creating path: invalid mid filters");
-            return NULL;
+            utils::errorMsg("[PipelineManager::createPath] Error creating path: invalid mid filters");
+            return false;
         }
     }
         
@@ -242,8 +235,8 @@ Path* PipelineManager::createPath(int orgFilter, int dstFilter, int orgWriter, i
     std::sort(midCopy.begin(), midCopy.end());
     std::vector<int> unique(midCopy.begin(), std::unique(midCopy.begin(), midCopy.end()));
     if (unique.size() != midFilters.size()){
-        utils::errorMsg("Error creating path: duplicated mid filters");
-        return NULL;
+        utils::errorMsg("[PipelineManager::createPath] Error creating path: duplicated mid filters");
+        return false;
     }
     
     originFilter = filters[orgFilter];
@@ -258,13 +251,20 @@ Path* PipelineManager::createPath(int orgFilter, int dstFilter, int orgWriter, i
     }
 
     path = new Path(orgFilter, dstFilter, realOrgWriter, realDstReader, midFilters);
+    paths[id] = path;
 
-    return path;
+    return true;
 }
 
 
-bool PipelineManager::connectPath(Path* path)
+bool PipelineManager::connectPath(int id)
 {
+    if (paths.count(id) <= 0) {
+        utils::errorMsg("[PipelineManager::connectPath] Path does not exist");
+        return false;
+    }
+
+    Path* path = paths[id];
     int orgFilterId = path->getOriginFilterID();
     int dstFilterId = path->getDestinationFilterID();
 
@@ -309,24 +309,28 @@ bool PipelineManager::connectPath(Path* path)
 
 bool PipelineManager::handleGrouping(int orgFId, int dstFId, int orgWId, int dstRId)
 {
-    struct ConnectionData cData;
-    
+    ConnectionData cData;
+
     if (!filters[orgFId]->isWConnected(orgWId)){
         return false;
     }
-    
+
     cData = filters[orgFId]->getWConnectionData(orgWId);
     
-    if (!validCData(cData)){
+    if (!validCData(cData, orgFId, dstFId)){
+        utils::errorMsg("cData not valid to share filters");
         return false;
     }
-    
+
     return filters[cData.rFilterId]->shareReader(filters[dstFId], dstRId, cData.readerId) &&
         filters[cData.rFilterId]->groupRunnable(filters[dstFId]);
 }
 
-bool PipelineManager::validCData(struct ConnectionData cData)
+bool PipelineManager::validCData(ConnectionData cData, int orgFId, int dstFId)
 {
+    if (orgFId != cData.wFilterId || dstFId == cData.rFilterId){
+        return false;
+    }
     if (filters.count(cData.wFilterId) > 0 && filters[cData.wFilterId]->isWConnected(cData.writerId) &&
         filters.count(cData.rFilterId) > 0 && filters[cData.rFilterId]->isRConnected(cData.readerId)) {
         return true;
@@ -464,7 +468,6 @@ void PipelineManager::createPathEvent(Jzon::Node* params, Jzon::Object &outputNo
     int id, orgFilterId, dstFilterId;
     int orgWriterId = -1;
     int dstReaderId = -1;
-    Path* path;
 
     if(!params) {
         outputNode.Add("error", "Error creating path. Invalid JSON format...");
@@ -495,20 +498,13 @@ void PipelineManager::createPathEvent(Jzon::Node* params, Jzon::Object &outputNo
         filtersIds.push_back((*it).ToInt());
     }
     
-    path = createPath(orgFilterId, dstFilterId, orgWriterId, dstReaderId, filtersIds);
-
-    if (!path) {
+    if (!createPath(id, orgFilterId, dstFilterId, orgWriterId, dstReaderId, filtersIds)) {
         outputNode.Add("error", "Error creating path. Check introduced filter IDs...");
         return;
     }
 
-    if (!connectPath(path)) {
+    if (!connectPath(id)) {
         outputNode.Add("error", "Error connecting path. Better pray Jesus...");
-        return;
-    }
-
-    if (!addPath(id, path)) {
-        outputNode.Add("error", "Error registering path. Path ID already exists...");
         return;
     }
 

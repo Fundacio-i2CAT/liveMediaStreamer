@@ -95,7 +95,7 @@ FrameQueue* VideoMixer::allocQueue(ConnectionData cData)
     return VideoFrameQueue::createNew(cData, outputStreamInfo, DEFAULT_RAW_VIDEO_FRAMES);
 }
 
-bool VideoMixer::doProcessFrame(std::map<int, Frame*> &orgFrames, Frame *dst)
+bool VideoMixer::doProcessFrame(std::map<int, Frame*> &orgFrames, Frame *dst, std::vector<int> /*newFrames*/)
 {
     int frameNumber = orgFrames.size();
     std::chrono::microseconds outTs = std::chrono::microseconds(0);
@@ -214,18 +214,19 @@ void VideoMixer::pasteToLayout(int frameID, VideoFrame* vFrame)
     }
 }
 
-std::shared_ptr<Reader> VideoMixer::setReader(int readerId, FrameQueue*)
+bool VideoMixer::specificReaderConfig(int readerId, FrameQueue* /*queue*/)
 {
-    if (readers.count(readerId) > 0) {
-        return NULL;
-    }
-
-    std::shared_ptr<Reader> r(new Reader());
-    readers[readerId] = r;
-
     channelsConfig[readerId] = new ChannelConfig();
 
-    return r;
+    return true;
+}
+
+bool VideoMixer::specificReaderDelete(int readerID)
+{
+    delete channelsConfig[readerID];
+    channelsConfig.erase(readerID);
+    
+    return true;
 }
 
 void VideoMixer::initializeEventMap()

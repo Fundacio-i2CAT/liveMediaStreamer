@@ -8,7 +8,7 @@ QueueSource* QueueSource::createNew(UsageEnvironment& env, int readerId)
 
 
 QueueSource::QueueSource(UsageEnvironment& env, int readerId)
-  : FramedSource(env), eventTriggerId(0), frame(NULL), fReaderId(readerId), processedFrame(false) 
+  : FramedSource(env), eventTriggerId(0), frame(NULL), fReaderId(readerId), processedFrame(false), stopFrames(true)
 {
     if (eventTriggerId == 0){
         eventTriggerId = envir().taskScheduler().createEventTrigger(deliverFrame0);
@@ -17,10 +17,14 @@ QueueSource::QueueSource(UsageEnvironment& env, int readerId)
 
 void QueueSource::doGetNextFrame() 
 {
-    //TODO: check status
+    //TODO: check status, i.e. client disconnected!
     if (false) {
         handleClosure();
         return;
+    }
+    
+    if (stopFrames){
+        stopFrames = false; 
     }
     
     if (frame) {
@@ -59,16 +63,16 @@ void QueueSource::deliverFrame()
     afterGetting(this);
 }
 
-Frame* QueueSource::getFrame()
-{
-    Frame* f = frame;
-    
-    if (processedFrame){
-        frame = NULL;
+bool QueueSource::gotFrame()
+{   
+    if (processedFrame || stopFrames){
         processedFrame = false;
-        return f;
+        if (frame){
+            frame = NULL;
+            return true;
+        }
     }
-    return NULL;
+    return false;
 }
 
 bool QueueSource::setFrame(Frame *f)
@@ -82,11 +86,17 @@ bool QueueSource::setFrame(Frame *f)
 
 bool QueueSource::signalNewFrameData(TaskScheduler* ourScheduler, QueueSource* ourSource) 
 {
-  if (!ourScheduler || !ourSource) {
-      return false;
-  }
+    if (!ourScheduler || !ourSource) {
+        return false;
+    }
 
-  ourScheduler->triggerEvent(ourSource->getTriggerId(), ourSource);
-  return true;
+    ourScheduler->triggerEvent(ourSource->getTriggerId(), ourSource);
+    return true;
+}
+
+void QueueSource::doStopGettingFrames()
+{
+    envir().taskScheduler().unscheduleDelayedTask(nextTask());
+    stopFrames = true;
 }
 

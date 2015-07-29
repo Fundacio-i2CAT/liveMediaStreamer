@@ -188,17 +188,21 @@ protected:
     BaseFilter(unsigned readersNum = MAX_READERS, unsigned writersNum = MAX_WRITERS, FilterRole fRole_ = REGULAR, bool periodic = false);
 
     std::vector<int> addFrames(std::map<int, Frame*> &dFrames);
-    bool removeFrames(std::map<int, Frame*> &oFrames);
+    bool removeFrames(std::vector<int> framesToRemove);
     virtual FrameQueue *allocQueue(struct ConnectionData cData) = 0;
 
     std::chrono::microseconds getFrameTime() {return frameTime;};
 
-    virtual std::shared_ptr<Reader> setReader(int readerID, FrameQueue* queue);
+    std::shared_ptr<Reader> setReader(int readerID, FrameQueue* queue);
     std::shared_ptr<Reader> getReader(int id);
+    
+    //TODO: this should get stream info parameters insted of FrameQueue or get from reader.
+    virtual bool specificReaderConfig(int readerID, FrameQueue* queue) = 0;
+    virtual bool specificReaderDelete(int readerID) = 0;
 
-    bool demandOriginFrames(std::map<int, Frame*> &oFrames);
-    bool demandOriginFramesBestEffort(std::map<int, Frame*> &oFrames);
-    bool demandOriginFramesFrameTime(std::map<int, Frame*> &oFrames); 
+    std::vector<int> demandOriginFrames(std::map<int, Frame*> &oFrames);
+    std::vector<int> demandOriginFramesBestEffort(std::map<int, Frame*> &oFrames);
+    std::vector<int> demandOriginFramesFrameTime(std::map<int, Frame*> &oFrames); 
 
     bool demandDestinationFrames(std::map<int, Frame*> &dFrames);
 
@@ -208,9 +212,7 @@ protected:
 
     std::map<std::string, std::function<bool(Jzon::Node* params)> > eventMap;
 
-    virtual bool runDoProcessFrame(std::map<int, Frame*> &oFrames, std::map<int, Frame*> &dFrames) = 0;
-    
-    virtual bool deleteReader(int readerId);
+    virtual bool runDoProcessFrame(std::map<int, Frame*> &oFrames, std::map<int, Frame*> &dFrames, std::vector<int> newFrames) = 0;
 
     void setSyncTs(std::chrono::microseconds ts){syncTs = ts;};
     std::chrono::microseconds getSyncTs(){return syncTs;};
@@ -231,6 +233,7 @@ private:
     bool connect(BaseFilter *R, int writerID, int readerID);
     std::vector<int> regularProcessFrame(int& ret);
     std::vector<int> serverProcessFrame(int& ret);
+    bool deleteReader(int readerId);
 
     void execute() {process = true;};
     bool isProcessing() {return process;};
@@ -252,13 +255,14 @@ protected:
     using BaseFilter::getFrameTime;
 
 private:
-    bool runDoProcessFrame(std::map<int, Frame*> &oFrames, std::map<int, Frame*> &dFrames);
+    bool runDoProcessFrame(std::map<int, Frame*> &oFrames, std::map<int, Frame*> &dFrames, std::vector<int> /*newFrames*/);
     
     using BaseFilter::demandOriginFrames;
     using BaseFilter::demandDestinationFrames;
     using BaseFilter::addFrames;
     using BaseFilter::removeFrames;
     using BaseFilter::writers;
+    using BaseFilter::readers;
     using BaseFilter::seqNums;
     using BaseFilter::processEvent;
     using BaseFilter::frameTime;
@@ -276,13 +280,14 @@ protected:
     using BaseFilter::getFrameTime;
 
 private:
-    bool runDoProcessFrame(std::map<int, Frame*> &oFrames, std::map<int, Frame*> &dFrames);
+    bool runDoProcessFrame(std::map<int, Frame*> &oFrames, std::map<int, Frame*> &dFrames, std::vector<int> /*newFrames*/);
 
     using BaseFilter::demandOriginFrames;
     using BaseFilter::demandDestinationFrames;
     using BaseFilter::addFrames;
     using BaseFilter::removeFrames;
     using BaseFilter::writers;
+    using BaseFilter::readers;
     using BaseFilter::seqNums;
     using BaseFilter::processEvent;
 
@@ -305,13 +310,17 @@ protected:
     using BaseFilter::getFrameTime;
 
 private: 
-    bool runDoProcessFrame(std::map<int, Frame*> &oFrames, std::map<int, Frame*> &dFrames);
+    bool runDoProcessFrame(std::map<int, Frame*> &oFrames, std::map<int, Frame*> &dFrames, std::vector<int> /*newFrames*/);
+    //There is no need of specific reader configuration
+    bool specificReaderConfig(int /*readerID*/, FrameQueue* /*queue*/)  {return true;};
+    bool specificReaderDelete(int /*readerID*/) {return true;};
 
     using BaseFilter::demandDestinationFrames;
     using BaseFilter::demandOriginFrames;
     using BaseFilter::addFrames;
     using BaseFilter::removeFrames;
     using BaseFilter::writers;
+    using BaseFilter::readers;
     using BaseFilter::seqNums;
     using BaseFilter::processEvent;
     using BaseFilter::frameTime;
@@ -331,13 +340,14 @@ protected:
 
 private:
     FrameQueue *allocQueue(struct ConnectionData cData) {return NULL;};
-    bool runDoProcessFrame(std::map<int, Frame*> &oFrames, std::map<int, Frame*> &dFrames);
-    virtual bool doProcessFrame(std::map<int, Frame*> &orgFrames) = 0;
+    bool runDoProcessFrame(std::map<int, Frame*> &oFrames, std::map<int, Frame*> &dFrames, std::vector<int> newFrames);
+    virtual bool doProcessFrame(std::map<int, Frame*> &orgFrames, std::vector<int> newFrames) = 0;
     using BaseFilter::demandOriginFrames;
     using BaseFilter::demandDestinationFrames;
     using BaseFilter::addFrames;
     using BaseFilter::removeFrames;
     using BaseFilter::writers;
+    using BaseFilter::readers;
     using BaseFilter::seqNums;
     using BaseFilter::processEvent;
     using BaseFilter::frameTime;
@@ -350,18 +360,19 @@ class ManyToOneFilter : public BaseFilter {
 
 protected:
     ManyToOneFilter(unsigned readersNum = MAX_READERS, FilterRole fRole_ = REGULAR, bool periodic = false);
-    virtual bool doProcessFrame(std::map<int, Frame *> &orgFrames, Frame *dst) = 0;
+    virtual bool doProcessFrame(std::map<int, Frame *> &orgFrames, Frame *dst, std::vector<int> newFrames) = 0;
     using BaseFilter::setFrameTime;
     using BaseFilter::getFrameTime;
 
 private:   
-    bool runDoProcessFrame(std::map<int, Frame*> &oFrames, std::map<int, Frame*> &dFrames);
+    bool runDoProcessFrame(std::map<int, Frame*> &oFrames, std::map<int, Frame*> &dFrames, std::vector<int> newFrames);
 
     using BaseFilter::demandOriginFrames;
     using BaseFilter::demandDestinationFrames;
     using BaseFilter::addFrames;
     using BaseFilter::removeFrames;
     using BaseFilter::writers;
+    using BaseFilter::readers;
     using BaseFilter::seqNums;
     using BaseFilter::processEvent;
     using BaseFilter::frameTime;

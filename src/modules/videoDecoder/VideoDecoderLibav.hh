@@ -37,28 +37,32 @@ extern "C" {
 
 class VideoDecoderLibav : public OneToOneFilter {
 
-    public:
-        VideoDecoderLibav();
-        ~VideoDecoderLibav();
+public:
+    VideoDecoderLibav();
+    ~VideoDecoderLibav();
         
-    private:
-        void initializeEventMap();
-        FrameQueue* allocQueue(ConnectionData cData);
-        bool doProcessFrame(Frame *org, Frame *dst);
-        bool toBuffer(VideoFrame *decodedFrame, VideoFrame *codedFrame);
-        bool reconfigure(VCodecType codec);
-        bool inputConfig();
-        void doGetState(Jzon::Object &filterNode);
+private:
+    void initializeEventMap();
+    FrameQueue* allocQueue(ConnectionData cData);
+    bool doProcessFrame(Frame *org, Frame *dst);
+    bool toBuffer(VideoFrame *decodedFrame, VideoFrame *codedFrame);
+    bool reconfigure(VCodecType codec);
+    bool inputConfig();
+    void doGetState(Jzon::Object &filterNode);
 
-        StreamInfo *outputStreamInfo;
-        
-        AVCodec             *codec;
-        AVCodecContext      *codecCtx;
-        AVFrame             *frame, *frameCopy;
-        AVPacket            pkt;
-        AVCodecID           libavCodecId;
+    //There is no need of specific reader configuration
+    bool specificReaderConfig(int /*readerID*/, FrameQueue* /*queue*/)  {return true;};
+    bool specificReaderDelete(int /*readerID*/) {return true;};
+    
+    AVCodec             *codec;
+    AVCodecContext      *codecCtx;
+    AVFrame             *frame, *frameCopy;
+    AVPacket            pkt;
+    AVCodecID           libavCodecId;
 
-        VCodecType          fCodec;
+    VCodecType          fCodec;
+
+    StreamInfo *outputStreamInfo;
 };
 
 #endif

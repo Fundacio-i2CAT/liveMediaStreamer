@@ -63,12 +63,18 @@ Frame* AVFramedQueue::getFront()
 
 int AVFramedQueue::addFrame() 
 {
+    if ((rear + 1) % max == front){
+        return connectionData.rFilterId;
+    }
     rear =  (rear + 1) % max;
     return connectionData.rFilterId;
 }
 
 int AVFramedQueue::removeFrame() 
 {
+    if (rear == front){
+        return -1;
+    }
     front = (front + 1) % max;
     return connectionData.wFilterId;
 }

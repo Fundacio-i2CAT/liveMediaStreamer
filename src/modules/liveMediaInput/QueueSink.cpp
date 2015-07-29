@@ -87,7 +87,6 @@ void QueueSink::afterGettingFrame(unsigned frameSize, struct timeval presentatio
 
     if (frame != NULL) {
         frame->setLength(frameSize);
-        frame->newOriginTime();
         frame->setPresentationTime(ts);
         frame->setConsumed(true);
         nextFrame = true;

@@ -63,7 +63,7 @@ void Reader::removeReader(int id)
     }
 }
 
-Frame* Reader::getFrame(int fId, bool force)
+Frame* Reader::getFrame(int fId, bool &newFrame)
 {
     std::lock_guard<std::mutex> guard(lck);
     
@@ -71,26 +71,25 @@ Frame* Reader::getFrame(int fId, bool force)
         utils::errorMsg("The queue is not connected");
         return NULL;
     }
-    
-    if (!frame){
+
+    if (!frame) {
         frame = queue->getFront();
     }
-    
-    if (frame){
 
-        if (pending == 0){
-            pending = filters;
-        }
-        
-        if (requests.count(fId) == 0){
-            requests[fId] = true;
-        } else if (!force){
-            return NULL;
-        }
+    if (!frame) {
+        newFrame = false;
+        return queue->forceGetFront();
     }
     
-    if (force && !frame) {
-        return queue->forceGetFront();
+    if (pending == 0){
+        pending = filters;
+    }
+
+    if (requests.count(fId) == 0) {
+        newFrame = true;
+        requests[fId] = true;
+    } else {
+        newFrame = false;
     }
 
     return frame;
@@ -99,7 +98,7 @@ Frame* Reader::getFrame(int fId, bool force)
 int Reader::removeFrame(int fId)
 {
     std::lock_guard<std::mutex> guard(lck);
-    
+
     if (pending != 0 && requests.count(fId) > 0 && requests[fId]){
         pending--;
         requests[fId] = false;
@@ -255,13 +254,13 @@ int Writer::addFrame() const
     return queue->addFrame();
 }
 
-struct ConnectionData Writer::getCData()
+ConnectionData Writer::getCData()
 {
     if (queue && queue->isConnected()){
         return queue->getCData();
     }
     
-    struct ConnectionData cData;
+    ConnectionData cData;
     return cData;
     
 }

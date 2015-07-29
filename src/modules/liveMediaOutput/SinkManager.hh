@@ -89,8 +89,6 @@ public:
 private:
     SinkManager(unsigned readersNum = MAX_READERS);
     
-    bool deleteReader(int readerId);
-    
     bool readerInConnection(int rId);
     
     bool isGood() {return rtspServer != NULL;};
@@ -105,15 +103,16 @@ private:
     bool addRTSPConnectionEvent(Jzon::Node* params);
     bool addRTPConnectionEvent(Jzon::Node* params);
     
-    std::shared_ptr<Reader> setReader(int readerID, FrameQueue* queue);
+    bool specificReaderConfig(int readerID, FrameQueue* queue);
+    bool specificReaderDelete(int readerID);
 
-    bool doProcessFrame(std::map<int, Frame*> &oFrames);
+    bool doProcessFrame(std::map<int, Frame*> &oFrames, std::vector<int> newFrames);
     void stop();
 
     bool addSubsessionByReader(RTSPConnection* connection, int readerId);
 
-    void createVideoQueueSource(VCodecType codec, int readerId);
-    void createAudioQueueSource(ACodecType codec, int readerId);
+    bool createVideoQueueSource(VCodecType codec, int readerId);
+    bool createAudioQueueSource(ACodecType codec, int readerId);
     void doGetState(Jzon::Object &filterNode);
 
     std::map<int, StreamReplicator*> replicators;

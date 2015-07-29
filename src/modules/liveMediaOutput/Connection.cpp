@@ -92,11 +92,13 @@ RTSPConnection::~RTSPConnection()
 bool RTSPConnection::addVideoSubsession(VCodecType codec, StreamReplicator* replicator, int readerId)
 {
     if (!replicator){
+        utils::errorMsg("Failed! Stream replicator is null!");
         return false;
     }
     
     for (auto it : getReaders()){
         if (readerId == it){
+            utils::errorMsg("Failed! Readers can not be repeated in connection!");
             return false;
         }
     }
@@ -147,6 +149,7 @@ bool RTSPConnection::addRawVideoSubsession(VCodecType codec, StreamReplicator* r
     }
     
     if (!sSession){
+        utils::errorMsg("Failed! Could not create ServerMediaSubsession!");
         return false;
     }
     

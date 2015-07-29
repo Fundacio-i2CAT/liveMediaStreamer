@@ -62,18 +62,13 @@ FrameQueue *AudioMixer::allocQueue(ConnectionData cData)
                                             sampleFormat, std::chrono::milliseconds(0));
 }
 
-bool AudioMixer::doProcessFrame(std::map<int, Frame*> &orgFrames, Frame *dst) 
+bool AudioMixer::doProcessFrame(std::map<int, Frame*> &orgFrames, Frame *dst, std::vector<int> newFrames) 
 {
     AudioFrame* aFrame;
     AudioFrame* aDstFrame;
 
-    for (auto frame : orgFrames) {
-
-        if (!frame.second || !frame.second->getConsumed()) {
-            continue;
-        }
-
-        aFrame = dynamic_cast<AudioFrame*>(frame.second);
+    for (auto id : newFrames) {
+        aFrame = dynamic_cast<AudioFrame*>(orgFrames[id]);
 
         if (!aFrame) {
             utils::errorMsg("[AudioMixer] Input frames must be AudioFrames");
@@ -81,7 +76,7 @@ bool AudioMixer::doProcessFrame(std::map<int, Frame*> &orgFrames, Frame *dst)
         }
 
 
-        if (!pushToBuffer(frame.first, aFrame)) {
+        if (!pushToBuffer(id, aFrame)) {
             utils::errorMsg("[AudioMixer] Error pushing samples to the internal buffer");
             continue;
         }
@@ -268,16 +263,9 @@ bool AudioMixer::floatToBytes(unsigned char* dst, float const origin, SampleFmt 
     return true;
 }
 
-std::shared_ptr<Reader> AudioMixer::setReader(int readerID, FrameQueue* queue)
+bool AudioMixer::specificReaderConfig(int readerID, FrameQueue* queue)
 {
     AudioCircularBuffer* inBuffer;
-
-    if (readers.count(readerID) > 0) {
-        return NULL;
-    }
-
-    std::shared_ptr<Reader> r (new Reader());
-    readers[readerID] = r;
 
     inBuffer = dynamic_cast<AudioCircularBuffer*>(queue);
 
@@ -290,7 +278,16 @@ std::shared_ptr<Reader> AudioMixer::setReader(int readerID, FrameQueue* queue)
 
     gains[readerID] = DEFAULT_CHANNEL_GAIN;
 
-    return r;
+    return true;
+}
+
+bool AudioMixer::specificReaderDelete(int readerID)
+{
+    if (gains.count(readerID) > 0){
+        gains.erase(readerID);
+        return true;
+    }
+    return false;
 }
 
 bool AudioMixer::setChannelGain(int id, float value)

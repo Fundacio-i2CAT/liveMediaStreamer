@@ -32,6 +32,7 @@
 #include "modules/videoResampler/VideoResampler.hh"
 #include "modules/liveMediaInput/SourceManager.hh"
 #include "modules/liveMediaOutput/SinkManager.hh"
+#include "modules/headDemuxer/HeadDemuxerLibav.hh"
 #include "modules/dasher/Dasher.hh"
 #include "modules/sharedMemory/SharedMemory.hh"
 
@@ -122,6 +123,9 @@ bool PipelineManager::createFilter(int id, FilterType type)
             break;
         case TRANSMITTER:
             filter = SinkManager::createNew();
+            break;
+        case DEMUXER:
+            filter = new HeadDemuxerLibav();
             break;
         case VIDEO_DECODER:
             filter = new VideoDecoderLibav();

@@ -34,6 +34,7 @@ extern "C" {
 #include "../../FrameQueue.hh"
 #include "../../Filter.hh"
 #include "../../Utils.hh"
+#include "../../StreamInfo.hh"
 
 class AudioEncoderLibav : public OneToOneFilter {
 
@@ -43,7 +44,7 @@ public:
 
     bool configure(ACodecType codec, int codedAudioChannels, int codedAudioSampleRate, int bitrate);
     unsigned getSamplesPerFrame(){ return samplesPerFrame;};
-    ACodecType getCodec() {return fCodec;};
+    ACodecType getCodec() {return outputStreamInfo->audio.codec;};
     
 protected:
     FrameQueue* allocQueue(ConnectionData cData);
@@ -61,6 +62,8 @@ private:
 
     bool configEvent(Jzon::Node* params);
     void doGetState(Jzon::Object &filterNode);
+
+    StreamInfo          *outputStreamInfo;
    
     AVCodec             *codec;
     AVCodecContext      *codecCtx;
@@ -69,12 +72,8 @@ private:
     SwrContext          *resampleCtx;
     int                 gotFrame;
 
-    ACodecType          fCodec;
     unsigned            samplesPerFrame;
 
-    unsigned            internalChannels;
-    unsigned            internalSampleRate;
-    SampleFmt           internalSampleFmt;
     AVSampleFormat      internalLibavSampleFmt;
     int                 outputBitrate;
 

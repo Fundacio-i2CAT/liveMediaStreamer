@@ -31,6 +31,7 @@ VideoEncoderX264::VideoEncoderX264() :
 VideoEncoderX264or5(), encoder(NULL)
 {
     pts = 0;
+    outputStreamInfo->video.codec = H264;
     x264_picture_init(&picIn);
     x264_picture_init(&picOut);
 }
@@ -45,10 +46,6 @@ VideoEncoderX264::~VideoEncoderX264()
 
 bool VideoEncoderX264::fillPicturePlanes(unsigned char** data, int* linesize)
 {
-    if (&picIn.img == NULL) {
-        return false;
-    }
-
     for(int i = 0; i < MAX_PLANES_PER_PICTURE; i++){
         picIn.img.i_stride[i] = linesize[i];
         picIn.img.plane[i] = data[i];
@@ -136,7 +133,7 @@ bool VideoEncoderX264::encodeHeadersFrame(VideoFrame* frame)
 
 FrameQueue* VideoEncoderX264::allocQueue(ConnectionData cData)
 {
-    return SlicedVideoFrameQueue::createNew(cData, H264, DEFAULT_VIDEO_FRAMES, MAX_H264_OR_5_NAL_SIZE);
+    return SlicedVideoFrameQueue::createNew(cData, outputStreamInfo, DEFAULT_VIDEO_FRAMES, MAX_H264_OR_5_NAL_SIZE);
 }
 
 bool VideoEncoderX264::reconfigure(VideoFrame* orgFrame, VideoFrame* dstFrame)
@@ -187,7 +184,7 @@ bool VideoEncoderX264::reconfigure(VideoFrame* orgFrame, VideoFrame* dstFrame)
     x264_param_parse(&xparams, "rc-lookahead", std::to_string(lookahead).c_str());
     x264_param_parse(&xparams, "scenecut", std::to_string(0).c_str());
 
-    if (annexB) {
+    if (outputStreamInfo->video.h264or5.annexb) {
         x264_param_parse(&xparams, "repeat-headers", std::to_string(1).c_str());
         x264_param_parse(&xparams, "annexb", std::to_string(1).c_str());
     }
@@ -217,7 +214,7 @@ bool VideoEncoderX264::reconfigure(VideoFrame* orgFrame, VideoFrame* dstFrame)
 
     needsConfig = false;
 
-    if (!annexB) {
+    if (!outputStreamInfo->video.h264or5.annexb) {
         return encodeHeadersFrame(dstFrame);
     }
 

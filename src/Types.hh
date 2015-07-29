@@ -29,6 +29,8 @@
  * A more elaborated file description.
 */
 
+#include <stdint.h>
+
 #define DEFAULT_HEIGHT 1080
 #define DEFAULT_WIDTH 1920
 #define DEFAULT_BYTES_PER_PIXEL 3

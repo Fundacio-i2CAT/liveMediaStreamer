@@ -25,7 +25,8 @@
 #include "Utils.hh"
 #include <cstring>
 
-SlicedVideoFrameQueue* SlicedVideoFrameQueue::createNew(struct ConnectionData cData, VCodecType codec, unsigned maxFrames, unsigned maxSliceSize)
+SlicedVideoFrameQueue* SlicedVideoFrameQueue::createNew(struct ConnectionData cData,
+        const StreamInfo *si, unsigned maxFrames, unsigned maxSliceSize)
 {
     SlicedVideoFrameQueue* q;
 
@@ -33,7 +34,7 @@ SlicedVideoFrameQueue* SlicedVideoFrameQueue::createNew(struct ConnectionData cD
         return NULL;
     }
 
-    q = new SlicedVideoFrameQueue(cData, codec, maxFrames);
+    q = new SlicedVideoFrameQueue(cData, si, maxFrames);
 
     if (!q->setup(maxSliceSize)) {
         utils::errorMsg("SlicedVideoFrameQueue setup error");
@@ -44,10 +45,9 @@ SlicedVideoFrameQueue* SlicedVideoFrameQueue::createNew(struct ConnectionData cD
     return q;
 }
 
-SlicedVideoFrameQueue::SlicedVideoFrameQueue(struct ConnectionData cData, VCodecType codec, unsigned maxFrames) : 
-VideoFrameQueue(cData, codec, maxFrames)
+SlicedVideoFrameQueue::SlicedVideoFrameQueue(struct ConnectionData cData, const StreamInfo *si,
+        unsigned maxFrames) : VideoFrameQueue(cData, si, maxFrames)
 {
-
 }
 
 SlicedVideoFrameQueue::~SlicedVideoFrameQueue()
@@ -103,14 +103,14 @@ void SlicedVideoFrameQueue::innerAddFrame()
 
 bool SlicedVideoFrameQueue::setup(unsigned maxSliceSize)
 {
-    inputFrame = SlicedVideoFrame::createNew(codec, maxSliceSize);
+    inputFrame = SlicedVideoFrame::createNew(streamInfo->video.codec, maxSliceSize);
 
     if (!inputFrame) {
         return false;
     }
 
     for (unsigned i=0; i < max; i++) {
-        frames[i] = InterleavedVideoFrame::createNew(codec, maxSliceSize);
+        frames[i] = InterleavedVideoFrame::createNew(streamInfo->video.codec, maxSliceSize);
 
         if (!frames[i]) {
             return false;

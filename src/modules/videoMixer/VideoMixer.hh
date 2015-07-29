@@ -25,6 +25,7 @@
 
 #include "../../VideoFrame.hh"
 #include "../../Filter.hh"
+#include "../../StreamInfo.hh"
 #include <opencv/cv.hpp>
 
 #define VMIXER_MAX_CHANNELS 16
@@ -129,6 +130,7 @@ class VideoMixer : public ManyToOneFilter {
         bool specificReaderConfig(int readerID, FrameQueue* /*queue*/);
         bool specificReaderDelete(int readerID);
 
+        StreamInfo *outputStreamInfo;
         std::map<int, ChannelConfig*> channelsConfig;
         int outputWidth;
         int outputHeight;

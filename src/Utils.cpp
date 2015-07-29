@@ -158,6 +158,28 @@ namespace utils
         return codec;
     }
 
+    std::string getStreamTypeAsString(StreamType type)
+    {
+       std::string stringType;
+
+        switch(type) {
+            case ST_NONE:
+                stringType = "INVALID TYPE";
+                break;
+            case AUDIO:
+                stringType = "AUDIO";
+                break;
+            case VIDEO:
+                stringType = "VIDEO";
+                break;
+            default:
+                stringType = "";
+                break;
+        }
+
+        return stringType;
+    }
+
     std::string getVideoCodecAsString(VCodecType codec)
     {
        std::string stringCodec;
@@ -359,6 +381,40 @@ namespace utils
         return stringFormat;
     }
 
+    std::string getPixTypeAsString(PixType type)
+    {
+        std::string stringPixType;
+
+        switch(type) {
+            case RGB24:
+                stringPixType = "RGB24";
+                break;
+            case RGB32:
+                stringPixType = "RGB32";
+                break;
+            case YUV420P:
+                stringPixType = "YUV420P";
+                break;
+            case YUV422P:
+                stringPixType = "YUV422P";
+                break;
+            case YUV444P:
+                stringPixType = "YUV444P";
+                break;
+            case YUYV422:
+                stringPixType = "YUYV422";
+                break;
+            case YUVJ420P:
+                stringPixType = "YUVJ420P";
+                break;
+            default:
+                stringPixType = "Unknown";
+                break;
+        }
+
+        return stringPixType;
+    }
+
     int getBytesPerSampleFromFormat(SampleFmt fmt)
     {
         int bytesPerSample;
@@ -439,6 +495,39 @@ namespace utils
         std::string id(length,0);
         std::generate_n(id.begin(), length, randAlphaNum);
         return id;
+    }
+
+    std::string getStreamInfoAsString(const StreamInfo *si)
+    {
+        std::string desc = getStreamTypeAsString(si->type);
+        if (si->extradata_size) {
+            desc += " (" + std::to_string(si->extradata_size) + " bytes of extradata)";
+        }
+
+        switch (si->type) {
+            case AUDIO:
+                desc += " codec:" + getAudioCodecAsString(si->audio.codec);
+                desc += " sampleRate:" + std::to_string(si->audio.sampleRate);
+                desc += " channels:" + std::to_string(si->audio.channels);
+                desc += " sampleFormat:" + getSampleFormatAsString(si->audio.sampleFormat);
+                break;
+            case VIDEO:
+                desc += " codec:" + getVideoCodecAsString(si->video.codec);
+                desc += " pixelFormat:" + getPixTypeAsString(si->video.pixelFormat);
+                switch (si->video.codec) {
+                    case H264:
+                    case H265:
+                        desc += " annexB:" + std::to_string(si->video.h264or5.annexb);
+                        break;
+                    default:
+                        break;
+                }
+                break;
+            default:
+                break;
+        }
+
+        return desc;
     }
 
     int getPayloadFromCodec(std::string codec)

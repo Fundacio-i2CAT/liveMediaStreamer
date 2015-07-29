@@ -26,6 +26,7 @@
 
 #include "QueueSource.hh"
 #include "../../Filter.hh"
+#include "../../StreamInfo.hh"
 #include "../../IOInterface.hh"
 #include "Connection.hh"
 

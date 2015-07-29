@@ -125,15 +125,17 @@ bool SharedMemory::doProcessFrame(Frame *org, Frame *dst)
 
 FrameQueue* SharedMemory::allocQueue(ConnectionData cData)
 {
-    if (codec == H264) {
-        return VideoFrameQueue::createNew(cData, codec, DEFAULT_VIDEO_FRAMES);
-
-    } else if (codec == RAW) {
-        return VideoFrameQueue::createNew(cData, codec, DEFAULT_RAW_VIDEO_FRAMES, RGB24);
-        
-    } else {
+    if (codec != H264 && codec !=RAW) {
         return NULL;
     }
+    const AVFramedQueue *inQueue = dynamic_cast<AVFramedQueue*>(getReader(DEFAULT_ID)->getQueue());
+    if (inQueue == NULL) {
+        utils::errorMsg("Input queue is not AV");
+        return NULL;
+    }
+    const StreamInfo *si = inQueue->getStreamInfo();
+
+    return VideoFrameQueue::createNew(cData, si, inQueue->getMaxFrames());
 }
 
 //TODO to be implemented

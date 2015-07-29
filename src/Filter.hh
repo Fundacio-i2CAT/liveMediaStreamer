@@ -35,7 +35,7 @@
 #include "IOInterface.hh"
 #include "Runnable.hh"
 #include "Event.hh"
-
+#include "StreamInfo.hh"
 
 #define DEFAULT_ID 1                /*!< Default ID for unique filter's readers and/or writers. */
 #define MAX_WRITERS 16              /*!< Default maximum writers for a filter. */

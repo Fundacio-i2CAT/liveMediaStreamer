@@ -113,7 +113,10 @@ int main(int argc, char* argv[])
     }
 
     if (!transmitter->addRTSPConnection(readers, 1, MPEGTS, "mpegts")){
-        utils::errorMsg("Could not add RTSP output connection");
+        utils::errorMsg("Could not add RTSP output connection for MPEGTS");
+    }
+    if (!transmitter->addRTSPConnection(readers, 2, STD_RTP, "rtp")){
+        utils::errorMsg("Could not add RTSP output connection RTP");
     }
     if (port != 0 && !ip.empty()) {
         if (transmitter->addRTPConnection(readers, 2, ip, port, MPEGTS)) {

@@ -32,6 +32,7 @@ extern "C" {
 #include "../../VideoFrame.hh"
 #include "../../FrameQueue.hh"
 #include "../../Filter.hh"
+#include "../../StreamInfo.hh"
 
 
 class VideoDecoderLibav : public OneToOneFilter {
@@ -48,7 +49,7 @@ private:
     bool reconfigure(VCodecType codec);
     bool inputConfig();
     void doGetState(Jzon::Object &filterNode);
-    
+
     //There is no need of specific reader configuration
     bool specificReaderConfig(int /*readerID*/, FrameQueue* /*queue*/)  {return true;};
     bool specificReaderDelete(int /*readerID*/) {return true;};
@@ -60,6 +61,8 @@ private:
     AVCodecID           libavCodecId;
 
     VCodecType          fCodec;
+
+    StreamInfo *outputStreamInfo;
 };
 
 #endif

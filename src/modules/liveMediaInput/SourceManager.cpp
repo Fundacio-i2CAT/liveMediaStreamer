@@ -31,10 +31,58 @@
 #define RTSP_CLIENT_VERBOSITY_LEVEL 1
 #define RTP_RECEIVE_BUFFER_SIZE 2000000
 
-FrameQueue* createVideoQueue(struct ConnectionData cData, char const* codecName);
-FrameQueue* createAudioQueue(struct ConnectionData cData, unsigned char rtpPayloadFormat,
-                             char const* codecName, unsigned channels,
-                             unsigned sampleRate);
+static StreamInfo *createStreamInfo(const MediaSubsession *mss)
+{
+    StreamInfo *si = NULL;
+    const char *codecName = mss->codecName();
+
+    if (strcmp(mss->mediumName(), "audio") == 0) {
+        si = new StreamInfo(AUDIO);
+        if (mss->rtpPayloadFormat() == 0) {
+            // Is this one neeeded? it should be implicit in PCMU case
+            si->audio.codec = G711;
+        } else
+        if (strcmp(codecName, "OPUS") == 0) {
+            si->audio.codec = OPUS;
+        } else
+        if (strcmp(codecName, "MPEG4-GENERIC") == 0) {
+            si->audio.codec = AAC;
+        } else
+        if (strcmp(codecName, "PCMU") == 0) {
+            si->audio.codec = PCMU;
+        } else
+        if (strcmp(codecName, "PCM") == 0) {
+            si->audio.codec = PCM;
+        } else {
+            utils::errorMsg (std::string("Unsupported audio codec ") + codecName);
+            delete si;
+            return NULL;
+        }
+        si->setCodecDefaults();
+        si->audio.sampleRate = mss->rtpTimestampFrequency();
+        si->audio.channels = mss->numChannels();
+    } else
+    if (strcmp(mss->mediumName(), "video") == 0) {
+        si = new StreamInfo(VIDEO);
+        if (strcmp(codecName, "H264") == 0) {
+            si->video.codec = H264;
+            si->video.h264or5.annexb = true;
+        } else if (strcmp(codecName, "H265") == 0) {
+            si->video.codec = H265;
+            si->video.h264or5.annexb = true;
+        } else if (strcmp(codecName, "VP8") == 0) {
+            si->video.codec = VP8;
+        } else if (strcmp(codecName, "MJPEG") == 0) {
+            si->video.codec = MJPEG;
+        } else {
+            utils::errorMsg (std::string("Unsupported video codec ") + codecName);
+            delete si;
+            return NULL;
+        }
+        si->setCodecDefaults();
+    }
+    return si;
+}
 
 SourceManager::SourceManager(unsigned writersNum): HeadFilter(writersNum, SERVER)
 {
@@ -55,6 +103,10 @@ SourceManager::~SourceManager()
     delete scheduler;
     envir()->reclaim();
     env = NULL;
+
+    for (auto it : outputStreamInfos) {
+        delete it.second;
+    }
 }
 
 bool SourceManager::doProcessFrame(std::map<int, Frame*> &dFrames)
@@ -148,23 +200,32 @@ bool SourceManager::addSink(unsigned port, QueueSink *sink)
 FrameQueue *SourceManager::allocQueue(ConnectionData cData)
 {
     MediaSubsession *mSubsession;
+    StreamInfo *si = NULL;
 
-    for (auto it : sessionMap) {
-        if ((mSubsession = it.second->getSubsessionByPort(cData.writerId)) == NULL) {
-            continue;
-        }
-
-        if (strcmp(mSubsession->mediumName(), "audio") == 0) {
-            return createAudioQueue(cData, mSubsession->rtpPayloadFormat(),
-                mSubsession->codecName(), mSubsession->numChannels(),
-                mSubsession->rtpTimestampFrequency());
-        }
-
-        if (strcmp(mSubsession->mediumName(), "video") == 0) {
-            return createVideoQueue(cData, mSubsession->codecName());
+    // Do we already have a StreamInfo for this writerId?
+    if (outputStreamInfos.count(cData.writerId) > 0) {
+        si = outputStreamInfos[cData.writerId];
+    } else {
+        for (auto it : sessionMap) {
+            mSubsession = it.second->getSubsessionByPort(cData.writerId);
+            if (mSubsession != NULL) {
+                si = createStreamInfo (mSubsession);
+                outputStreamInfos[cData.writerId] = si;
+                break;
+            }
         }
     }
 
+    if (!si) {
+        utils::errorMsg (std::string("Unknown port number ") + std::to_string(cData.writerId));
+        return NULL;
+    }
+    if (si->type == AUDIO) {
+        return AudioFrameQueue::createNew(cData, si, DEFAULT_AUDIO_FRAMES);
+    }
+    if (si->type == VIDEO) {
+        return VideoFrameQueue::createNew(cData, si, DEFAULT_VIDEO_FRAMES);
+    }
     return NULL;
 }
 
@@ -321,59 +382,6 @@ void SourceManager::doGetState(Jzon::Object &filterNode)
     filterNode.Add("sessions", sessionArray);
 }
 
-
-FrameQueue* createVideoQueue(struct ConnectionData cData, char const* codecName)
-{
-    VCodecType codec;
-
-    if (strcmp(codecName, "H264") == 0) {
-        codec = H264;
-    } else if (strcmp(codecName, "H265") == 0) {
-        codec = H265;
-    } else if (strcmp(codecName, "VP8") == 0) {
-        codec = VP8;
-    } else if (strcmp(codecName, "MJPEG") == 0) {
-        codec = MJPEG;
-    } else {
-        return NULL;
-    }
-
-    return VideoFrameQueue::createNew(cData, codec, DEFAULT_VIDEO_FRAMES);
-}
-
-FrameQueue* createAudioQueue(struct ConnectionData cData, unsigned char rtpPayloadFormat, char const* codecName, unsigned channels, unsigned sampleRate)
-{
-    ACodecType codec;
-    //is this one neeeded? in should be implicit in PCMU case
-    if (rtpPayloadFormat == 0) {
-        codec = G711;
-        return AudioFrameQueue::createNew(cData, codec, DEFAULT_AUDIO_FRAMES);
-    }
-
-    if (strcmp(codecName, "OPUS") == 0) {
-        codec = OPUS;
-        return AudioFrameQueue::createNew(cData, codec, DEFAULT_AUDIO_FRAMES, sampleRate, channels);
-    }
-
-    if (strcmp(codecName, "MPEG4-GENERIC") == 0) {
-        codec = AAC;
-        return AudioFrameQueue::createNew(cData, codec, DEFAULT_AUDIO_FRAMES, sampleRate, channels);
-    }
-
-    if (strcmp(codecName, "PCMU") == 0) {
-        codec = PCMU;
-         return AudioFrameQueue::createNew(cData, codec, DEFAULT_AUDIO_FRAMES, sampleRate, channels);
-    }
-
-    if (strcmp(codecName, "PCM") == 0) {
-        codec = PCM;
-        return AudioFrameQueue::createNew(cData, codec, DEFAULT_AUDIO_FRAMES, sampleRate, channels);
-    }
-
-    utils::errorMsg("Error creating audio queue in SourceManager: codec " + std::string(codecName) + " not supported");
-    return NULL;
-}
-
 // Implementation of "Session"
 
 Session::Session(std::string id, SourceManager *const mngr)
@@ -388,7 +396,7 @@ Session* Session::createNew(UsageEnvironment& env, std::string sdp, std::string 
     MediaSession* mSession = MediaSession::createNew(env, sdp.c_str());
 
     if (mSession == NULL){
-        delete[] newSession;
+        delete newSession;
         return NULL;
     }
 

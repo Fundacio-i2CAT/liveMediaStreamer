@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- *  Authors: David Cassany <david.cassany@i2cat.net> 
+ *  Authors: David Cassany <david.cassany@i2cat.net>
  *           Marc Palau <marc.palau@i2cat.net>
  */
 
@@ -31,8 +31,8 @@
 #include <sys/time.h>
 #include <chrono>
 #include "Types.hh"
+#include "StreamInfo.hh"
 
-#define MAX_FRAMES 2000000
 #define SLOW_THRESHOLD 0.4
 #define FAST_THRESHOLD 0.6
 
@@ -44,7 +44,7 @@
  * A structure to represent four identifiers. The writer ID of the producer filter, producer filter ID, 
  * reader ID of the consuming filter and consuming filter ID. By default all values are set to -1, which is an invalid id.
  */
-struct ConnectionData 
+struct ConnectionData
 {
     int wFilterId = -1;
     int writerId = -1;
@@ -58,9 +58,11 @@ public:
     /**
     * Class constructor
     * @param connectionData struct that contains reader and writer filters identifiers
+    * @param si description of the stream passing through this queue
     */
-    FrameQueue(struct ConnectionData cData) : rear(0), front(0), connected(false), firstFrame(false), 
-                connectionData(cData) {};
+    FrameQueue(ConnectionData cData, const StreamInfo *si = NULL) :
+            rear(0), front(0), connected(false), firstFrame(false),
+            connectionData(cData), streamInfo(si) {};
 
     /**
     * Class destructor
@@ -124,13 +126,19 @@ public:
     * Get number of elements in the queue
     * @return elements
     */
-    virtual const unsigned getElements() = 0;
+    virtual unsigned getElements() = 0;
     
     /**
     * Gets the connection cData.
     * @return the struct that contains the connection data.
     */
     ConnectionData getCData() const {return connectionData;};
+
+    /**
+    * Gets the StreamInfo for the stream passing through this queue.
+    * @return the struct that contains the connection data.
+    */
+    const StreamInfo *getStreamInfo() const {return streamInfo;};
 
 protected:
     size_t rear;
@@ -139,6 +147,8 @@ protected:
     bool firstFrame;
     
     const ConnectionData connectionData;
+
+    const StreamInfo *streamInfo;
 };
 
 #endif

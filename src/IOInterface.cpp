@@ -91,7 +91,7 @@ Frame* Reader::getFrame(int fId, bool &newFrame)
     } else {
         newFrame = false;
     }
-    
+
     return frame;
 }
 

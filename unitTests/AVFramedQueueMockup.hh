@@ -26,11 +26,13 @@
 
 #include "AVFramedQueue.hh"
 #include "FrameMockup.hh"
+#include "StreamInfo.hh"
 
 class AVFramedQueueMock : public AVFramedQueue
 {
 public:
-    AVFramedQueueMock(struct ConnectionData cData, unsigned max) : AVFramedQueue(cData, max) {
+    AVFramedQueueMock(struct ConnectionData cData, const StreamInfo *si, unsigned max) :
+            AVFramedQueue(cData, si, max) {
         config();
     };
 

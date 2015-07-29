@@ -38,6 +38,10 @@ VideoDecoderLibav::VideoDecoderLibav() : OneToOneFilter()
     pkt.size = 0;
     fType = VIDEO_DECODER;
 
+    outputStreamInfo = new StreamInfo (AUDIO);
+    outputStreamInfo->video.codec = RAW;
+    outputStreamInfo->video.pixelFormat = RGB24;
+
     frame = av_frame_alloc();
     frameCopy = av_frame_alloc();
     
@@ -51,12 +55,14 @@ VideoDecoderLibav::~VideoDecoderLibav()
     av_free(frame);
     av_free(frameCopy);
     av_free_packet(&pkt);
+
+    delete outputStreamInfo;
 }
 
 
 FrameQueue* VideoDecoderLibav::allocQueue(ConnectionData cData)
 {
-    return VideoFrameQueue::createNew(cData, RAW, DEFAULT_RAW_VIDEO_FRAMES, RGB24);
+    return VideoFrameQueue::createNew(cData, outputStreamInfo, DEFAULT_RAW_VIDEO_FRAMES);
 }
 
 bool VideoDecoderLibav::doProcessFrame(Frame *org, Frame *dst)
@@ -147,13 +153,9 @@ bool VideoDecoderLibav::inputConfig()
 
     codecCtx->flags2 |= CODEC_FLAG2_CHUNKS;
 
-    AVFramedQueue *in_queue = dynamic_cast<AVFramedQueue *>(getReader(DEFAULT_ID)->getQueue());
-    if (!in_queue) {
-        utils::errorMsg("Input queue is not an AV queue???");
-        return false;
-    }
-    codecCtx->extradata = (uint8_t *)in_queue->getExtraData();
-    codecCtx->extradata_size = in_queue->getExtraDataSize();
+    FrameQueue *in_queue = getReader(DEFAULT_ID)->getQueue();
+    codecCtx->extradata = in_queue->getStreamInfo()->extradata;
+    codecCtx->extradata_size = in_queue->getStreamInfo()->extradata_size;
 
     AVDictionary* dictionary = NULL;
     if (avcodec_open2(codecCtx, codec, &dictionary) < 0)

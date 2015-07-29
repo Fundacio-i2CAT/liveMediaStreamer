@@ -25,59 +25,137 @@
 
 #include "../../Frame.hh"
 #include "../../Filter.hh"
+#include "../../AudioFrame.hh"
 
 #define COMPRESSION_THRESHOLD 0.6
 #define DEFAULT_MASTER_GAIN 0.6
 #define DEFAULT_CHANNEL_GAIN 1.0
 #define AMIXER_MAX_CHANNELS 16
 
-
-enum mixingAlgorithm
-{
-    LA,      //Linear Attenuation
-    LDRC     //Linear Dynamic Range Compression
-};
+/*! Filter that mixes different audio frames in one frame. Each mixing channel is 
+*   identified by and Id which coincides with the reader associated to it. 
+*/
 
 class AudioMixer : public ManyToOneFilter {
 
-    public:
-        AudioMixer(FilterRole fRole_ = MASTER, bool sharedFrames = true, int inputChannels = AMIXER_MAX_CHANNELS);
-        ~AudioMixer();
-        FrameQueue *allocQueue(int wId);
-        bool doProcessFrame(std::map<int, Frame*> orgFrames, Frame *dst);
+public:
+    /**
+    * Class constructor
+    * @param inputChannels Max mixing channels
+    */
+    AudioMixer(int inputChannels = AMIXER_MAX_CHANNELS);
 
-    protected:
-        Reader *setReader(int readerID, FrameQueue* queue);
-        void doGetState(Jzon::Object &filterNode);
+    /**
+    * Class destructor
+    */
+    ~AudioMixer();
 
-    private:
-        void initializeEventMap();
-        void mixNonEmptyFrames(std::map<int, Frame*> orgFrames, std::vector<int> filledFramesIds, Frame *dst);
-        void applyMixAlgorithm(std::vector<float> &fSamples, int frameNumber, int realFrameNumber);
-        void applyGainToChannel(std::vector<float> &fSamples, float gain);
-        void sumValues(std::vector<float> fSamples, std::vector<float> &mixedSamples);
-        void LAMixAlgorithm(std::vector<float> &fSamples, int frameNumber);
-        void LDRCMixAlgorithm(std::vector<float> &fSamples, int frameNumber);
+    /**
+    * It converts a sample from its bytes representation to its float representation
+    * @param origin (in) Pointer to sample bytes
+    * @param dst (out) Float value
+    * @param fmt (in) Sample format (only S16P and FLTP are supported)
+    * @return true on success and false if not
+    */
+    static bool bytesToFloat(unsigned char const* origin, float &dst, SampleFmt fmt);
 
-        bool changeChannelVolumeEvent(Jzon::Node* params);
-        bool muteChannelEvent(Jzon::Node* params);
-        bool soloChannelEvent(Jzon::Node* params);
-        bool changeMasterVolumeEvent(Jzon::Node* params);
-        bool muteMasterEvent(Jzon::Node* params);
+    /**
+    * It converts a sample from its float reapresentation to its bytes representation
+    * @param dst (out) Pointer to the sample buffer
+    * @param origin (in) Float sample value
+    * @param fmt (in) Sample format (only S16P and FLTP are supported)
+    * @return true on success and false if not
+    */ 
+    static bool floatToBytes(unsigned char* dst, float const origin, SampleFmt fmt);
 
-        int frameChannels;
-        int sampleRate;
-        int samplesPerFrame;
-        SampleFmt sampleFormat;
-        std::map<int,float> gains;
-        float masterGain;
-        float th;  //Dynamic Range Compression algorithms threshold
-        mixingAlgorithm mAlg;
-        int maxChannels;
+    /**
+    * @return mixing buffering in samples
+    */ 
+    unsigned getMixingThreshold() {return mixingThreshold;};
 
-        //Vectors as attributes in order to improve memory management
-        std::vector<float> samples;
-        std::vector<float> mixedSamples;
+    /**
+    * @return samples requested to each mixing channel
+    */ 
+    unsigned getInputFrameSamples() {return inputFrameSamples;};
+
+    /**
+    * Sets channel gain
+    * @param id channel id
+    * @param value channel gain [0.0, 1.0]
+    * @return always true
+    */ 
+    bool changeChannelGain(int id, float value);
+
+    /**
+    * Mute channel
+    * @param id channel id
+    * @return always true
+    */ 
+    bool muteChannel(int id);
+
+    /**
+    * Mute all channels except one
+    * @param id channel id 
+    * @return always true
+    */ 
+    bool soloChannel(int id);
+
+    /**
+    * Sets master gain
+    * @param value master gain [0.0, 1.0]
+    * @return always true
+    */ 
+    bool changeMasterGain(float value);
+
+    /**
+    * Mutes master
+    * @return always true
+    */ 
+    bool muteMaster();
+
+protected:
+    
+    void doGetState(Jzon::Object &filterNode);
+    FrameQueue *allocQueue(ConnectionData cData);
+    bool doProcessFrame(std::map<int, Frame*> &orgFrames, Frame *dst, std::vector<int> newFrames);
+
+private:
+    void initializeEventMap();
+    bool pushToBuffer(int mixChId, AudioFrame* frame);
+    bool fillChannel(std::queue<float> &buffer, int nOfSamples, unsigned char* data, SampleFmt fmt); 
+    bool extractMixedFrame(AudioFrame* frame);
+    void mixSample(float sample, float* mixBuff, int bufferIdx, float gain);
+    bool setChannelGain(int id, float value);
+    
+    bool specificReaderConfig(int readerID, FrameQueue* queue);
+    bool specificReaderDelete(int readerID);
+
+    bool changeChannelVolumeEvent(Jzon::Node* params);
+    bool muteChannelEvent(Jzon::Node* params);
+    bool soloChannelEvent(Jzon::Node* params);
+    bool changeMasterVolumeEvent(Jzon::Node* params);
+    bool muteMasterEvent(Jzon::Node* params);
+
+    int channels;
+    int sampleRate;
+    int inputFrameSamples;
+    SampleFmt sampleFormat;
+    int maxMixingChannels;
+    unsigned front;
+    unsigned rear;
+
+    float masterGain;
+    float th;  //Dynamic Range Compression algorithm threshold
+
+    std::map<int, float> gains;
+    std::chrono::microseconds syncTs;
+    float* mixBuffers[MAX_CHANNELS];
+
+    unsigned mixBufferMaxSamples;
+    unsigned outputSamples;
+    unsigned mixingThreshold;
+
+
 };
 
 

@@ -37,18 +37,23 @@ extern "C" {
 class VideoResampler : public OneToOneFilter {
 
     public:
-        VideoResampler(FilterRole fRole_ = MASTER, bool sharedFrames = true);
+        VideoResampler();
         ~VideoResampler();
-        bool doProcessFrame(Frame *org, Frame *dst);
-        FrameQueue* allocQueue(int wId);
         bool configure(int width, int height, int period, PixType pixelFormat);
         
     private:
+        bool configure0(int width, int height, int period, PixType pixelFormat);
+        bool doProcessFrame(Frame *org, Frame *dst);
+        FrameQueue* allocQueue(ConnectionData cData);
         void initializeEventMap();
         bool configEvent(Jzon::Node* params);
         void doGetState(Jzon::Object &filterNode);
         bool reconfigure(VideoFrame* orgFrame);
         bool setAVFrame(AVFrame *aFrame, VideoFrame* vFrame, AVPixelFormat format);
+        
+        //There is no need of specific reader configuration
+        bool specificReaderConfig(int /*readerID*/, FrameQueue* /*queue*/)  {return true;};
+        bool specificReaderDelete(int /*readerID*/) {return true;};
         
         struct SwsContext   *imgConvertCtx;
         AVFrame             *inFrame, *outFrame;

@@ -44,12 +44,7 @@ public:
     * Set frame presentation time
     * @param system_clock::time_point to set as presentation time
     */
-    void setPresentationTime(std::chrono::system_clock::time_point pTime);
-
-    /**
-    * Sets a new origin frame time from system_clock::now
-    */
-    void newOriginTime();
+    void setPresentationTime(std::chrono::microseconds pTime);
 
     /**
     * Sets a new origin frame time from input time point
@@ -58,30 +53,18 @@ public:
     void setOriginTime(std::chrono::system_clock::time_point orgTime);
 
     /**
-    * Sets a new origin frame time from input time point
-    * @param system_clock::time_point to set as origin
-    */
-    void setDuration(std::chrono::nanoseconds dur);
-
-    /**
     * Sets frame sequence number
     * @param sequence number
     */
     void setSequenceNumber(size_t seqNum);
 
-    std::chrono::system_clock::time_point getPresentationTime() const {return presentationTime;};
+    std::chrono::microseconds getPresentationTime() const {return presentationTime;};
 
     /**
     * Gets origin frame time point
     * @return system_clock::time_point frame origin time
     */
     std::chrono::system_clock::time_point getOriginTime() const {return originTime;};
-
-    /**
-    * Gets frame duration
-    * @return frame duration as chrono::nanoseconds
-    */
-    virtual std::chrono::nanoseconds getDuration() const {return duration;};
 
     /**
     * Gets frame sequence number
@@ -125,13 +108,21 @@ public:
     */
     virtual bool isPlanar() = 0;
 
+    /**
+    * get consumed flag value
+    * @return true if the frame has been consumed or written with new data
+    */
     bool getConsumed() const { return consumed; }
+    
+    /**
+    * sets the consumed flag value
+    * @param bool the value to set.
+    */
     void setConsumed(bool c) { consumed=c; }
 
 protected:
-    std::chrono::system_clock::time_point presentationTime;
+    std::chrono::microseconds presentationTime;
     std::chrono::system_clock::time_point originTime;
-    std::chrono::nanoseconds duration;
     size_t sequenceNumber;
     bool consumed;
 };

@@ -47,9 +47,9 @@ SinkManager* SinkManager::createNew(unsigned readersNum)
 }
 
 SinkManager::SinkManager(unsigned readersNum) :
-LiveMediaFilter(readersNum, 0), rtspServer(NULL), watch(0)
+TailFilter(readersNum, SERVER, true), rtspServer(NULL)
 {
-    TaskScheduler* scheduler = BasicTaskScheduler::createNew();
+    scheduler = BasicTaskScheduler::createNew();
     env = BasicUsageEnvironment::createNew(*scheduler);
     
     unsigned port = RTSP_PORT;
@@ -72,7 +72,7 @@ LiveMediaFilter(readersNum, 0), rtspServer(NULL), watch(0)
 SinkManager::~SinkManager()
 {
     stop();
-    delete &envir()->taskScheduler();
+    delete scheduler;
     envir()->reclaim();
     env = NULL;
 }
@@ -85,28 +85,80 @@ void SinkManager::stop()
     connections.clear();
 
     for (auto it : replicators) {
-       Medium::close(it.second);
+        if (it.second->numReplicas() == 0){
+            Medium::close(it.second);
+            sources.erase(it.first);
+        }
     }
     replicators.clear();
+    
+    for (auto it : sources) {
+       Medium::close(it.second);
+    }
+    sources.clear();
     
     // NOTE: this crashes because rtsp sessions are destroyed inside each RTSP connection and 
     // Medium::close(rtspServer) seemms to do this internally, generating a segFault. Check deeper 
     // if not closing RTSP server is the best solution (port binding has been checked and it works
     // properly -- no port binding when stopping)
-    // if (rtspServer){
-    //     Medium::close(rtspServer);
-    // }
-
-    watch = 1;
+    if (rtspServer){
+        Medium::close(rtspServer);
+    }
 }
 
-bool SinkManager::runDoProcessFrame()
+bool SinkManager::readerInConnection(int rId)
+{
+    for (auto it : connections){
+        for (auto id : it.second->getReaders()){
+            if (id == rId){
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+bool SinkManager::specificReaderDelete(int readerId)
+{
+    removeConnectionByReaderId(readerId);
+    if (sources.count(readerId) > 0){
+        delete sources[readerId];
+        sources.erase(readerId);
+        return true;
+    }
+    return false;
+}
+
+bool SinkManager::doProcessFrame(std::map<int, Frame*> &oFrames, std::vector<int> newFrames)
 {
     if (envir() == NULL){
         return false;
     }
-
-    envir()->taskScheduler().doEventLoop((char*) &watch);
+    
+    int pFrames = 0;
+       
+    for (auto id : newFrames){
+        if (oFrames.count(id) > 0){
+            if (sources.count(id) > 0 && sources[id]->setFrame(oFrames[id])){
+                QueueSource::signalNewFrameData(scheduler, sources[id]);
+                pFrames++;
+            }
+        }
+    }
+    
+    if (pFrames == 0){
+        scheduler->SingleStep();
+        return false;
+    }
+    
+    while (pFrames > 0){
+        scheduler->SingleStep();
+        for (auto it : sources){
+            if (it.second && it.second->gotFrame()){
+                pFrames--;
+            }
+        }
+    }
 
     return true;
 }
@@ -135,6 +187,11 @@ bool SinkManager::addRTSPConnection(std::vector<int> readers, int id, TxFormat t
         utils::errorMsg("Unitialized RTSPServer");
         return false;
     }
+    
+    if (readers.empty()){
+        utils::errorMsg("RTSP Connection not added, no readers provided!");
+        return false;
+    }
 
     if (connections.count(id) > 0){
         utils::errorMsg("Failed, this connection already exists");
@@ -142,7 +199,6 @@ bool SinkManager::addRTSPConnection(std::vector<int> readers, int id, TxFormat t
     }
 
     connection = new RTSPConnection(env, txformat, rtspServer, name, info, desc);
-    //TODO: test connection construction
 
     for (auto & reader : readers){
         if (!addSubsessionByReader(connection, reader)) {
@@ -259,7 +315,7 @@ bool SinkManager::addStdRTPConnection(std::vector<int> readers, int id, std::str
     VideoFrameQueue *vQueue;
     AudioFrameQueue *aQueue;
     Connection *conn = NULL;
-    Reader *r;
+    std::shared_ptr<Reader> r;
 
     if (readers.size() != 1) {
         utils::errorMsg("Error in standard RTP connection setup. Multiple readers do not make sense in this type");
@@ -304,7 +360,7 @@ bool SinkManager::addUltraGridRTPConnection(std::vector<int> readers, int id, st
     VideoFrameQueue *vQueue = NULL;
     AudioFrameQueue *aQueue = NULL;
     Connection* conn = NULL;
-    Reader *r;
+    std::shared_ptr<Reader> r;
 
     if (readers.size() != 1) {
         utils::errorMsg("Error in standard Ultragrid connection setup. Multiple readers do not make sense in this type");
@@ -343,52 +399,55 @@ bool SinkManager::addUltraGridRTPConnection(std::vector<int> readers, int id, st
 }
 
 
-Reader *SinkManager::setReader(int readerId, FrameQueue* queue)
+bool SinkManager::specificReaderConfig(int readerId, FrameQueue* queue)
 {
     VideoFrameQueue *vQueue;
-    AudioFrameQueue *aQueue;
-
-    if (readers.size() >= getMaxReaders() || readers.count(readerId) > 0 ) {
-        return NULL;
-    }
-
-    Reader* r = new Reader();
-    readers[readerId] = r;
+    AudioFrameQueue *aQueue;  
 
     if ((vQueue = dynamic_cast<VideoFrameQueue*>(queue)) != NULL){
-        createVideoQueueSource(vQueue->getCodec(), r, readerId);
+        return createVideoQueueSource(vQueue->getCodec(), readerId);
     }
 
     if ((aQueue = dynamic_cast<AudioFrameQueue*>(queue)) != NULL){
-        createAudioQueueSource(aQueue->getCodec(), r, readerId);
+        return createAudioQueueSource(aQueue->getCodec(), readerId);
     }
-
-    return r;
+    
+    return false;
 }
 
-void SinkManager::createVideoQueueSource(VCodecType codec, Reader *reader, int readerId)
+bool SinkManager::createVideoQueueSource(VCodecType codec, int readerId)
 {
-    FramedSource *source;
     switch(codec){
         case H264:
         case H265:
-            source = H264or5QueueSource::createNew(*(envir()), reader, readerId);
-            replicators[readerId] = StreamReplicator::createNew(*(envir()), source, False);
+            sources[readerId] = H264or5QueueSource::createNew(*(envir()), readerId);
+            replicators[readerId] = StreamReplicator::createNew(*(envir()), sources[readerId], False);
             break;
         case VP8:
+            sources[readerId] = QueueSource::createNew(*(envir()), readerId);
+            replicators[readerId] =  StreamReplicator::createNew(*(envir()), sources[readerId], False);
+            break;
         default:
-            source = QueueSource::createNew(*(envir()), reader, readerId);
-            replicators[readerId] =  StreamReplicator::createNew(*(envir()), source, False);
             break;
     }
+    if (!replicators[readerId] || !sources[readerId]){
+        replicators.erase(readerId);
+        sources.erase(readerId);
+        return false;
+    }
+    return true;
 }
 
-void SinkManager::createAudioQueueSource(ACodecType codec, Reader *reader, int readerId)
-{
-    QueueSource *source;
-    
-    source = QueueSource::createNew(*(envir()), reader, readerId);
-    replicators[readerId] = StreamReplicator::createNew(*(envir()), source, False);
+bool SinkManager::createAudioQueueSource(ACodecType codec, int readerId)
+{    
+    sources[readerId] = QueueSource::createNew(*(envir()), readerId);
+    replicators[readerId] = StreamReplicator::createNew(*(envir()), sources[readerId], False);
+    if (!replicators[readerId] || !sources[readerId]){
+        replicators.erase(readerId);
+        sources.erase(readerId);
+        return false;
+    }
+    return true;
 }
 
 bool SinkManager::addSubsessionByReader(RTSPConnection* connection ,int readerId)
@@ -396,8 +455,9 @@ bool SinkManager::addSubsessionByReader(RTSPConnection* connection ,int readerId
     VideoFrameQueue *vQueue;
     AudioFrameQueue *aQueue;
     
-    Reader* reader = getReader(readerId);
+    std::shared_ptr<Reader> reader = getReader(readerId);
     if (!reader){
+        utils::errorMsg("Failed! Reader not found!");
         return false;
     }
 
@@ -413,6 +473,7 @@ bool SinkManager::addSubsessionByReader(RTSPConnection* connection ,int readerId
 
     return false;
 }
+
 
 bool SinkManager::removeConnectionByReaderId(int readerId)
 {
@@ -441,29 +502,31 @@ bool SinkManager::removeConnectionByReaderId(int readerId)
     return ret;
 }
 
-bool SinkManager::deleteReader(int id)
-{
-    Reader* reader = getReader(id);
-    if (reader == NULL){
-        return false;
-    }
-
-    removeConnectionByReaderId(id);
-
-    if (reader->isConnected()) {
-        return false;
-    }
-
-    delete reader;
-    readers.erase(id);
-
-    return true;
-}
-
 void SinkManager::initializeEventMap()
 {
     eventMap["addRTSPConnection"] = std::bind(&SinkManager::addRTSPConnectionEvent, this, std::placeholders::_1);
     eventMap["addRTPConnection"] = std::bind(&SinkManager::addRTPConnectionEvent, this, std::placeholders::_1);
+    eventMap["removeConnection"] = std::bind(&SinkManager::removeConnectionEvent, this, std::placeholders::_1);
+}
+
+bool SinkManager::removeConnectionEvent(Jzon::Node* params)
+{
+    int connectionId;
+    
+    if (!params){
+        return false;
+    }
+    
+    if (!params->Has("id")){
+        return false;
+    }
+    
+    if (!params->Get("id").IsNumber()){
+        return false;
+    }
+    
+    connectionId = params->Get("id").ToInt();
+    return removeConnection(connectionId);
 }
 
 bool SinkManager::addRTSPConnectionEvent(Jzon::Node* params)
@@ -483,7 +546,11 @@ bool SinkManager::addRTSPConnectionEvent(Jzon::Node* params)
         return false;
     }
 
-    if (!params->Has("readers") || !params->Get("readers").IsArray()) {
+    if (!params->Has("readers")){
+        return false;
+    }
+    
+    if (!params->Get("readers").IsArray() || !params->Get("id").IsNumber()){
         return false;
     }
 
@@ -530,7 +597,11 @@ bool SinkManager::addRTPConnectionEvent(Jzon::Node* params)
         return false;
     }
 
-    if (!params->Has("readers") || !params->Get("readers").IsArray()) {
+    if (!params->Has("readers")){
+        return false;
+    }
+    
+    if (!params->Get("readers").IsArray()){
         return false;
     }
 

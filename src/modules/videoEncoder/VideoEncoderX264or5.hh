@@ -52,17 +52,16 @@ class VideoEncoderX264or5 : public OneToOneFilter {
 public:
     /**
     * Class constructor
-    * @param fRole Filter role (NETWORK, MASTER, SLAVE)
-    * @param sharedFrames If true and fRole is MASTER, it will share input frames with its slave filters
     */
-    VideoEncoderX264or5(FilterRole fRole, bool sharedFrames);
+    VideoEncoderX264or5();
 
     /**
     * Class destructor
     */
     virtual ~VideoEncoderX264or5();
 
-    bool configure(int bitrate_, int fps_, int gop_, int lookahead_, int threads_, bool annexB_, std::string preset_);
+    bool configure(int bitrate, int fps, int gop, int lookahead, int threads, bool annexB, std::string preset);
+    
 protected:
     AVPixelFormat libavInPixFmt;
     AVFrame *midFrame;
@@ -70,13 +69,14 @@ protected:
     PixType inPixFmt;
     bool annexB;
     bool forceIntra;
-    int fps;
-    int bitrate;
-    int gop;
-    int threads;
-    int lookahead;
+    unsigned fps;
+    unsigned bitrate;
+    unsigned gop;
+    unsigned threads;
+    unsigned lookahead;
     bool needsConfig;
     std::string preset;
+    std::queue<std::chrono::microseconds> pTimes;
     
     bool doProcessFrame(Frame *org, Frame *dst);
     void initializeEventMap();      
@@ -86,9 +86,16 @@ protected:
     void setIntra(){forceIntra = true;};
     bool fill_x264or5_picture(VideoFrame* videoFrame);
 
+    bool configure0(unsigned bitrate_, unsigned fps_, unsigned gop_, unsigned lookahead_, unsigned threads_, bool annexB_, std::string preset_);
+    
+private:
     bool forceIntraEvent(Jzon::Node* params);
     bool configEvent(Jzon::Node* params);
     void doGetState(Jzon::Object &filterNode);
+    
+    //There is no need of specific reader configuration
+    bool specificReaderConfig(int /*readerID*/, FrameQueue* /*queue*/)  {return true;};
+    bool specificReaderDelete(int /*readerID*/) {return true;};
 };
 
 #endif

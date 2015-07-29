@@ -29,9 +29,8 @@
 //READER IMPLEMENTATION//
 /////////////////////////
 
-Reader::Reader()
+Reader::Reader() : queue(NULL), frame(NULL), filters(0), pending(0)
 {
-    queue = NULL;
 }
 
 Reader::~Reader()
@@ -39,45 +38,101 @@ Reader::~Reader()
     disconnect();
 }
 
-void Reader::setQueue(FrameQueue *queue)
+void Reader::addReader()
 {
-    this->queue = queue;
+    std::lock_guard<std::mutex> guard(lck);
+    
+    if (filters >= 1 && queue->isConnected()){
+        filters++;
+    }
 }
 
-Frame* Reader::getFrame(QueueState &state, bool &newFrame, bool force)
+void Reader::removeReader(int id)
 {
-    Frame *frame;
+    std::unique_lock<std::mutex> guard(lck);
+    
+    if (filters > 0){
+        filters--;
+        if (requests.count(id) > 0 && requests[id] && pending > 0){
+            pending--;
+        }
+        if (filters == 0){
+            guard.unlock();
+            disconnect();
+        }
+    }
+}
 
+Frame* Reader::getFrame(int fId, bool &newFrame)
+{
+    std::lock_guard<std::mutex> guard(lck);
+    
     if (!queue->isConnected()) {
         utils::errorMsg("The queue is not connected");
-        newFrame = false;
-        state = queue->getState();
         return NULL;
     }
 
-    frame = queue->getFront(newFrame);
-
-    if (force && frame == NULL) {
-        frame = queue->forceGetFront(newFrame);
+    if (!frame) {
+        frame = queue->getFront();
     }
 
-    state = queue->getState();
+    if (!frame) {
+        newFrame = false;
+        return queue->forceGetFront();
+    }
+    
+    if (pending == 0){
+        pending = filters;
+    }
 
+    if (requests.count(fId) == 0) {
+        newFrame = true;
+        requests[fId] = true;
+    } else {
+        newFrame = false;
+    }
+    
     return frame;
 }
 
-void Reader::removeFrame()
+int Reader::removeFrame(int fId)
 {
-    queue->removeFrame();
+    std::lock_guard<std::mutex> guard(lck);
+
+    if (pending != 0 && requests.count(fId) > 0 && requests[fId]){
+        pending--;
+        requests[fId] = false;
+    }
+    
+    if (pending == 0){
+        frame = NULL;
+        requests.clear();
+        return queue->removeFrame();
+    } else {
+        return -1;
+    }
 }
 
 void Reader::setConnection(FrameQueue *queue)
 {
+    if (isConnected() || !queue){
+        return;
+    }
+    
+    std::lock_guard<std::mutex> guard(lck);
     this->queue = queue;
+    filters = 1;
 }
 
 bool Reader::disconnect()
 {
+    std::lock_guard<std::mutex> guard(lck);
+    
+    if (filters > 1){
+        filters--;
+        return true;
+    }
+    
     if (!queue) {
         return false;
     }
@@ -101,6 +156,16 @@ bool Reader::isConnected()
     return queue->isConnected();
 }
 
+size_t Reader::getQueueElements()
+{
+    if (!queue) {
+        return 0;
+    }
+
+    return queue->getElements();
+}
+
+
 
 /////////////////////////
 //WRITER IMPLEMENTATION//
@@ -116,14 +181,14 @@ Writer::~Writer()
     disconnect();
 }
 
-bool Writer::connect(Reader *reader) const
+bool Writer::connect(std::shared_ptr<Reader> reader) const
 {
     if (!queue) {
-        utils::errorMsg("The queue is empty");
+        utils::errorMsg("The queue is NULL");
         return false;
     }
 
-    reader->setConnection(queue);
+    reader->setConnection(queue);    
     queue->setConnected(true);
     return true;
 }
@@ -144,7 +209,7 @@ bool Writer::disconnect() const
     return true;
 }
 
-bool Writer::disconnect(Reader *reader) const
+bool Writer::disconnect(std::shared_ptr<Reader> reader) const
 {
     if (reader->disconnect()){
         return disconnect();
@@ -184,7 +249,18 @@ Frame* Writer::getFrame(bool force) const
     return frame;
 }
 
-void Writer::addFrame() const
+int Writer::addFrame() const
 {
-    queue->addFrame();
+    return queue->addFrame();
+}
+
+ConnectionData Writer::getCData()
+{
+    if (queue && queue->isConnected()){
+        return queue->getCData();
+    }
+    
+    ConnectionData cData;
+    return cData;
+    
 }

@@ -74,8 +74,8 @@ class HeadDemuxerLibav : public HeadFilter {
         bool setURI(const std::string URI);
 
     protected:
-        virtual bool doProcessFrame(std::map<int, Frame*> dstFrames);
-        virtual FrameQueue *allocQueue(int wId);
+        virtual bool doProcessFrame(std::map<int, Frame*> &dstFrames);
+        virtual FrameQueue *allocQueue(ConnectionData cData);
         virtual void doGetState(Jzon::Object &filterNode);
 
     private:
@@ -95,6 +95,12 @@ class HeadDemuxerLibav : public HeadFilter {
 
         /** Clear all data, close all files */
         void reset();
+
+        /** Initialize its events */
+        void initializeEventMap();
+
+        /** This event sets the demuxer's input URI */
+        bool configureEvent(Jzon::Node* params);
 
         /** Convert from Libav SampleFormat enum to ours */
         SampleFmt getSampleFormatFromLibav(AVSampleFormat libavSampleFmt);

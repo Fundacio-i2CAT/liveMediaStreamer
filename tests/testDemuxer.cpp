@@ -27,14 +27,10 @@ int main(int argc, char* argv[])
 
     int transmitterID = rand();
     int receiverID = rand();
-    int transWorkID = rand();
-    int receiWorkID = rand();
 
     SinkManager* transmitter = NULL;
     HeadDemuxerLibav* receiver = NULL;
     PipelineManager *pipe;
-    LiveMediaWorker *lW;
-    Worker *W;
 
     utils::setLogLevel(INFO);
 
@@ -68,15 +64,9 @@ int main(int argc, char* argv[])
         return 1;
     }
 
-    lW = new LiveMediaWorker();
-    pipe->addWorker(transWorkID, lW);
     pipe->addFilter(transmitterID, transmitter);
-    pipe->addFilterToWorker(transWorkID, transmitterID);
 
-    W = new Worker();
-    pipe->addWorker(receiWorkID, W);
     pipe->addFilter(receiverID, receiver);
-    pipe->addFilterToWorker(receiWorkID, receiverID);
 
     signal(SIGINT, signalHandler);
 
@@ -107,22 +97,18 @@ int main(int argc, char* argv[])
     std::vector<int> ids;
     std::vector<int> readers;
     if (vWId >= 0) {
-        Path *vPath = pipe->createPath(receiverID, transmitterID, vWId, 1, ids);
-        if (!vPath) {
+        if (!pipe->createPath(vWId, receiverID, transmitterID, vWId, 1, ids)) {
             utils::errorMsg("Could not create Video path");
         }
-        pipe->addPath(1, vPath);
-        pipe->connectPath(vPath);
+        pipe->connectPath(vWId);
         readers.push_back(1);
     }
 
     if (aWId >= 0) {
-        Path *aPath = pipe->createPath(receiverID, transmitterID, aWId, 2, ids);
-        if (!aPath) {
+        if (!pipe->createPath(aWId, receiverID, transmitterID, aWId, 2, ids)) {
             utils::errorMsg("Could not create Audio path");
         }
-        pipe->addPath(2, aPath);
-        pipe->connectPath(aPath);
+        pipe->connectPath(aWId);
         readers.push_back(2);
     }
 
@@ -134,8 +120,6 @@ int main(int argc, char* argv[])
             utils::infoMsg("Added connection for " + ip + ":" + std::to_string(port));
         }
     }
-
-    pipe->startWorkers();
 
     while (1) {
         pause();

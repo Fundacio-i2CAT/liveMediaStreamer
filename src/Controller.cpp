@@ -19,7 +19,7 @@
  *
  *  Authors:  Marc Palau <marc.palau@i2cat.net>,
  *            David Cassany <david.cassany@i2cat.net>
- *			  Martin German <martin.german@i2cat.net>
+ *            Martin German <martin.german@i2cat.net>
  */
 
 #include "Controller.hh"
@@ -219,14 +219,6 @@ void Controller::initializeEventMap()
     eventMap["removePath"] = std::bind(&PipelineManager::removePathEvent, pipeMngrInstance,
                                             std::placeholders::_1, std::placeholders::_2);
     eventMap["createFilter"] = std::bind(&PipelineManager::createFilterEvent, pipeMngrInstance,
-                                            std::placeholders::_1, std::placeholders::_2);
-    eventMap["addWorker"] = std::bind(&PipelineManager::addWorkerEvent, pipeMngrInstance,
-                                            std::placeholders::_1, std::placeholders::_2);
-    eventMap["removeWorker"] = std::bind(&PipelineManager::removeWorkerEvent, pipeMngrInstance,
-                                            std::placeholders::_1, std::placeholders::_2);
-    eventMap["addSlavesToFilter"] = std::bind(&PipelineManager::addSlavesToFilterEvent, pipeMngrInstance,
-                                            std::placeholders::_1, std::placeholders::_2);
-    eventMap["addFiltersToWorker"] = std::bind(&PipelineManager::addFiltersToWorkerEvent, pipeMngrInstance,
                                             std::placeholders::_1, std::placeholders::_2);
     eventMap["stop"] = std::bind(&PipelineManager::stopEvent, pipeMngrInstance,
                                             std::placeholders::_1, std::placeholders::_2);

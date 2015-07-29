@@ -29,7 +29,7 @@ bool checkSampleFormat(AVCodec *codec, enum AVSampleFormat sampleFmt);
 bool checkSampleRateSupport(AVCodec *codec, int sampleRate);
 bool checkChannelLayoutSupport(AVCodec *codec, uint64_t channelLayout);
 
-AudioEncoderLibav::AudioEncoderLibav(FilterRole fRole_, bool sharedFrames) : OneToOneFilter(false, fRole_, sharedFrames), fCodec(AC_NONE), 
+AudioEncoderLibav::AudioEncoderLibav() : OneToOneFilter(), fCodec(AC_NONE), 
 samplesPerFrame(0), internalChannels(0), internalSampleRate(0), internalSampleFmt(S_NONE), internalLibavSampleFmt(AV_SAMPLE_FMT_NONE), 
 outputBitrate(0), inputChannels(0), inputSampleRate(0), inputSampleFmt(S_NONE), inputLibavSampleFmt(AV_SAMPLE_FMT_NONE)
 {
@@ -60,9 +60,9 @@ AudioEncoderLibav::~AudioEncoderLibav()
     av_free_packet(&pkt);
 }
 
-FrameQueue* AudioEncoderLibav::allocQueue(int wId)
+FrameQueue* AudioEncoderLibav::allocQueue(ConnectionData cData)
 {
-    return AudioFrameQueue::createNew(fCodec, DEFAULT_AUDIO_FRAMES, internalSampleRate, internalChannels, internalSampleFmt);
+    return AudioFrameQueue::createNew(cData, fCodec, DEFAULT_AUDIO_FRAMES, internalSampleRate, internalChannels, internalSampleFmt);
 }
 
 bool AudioEncoderLibav::doProcessFrame(Frame *org, Frame *dst)
@@ -110,30 +110,34 @@ bool AudioEncoderLibav::doProcessFrame(Frame *org, Frame *dst)
     codedFrame->setLength(pkt.size);
     codedFrame->setSamples(samples);
 
+    dst->setPresentationTime(org->getPresentationTime());
     dst->setConsumed(true);
     return true;
 }
 
-Reader* AudioEncoderLibav::setReader(int readerID, FrameQueue* queue)
+
+bool AudioEncoderLibav::specificReaderConfig(int /*readerID*/, FrameQueue* queue)
 {
-    if (readers.size() >= getMaxReaders() || readers.count(readerID) > 0 ) {
-        return NULL;
-    }
+    AudioCircularBuffer* b;
 
     if (samplesPerFrame == 0) {
         utils::errorMsg("Error setting audio encoder reader. Samples per frame has 0 value");
-        return NULL;
+        return false;
     }
 
-    Reader* r = new Reader();
-    readers[readerID] = r;
+    b = dynamic_cast<AudioCircularBuffer*>(queue);
+    
+    if (!b) {
+        utils::errorMsg("[AudioEncoderLibav::setReader] Input queue must be an AudioCircularBuffer");
+        return false;
+    }
 
-    dynamic_cast<AudioCircularBuffer*>(queue)->setOutputFrameSamples(samplesPerFrame);
+    b->setOutputFrameSamples(samplesPerFrame);
 
-    return r;
+    return true;
 }
 
-bool AudioEncoderLibav::configure(ACodecType codec, int codedAudioChannels, int codedAudioSampleRate, int bitrate)
+bool AudioEncoderLibav::configure0(ACodecType codec, int codedAudioChannels, int codedAudioSampleRate, int bitrate)
 {
     AVCodecID codecId;
 
@@ -346,8 +350,8 @@ int AudioEncoderLibav::resample(AudioFrame* src, AVFrame* dst)
 void AudioEncoderLibav::doGetState(Jzon::Object &filterNode)
 {
     filterNode.Add("codec", utils::getAudioCodecAsString(fCodec));
-    filterNode.Add("sampleRate", internalSampleRate);
-    filterNode.Add("channels", internalChannels);
+    filterNode.Add("sampleRate", (int)internalSampleRate);
+    filterNode.Add("channels", (int)internalChannels);
 }
 
 bool checkSampleFormat(AVCodec *codec, enum AVSampleFormat sampleFmt)
@@ -433,10 +437,26 @@ bool AudioEncoderLibav::configEvent(Jzon::Node* params)
         bitrate = params->Get("bitrate").ToInt();
     }
 
-    return configure(codec, codedAudioChannels, codedAudioSampleRate, bitrate);
+    return configure0(codec, codedAudioChannels, codedAudioSampleRate, bitrate);
 }
 
 void AudioEncoderLibav::initializeEventMap()
 {
     eventMap["configure"] = std::bind(&AudioEncoderLibav::configEvent, this, std::placeholders::_1);
 }
+
+bool AudioEncoderLibav::configure(ACodecType codec, int codedAudioChannels, int codedAudioSampleRate, int bitrate)
+{
+    Jzon::Object root, params;
+    root.Add("action", "configure");
+    params.Add("codec", utils::getAudioCodecAsString(codec));
+    params.Add("channels", codedAudioChannels);
+    params.Add("sampleRate", codedAudioSampleRate);
+    params.Add("bitrate", bitrate);
+    root.Add("params", params);
+
+    Event e(root, std::chrono::system_clock::now(), 0);
+    pushEvent(e); 
+    return true;
+}
+

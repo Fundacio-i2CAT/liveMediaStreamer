@@ -22,13 +22,23 @@
  *
  */
 
+#include <thread>
+
 #include "Runnable.hh"
 
-#include <thread>
+
+Runnable::Runnable(bool periodic_) : run(false), periodic(periodic_), running(new unsigned(0)), id(-1)
+{
+    group.insert(this);
+}
+
+Runnable::~Runnable()
+{
+}
 
 bool Runnable::ready()
 {
-    return time < std::chrono::system_clock::now();
+    return time < std::chrono::high_resolution_clock::now();
 }
 
 void Runnable::sleepUntilReady()
@@ -43,17 +53,96 @@ void Runnable::sleepUntilReady()
     }
 }
 
-bool Runnable::runProcessFrame()
-{
-    std::chrono::nanoseconds ret;
+std::vector<int> Runnable::runProcessFrame()
+{   
+    int ret = 0;
+    std::vector<int> enabledJobs;
+    enabledJobs = processFrame(ret);
     
-    ret = processFrame();
-   
-    if (ret.count() < 0){
+    time = std::chrono::high_resolution_clock::now() + std::chrono::microseconds(ret);
+    
+    return enabledJobs;
+}
+
+bool Runnable::setId(int id_){
+    if (id_ < 0){
+        utils::errorMsg("invalid filter Id, only positive values are allowed");
         return false;
     }
-
-    time = std::chrono::system_clock::now() + ret;
-
+    
+    if (id >= 0){
+        utils::errorMsg("You cannot re-assign the filter Id");
+        return false;
+    }
+    
+    id = id_;
+    
     return true;
+}
+
+void Runnable::setRunning()
+{
+    std::lock_guard<std::mutex> guard(mtx);
+    
+    if ((*running) == 0){
+        (*running) = group.size();
+    }
+
+    run = true;
+}
+
+void Runnable::unsetRunning()
+{
+    std::lock_guard<std::mutex> guard(mtx);
+
+    if ((*running) > 0){
+        (*running)--;
+    }
+
+    if ((*running) == 0){
+        for(auto runnable : group) {
+            runnable->run = false;
+        }
+    }
+}
+
+bool Runnable::isRunning() 
+{
+    return run;
+}
+
+std::vector<int> Runnable::getGroupIds()
+{
+    std::vector<int> ids;
+    std::lock_guard<std::mutex> guard(mtx);
+    
+    for(auto r : group){
+        ids.push_back(r->getId());
+    }
+    
+    return ids;
+}
+
+bool Runnable::groupRunnable(Runnable *r)
+{
+    if (!r){
+        return false;
+    }
+    
+    for (auto runnable : group) {
+        r->addInGroup(runnable, this->running);
+        runnable->addInGroup(r, this->running);
+    }
+    addInGroup(r);
+    
+    return true;
+}
+
+void Runnable::addInGroup(Runnable *r, std::shared_ptr<unsigned> run)
+{
+    std::lock_guard<std::mutex> guard(mtx);
+    group.insert(r);
+    if (run){
+        running = run;
+    }
 }

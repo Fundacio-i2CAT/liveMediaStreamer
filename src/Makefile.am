@@ -12,15 +12,17 @@ liblivemediastreamer_la_SOURCES = modules/audioDecoder/AudioDecoderLibav.cpp \
                                   modules/videoResampler/VideoResampler.cpp \
                                   modules/dasher/Dasher.cpp \
                                   modules/dasher/DashVideoSegmenter.cpp \
+                                  modules/dasher/DashVideoSegmenterAVC.cpp \
+                                  modules/dasher/DashVideoSegmenterHEVC.cpp \
                                   modules/dasher/DashAudioSegmenter.cpp \
                                   modules/dasher/MpdManager.cpp \
                                   modules/dasher/i2libdash.c \
                                   modules/dasher/i2libisoff.c \
                                   modules/liveMediaInput/ExtendedRTSPClient.cpp \
-                                  modules/liveMediaInput/H264QueueSink.cpp \
                                   modules/liveMediaInput/Handlers.cpp \
                                   modules/liveMediaInput/QueueSink.cpp \
                                   modules/liveMediaInput/SourceManager.cpp \
+                                  modules/liveMediaInput/H264VideoSdpParser.cpp \
                                   modules/liveMediaOutput/AudioQueueServerMediaSubsession.cpp \
                                   modules/liveMediaOutput/H264or5QueueServerMediaSubsession.cpp \
                                   modules/liveMediaOutput/H264QueueServerMediaSubsession.cpp \
@@ -57,7 +59,7 @@ liblivemediastreamer_la_SOURCES = modules/audioDecoder/AudioDecoderLibav.cpp \
                                   Utils.cpp \
                                   VideoFrame.cpp \
                                   Runnable.cpp \
-                                  Worker.cpp 
+                                  WorkersPool.cpp 
 
 liblivemediastreamer_la_CPPFLAGS = -g -D__STDC_CONSTANT_MACROS -Wall
 

@@ -36,14 +36,16 @@ extern "C" {
 class AudioDecoderLibav : public OneToOneFilter {
 
 public:
-    AudioDecoderLibav(FilterRole fRole_ = MASTER, bool sharedFrames = true);
+    AudioDecoderLibav();
     ~AudioDecoderLibav();
-    bool doProcessFrame(Frame *org, Frame *dst);
-    FrameQueue* allocQueue(int wId);
     bool configure(SampleFmt sampleFormat, int channels, int sampleRate);
+    
+protected:
+    bool doProcessFrame(Frame *org, Frame *dst);
+    FrameQueue* allocQueue(ConnectionData cData);
+    bool configure0(SampleFmt sampleFormat, int channels, int sampleRate);
 
 private:
-
     void initializeEventMap();
     bool resample(AVFrame* src, AudioFrame* dst);
     void checkSampleFormat(int sampleFormat);
@@ -53,8 +55,10 @@ private:
     bool configEvent(Jzon::Node* params);
     void doGetState(Jzon::Object &filterNode);
 
-
-
+    //There is no need of specific reader configuration
+    bool specificReaderConfig(int /*readerID*/, FrameQueue* /*queue*/)  {return true;};
+    bool specificReaderDelete(int /*readerID*/) {return true;};
+    
     AVCodec             *codec;
     AVCodecContext      *codecCtx;
     AVFrame             *inFrame;
@@ -64,15 +68,15 @@ private:
     AVSampleFormat      inLibavSampleFmt;
     AVSampleFormat      outLibavSampleFmt;
 
-    ACodecType          fCodec;
-    SampleFmt           inSampleFmt;
-    SampleFmt           outSampleFmt;
-    int                 inChannels;
-    int                 outChannels;
-    int                 inSampleRate;
-    int                 outSampleRate;
-    unsigned int        bytesPerSample;
-    unsigned char       *auxBuff[1];
+    ACodecType fCodec;
+    SampleFmt inSampleFmt;
+    SampleFmt outSampleFmt;
+    unsigned inChannels;
+    unsigned outChannels;
+    unsigned inSampleRate;
+    unsigned outSampleRate;
+    unsigned bytesPerSample;
+    unsigned char *auxBuff[1];
 
 };
 

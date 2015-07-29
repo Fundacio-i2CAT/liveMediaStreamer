@@ -19,7 +19,7 @@
  *
  *  Authors:  David Cassany <david.cassany@i2cat.net>
  *            Marc Palau <marc.palau@i2cat.net>
- *	          Gerard Castillo <gerard.castillo@i2cat.net>
+ *	      Gerard Castillo <gerard.castillo@i2cat.net>
  */
 
 #ifndef _VIDEO_ENCODER_X265_HH
@@ -40,12 +40,12 @@ extern "C" {
 class VideoEncoderX265 : public VideoEncoderX264or5 {
 
 public:
-    VideoEncoderX265(FilterRole fRole = MASTER, bool sharedFrames = false);
-	~VideoEncoderX265();
+    VideoEncoderX265();
+    ~VideoEncoderX265();
 
 private:
-    FrameQueue* allocQueue(int wId);
-	void initializeEventMap();
+    FrameQueue* allocQueue(ConnectionData cData);
+    void initializeEventMap();
 
     x265_picture    *picIn;
     x265_picture    *picOut;

@@ -23,13 +23,13 @@
 
 #include "VideoEncoderX264or5.hh"
 
-VideoEncoderX264or5::VideoEncoderX264or5(FilterRole fRole_, bool sharedFrames) :
-OneToOneFilter(false, fRole_, sharedFrames, 0, true), inPixFmt(P_NONE), annexB(false), forceIntra(false), fps(0), bitrate(0), gop(0), threads(0), needsConfig(false)
+VideoEncoderX264or5::VideoEncoderX264or5() :
+OneToOneFilter(), inPixFmt(P_NONE), annexB(false), forceIntra(false), fps(0), bitrate(0), gop(0), threads(0), needsConfig(false)
 {
     fType = VIDEO_ENCODER;
     midFrame = av_frame_alloc();
     initializeEventMap();
-    configure(DEFAULT_BITRATE, VIDEO_DEFAULT_FRAMERATE, DEFAULT_GOP, 
+    configure0(DEFAULT_BITRATE, VIDEO_DEFAULT_FRAMERATE, DEFAULT_GOP, 
               DEFAULT_LOOKAHEAD, DEFAULT_THREADS, DEFAULT_ANNEXB, DEFAULT_PRESET);
 }
 
@@ -65,14 +65,19 @@ bool VideoEncoderX264or5::doProcessFrame(Frame *org, Frame *dst)
         return false;
     }
 
+    if (pTimes.size() <= lookahead){
+        pTimes.push(org->getPresentationTime());
+    }
+    
     if (!encodeFrame(codedFrame)) {
-        utils::errorMsg("Could not encode video frame");
+        utils::warningMsg("Could not encode video frame");
         return false;
     }
-
+    
     codedFrame->setSize(rawFrame->getWidth(), rawFrame->getHeight());
-
     dst->setConsumed(true);
+    dst->setPresentationTime(pTimes.front());
+    pTimes.pop();
     return true;
 }
 
@@ -93,7 +98,7 @@ bool VideoEncoderX264or5::fill_x264or5_picture(VideoFrame* videoFrame)
     return true;
 }
 
-bool VideoEncoderX264or5::configure(int bitrate_, int fps_, int gop_, int lookahead_, int threads_, bool annexB_, std::string preset_)
+bool VideoEncoderX264or5::configure0(unsigned bitrate_, unsigned fps_, unsigned gop_, unsigned lookahead_, unsigned threads_, bool annexB_, std::string preset_)
 {
     if (bitrate_ <= 0 || gop_ <= 0 || lookahead_ < 0 || threads_ <= 0 || preset_.empty()) {
         utils::errorMsg("Error configuring VideoEncoderX264or5: invalid configuration values");
@@ -109,10 +114,10 @@ bool VideoEncoderX264or5::configure(int bitrate_, int fps_, int gop_, int lookah
 
     if (fps_ <= 0) {
         fps = VIDEO_DEFAULT_FRAMERATE;
-        setFrameTime(std::chrono::nanoseconds(0));
+        setFrameTime(std::chrono::microseconds(0));
     } else {
         fps = fps_;
-        setFrameTime(std::chrono::nanoseconds(std::nano::den/fps));
+        setFrameTime(std::chrono::microseconds(std::micro::den/fps));
     }
 
     needsConfig = true;
@@ -121,11 +126,11 @@ bool VideoEncoderX264or5::configure(int bitrate_, int fps_, int gop_, int lookah
 
 bool VideoEncoderX264or5::configEvent(Jzon::Node* params)
 {
-    int tmpBitrate;
-    int tmpFps;
-    int tmpGop;
-    int tmpLookahead;
-    int tmpThreads;
+    unsigned tmpBitrate;
+    unsigned tmpFps;
+    unsigned tmpGop;
+    unsigned tmpLookahead;
+    unsigned tmpThreads;
     bool tmpAnnexB;
     std::string tmpPreset;
 
@@ -169,7 +174,7 @@ bool VideoEncoderX264or5::configEvent(Jzon::Node* params)
         tmpPreset = params->Get("preset").ToString();
     }
 
-    return configure(tmpBitrate, tmpFps, tmpGop, tmpLookahead, tmpThreads, tmpAnnexB, tmpPreset);
+    return configure0(tmpBitrate, tmpFps, tmpGop, tmpLookahead, tmpThreads, tmpAnnexB, tmpPreset);
 }
 
 bool VideoEncoderX264or5::forceIntraEvent(Jzon::Node* params)
@@ -194,3 +199,22 @@ void VideoEncoderX264or5::doGetState(Jzon::Object &filterNode)
     filterNode.Add("annexb", std::to_string(annexB));
     filterNode.Add("preset", preset);
 }
+
+bool VideoEncoderX264or5::configure(int bitrate, int fps, int gop, int lookahead, int threads, bool annexB, std::string preset)
+{
+    Jzon::Object root, params;
+    root.Add("action", "configure");
+    params.Add("bitrate", bitrate);
+    params.Add("fps", fps);
+    params.Add("gop", gop);
+    params.Add("lookahead", lookahead);
+    params.Add("threads", threads);
+    params.Add("annexb", annexB);
+    params.Add("preset", preset);
+    root.Add("params", params);
+
+    Event e(root, std::chrono::system_clock::now(), 0);
+    pushEvent(e); 
+    return true;
+}
+

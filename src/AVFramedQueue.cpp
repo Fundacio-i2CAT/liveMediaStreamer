@@ -23,10 +23,9 @@
 
 #include "AVFramedQueue.hh"
 #include "VideoFrame.hh"
-#include "AudioFrame.hh"
 #include "Utils.hh"
 
-AVFramedQueue::AVFramedQueue(unsigned maxFrames) : FrameQueue(), max(maxFrames)
+AVFramedQueue::AVFramedQueue(ConnectionData cData, unsigned maxFrames) : FrameQueue(cData), max(maxFrames)
 {
 
 }
@@ -40,96 +39,73 @@ AVFramedQueue::~AVFramedQueue()
 
 Frame* AVFramedQueue::getRear() 
 {
-    if (elements >= max) {
+    if ((rear + 1) % max == front){
         return NULL;
     }
-
+    
     return frames[rear];
 }
 
-Frame* AVFramedQueue::getFront(bool &newFrame) 
+Frame* AVFramedQueue::getFront() 
 {
-    if(frameToRead()) {
-        newFrame = true;
-        return frames[front];
+    if(rear == front) {
+        return NULL;
     }
-    newFrame = false;
-    return NULL;
+
+    return frames[front];
 }
 
-void AVFramedQueue::addFrame() 
+int AVFramedQueue::addFrame() 
 {
+    if ((rear + 1) % max == front){
+        return connectionData.rFilterId;
+    }
     rear =  (rear + 1) % max;
-    ++elements;
-    firstFrame = true;
+    return connectionData.rFilterId;
 }
 
-void AVFramedQueue::removeFrame() 
+int AVFramedQueue::removeFrame() 
 {
+    if (rear == front){
+        return -1;
+    }
     front = (front + 1) % max;
-    --elements;
+    return connectionData.wFilterId;
 }
 
 void AVFramedQueue::flush() 
 {
-    if (elements == max) {
-        rear = (rear + (max - 1)) % max;
-        --elements;
-    }
+    rear = (rear + (max - 1)) % max;
 }
 
 Frame* AVFramedQueue::forceGetRear()
 {
     Frame *frame;
     while ((frame = getRear()) == NULL) {
-        utils::errorMsg("Frame discarted by AVFramedQueue");
+        utils::debugMsg("Frame discarted by AVFramedQueue");
         flush();
     }
     return frame;
 }
 
-Frame* AVFramedQueue::forceGetFront(bool &newFrame)
+Frame* AVFramedQueue::forceGetFront()
 {
-    if (!firstFrame) {
-        // utils::debugMsg("Forcing front without any frame. Returning NULL pointer");
-        return NULL;
-    }
-
     return frames[(front + (max - 1)) % max]; 
 }
 
-
-bool AVFramedQueue::frameToRead()
+const unsigned AVFramedQueue::getElements()
 {
-    if (elements <= 0){
-        return false;
-    } else {
-        return true;
-    }
+    return front > rear ? (max - front + rear) : (rear - front);
 }
 
-QueueState AVFramedQueue::getState()
-{
-    float occupancy = (float)elements/(float)max;
-   
-    if (occupancy > FAST_THRESHOLD) {
-        state = FAST;
-    }
-
-    if (occupancy < SLOW_THRESHOLD) {
-        state = SLOW;
-    }
-
-    return state;
-}
 
 ////////////////////////////////////////////
 //VIDEO FRAME QUEUE METHODS IMPLEMENTATION//
 ////////////////////////////////////////////
 
-VideoFrameQueue* VideoFrameQueue::createNew(VCodecType codec, unsigned maxFrames, PixType pixelFormat, const uint8_t *extradata, int extradata_size)
+VideoFrameQueue* VideoFrameQueue::createNew(ConnectionData cData, VCodecType codec, unsigned maxFrames, PixType pixelFormat, const uint8_t *extradata, int extradata_size)
 {
-    VideoFrameQueue* q = new VideoFrameQueue(codec, maxFrames, pixelFormat);
+    VideoFrameQueue* q = new VideoFrameQueue(cData, codec, maxFrames, pixelFormat);
 
     if (!q->setup()) {
         utils::errorMsg("VideoFrameQueue setup error!");
@@ -144,8 +120,8 @@ VideoFrameQueue* VideoFrameQueue::createNew(VCodecType codec, unsigned maxFrames
 }
 
 
-VideoFrameQueue::VideoFrameQueue(VCodecType codec_, unsigned maxFrames, PixType pixelFormat_) :
-AVFramedQueue(maxFrames), codec(codec_), pixelFormat(pixelFormat_)
+VideoFrameQueue::VideoFrameQueue(ConnectionData cData, VCodecType codec_, unsigned maxFrames, PixType pixelFormat_) :
+AVFramedQueue(cData, maxFrames), codec(codec_), pixelFormat(pixelFormat_)
 {
 
 }
@@ -188,9 +164,10 @@ bool VideoFrameQueue::setup()
 
 unsigned getMaxSamples(unsigned sampleRate);
 
-AudioFrameQueue* AudioFrameQueue::createNew(ACodecType codec, unsigned maxFrames, unsigned sampleRate, unsigned channels, SampleFmt sFmt, const uint8_t *extradata, int extradata_size)
+AudioFrameQueue* AudioFrameQueue::createNew(ConnectionData cData, ACodecType codec, unsigned maxFrames, unsigned sampleRate, 
+                                             unsigned channels, SampleFmt sFmt, const uint8_t *extradata, int extradata_size)
 {
-    AudioFrameQueue* q = new AudioFrameQueue(codec, maxFrames, sFmt, sampleRate, channels);
+    AudioFrameQueue* q = new AudioFrameQueue(cData, codec, maxFrames, sFmt, sampleRate, channels);
 
     if (!q->setup()) {
         utils::errorMsg("AudioFrameQueue setup error!");
@@ -204,8 +181,8 @@ AudioFrameQueue* AudioFrameQueue::createNew(ACodecType codec, unsigned maxFrames
     return q;
 }
 
-AudioFrameQueue::AudioFrameQueue(ACodecType codec_, unsigned maxFrames, SampleFmt sFmt, unsigned sampleRate_, unsigned channels_)
-: AVFramedQueue(maxFrames), codec(codec_), sampleFormat(sFmt), sampleRate(sampleRate_), channels(channels_)
+AudioFrameQueue::AudioFrameQueue(ConnectionData cData, ACodecType codec_, unsigned maxFrames, SampleFmt sFmt, unsigned sampleRate_, unsigned channels_)
+: AVFramedQueue(cData, maxFrames), codec(codec_), sampleFormat(sFmt), sampleRate(sampleRate_), channels(channels_)
 {
 
 }

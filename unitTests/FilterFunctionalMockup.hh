@@ -77,18 +77,20 @@ public:
         tailF->disconnectAll();
     }
     
-    std::chrono::nanoseconds processFrame(InterleavedVideoFrame* srcFrame){
-        std::chrono::nanoseconds ret;
+    int processFrame(InterleavedVideoFrame* srcFrame){
+        int ret;
         
         if (! headF->inject(srcFrame)){
-            return std::chrono::nanoseconds(0);
+            return 0;
         }
-        headF->processFrame();
-        return filterToTest->processFrame();
+        headF->processFrame(ret);
+        filterToTest->processFrame(ret);
+        return ret;
     }
     
     InterleavedVideoFrame *extractFrame(){
-        tailF->processFrame();
+        int ret;
+        tailF->processFrame(ret);
         return tailF->extract();
     }
     
@@ -96,6 +98,178 @@ private:
     VideoHeadFilterMockup *headF;
     VideoTailFilterMockup *tailF;
     OneToOneFilter *filterToTest;
+};
+
+class ManyToOneVideoScenarioMockup {
+
+public: 
+    ManyToOneVideoScenarioMockup(ManyToOneFilter* fToTest): filterToTest(fToTest) 
+    {
+        tailF = new VideoTailFilterMockup();
+    };
+    
+    ~ManyToOneVideoScenarioMockup()
+    {
+        disconnectFilters();
+
+        for (auto f : headFilters) {
+            delete f.second;
+        }
+
+        delete tailF;
+    }
+
+    bool addHeadFilter(int id, VCodecType c, PixType pix = P_NONE) 
+    {
+        if (headFilters.count(id) > 0) {
+            return false;
+        }
+
+        headFilters[id] = new VideoHeadFilterMockup(c, pix);
+        return true;
+    }
+    
+    bool connectFilters() 
+    {
+        if (filterToTest == NULL || headFilters.empty()) {
+            return false;
+        }
+
+        for (auto f : headFilters) {
+            if (!f.second->connectOneToMany(filterToTest, f.first)) {
+                return false;
+            }
+        }
+        
+        if (!filterToTest->connectOneToOne(tailF)) {
+            return false;
+        }
+        
+        return true;
+    };
+    
+    void disconnectFilters() 
+    {
+        for (auto f : headFilters) {
+            f.second->disconnectAll();
+        }
+
+        filterToTest->disconnectAll();
+        tailF->disconnectAll();
+    }
+    
+    int processFrame(InterleavedVideoFrame* srcFrame)
+    {
+        int ret;
+
+        for (auto f : headFilters) {
+            if (!f.second->inject(srcFrame)) {
+                return 0;
+            }
+            f.second->processFrame(ret);
+        }   
+        
+        filterToTest->processFrame(ret);
+        return ret;
+    }
+    
+    InterleavedVideoFrame *extractFrame()
+    {
+        int ret;
+        tailF->processFrame(ret);
+        return tailF->extract();
+    }
+    
+private:
+    std::map<int,VideoHeadFilterMockup*> headFilters;
+    ManyToOneFilter *filterToTest;
+    VideoTailFilterMockup *tailF;
+};
+
+class ManyToOneAudioScenarioMockup {
+
+public: 
+    ManyToOneAudioScenarioMockup(ManyToOneFilter* fToTest): filterToTest(fToTest) 
+    {
+        tailF = new AudioTailFilterMockup();
+    };
+    
+    ~ManyToOneAudioScenarioMockup()
+    {
+        disconnectFilters();
+
+        for (auto f : headFilters) {
+            delete f.second;
+        }
+
+        delete tailF;
+    }
+
+    bool addHeadFilter(int id, int channels, int sampleRate, SampleFmt sampleFormat) 
+    {
+        if (headFilters.count(id) > 0) {
+            return false;
+        }
+
+        headFilters[id] = new AudioHeadFilterMockup(channels, sampleRate, sampleFormat);
+        return true;
+    }
+    
+    bool connectFilters() 
+    {
+        if (filterToTest == NULL || headFilters.empty()) {
+            return false;
+        }
+
+        for (auto f : headFilters) {
+            if (!f.second->connectOneToMany(filterToTest, f.first)) {
+                return false;
+            }
+        }
+        
+        if (!filterToTest->connectOneToOne(tailF)) {
+            return false;
+        }
+        
+        return true;
+    };
+    
+    void disconnectFilters() 
+    {
+        for (auto f : headFilters) {
+            f.second->disconnectAll();
+        }
+
+        filterToTest->disconnectAll();
+        tailF->disconnectAll();
+    }
+
+    int processFrame(PlanarAudioFrame* srcFrame)
+    {
+        int ret;
+
+        for (auto f : headFilters) {
+            if (!f.second->inject(srcFrame)) {
+                return 0;
+            }
+            f.second->processFrame(ret);
+        }   
+        
+        filterToTest->processFrame(ret);
+        return ret;
+    }
+    
+    PlanarAudioFrame *extractFrame()
+    {
+        int ret;
+        tailF->processFrame(ret);
+        return tailF->extract();
+    }
+    
+private:
+    std::map<int,AudioHeadFilterMockup*> headFilters;
+    ManyToOneFilter *filterToTest;
+    AudioTailFilterMockup *tailF;
 };
 
 class InterleavedFramesWriter {
@@ -148,6 +322,10 @@ class AVFramesReader {
 public:
     AVFramesReader(): fmtCtx(NULL), frame(NULL){
         av_register_all();
+    };
+
+    ~AVFramesReader() {
+        close();
     };
     
     bool openFile(std::string file, VCodecType c, PixType pix = P_NONE, 
@@ -221,6 +399,7 @@ public:
         if (av_read_frame(fmtCtx, &pkt) >= 0){
             memmove(frame->getDataBuf(), pkt.data, sizeof(unsigned char)*pkt.size);
             frame->setLength(pkt.size);
+            frame->setPresentationTime(std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now().time_since_epoch()));
             return frame;
         } 
         

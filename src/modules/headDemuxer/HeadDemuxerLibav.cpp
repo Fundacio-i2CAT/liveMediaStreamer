@@ -23,7 +23,7 @@
 #include "HeadDemuxerLibav.hh"
 #include "../../AVFramedQueue.hh"
 
-HeadDemuxerLibav::HeadDemuxerLibav() : HeadFilter (MASTER, 0, 2)
+HeadDemuxerLibav::HeadDemuxerLibav() : HeadFilter ()
 {
     // Initialize libav
     av_register_all();
@@ -35,6 +35,8 @@ HeadDemuxerLibav::HeadDemuxerLibav() : HeadFilter (MASTER, 0, 2)
 
     // Clear all internal data
     reset();
+
+    initializeEventMap();
 }
 
 HeadDemuxerLibav::~HeadDemuxerLibav()
@@ -63,7 +65,7 @@ void HeadDemuxerLibav::reset()
     streams.clear();
 }
 
-bool HeadDemuxerLibav::doProcessFrame(std::map<int, Frame*> dstFrames)
+bool HeadDemuxerLibav::doProcessFrame(std::map<int, Frame*> &dstFrames)
 {
     if (!av_ctx) return false;
 
@@ -87,27 +89,24 @@ bool HeadDemuxerLibav::doProcessFrame(std::map<int, Frame*> dstFrames)
         f->setConsumed(true);
         f->setLength(pkt.size);
         f->setPresentationTime(
-            std::chrono::system_clock::time_point(
-                std::chrono::microseconds(1000000 * pkt.pts * sinfo->time_base_num / sinfo->time_base_den)));
-        f->setDuration(
-            std::chrono::nanoseconds(1000000000 * pkt.duration * sinfo->time_base_num / sinfo->time_base_den));
+            std::chrono::microseconds(1000000 * pkt.pts * sinfo->time_base_num / sinfo->time_base_den));
     }
     av_free_packet(&pkt);
 
     return true;
 }
 
-FrameQueue *HeadDemuxerLibav::allocQueue(int wId)
+FrameQueue *HeadDemuxerLibav::allocQueue(ConnectionData cData)
 {
     // Create output queue for the kind of stream associated with this wId
-    const DemuxerStreamInfo *info = streams[wId];
+    const DemuxerStreamInfo *info = streams[cData.writerId];
     switch (info->type) {
         case AUDIO:
-            return AudioFrameQueue::createNew(info->audio.codec, DEFAULT_AUDIO_FRAMES,
+            return AudioFrameQueue::createNew(cData, info->audio.codec, DEFAULT_AUDIO_FRAMES,
                     info->audio.sampleRate, info->audio.channels,
                     info->audio.sampleFormat, info->extradata, info->extradata_size);
         case VIDEO:
-            return VideoFrameQueue::createNew(info->video.codec, DEFAULT_VIDEO_FRAMES,
+            return VideoFrameQueue::createNew(cData, info->video.codec, DEFAULT_VIDEO_FRAMES,
                     P_NONE, info->extradata, info->extradata_size);
         default:
             break;
@@ -222,5 +221,27 @@ SampleFmt HeadDemuxerLibav::getSampleFormatFromLibav(AVSampleFormat libavSampleF
         case AV_SAMPLE_FMT_S16P: return S16P;
         case AV_SAMPLE_FMT_FLTP: return FLTP;
         default: return S_NONE;
+    }
+}
+
+void HeadDemuxerLibav::initializeEventMap()
+{
+    eventMap["configure"] = std::bind(&HeadDemuxerLibav::configureEvent, this, std::placeholders::_1);
+}
+
+bool HeadDemuxerLibav::configureEvent(Jzon::Node* params)
+{
+    if (!params) {
+        return false;
+    }
+
+    if (params->Has("uri")) {
+        if(setURI(params->Get("uri").ToString())){
+            return true;
+        } else {
+            return false;
+        }
+    } else {
+        return false;
     }
 }

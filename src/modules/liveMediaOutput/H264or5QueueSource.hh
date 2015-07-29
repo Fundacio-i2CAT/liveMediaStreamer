@@ -31,11 +31,13 @@
 class H264or5QueueSource: public QueueSource {
 
 public:
-    static H264or5QueueSource* createNew(UsageEnvironment& env, Reader *reader, int readerId);
-    virtual void doGetNextFrame();
+    static H264or5QueueSource* createNew(UsageEnvironment& env, int readerId);
+    
 
 protected:
-    H264or5QueueSource(UsageEnvironment& env, Reader *reader, int readerId);
+    H264or5QueueSource(UsageEnvironment& env, int readerId);
+
+    void deliverFrame();
 };
 
 #endif

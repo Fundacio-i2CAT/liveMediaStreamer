@@ -163,7 +163,7 @@ void VideoEncoderDecoderFunctionalTest::test500()
     
     writer->closeFile();
     reader->close();
-        
+
     CPPUNIT_ASSERT((fileSize = writer->getFileSize()) > 0);
     
     CPPUNIT_ASSERT(VIDEO_FRAMES/VIDEO_DEFAULT_FRAMERATE*500*1000*1.1 > fileSize*BITS_X_BYTE &&

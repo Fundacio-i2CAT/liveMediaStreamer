@@ -1,5 +1,5 @@
 /*
- *  AudioDecoderLibab - Audio circular buffer
+ *  AudioCircularBuffer - Audio circular buffer
  *  Copyright (C) 2013  Fundació i2CAT, Internet i Innovació digital a Catalunya
  *
  *  This file is part of media-streamer.
@@ -23,59 +23,70 @@
 #ifndef _AUDIO_CIRCULAR_BUFFER_HH
 #define _AUDIO_CIRCULAR_BUFFER_HH
 
-#include <atomic>
 #include "Types.hh"
 #include "FrameQueue.hh"
 #include "AudioFrame.hh"
+#include <mutex>
 
-#define BUFFERING_SIZE_TIME 500 //ms
+#define DEFAULT_BUFFER_SIZE 32768 //samples (~600ms at 48KHz)
 #define BUFFERING_THRESHOLD 40 //ms
 
 
  class AudioCircularBuffer : public FrameQueue {
 
-    public:
-        static AudioCircularBuffer* createNew(int ch, int sRate, int maxSamples, SampleFmt sFmt);
-        ~AudioCircularBuffer();
-        void setOutputFrameSamples(int samples); 
+public:
+    static AudioCircularBuffer* createNew(struct ConnectionData cData, unsigned ch, unsigned sRate, unsigned maxSamples, SampleFmt sFmt, std::chrono::milliseconds bufferingThreshold);
+    ~AudioCircularBuffer();
+    void setOutputFrameSamples(int samples); 
 
-        Frame *getRear();
-        Frame *getFront(bool &newFrame);
-        void addFrame();
-        void removeFrame();
-        void flush();
-        Frame *forceGetRear();
-        Frame *forceGetFront(bool &newFrame);
-        bool frameToRead() {return false;};
-        int getFreeSamples();
-        QueueState getState();
+    Frame *getRear();
+    Frame *getFront();
+    int addFrame();
+    int removeFrame();
+    void flush();
+    Frame *forceGetRear();
+    Frame *forceGetFront();
+    bool frameToRead() {return false;};
+    int getFreeSamples();
+    void setBufferingThreshold(std::chrono::milliseconds th);
+    unsigned getChannelMaxSamples() {return chMaxSamples;};
+    const unsigned getElements() {return elements;};
 
-    private:
-        AudioCircularBuffer(int ch, int sRate, int maxSamples, SampleFmt sFmt);
+private:
+    AudioCircularBuffer(struct ConnectionData cData, unsigned ch, unsigned sRate, unsigned maxSamples, SampleFmt sFmt);
 
-        enum State {BUFFERING, OK, FULL};
+    enum State {BUFFERING, OK, FULL};
 
-        bool pushBack(unsigned char **buffer, int samplesRequested);
-        bool forcePushBack(unsigned char **buffer, int samplesRequested);
-        bool popFront(unsigned char **buffer, int samplesRequested);
-        void fillOutputBuffers(unsigned char **buffer, int bytesRequested);
-        bool setup();
+    bool pushBack(unsigned char **buffer, int samplesRequested);
+    bool forcePushBack(unsigned char **buffer, int samplesRequested);
+    bool popFront(unsigned char **buffer, unsigned samplesRequested);
+    void fillOutputBuffers(unsigned char **buffer, int bytesRequested);
+    bool setup();
 
-        int channels;
-        int sampleRate;
-        unsigned bytesPerSample;
-        int chMaxSamples;
-        unsigned channelMaxLength;
-        int delayBytes;
-        unsigned char *data[MAX_CHANNELS];
-        SampleFmt sampleFormat;
-        bool outputFrameAlreadyRead;
+    unsigned channels;
+    unsigned sampleRate;
+    unsigned bytesPerSample;
+    unsigned chMaxSamples;
+    unsigned channelMaxLength;
+    unsigned char *data[MAX_CHANNELS];
+    SampleFmt sampleFormat;
+    bool fillNewFrame;
 
-        unsigned samplesBufferingThreshold;
-        State bufferingState;
+    unsigned samplesBufferingThreshold;
+    State bufferingState;
 
-        PlanarAudioFrame* inputFrame;
-        PlanarAudioFrame* outputFrame;
+    PlanarAudioFrame* inputFrame;
+    PlanarAudioFrame* outputFrame;
+    PlanarAudioFrame* dummyFrame;
+
+    std::chrono::microseconds syncTimestamp;
+    bool synchronized;
+    bool setupSuccess;
+
+    int tsDeviationThreshold;
+    std::mutex mtx;
+
+    unsigned elements;
 };
 
 #endif

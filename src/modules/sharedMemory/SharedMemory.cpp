@@ -24,9 +24,9 @@
 
 static unsigned char const start_code[4] = {0x00, 0x00, 0x00, 0x01};
 
-SharedMemory* SharedMemory::createNew(size_t key_, VCodecType codec, FilterRole fRole_, size_t fTime, bool force_, bool sharedFrames_)
+SharedMemory* SharedMemory::createNew(size_t key_, VCodecType codec)
 {
-    SharedMemory *shm = new SharedMemory(key_, codec, fTime, fRole_, force_, sharedFrames_);
+    SharedMemory *shm = new SharedMemory(key_, codec);
 
     if(shm->isEnabled()){
         return shm;
@@ -34,8 +34,8 @@ SharedMemory* SharedMemory::createNew(size_t key_, VCodecType codec, FilterRole 
     return NULL;
 }
 
-SharedMemory::SharedMemory(size_t key_, VCodecType codec_, size_t fTime, FilterRole fRole_, bool force_, bool sharedFrames_):
-    OneToOneFilter(true, fRole_, fTime), enabled(true), newFrame(false), codec(codec_)
+SharedMemory::SharedMemory(size_t key_, VCodecType codec_):
+    OneToOneFilter(), enabled(true), newFrame(false), codec(codec_)
 {
 
     if(!(codec == RAW || codec == H264)){
@@ -123,13 +123,13 @@ bool SharedMemory::doProcessFrame(Frame *org, Frame *dst)
     return true;
 }
 
-FrameQueue* SharedMemory::allocQueue(int wId)
+FrameQueue* SharedMemory::allocQueue(ConnectionData cData)
 {
     if (codec == H264) {
-        return VideoFrameQueue::createNew(codec, DEFAULT_VIDEO_FRAMES);
+        return VideoFrameQueue::createNew(cData, codec, DEFAULT_VIDEO_FRAMES);
 
     } else if (codec == RAW) {
-        return VideoFrameQueue::createNew(codec, DEFAULT_RAW_VIDEO_FRAMES, RGB24);
+        return VideoFrameQueue::createNew(cData, codec, DEFAULT_RAW_VIDEO_FRAMES, RGB24);
         
     } else {
         return NULL;
@@ -155,13 +155,9 @@ void SharedMemory::copyOrgToDstFrame(InterleavedVideoFrame*org, InterleavedVideo
 {
     dst->setLength(org->getLength());
     dst->setSize(org->getWidth(), org->getHeight());
-    dst->setPresentationTime(org->getPresentationTime());
-    dst->setOriginTime(org->getOriginTime());
     dst->setPixelFormat(org->getPixelFormat());
-    dst->setSequenceNumber(org->getSequenceNumber());
-    dst->setOriginTime(org->getOriginTime());
-    dst->setDuration(org->getDuration());
     dst->setConsumed(true);
+    dst->setPresentationTime(org->getPresentationTime());
 
     memcpy(dst->getDataBuf(), org->getDataBuf(),org->getLength());
 }
@@ -278,13 +274,10 @@ int SharedMemory::writeSharedMemoryRAW(uint8_t *buf, int buf_size)
     return 0;
 }
 
-void SharedMemory::writeFramePayload(InterleavedVideoFrame *frame) {
-    std::chrono::microseconds presentationTime; 
-
-    presentationTime = duration_cast<std::chrono::microseconds>(frame->getPresentationTime().time_since_epoch());
-
-    uint32_t tv_sec = presentationTime.count()/std::micro::den;
-    uint32_t tv_usec = presentationTime.count()%std::micro::den;
+void SharedMemory::writeFramePayload(InterleavedVideoFrame *frame) 
+{
+    uint32_t tv_sec = frame->getPresentationTime().count()/std::micro::den;
+    uint32_t tv_usec = frame->getPresentationTime().count()%std::micro::den;
     uint16_t width = frame->getWidth();
     uint16_t height = frame->getHeight();
     uint32_t length = frame->getLength();

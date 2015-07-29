@@ -29,15 +29,9 @@
 //                ChannelConfig Class            //
 ///////////////////////////////////////////////////
 
-ChannelConfig::ChannelConfig(float width, float height, float x, float y, int layer)
+ChannelConfig::ChannelConfig() : width(1), height(1), x(0), y(0), layer(0), enabled(false), opacity(1.0) 
 {
-    this->width = width;
-    this->height = height;
-    this->x = x;
-    this->y = y;
-    this->layer = layer;
-    enabled = false;
-    opacity = 1.0;
+
 }
 
 void ChannelConfig::config(float width, float height, float x, float y, int layer, bool enabled, float opacity)
@@ -55,18 +49,30 @@ void ChannelConfig::config(float width, float height, float x, float y, int laye
 //                VideoMixer Class               //
 ///////////////////////////////////////////////////
 
-VideoMixer::VideoMixer(FilterRole fRole_, bool sharedFrames, int framerate, int inputChannels, 
-                       int outputWidth, int outputHeight, size_t fTime) :
-ManyToOneFilter(fRole_, sharedFrames, inputChannels, fTime, true)
+VideoMixer* VideoMixer::createNew(int inputChannels, int outWidth, int outHeight, std::chrono::microseconds fTime)
 {
-    this->outputWidth = outputWidth;
-    this->outputHeight = outputHeight;
-    fType = VIDEO_MIXER;
-    maxChannels = inputChannels;
-    setFrameTime(std::chrono::nanoseconds(std::nano::den/framerate));
+    if (outWidth <= 0 || outWidth > DEFAULT_WIDTH || outHeight <= 0 || outHeight > DEFAULT_HEIGHT) {
+        utils::errorMsg("[VideoMixer] Error creating VideoMixer, output size range is  (0," + 
+                         std::to_string(DEFAULT_WIDTH) + "]x(0," + std::to_string(DEFAULT_HEIGHT) + "]");
+        return NULL;
+    }
 
+    if (fTime.count() < 0) {
+        utils::errorMsg("[VideoMixer] Error creating VideoMixer, negative frame time is not valid");
+        return NULL;
+    }
+
+    return new VideoMixer(inputChannels, outWidth, outHeight, fTime);
+}
+
+VideoMixer::VideoMixer(int inputChannels, 
+                       int outWidth, int outHeight, std::chrono::microseconds fTime) :
+ManyToOneFilter(inputChannels), outputWidth(outWidth), outputHeight(outHeight), maxChannels(inputChannels)
+{
+    setFrameTime(fTime);
     layoutImg = cv::Mat(outputHeight, outputWidth, CV_8UC3);
     initializeEventMap();
+    fType = VIDEO_MIXER;
 }
 
 VideoMixer::~VideoMixer()
@@ -78,24 +84,34 @@ VideoMixer::~VideoMixer()
     channelsConfig.clear();
 }
 
-FrameQueue* VideoMixer::allocQueue(int wId)
+FrameQueue* VideoMixer::allocQueue(ConnectionData cData)
 {
-    return VideoFrameQueue::createNew(RAW, DEFAULT_RAW_VIDEO_FRAMES, RGB24);
+    return VideoFrameQueue::createNew(cData, RAW, DEFAULT_RAW_VIDEO_FRAMES, RGB24);
 }
 
-bool VideoMixer::doProcessFrame(std::map<int, Frame*> orgFrames, Frame *dst)
+bool VideoMixer::doProcessFrame(std::map<int, Frame*> &orgFrames, Frame *dst, std::vector<int> /*newFrames*/)
 {
     int frameNumber = orgFrames.size();
+    std::chrono::microseconds outTs = std::chrono::microseconds(0);
     VideoFrame *vFrame;
 
-    layoutImg.data = dst->getDataBuf();
-    dst->setLength(layoutImg.step * outputHeight);
-    dynamic_cast<VideoFrame*>(dst)->setSize(outputWidth, outputHeight);
+    vFrame = dynamic_cast<VideoFrame*>(dst);
+
+    if (!vFrame) {
+        utils::errorMsg("[VideoMixer] Destination frame must be a VideoFrame");
+        return false;
+    }
+
+    layoutImg.data = vFrame->getDataBuf();
+    vFrame->setLength(layoutImg.step * outputHeight);
+    vFrame->setSize(outputWidth, outputHeight);
 
     layoutImg = cv::Scalar(0, 0, 0);
 
-    for (int lay=0; lay < MAX_LAYERS; lay++) {
+    for (int lay=0; lay < maxChannels; lay++) {
+
         for (auto it : orgFrames) {
+
             if (channelsConfig[it.first]->getLayer() != lay) {
                 continue;
             }
@@ -106,7 +122,14 @@ bool VideoMixer::doProcessFrame(std::map<int, Frame*> orgFrames, Frame *dst)
             }
 
             vFrame = dynamic_cast<VideoFrame*>(it.second);
+
+            if (!vFrame) {
+                utils::errorMsg("[VideoMixer] Origin frame must be a VideoFrame");
+                return false;
+            }
+
             pasteToLayout(it.first, vFrame);
+            outTs = std::max(vFrame->getPresentationTime(), outTs);
             frameNumber--;
         }
 
@@ -116,18 +139,35 @@ bool VideoMixer::doProcessFrame(std::map<int, Frame*> orgFrames, Frame *dst)
     }
 
     dst->setConsumed(true);
+    
+    if (getFrameTime().count() <= 0) {
+        dst->setPresentationTime(outTs);
+        setSyncTs(outTs);
+    } else {
+        dst->setPresentationTime(getSyncTs());
+    }
+
     return true;
 }
 
-bool VideoMixer::configChannel(int id, float width, float height, float x, float y, int layer, bool enabled, float opacity)
+bool VideoMixer::configChannel0(int id, float width, float height, float x, float y, int layer, bool enabled, float opacity)
 {
-    //NOTE: w, h, x and y are set as layout size percentages
-
     if (channelsConfig.count(id) <= 0) {
         return false;
     }
 
+    if (x < 0 || y < 0 || width <= 0 || height <= 0 || opacity < 0 || opacity > 1.0) {
+        utils::errorMsg("[VideoMixer] Error configuring channel. Incoherent values");
+        return false;
+    }
+
     if (x + width > 1 || y + height > 1) {
+        utils::errorMsg("[VideoMixer] Error configuring channel. Position + size exceed layout edges");
+        return false;
+    }
+
+    if (layer < 0 || layer > maxChannels) {
+        utils::errorMsg("[VideoMixer] Error configuring channel. Layer value is not valid");
         return false;
     }
 
@@ -150,6 +190,7 @@ void VideoMixer::pasteToLayout(int frameID, VideoFrame* vFrame)
     int cropY = (vFrame->getHeight() - chConfig->getHeight()*outputHeight)/2;
 
     if (cropX < 0 || cropX + sz.width > vFrame->getWidth() || cropY < 0 || cropY + sz.height > vFrame->getHeight()) {
+        utils::errorMsg("[VideoMixer] Input size does not match with channel config");
         return;
     }
 
@@ -167,18 +208,19 @@ void VideoMixer::pasteToLayout(int frameID, VideoFrame* vFrame)
     }
 }
 
-Reader* VideoMixer::setReader(int readerID, FrameQueue* queue)
+bool VideoMixer::specificReaderConfig(int readerId, FrameQueue* /*queue*/)
 {
-    if (readers.count(readerID) < 0) {
-        return NULL;
-    }
+    channelsConfig[readerId] = new ChannelConfig();
 
-    Reader* r = new Reader();
-    readers[readerID] = r;
+    return true;
+}
 
-    channelsConfig[readerID] = new ChannelConfig(1, 1, 0, 0, 0);
-
-    return r;
+bool VideoMixer::specificReaderDelete(int readerID)
+{
+    delete channelsConfig[readerID];
+    channelsConfig.erase(readerID);
+    
+    return true;
 }
 
 void VideoMixer::initializeEventMap()
@@ -189,6 +231,7 @@ void VideoMixer::initializeEventMap()
 bool VideoMixer::configChannelEvent(Jzon::Node* params)
 {
     if (!params) {
+        utils::errorMsg("[VideoMixer::configChannelEvent] Params node missing");
         return false;
     }
 
@@ -196,6 +239,7 @@ bool VideoMixer::configChannelEvent(Jzon::Node* params)
             !params->Has("x") || !params->Has("y") || !params->Has("layer") ||
                 !params->Has("enabled") || !params->Has("opacity")) {
 
+        utils::errorMsg("[VideoMixer::configChannelEvent] Params node not complete");
         return false;
     }
 
@@ -208,7 +252,7 @@ bool VideoMixer::configChannelEvent(Jzon::Node* params)
     bool enabled = params->Get("enabled").ToBool();
     float opacity = params->Get("opacity").ToFloat();
 
-    return configChannel(id, width, height, x, y, layer, enabled, opacity);
+    return configChannel0(id, width, height, x, y, layer, enabled, opacity);
 }
 
 void VideoMixer::doGetState(Jzon::Object &filterNode)
@@ -233,4 +277,23 @@ void VideoMixer::doGetState(Jzon::Object &filterNode)
     }
 
     filterNode.Add("channels", jsonChannelConfigs);
+}
+
+bool VideoMixer::configChannel(int id, float width, float height, float x, float y, int layer, bool enabled, float opacity)
+{
+    Jzon::Object root, params;
+    root.Add("action", "configChannel");
+    params.Add("id", id);
+    params.Add("width", width);
+    params.Add("height", height);
+    params.Add("x", x);
+    params.Add("y", y);
+    params.Add("layer", y);
+    params.Add("enabled", enabled);
+    params.Add("opacity", opacity);
+    root.Add("params", params);
+
+    Event e(root, std::chrono::system_clock::now(), 0);
+    pushEvent(e); 
+    return true;
 }

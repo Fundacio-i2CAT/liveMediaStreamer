@@ -32,130 +32,67 @@
 #include <cstring>
 
 #include "Filter.hh"
-#include "AVFramedQueue.hh"
-#include "Frame.hh"
+#include "AVFramedQueueMockup.hh"
+#include "AudioCircularBuffer.hh"
 #include "VideoFrame.hh"
-
-#define READERS 1
-#define WRITERS 1
-
-
-class FrameMock : public Frame {
-public:
-    ~FrameMock(){};
-    virtual unsigned char *getDataBuf() {
-        return buff;
-    };
-
-    static FrameMock* createNew(size_t seqNum) {
-        FrameMock *frame = new FrameMock();
-        frame->setSequenceNumber(seqNum);
-        return frame;
-    }
-
-    virtual unsigned char **getPlanarDataBuf() {return NULL;};
-    virtual unsigned int getLength() {return 4;};
-    virtual unsigned int getMaxLength() {return 4;};
-    virtual void setLength(unsigned int length) {};
-    virtual bool isPlanar() {return false;};
-
-protected:
-    unsigned char buff[4];
-};
-
-class VideoFrameMock : public InterleavedVideoFrame
-{
-public:
-    ~VideoFrameMock(){};
-    virtual unsigned char *getDataBuf() {
-        return buff;
-    };
-
-    static VideoFrameMock* createNew() {
-        return new VideoFrameMock();
-    };
-
-    virtual unsigned char **getPlanarDataBuf() {return NULL;};
-    virtual unsigned int getLength() {return 4;};
-    virtual unsigned int getMaxLength() {return 4;};
-    virtual void setLength(unsigned int length) {};
-    virtual bool isPlanar() {return false;};
-
-protected:
-    unsigned char buff[4] = {1,1,1,1};
-
-private:
-    VideoFrameMock(): InterleavedVideoFrame(RAW, 1920, 1080, YUV420P) {};
-};
-
-class AVFramedQueueMock : public AVFramedQueue
-{
-public:
-    AVFramedQueueMock(unsigned max) : AVFramedQueue(max) {
-        config();
-    };
-
-protected:
-    virtual bool config() {
-        for (unsigned i=0; i<max; i++) {
-                frames[i] = FrameMock::createNew(i+1);
-        }
-        return true;
-    }
-};
+#include "FrameMockup.hh"
 
 class BaseFilterMockup : public BaseFilter
 {
 public:
-    BaseFilterMockup(unsigned readers, unsigned writers) : BaseFilter() {
-        maxReaders = readers;
-        maxWriters = writers;
-    };
+    BaseFilterMockup(unsigned readers, unsigned writers) : BaseFilter(readers, writers) {};
 
     using BaseFilter::getReader;
 
 protected:
-    FrameQueue *allocQueue(int wId) {return new AVFramedQueueMock(4);};
-    size_t masterProcessFrame() {return 20;};
-    size_t slaveProcessFrame() {return 20;};
+    FrameQueue *allocQueue(struct ConnectionData cData) {return new AVFramedQueueMock(cData, 4);};
+
     void doGetState(Jzon::Object &filterNode) {};
-    void stop() {};
 
 private:
     VCodecType codec;
+    
+    //There is no need of specific reader configuration
+    bool specificReaderConfig(int /*readerID*/, FrameQueue* /*queue*/)  {return true;};
+    bool specificReaderDelete(int /*readerID*/) {return true;};
 
-    bool runDoProcessFrame() {return true;};
+    bool runDoProcessFrame(std::map<int, Frame*> &oFrames, std::map<int, Frame*> &dFrames, std::vector<int> newFrames) {
+        return true;
+    };
 };
 
 class OneToOneFilterMockup : public OneToOneFilter
 {
 public:
-    OneToOneFilterMockup(size_t processTime_, size_t queueSize_, bool gotFrame_,
-                         size_t frameTime, FilterRole role, bool sharedFrames) :
-        OneToOneFilter(true, role, sharedFrames, frameTime, false),
-        processTime(processTime_), queueSize(queueSize_), gotFrame(gotFrame_) {};
+    OneToOneFilterMockup(size_t queueSize_, bool gotFrame_,
+                std::chrono::microseconds frameTime) :
+                OneToOneFilter(), queueSize(queueSize_), gotFrame(gotFrame_) {
+        setFrameTime(frameTime);
+    };
 
     void setGotFrame(bool gotFrame_) {gotFrame = gotFrame_;};
     using BaseFilter::getReader;
 
 protected:
     bool doProcessFrame(Frame *org, Frame *dst) {
-        size_t realProcessTime;
-        std::uniform_int_distribution<size_t> distribution(processTime/2, processTime*0.99);
-        realProcessTime = distribution(generator);
-        utils::debugMsg("Process time " + std::to_string(realProcessTime));
-        std::this_thread::sleep_for(std::chrono::nanoseconds(realProcessTime));
-        dst->setConsumed(gotFrame);
+        if (!org->isPlanar() && !dst->isPlanar() && org->getConsumed()){
+            memcpy(dst->getDataBuf(), org->getDataBuf(), org->getLength());
+            dst->setSequenceNumber(org->getSequenceNumber());
+            dst->setLength(org->getLength());
+            dst->setConsumed(gotFrame);
+        } 
+        
         return gotFrame;
     }
     void doGetState(Jzon::Object &filterNode) {};
-    void stop() {};
 
 private:
-    virtual FrameQueue *allocQueue(int wId) {return new AVFramedQueueMock(queueSize);};
+    virtual FrameQueue *allocQueue(struct ConnectionData cData) {return new AVFramedQueueMock(cData, queueSize);};
+    //There is no need of specific reader configuration
+    bool specificReaderConfig(int /*readerID*/, FrameQueue* /*queue*/)  {return true;};
+    bool specificReaderDelete(int /*readerID*/) {return true;};
 
     std::default_random_engine generator;
-    size_t processTime; //usec
     size_t queueSize;
     bool gotFrame;
 };
@@ -163,79 +100,45 @@ private:
 class OneToManyFilterMockup : public OneToManyFilter
 {
 public:
-    OneToManyFilterMockup(unsigned maxWriters, size_t processTime_, size_t queueSize_, bool gotFrame_,
-                         size_t frameTime, FilterRole role, bool sharedFrames) :
-        OneToManyFilter(role, sharedFrames, maxWriters, frameTime, false),
-        processTime(processTime_), queueSize(queueSize_), gotFrame(gotFrame_) {};
+    OneToManyFilterMockup(unsigned maxWriters, size_t queueSize_, bool gotFrame_,
+                         std::chrono::microseconds frameTime) :
+        OneToManyFilter(maxWriters),
+        queueSize(queueSize_), gotFrame(gotFrame_) {
+            setFrameTime(frameTime);
+        };
 
     void setGotFrame(bool gotFrame_) {gotFrame = gotFrame_;};
     using BaseFilter::getReader;
 
 protected:
-    bool doProcessFrame(Frame *org, std::map<int, Frame *> dstFrames) {
-        size_t realProcessTime;
-        std::uniform_int_distribution<size_t> distribution(processTime/2, processTime*0.99);
-        realProcessTime = distribution(generator);
-        utils::debugMsg("Process time " + std::to_string(realProcessTime));
-        std::this_thread::sleep_for(std::chrono::nanoseconds(realProcessTime));
+    bool doProcessFrame(Frame *org, std::map<int, Frame *> &dstFrames) {
         for (auto dst : dstFrames) {
             dst.second->setConsumed(gotFrame);
         }
         return gotFrame;
     }
     void doGetState(Jzon::Object &filterNode) {};
-    void stop() {};
 
 private:
-    virtual FrameQueue *allocQueue(int wId) {return new AVFramedQueueMock(queueSize);};
+    virtual FrameQueue *allocQueue(struct ConnectionData cData) {return new AVFramedQueueMock(cData, queueSize);};
+    //There is no need of specific reader configuration
+    bool specificReaderConfig(int /*readerID*/, FrameQueue* /*queue*/)  {return true;};
+    bool specificReaderDelete(int /*readerID*/) {return true;};
 
     std::default_random_engine generator;
-    size_t processTime; //usec
     size_t queueSize;
     bool gotFrame;
-};
-
-class LiveMediaFilterMockup : public LiveMediaFilter
-{
-public:
-    LiveMediaFilterMockup(unsigned maxReaders, unsigned maxWriters, unsigned queueSize_, bool watch_) :
-        LiveMediaFilter(maxReaders, maxWriters),
-        queueSize(queueSize_), watch(watch_) {};
-
-    using BaseFilter::getReader;
-
-private:
-    virtual FrameQueue *allocQueue(int wId) {return new AVFramedQueueMock(queueSize);};
-    void stop() {
-        watch = false;
-    }
-    void doGetState(Jzon::Object &filterNode) {};
-    bool runDoProcessFrame(){
-        if(watch){
-            utils::debugMsg("LiveMedia filter dummy runDoProcessFrame\n");
-            while(watch){
-                std::this_thread::sleep_for(std::chrono::milliseconds(50));
-            }
-        }
-        return true;
-    }
-
-private:
-    size_t queueSize;
-    bool watch;
-
 };
 
 class VideoFilterMockup : public OneToOneFilterMockup
 {
 public:
-    VideoFilterMockup(VCodecType c) : OneToOneFilterMockup(20000, 4, true,
-                      40000, MASTER, false)  {
+    VideoFilterMockup(VCodecType c) : OneToOneFilterMockup(4, true, std::chrono::microseconds(40000))  {
         codec = c;
     };
 
 protected:
-    FrameQueue *allocQueue(int wId) {return VideoFrameQueue::createNew(codec, DEFAULT_VIDEO_FRAMES);};
+    FrameQueue *allocQueue(struct ConnectionData cData) {return VideoFrameQueue::createNew(cData, codec, DEFAULT_VIDEO_FRAMES);};
 
 private:
     VCodecType codec;
@@ -244,16 +147,112 @@ private:
 class AudioFilterMockup : public OneToOneFilterMockup
 {
 public:
-    AudioFilterMockup(ACodecType c) : OneToOneFilterMockup(20000, 4, true,
-                      40000, MASTER, false)  {
+    AudioFilterMockup(ACodecType c) : OneToOneFilterMockup(4, true, std::chrono::microseconds(0))  {
         codec = c;
     };
 
 protected:
-    FrameQueue *allocQueue(int wId) {return AudioFrameQueue::createNew(codec, DEFAULT_AUDIO_FRAMES);};
+    FrameQueue *allocQueue(struct ConnectionData cData) {return AudioFrameQueue::createNew(cData, codec, DEFAULT_AUDIO_FRAMES);};
 
 private:
     ACodecType codec;
+};
+
+
+class HeadFilterMockup : public HeadFilter
+{
+public:
+    HeadFilterMockup() : HeadFilter(), srcFrame(NULL), newFrame(false) {};
+    
+    bool inject(Frame *f){
+        if (!f || newFrame){
+            return false;
+        }
+        
+        srcFrame = f;
+        newFrame = true;
+        
+        return true;
+    }
+    
+    void doGetState(Jzon::Object &filterNode){};
+    
+protected:
+    bool doProcessFrame(std::map<int, Frame*> &dstFrames) {
+        if (!newFrame){
+            return false;
+        }
+        
+        bool gotFrame = false;
+        newFrame = false;
+               
+        for (auto it : dstFrames){
+            if (!it.second->isPlanar()){
+                memcpy(it.second->getDataBuf(), srcFrame->getDataBuf(), srcFrame->getLength());
+                it.second->setSequenceNumber(srcFrame->getSequenceNumber());
+                it.second->setLength(srcFrame->getLength());
+                it.second->setConsumed(true);
+                gotFrame = true;
+            }
+        }
+        return gotFrame;
+    }
+    
+    Frame* srcFrame;
+    bool newFrame;
+    
+private:
+    FrameQueue *allocQueue(struct ConnectionData cData) {
+        return new AVFramedQueueMock(cData, 4);
+    };
+
+};
+
+class TailFilterMockup : public TailFilter
+{
+public:
+    TailFilterMockup() : TailFilter(), frames(0), frame(NULL), newFrame(false) {
+        frame = FrameMock::createNew(0);
+    };
+    
+    Frame* extract(){
+        if (!newFrame){
+            return NULL;
+        }
+        newFrame = false;
+        return frame;
+    }
+    
+    size_t getFrames() {return frames;};
+    
+    void doGetState(Jzon::Object &filterNode){};
+    
+protected:
+    bool doProcessFrame(std::map<int, Frame*> &orgFrames, std::vector<int> /*newFrames*/) { 
+        bool gotframe = false;
+        for (auto it : orgFrames){
+            if (!it.second->isPlanar() && it.second->getConsumed()){
+                memcpy(frame->getDataBuf(), it.second->getDataBuf(), it.second->getLength());
+                frame->setSequenceNumber(it.second->getSequenceNumber());
+                frame->setLength(it.second->getLength());
+                frames++;
+                newFrame = true;
+                gotframe = true;
+            }
+        }
+        
+        return gotframe;
+    }
+    
+        
+    //There is no need of specific reader configuration
+    bool specificReaderConfig(int /*readerID*/, FrameQueue* /*queue*/)  {return true;};
+    bool specificReaderDelete(int /*readerID*/) {return true;};
+    
+    size_t frames;
+    Frame* frame;
+    bool newFrame;
+    
 };
 
 class VideoHeadFilterMockup : public HeadFilter
@@ -276,7 +275,7 @@ public:
     void doGetState(Jzon::Object &filterNode){};
     
 protected:
-    bool doProcessFrame(std::map<int, Frame*> dstFrames) {
+    bool doProcessFrame(std::map<int, Frame*> &dstFrames) {
         // There is only one frame in the map
         Frame *dst = dstFrames.begin()->second;
         InterleavedVideoFrame *dstFrame;
@@ -286,7 +285,7 @@ protected:
             
             dstFrame->setLength(srcFrame->getLength());
             dstFrame->setSize(srcFrame->getWidth(), srcFrame->getHeight());
-            dstFrame->setPresentationTime(std::chrono::system_clock::now());
+            dstFrame->setPresentationTime(std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now().time_since_epoch()));
             dstFrame->setOriginTime(srcFrame->getOriginTime());
             dstFrame->setPixelFormat(srcFrame->getPixelFormat());
             dstFrame->setConsumed(true);
@@ -298,13 +297,71 @@ protected:
     
 
 private:
-    FrameQueue *allocQueue(int wId) {
-        return VideoFrameQueue::createNew(codec, 10, pixFormat);
+    FrameQueue *allocQueue(struct ConnectionData cData) {
+        return VideoFrameQueue::createNew(cData, codec, 10, pixFormat);
     };
 
     InterleavedVideoFrame* srcFrame;
     VCodecType codec;
     PixType pixFormat;
+};
+
+class AudioHeadFilterMockup : public HeadFilter
+{
+public:
+    AudioHeadFilterMockup(unsigned ch, unsigned sRate, SampleFmt fmt) : HeadFilter(), 
+    srcFrame(NULL), channels(ch), sampleRate(sRate), sampleFormat(fmt)  {};
+
+    bool inject(PlanarAudioFrame* frame) 
+    {
+        if (!frame || frame->getChannels() != channels ||
+            frame->getSampleRate() != sampleRate ||
+            frame->getSampleFmt() != sampleFormat) {
+            return false;
+        }
+        
+        srcFrame = frame;
+        return true;
+    }
+    
+    void doGetState(Jzon::Object &filterNode){};
+    
+protected:
+    bool doProcessFrame(std::map<int, Frame*> &dstFrames) {
+        // There is only one frame in the map
+        Frame *dst = dstFrames.begin()->second;
+        PlanarAudioFrame *dstFrame;
+        
+        dstFrame = dynamic_cast<PlanarAudioFrame*>(dst);
+
+        if (!dstFrame) {
+            return false;
+        }
+
+        for (unsigned i = 0; i < channels; i++) {
+            memmove(dstFrame->getPlanarDataBuf()[i], srcFrame->getPlanarDataBuf()[i], srcFrame->getLength());
+        }
+        
+        dstFrame->setLength(srcFrame->getLength());
+        dstFrame->setSamples(srcFrame->getSamples());
+        dstFrame->setChannels(srcFrame->getChannels());
+        dstFrame->setSampleRate(srcFrame->getSampleRate());
+        dstFrame->setPresentationTime(srcFrame->getPresentationTime());
+        dstFrame->setOriginTime(srcFrame->getOriginTime());
+        dstFrame->setConsumed(true);
+        return true;
+    }
+    
+
+private:
+    FrameQueue *allocQueue(struct ConnectionData cData) {
+        return AudioCircularBuffer::createNew(cData, channels, sampleRate, DEFAULT_BUFFER_SIZE, sampleFormat, std::chrono::milliseconds(0));
+    };
+
+    PlanarAudioFrame* srcFrame;
+    unsigned channels;
+    unsigned sampleRate;
+    SampleFmt sampleFormat;
 };
 
 class VideoTailFilterMockup : public TailFilter
@@ -329,7 +386,7 @@ public:
     void doGetState(Jzon::Object &filterNode){};
     
 protected:
-    bool doProcessFrame(std::map<int, Frame*> orgFrames) {
+    bool doProcessFrame(std::map<int, Frame*> &orgFrames, std::vector<int> /*newFrame*/) {
         InterleavedVideoFrame *orgFrame;
  
         if ((orgFrame = dynamic_cast<InterleavedVideoFrame*>(orgFrames.begin()->second)) != NULL){
@@ -357,6 +414,10 @@ protected:
     
 
 private:
+    //There is no need of specific reader configuration
+    bool specificReaderConfig(int /*readerID*/, FrameQueue* /*queue*/)  {return true;};
+    bool specificReaderDelete(int /*readerID*/) {return true;};
+    
     InterleavedVideoFrame* oFrame;
     bool newFrame;
 };
@@ -384,7 +445,7 @@ public:
     void doGetState(Jzon::Object &filterNode){};
 
 protected:
-    bool doProcessFrame(std::map<int, Frame*> orgFrames) {
+    bool doProcessFrame(std::map<int, Frame*> &orgFrames, std::vector<int> /*newFrame*/) {
         PlanarAudioFrame *orgFrame;
 
         if ((orgFrame = dynamic_cast<PlanarAudioFrame*>(orgFrames.begin()->second)) != NULL){
@@ -399,13 +460,18 @@ protected:
 
             unsigned char **orgData = orgFrame->getPlanarDataBuf();
             unsigned char **oData = oFrame->getPlanarDataBuf();
-            for (int i=0; i<orgFrame->getChannels(); i++) {
+
+            for (unsigned i=0; i<orgFrame->getChannels(); i++) {
                 memmove(oData[i], orgData[i], sizeof(unsigned char)*orgFrame->getLength());
             }
 
             oFrame->setPresentationTime(orgFrame->getPresentationTime());
             oFrame->setOriginTime(orgFrame->getOriginTime());
             oFrame->setSequenceNumber(orgFrame->getSequenceNumber());
+            oFrame->setChannels(orgFrame->getChannels());
+            oFrame->setSampleRate(orgFrame->getSampleRate());
+            oFrame->setSamples(orgFrame->getSamples());
+            oFrame->setLength(orgFrame->getLength());
 
             newFrame = true;
 
@@ -417,6 +483,10 @@ protected:
 
 
 private:
+    //There is no need of specific reader configuration
+    bool specificReaderConfig(int /*readerID*/, FrameQueue* /*queue*/)  {return true;};
+    bool specificReaderDelete(int /*readerID*/) {return true;};
+    
     PlanarAudioFrame* oFrame;
     bool newFrame;
 };

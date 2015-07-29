@@ -26,7 +26,6 @@
 #define _MPEGTS_QUEUE_SERVER_MEDIA_SUBSESSION_HH
 
 #include <liveMedia.hh>
-#include "../../IOInterface.hh"
 #include "QueueServerMediaSubsession.hh"
 
 

@@ -27,7 +27,7 @@
 
 #include "Filter.hh"
 #include "Path.hh"
-#include "Worker.hh"
+#include "WorkersPool.hh"
 
 #include <map>
 
@@ -35,6 +35,7 @@
     between the data flow, control and execution layers. It has all related
     information to existing filters, paths and their interconnections.
 */
+
 class PipelineManager {
 
 public:
@@ -43,7 +44,7 @@ public:
     * instance for first time or returns the same instance if it already exists.
     * @return PipelineManager instance pointer
     */
-    static PipelineManager* getInstance();
+    static PipelineManager* getInstance(unsigned threads = 0);
 
     /**
     * If PipelineManager instance exists it is destroyed.
@@ -51,19 +52,21 @@ public:
     static void destroyInstance();
 
     /**
-    * Stops and clears all pipeline workes, destoys all paths and all realated filters
+    * Stops and clears workers pool, destroys all paths and all realated filters
     */
     bool stop();
 
     /**
-    * Creates a path
+    * Creates a path and adds it to the internal paths map
+    * @param id path id (must be unique)
     * @param origin filter Id
     * @param destination filter Id
     * @param origin writer Id
     * @param destination reader Id
     * @param list of middle id filters
+    * @return true if success, false if not
     */
-    Path* createPath(int orgFilter, int dstFilter, int orgWriter,
+    bool createPath(int id, int orgFilter, int dstFilter, int orgWriter,
                      int dstReader, std::vector<int> midFilters);
 
     /**
@@ -74,22 +77,6 @@ public:
     int searchFilterIDByType(FilterType type);
 
     /**
-    * Adds a worker by specifing its Id and the worker object
-    * @param Id of the worker to add
-    * @param worker object pointer
-    * @return return true if succes, otherwise returns false
-    */
-    bool addWorker(int id, Worker* worker);
-
-    /**
-    * Adds a path by specifing its Id and the path object
-    * @param Id of the path to add
-    * @param path object pointer
-    * @return return true if succes, otherwise returns false
-    */
-    bool addPath(int id, Path* path);
-
-    /**
     * Adds a filter by specifing its Id and the filter object
     * @param Id of the filter to add
     * @param filter object pointer
@@ -97,13 +84,6 @@ public:
     */
     bool addFilter(int id, BaseFilter* filter);
 
-    /**
-    * Adds a filter to a specifi worker by specifing both Ids
-    * @param Id of the worker
-    * @param Id of the filter
-    * @return return true if succes, otherwise returns false
-    */
-    bool addFilterToWorker(int workerId, int filterId);
 
     /**
     * Gets a filter by its Id
@@ -112,12 +92,6 @@ public:
     */
     BaseFilter* getFilter(int id);
 
-    /**
-    * Gets a worker by its Id
-    * @param worker Id
-    * @return worker object
-    */
-    Worker* getWorker(int id);
 
     /**
     * Gets a path by its Id
@@ -135,19 +109,17 @@ public:
     /**
     * Manage and carries out a path connection: connectManyToMany, connectManyToOne,
     * connectOneToOne and connectOneToMany
+    * @param id path id
     * @return true if success, otherwise return false
     */
-    bool connectPath(Path* path);
-
+    bool connectPath(int id);
+    
     /**
-    * Starts running all workers
-    */
-    void startWorkers();
-
-    /**
-    * Stops all workers running
-    */
-    void stopWorkers();
+     * Remove the path related to the specified id and the related filters
+     * @param int ID of the path to delete
+     * @return returns true if the removal succedded, false otherwise.
+     */
+    bool removePath(int id);
 
     /**
     * Sets outputNode jzon object by getting pipeline state
@@ -173,46 +145,24 @@ public:
     void removePathEvent(Jzon::Node* params, Jzon::Object &outputNode);
 
     /**
-    * Sets outputNode jzon object with the results coming from add worker event
-    * filled by incoming jzon object params
-    */
-    void addWorkerEvent(Jzon::Node* params, Jzon::Object &outputNode);
-
-    /**
-    * Sets outputNode jzon object with the results coming from remove worker event
-    * filled by incoming jzon object params
-    */
-    void removeWorkerEvent(Jzon::Node* params, Jzon::Object &outputNode);
-
-    /**
-    * Sets outputNode jzon object with the results coming from add slave to filter
-    * event filled by incoming jzon object params
-    */
-    void addSlavesToFilterEvent(Jzon::Node* params, Jzon::Object &outputNode);
-
-    /**
-    * Sets outputNode jzon object with the results coming from add filter to worker
-    * event filled by incoming jzon object params
-    */
-    void addFiltersToWorkerEvent(Jzon::Node* params, Jzon::Object &outputNode);
-
-    /**
     * Sets outputNode jzon object with results of pipeline stop event
     */
     void stopEvent(Jzon::Node* params, Jzon::Object &outputNode);
 
 private:
-    PipelineManager();
-    bool removePath(int id);
+    PipelineManager(unsigned threads = 0);
+    ~PipelineManager();
     bool deletePath(Path* path);
-    bool removeWorker(int id);
-    BaseFilter* createFilter(FilterType type, Jzon::Node* params);
+    bool createFilter(int id, FilterType type);
+    
+    bool handleGrouping(int orgFId, int dstFId, int orgWId, int dstRId);
+    bool validCData(ConnectionData cData, int orgFId, int dstFId);
 
     static PipelineManager* pipeMngrInstance;
 
     std::map<int, Path*> paths;
     std::map<int, BaseFilter*> filters;
-    std::map<int, Worker*> workers;
+    WorkersPool *pool;
 };
 
 #endif

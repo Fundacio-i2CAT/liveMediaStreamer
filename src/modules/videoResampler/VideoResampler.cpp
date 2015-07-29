@@ -27,7 +27,7 @@
 
 AVPixelFormat getLibavPixFmt(PixType pixType);
 
-VideoResampler::VideoResampler(FilterRole fRole_, bool sharedFrames) : OneToOneFilter(true, fRole_, sharedFrames)
+VideoResampler::VideoResampler() : OneToOneFilter()
 {
     fType = VIDEO_RESAMPLER;
 
@@ -55,9 +55,9 @@ VideoResampler::~VideoResampler()
     sws_freeContext(imgConvertCtx);
 }
 
-FrameQueue* VideoResampler::allocQueue(int wId)
+FrameQueue* VideoResampler::allocQueue(ConnectionData cData)
 {
-    return VideoFrameQueue::createNew(RAW, DEFAULT_RAW_VIDEO_FRAMES, outPixFmt);
+    return VideoFrameQueue::createNew(cData, RAW, DEFAULT_RAW_VIDEO_FRAMES, outPixFmt);
 }
 
 bool VideoResampler::reconfigure(VideoFrame* orgFrame)
@@ -160,8 +160,8 @@ bool VideoResampler::doProcessFrame(Frame *org, Frame *dst)
 }
 
 
-bool VideoResampler::configure(int width, int height, int period, PixType pixelFormat) {
-
+bool VideoResampler::configure0(int width, int height, int period, PixType pixelFormat) 
+{
     outputWidth = width;
     outputHeight = height;
     outPixFmt = pixelFormat;
@@ -211,7 +211,7 @@ bool VideoResampler::configEvent(Jzon::Node* params)
         pixelType = static_cast<PixType> (pixel);
     }
 
-    return configure(width, height, period, pixelType);
+    return configure0(width, height, period, pixelType);
 }
 
 void VideoResampler::initializeEventMap()
@@ -271,4 +271,19 @@ bool VideoResampler::setAVFrame(AVFrame *aFrame, VideoFrame* vFrame, AVPixelForm
     
     return true;
 }
+
+bool VideoResampler::configure(int width, int height, int period, PixType pixelFormat) 
+{
+    Jzon::Object root, params;
+    root.Add("action", "configure");
+    params.Add("width", width);
+    params.Add("height", height);
+    params.Add("pixelFormat", pixelFormat);
+    root.Add("params", params);
+
+    Event e(root, std::chrono::system_clock::now(), 0);
+    pushEvent(e); 
+    return true;
+}
+
 

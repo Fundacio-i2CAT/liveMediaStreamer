@@ -45,7 +45,7 @@ Event::~Event()
 
 bool Event::canBeExecuted(std::chrono::system_clock::time_point currentTime)
 {
-    return std::chrono::duration_cast<std::chrono::milliseconds>(currentTime - timestamp) > delay;
+    return std::chrono::duration_cast<std::chrono::milliseconds>(currentTime - timestamp) >= delay;
 }
 
 std::string Event::getAction()

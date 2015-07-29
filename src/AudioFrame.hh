@@ -36,10 +36,10 @@
 class AudioFrame : public Frame {
     
     public:
-        AudioFrame(int ch, int sRate, int maxSamples, ACodecType codec);
+        AudioFrame(int ch, int sRate, int maxSmpls, ACodecType codec, SampleFmt sFmt);
         AudioFrame() {};
 
-        void setChannelNumber(int ch) {channels = ch;};
+        void setChannels(int ch) {channels = ch;};
         void setSampleRate(int sRate) {sampleRate = sRate;};
         void setSampleFormat(SampleFmt sFmt) {sampleFmt = sFmt;};
         void setCodec(ACodecType cType) {fCodec = cType;};
@@ -47,22 +47,17 @@ class AudioFrame : public Frame {
         void setMaxSamples(int maxSamples) {this->maxSamples = maxSamples;};
         ACodecType getCodec() {return fCodec;};
         SampleFmt getSampleFmt() {return sampleFmt;};
-        int getChannels() {return channels;};
-        int getSampleRate() {return sampleRate;};
-        int getSamples() {return samples;};
-        int getMaxSamples() {return maxSamples;};
-        int getBytesPerSample() {return bytesPerSample;};
-        virtual int getChannelFloatSamples(std::vector<float> &samplesVec, int channel) = 0;
-        virtual void fillBufferWithFloatSamples(std::vector<float> samples, int channel) = 0;
-        virtual void setDummy() = 0;
+        unsigned getChannels() {return channels;};
+        unsigned getSampleRate() {return sampleRate;};
+        unsigned getSamples() {return samples;};
+        unsigned getMaxSamples() {return maxSamples;};
+        virtual void fillWithValue(int value) = 0;
         static int getMaxSamples(int sampleRate);
         static int getDefaultSamples(int sampleRate);
-        static SampleFmt getSampleFormatFromString(std::string stringSampleFmt);
-        static ACodecType getCodecFromString(std::string stringCodec);
         std::chrono::nanoseconds getDuration() const;
               
     protected:
-        int channels, sampleRate, samples, maxSamples, bytesPerSample; 
+        unsigned channels, sampleRate, samples, maxSamples, bytesPerSample;
         ACodecType fCodec;
         SampleFmt sampleFmt;
 };
@@ -78,9 +73,7 @@ class InterleavedAudioFrame : public AudioFrame {
         unsigned int getMaxLength() {return bufferMaxLen;};
         bool isPlanar() {return false;};
         void setLength(unsigned int length) {bufferLen = length;};
-        int getChannelFloatSamples(std::vector<float> &samplesVec, int channel) {return 0;}; 
-        void fillBufferWithFloatSamples(std::vector<float> samples, int channel) {};
-        void setDummy();
+        void fillWithValue(int value);
 
     protected:
         InterleavedAudioFrame(int ch, int sRate, int maxSamples, ACodecType codec, SampleFmt sFmt);
@@ -102,9 +95,7 @@ class PlanarAudioFrame : public AudioFrame {
         unsigned int getMaxLength() {return bufferMaxLen;};
         bool isPlanar() {return true;};
         void setLength(unsigned int length) {bufferLen = length;};
-        int getChannelFloatSamples(std::vector<float> &samplesVec, int channel); 
-        void fillBufferWithFloatSamples(std::vector<float> samples, int channel); 
-        void setDummy();
+        void fillWithValue(int value);
 
     private:
         PlanarAudioFrame(int ch, int sRate, int maxSamples, ACodecType codec, SampleFmt sFmt);

@@ -41,7 +41,7 @@ namespace utils
     void configureLog(){
         SharedObjectPtr<Appender> append_1(new ConsoleAppender());
         append_1->setName(LOG4CPLUS_TEXT("First"));
-        log4cplus::tstring pattern = LOG4CPLUS_TEXT("%-5p [%l] - %m %n");
+        log4cplus::tstring pattern = LOG4CPLUS_TEXT("%-5p - %m %n");
         append_1->setLayout(std::auto_ptr<Layout>(new PatternLayout(pattern)));
         Logger::getRoot().addAppender(append_1);
 
@@ -299,12 +299,10 @@ namespace utils
     {
         FilterRole fRole;
 
-        if (stringRoleType.compare("master") == 0) {
-           fRole = MASTER;
-        } else if (stringRoleType.compare("slave") == 0) {
-           fRole = SLAVE;
-        }  else if (stringRoleType.compare("network") == 0) {
-           fRole = NETWORK;
+        if (stringRoleType.compare("regular") == 0) {
+           fRole = REGULAR;
+        } else if (stringRoleType.compare("server") == 0) {
+           fRole = SERVER;
         }  else {
            fRole = FR_NONE;
         }
@@ -316,14 +314,11 @@ namespace utils
         std::string stringRole;
 
         switch(role) {
-            case MASTER:
-                stringRole = "master";
+            case REGULAR:
+                stringRole = "regular";
                 break;
-            case SLAVE:
-                stringRole = "slave";
-                break;
-            case NETWORK:
-                stringRole = "network";
+            case SERVER:
+                stringRole = "server";
                 break;
             default:
                 stringRole = "";
@@ -362,27 +357,33 @@ namespace utils
         }
 
         return stringFormat;
-
     }
 
-    std::string getWorkerTypeAsString(WorkerType type)
+    int getBytesPerSampleFromFormat(SampleFmt fmt)
     {
-        std::string stringWorker;
+        int bytesPerSample;
 
-        switch(type) {
-            case LIVEMEDIA:
-                stringWorker = "livemedia";
+        switch(fmt) {
+            case U8:
+            case U8P:
+                bytesPerSample = 1;
                 break;
-            case WORKER:
-                stringWorker = "worker";
+            case S16:
+            case S16P:
+                bytesPerSample = 2;
+                break;
+            case FLT:
+            case FLTP:
+                bytesPerSample = 4;
                 break;
             default:
-                stringWorker = "";
+                bytesPerSample = 0;
                 break;
         }
 
-        return stringWorker;
+        return bytesPerSample;
     }
+
 
     TxFormat getTxFormatFromString(std::string stringTxFormat)
     {

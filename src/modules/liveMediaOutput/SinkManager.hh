@@ -40,7 +40,7 @@
 #define INIT_SEGMENT 0
 
 
-class SinkManager : public LiveMediaFilter {
+class SinkManager : public TailFilter {
 public:
     static SinkManager* createNew(unsigned readersNum = MAX_READERS);
     
@@ -76,11 +76,19 @@ public:
     * @return True if succeded, the connected with the given id has been stopped and deteled
     */
     bool removeConnection(int id);
+    
+    /**
+     * Removes the connection determined by the id included in params field of Jzon::Node*
+     * @return True if the connection was successfully removed, False otherwise
+     */
+    bool removeConnectionEvent(Jzon::Node* params);
 
     UsageEnvironment* envir() {return env;}
 
 private:
     SinkManager(unsigned readersNum = MAX_READERS);
+    
+    bool readerInConnection(int rId);
     
     bool isGood() {return rtspServer != NULL;};
     
@@ -90,30 +98,29 @@ private:
     void initializeEventMap();
     
     bool removeConnectionByReaderId(int readerId);
-    bool deleteReader(int id);
     
     bool addRTSPConnectionEvent(Jzon::Node* params);
     bool addRTPConnectionEvent(Jzon::Node* params);
     
-    Reader *setReader(int readerID, FrameQueue* queue);
+    bool specificReaderConfig(int readerID, FrameQueue* queue);
+    bool specificReaderDelete(int readerID);
 
-    bool runDoProcessFrame();
+    bool doProcessFrame(std::map<int, Frame*> &oFrames, std::vector<int> newFrames);
     void stop();
-
-    FrameQueue *allocQueue(int wId) { return NULL;};
 
     bool addSubsessionByReader(RTSPConnection* connection, int readerId);
 
-    void createVideoQueueSource(VCodecType codec, Reader *reader, int readerId);
-    void createAudioQueueSource(ACodecType codec, Reader *reader, int readerId);
+    bool createVideoQueueSource(VCodecType codec, int readerId);
+    bool createAudioQueueSource(ACodecType codec, int readerId);
     void doGetState(Jzon::Object &filterNode);
 
     std::map<int, StreamReplicator*> replicators;
+    std::map<int, QueueSource*> sources;
     std::map<int, Connection*> connections;
 
     RTSPServer* rtspServer;
     UsageEnvironment* env;
-    uint8_t watch;
+    BasicTaskScheduler0* scheduler;
 };
 
 #endif

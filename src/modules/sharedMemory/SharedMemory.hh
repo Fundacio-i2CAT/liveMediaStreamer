@@ -68,7 +68,7 @@ public:
     * @return SharedMemory object or NULL if any error while creating
     * @see OneToOneFilter to check the inherated input params
     */
-    static SharedMemory* createNew(size_t key_, VCodecType codec, FilterRole fRole_ = MASTER, size_t fTime = 0, bool force_ = false, bool sharedFrames_ = true);
+    static SharedMemory* createNew(size_t key_, VCodecType codec);
     /**
     * Class destructor
     */
@@ -80,7 +80,7 @@ public:
     size_t getSharedMemoryID() { return SharedMemoryID;};
 
 protected:
-    SharedMemory(size_t key_, VCodecType codec_, size_t fTime = 0, FilterRole fRole_ = MASTER, bool force_ = false, bool sharedFrames_ = true);
+    SharedMemory(size_t key_, VCodecType codec_);
     bool isEnabled() {return enabled;};
     void writeSharedMemoryH264();
     bool appendNalToFrame(unsigned char* nalData, unsigned nalDataLength, int startCodeOffset, bool &newFrame);
@@ -98,9 +98,13 @@ private:
     bool doProcessFrame(Frame *org, Frame *dst);
     void initializeEventMap();
     void doGetState(Jzon::Object &filterNode);
-    FrameQueue* allocQueue(int wId);
+    FrameQueue* allocQueue(ConnectionData cData);
 
     void copyOrgToDstFrame(InterleavedVideoFrame *org, InterleavedVideoFrame *dst);
+    
+    //There is no need of specific reader configuration
+    bool specificReaderConfig(int /*readerID*/, FrameQueue* /*queue*/)  {return true;};
+    bool specificReaderDelete(int /*readerID*/) {return true;};
 
     uint16_t getCodecFromVCodec(VCodecType codec);
     uint16_t getPixelFormatFromPixType(PixType pxlFrmt);
@@ -108,13 +112,13 @@ private:
     VCodecType getVCodecFromCodecType(uint16_t codecType);
 
 private:
-    size_t 			              SharedMemorykey;
-    size_t 			              SharedMemoryID;
-    uint8_t                       *SharedMemoryOrigin;
-    uint8_t 			          *buffer;
-    uint8_t 			          *access;
-    bool                          enabled;
-    bool                          newFrame;
+    size_t      SharedMemorykey;
+    size_t      SharedMemoryID;
+    uint8_t     *SharedMemoryOrigin;
+    uint8_t     *buffer;
+    uint8_t     *access;
+    bool        enabled;
+    bool        newFrame;
     std::vector<unsigned char>    frameData;
     VCodecType const              codec;
     uint16_t                      seqNum;

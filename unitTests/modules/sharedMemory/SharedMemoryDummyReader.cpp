@@ -69,7 +69,9 @@ uint8_t * SharedMemoryDummyReader::readSharedFrame() {
 	return buffer;
 }
 
-void SharedMemoryDummyReader::readFramePayload() {
+void SharedMemoryDummyReader::readFramePayload() 
+{
+	std::chrono::microseconds ts;
 
 	uint32_t tv_sec;
 	uint32_t tv_usec;
@@ -96,7 +98,8 @@ void SharedMemoryDummyReader::readFramePayload() {
 	frame->setSize(width, height);
 	frame->setPixelFormat(getPixTypeFromPixelFormat(pixFmt));
 	frame->setLength(length);
-	frame->setPresentationTime(std::chrono::system_clock::from_time_t(1000000 * tv_sec + tv_usec));
+	ts = std::chrono::microseconds(tv_sec*std::micro::den + tv_usec);
+	frame->setPresentationTime(ts);
 
 	utils::debugMsg("Reading Frame Payload: seqNum = " + std::to_string(seqNum) + " pixFmt = " + std::to_string(pixFmt) + " codec = "+ std::to_string(codec) + " size = " + std::to_string(width) + "x" + std::to_string(height) + " ts(sec) = " + std::to_string(tv_sec) + " ts(usec) = "+ std::to_string(tv_usec) + " length = " + std::to_string(length) +"");
 }

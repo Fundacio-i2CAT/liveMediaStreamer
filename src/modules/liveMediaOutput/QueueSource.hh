@@ -4,7 +4,6 @@
 #include <liveMedia.hh>
 
 #include "../../FrameQueue.hh"
-#include "../../IOInterface.hh"
 #include "../../Frame.hh"
 
 #define POLL_TIME 1000
@@ -12,20 +11,25 @@
 class QueueSource: public FramedSource {
 
 public:
-    static QueueSource* createNew(UsageEnvironment& env, Reader *reader, int readerId);
-    virtual void doGetNextFrame();
-    Reader* getReader() {return fReader;};
+    static QueueSource* createNew(UsageEnvironment& env, int readerId);
+    bool setFrame(Frame *f);
+    bool gotFrame();
+    EventTriggerId getTriggerId() const {return eventTriggerId;};
+    static bool signalNewFrameData(TaskScheduler* ourScheduler, QueueSource* ourSource);
 
 protected:
-    QueueSource(UsageEnvironment& env, Reader *reader, int readerId);
-        // called only by createNew()
-    static void staticDoGetNextFrame(FramedSource* source);
-    void checkStatus();
+    void doGetNextFrame();
+    QueueSource(UsageEnvironment& env, int readerId);
+    static void deliverFrame0(void* clientData);
+    virtual void deliverFrame();
+    void doStopGettingFrames();
 
 protected:
+    EventTriggerId eventTriggerId;
     Frame* frame;
-    Reader *fReader;
     int fReaderId;
+    bool processedFrame;
+    bool stopFrames;
 };
 
 #endif

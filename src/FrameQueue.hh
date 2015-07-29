@@ -28,7 +28,6 @@
 #include "Frame.hh"
 #endif
 
-#include <atomic>
 #include <sys/time.h>
 #include <chrono>
 #include "Types.hh"
@@ -37,20 +36,35 @@
 #define SLOW_THRESHOLD 0.4
 #define FAST_THRESHOLD 0.6
 
-using namespace std::chrono;
-
-enum QueueState{SLOW, FAST};
-
 /*! FrameQueue class is pure abstract class that represents buffering structure
     of the pipeline
 */
+
+/**
+ * A structure to represent four identifiers. The writer ID of the producer filter, producer filter ID, 
+ * reader ID of the consuming filter and consuming filter ID. By default all values are set to -1, which is an invalid id.
+ */
+struct ConnectionData 
+{
+    int wFilterId = -1;
+    int writerId = -1;
+    int rFilterId = -1;
+    int readerId = -1;
+};
+
 class FrameQueue {
 
 public:
     /**
-    * Creates a frame object
+    * Class constructor
+    * @param connectionData struct that contains reader and writer filters identifiers
     */
-    FrameQueue() : state(SLOW), rear(0), front(0), elements(0), connected(false), firstFrame(false) {};
+    FrameQueue(struct ConnectionData cData) : rear(0), front(0), connected(false), firstFrame(false), 
+                connectionData(cData) {};
+
+    /**
+    * Class destructor
+    */
     virtual ~FrameQueue() {};
 
     /**
@@ -63,17 +77,19 @@ public:
     * Returns frame object from queue's front
     * @return frame object
     */
-    virtual Frame *getFront(bool &newFrame) = 0;
+    virtual Frame *getFront() = 0;
 
     /**
     * Adds frame to queue elements
+    * @return the id of the reader filter that has a new frame available.
     */
-    virtual void addFrame() = 0;
+    virtual int addFrame() = 0;
 
     /**
     * Removes frame from queue elements
+    * @return the id of the writer filter that introduced the frame consumed.
     */
-    virtual void removeFrame() = 0;
+    virtual int removeFrame() = 0;
 
     /**
     * Flushes the queue
@@ -88,22 +104,9 @@ public:
 
     /**
     * Forces getting frame from queue's front
-    * @param boolean returning true if there is a new frame from queue's front
     * @return frame object
     */
-    virtual Frame *forceGetFront(bool &newFrame) = 0;
-
-    /**
-    * To know if there is a new frame to read
-    * @return true if there is a new frame or false if not
-    */
-    virtual bool frameToRead() = 0;
-
-    /**
-    * Get queue's state
-    * @return queuestate object
-    */
-    virtual QueueState getState() = 0;
+    virtual Frame *forceGetFront() = 0;
 
     /**
     * To know if the queue is connected with a reader and a writer
@@ -116,15 +119,26 @@ public:
     * @param boolean to set connected to true or false
     */
     void setConnected(bool conn) {connected = conn;};
+    
+    /**
+    * Get number of elements in the queue
+    * @return elements
+    */
+    virtual const unsigned getElements() = 0;
+    
+    /**
+    * Gets the connection cData.
+    * @return the struct that contains the connection data.
+    */
+    ConnectionData getCData() const {return connectionData;};
 
 protected:
-    QueueState state;
-    std::atomic<unsigned> rear;
-    std::atomic<unsigned> front;
-    std::atomic<unsigned> elements;
-    std::atomic<bool> connected;
-    std::atomic<bool> firstFrame;
+    size_t rear;
+    size_t front;
+    bool connected;
+    bool firstFrame;
     
+    const ConnectionData connectionData;
 };
 
 #endif

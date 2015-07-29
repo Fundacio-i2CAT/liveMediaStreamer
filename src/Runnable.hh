@@ -26,8 +26,14 @@
 #define _RUNNABLE_HH
 
 #include <chrono>
+#include <functional>
+#include <vector>
+#include <set>
+#include <memory>
+#include <mutex>
 
 #include "Utils.hh"
+
 
 /*! Runnable class is an interface implemented by BaseFilter, which has some
     basic methods in order to process a single frame of the filter.
@@ -35,19 +41,9 @@
 class Runnable {
 
 public:
-    virtual ~Runnable(){};
+    virtual ~Runnable();
 
-    /**
-    * This method runs the pure virtual method processFrame and sets the next time value
-    * when processFrame should run
-    */
-    bool runProcessFrame();
-    virtual bool isEnabled() = 0;
-
-    /**
-    * This is a pure virtual method to be implemented by its inheriting filters and if required to do some stop stuff
-    */
-    virtual void stop() = 0;
+    std::vector<int> runProcessFrame();
 
     /**
     * This method tests if enough time went through since last processFrame
@@ -61,17 +57,10 @@ public:
     void sleepUntilReady();
 
     /**
-    * Get runnable object Id
-    * @return Id of the runnable object
-    */
-    int getId() {return id;};
-
-    /**
-    * Sets the Runnable object id
-    * @param Id of the runnable object
-    */
-    void setId(int id_) {id = id_;};
-    //TODO: setId should be private
+     * Gets the runnable Id, if Id < 0 it means unset ID, only zero or higher values are allowed
+     * @return id of the filter, it is a unique value.
+     */
+    int getId() const {return id;};
 
     /**
     * Operator definition to make Runnable objects comparable
@@ -79,27 +68,92 @@ public:
     * @param pointer to right side runnable object
     */
     bool operator()(const Runnable* lhs, const Runnable* rhs);
+    
+    /**
+     * Returns the value of the running flag
+     * @return True if the runnable is currently running, False otherwise
+     */
+    bool isRunning();
+    
+    /**
+     * Sets the running flag to true
+     */
+    void setRunning();
+    
+    /**
+     * Sets the running flag to false
+     */
+    void unsetRunning();
+    
+    /**
+     * get the ids of the grouped Runnables
+     * @return a vector containing the ids of the group
+     */
+    std::vector<int> getGroupIds();
 
     /**
     * Get next time point of processFrame execution
     * @return time point of the next execution of processFrame
     */
     std::chrono::system_clock::time_point getTime() const {return time;};
+    
+    /**
+     * This method test if the runnable is periodic or not
+     * @return true is the Runnable is periodic, false otherwise
+     */
+    bool isPeriodic() const {return periodic;};
+    
+    /**
+     * This method sets the runnable ID. I can be set only one with a positive value.
+     * @return false if the ID could not be set, returns true otherwise.
+     */
+    bool setId(int id_);
+    
+    /**
+     * Groups two runnables
+     * @param Runnable this is the other runnable to get grouped with
+     * @return true if succeded false otherwise
+     */
+    bool groupRunnable(Runnable *r);
 
 protected:
-    virtual std::chrono::nanoseconds processFrame() = 0;
+    /**
+     * Runnable constructor
+     * @param bool it determines if the Runnable is periodic or not
+     */
+    Runnable(bool periodic = false);
+    
+    /**
+     * This is the virtual method that derivatives classes implements to process data
+     * @param integer this integer contains the delay until the method can be executed again
+     * @return A vector containing the ids of the runnables that can be exectued after 
+     * this process (e.g new data has been generated)
+     */
+    virtual std::vector<int> processFrame(int& ret) = 0;
+    
+private:
+    void addInGroup(Runnable *r, std::shared_ptr<unsigned> run = NULL);
+    
+protected:
     std::chrono::system_clock::time_point time;
+    std::set<Runnable*> group;
+    std::mutex mtx;
+    bool run;
 
 private:
+    const bool periodic;
+    std::shared_ptr<unsigned> running;
     int id;
 };
+
 
 struct RunnableLess : public std::binary_function<Runnable*, Runnable*, bool>
 {
   bool operator()(const Runnable* lhs, const Runnable* rhs) const
   {
-    return lhs->getTime() > rhs->getTime();
+    return lhs->getTime() < rhs->getTime();
   }
 };
+
 
 #endif

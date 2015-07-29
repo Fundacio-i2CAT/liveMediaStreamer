@@ -47,8 +47,8 @@ AVSampleFormat getAVSampleFormatFromtIntCode(int id)
     return sampleFmt;
 }
 
-AudioDecoderLibav::AudioDecoderLibav(FilterRole fRole_, bool sharedFrames)
-: OneToOneFilter(true, fRole_, sharedFrames)
+AudioDecoderLibav::AudioDecoderLibav()
+: OneToOneFilter()
 {
     avcodec_register_all();
 
@@ -67,7 +67,7 @@ AudioDecoderLibav::AudioDecoderLibav(FilterRole fRole_, bool sharedFrames)
 
     initializeEventMap();
 
-    configure(S16P, DEFAULT_CHANNELS, DEFAULT_SAMPLE_RATE);
+    configure0(FLTP, DEFAULT_CHANNELS, DEFAULT_SAMPLE_RATE);
 }
 
 AudioDecoderLibav::~AudioDecoderLibav()
@@ -79,9 +79,10 @@ AudioDecoderLibav::~AudioDecoderLibav()
     av_free_packet(&pkt);
 }
 
-FrameQueue* AudioDecoderLibav::allocQueue(int wId)
+FrameQueue* AudioDecoderLibav::allocQueue(ConnectionData cData)
 {
-    return AudioCircularBuffer::createNew(outChannels, outSampleRate, AudioFrame::getMaxSamples(outSampleRate), outSampleFmt);
+    return AudioCircularBuffer::createNew(cData, outChannels, outSampleRate, DEFAULT_BUFFER_SIZE, 
+                                            outSampleFmt, std::chrono::milliseconds(0));
 }
 
 bool AudioDecoderLibav::doProcessFrame(Frame *org, Frame *dst)
@@ -129,15 +130,15 @@ bool AudioDecoderLibav::doProcessFrame(Frame *org, Frame *dst)
             return false;
         }
 
-        dst->setConsumed(true);
-        return true;
+        break;
     }
 
+    dst->setPresentationTime(org->getPresentationTime());
     dst->setConsumed(true);
     return true;
 }
 
-bool AudioDecoderLibav::configure(SampleFmt sampleFormat, int channels, int sampleRate)
+bool AudioDecoderLibav::configure0(SampleFmt sampleFormat, int channels, int sampleRate)
 {
     outSampleFmt = sampleFormat;
     outChannels = channels;
@@ -228,7 +229,7 @@ bool AudioDecoderLibav::outputConfig()
                   );
 
     if (resampleCtx == NULL) {
-        //TODO: error
+        utils::errorMsg("[AudioDecoder::outpuConfig()] Error creating resample context");
         return false;
     }
 
@@ -344,7 +345,21 @@ bool AudioDecoderLibav::configEvent(Jzon::Node* params)
         newSampleFmt = utils::getSampleFormatFromString(params->Get("sampleFormat").ToString());
     }
 
-    return configure(newSampleFmt, newChannels, newSampleRate);
+    return configure0(newSampleFmt, newChannels, newSampleRate);
+}
+
+bool AudioDecoderLibav::configure(SampleFmt sampleFormat, int channels, int sampleRate)
+{
+    Jzon::Object root, params;
+    root.Add("action", "configure");
+    params.Add("sampleFormat", utils::getSampleFormatAsString(sampleFormat));
+    params.Add("channels", channels);
+    params.Add("sampleRate", sampleRate);
+    root.Add("params", params);
+
+    Event e(root, std::chrono::system_clock::now(), 0);
+    pushEvent(e); 
+    return true;
 }
 
 void AudioDecoderLibav::initializeEventMap()
@@ -355,8 +370,8 @@ void AudioDecoderLibav::initializeEventMap()
 void AudioDecoderLibav::doGetState(Jzon::Object &filterNode)
 {
     filterNode.Add("codec", utils::getAudioCodecAsString(fCodec));
-    filterNode.Add("sampleRate", outSampleRate);
-    filterNode.Add("channels", outChannels);
+    filterNode.Add("sampleRate", (int)outSampleRate);
+    filterNode.Add("channels", (int)outChannels);
     filterNode.Add("sampleFormat", utils::getSampleFormatAsString(outSampleFmt));
 }
 

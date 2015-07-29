@@ -27,7 +27,7 @@
 
 PixType getPixelFormat(AVPixelFormat format);
 
-VideoDecoderLibav::VideoDecoderLibav(FilterRole fRole_, bool sharedFrames) : OneToOneFilter(true, fRole_, sharedFrames)
+VideoDecoderLibav::VideoDecoderLibav() : OneToOneFilter()
 {
     avcodec_register_all();
 
@@ -54,9 +54,9 @@ VideoDecoderLibav::~VideoDecoderLibav()
 }
 
 
-FrameQueue* VideoDecoderLibav::allocQueue(int wId)
+FrameQueue* VideoDecoderLibav::allocQueue(ConnectionData cData)
 {
-    return VideoFrameQueue::createNew(RAW, DEFAULT_RAW_VIDEO_FRAMES, RGB24);
+    return VideoFrameQueue::createNew(cData, RAW, DEFAULT_RAW_VIDEO_FRAMES, RGB24);
 }
 
 bool VideoDecoderLibav::doProcessFrame(Frame *org, Frame *dst)
@@ -64,7 +64,7 @@ bool VideoDecoderLibav::doProcessFrame(Frame *org, Frame *dst)
     int len, gotFrame = 0;
     VideoFrame* vDecodedFrame = dynamic_cast<VideoFrame*>(dst);
     VideoFrame* vCodedFrame = dynamic_cast<VideoFrame*>(org);
-
+    
     if (!reconfigure(vCodedFrame->getCodec())){
         return false;
     }
@@ -189,7 +189,6 @@ bool VideoDecoderLibav::toBuffer(VideoFrame *decodedFrame, VideoFrame *codedFram
     decodedFrame->setLength(length);
     decodedFrame->setSize(frame->width, frame->height);
     decodedFrame->setPresentationTime(codedFrame->getPresentationTime());
-    decodedFrame->setOriginTime(codedFrame->getOriginTime());
     decodedFrame->setPixelFormat(getPixelFormat((AVPixelFormat) frame->format));
     
     return true;

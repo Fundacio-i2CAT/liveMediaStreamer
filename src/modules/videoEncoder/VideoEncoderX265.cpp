@@ -28,8 +28,8 @@
 
 #define MAX_PLANES_PER_PICTURE 3
 
-VideoEncoderX265::VideoEncoderX265(FilterRole fRole, bool sharedFrames) :
-VideoEncoderX264or5(fRole, sharedFrames), encoder(NULL)
+VideoEncoderX265::VideoEncoderX265() :
+VideoEncoderX264or5(), encoder(NULL)
 {
     pts = 0;
     xparams = x265_param_alloc();
@@ -136,9 +136,9 @@ bool VideoEncoderX265::encodeHeadersFrame(VideoFrame* frame)
     return true;
 }
 
-FrameQueue* VideoEncoderX265::allocQueue(int wId)
+FrameQueue* VideoEncoderX265::allocQueue(ConnectionData cData)
 {
-    return SlicedVideoFrameQueue::createNew(H265, DEFAULT_VIDEO_FRAMES, MAX_H264_OR_5_NAL_SIZE);
+    return SlicedVideoFrameQueue::createNew(cData, H265, DEFAULT_VIDEO_FRAMES, MAX_H264_OR_5_NAL_SIZE);
 }
 
 bool VideoEncoderX265::reconfigure(VideoFrame* orgFrame, VideoFrame* dstFrame)

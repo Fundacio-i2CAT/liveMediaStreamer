@@ -31,13 +31,13 @@
 #define LONG_START_LENGTH 4
 
 
-H264or5QueueSource* H264or5QueueSource::createNew(UsageEnvironment& env, Reader *reader, int readerId) 
+H264or5QueueSource* H264or5QueueSource::createNew(UsageEnvironment& env, int readerId) 
 {
-  return new H264or5QueueSource(env, reader, readerId);
+  return new H264or5QueueSource(env, readerId);
 }
 
-H264or5QueueSource::H264or5QueueSource(UsageEnvironment& env, Reader *reader, int readerId)
-: QueueSource(env, reader, readerId) {
+H264or5QueueSource::H264or5QueueSource(UsageEnvironment& env, int readerId)
+: QueueSource(env, readerId) {
 }
 
 uint8_t startOffset(unsigned char const* ptr) {
@@ -52,27 +52,21 @@ uint8_t startOffset(unsigned char const* ptr) {
     return 0;
 }
 
-void H264or5QueueSource::doGetNextFrame() {
+
+void H264or5QueueSource::deliverFrame()
+{
+    if (!isCurrentlyAwaitingData()) {
+        return; 
+    }
+    
+    if (!frame) {
+        return;
+    }
+    
     unsigned char* buff;
     unsigned int size;
     uint8_t offset;
-    std::chrono::microseconds presentationTime;
-
-    bool newFrame = false;
-    QueueState state;
-
-    frame = fReader->getFrame(state, newFrame);
-
-    if ((newFrame && frame == NULL) || (!newFrame && frame != NULL)) {
-        //TODO: sanity check, think about assert
-    }
-
-    if (!newFrame) {
-        nextTask() = envir().taskScheduler().scheduleDelayedTask(POLL_TIME,
-            (TaskFunc*)QueueSource::staticDoGetNextFrame, this);
-        return;
-    }
-
+    
     size = frame->getLength();
     buff = frame->getDataBuf();
 
@@ -81,10 +75,8 @@ void H264or5QueueSource::doGetNextFrame() {
     buff = frame->getDataBuf() + offset;
     size = size - offset;
 
-    presentationTime = duration_cast<std::chrono::microseconds>(frame->getPresentationTime().time_since_epoch());
-
-    fPresentationTime.tv_sec = presentationTime.count()/std::micro::den;
-    fPresentationTime.tv_usec = presentationTime.count()%std::micro::den;
+    fPresentationTime.tv_sec = frame->getPresentationTime().count()/std::micro::den;
+    fPresentationTime.tv_usec = frame->getPresentationTime().count()%std::micro::den;
 
     if (fMaxSize < size){
         fFrameSize = fMaxSize;
@@ -95,7 +87,8 @@ void H264or5QueueSource::doGetNextFrame() {
     }
     
     memcpy(fTo, buff, fFrameSize);
-    fReader->removeFrame();
+    processedFrame = true;
+    
     afterGetting(this);
 }
 

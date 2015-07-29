@@ -37,13 +37,14 @@ extern "C" {
 #include <map>
 #include <string>
 
-#define DASH_VIDEO_TIME_BASE 12800
-#define V_ADAPT_SET_ID "0"
-#define A_ADAPT_SET_ID "1"
-#define VIDEO_CODEC "avc1.42c01e"
-#define AUDIO_CODEC "mp4a.40.2"
-#define V_EXT ".m4v"
-#define A_EXT ".m4a"
+#define DASH_VIDEO_TIME_BASE    12800
+#define V_ADAPT_SET_ID          "0"
+#define A_ADAPT_SET_ID          "1"
+#define VIDEO_CODEC_AVC         "avc1.42c01e"
+#define VIDEO_CODEC_HEVC        "hev1"
+#define AUDIO_CODEC             "mp4a.40.2"
+#define V_EXT                   ".m4v"
+#define A_EXT                   ".m4a"
 
 class DashSegmenter;
 class DashSegment;
@@ -60,12 +61,14 @@ public:
     * @param segDurInSeconds is the time duration in seconds
     * @return Pointer to the object if succeded and NULL if not
     */
-    static Dasher* createNew(std::string dashFolder, std::string baseName, size_t segDurInSeconds, int readersNum = MAX_READERS);
+    Dasher(unsigned readersNum = MAX_READERS);
 
     /**
     * Class destructor
     */
     ~Dasher();
+
+    bool configure(std::string dashFolder, std::string baseName_, size_t segDurInSeconds);
 
     /**
     * Adds a new segmenter associated to an existance reader. Only one segmenter can be associated to each reader
@@ -106,24 +109,27 @@ public:
     bool setDashSegmenterBitrate(int id, size_t kbps);
 
 private:
-    Dasher(int readersNum);
-    bool configure(std::string dashFolder, std::string baseName_, size_t segDurInSeconds);
-    bool doProcessFrame(std::map<int, Frame*> orgFrames);
+    bool doProcessFrame(std::map<int, Frame*> &orgFrames, std::vector<int> newFrames);
     void doGetState(Jzon::Object &filterNode);
     void initializeEventMap();
     bool generateInitSegment(size_t id, DashSegmenter* segmenter);
-    bool generateSegment(size_t id, DashSegmenter* segmenter);
-    bool appendFrameToSegment(size_t id, DashSegmenter* segmenter);
+    bool generateSegment(size_t id, Frame* frame, DashSegmenter* segmenter);
+    bool appendFrameToSegment(size_t id, Frame* frame, DashSegmenter* segmenter);
     DashSegmenter* getSegmenter(size_t id);
     bool forceAudioSegmentsGeneration();
+    bool writeVideoSegments();
+    bool writeAudioSegments();
 
-    bool updateTimestampControl(std::map<int,DashSegment*> segments, size_t &timestamp, size_t &duration);
     bool writeSegmentsToDisk(std::map<int,DashSegment*> segments, size_t timestamp, std::string segExt);
     bool cleanSegments(std::map<int,DashSegment*> segments, size_t timestamp, std::string segExt);
     bool configureEvent(Jzon::Node* params);
     bool addSegmenterEvent(Jzon::Node* params);
     bool removeSegmenterEvent(Jzon::Node* params);
     bool setBitrateEvent(Jzon::Node* params);
+    
+    //There is no need of specific reader configuration
+    bool specificReaderConfig(int /*readerID*/, FrameQueue* /*queue*/)  {return true;};
+    bool specificReaderDelete(int /*readerID*/) {return true;};
 
     std::map<int, DashSegmenter*> segmenters;
     std::map<int, DashSegment*> vSegments;
@@ -169,21 +175,15 @@ public:
     /**
     * Implemented by DashVideoSegmenter::manageFrame and DashAudioSegmenter::manageFrame
     */
-    virtual bool manageFrame(Frame* frame, bool &newFrame) = 0;
-
-    /**
-    * Implemented by DashVideoSegmenter::updateConfig and DashAudioSegmenter::updateConfig
-    */
-    virtual bool updateConfig() = 0;
+    virtual Frame* manageFrame(Frame* frame) = 0;
 
     /**
     * Generates and writes to disk an Init Segment if possible (or necessary)
     */
-    bool generateInitSegment(DashSegment* segment);
+    virtual bool generateInitSegment(DashSegment* segment) = 0;
 
-
-    virtual bool appendFrameToDashSegment(DashSegment* segment) = 0;
-    virtual bool generateSegment(DashSegment* segment) = 0;
+    virtual bool appendFrameToDashSegment(DashSegment* segment, Frame* frame) = 0;
+    bool generateSegment(DashSegment* segment, Frame* frame, bool force = false);
     /**
     * Returns average frame duration
     * @return duration in time base
@@ -197,18 +197,10 @@ public:
     size_t getTimeBase() {return timeBase;};
 
     /**
-    * Return the timestamp offset, which corresponds to the timestamp of the first frame
-    * managed by manageFrame method. Each timestamp will be relative to this one.
-    * @return timestamp in milliseconds
-    */
-    std::chrono::system_clock::time_point getTsOffset() {return tsOffset;};
-
-    /**
     * It returns the last segment timestamp
     * @return timestamp in timeBase units
     */
     size_t getSegmentTimestamp();
-    void setOffset(std::chrono::system_clock::time_point offs);
 
     /**
     * Return the segment duration
@@ -222,22 +214,22 @@ public:
     size_t getBitrate() {return bitrateInBitsPerSec;};
 
 protected:
-    virtual bool updateMetadata() = 0;
-    virtual bool generateInitData(DashSegment* segment) = 0;
+    virtual unsigned customGenerateSegment(unsigned char *segBuffer, std::chrono::microseconds nextFrameTs, 
+                                            unsigned &segTimestamp, unsigned &segDuration, bool force) = 0;
+    
     std::string getInitSegmentName();
     std::string getSegmentName();
     size_t customTimestamp(std::chrono::system_clock::time_point timestamp);
     size_t nanosToTimeBase(std::chrono::nanoseconds nanosValue);
+    size_t microsToTimeBase(std::chrono::microseconds microValue);
 
     std::chrono::seconds segDur;
-    std::chrono::system_clock::time_point tsOffset;
 
     i2ctx* dashContext;
     size_t timeBase;
     size_t segDurInTimeBaseUnits;
     size_t frameDuration;
     std::vector<unsigned char> metadata;
-    size_t theoricPts;
     size_t bitrateInBitsPerSec;
 };
 
@@ -328,12 +320,16 @@ public:
     */
     bool isEmpty() {return (dataLength == 0 && seqNumber == 0 && timestamp == 0);};
 
+    bool isComplete() {return complete;};
+    void setComplete(bool c) {complete = c;};
+
 private:
     unsigned char* data;
     size_t dataLength;
     size_t seqNumber;
     size_t timestamp;
     size_t duration;
+    bool complete;
 };
 
 #endif

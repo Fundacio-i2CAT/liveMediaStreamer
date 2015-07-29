@@ -25,7 +25,7 @@
 #include "Utils.hh"
 #include <cstring>
 
-SlicedVideoFrameQueue* SlicedVideoFrameQueue::createNew(VCodecType codec, unsigned maxFrames, unsigned maxSliceSize)
+SlicedVideoFrameQueue* SlicedVideoFrameQueue::createNew(struct ConnectionData cData, VCodecType codec, unsigned maxFrames, unsigned maxSliceSize)
 {
     SlicedVideoFrameQueue* q;
 
@@ -33,7 +33,7 @@ SlicedVideoFrameQueue* SlicedVideoFrameQueue::createNew(VCodecType codec, unsign
         return NULL;
     }
 
-    q = new SlicedVideoFrameQueue(codec, maxFrames);
+    q = new SlicedVideoFrameQueue(cData, codec, maxFrames);
 
     if (!q->setup(maxSliceSize)) {
         utils::errorMsg("SlicedVideoFrameQueue setup error");
@@ -44,8 +44,8 @@ SlicedVideoFrameQueue* SlicedVideoFrameQueue::createNew(VCodecType codec, unsign
     return q;
 }
 
-SlicedVideoFrameQueue::SlicedVideoFrameQueue(VCodecType codec, unsigned maxFrames) : 
-VideoFrameQueue(codec, maxFrames)
+SlicedVideoFrameQueue::SlicedVideoFrameQueue(struct ConnectionData cData, VCodecType codec, unsigned maxFrames) : 
+VideoFrameQueue(cData, codec, maxFrames)
 {
 
 }
@@ -57,16 +57,19 @@ SlicedVideoFrameQueue::~SlicedVideoFrameQueue()
 
 Frame* SlicedVideoFrameQueue::getRear()
 {
-    if (elements >= max) {
+    if ((rear + 1) % max == front){
         return NULL;
     }
 
     return inputFrame;
 }
 
-void SlicedVideoFrameQueue::addFrame()
+int SlicedVideoFrameQueue::addFrame()
 {
-    pushBack();
+    pushBackSliceGroup(inputFrame->getCopiedSlices(), inputFrame->getCopiedSliceNum());
+    pushBackSliceGroup(inputFrame->getSlices(), inputFrame->getSliceNum());
+    inputFrame->clear();
+    return connectionData.rFilterId;
 }
 
 Frame* SlicedVideoFrameQueue::forceGetRear()
@@ -76,7 +79,7 @@ Frame* SlicedVideoFrameQueue::forceGetRear()
 
 Frame* SlicedVideoFrameQueue::innerGetRear() 
 {
-    if (elements >= max) {
+    if ((rear + 1) % max == front){
         return NULL;
     }
     
@@ -96,7 +99,6 @@ Frame* SlicedVideoFrameQueue::innerForceGetRear()
 void SlicedVideoFrameQueue::innerAddFrame() 
 {
     rear =  (rear + 1) % max;
-    ++elements;
 }
 
 bool SlicedVideoFrameQueue::setup(unsigned maxSliceSize)
@@ -118,15 +120,10 @@ bool SlicedVideoFrameQueue::setup(unsigned maxSliceSize)
     return true;
 }
 
-bool SlicedVideoFrameQueue::pushBack() 
+void SlicedVideoFrameQueue::pushBackSliceGroup(Slice* slices, int sliceNum) 
 {
     Frame* frame;
     VideoFrame* vFrame;
-    int sliceNum;
-    Slice* slices;
-
-    sliceNum = inputFrame->getCopiedSliceNum();
-    slices = inputFrame->getCopiedSlices();
 
     for (int i=0; i<sliceNum; i++) {
 
@@ -141,30 +138,6 @@ bool SlicedVideoFrameQueue::pushBack()
         vFrame->setLength(slices[i].getDataSize());
         vFrame->setPresentationTime(inputFrame->getPresentationTime());
         vFrame->setSize(inputFrame->getWidth(), inputFrame->getHeight());
-        vFrame->setDuration(inputFrame->getDuration());
         innerAddFrame();
     }
-
-    sliceNum = inputFrame->getSliceNum();
-    slices = inputFrame->getSlices();
-
-    for (int i=0; i<sliceNum; i++) {
-
-        if ((frame = innerGetRear()) == NULL){
-            frame = innerForceGetRear();
-        }
-
-        vFrame = dynamic_cast<VideoFrame*>(frame);
-        vFrame->setSequenceNumber(inputFrame->getSequenceNumber());
-
-        memcpy(vFrame->getDataBuf(), slices[i].getData(), slices[i].getDataSize());
-        vFrame->setLength(slices[i].getDataSize());
-        vFrame->setPresentationTime(inputFrame->getPresentationTime());
-        vFrame->setSize(inputFrame->getWidth(), inputFrame->getHeight());
-        vFrame->setDuration(inputFrame->getDuration());
-        innerAddFrame();
-    }
-    
-    inputFrame->clear();
-    return true;
-}   
+}      

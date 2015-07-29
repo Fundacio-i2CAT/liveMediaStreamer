@@ -27,8 +27,8 @@
 
 #include <liveMedia.hh>
 #include <vector>
-#include "../../IOInterface.hh"
 
+#include "../../Types.hh"
 
 class QueueServerMediaSubsession: public OnDemandServerMediaSubsession {
 public:

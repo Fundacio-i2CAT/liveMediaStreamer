@@ -16,7 +16,7 @@ static void announceStream(RTSPServer* rtspServer, ServerMediaSession* sms,
 
 int main(int argc, char** argv) {
   // Begin by setting up our usage environment:
-  TaskScheduler* scheduler = BasicTaskScheduler::createNew();
+  BasicTaskScheduler0* scheduler = BasicTaskScheduler::createNew();
   env = BasicUsageEnvironment::createNew(*scheduler);
 
   UserAuthenticationDatabase* authDB = NULL;
@@ -32,6 +32,9 @@ int main(int argc, char** argv) {
   
     std::string vStreamName = "";
     std::string aStreamName = "";
+    RTSPServer* rtspServer = NULL;
+    
+    unsigned port = 8666;
     
     for (int i = 1; i < argc; i++) {
         if (strcmp(argv[i],"-v")==0) {
@@ -48,10 +51,13 @@ int main(int argc, char** argv) {
     }
   
   // Create the RTSP server:
-  RTSPServer* rtspServer = RTSPServer::createNew(*env, 8666, authDB);
-  if (rtspServer == NULL) {
-    *env << "Failed to create RTSP server: " << env->getResultMsg() << "\n";
-    exit(1);
+  while (!rtspServer){
+      rtspServer = RTSPServer::createNew(*env, port, authDB);
+      port += 2;
+      if (port >= 9000){
+          *env << "Failed to create RTSP server: " << env->getResultMsg() << "\n";
+            exit(1);
+      }
   }
 
   char const* descriptionString
@@ -88,7 +94,9 @@ int main(int argc, char** argv) {
     announceStream(rtspServer, sms, vStreamName.c_str(), vStreamName.c_str());
   }
 
-  env->taskScheduler().doEventLoop(); // does not return
+  while(true){
+    scheduler->SingleStep();
+  }
 
   return 0; // only to prevent compiler warning
 }

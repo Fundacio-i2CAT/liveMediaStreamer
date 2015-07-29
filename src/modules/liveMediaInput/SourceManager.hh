@@ -35,6 +35,7 @@
 #include <BasicUsageEnvironment.hh>
 #include <GroupsockHelper.hh>
 
+
 #define PROTOCOL "RTP"
 
 class SourceManager;
@@ -46,7 +47,7 @@ public:
 
     std::string getId(){return id;};
 
-    bool addWriterToMngr(unsigned id, Writer* writer);
+    bool addSinkToMngr(unsigned id, QueueSink* sink);
 
 public:
     SourceManager *const mngr;
@@ -84,7 +85,7 @@ protected:
     StreamClientState *scs;
 };
 
-class SourceManager : public LiveMediaFilter {
+class SourceManager : public HeadFilter {
 public:
     SourceManager(unsigned writersNum = MAX_WRITERS);
     ~SourceManager();
@@ -103,36 +104,33 @@ public:
 
     Session* getSession(std::string id);
     int getWriterID(unsigned int port);
-    void setCallback(std::function<void(char const*, unsigned short)> callbackFunction);
-    bool hasCallback();
 
     UsageEnvironment* envir() {return env;}
 
 private:
     void initializeEventMap();
     friend bool handlers::addSubsessionSink(UsageEnvironment& env, MediaSubsession *subsession);
+    
     void doGetState(Jzon::Object &filterNode);
     bool addSessionEvent(Jzon::Node* params);
+    bool removeSessionEvent(Jzon::Node* params);
 
     friend bool Session::initiateSession();
-    friend bool StreamClientState::addWriterToMngr(unsigned port, Writer* writer);
-    bool addWriter(unsigned port, const Writer *writer);
+    friend bool StreamClientState::addSinkToMngr(unsigned port, QueueSink* sink);
+    bool addSink(unsigned port, QueueSink *sink);
 
-    bool runDoProcessFrame();
+    bool doProcessFrame(std::map<int, Frame*> &dFrames);
     void addConnection(int wId, MediaSubsession* subsession);
 
     static void* startServer(void *args);
-    FrameQueue *allocQueue(int wId);
-
-    void stop();
+    FrameQueue *allocQueue(ConnectionData cData);
 
     std::map<std::string, Session*> sessionMap;
+    std::map<int, QueueSink*> sinks;
+    std::mutex sinksMtx;
 
     UsageEnvironment* env;
-    uint8_t watch;
-
-    std::function<void(char const*, unsigned short)> callback;
-
+    BasicTaskScheduler0 *scheduler;
 };
 
 #endif

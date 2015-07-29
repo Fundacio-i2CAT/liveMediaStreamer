@@ -29,7 +29,7 @@
 #include <vector>
 #include <queue>
 #include <mutex>
-
+#include <memory>
 
 #include "FrameQueue.hh"
 #include "IOInterface.hh"
@@ -40,11 +40,11 @@
 #define DEFAULT_ID 1                /*!< Default ID for unique filter's readers and/or writers. */
 #define MAX_WRITERS 16              /*!< Default maximum writers for a filter. */
 #define MAX_READERS 16              /*!< Default maximum readers for a filter. */
-#define RETRY 500000                   /*!< Default retry time in nanoseconds (ns). */
 
 /*! Generic filter class methods. It is an interface to different specific filters
     so it cannot be instantiated
 */
+
 class BaseFilter : public Runnable {
 
 public:
@@ -93,14 +93,8 @@ public:
     * Disconnects and cleans all readers and writers
     */
     void disconnectAll();
-
-    /**
-    * If it is a master filter a new slave filter is added to the master's list
-    * @param Integer slave filter ID
-    * @param BaseFilter pointer of the slave filter to be added
-    * @return True if succeeded and false if not
-    */
-    bool addSlave(int id, BaseFilter *slave);
+    
+    bool shareReader(BaseFilter *shared, int sharedRId, int orgRId);
 
     /**
     * Filter type getter
@@ -115,14 +109,14 @@ public:
 
     /**
     * Generates a new and random reader ID
-    * @return filter role
+    * @return ID
     */
-    int generateReaderID();
+    unsigned generateReaderID();
     /**
     * Generates a new and random writer ID
-    * @return filter role
+    * @return ID
     */
-    int generateWriterID();
+    unsigned generateWriterID();
     /**
     * Maximum writers getter
     * @return maximum number of possible writers for this filter
@@ -143,16 +137,7 @@ public:
     * @param filter node pointer
     */
     void getState(Jzon::Object &filterNode);
-    /**
-    * Returns its worker ID
-    * @return Integer worker ID
-    */
-    int getWorkerId(){return workerId;};
-    /**
-    * Sets the filter's worker ID
-    * @param Integer worker ID
-    */
-    void setWorkerId(int id){workerId = id;};
+
     /**
     * Returns true if filter is enabled or false if not
     * @return Bool enabled
@@ -164,171 +149,152 @@ public:
     */
     virtual ~BaseFilter();
 
-    /**
-    * Sets a dfined wall clock to the filter
-    * @param refWallClock reference wall clock
-    */
-    void setWallClock(std::chrono::system_clock::time_point refWallClock) {wallClock = refWallClock;};
     //NOTE: these are public just for testing purposes
     /**
-    * Processes frames as a function of its role
-    * @return time to wait until next frame should be processed in nanoseconds.
+    * Processes frames
+    * @param integer this integer contains the delay until the method can be executed again
+    * @return A vector containing the ids of the filters that can be exectued after 
+    * this process (e.g new data has been generated)
     */
-    std::chrono::nanoseconds processFrame();
+    std::vector<int> processFrame(int &ret);
     /**
     * Sets filter frame time
     * @param size_t frame time
     */
-    void setFrameTime(std::chrono::nanoseconds fTime);
+    void setFrameTime(std::chrono::microseconds fTime);
+    
+    /**
+     * tests if the specfied reader is connected or not
+     * @param readerId of the reader to check
+     * @return true if, and only if, the reader exists and it is connected.
+     */
+    bool isRConnected (int rId);
+    
+    /**
+     * tests if the specfied writer is connected or not
+     * @param writerId of the writer to check
+     * @return true if, and only if, the writer exists and it is connected.
+     */
+    bool isWConnected (int wId);
+    
+    /**
+     * get the connection data of the specified writer
+     * @param writerId of the writer to check
+     * @return the connection data. It is a defaut ConnectionData in case of failure (e.g. filter not connected)
+     */
+    struct ConnectionData getWConnectionData (int wId);
 
 protected:
-    BaseFilter(unsigned readersNum = MAX_READERS, unsigned writersNum = MAX_WRITERS, size_t fTime = 0, FilterRole fRole_ = MASTER, bool force_ = false, bool sharedFrames_ = true);
+    BaseFilter(unsigned readersNum = MAX_READERS, unsigned writersNum = MAX_WRITERS, FilterRole fRole_ = REGULAR, bool periodic = false);
 
-    void addFrames();
-    void removeFrames();
-    bool hasFrames();
-    virtual FrameQueue *allocQueue(int wId) = 0;
+    std::vector<int> addFrames(std::map<int, Frame*> &dFrames);
+    bool removeFrames(std::vector<int> framesToRemove);
+    virtual FrameQueue *allocQueue(struct ConnectionData cData) = 0;
 
-    std::chrono::nanoseconds getFrameTime() {return frameTime;};
+    std::chrono::microseconds getFrameTime() {return frameTime;};
 
-    virtual Reader *setReader(int readerID, FrameQueue* queue);
-    Reader* getReader(int id);
+    std::shared_ptr<Reader> setReader(int readerID, FrameQueue* queue);
+    std::shared_ptr<Reader> getReader(int id);
+    
+    //TODO: this should get stream info parameters insted of FrameQueue or get from reader.
+    virtual bool specificReaderConfig(int readerID, FrameQueue* queue) = 0;
+    virtual bool specificReaderDelete(int readerID) = 0;
 
-    bool demandOriginFrames();
-    bool demandDestinationFrames();
+    std::vector<int> demandOriginFrames(std::map<int, Frame*> &oFrames);
+    std::vector<int> demandOriginFramesBestEffort(std::map<int, Frame*> &oFrames);
+    std::vector<int> demandOriginFramesFrameTime(std::map<int, Frame*> &oFrames); 
+
+    bool demandDestinationFrames(std::map<int, Frame*> &dFrames);
 
     bool newEvent();
     void processEvent();
     virtual void doGetState(Jzon::Object &filterNode) = 0;
 
-    bool updateTimestamp();
     std::map<std::string, std::function<bool(Jzon::Node* params)> > eventMap;
 
-    virtual bool runDoProcessFrame() = 0;
+    virtual bool runDoProcessFrame(std::map<int, Frame*> &oFrames, std::map<int, Frame*> &dFrames, std::vector<int> newFrames) = 0;
 
-    bool removeSlave(int id);
-    std::map<int, BaseFilter*> slaves;
+    void setSyncTs(std::chrono::microseconds ts){syncTs = ts;};
+    std::chrono::microseconds getSyncTs(){return syncTs;};
 
 protected:
     bool process;
 
-    std::map<int, Reader*> readers;
-    std::map<int, const Writer*> writers;
-    std::map<int, Frame*> oFrames;
-    std::map<int, Frame*> dFrames;
+    std::map<int, std::shared_ptr<Reader>> readers;
+    std::map<int, std::shared_ptr<Writer>> writers;
     std::map<int, size_t> seqNums;
     FilterType fType;
 
-    float frameTimeMod;
-    float bufferStateFrameTimeMod;
-
-    std::chrono::system_clock::time_point timestamp;
-    std::chrono::system_clock::time_point lastValidTimestamp;
-    std::chrono::nanoseconds duration;
-    std::chrono::nanoseconds lastDiffTime;
-    std::chrono::nanoseconds diffTime;
-    std::chrono::system_clock::time_point wallClock;
-
-    unsigned maxReaders;
-    unsigned maxWriters;
-    std::chrono::nanoseconds frameTime;
+    const unsigned maxReaders;
+    const unsigned maxWriters;
+    std::chrono::microseconds frameTime;
 
 private:
     bool connect(BaseFilter *R, int writerID, int readerID);
-    std::chrono::nanoseconds masterProcessFrame();
-    void processAll();
-    bool runningSlaves();
-    void setSharedFrames(bool sharedFrames_);
-    std::chrono::nanoseconds slaveProcessFrame();
+    std::vector<int> regularProcessFrame(int& ret);
+    std::vector<int> serverProcessFrame(int& ret);
+    bool deleteReader(int readerId);
+
     void execute() {process = true;};
     bool isProcessing() {return process;};
-    void updateFrames(std::map<int, Frame*> oFrames_);
 
 private:
     std::priority_queue<Event> eventQueue;
-    std::mutex eventQueueMutex;
-    int workerId;
+    
     bool enabled;
-    std::map<int, bool> rUpdates;
     FilterRole const fRole;
-    bool force;
-    bool sharedFrames;
+    std::chrono::microseconds syncTs;
 };
 
 class OneToOneFilter : public BaseFilter {
 
 protected:
-    OneToOneFilter(bool byPassTimestamp, FilterRole fRole_ = MASTER, bool sharedFrames_ = true, size_t fTime = 0, bool force_ = false);
+    OneToOneFilter(FilterRole fRole_= REGULAR, bool periodic = false);
     virtual bool doProcessFrame(Frame *org, Frame *dst) = 0;
     using BaseFilter::setFrameTime;
     using BaseFilter::getFrameTime;
 
 private:
-    bool passTimestamp;
-    bool runDoProcessFrame();
+    bool runDoProcessFrame(std::map<int, Frame*> &oFrames, std::map<int, Frame*> &dFrames, std::vector<int> /*newFrames*/);
+    
     using BaseFilter::demandOriginFrames;
     using BaseFilter::demandDestinationFrames;
     using BaseFilter::addFrames;
     using BaseFilter::removeFrames;
     using BaseFilter::writers;
-    using BaseFilter::oFrames;
-    using BaseFilter::dFrames;
+    using BaseFilter::readers;
     using BaseFilter::seqNums;
     using BaseFilter::processEvent;
-    using BaseFilter::updateTimestamp;
-    using BaseFilter::addSlave;
-    using BaseFilter::setWallClock;
-
     using BaseFilter::frameTime;
-    using BaseFilter::timestamp;
-    using BaseFilter::lastValidTimestamp;
-    using BaseFilter::duration;
-    using BaseFilter::lastDiffTime;
-    using BaseFilter::diffTime;
-    using BaseFilter::wallClock;
-
     using BaseFilter::maxReaders;
     using BaseFilter::maxWriters;
-
-    void stop() {};
+    using BaseFilter::mtx;
 };
 
 class OneToManyFilter : public BaseFilter {
 
 protected:
-    OneToManyFilter(FilterRole fRole_ = MASTER, bool sharedFrames_ = true, unsigned writersNum = MAX_WRITERS, size_t fTime = 0, bool force_ = false);
-    virtual bool doProcessFrame(Frame *org, std::map<int, Frame *> dstFrames) = 0;
+    OneToManyFilter(unsigned writersNum = MAX_WRITERS, FilterRole fRole_= REGULAR, bool periodic = false);
+    virtual bool doProcessFrame(Frame *org, std::map<int, Frame *> &dstFrames) = 0;
     using BaseFilter::setFrameTime;
     using BaseFilter::getFrameTime;
 
 private:
-    bool runDoProcessFrame();
+    bool runDoProcessFrame(std::map<int, Frame*> &oFrames, std::map<int, Frame*> &dFrames, std::vector<int> /*newFrames*/);
+
     using BaseFilter::demandOriginFrames;
     using BaseFilter::demandDestinationFrames;
     using BaseFilter::addFrames;
     using BaseFilter::removeFrames;
-    using BaseFilter::readers;
     using BaseFilter::writers;
-    using BaseFilter::oFrames;
-    using BaseFilter::dFrames;
+    using BaseFilter::readers;
     using BaseFilter::seqNums;
     using BaseFilter::processEvent;
-    using BaseFilter::updateTimestamp;
-    using BaseFilter::addSlave;
-    using BaseFilter::setWallClock;
 
     using BaseFilter::frameTime;
-    using BaseFilter::timestamp;
-    using BaseFilter::lastValidTimestamp;
-    using BaseFilter::duration;
-    using BaseFilter::lastDiffTime;
-    using BaseFilter::diffTime;
-    using BaseFilter::wallClock;
-
     using BaseFilter::maxReaders;
     using BaseFilter::maxWriters;
-
-    void stop() {};
+    using BaseFilter::mtx;
 };
 
 class HeadFilter : public BaseFilter {
@@ -336,40 +302,31 @@ public:
     void pushEvent(Event e);
 
 protected:
-    HeadFilter(FilterRole fRole_ = MASTER, size_t fTime = 0, unsigned writersNum = 1);
-    virtual bool doProcessFrame(std::map<int, Frame*> dstFrames) = 0;
+    HeadFilter(unsigned writersNum = MAX_WRITERS, FilterRole fRole_ = REGULAR, bool periodic = true);
+    virtual bool doProcessFrame(std::map<int, Frame*> &dstFrames) = 0;
     
     int getNullWriterID();
     using BaseFilter::setFrameTime;
     using BaseFilter::getFrameTime;
 
 private: 
-    bool runDoProcessFrame();
-    using BaseFilter::demandOriginFrames;
+    bool runDoProcessFrame(std::map<int, Frame*> &oFrames, std::map<int, Frame*> &dFrames, std::vector<int> /*newFrames*/);
+    //There is no need of specific reader configuration
+    bool specificReaderConfig(int /*readerID*/, FrameQueue* /*queue*/)  {return true;};
+    bool specificReaderDelete(int /*readerID*/) {return true;};
+
     using BaseFilter::demandDestinationFrames;
+    using BaseFilter::demandOriginFrames;
     using BaseFilter::addFrames;
     using BaseFilter::removeFrames;
+    using BaseFilter::writers;
     using BaseFilter::readers;
-    using BaseFilter::oFrames;
-    using BaseFilter::dFrames;
     using BaseFilter::seqNums;
     using BaseFilter::processEvent;
-    using BaseFilter::updateTimestamp;
-    using BaseFilter::addSlave;
-    using BaseFilter::setWallClock;
-
     using BaseFilter::frameTime;
-    using BaseFilter::timestamp;
-    using BaseFilter::lastValidTimestamp;
-    using BaseFilter::duration;
-    using BaseFilter::lastDiffTime;
-    using BaseFilter::diffTime;
-    using BaseFilter::wallClock;
-
     using BaseFilter::maxReaders;
     using BaseFilter::maxWriters;
-    
-    void stop() {};
+    using BaseFilter::mtx;
 };
 
 class TailFilter : public BaseFilter {
@@ -377,109 +334,51 @@ public:
     void pushEvent(Event e);
 
 protected:
-    TailFilter(FilterRole fRole_ = MASTER, bool sharedFrames_ = true, unsigned readersNum = MAX_READERS, size_t fTime = 0);
+    TailFilter(unsigned readersNum = MAX_READERS, FilterRole fRole_ = REGULAR, bool periodic = false);
     using BaseFilter::setFrameTime;
     using BaseFilter::getFrameTime;
 
 private:
-    FrameQueue *allocQueue(int wId) {return NULL;};
-    bool runDoProcessFrame();
-    virtual bool doProcessFrame(std::map<int, Frame*> orgFrames) = 0;
-    using BaseFilter::demandOriginFrames;
-    using BaseFilter::demandDestinationFrames;
-    using BaseFilter::addFrames;
-    using BaseFilter::removeFrames;
-    using BaseFilter::oFrames;
-    using BaseFilter::dFrames;
-    using BaseFilter::seqNums;
-    using BaseFilter::processEvent;
-    using BaseFilter::updateTimestamp;
-    using BaseFilter::setWallClock;
-
-    using BaseFilter::frameTime;
-    using BaseFilter::timestamp;
-    using BaseFilter::lastValidTimestamp;
-    using BaseFilter::duration;
-    using BaseFilter::lastDiffTime;
-    using BaseFilter::diffTime;
-    using BaseFilter::wallClock;
-
-    using BaseFilter::maxReaders;
-    using BaseFilter::maxWriters;
-
-    void stop() {};
-};
-
-class ManyToOneFilter : public BaseFilter {
-
-protected:
-    ManyToOneFilter(FilterRole fRole_ = MASTER, bool sharedFrames_ = true, unsigned readersNum = MAX_READERS, size_t fTime = 0, bool force_ = false);
-    virtual bool doProcessFrame(std::map<int, Frame *> orgFrames, Frame *dst) = 0;
-    using BaseFilter::setFrameTime;
-    using BaseFilter::getFrameTime;
-
-private:   
-    bool runDoProcessFrame();
+    FrameQueue *allocQueue(struct ConnectionData cData) {return NULL;};
+    bool runDoProcessFrame(std::map<int, Frame*> &oFrames, std::map<int, Frame*> &dFrames, std::vector<int> newFrames);
+    virtual bool doProcessFrame(std::map<int, Frame*> &orgFrames, std::vector<int> newFrames) = 0;
     using BaseFilter::demandOriginFrames;
     using BaseFilter::demandDestinationFrames;
     using BaseFilter::addFrames;
     using BaseFilter::removeFrames;
     using BaseFilter::writers;
-    using BaseFilter::oFrames;
-    using BaseFilter::dFrames;
+    using BaseFilter::readers;
     using BaseFilter::seqNums;
     using BaseFilter::processEvent;
-    using BaseFilter::updateTimestamp;
-    using BaseFilter::addSlave;
-    using BaseFilter::setWallClock;
-
     using BaseFilter::frameTime;
-    using BaseFilter::timestamp;
-    using BaseFilter::lastValidTimestamp;
-    using BaseFilter::duration;
-    using BaseFilter::lastDiffTime;
-    using BaseFilter::diffTime;
-    using BaseFilter::wallClock;
-
     using BaseFilter::maxReaders;
     using BaseFilter::maxWriters;
-
-    void stop() {};
+    using BaseFilter::mtx;
 };
 
-class LiveMediaFilter : public BaseFilter
-{
-public:
-    void pushEvent(Event e);
+class ManyToOneFilter : public BaseFilter {
 
 protected:
-    LiveMediaFilter(unsigned readersNum = MAX_READERS, unsigned writersNum = MAX_WRITERS);
+    ManyToOneFilter(unsigned readersNum = MAX_READERS, FilterRole fRole_ = REGULAR, bool periodic = false);
+    virtual bool doProcessFrame(std::map<int, Frame *> &orgFrames, Frame *dst, std::vector<int> newFrames) = 0;
+    using BaseFilter::setFrameTime;
+    using BaseFilter::getFrameTime;
 
-    virtual bool runDoProcessFrame() = 0;
+private:   
+    bool runDoProcessFrame(std::map<int, Frame*> &oFrames, std::map<int, Frame*> &dFrames, std::vector<int> newFrames);
 
-private:
     using BaseFilter::demandOriginFrames;
     using BaseFilter::demandDestinationFrames;
     using BaseFilter::addFrames;
     using BaseFilter::removeFrames;
-    using BaseFilter::oFrames;
-    using BaseFilter::dFrames;
+    using BaseFilter::writers;
+    using BaseFilter::readers;
     using BaseFilter::seqNums;
     using BaseFilter::processEvent;
-    using BaseFilter::updateTimestamp;
-    using BaseFilter::addSlave;
-    using BaseFilter::setWallClock;
     using BaseFilter::frameTime;
-    using BaseFilter::timestamp;
-    using BaseFilter::lastValidTimestamp;
-    using BaseFilter::duration;
-    using BaseFilter::lastDiffTime;
-    using BaseFilter::diffTime;
-    using BaseFilter::wallClock;
-
     using BaseFilter::maxReaders;
     using BaseFilter::maxWriters;
-    
+    using BaseFilter::mtx;
 };
 
 #endif

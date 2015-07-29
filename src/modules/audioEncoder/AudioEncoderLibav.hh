@@ -38,20 +38,21 @@ extern "C" {
 class AudioEncoderLibav : public OneToOneFilter {
 
 public:
-    AudioEncoderLibav(FilterRole fRole_ = MASTER, bool sharedFrames = true);
+    AudioEncoderLibav();
     ~AudioEncoderLibav();
-    
-    bool doProcessFrame(Frame *org, Frame *dst);
-
-    int getSamplesPerFrame(){ return samplesPerFrame;};
-    ACodecType getCodec() {return fCodec;};
 
     bool configure(ACodecType codec, int codedAudioChannels, int codedAudioSampleRate, int bitrate);
-    Reader* setReader(int readerID, FrameQueue* queue);
+    unsigned getSamplesPerFrame(){ return samplesPerFrame;};
+    ACodecType getCodec() {return fCodec;};
+    
+protected:
+    FrameQueue* allocQueue(ConnectionData cData);
+    bool doProcessFrame(Frame *org, Frame *dst);
+    bool specificReaderConfig(int /*readerID*/, FrameQueue* queue);
+    bool specificReaderDelete(int /*readerID*/) {return true;};
 
 private:
-    FrameQueue* allocQueue(int wId);
-    
+    bool configure0(ACodecType codec, int codedAudioChannels, int codedAudioSampleRate, int bitrate);
     void initializeEventMap();
     int resample(AudioFrame* src, AVFrame* dst);
     bool reconfigure(AudioFrame* frame);
@@ -69,16 +70,16 @@ private:
     int                 gotFrame;
 
     ACodecType          fCodec;
-    int                 samplesPerFrame;
+    unsigned            samplesPerFrame;
 
-    int                 internalChannels;
-    int                 internalSampleRate;
+    unsigned            internalChannels;
+    unsigned            internalSampleRate;
     SampleFmt           internalSampleFmt;
     AVSampleFormat      internalLibavSampleFmt;
     int                 outputBitrate;
 
-    int                 inputChannels;
-    int                 inputSampleRate;
+    unsigned            inputChannels;
+    unsigned            inputSampleRate;
     SampleFmt           inputSampleFmt;
     AVSampleFormat      inputLibavSampleFmt;
 

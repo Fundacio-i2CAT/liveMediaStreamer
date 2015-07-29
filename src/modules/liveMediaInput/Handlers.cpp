@@ -23,10 +23,9 @@
 
 #include "Handlers.hh"
 #include "QueueSink.hh"
-#include "H264QueueSink.hh"
+#include "H264VideoSdpParser.hh"
 #include "SourceManager.hh"
 #include "ExtendedRTSPClient.hh"
-#include "../../AVFramedQueue.hh"
 
 #include <iostream>
 #include <sstream>
@@ -123,9 +122,9 @@ namespace handlers
                 utils::errorMsg("Failed to initiate subsession sink");
                 scs.subsession->deInitiate();
             }
-
-            if (!scs.addWriterToMngr(queueSink->getPort(), queueSink->getWriter())){
-                utils::errorMsg("Failed adding writer in SourceManager");
+            
+            if (!scs.addSinkToMngr(queueSink->getPort(), queueSink)){
+                utils::errorMsg("Failed adding sink in SourceManager");
                 scs.subsession->deInitiate();
             }
 
@@ -284,27 +283,27 @@ namespace handlers
     {
         int wId;
         QueueSink *sink;
-        Writer *writer;
+        FramedFilter* filter = NULL;
 
-        writer = new Writer();
         wId = subsession->clientPortNum();
-
-        if (strcmp(subsession->codecName(), "H264") == 0 || strcmp(subsession->codecName(), "H265") == 0) {
-            sink = H264QueueSink::createNew(env, writer, wId, subsession->fmtp_spropparametersets());
-        } else {
-            sink = QueueSink::createNew(env, writer, wId);
-        }
+        sink = QueueSink::createNew(env, wId);
 
         if (sink == NULL){
-            std::cerr << "Sink NULL!" << std::endl;
-            delete writer;
+            utils::errorMsg("Error creating subsession sink");
             return false;
         }
 
         subsession->sink = sink;
+        
+        if (strcmp(subsession->codecName(), "H264") == 0 || strcmp(subsession->codecName(), "H265") == 0) {
+            filter = H264VideoSdpParser::createNew(env, subsession->readSource(), subsession->fmtp_spropparametersets());
+        }
 
-        subsession->sink->startPlaying(*(subsession->readSource()),
-                                       handlers::subsessionAfterPlaying, subsession);
+        if (filter) {
+            subsession->addFilter(filter);
+        }
+
+        subsession->sink->startPlaying(*(subsession->readSource()), handlers::subsessionAfterPlaying, subsession);
 
         if (subsession->rtcpInstance() != NULL) {
             subsession->rtcpInstance()->setByeHandler(handlers::subsessionByeHandler, subsession);

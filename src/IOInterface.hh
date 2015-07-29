@@ -25,9 +25,10 @@
 #ifndef _IO_INTERFACE_HH
 #define _IO_INTERFACE_HH
 
-#include <atomic>
+#include <mutex>
 #include <utility>
 #include <map>
+#include <memory>
 
 #ifndef _FRAME_HH
 #include "Frame.hh"
@@ -55,14 +56,14 @@ public:
     * @param pointer to Reader object to connect with through specific queue
     * @return true if success on connecting, otherwise returns false
     */
-    bool connect(Reader *reader) const;
+    bool connect(std::shared_ptr<Reader> reader) const;
 
     /**
     * Disconnects specific Reader and itself from queue
     * @param pointer to Reader object to disconnect from specific queue
     * @return true if success on disconnecting, otherwise returns false
     */
-    bool disconnect(Reader *reader) const;
+    bool disconnect(std::shared_ptr<Reader> reader) const;
 
     /**
     * Check if writer has its queue connected
@@ -87,7 +88,7 @@ public:
     /**
     * Adds a frame element to its queue
     */
-    void addFrame() const;
+    int addFrame() const;
 
     /**
     * Disconnects from its queue (sets queue disconnected) or deletes the queue
@@ -95,6 +96,12 @@ public:
     * @return true if successful disconnecting, otherwise returns false
     */
     bool disconnect() const;
+    
+    /**
+    * gets the connection data of the associated queue
+    * @return the connection data struct of the queue
+    */
+    struct ConnectionData getCData();
 
 protected:
     mutable FrameQueue *queue;
@@ -109,13 +116,11 @@ public:
     * Creates a reader object
     */
     Reader();
-    ~Reader();
 
     /**
-    * Sets reader's pointer to FrameQueue object
-    * @param FramQueue object pointer
+    * Class destructor
     */
-    void setQueue(FrameQueue *queue);
+    ~Reader();
 
     /**
     * Checks if has a queue and if it is connected to
@@ -126,17 +131,16 @@ public:
     /**
     * Gets front frame object from queue if possible. If force is set to true and
     * frame is NULL this will flush queue until having a frame object from front
-    * @param QueueState object pointer to set queue state
-    * @param bool to check if there is a newFrame or not
+    * @param integer to identify the filter that is actually requesting the frame.
     * @param bool to force having frame object or not (default set to false)
     * @return Frame object from its queue
     */
-    Frame* getFrame(QueueState &state, bool &newFrame, bool force = false);
+    Frame* getFrame(int fId, bool &newFrame);
 
     /**
     * Removes frame element from queue
     */
-    void removeFrame();
+    int removeFrame(int fId);
 
     /**
     * Sets queue to connect to
@@ -156,13 +160,35 @@ public:
     * @return true if successful disconnecting, otherwise returns false
     */
     bool disconnect();
+    
+    /**
+    * Increases the number of filters that make use of this reader
+    */
+    void addReader();
+    
+    /**
+    * Decreases the number of filters that make use of this reader. It disconnects if filters number is zero.
+    * @param int the id of the filter requesting the removal
+    */
+    void removeReader(int id);
+
+    /**
+    * Get FrameQueue elements number
+    * @return FrameQueue elements number
+    */
+    size_t getQueueElements();
 
 protected:
-    mutable FrameQueue *queue;
+    FrameQueue *queue;
 
 private:
     friend class Writer;
-
+     
+    Frame *frame;
+    unsigned filters;
+    std::map<int, bool> requests;
+    unsigned pending;
+    std::mutex lck;
 };
 
 #endif

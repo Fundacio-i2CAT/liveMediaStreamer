@@ -87,6 +87,8 @@ protected:
     bool fill_x264or5_picture(VideoFrame* videoFrame);
 
     bool configure0(unsigned bitrate_, unsigned fps_, unsigned gop_, unsigned lookahead_, unsigned threads_, bool annexB_, std::string preset_);
+    
+private:
     bool forceIntraEvent(Jzon::Node* params);
     bool configEvent(Jzon::Node* params);
     void doGetState(Jzon::Object &filterNode);

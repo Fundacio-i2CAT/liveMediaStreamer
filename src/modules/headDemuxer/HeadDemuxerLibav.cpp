@@ -110,9 +110,6 @@ bool HeadDemuxerLibav::doProcessFrame(std::map<int, Frame*> &dstFrames)
     f->setPresentationTime(
         std::chrono::microseconds(
             (int64_t)(1000000 * pkt.pts * streamTimeBase[pkt.stream_index])));
-    f->setDuration(
-        std::chrono::nanoseconds(
-            (int64_t)(1000000000 * pkt.duration * streamTimeBase[pkt.stream_index])));
     av_free_packet(&pkt);
 
     return true;

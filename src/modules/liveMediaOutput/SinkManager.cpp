@@ -411,11 +411,11 @@ bool SinkManager::specificReaderConfig(int readerId, FrameQueue* queue)
     AudioFrameQueue *aQueue;  
 
     if ((vQueue = dynamic_cast<VideoFrameQueue*>(queue)) != NULL){
-        return createVideoQueueSource(vQueue->getCodec(), readerId);
+        return createVideoQueueSource(vQueue->getStreamInfo()->video.codec, readerId);
     }
 
     if ((aQueue = dynamic_cast<AudioFrameQueue*>(queue)) != NULL){
-        return createAudioQueueSource(aQueue->getCodec(), readerId);
+        return createAudioQueueSource(aQueue->getStreamInfo()->audio.codec, readerId);
     }
     
     return false;
@@ -444,7 +444,7 @@ bool SinkManager::createVideoQueueSource(VCodecType codec, int readerId)
     return true;
 }
 
-bool SinkManager::createAudioQueueSource(ACodecType codec, int readerId)
+bool SinkManager::createAudioQueueSource(ACodecType /*codec*/, int readerId)
 {    
     sources[readerId] = QueueSource::createNew(*(envir()), readerId);
     replicators[readerId] = StreamReplicator::createNew(*(envir()), sources[readerId], False);

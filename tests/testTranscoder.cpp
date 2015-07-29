@@ -146,8 +146,7 @@ void addVideoPath(unsigned port, int receiverID, int transmitterID)
         return;
     }
 
-    pipe->addPath(port, path);
-    if (!pipe->connectPath(path)){
+    if (!pipe->connectPath(7000)) {
         utils::errorMsg("Failed! Path not connected");
         pipe->removePath(port);
         return;
@@ -207,6 +206,7 @@ bool addAudioSDPSession(unsigned port, SourceManager *receiver, std::string code
     return true;
 }
 
+bool addRTSPsession(std::string rtspUri, SourceManager *receiver, int receiverID, int transmitterID)
 {
     Session* session;
     std::string sessionId = utils::randomIdGenerator(ID_LENGTH);

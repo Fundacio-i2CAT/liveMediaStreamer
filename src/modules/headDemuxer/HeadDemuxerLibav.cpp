@@ -251,3 +251,25 @@ SampleFmt HeadDemuxerLibav::getSampleFormatFromLibav(AVSampleFormat libavSampleF
         default: return S_NONE;
     }
 }
+
+void HeadDemuxerLibav::initializeEventMap()
+{
+    eventMap["configure"] = std::bind(&HeadDemuxerLibav::configureEvent, this, std::placeholders::_1);
+}
+
+bool HeadDemuxerLibav::configureEvent(Jzon::Node* params)
+{
+    if (!params) {
+        return false;
+    }
+
+    if (params->Has("uri")) {
+        if(setURI(params->Get("uri").ToString())){
+            return true;
+        } else {
+            return false;
+        }
+    } else {
+        return false;
+    }
+}

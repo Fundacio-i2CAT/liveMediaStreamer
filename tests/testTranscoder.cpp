@@ -48,6 +48,7 @@ void signalHandler( int signum )
 {
     utils::infoMsg("Interruption signal received");
     Controller::getInstance()->pipelineManager()->stop();
+    Controller::destroyInstance();
     exit(0);
 }
 
@@ -84,12 +85,12 @@ void addAudioPath(unsigned port, int receiverID, int transmitterID)
         return;
     }
 
-    if (!pipe->createPath(8000, receiverID, transmitterID, port, 8000, std::vector<int>({}))) {
+    if (!pipe->createPath(BYPASS_AUDIO_PATH, receiverID, transmitterID, port, BYPASS_AUDIO_PATH, std::vector<int>({}))) {
         utils::errorMsg("Error creating audio path");
         return;
     }
     
-    if (!pipe->connectPath(8000)){
+    if (!pipe->connectPath(BYPASS_AUDIO_PATH)){
         utils::errorMsg("Failed! Path not connected");
         pipe->removePath(port);
         return;
@@ -141,12 +142,12 @@ void addVideoPath(unsigned port, int receiverID, int transmitterID)
         return;
     }
     
-    if (!pipe->createPath(7000, receiverID, transmitterID, port, 7000, std::vector<int>({}))) {
+    if (!pipe->createPath(BYPASS_VIDEO_PATH, receiverID, transmitterID, port, BYPASS_VIDEO_PATH, std::vector<int>({}))) {
         utils::errorMsg("Error creating video path");
         return;
     }
 
-    if (!pipe->connectPath(7000)) {
+    if (!pipe->connectPath(BYPASS_VIDEO_PATH)) {
         utils::errorMsg("Failed! Path not connected");
         pipe->removePath(port);
         return;
@@ -277,12 +278,12 @@ bool publishRTSPSession(std::vector<int> readers, SinkManager *transmitter)
     }
 
     
-    if (transmitter->isRConnected(8000)){
-        byPassReaders.push_back(8000);
+    if (transmitter->isRConnected(BYPASS_AUDIO_PATH)){
+        byPassReaders.push_back(BYPASS_AUDIO_PATH);
     }
     
-    if (transmitter->isRConnected(7000)){
-        byPassReaders.push_back(7000);
+    if (transmitter->isRConnected(BYPASS_VIDEO_PATH)){
+        byPassReaders.push_back(BYPASS_VIDEO_PATH);
     }
     
     sessionId = "bypass";
@@ -373,7 +374,7 @@ int main(int argc, char* argv[])
     }
 
     for (auto it : pipe->getPaths()) {
-        if (it.second->getDstReaderID() != 7000 && it.second->getDstReaderID() != 8000){
+        if (it.second->getDstReaderID() != BYPASS_VIDEO_PATH && it.second->getDstReaderID() != BYPASS_AUDIO_PATH){
             readers.push_back(it.second->getDstReaderID());
         }
     }

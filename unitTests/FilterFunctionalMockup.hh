@@ -322,6 +322,9 @@ class AVFramesReader {
 public:
     AVFramesReader(): fmtCtx(NULL), frame(NULL){
         av_register_all();
+        av_init_packet(&pkt);
+        pkt.data = NULL;
+        pkt.size = 0;
     };
 
     ~AVFramesReader() {

@@ -55,8 +55,8 @@ protected:
 
 void SharedMemoryTest::setUp()
 {
-    sharedMemoryFilter = SharedMemory::createNew(KEY, RAW);
-    sharedMemoryFilterErr = SharedMemory::createNew(KEY, RAW);
+    CPPUNIT_ASSERT ((sharedMemoryFilter = SharedMemory::createNew(KEY, RAW)) != NULL);
+    CPPUNIT_ASSERT ((sharedMemoryFilterErr = SharedMemory::createNew(KEY, RAW)) == NULL);
     satelliteFilterHead = new BaseFilterMockup(0,1);
     satelliteFilterTail = new BaseFilterMockup(1,0);
 }
@@ -68,17 +68,12 @@ void SharedMemoryTest::tearDown()
         delete sharedMemoryFilter;
         sharedMemoryFilter = NULL;
     }
-    delete sharedMemoryFilterErr;
     delete satelliteFilterHead;
     delete satelliteFilterTail;
 }
 
 void SharedMemoryTest::connectWithSharedMemory()
 {
-    CPPUNIT_ASSERT(!(sharedMemoryFilter == NULL));
-
-    CPPUNIT_ASSERT(sharedMemoryFilterErr == NULL);
-
     CPPUNIT_ASSERT(satelliteFilterHead->connectOneToOne(sharedMemoryFilter));
     CPPUNIT_ASSERT(sharedMemoryFilter->connectOneToOne(satelliteFilterTail));
 

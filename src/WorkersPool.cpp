@@ -109,7 +109,8 @@ WorkersPool::~WorkersPool()
     }
 }
 
-bool WorkersPool::addTask(Runnable* const task){
+bool WorkersPool::addTask(Runnable* const task)
+{
     int id = task->getId();
     if (id < 0){
         return false;
@@ -126,7 +127,8 @@ bool WorkersPool::addTask(Runnable* const task){
     return false;
 }
 
-bool WorkersPool::removeTask(const int id){
+bool WorkersPool::removeTask(const int id)
+{
     Runnable* runnable;
     std::unique_lock<std::mutex> guard(mtx);
     if (runnables.count(id) > 0){
@@ -145,7 +147,8 @@ bool WorkersPool::removeTask(const int id){
     return false;
 }
 
-bool WorkersPool::removeFromQueue(int id){
+bool WorkersPool::removeFromQueue(int id)
+{
     std::list<Runnable*>::iterator iter;
     bool found = false;
     iter = jobQueue.begin();
@@ -159,7 +162,8 @@ bool WorkersPool::removeFromQueue(int id){
     return found;
 }
 
-bool WorkersPool::addJob(const int id){
+bool WorkersPool::addJob(const int id)
+{
     bool added = false;
     if (runnables.count(id) > 0 && !runnables[id]->isPeriodic()){
         added = addGroupJob(runnables[id]->getGroupIds());
@@ -172,7 +176,7 @@ bool WorkersPool::addGroupJob(std::vector<int> group)
 {
     bool added = false;
     for (auto runId : group){
-        if (runnables.count(runId) > 0 && !runnables[runId]->isPeriodic()){
+        if (runnables.count(runId) > 0 && !runnables[runId]->isRunning() && !runnables[runId]->isPeriodic()){
             jobQueue.push_back(runnables[runId]);
             added = true;
         }

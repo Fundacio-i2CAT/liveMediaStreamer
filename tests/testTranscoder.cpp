@@ -48,13 +48,12 @@ void signalHandler( int signum )
 {
     utils::infoMsg("Interruption signal received");
     Controller::getInstance()->pipelineManager()->stop();
-    Controller::destroyInstance();
     exit(0);
 }
 
 void addAudioPath(unsigned port, int receiverID, int transmitterID)
 {
-    PipelineManager *pipe = PipelineManager::getInstance(2);
+    PipelineManager *pipe = PipelineManager::getInstance(4);
 
     int decId = rand();
     int encId = rand();

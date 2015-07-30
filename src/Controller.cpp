@@ -102,15 +102,34 @@ bool Controller::listenSocket()
 {
     socklen_t clilen;
     struct sockaddr cli_addr;
-    listen(listeningSocket,5);
     clilen = sizeof(cli_addr);
+    struct timeval tv;
+    int ret;
+    
+    listen(listeningSocket,5);
+    
+    tv.tv_sec = 0;
+    tv.tv_usec = TIMEOUT;
+    
+    FD_ZERO(&readfds);
+    FD_SET(listeningSocket, &readfds);
+    
+    ret = select(listeningSocket + 1, &readfds, NULL, NULL, &tv);
 
+    if (ret <= 0){
+        return false;
+    }
+    
+    if (!FD_ISSET(listeningSocket, &readfds)){
+        return false;
+    }
+    
     connectionSocket = accept(listeningSocket, (struct sockaddr *) &cli_addr, &clilen);
-
+    
     if (connectionSocket < 0) {
         return false;
     }
-
+    
     return true;
 }
 
@@ -124,7 +143,7 @@ bool Controller::readAndParse()
 {
     bzero(inBuffer, MSG_BUFFER_MAX_LENGTH);
     inputRootNode->Clear();
-
+    
     if (read(connectionSocket, inBuffer, MSG_BUFFER_MAX_LENGTH - 1) < 0) {
         utils::errorMsg("Reading from socket");
         return false;

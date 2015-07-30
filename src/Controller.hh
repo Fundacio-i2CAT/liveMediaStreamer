@@ -31,6 +31,7 @@
 #include "PipelineManager.hh"
 
 #define MSG_BUFFER_MAX_LENGTH 4096*4
+#define TIMEOUT 100000 //usec
 
 /*! Controller class is a singleton class defines the control protocol
     by events and through sockets
@@ -109,6 +110,7 @@ private:
     static Controller* ctrlInstance;
     PipelineManager* pipeMngrInstance;
 
+    fd_set readfds;
 };
 
 #endif

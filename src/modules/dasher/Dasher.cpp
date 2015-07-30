@@ -514,13 +514,13 @@ bool Dasher::addSegmenter(int readerId)
 
     if ((vQueue = dynamic_cast<VideoFrameQueue*>(r->getQueue())) != NULL) {
 
-        if (vQueue->getCodec() != H264 && vQueue->getCodec() != H265) {
+        if (vQueue->getStreamInfo()->video.codec != H264 && vQueue->getStreamInfo()->video.codec != H265) {
             utils::errorMsg("Error setting dasher reader: only H264 & H265 codecs are supported for video");
             return false;
         }
 
-        if (vQueue->getCodec() == H264) segmenters[readerId] = new DashVideoSegmenterAVC(segDur);
-        else if (vQueue->getCodec() == H265) segmenters[readerId] = new DashVideoSegmenterHEVC(segDur);
+        if (vQueue->getStreamInfo()->video.codec == H264) segmenters[readerId] = new DashVideoSegmenterAVC(segDur);
+        else if (vQueue->getStreamInfo()->video.codec == H265) segmenters[readerId] = new DashVideoSegmenterHEVC(segDur);
         else {
             utils::errorMsg("Error setting dasher video segmenter: only H264 & H265 codecs are supported for video");
             return false;
@@ -532,7 +532,7 @@ bool Dasher::addSegmenter(int readerId)
 
     if ((aQueue = dynamic_cast<AudioFrameQueue*>(r->getQueue())) != NULL) {
 
-        if (aQueue->getCodec() != AAC) {
+        if (aQueue->getStreamInfo()->audio.codec != AAC) {
             utils::errorMsg("Error setting Dasher reader: only AAC codec is supported for audio");
             return false;
         }

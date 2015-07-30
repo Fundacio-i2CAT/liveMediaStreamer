@@ -36,6 +36,7 @@
 #include "../../Filter.hh"
 #include "../../VideoFrame.hh"
 #include "../../AVFramedQueue.hh"
+#include "../../StreamInfo.hh"
 
 #define SHMSIZE   		6220824		//1920x1080x3 + 24
 #define HEADER_SIZE		24			//4B * 6 (sync.byte and frame info)
@@ -103,13 +104,18 @@ private:
     void copyOrgToDstFrame(InterleavedVideoFrame *org, InterleavedVideoFrame *dst);
     
     //There is no need of specific reader configuration
-    bool specificReaderConfig(int /*readerID*/, FrameQueue* /*queue*/)  {return true;};
+    bool specificReaderConfig(int readerID, FrameQueue* queue);
     bool specificReaderDelete(int /*readerID*/) {return true;};
 
     uint16_t getCodecFromVCodec(VCodecType codec);
     uint16_t getPixelFormatFromPixType(PixType pxlFrmt);
     PixType getPixTypeFromPixelFormat(uint16_t pixType);
     VCodecType getVCodecFromCodecType(uint16_t codecType);
+
+    // Cached copy of input stream info, used to configure output queue.
+    // It is not ours, hence the 'const' pointer.
+    const StreamInfo *streamInfo;
+    unsigned maxFrames;
 
 private:
     size_t      SharedMemorykey;

@@ -64,6 +64,7 @@ AudioDecoderLibav::AudioDecoderLibav()
     inChannels = 0;
     inSampleRate = 0;
     inFrame = av_frame_alloc();
+    inLibavSampleFmt = AV_SAMPLE_FMT_NONE;
 
     initializeEventMap();
 

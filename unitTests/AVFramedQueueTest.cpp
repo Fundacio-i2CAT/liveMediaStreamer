@@ -34,6 +34,7 @@
 #include "AVFramedQueue.hh"
 #include "FilterMockup.hh"
 #include "Utils.hh"
+#include "StreamInfo.hh"
 
 class AVFramedQueueTest : public CppUnit::TestFixture
 {
@@ -53,14 +54,15 @@ protected:
     void forceGetFrontTest();
 
     struct ConnectionData cData;
-    unsigned maxFrames = 4;
+    unsigned maxFrames;
 
     AVFramedQueue* q;
 };
 
 void AVFramedQueueTest::setUp()
 {
-    q = new AVFramedQueueMock(cData, maxFrames);
+    maxFrames = 4;
+    q = new AVFramedQueueMock(cData, &mockStreamInfo, maxFrames);
 }
 
 void AVFramedQueueTest::tearDown()

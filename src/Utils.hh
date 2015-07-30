@@ -24,6 +24,7 @@
 #define _UTILS_HH
 
 #include "Types.hh"
+#include "StreamInfo.hh"
 #include <string>
 
 #define ID_LENGTH 4
@@ -43,11 +44,14 @@ namespace utils
     FilterRole getRoleTypeFromString(std::string stringRoleType);
     std::string getRoleAsString(FilterRole role);
     std::string getSampleFormatAsString(SampleFmt sFormat);
+    std::string getPixTypeAsString(PixType type);
+    std::string getStreamTypeAsString(StreamType type);
     std::string getAudioCodecAsString(ACodecType codec);
     std::string getVideoCodecAsString(VCodecType codec);
     std::string getFilterTypeAsString(FilterType type);
     std::string getTxFormatAsString(TxFormat format);
     std::string randomIdGenerator(unsigned int length);
+    std::string getStreamInfoAsString(const StreamInfo *si);
     int getPayloadFromCodec(std::string codec);
     int getBytesPerSampleFromFormat(SampleFmt fmt);
 

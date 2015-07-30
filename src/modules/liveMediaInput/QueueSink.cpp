@@ -73,7 +73,7 @@ Boolean QueueSink::continuePlaying()
 }
 
 void QueueSink::afterGettingFrame(void* clientData, unsigned frameSize,
-                 unsigned numTruncatedBytes,
+                 unsigned /*numTruncatedBytes*/,
                  struct timeval presentationTime,
                  unsigned /*durationInMicroseconds*/)
 {

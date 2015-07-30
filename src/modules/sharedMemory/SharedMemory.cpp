@@ -39,13 +39,17 @@ SharedMemory::SharedMemory(size_t key_, VCodecType codec_):
 {
 
     if(!(codec == RAW || codec == H264)){
-        utils::errorMsg("SharedMemory::error - filter not created - only RAW and H264 codecs are supported");
+        utils::errorMsg("SharedMemory::error - filter not created - "
+                "only RAW and H264 codecs are supported (requested " +
+                utils::getVideoCodecAsString(codec_) + ")");
         enabled = false;
         return;
     }
 
-    if ((SharedMemoryID = shmget(key_, SHMSIZE, (IPC_EXCL | IPC_CREAT ) | 0666)) < 0) {
-        utils::errorMsg("SharedMemory::shmget error - filter not created - might be already created");
+    if ((SharedMemoryID = shmget(key_, SHMSIZE, (IPC_EXCL | IPC_CREAT ) | 0666)) == (size_t)-1) {
+        utils::errorMsg("SharedMemory::shmget error - filter not created - "
+                "might be already created (Key:" + std::to_string(key_) +
+                " Codec: " + utils::getVideoCodecAsString(codec_) + ")");
         enabled = false;
         return;
     }
@@ -73,6 +77,9 @@ SharedMemory::SharedMemory(size_t key_, VCodecType codec_):
     }
     
     fType = SHARED_MEMORY;
+
+    streamInfo = NULL;
+    maxFrames = 0;
 }
 
 SharedMemory::~SharedMemory()
@@ -125,15 +132,11 @@ bool SharedMemory::doProcessFrame(Frame *org, Frame *dst)
 
 FrameQueue* SharedMemory::allocQueue(ConnectionData cData)
 {
-    if (codec == H264) {
-        return VideoFrameQueue::createNew(cData, codec, DEFAULT_VIDEO_FRAMES);
-
-    } else if (codec == RAW) {
-        return VideoFrameQueue::createNew(cData, codec, DEFAULT_RAW_VIDEO_FRAMES, RGB24);
-        
-    } else {
+    if (codec != H264 && codec !=RAW) {
         return NULL;
     }
+
+    return VideoFrameQueue::createNew(cData, streamInfo, maxFrames);
 }
 
 //TODO to be implemented
@@ -143,7 +146,7 @@ void SharedMemory::initializeEventMap()
 }
 
 //TODO to be implemented
-void SharedMemory::doGetState(Jzon::Object &filterNode)
+void SharedMemory::doGetState(Jzon::Object &/*filterNode*/)
 {
    /* filterNode.Add("codec", utils::getAudioCodecAsString(fCodec));
     filterNode.Add("sampleRate", sampleRate);
@@ -407,4 +410,15 @@ PixType SharedMemory::getPixTypeFromPixelFormat(uint16_t pixType){
             break;
     }
     return pxlFrmt;
+}
+
+bool SharedMemory::specificReaderConfig(int /*readerID*/, FrameQueue* queue) {
+    const AVFramedQueue *avQueue = dynamic_cast<AVFramedQueue*>(queue);
+    if (avQueue == NULL) {
+        utils::errorMsg("Input queue is not AV");
+        return false;
+    }
+    maxFrames = avQueue->getMaxFrames();
+    streamInfo = avQueue->getStreamInfo();
+    return true;
 }

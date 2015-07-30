@@ -34,7 +34,6 @@ BaseFilter::BaseFilter(unsigned readersNum, unsigned writersNum, FilterRole fRol
 process(false), maxReaders(readersNum), maxWriters(writersNum),  frameTime(std::chrono::microseconds(0)), 
 fRole(fRole_), syncTs(std::chrono::microseconds(0))
 {
-
 }
 
 BaseFilter::~BaseFilter()
@@ -366,7 +365,7 @@ void BaseFilter::processEvent()
 {
     std::string action;
     Jzon::Node* params;
-    
+
     std::lock_guard<std::mutex> guard(mtx);
 
     while(newEvent()) {

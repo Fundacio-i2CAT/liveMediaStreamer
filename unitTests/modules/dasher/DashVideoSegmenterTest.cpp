@@ -712,7 +712,7 @@ void DashVideoSegmenterHEVCTest::generateSegment()
         if (segmenter->generateSegment(segment, frame)) {
             break;
         }
-        
+
         if(!segmenter->appendFrameToDashSegment(segment, frame)) {
             CPPUNIT_FAIL("Segmenter appendFrameToDashSegment failed when testing general workflow\n");
         }

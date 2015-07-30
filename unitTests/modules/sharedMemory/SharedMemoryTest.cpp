@@ -55,27 +55,25 @@ protected:
 
 void SharedMemoryTest::setUp()
 {
-    sharedMemoryFilter = SharedMemory::createNew(KEY, RAW);
-    sharedMemoryFilterErr = SharedMemory::createNew(KEY, RAW);
+    CPPUNIT_ASSERT ((sharedMemoryFilter = SharedMemory::createNew(KEY, RAW)) != NULL);
+    CPPUNIT_ASSERT ((sharedMemoryFilterErr = SharedMemory::createNew(KEY, RAW)) == NULL);
     satelliteFilterHead = new BaseFilterMockup(0,1);
     satelliteFilterTail = new BaseFilterMockup(1,0);
 }
 
 void SharedMemoryTest::tearDown()
 {
-    sharedMemoryFilter->disconnectAll();
-    delete sharedMemoryFilter;
-    delete sharedMemoryFilterErr;
+    if (sharedMemoryFilter) {
+        sharedMemoryFilter->disconnectAll();
+        delete sharedMemoryFilter;
+        sharedMemoryFilter = NULL;
+    }
     delete satelliteFilterHead;
     delete satelliteFilterTail;
 }
 
 void SharedMemoryTest::connectWithSharedMemory()
 {
-    CPPUNIT_ASSERT(!(sharedMemoryFilter == NULL));
-
-    CPPUNIT_ASSERT(sharedMemoryFilterErr == NULL);
-
     CPPUNIT_ASSERT(satelliteFilterHead->connectOneToOne(sharedMemoryFilter));
     CPPUNIT_ASSERT(sharedMemoryFilter->connectOneToOne(satelliteFilterTail));
 
@@ -108,6 +106,7 @@ protected:
 void SharedMemoryFunctionalTest::setUp()
 {
     sharedMemoryFilter = SharedMemory::createNew(KEY, RAW);
+    if (!sharedMemoryFilter) return;
     dummyReader = new SharedMemoryDummyReader((dynamic_cast<SharedMemory*>(sharedMemoryFilter))->getSharedMemoryID(), RAW);
     sharedMemorySce = new OneToOneVideoScenarioMockup((dynamic_cast<OneToOneFilter*>(sharedMemoryFilter)), RAW, YUV420P);
     CPPUNIT_ASSERT(sharedMemorySce->connectFilter());
@@ -116,16 +115,24 @@ void SharedMemoryFunctionalTest::setUp()
 
 void SharedMemoryFunctionalTest::tearDown()
 {
-    sharedMemoryFilter->disconnectAll();
-    delete sharedMemoryFilter;
-    sharedMemorySce->disconnectFilter();
-    delete reader;
+    if (sharedMemoryFilter) {
+        sharedMemoryFilter->disconnectAll();
+        delete sharedMemoryFilter;
+    }
+    if (sharedMemorySce) {
+        sharedMemorySce->disconnectFilter();
+    }
+    if (reader) {
+        delete reader;
+    }
 }
 
 void SharedMemoryFunctionalTest::sharedMemoryFilterWithDummyReader()
 {
     InterleavedVideoFrame *frame = NULL;
     InterleavedVideoFrame *midFrame = NULL;
+
+    CPPUNIT_ASSERT(reader != NULL);
 
     CPPUNIT_ASSERT(reader->openFile("testsData/videoVectorTest.h264", RAW, YUV420P, 1280, 720));
 

@@ -30,6 +30,7 @@ HeadDemuxerLibav::HeadDemuxerLibav() : HeadFilter ()
     avformat_network_init();
 
     av_ctx = NULL;
+    av_filter_annexb = NULL;
 
     fType = DEMUXER;
 
@@ -55,14 +56,16 @@ void HeadDemuxerLibav::reset()
     }
     av_ctx = NULL;
 
+    if (av_filter_annexb) {
+        av_bitstream_filter_close(av_filter_annexb);
+    }
+    av_filter_annexb = NULL;
+
     // Free extradatas and stream infos
-    for (auto sinfo : streams) {
-        if (sinfo.second->extradata) {
-            delete []sinfo.second->extradata;
-        }
+    for (auto sinfo : outputStreamInfos) {
         delete sinfo.second;
     }
-    streams.clear();
+    outputStreamInfos.clear();
 }
 
 bool HeadDemuxerLibav::doProcessFrame(std::map<int, Frame*> &dstFrames)
@@ -78,19 +81,35 @@ bool HeadDemuxerLibav::doProcessFrame(std::map<int, Frame*> &dstFrames)
         return false;
     }
 
-    // Find the stream index of the packet and the corresponding output frame
-    Frame *f = dstFrames[pkt.stream_index];
-    if (f != NULL) {
-        // If the output for this stream index is connected, copy payload
-        // (Otherwise, discard packet)
-        DemuxerStreamInfo *sinfo = streams[pkt.stream_index];
-        uint8_t *data = f->getDataBuf();
-        memcpy (data, pkt.data, pkt.size);
-        f->setConsumed(true);
-        f->setLength(pkt.size);
-        f->setPresentationTime(
-            std::chrono::microseconds(1000000 * pkt.pts * sinfo->time_base_num / sinfo->time_base_den));
+    if (dstFrames.count(pkt.stream_index) == 0) {
+        // Discard packet if output corresponding to this stream is not connected
+        av_free_packet(&pkt);
+        return false;
     }
+
+    // Find corresponding output frame
+    Frame *f = dstFrames[pkt.stream_index];
+    uint8_t *data = f->getDataBuf();
+    int data_size = pkt.size;
+    if (av_filter_annexb) {
+        // Conversion to AnnexB has been requested
+        uint8_t *out;
+        int res;
+        res = av_bitstream_filter_filter (av_filter_annexb, av_ctx->streams[pkt.stream_index]->codec,
+                NULL, &out, &data_size, pkt.data, pkt.size, pkt.flags & AV_PKT_FLAG_KEY);
+        memcpy(data, out, data_size);
+        if (res > 0) {
+            free(out);
+        }
+    } else {
+        // No conversion needed, just copy
+        memcpy (data, pkt.data, pkt.size);
+    }
+    f->setConsumed(true);
+    f->setLength(data_size);
+    f->setPresentationTime(
+        std::chrono::microseconds(
+            (int64_t)(1000000 * pkt.pts * streamTimeBase[pkt.stream_index])));
     av_free_packet(&pkt);
 
     return true;
@@ -99,15 +118,12 @@ bool HeadDemuxerLibav::doProcessFrame(std::map<int, Frame*> &dstFrames)
 FrameQueue *HeadDemuxerLibav::allocQueue(ConnectionData cData)
 {
     // Create output queue for the kind of stream associated with this wId
-    const DemuxerStreamInfo *info = streams[cData.writerId];
-    switch (info->type) {
+    const StreamInfo *si = outputStreamInfos[cData.writerId];
+    switch (si->type) {
         case AUDIO:
-            return AudioFrameQueue::createNew(cData, info->audio.codec, DEFAULT_AUDIO_FRAMES,
-                    info->audio.sampleRate, info->audio.channels,
-                    info->audio.sampleFormat, info->extradata, info->extradata_size);
+            return AudioFrameQueue::createNew(cData, si, DEFAULT_AUDIO_FRAMES);
         case VIDEO:
-            return VideoFrameQueue::createNew(cData, info->video.codec, DEFAULT_VIDEO_FRAMES,
-                    P_NONE, info->extradata, info->extradata_size);
+            return VideoFrameQueue::createNew(cData, si, DEFAULT_VIDEO_FRAMES);
         default:
             break;
     }
@@ -118,7 +134,7 @@ void HeadDemuxerLibav::doGetState(Jzon::Object &filterNode)
 {
     filterNode.Add("uri", uri);
     Jzon::Array jstreams;
-    for (auto it : streams) {
+    for (auto it : outputStreamInfos) {
         Jzon::Object s;
         s.Add("wId", it.first);
         s.Add("type", it.second->type);
@@ -131,8 +147,6 @@ void HeadDemuxerLibav::doGetState(Jzon::Object &filterNode)
                 break;
             case VIDEO:
                 s.Add("codec", it.second->video.codec);
-                s.Add("width", it.second->video.width);
-                s.Add("height", it.second->video.height);
                 break;
             default:
                 break;
@@ -169,43 +183,57 @@ bool HeadDemuxerLibav::setURI(const std::string URI)
         return false;
     }
 
-    // Build DemuxerStreamInfos and map them through wId
+    // Build StreamInfos and map them through wId
     for (unsigned int i=0; i<av_ctx->nb_streams; i++) {
         const AVCodecDescriptor* cdesc =
                 avcodec_descriptor_get(av_ctx->streams[i]->codec->codec_id);
-        DemuxerStreamInfo *sinfo = new DemuxerStreamInfo;
-        sinfo->type = ST_NONE;
-        sinfo->extradata = NULL;
+        StreamInfo *si = new StreamInfo();
         if (cdesc) {
             switch (cdesc->type) {
                 case AVMEDIA_TYPE_AUDIO:
-                    sinfo->type = AUDIO;
-                    sinfo->audio.codec = utils::getAudioCodecFromLibavString(cdesc->name);
-                    sinfo->audio.sampleRate = av_ctx->streams[i]->codec->sample_rate;
-                    sinfo->audio.channels = av_ctx->streams[i]->codec->channels;
-                    sinfo->audio.sampleFormat = getSampleFormatFromLibav (
+                    si->type = AUDIO;
+                    si->audio.codec = utils::getAudioCodecFromLibavString(cdesc->name);
+                    si->audio.sampleRate = av_ctx->streams[i]->codec->sample_rate;
+                    si->audio.channels = av_ctx->streams[i]->codec->channels;
+                    si->audio.sampleFormat = getSampleFormatFromLibav (
                             av_ctx->streams[i]->codec->sample_fmt);
+                    // Overwrite libav values with our per-codec defaults
+                    si->setCodecDefaults();
                     break;
                 case AVMEDIA_TYPE_VIDEO:
-                    sinfo->type = VIDEO;
-                    sinfo->video.codec = utils::getVideoCodecFromLibavString(cdesc->name);
-                    sinfo->video.width = av_ctx->streams[i]->codec->width;
-                    sinfo->video.height = av_ctx->streams[i]->codec->height;
+                    si->type = VIDEO;
+                    si->video.codec = utils::getVideoCodecFromLibavString(cdesc->name);
+                    // Overwrite libav values with our per-codec defaults
+                    si->setCodecDefaults();
                     break;
                 default:
                     // Ignore this stream
                     break;
             }
-            sinfo->time_base_num = av_ctx->streams[i]->time_base.num;
-            sinfo->time_base_den = av_ctx->streams[i]->time_base.den;
-            sinfo->extradata_size = av_ctx->streams[i]->codec->extradata_size;
-            if (sinfo->extradata_size > 0) {
-                sinfo->extradata = new uint8_t[sinfo->extradata_size];
-                memcpy (sinfo->extradata, av_ctx->streams[i]->codec->extradata,
-                        sinfo->extradata_size);
+            if (av_ctx->streams[i]->codec->extradata_size > 0) {
+                si->setExtraData(av_ctx->streams[i]->codec->extradata,
+                        av_ctx->streams[i]->codec->extradata_size);
+                // Detect H264/5 AnnexB format
+                if (av_ctx->streams[i]->codec->extradata_size > 4 &&
+                        si->type == VIDEO &&
+                            (si->video.codec == H264 || si->video.codec == H265)) {
+                    const uint8_t *data = av_ctx->streams[i]->codec->extradata;
+                    // First byte of AVCC extradata is always 1 (version)
+                    // AnnexB extradata starts with either 0x000001 or 0x00000001
+                    if (data[0] == 1) {
+                        // This is AVCC, we need conversion
+                        av_filter_annexb = av_bitstream_filter_init ("h264_mp4toannexb");
+                    }
+                    // Always report AnnexB format
+                    si->video.h264or5.annexb = true;
+                }
             }
+            double timeBase = (double)av_ctx->streams[i]->time_base.num /
+                    av_ctx->streams[i]->time_base.den;
+            streamTimeBase[i] = timeBase;
         }
-        streams[i] = sinfo;
+        utils::infoMsg("Found stream " + std::to_string(i) + ": " + utils::getStreamInfoAsString(si));
+        outputStreamInfos[i] = si;
     }
 
     return true;

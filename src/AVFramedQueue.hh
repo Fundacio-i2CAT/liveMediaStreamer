@@ -24,8 +24,11 @@
 #ifndef _AV_FRAMED_QUEUE_HH
 #define _AV_FRAMED_QUEUE_HH
 
+#define MAX_FRAMES 50 //!< The highest value for DEFAULT_AUDIO_FRAMES, DEFAULT_VIDEO_FRAMES, ...
+
 #include "FrameQueue.hh"
 #include "AudioFrame.hh"
+#include "StreamInfo.hh"
 
 /*! It is an abstract class that represents a discrete buffering structure. 
 *   Each queue position is associated to a frame. It is implemented by VideoFrameQueue and AudioFrameQueue
@@ -66,46 +69,39 @@ public:
     /**
     * See FrameQueue::getElements
     */
-    const unsigned getElements();
-    const uint8_t *getExtraData() const {return extradata;};
-    int getExtraDataSize() const {return extradata_size;};
+    unsigned getElements();
+
+    /**
+     * The maximum number of frames allocated during construction. Used for replication, basically.
+     * @returns the #maxFrames parameter using at construction
+     */
+    unsigned getMaxFrames() const {return max;}
 
     virtual ~AVFramedQueue();
 
 protected:
-    AVFramedQueue(ConnectionData cData, unsigned maxFrames);
+    AVFramedQueue(ConnectionData cData, const StreamInfo *si, unsigned maxFrames);
     void flush();
     Frame* frames[MAX_FRAMES];
     unsigned max;
-    const uint8_t *extradata;
-    int extradata_size;
 };
 
 /*! It represents a video AVFramedQueue */
-
 class VideoFrameQueue : public AVFramedQueue {
 
 public:
     /**
     * Constructor wrapper that validates input parameters
     * @param cData see FrameQueue::FrameQueue 
-    * @param codec video codec of the data stored in queue frames. See #VCodecType
+    * @param si see FrameQueue::FrameQueue
     * @param maxFrames queue max frames
-    * @param pixelFormat pixel format of the data stored in queue frames, mandatory if codec == RAW. See #PixType.
     * @return pointer to a new object or NULL if invalid parameters
     */
-    static VideoFrameQueue* createNew(ConnectionData cData, VCodecType codec, unsigned maxFrames, PixType pixelFormat = P_NONE, 
-                                      const uint8_t *extradata = NULL, int extradata_size = 0);
-
-    /**
-    * @return codec 
-    */
-    const VCodecType getCodec() const {return codec;};
+    static VideoFrameQueue* createNew(ConnectionData cData, const StreamInfo *si,
+            unsigned maxFrames);
 
 protected:
-    VideoFrameQueue(ConnectionData cData, VCodecType codec, unsigned maxFrames, PixType pixelFormat = P_NONE);
-    VCodecType codec;
-    PixType pixelFormat;
+    VideoFrameQueue(ConnectionData cData, const StreamInfo *si, unsigned maxFrames);
 
 private:
     bool setup();
@@ -120,45 +116,15 @@ public:
     /**
     * Constructor wrapper that validates input parameters
     * @param cData see FrameQueue::FrameQueue 
-    * @param codec audio codec of the data stored in queue frames. See #ACodecType
+    * @param si see FrameQueue::FrameQueue
     * @param maxFrames queue max frames
-    * @param sampleRate sample rate the data stored in queue frames
-    * @param channels channels of the data stored in queue frames
-    * @param sFmt sample format of the data stored in queue frames. See #SampleFmt
     * @return pointer to a new object or NULL if invalid parameters
     */
-    static AudioFrameQueue* createNew(ConnectionData cData, ACodecType codec, unsigned maxFrames, 
-                                      unsigned sampleRate = DEFAULT_SAMPLE_RATE, 
-                                      unsigned channels = DEFAULT_CHANNELS, SampleFmt sFmt = S16,
-                                      const uint8_t *extradata = NULL, int extradata_size = 0);
-    
-    /**
-    * @return sample rate 
-    */
-    unsigned getSampleRate() const {return sampleRate;};
-    
-    /**
-    * @return channels 
-    */
-    unsigned getChannels() const {return channels;};
-    
-    /**
-    * @return codec 
-    */
-    const ACodecType getCodec() const {return codec;};
-    
-    /**
-    * @return sample format 
-    */
-    const SampleFmt getSampleFmt() const {return sampleFormat;};
+    static AudioFrameQueue* createNew(ConnectionData cData, const StreamInfo *si,
+            unsigned maxFrames);
 
 protected:
-    AudioFrameQueue(ConnectionData cData, ACodecType codec, unsigned maxFrames, SampleFmt sFmt, unsigned sampleRate, unsigned channels);
-
-    ACodecType codec;
-    SampleFmt sampleFormat;
-    unsigned sampleRate;
-    unsigned channels;
+    AudioFrameQueue(ConnectionData cData, const StreamInfo *si, unsigned maxFrames);
 
 private:
     bool setup();

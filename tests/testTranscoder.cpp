@@ -84,17 +84,6 @@ void addAudioPath(unsigned port, int receiverID, int transmitterID)
         return;
     }
 
-    if (!pipe->createPath(BYPASS_AUDIO_PATH, receiverID, transmitterID, port, BYPASS_AUDIO_PATH, std::vector<int>({}))) {
-        utils::errorMsg("Error creating audio path");
-        return;
-    }
-    
-    if (!pipe->connectPath(BYPASS_AUDIO_PATH)){
-        utils::errorMsg("Failed! Path not connected");
-        pipe->removePath(port);
-        return;
-    }
-
     utils::infoMsg("Audio path created from port " + std::to_string(port));
 }
 

@@ -8,13 +8,12 @@
 #include <vector>
 #include <string>
 
+bool run = true;
+
 void signalHandler( int signum )
 {
     utils::infoMsg("Interruption signal received");
-    Controller::getInstance()->pipelineManager()->stop();
-    Controller::destroyInstance();
-    PipelineManager::destroyInstance();
-    exit(0);
+    run = false;
 }
 
 int main(int argc, char* argv[])
@@ -124,9 +123,12 @@ int main(int argc, char* argv[])
         }
     }
 
-    while (1) {
+    while (run) {
         pause();
     }
+    
+    Controller::getInstance()->pipelineManager()->stop();
+    Controller::destroyInstance();
 
     return 0;
 }

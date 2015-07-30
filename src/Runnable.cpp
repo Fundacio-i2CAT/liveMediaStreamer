@@ -103,6 +103,7 @@ void Runnable::unsetRunning()
         for(auto runnable : group) {
             runnable->run = false;
         }
+        run = false;
     }
 }
 
@@ -145,4 +146,20 @@ void Runnable::addInGroup(Runnable *r, std::shared_ptr<unsigned> run)
     if (run){
         running = run;
     }
+}
+
+void Runnable::removeFromGroup()
+{
+    for (auto runnable : group) {
+        if (this != runnable){
+            runnable->removeFromGroup(this);
+        }
+    }
+    removeFromGroup(this);
+}
+
+void Runnable::removeFromGroup(Runnable *r)
+{
+    std::lock_guard<std::mutex> guard(mtx);
+    group.erase(this);
 }

@@ -30,10 +30,6 @@ void signalHandler( int signum )
 {
     utils::infoMsg("Interruption signal received");
     run = false;
-    Controller::getInstance()->pipelineManager()->stop();
-    Controller::destroyInstance();
-    PipelineManager::destroyInstance();
-    exit(0);
 }
 
 bool setupMixer(int mixerId, int transmitterId) 
@@ -279,7 +275,9 @@ int main(int argc, char* argv[])
     while(run) {
         std::this_thread::sleep_for(std::chrono::seconds(1));
     }
-
+    
+    Controller::destroyInstance();
+    PipelineManager::destroyInstance();
 
     return 0;
 }

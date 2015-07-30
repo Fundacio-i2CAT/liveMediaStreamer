@@ -115,6 +115,11 @@ public:
      * @return true if succeded false otherwise
      */
     bool groupRunnable(Runnable *r);
+    
+    /**
+     * Removes this runnable instance from its group
+     */
+    void removeFromGroup();
 
 protected:
     /**
@@ -133,6 +138,7 @@ protected:
     
 private:
     void addInGroup(Runnable *r, std::shared_ptr<unsigned> run = NULL);
+    void removeFromGroup(Runnable *r);
     
 protected:
     std::chrono::system_clock::time_point time;

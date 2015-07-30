@@ -57,8 +57,6 @@ void signalHandler( int signum )
 {
     utils::infoMsg("Interruption signal received");
     run = false;
-    Controller::getInstance()->pipelineManager()->stop();
-    exit(0);
 }
 
 Dasher* setupDasher(int dasherId, std::string dash_folder, int segDuration)
@@ -561,5 +559,8 @@ int main(int argc, char* argv[])
         ctrl->processRequest();
     }
 
+    Controller::destroyInstance();
+    PipelineManager::destroyInstance();
+    
     return 0;
 }

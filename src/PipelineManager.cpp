@@ -47,9 +47,6 @@ PipelineManager::PipelineManager(unsigned threads)
 PipelineManager::~PipelineManager()
 {
     stop();
-    if (pool){
-        delete pool;
-    }
     pipeMngrInstance = NULL;
 }
 
@@ -64,7 +61,6 @@ PipelineManager* PipelineManager::getInstance(unsigned threads)
 
 void PipelineManager::destroyInstance()
 {
-    PipelineManager* pipeMngrInstance = PipelineManager::getInstance();
     if (pipeMngrInstance != NULL) {
         delete pipeMngrInstance;
         pipeMngrInstance = NULL;
@@ -73,10 +69,8 @@ void PipelineManager::destroyInstance()
 
 bool PipelineManager::stop()
 {
-    for (auto it : filters) {
-        pool->removeTask(it.first);
-    }
-    utils::infoMsg("No more tasks in pool");
+    pool->stop();
+    utils::infoMsg("All threads stopped");
     
     for (auto it : paths) {
         if (!deletePath(it.second)) {
@@ -93,6 +87,10 @@ bool PipelineManager::stop()
 
     filters.clear();
     utils::infoMsg("Filters deleted");
+    
+    if (pool){
+        delete pool;
+    }
 
     return true;
 }

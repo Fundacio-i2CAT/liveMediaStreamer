@@ -44,11 +44,12 @@
 #define BYPASS_VIDEO_PATH 3113
 #define BYPASS_AUDIO_PATH 4224
 
+bool run = true;
+
 void signalHandler( int signum )
 {
     utils::infoMsg("Interruption signal received");
-    Controller::getInstance()->pipelineManager()->stop();
-    exit(0);
+    run = false;
 }
 
 void addAudioPath(unsigned port, int receiverID, int transmitterID)
@@ -389,18 +390,23 @@ int main(int argc, char* argv[])
         exit(1);
     }
 
-    while (true) {
+    while (run) {
         if (!ctrl->listenSocket()) {
             continue;
         }
 
         if (!ctrl->readAndParse()) {
-            //TDODO: error msg
+            utils::errorMsg("Controller failed to read and parse the incoming event data");
             continue;
         }
 
         ctrl->processRequest();
     }
 
+    ctrl->destroyInstance();
+    utils::infoMsg("Controlled deleted");
+    pipe->destroyInstance();
+    utils::infoMsg("Pipe deleted");
+    
     return 0;
 }

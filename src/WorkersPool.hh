@@ -42,6 +42,7 @@ public:
         
     bool addTask(Runnable* const runnable);
     bool removeTask(const int id);
+    void stop();
     
 private:
     bool addJob(int id);

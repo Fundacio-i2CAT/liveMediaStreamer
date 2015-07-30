@@ -100,6 +100,11 @@ WorkersPool::WorkersPool(size_t threads) : run(true)
 
 WorkersPool::~WorkersPool()
 {
+    stop();
+}
+
+void WorkersPool::stop()
+{
     run = false;
     qCheck.notify_all();
     for (std::thread &worker : workers){
@@ -107,6 +112,7 @@ WorkersPool::~WorkersPool()
             worker.join();
         }
     }
+    jobQueue.clear();
 }
 
 bool WorkersPool::addTask(Runnable* const task)
@@ -134,8 +140,9 @@ bool WorkersPool::removeTask(const int id)
     if (runnables.count(id) > 0){
         runnable = runnables[id];
         runnables.erase(id);
+        runnable->removeFromGroup();
         removeFromQueue(id);
-        while (runnable->isRunning()){
+        while(runnable->isRunning()){
             qCheck.wait_for(guard, std::chrono::milliseconds(IDLE));
         }
         removeFromQueue(id);

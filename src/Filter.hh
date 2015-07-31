@@ -218,8 +218,6 @@ protected:
     std::chrono::microseconds getSyncTs(){return syncTs;};
 
 protected:
-    bool process;
-
     std::map<int, std::shared_ptr<Reader>> readers;
     std::map<int, std::shared_ptr<Writer>> writers;
     std::map<int, size_t> seqNums;
@@ -234,9 +232,7 @@ private:
     std::vector<int> regularProcessFrame(int& ret);
     std::vector<int> serverProcessFrame(int& ret);
     bool deleteReader(int readerId);
-
-    void execute() {process = true;};
-    bool isProcessing() {return process;};
+    bool pendingJobs();
 
 private:
     std::priority_queue<Event> eventQueue;

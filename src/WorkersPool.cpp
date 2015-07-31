@@ -76,8 +76,12 @@ WorkersPool::WorkersPool(size_t threads) : run(true)
                     guard.lock();
                     job->unsetRunning();
                     
-                    for(auto job : enabledJobs){
-                        added |= addJob(job);
+                    if (job->pendingJobs()){
+                        enabledJobs.push_back(job->getId());
+                    }
+                    
+                    for(auto id : enabledJobs){
+                        added |= addJob(id);
                     }
                     
                     if (job->isPeriodic()){

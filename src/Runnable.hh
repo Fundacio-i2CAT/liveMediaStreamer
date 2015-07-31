@@ -120,6 +120,12 @@ public:
      * Removes this runnable instance from its group
      */
     void removeFromGroup();
+    
+    /**
+     * Used after processig its task, in order to check if there is something else to process.
+     * @return true if there is something pending, false otherwise.
+     */ 
+    virtual bool pendingJobs() = 0;
 
 protected:
     /**

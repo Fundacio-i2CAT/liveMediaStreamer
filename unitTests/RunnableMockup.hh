@@ -69,6 +69,10 @@ protected:
         
         return enabledJobs;
     }
+    
+    bool pendingJobs(){
+        return false;
+    }
 
 private:
     std::default_random_engine generator;

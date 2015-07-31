@@ -31,7 +31,7 @@
 
 
 BaseFilter::BaseFilter(unsigned readersNum, unsigned writersNum, FilterRole fRole_, bool periodic): Runnable(periodic), 
-process(false), maxReaders(readersNum), maxWriters(writersNum),  frameTime(std::chrono::microseconds(0)), 
+maxReaders(readersNum), maxWriters(writersNum),  frameTime(std::chrono::microseconds(0)), 
 fRole(fRole_), syncTs(std::chrono::microseconds(0))
 {
 }
@@ -190,10 +190,10 @@ std::vector<int> BaseFilter::addFrames(std::map<int, Frame*> &dFrames)
 
 bool BaseFilter::removeFrames(std::vector<int> framesToRemove)
 {
-    bool executeAgain = false;
-
+    bool removed = true;
+    
     if (maxReaders == 0) {
-        return executeAgain;
+        return removed;
     }
     
     std::lock_guard<std::mutex> guard(mtx);
@@ -201,11 +201,22 @@ bool BaseFilter::removeFrames(std::vector<int> framesToRemove)
     for (auto id : framesToRemove){
         if (readers.count(id) > 0){
             readers[id]->removeFrame(getId());
-            executeAgain |= (readers[id]->getQueueElements() > 0);
+        } else {
+            removed = false;
         }
     }
 
-    return executeAgain;
+    return removed;
+}
+
+bool BaseFilter::pendingJobs()
+{
+    for (auto it : readers){
+        if (it.second && it.second->getQueueElements() > 0){
+            return true;
+        }
+    }
+    return false;
 }
 
 bool BaseFilter::shareReader(BaseFilter *shared, int sharedRId, int orgRId)
@@ -462,9 +473,7 @@ std::vector<int> BaseFilter::regularProcessFrame(int& ret)
     //TODO: manage ret value
     enabledJobs = addFrames(dFrames);
     
-    if (removeFrames(newFrames)) {
-        enabledJobs.push_back(getId());
-    }
+    removeFrames(newFrames);
 
     return enabledJobs;
 }
@@ -484,9 +493,7 @@ std::vector<int> BaseFilter::serverProcessFrame(int& ret)
     runDoProcessFrame(oFrames, dFrames, newFrames);
 
     enabledJobs = addFrames(dFrames);
-    if (removeFrames(newFrames)){
-        enabledJobs.push_back(getId());
-    }
+    removeFrames(newFrames);
     
     ret = 0;
     
@@ -528,7 +535,7 @@ std::vector<int> BaseFilter::demandOriginFramesBestEffort(std::map<int, Frame*> 
     Frame* frame;
 
     for (auto r : readers) {
-        if (!r.second->isConnected()) {
+        if (!r.second || !r.second->isConnected()) {
             deleteReader(r.first);
             continue;
         }
@@ -560,7 +567,7 @@ std::vector<int> BaseFilter::demandOriginFramesFrameTime(std::map<int, Frame*> &
     std::vector<int> newFrames;
 
     for (auto r : readers) {
-        if (!r.second->isConnected()) {
+        if (!r.second || !r.second->isConnected()) {
             deleteReader(r.first);
             continue;
         }

@@ -3,7 +3,8 @@ AUTOMAKE_OPTIONS = foreign
 bin_PROGRAMS = connectionTest sinkManagerTest filterTest dasherTest dashAudioSegmenterTest \
                dashVideoSegmenterTest mpdManagerTest encodingDecodingTest sharedMemoryTest \
                slicedVideoFrameQueueTest audioCircularBufferTest videoMixerTest videoMixerFunctionalTest \
-               audioMixerFunctionalTest headDemuxerTest headDemuxerFunctionalTest workersPoolTest avFramedQueueTest pipelineManagerTest
+               audioMixerFunctionalTest headDemuxerTest headDemuxerFunctionalTest workersPoolTest \
+               avFramedQueueTest pipelineManagerTest IOInterfaceTest
 
 videoMixerTest_SOURCES = modules/videoMixer/VideoMixerTest.cpp ../src/modules/videoMixer/VideoMixer.cpp ../src/AVFramedQueue.cpp ../src/IOInterface.cpp ../src/Event.cpp ../src/Frame.cpp ../src/VideoFrame.cpp ../src/AudioFrame.cpp ../src/Jzon.cpp ../src/Utils.cpp ../src/Filter.cpp ../src/Runnable.cpp
 videoMixerTest_CPPFLAGS = -g -Wall -D__STDC_CONSTANT_MACROS -I../src/
@@ -100,3 +101,8 @@ pipelineManagerTest_CPPFLAGS = -g -Wall -g -D__STDC_CONSTANT_MACROS -I../src -I.
 pipelineManagerTest_CXXFLAGS = -std=c++11
 pipelineManagerTest_LDFLAGS = -llog4cplus -lcppunit -lpthread -llivemediastreamer -L../src
 pipelineManagerTest_DEPENDENCIES = ../src/liblivemediastreamer.la
+
+IOInterfaceTest_SOURCES =  IOInterfaceTest.cpp ../src/IOInterface.cpp ../src/Frame.cpp ../src/Utils.cpp ../src/AVFramedQueue.cpp ../src/VideoFrame.cpp ../src/AudioFrame.cpp
+IOInterfaceTest_CPPFLAGS = -g -Wall -g -D__STDC_CONSTANT_MACROS -I../src -I.
+IOInterfaceTest_CXXFLAGS = -std=c++11
+IOInterfaceTest_LDFLAGS = -llog4cplus -lcppunit -lpthread

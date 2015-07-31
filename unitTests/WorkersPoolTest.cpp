@@ -81,6 +81,8 @@ void WorkersPoolTest::addAndRemoveTask()
     CPPUNIT_ASSERT(!pool->removeTask(1));
     CPPUNIT_ASSERT(!pool->removeTask(2));
     
+    pool->stop();
+    
     delete periodicR;
     delete notPeriodicR;
 }

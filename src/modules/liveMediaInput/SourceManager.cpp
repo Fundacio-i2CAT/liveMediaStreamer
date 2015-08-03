@@ -295,10 +295,14 @@ bool SourceManager::addSessionEvent(Jzon::Node* params)
     }
 
     if (addSession(session)) {
-        session->initiateSession();
+        if(session->initiateSession()){
+           return true; 
+        } else {
+            return false;
+        } 
+    } else {
+        return false;
     }
-
-    return true;
 }
 
 std::string SourceManager::makeSessionSDP(std::string sessionName, std::string sessionDescription)
@@ -454,8 +458,8 @@ bool Session::initiateSession()
 
            subsession = scs->iter->next();
         }
-
         return true;
+
     } else if (client != NULL){
         unsigned ret = client->sendDescribeCommand(handlers::continueAfterDESCRIBE);
         std::cout << "SEND DESCRIBE COMMAND RETURN: " << ret << std::endl;

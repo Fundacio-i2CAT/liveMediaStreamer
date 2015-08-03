@@ -274,6 +274,12 @@ namespace utils
             case DEMUXER:
                 stringType = "demuxer";
                 break;
+            case DASHER:
+                stringType = "dasher";
+                break;                
+            case SHARED_MEMORY:
+                stringType = "sharedMemory";
+                break;  
             default:
                 stringType = "";
                 break;

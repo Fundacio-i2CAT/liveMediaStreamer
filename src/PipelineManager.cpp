@@ -146,7 +146,10 @@ bool PipelineManager::createFilter(int id, FilterType type)
         case AUDIO_MIXER:
             filter = new AudioMixer();
             break;
-        //TODO include sharedMemory and Dasher filters
+        case DASHER:
+            filter = new Dasher();
+            break;            
+        //TODO include sharedMemory filter
         default:
             utils::errorMsg("Unknown filter type");
             break;

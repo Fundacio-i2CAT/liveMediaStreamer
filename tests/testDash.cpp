@@ -552,15 +552,17 @@ int main(int argc, char* argv[])
         }
 
         if (!ctrl->readAndParse()) {
-            //TDODO: error msg
+            utils::errorMsg("Controller failed to read and parse the incoming event data");
             continue;
         }
 
         ctrl->processRequest();
     }
 
-    Controller::destroyInstance();
-    PipelineManager::destroyInstance();
+    ctrl->destroyInstance();
+    utils::infoMsg("Controlled deleted");
+    pipe->destroyInstance();
+    utils::infoMsg("Pipe deleted");
     
     return 0;
 }

@@ -70,6 +70,17 @@ ConnectionData BaseFilter::getWConnectionData (int wId)
     return cData;
 }
 
+std::chrono::microseconds BaseFilter::getAvgReaderDelay (int rId)
+{
+    std::shared_ptr<Reader> r = getReader(rId);
+
+    if (!r) {
+        return std::chrono::microseconds(-1);
+    }
+
+    return r->getAvgDelay();
+}
+
 bool BaseFilter::isRConnected (int rId) 
 {
     std::lock_guard<std::mutex> guard(mtx);

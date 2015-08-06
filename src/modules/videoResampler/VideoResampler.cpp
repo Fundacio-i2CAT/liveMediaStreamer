@@ -158,9 +158,8 @@ bool VideoResampler::doProcessFrame(Frame *org, Frame *dst)
     }
     
     dstFrame->setPresentationTime(orgFrame->getPresentationTime());
-    dstFrame->setOriginTime(orgFrame->getOriginTime());
-
     dst->setConsumed(true);
+
     return true;
 }
 

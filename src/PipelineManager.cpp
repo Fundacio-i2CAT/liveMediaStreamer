@@ -405,6 +405,7 @@ void PipelineManager::getStateEvent(Jzon::Node* params, Jzon::Object &outputNode
     Jzon::Array filterList;
     Jzon::Array pathList;
     Jzon::Array workersList;
+    BaseFilter* f;
 
     for (auto it : filters) {
         Jzon::Object filter;
@@ -425,6 +426,13 @@ void PipelineManager::getStateEvent(Jzon::Node* params, Jzon::Object &outputNode
         path.Add("destinationFilter", it.second->getDestinationFilterID());
         path.Add("originWriter", it.second->getOrgWriterID());
         path.Add("destinationReader", it.second->getDstReaderID());
+
+        f = getFilter(it.second->getDestinationFilterID());
+        if (f) {
+            path.Add("avgDelay", (int)f->getAvgReaderDelay(it.second->getDstReaderID()).count());
+        } else {
+            utils::warningMsg("[PipelineManager::getStateEvent] Path filter does not exist. Ambiguous situation! Better pray Jesus...");
+        }
 
         for (auto it : pFilters) {
             pathFilters.Add(it);

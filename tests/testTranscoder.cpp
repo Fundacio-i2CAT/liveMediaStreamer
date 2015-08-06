@@ -131,16 +131,16 @@ void addVideoPath(unsigned port, int receiverID, int transmitterID)
         return;
     }
     
-    if (!pipe->createPath(BYPASS_VIDEO_PATH, receiverID, transmitterID, port, BYPASS_VIDEO_PATH, std::vector<int>({}))) {
-        utils::errorMsg("Error creating video path");
-        return;
-    }
+    // if (!pipe->createPath(BYPASS_VIDEO_PATH, receiverID, transmitterID, port, BYPASS_VIDEO_PATH, std::vector<int>({}))) {
+    //     utils::errorMsg("Error creating video path");
+    //     return;
+    // }
 
-    if (!pipe->connectPath(BYPASS_VIDEO_PATH)) {
-        utils::errorMsg("Failed! Path not connected");
-        pipe->removePath(port);
-        return;
-    }
+    // if (!pipe->connectPath(BYPASS_VIDEO_PATH)) {
+    //     utils::errorMsg("Failed! Path not connected");
+    //     pipe->removePath(port);
+    //     return;
+    // }
 
     utils::infoMsg("Video path created from port " + std::to_string(port));
 }
@@ -267,19 +267,19 @@ bool publishRTSPSession(std::vector<int> readers, SinkManager *transmitter)
     }
 
     
-    if (transmitter->isRConnected(BYPASS_AUDIO_PATH)){
-        byPassReaders.push_back(BYPASS_AUDIO_PATH);
-    }
+    // if (transmitter->isRConnected(BYPASS_AUDIO_PATH)){
+    //     byPassReaders.push_back(BYPASS_AUDIO_PATH);
+    // }
     
-    if (transmitter->isRConnected(BYPASS_VIDEO_PATH)){
-        byPassReaders.push_back(BYPASS_VIDEO_PATH);
-    }
+    // if (transmitter->isRConnected(BYPASS_VIDEO_PATH)){
+    //     byPassReaders.push_back(BYPASS_VIDEO_PATH);
+    // }
     
-    sessionId = "bypass";
-    utils::infoMsg("Adding bypass session...");
-    if (!transmitter->addRTSPConnection(byPassReaders, 3, STD_RTP, sessionId)){
-        return false;
-    }
+    // sessionId = "bypass";
+    // utils::infoMsg("Adding bypass session...");
+    // if (!transmitter->addRTSPConnection(byPassReaders, 3, STD_RTP, sessionId)){
+    //     return false;
+    // }
     
     return true;
 }

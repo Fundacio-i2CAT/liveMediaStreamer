@@ -146,8 +146,8 @@ void Reader::measureDelay()
 
 void Reader::measureLosses()
 {
-    if(frame->getSequenceNumber() > lastSeqNum + 1 ){
-        lostFrames += frame->getSequenceNumber() - (lastSeqNum + 1);
+    if(frame->getSequenceNumber() > (lastSeqNum + 1)){
+        lostFrames += (frame->getSequenceNumber() - (lastSeqNum + 1));
     }
     lastSeqNum = frame->getSequenceNumber();
 }

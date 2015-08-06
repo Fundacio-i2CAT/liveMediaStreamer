@@ -430,6 +430,8 @@ void PipelineManager::getStateEvent(Jzon::Node* params, Jzon::Object &outputNode
         f = getFilter(it.second->getDestinationFilterID());
         if (f) {
             path.Add("avgDelay", (int)f->getAvgReaderDelay(it.second->getDstReaderID()).count());
+            path.Add("totalFrames", (int)f->getTotalFrames(it.second->getDstReaderID()));
+            path.Add("lostFrames", (int)f->getLostFrames(it.second->getDstReaderID()));
         } else {
             utils::warningMsg("[PipelineManager::getStateEvent] Path filter does not exist. Ambiguous situation! Better pray Jesus...");
         }

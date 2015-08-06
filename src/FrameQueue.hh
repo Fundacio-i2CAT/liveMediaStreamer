@@ -149,6 +149,7 @@ protected:
     const ConnectionData connectionData;
 
     const StreamInfo *streamInfo;
+
 };
 
 #endif

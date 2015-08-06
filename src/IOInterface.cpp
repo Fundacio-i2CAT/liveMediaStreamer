@@ -32,7 +32,7 @@
 Reader::Reader(std::chrono::microseconds wDelay) : queue(NULL), frame(NULL), filters(0), pending(0), avgDelay(std::chrono::microseconds(0)), 
                     delay(std::chrono::microseconds(0)), windowDelay(wDelay), 
                     lastTs(std::chrono::microseconds(-1)), timeCounter(std::chrono::microseconds(0)), 
-                    frameCounter(0)
+                    frameCounter(0), lostFrames(0), lastSeqNum(0)
 {
 }
 
@@ -110,6 +110,7 @@ int Reader::removeFrame(int fId)
     if (pending == 0){
 
         measureDelay();
+        measureLosses();
 
         frame = NULL;
         requests.clear();
@@ -143,6 +144,14 @@ void Reader::measureDelay()
     frameCounter++;
 }
 
+void Reader::measureLosses()
+{
+    if(frame->getSequenceNumber() > lastSeqNum + 1 ){
+        lostFrames += frame->getSequenceNumber() - (lastSeqNum + 1);
+    }
+    lastSeqNum = frame->getSequenceNumber();
+}
+
 std::chrono::microseconds Reader::getAvgDelay()
 { 
     std::lock_guard<std::mutex> guard(lck);
@@ -150,6 +159,19 @@ std::chrono::microseconds Reader::getAvgDelay()
     return avgDelay; 
 };
 
+size_t Reader::getLostFrames()
+{ 
+    std::lock_guard<std::mutex> guard(lck);
+
+    return lostFrames; 
+};
+
+size_t Reader::getTotalFrames()
+{ 
+    std::lock_guard<std::mutex> guard(lck);
+
+    return lastSeqNum; 
+};
 
 void Reader::setConnection(FrameQueue *queue)
 {

@@ -128,6 +128,11 @@ namespace handlers
                 scs.subsession->deInitiate();
             }
 
+            if (!scs.addNewSubsessionStats(queueSink->getPort(), scs.subsession)){
+                utils::errorMsg("Failed adding subsession statistics in SourceManager");
+                scs.subsession->deInitiate();
+            }
+
             scs.sessionTimeoutParameter = rtspClient->sessionTimeoutParameter();
 
         } while (0);

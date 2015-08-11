@@ -40,6 +40,8 @@
 #define PROTOCOL "RTP"
 
 class SourceManager;
+class SourceManagerSubsessionStats;
+class statsMeasurements;
 
 class StreamClientState {
 public:
@@ -49,6 +51,12 @@ public:
     std::string getId(){return id;}
 
     bool addSinkToMngr(unsigned id, QueueSink* sink);
+
+    bool addNewSubsessionStats(size_t port, MediaSubsession* subsession);
+
+    bool removeSubsessionStats(size_t port);
+
+    SourceManagerSubsessionStats* getSubsessionStats(size_t port);
 
 public:
     SourceManager *const mngr;
@@ -64,6 +72,7 @@ public:
 
 private:
     std::string id;
+    std::map<int, SourceManagerSubsessionStats*> smsStats;
 };
 
 class Session {
@@ -135,6 +144,97 @@ private:
 
     UsageEnvironment* env;
     BasicTaskScheduler0 *scheduler;
+};
+
+/*! It represents a SourceManager subsession statistics object. It contains the port (id of the subsession) and average, 
+    minumum and maximum values of packet loss, bit rate and inter packet gap parameters. */
+
+class SourceManagerSubsessionStats {
+
+public:
+    /**
+    * Class constructor
+    * @param port as the subsession id
+    */
+    SourceManagerSubsessionStats(MediaSubsession* subsession);
+
+    /**
+    * Class destructor
+    */
+    ~SourceManagerSubsessionStats();
+
+    void beginStatsMeasurement();
+
+    size_t getPort() { return port;};
+
+    size_t getAvgPacketLoss() { return avgPacketLoss;};
+
+    size_t getMaxPacketLoss() { return maxPacketLoss;};
+
+    size_t getMinPacketLoss() { return minPacketLoss;};
+
+    size_t getAvgBitRate() { return avgBitRate;};
+
+    size_t getMaxBitRate() { return maxBitRate;};
+
+    size_t getMinBitRate() { return minBitRate;};
+
+    size_t getAvgInterPacketGap() { return avgInterPacketGap;};
+
+    size_t getMaxInterPacketGap() { return maxInterPacketGap;};
+
+    size_t getMinInterPacketGap() { return minInterPacketGap;};
+
+private:
+    const size_t port;
+    size_t avgPacketLoss;
+    size_t maxPacketLoss;
+    size_t minPacketLoss;
+    size_t avgBitRate;
+    size_t maxBitRate;
+    size_t minBitRate;
+    size_t avgInterPacketGap;
+    size_t maxInterPacketGap;
+    size_t minInterPacketGap;    
+
+    MediaSubsession* fSubSession;
+
+    unsigned nextStatsMeasurementUSecs;
+    statsMeasurements* statsRecordHead;
+};
+
+class statsMeasurements {
+public:
+    statsMeasurements(struct timeval const& startTime, RTPSource* src): 
+        fSource(src), fNext(NULL), kbits_per_second_min(1e20), kbits_per_second_max(0),
+        kBytesTotal(0.0), packet_loss_fraction_min(1.0), packet_loss_fraction_max(0.0),
+        totNumPacketsReceived(0), totNumPacketsExpected(0) 
+    {
+        measurementEndTime = measurementStartTime = startTime;
+
+        RTPReceptionStatsDB::Iterator statsIter(src->receptionStatsDB());
+        // Assume that there's only one SSRC source (usually the case):
+        RTPReceptionStats* stats = statsIter.next(True);
+        if (stats != NULL) {
+            kBytesTotal = stats->totNumKBytesReceived();
+            totNumPacketsReceived = stats->totNumPacketsReceived();
+            totNumPacketsExpected = stats->totNumPacketsExpected();
+        }
+    }
+    virtual ~statsMeasurements() { delete fNext; }
+
+    void periodicStatsMeasurement(struct timeval const& timeNow);
+
+public:
+    RTPSource* fSource;
+    statsMeasurements* fNext;
+
+public:
+    struct timeval measurementStartTime, measurementEndTime;
+    double kbits_per_second_min, kbits_per_second_max;
+    double kBytesTotal;
+    double packet_loss_fraction_min, packet_loss_fraction_max;
+    unsigned totNumPacketsReceived, totNumPacketsExpected;
 };
 
 #endif

@@ -159,6 +159,7 @@ bool SourceManager::removeSession(std::string id)
                 Medium::close(sinks[subsession->clientPortNum()]);
                 sinks.erase(subsession->clientPortNum());
                 disconnectWriter(subsession->clientPortNum());
+                it.second->getScs()->removeSubsessionStats(subsession->clientPortNum());
             }
             subsession = it.second->getScs()->iter->next();
         }
@@ -452,6 +453,11 @@ bool Session::initiateSession()
                     subsession->deInitiate();
                     return false;
                 }
+                if(!scs->addNewSubsessionStats(queueSink->getPort(), subsession)){
+                    utils::errorMsg("Failed adding subsession statistics in SourceManager");
+                    subsession->deInitiate();
+                    return false;                    
+                }
             }
 	   
             increaseReceiveBufferTo(env, subsession->rtpSource()->RTPgs()->socketNum(), RTP_RECEIVE_BUFFER_SIZE);
@@ -522,10 +528,86 @@ StreamClientState::~StreamClientState()
         env.taskScheduler().unscheduleDelayedTask(streamTimerTask);
         env.taskScheduler().unscheduleDelayedTask(sessionTimeoutBrokenServerTask);
         Medium::close(session);
+
+        for (auto it : smsStats) {
+            delete it.second;
+        }
     }
 }
 
 bool StreamClientState::addSinkToMngr(unsigned id, QueueSink* sink)
 {
     return mngr->addSink(id, sink);
+}
+
+bool StreamClientState::addNewSubsessionStats(size_t port, MediaSubsession* subsession)
+{
+    if (smsStats.count(port) > 0) {
+        return false;
+    }
+
+    smsStats[port] = new SourceManagerSubsessionStats(subsession);
+
+    smsStats[port]->beginStatsMeasurement();
+
+    return true;    
+}
+
+bool StreamClientState::removeSubsessionStats(size_t port)
+{
+    if (smsStats.count(port) <= 0) {
+        utils::errorMsg("Failed removing subsession stats in SourceManager");
+        return false;
+    }
+    
+    delete smsStats[port];
+    smsStats.erase(port);
+
+    return true;
+}
+
+SourceManagerSubsessionStats* StreamClientState::getSubsessionStats(size_t port)
+{
+    if (smsStats.count(port) <= 0) {
+        utils::errorMsg("No subsession stats with id " +std::to_string(port) +" in SourceManager");
+        return NULL;
+    }
+
+    return smsStats[port];
+}
+
+// Implementation of "SourceManagerSubsessionStats" class:
+
+SourceManagerSubsessionStats::SourceManagerSubsessionStats(MediaSubsession* subsession) :
+    port(subsession->clientPortNum()), avgPacketLoss(0), maxPacketLoss(0), minPacketLoss(0), 
+    avgBitRate(0), maxBitRate(0), minBitRate(0),
+    avgInterPacketGap(0), maxInterPacketGap(0), minInterPacketGap(0),
+    fSubSession(subsession), nextStatsMeasurementUSecs(0), statsRecordHead(NULL)
+{
+}
+
+SourceManagerSubsessionStats::~SourceManagerSubsessionStats()
+{
+}
+
+void SourceManagerSubsessionStats::beginStatsMeasurement() {
+    struct timeval startTime;
+    gettimeofday(&startTime, NULL);
+    nextStatsMeasurementUSecs = startTime.tv_sec*1000000 + startTime.tv_usec;
+    statsMeasurements* statsRecordTail = NULL;
+
+    if(fSubSession == NULL) return;
+
+    RTPSource* src = fSubSession->rtpSource();
+    if (src == NULL) return;
+
+    statsMeasurements* statsRecord = new statsMeasurements(startTime, src);
+
+    if (statsRecordHead == NULL) {
+        statsRecordHead = statsRecord;
+    }
+    if (statsRecordTail != NULL) statsRecordTail->fNext = statsRecord;
+    statsRecordTail  = statsRecord;
+
+    //scheduleNextStatsMeasurement();
 }

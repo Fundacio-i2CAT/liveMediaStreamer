@@ -297,13 +297,11 @@ bool SourceManager::addSessionEvent(Jzon::Node* params)
 
     if (addSession(session)) {
         if(session->initiateSession()){
-           return true; 
-        } else {
-            return false;
+            return true; 
         } 
-    } else {
-        return false;
     }
+
+    return false;
 }
 
 std::string SourceManager::makeSessionSDP(std::string sessionName, std::string sessionDescription)
@@ -357,6 +355,12 @@ void SourceManager::doGetState(Jzon::Object &filterNode)
 {
     Jzon::Array sessionArray;
     MediaSubsession* subsession;
+    unsigned numPacketsReceived = 0, numPacketsExpected = 0;
+    unsigned secsDiff = 0;
+    int usecsDiff = 0;
+    double measurementTime = 0;
+    double packetLossFraction = 0;
+    double totalGapsMS;
 
     for (auto it : sessionMap) {
         Jzon::Array subsessionArray;
@@ -374,6 +378,44 @@ void SourceManager::doGetState(Jzon::Object &filterNode)
             jsonSubsession.Add("port", subsession->clientPortNum());
             jsonSubsession.Add("medium", subsession->mediumName());
             jsonSubsession.Add("codec", subsession->codecName());
+
+            // SUBSESSION STATISTICS (RTP)
+            SCSSubsessionStats* scsss = it.second->getScs()->getSubsessionStats(subsession->clientPortNum());
+
+            numPacketsReceived = scsss->getTotNumPacketsReceived();
+            numPacketsExpected = scsss->getTotNumPacketsExpected();
+            secsDiff  = scsss->getMeasurementEndTime().tv_sec - scsss->getMeasurementStartTime().tv_sec;
+            usecsDiff = scsss->getMeasurementEndTime().tv_usec - scsss->getMeasurementStartTime().tv_usec;
+            measurementTime  = secsDiff + usecsDiff/1000000.0;
+            
+            // BITRATE
+            if ( scsss->getKbitsPerSecondMax() == 0) {
+                // special case: we didn't receive any data:
+                jsonSubsession.Add("minBitrateInKbps", 0);
+                jsonSubsession.Add("maxBitRateInKbps", 0);
+                jsonSubsession.Add("avgBitRateInKbps", 0);
+
+            } else {
+                jsonSubsession.Add("minBitrateInKbps", scsss->getKbitsPerSecondMin());
+                jsonSubsession.Add("maxBitRateInKbps", scsss->getKbitsPerSecondMax());
+                jsonSubsession.Add("avgBitRateInKbps", (measurementTime == 0.0 ? 0.0 : 8*scsss->getKBytesTotal()/measurementTime));
+            }
+            
+            // PACKET LOSS
+            jsonSubsession.Add("minPacketLossPercentage", 100*scsss->getPacketLossFractionMin());
+            packetLossFraction = numPacketsExpected == 0 ? 1.0 : 1.0 - numPacketsReceived/(double)numPacketsExpected;
+            if (packetLossFraction < 0.0) packetLossFraction = 0.0;
+            jsonSubsession.Add("maxPacketLossPercentage", (packetLossFraction == 1.0 ? 100.0 : 100*scsss->getPacketLossFractionMax()));
+            jsonSubsession.Add("avgPacketLossPercentage", 100*packetLossFraction);
+
+            // INTER PACKET GAP
+            jsonSubsession.Add("minInterPacketGapInMiliseconds", (int)(scsss->getMinInterPacketGapUS()/1000.0));
+            jsonSubsession.Add("maxInterPacketGapInMiliseconds", (int)(scsss->getMaxInterPacketGapUS()/1000.0));
+            totalGapsMS = scsss->getTotalGaps().tv_sec*1000.0 + scsss->getTotalGaps().tv_usec/1000.0;
+            jsonSubsession.Add("avgInterPacketGapInMiliseconds", (int)(numPacketsReceived == 0 ? 0.0 : totalGapsMS/numPacketsReceived) );
+
+            // JITTER 
+            jsonSubsession.Add("jitterInMicroseconds", (int)scsss->getJitter());
 
             subsessionArray.Add(jsonSubsession);
         }
@@ -512,7 +554,9 @@ MediaSubsession* Session::getSubsessionByPort(int port)
 
 StreamClientState::StreamClientState(std::string id_, SourceManager *const  manager) :
     mngr(manager), iter(NULL), session(NULL), subsession(NULL),
-    streamTimerTask(NULL), duration(0.0), sessionTimeoutBrokenServerTask(NULL),
+    streamTimerTask(NULL), duration(0.0), 
+    sessionTimeoutBrokenServerTask(NULL), sessionStatsMeasurementTask(NULL),
+    statsMeasurementIntervalMS(DEFAULT_STATS_TIME_INTERVAL), nextStatsMeasurementUSecs(0),
     sendKeepAlivesToBrokenServers(True), // Send periodic 'keep-alive' requests to keep broken server sessions alive
     sessionTimeoutParameter(0), id(id_)
 {
@@ -527,6 +571,7 @@ StreamClientState::~StreamClientState()
 
         env.taskScheduler().unscheduleDelayedTask(streamTimerTask);
         env.taskScheduler().unscheduleDelayedTask(sessionTimeoutBrokenServerTask);
+        env.taskScheduler().unscheduleDelayedTask(sessionStatsMeasurementTask);
         Medium::close(session);
 
         for (auto it : smsStats) {
@@ -546,9 +591,19 @@ bool StreamClientState::addNewSubsessionStats(size_t port, MediaSubsession* subs
         return false;
     }
 
-    smsStats[port] = new SourceManagerSubsessionStats(subsession);
+    struct timeval startTime;
+    gettimeofday(&startTime, NULL);
+    nextStatsMeasurementUSecs = startTime.tv_sec*1000000 + startTime.tv_usec;
 
-    smsStats[port]->beginStatsMeasurement();
+    if(subsession == NULL) return false;
+
+    RTPSource* src = subsession->rtpSource();
+
+    if (src == NULL) return false;
+
+    smsStats[port] = new SCSSubsessionStats(port, src ,startTime);
+
+    scheduleNextStatsMeasurement(this->mngr->envir());
 
     return true;    
 }
@@ -566,7 +621,7 @@ bool StreamClientState::removeSubsessionStats(size_t port)
     return true;
 }
 
-SourceManagerSubsessionStats* StreamClientState::getSubsessionStats(size_t port)
+SCSSubsessionStats* StreamClientState::getSubsessionStats(size_t port)
 {
     if (smsStats.count(port) <= 0) {
         utils::errorMsg("No subsession stats with id " +std::to_string(port) +" in SourceManager");
@@ -576,38 +631,93 @@ SourceManagerSubsessionStats* StreamClientState::getSubsessionStats(size_t port)
     return smsStats[port];
 }
 
-// Implementation of "SourceManagerSubsessionStats" class:
-
-SourceManagerSubsessionStats::SourceManagerSubsessionStats(MediaSubsession* subsession) :
-    port(subsession->clientPortNum()), avgPacketLoss(0), maxPacketLoss(0), minPacketLoss(0), 
-    avgBitRate(0), maxBitRate(0), minBitRate(0),
-    avgInterPacketGap(0), maxInterPacketGap(0), minInterPacketGap(0),
-    fSubSession(subsession), nextStatsMeasurementUSecs(0), statsRecordHead(NULL)
+void periodicSubsessionStatsMeasurement(StreamClientState* scs) 
 {
-}
+    struct timeval timeNow;
+    gettimeofday(&timeNow, NULL);
 
-SourceManagerSubsessionStats::~SourceManagerSubsessionStats()
-{
-}
-
-void SourceManagerSubsessionStats::beginStatsMeasurement() {
-    struct timeval startTime;
-    gettimeofday(&startTime, NULL);
-    nextStatsMeasurementUSecs = startTime.tv_sec*1000000 + startTime.tv_usec;
-    statsMeasurements* statsRecordTail = NULL;
-
-    if(fSubSession == NULL) return;
-
-    RTPSource* src = fSubSession->rtpSource();
-    if (src == NULL) return;
-
-    statsMeasurements* statsRecord = new statsMeasurements(startTime, src);
-
-    if (statsRecordHead == NULL) {
-        statsRecordHead = statsRecord;
+    for (auto it : scs->getSCSSubsesionStatsMap()) {
+        it.second->periodicStatMeasurement(timeNow);
     }
-    if (statsRecordTail != NULL) statsRecordTail->fNext = statsRecord;
-    statsRecordTail  = statsRecord;
 
-    //scheduleNextStatsMeasurement();
+    scs->scheduleNextStatsMeasurement(scs->mngr->envir());
+}
+
+void StreamClientState::scheduleNextStatsMeasurement(UsageEnvironment* env) 
+{
+    nextStatsMeasurementUSecs += statsMeasurementIntervalMS*1000;
+    struct timeval timeNow;
+    gettimeofday(&timeNow, NULL);
+    unsigned timeNowUSecs = timeNow.tv_sec*1000000 + timeNow.tv_usec;
+    int usecsToDelay = nextStatsMeasurementUSecs - timeNowUSecs;
+
+    sessionStatsMeasurementTask = env->taskScheduler().scheduleDelayedTask(
+        usecsToDelay, (TaskFunc*)periodicSubsessionStatsMeasurement, this);
+}
+
+// Implementation of "SCSSubsessionStats" class:
+
+SCSSubsessionStats::SCSSubsessionStats(size_t id_, RTPSource* src, struct timeval const& startTime) :
+    id(id_), fSource(src), kbitsPerSecondMin(1e20), kbitsPerSecondMax(0),
+    kBytesTotal(0.0), packetLossFractionMin(1.0), packetLossFractionMax(0.0),
+    totNumPacketsReceived(0), totNumPacketsExpected(0), minInterPacketGapUS(0),
+    maxInterPacketGapUS(0), jitter(0)
+{
+    measurementEndTime = measurementStartTime = startTime;
+
+    RTPReceptionStatsDB::Iterator statsIter(src->receptionStatsDB());
+    // Assume that there's only one SSRC source (usually the case):
+    RTPReceptionStats* stats = statsIter.next(True);
+    if (stats != NULL) {
+        kBytesTotal = stats->totNumKBytesReceived();
+        totNumPacketsReceived = stats->totNumPacketsReceived();
+        totNumPacketsExpected = stats->totNumPacketsExpected();
+    }
+}
+
+SCSSubsessionStats::~SCSSubsessionStats()
+{
+}
+
+void SCSSubsessionStats::periodicStatMeasurement(struct timeval const& timeNow) 
+{
+    unsigned secsDiff = timeNow.tv_sec - measurementEndTime.tv_sec;
+    int usecsDiff = timeNow.tv_usec - measurementEndTime.tv_usec;
+    double timeDiff = secsDiff + usecsDiff/1000000.0;
+    measurementEndTime = timeNow;
+
+    RTPReceptionStatsDB::Iterator statsIter(fSource->receptionStatsDB());
+    // Assume that there's only one SSRC source (usually the case):
+    RTPReceptionStats* stats = statsIter.next(True);
+    if (stats != NULL) {
+        double kBytesTotalNow = stats->totNumKBytesReceived();
+        double kBytesDeltaNow = kBytesTotalNow - kBytesTotal;
+        kBytesTotal = kBytesTotalNow;
+
+        double kbpsNow = timeDiff == 0.0 ? 0.0 : 8*kBytesDeltaNow/timeDiff;
+        if (kbpsNow < 0.0) kbpsNow = 0.0; // in case of roundoff error
+        if (kbpsNow < kbitsPerSecondMin) kbitsPerSecondMin = kbpsNow;
+        if (kbpsNow > kbitsPerSecondMax) kbitsPerSecondMax = kbpsNow;
+
+        unsigned totReceivedNow = stats->totNumPacketsReceived();
+        unsigned totExpectedNow = stats->totNumPacketsExpected();
+        unsigned deltaReceivedNow = totReceivedNow - totNumPacketsReceived;
+        unsigned deltaExpectedNow = totExpectedNow - totNumPacketsExpected;
+        totNumPacketsReceived = totReceivedNow;
+        totNumPacketsExpected = totExpectedNow;
+
+        double lossFractionNow = deltaExpectedNow == 0 ? 0.0 : 1.0 - deltaReceivedNow/(double)deltaExpectedNow;
+        //if (lossFractionNow < 0.0) lossFractionNow = 0.0; //reordering can cause
+        if (lossFractionNow < packetLossFractionMin) {
+            packetLossFractionMin = lossFractionNow;
+        }
+        if (lossFractionNow > packetLossFractionMax) {
+            packetLossFractionMax = lossFractionNow;
+        }
+
+        minInterPacketGapUS = stats->minInterPacketGapUS();
+        maxInterPacketGapUS = stats->maxInterPacketGapUS();
+        totalGaps = stats->totalInterPacketGaps();
+        jitter = stats->jitter();
+    }
 }

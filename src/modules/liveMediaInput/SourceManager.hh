@@ -170,10 +170,16 @@ public:
     */
     ~SCSSubsessionStats();
 
-    size_t getId() { return id;};
-
+    /**
+    * Periodic subsession stat measurement from current input time since last time
+    * @param current time to measure
+    */
     void periodicStatMeasurement(struct timeval const& timeNow);
-
+    
+    /**
+    * Getters of SCSSubsessionStats class attributes
+    */
+    size_t getId() { return id;};
     struct timeval getMeasurementStartTime() { return measurementStartTime; };
     struct timeval getMeasurementEndTime() { return measurementEndTime; };
     double getKbitsPerSecondMin() { return kbitsPerSecondMin; };

@@ -631,7 +631,7 @@ SCSSubsessionStats* StreamClientState::getSubsessionStats(size_t port)
     return smsStats[port];
 }
 
-void periodicSubsessionStatsMeasurement(StreamClientState* scs) 
+static void periodicSubsessionStatsMeasurement(StreamClientState* scs) 
 {
     struct timeval timeNow;
     gettimeofday(&timeNow, NULL);

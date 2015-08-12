@@ -707,7 +707,7 @@ void SCSSubsessionStats::periodicStatMeasurement(struct timeval const& timeNow)
         totNumPacketsExpected = totExpectedNow;
 
         double lossFractionNow = deltaExpectedNow == 0 ? 0.0 : 1.0 - deltaReceivedNow/(double)deltaExpectedNow;
-        //if (lossFractionNow < 0.0) lossFractionNow = 0.0; //reordering can cause
+        // if (lossFractionNow < 0.0) lossFractionNow = 0.0; //reordering can cause
         if (lossFractionNow < packetLossFractionMin) {
             packetLossFractionMin = lossFractionNow;
         }

@@ -154,6 +154,8 @@ bool RTSPConnection::addRawVideoSubsession(VCodecType codec, StreamReplicator* r
     }
     
     session->addSubsession(sSession);
+
+    RTPSink* rtpSink = dynamic_cast<StreamState *>(sSession)->rtpSink();
     
     return true;
 }
@@ -181,6 +183,8 @@ bool RTSPConnection::addRawAudioSubsession(ACodecType codec, StreamReplicator* r
     
     session->addSubsession(sSession);
     
+    RTPSink* rtpSink = dynamic_cast<StreamState *>(sSession)->rtpSink();
+
     return true;
 }
 
@@ -201,6 +205,8 @@ bool RTSPConnection::addMPEGTSVideo(VCodecType codec, StreamReplicator* replicat
         addedSub = true;
     }
     
+    RTPSink* rtpSink = dynamic_cast<StreamState *>(subsession)->rtpSink();
+
     return true;
 }
 
@@ -220,7 +226,9 @@ bool RTSPConnection::addMPEGTSAudio(ACodecType codec, StreamReplicator* replicat
         session->addSubsession(subsession);
         addedSub = true;
     }
-    
+
+    RTPSink* rtpSink = dynamic_cast<StreamState *>(subsession)->rtpSink();
+
     return true;
 }
 

@@ -260,7 +260,7 @@ bool SourceManager::addSessionEvent(Jzon::Node* params)
     }
 
     if (params->Has("uri") && params->Has("progName") && params->Has("id")) {
-
+        
         std::string progName = params->Get("progName").ToString();
         std::string rtspURL = params->Get("uri").ToString();
         sessionId = params->Get("id").ToString();
@@ -292,6 +292,8 @@ bool SourceManager::addSessionEvent(Jzon::Node* params)
         session = Session::createNew(*env, sdp, sessionId, this);
 
     } else {
+        utils::infoMsg("SETTING NONEEEEE EVENT ");
+
         return false;
     }
 
@@ -380,42 +382,43 @@ void SourceManager::doGetState(Jzon::Object &filterNode)
             jsonSubsession.Add("codec", subsession->codecName());
 
             // SUBSESSION STATISTICS (RTP)
-            SCSSubsessionStats* scsss = it.second->getScs()->getSubsessionStats(subsession->clientPortNum());
+            if(it.second->getScs()->getSubsessionStats(subsession->clientPortNum()) != NULL){
+                SCSSubsessionStats* scsss = it.second->getScs()->getSubsessionStats(subsession->clientPortNum());
+                numPacketsReceived = scsss->getTotNumPacketsReceived();
+                numPacketsExpected = scsss->getTotNumPacketsExpected();
+                secsDiff  = scsss->getMeasurementEndTime().tv_sec - scsss->getMeasurementStartTime().tv_sec;
+                usecsDiff = scsss->getMeasurementEndTime().tv_usec - scsss->getMeasurementStartTime().tv_usec;
+                measurementTime  = secsDiff + usecsDiff/1000000.0;
+                
+                // BITRATE
+                if ( scsss->getKbitsPerSecondMax() == 0) {
+                    // special case: we didn't receive any data:
+                    jsonSubsession.Add("minBitrateInKbps", 0);
+                    jsonSubsession.Add("maxBitRateInKbps", 0);
+                    jsonSubsession.Add("avgBitRateInKbps", 0);
 
-            numPacketsReceived = scsss->getTotNumPacketsReceived();
-            numPacketsExpected = scsss->getTotNumPacketsExpected();
-            secsDiff  = scsss->getMeasurementEndTime().tv_sec - scsss->getMeasurementStartTime().tv_sec;
-            usecsDiff = scsss->getMeasurementEndTime().tv_usec - scsss->getMeasurementStartTime().tv_usec;
-            measurementTime  = secsDiff + usecsDiff/1000000.0;
-            
-            // BITRATE
-            if ( scsss->getKbitsPerSecondMax() == 0) {
-                // special case: we didn't receive any data:
-                jsonSubsession.Add("minBitrateInKbps", 0);
-                jsonSubsession.Add("maxBitRateInKbps", 0);
-                jsonSubsession.Add("avgBitRateInKbps", 0);
+                } else {
+                    jsonSubsession.Add("minBitrateInKbps", scsss->getKbitsPerSecondMin());
+                    jsonSubsession.Add("maxBitRateInKbps", scsss->getKbitsPerSecondMax());
+                    jsonSubsession.Add("avgBitRateInKbps", (measurementTime == 0.0 ? 0.0 : 8*scsss->getKBytesTotal()/measurementTime));
+                }
+                
+                // PACKET LOSS
+                jsonSubsession.Add("minPacketLossPercentage", 100*scsss->getPacketLossFractionMin());
+                packetLossFraction = numPacketsExpected == 0 ? 1.0 : 1.0 - numPacketsReceived/(double)numPacketsExpected;
+                if (packetLossFraction < 0.0) packetLossFraction = 0.0;
+                jsonSubsession.Add("maxPacketLossPercentage", (packetLossFraction == 1.0 ? 100.0 : 100*scsss->getPacketLossFractionMax()));
+                jsonSubsession.Add("avgPacketLossPercentage", 100*packetLossFraction);
 
-            } else {
-                jsonSubsession.Add("minBitrateInKbps", scsss->getKbitsPerSecondMin());
-                jsonSubsession.Add("maxBitRateInKbps", scsss->getKbitsPerSecondMax());
-                jsonSubsession.Add("avgBitRateInKbps", (measurementTime == 0.0 ? 0.0 : 8*scsss->getKBytesTotal()/measurementTime));
+                // INTER PACKET GAP
+                jsonSubsession.Add("minInterPacketGapInMiliseconds", (int)(scsss->getMinInterPacketGapUS()/1000.0));
+                jsonSubsession.Add("maxInterPacketGapInMiliseconds", (int)(scsss->getMaxInterPacketGapUS()/1000.0));
+                totalGapsMS = scsss->getTotalGaps().tv_sec*1000.0 + scsss->getTotalGaps().tv_usec/1000.0;
+                jsonSubsession.Add("avgInterPacketGapInMiliseconds", (int)(numPacketsReceived == 0 ? 0.0 : totalGapsMS/numPacketsReceived) );
+
+                // JITTER 
+                jsonSubsession.Add("jitterInMicroseconds", (int)scsss->getJitter());
             }
-            
-            // PACKET LOSS
-            jsonSubsession.Add("minPacketLossPercentage", 100*scsss->getPacketLossFractionMin());
-            packetLossFraction = numPacketsExpected == 0 ? 1.0 : 1.0 - numPacketsReceived/(double)numPacketsExpected;
-            if (packetLossFraction < 0.0) packetLossFraction = 0.0;
-            jsonSubsession.Add("maxPacketLossPercentage", (packetLossFraction == 1.0 ? 100.0 : 100*scsss->getPacketLossFractionMax()));
-            jsonSubsession.Add("avgPacketLossPercentage", 100*packetLossFraction);
-
-            // INTER PACKET GAP
-            jsonSubsession.Add("minInterPacketGapInMiliseconds", (int)(scsss->getMinInterPacketGapUS()/1000.0));
-            jsonSubsession.Add("maxInterPacketGapInMiliseconds", (int)(scsss->getMaxInterPacketGapUS()/1000.0));
-            totalGapsMS = scsss->getTotalGaps().tv_sec*1000.0 + scsss->getTotalGaps().tv_usec/1000.0;
-            jsonSubsession.Add("avgInterPacketGapInMiliseconds", (int)(numPacketsReceived == 0 ? 0.0 : totalGapsMS/numPacketsReceived) );
-
-            // JITTER 
-            jsonSubsession.Add("jitterInMicroseconds", (int)scsss->getJitter());
 
             subsessionArray.Add(jsonSubsession);
         }

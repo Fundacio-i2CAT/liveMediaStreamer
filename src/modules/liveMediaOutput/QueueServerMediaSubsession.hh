@@ -35,9 +35,13 @@ public:
     ~QueueServerMediaSubsession();
     
     virtual std::vector<int> getReaderIds() = 0;
-    
+
+    friend RTPSink* rtpSink();
+
 protected: 
     QueueServerMediaSubsession(UsageEnvironment& env, Boolean reuseFirstSource);
+
+//    StreamState* ss;
 };
 
 #endif

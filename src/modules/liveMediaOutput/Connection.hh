@@ -27,6 +27,7 @@
 
 #include <string>
 #include <vector>
+#include <map>
 #include <BasicUsageEnvironment.hh>
 #include <liveMedia.hh>
 #include <Groupsock.hh>
@@ -36,6 +37,9 @@
 
 #define TTL 255
 #define INITIAL_SERVER_PORT 6970
+#define DEFAULT_STATS_TIME_INTERVAL 1000 // 1 second
+
+class ConnectionSubsessionStats;
 
 /*! Each connection represents a RTP/RTSP transmission. It is an interface to different specific connections
     so it cannot be instantiated */
@@ -65,14 +69,27 @@ public:
     */
     virtual void stopPlaying() = 0;
 
+    std::map<int, ConnectionSubsessionStats*> getConnectionSubsesionStatsMap() { return cStats; };
+
+    void scheduleNextStatsMeasurement();
+
 protected:
     Connection(UsageEnvironment* env);
 
     virtual bool startPlaying() = 0;
     static void afterPlaying(void* clientData);
     virtual bool specificSetup() = 0;
+    
+    bool addNewSubsessionStats(size_t id, RTPSink* snk);
+    bool removeSubsessionStats(size_t id);
+    ConnectionSubsessionStats* getSubsessionStats(size_t id);
 
     UsageEnvironment* fEnv;
+
+    TaskToken connectionStatsMeasurementTask;
+    size_t statsMeasurementIntervalMS;
+    size_t nextStatsMeasurementUSecs;
+    std::map<int, ConnectionSubsessionStats*> cStats;
 };
 
 ////////////////////
@@ -346,4 +363,62 @@ private:
     int videoReader;
 };
 
+
+/*! It represents a SinkManager's Connection subsession statistics object. It contains the port (id of the subsession) and average, 
+    minumum and maximum values of packet loss, bit rate and inter packet gap parameters, as well as the jitter. */
+
+class ConnectionSubsessionStats {
+
+public:
+    /**
+    * Class constructor
+    * @param port as the subsession id
+    */
+    ConnectionSubsessionStats(size_t id_, RTPSink* snk, struct timeval const& startTime);
+
+    /**
+    * Class destructor
+    */
+    ~ConnectionSubsessionStats();
+
+    /**
+    * Periodic subsession stat measurement from current input time since last time
+    * @param current time to measure
+    */
+    void periodicStatMeasurement(struct timeval const& timeNow);
+    
+    /**
+    * Getters of ConnectionSubsessionStats class attributes
+    */
+    size_t getId() { return id;};
+    struct timeval getMeasurementStartTime() { return measurementStartTime; };
+    struct timeval getMeasurementEndTime() { return measurementEndTime; };
+    double getKbitsPerSecondMin() { return kbitsPerSecondMin; };
+    double getKbitsPerSecondMax() { return kbitsPerSecondMax; };
+    double getKBytesTotal() { return kBytesTotal; };
+    double getPacketLossFractionMin() { return packetLossFractionMin; };
+    double getPacketLossFractionMax() { return packetLossFractionMax; };
+    unsigned getTotNumPacketsReceived() { return totNumPacketsReceived; };
+    unsigned getTotNumPacketsExpected() { return totNumPacketsExpected; };
+    unsigned getMinInterPacketGapUS() { return minInterPacketGapUS; };
+    unsigned getMaxInterPacketGapUS() { return maxInterPacketGapUS; };
+    struct timeval getTotalGaps() { return totalGaps; };
+    size_t getJitter() { return jitter; };
+    RTPSink* getRTPSink() { return fSink; };
+
+private:
+    const size_t id;    // port
+    RTPSink* fSink;
+    struct timeval measurementStartTime, measurementEndTime;
+    double kbitsPerSecondMin, kbitsPerSecondMax;
+    double kBytesTotal;
+    double packetLossFractionMin, packetLossFractionMax;
+    unsigned totNumPacketsReceived, totNumPacketsExpected;
+    unsigned minInterPacketGapUS, maxInterPacketGapUS;
+    struct timeval totalGaps;
+    // Estimate of the statistical variance of the 
+    // RTP data interarrival time to be inserted in 
+    // the interarrival jitter field of reception reports (in microseconds).
+    size_t jitter;
+};
 #endif

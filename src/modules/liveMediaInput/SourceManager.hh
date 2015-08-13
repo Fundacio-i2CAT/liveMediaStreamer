@@ -154,7 +154,7 @@ private:
 };
 
 /*! It represents a SourceManager subsession statistics object. It contains the port (id of the subsession) and average, 
-    minumum and maximum values of packet loss, bit rate and inter packet gap parameters. */
+    minumum and maximum values of packet loss, bit rate and inter packet gap parameters, as well as the jitter. */
 
 class SCSSubsessionStats {
 

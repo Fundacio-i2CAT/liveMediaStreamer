@@ -24,7 +24,6 @@
 
 #include "H264QueueServerMediaSubsession.hh"
 
-
 H264QueueServerMediaSubsession*
 H264QueueServerMediaSubsession::createNew(UsageEnvironment& env,
                           StreamReplicator* replica, int readerId,
@@ -55,5 +54,11 @@ FramedSource* H264QueueServerMediaSubsession::createNewStreamSource(unsigned /*c
 RTPSink* H264QueueServerMediaSubsession::createNewRTPSink(Groupsock* rtpGroupsock,
            unsigned char rtpPayloadTypeIfDynamic, FramedSource* /*inputSource*/) 
 {
-	  return H264VideoRTPSink::createNew(envir(), rtpGroupsock, rtpPayloadTypeIfDynamic);
+	return H264VideoRTPSink::createNew(envir(), rtpGroupsock, rtpPayloadTypeIfDynamic);
+}
+
+RTCPInstance* H264QueueServerMediaSubsession::createRTCP(Groupsock* RTCPgs, unsigned totSessionBW, /* in kbps */
+                   unsigned char const* cname, RTPSink* sink)
+{
+    return ConnRTCPInstance::createNew(envir(), RTCPgs, totSessionBW, sink);
 }

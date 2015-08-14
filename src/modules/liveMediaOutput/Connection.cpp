@@ -223,10 +223,6 @@ bool RTSPConnection::addRawVideoSubsession(VCodecType codec, StreamReplicator* r
     }
     
     session->addSubsession(sSession);
-
-    //RTPSink* snk = dynamic_cast<OnDemandServerMediaSubsession *>(sSession)->rtpSink();
-
-    //addNewSubsessionStats(rand(), snk);
     
     return true;
 }
@@ -254,10 +250,6 @@ bool RTSPConnection::addRawAudioSubsession(ACodecType codec, StreamReplicator* r
     
     session->addSubsession(sSession);
     
-    //RTPSink* snk = dynamic_cast<OnDemandServerMediaSubsession *>(sSession)->rtpSink();
-
-    //addNewSubsessionStats(rand(), snk);
-    
     return true;
 }
 
@@ -278,8 +270,6 @@ bool RTSPConnection::addMPEGTSVideo(VCodecType codec, StreamReplicator* replicat
         addedSub = true;
     }
     
-    //addNewSubsessionStats(rand(), dynamic_cast<StreamState *>(subsession)->rtpSink());
-
     return true;
 }
 
@@ -299,8 +289,6 @@ bool RTSPConnection::addMPEGTSAudio(ACodecType codec, StreamReplicator* replicat
         session->addSubsession(subsession);
         addedSub = true;
     }
-
-    //addNewSubsessionStats(rand(), dynamic_cast<StreamState *>(subsession)->rtpSink());
 
     return true;
 }
@@ -497,14 +485,10 @@ bool RTPConnection::finalRTCPSetup()
         return false;
     }
 
-    const unsigned maxCNAMElen = 100;
-    unsigned char CNAME[maxCNAMElen+1];
-    gethostname((char*)CNAME, maxCNAMElen);
-    CNAME[maxCNAMElen] = '\0';
-    rtcp = RTCPInstance::createNew(*fEnv, rtcpGroupsock, 5000, CNAME,
-                                   rtpSink, NULL, False);
 
-    addNewSubsessionStats(rand(), rtpSink);
+    rtcp = ConnRTCPInstance::createNew(*fEnv, rtcpGroupsock, 5000, rtpSink);
+
+    addNewSubsessionStats(fPort+1, rtpSink);
 
     return true;
 }
@@ -797,6 +781,31 @@ std::vector<int> MpegTsConnection::getReaders()
     return readers;
 }
 
+// Implementation of "ConnRTCPInstance" class:
+
+ConnRTCPInstance::ConnRTCPInstance(UsageEnvironment& env, Groupsock* RTCPgs, unsigned totSessionBW,
+                                    unsigned char const* cname, RTPSink* sink) : 
+    RTCPInstance(env, RTCPgs, totSessionBW, cname, sink, NULL, False), fSink(sink)   
+{
+}
+
+ConnRTCPInstance::~ConnRTCPInstance()
+{
+    // remove subsession stats
+    utils::infoMsg("ConnRTCPInstance DELETED");
+}
+
+ConnRTCPInstance* ConnRTCPInstance::createNew(UsageEnvironment& env, Groupsock* RTCPgs,
+                                unsigned totSessionBW, RTPSink* sink)
+{
+    const unsigned maxCNAMElen = 100;
+    unsigned char CNAME[maxCNAMElen+1];
+    gethostname((char*)CNAME, maxCNAMElen);
+    CNAME[maxCNAMElen] = '\0';
+
+    return new ConnRTCPInstance(env, RTCPgs, totSessionBW, CNAME, sink);
+}
+
 // Implementation of "ConnectionSubsessionStats" class:
 
 ConnectionSubsessionStats::ConnectionSubsessionStats(size_t id_, RTPSink* snk, struct timeval const& startTime) :
@@ -823,9 +832,9 @@ ConnectionSubsessionStats::~ConnectionSubsessionStats()
 
 void ConnectionSubsessionStats::periodicStatMeasurement(struct timeval const& timeNow) 
 {
-    unsigned secsDiff = timeNow.tv_sec - measurementEndTime.tv_sec;
-    int usecsDiff = timeNow.tv_usec - measurementEndTime.tv_usec;
-    double timeDiff = secsDiff + usecsDiff/1000000.0;
+    //unsigned secsDiff = timeNow.tv_sec - measurementEndTime.tv_sec;
+    //int usecsDiff = timeNow.tv_usec - measurementEndTime.tv_usec;
+    //double timeDiff = secsDiff + usecsDiff/1000000.0;
     measurementEndTime = timeNow;
 
     RTPTransmissionStatsDB::Iterator statsIter(fSink->transmissionStatsDB());
@@ -860,6 +869,8 @@ void ConnectionSubsessionStats::periodicStatMeasurement(struct timeval const& ti
         minInterPacketGapUS = stats->minInterPacketGapUS();
         maxInterPacketGapUS = stats->maxInterPacketGapUS();
         totalGaps = stats->totalInterPacketGaps();*/
+        totNumPacketsExpected = stats->packetsReceivedSinceLastRR();
+        roundTripDelay = stats->roundTripDelay();
         jitter = stats->jitter();
     }
 }

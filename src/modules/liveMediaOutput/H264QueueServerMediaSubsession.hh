@@ -43,6 +43,8 @@ protected:
 protected: 
     FramedSource* createNewStreamSource(unsigned clientSessionId, unsigned& estBitrate);
     RTPSink* createNewRTPSink(Groupsock* rtpGroupsock, unsigned char rtpPayloadTypeIfDynamic, FramedSource* inputSource);
+    RTCPInstance* createRTCP(Groupsock* RTCPgs, unsigned totSessionBW, /* in kbps */
+                   unsigned char const* cname, RTPSink* sink);
 };
 
 #endif

@@ -39,6 +39,7 @@
 #define INITIAL_SERVER_PORT 6970
 #define DEFAULT_STATS_TIME_INTERVAL 1000 // 1 second
 
+class ConnRTCPInstance;
 class ConnectionSubsessionStats;
 
 /*! Each connection represents a RTP/RTSP transmission. It is an interface to different specific connections
@@ -220,7 +221,7 @@ protected:
     std::string fIp;
     unsigned fPort;
     struct in_addr destinationAddress;
-    RTCPInstance* rtcp;
+    ConnRTCPInstance* rtcp;
     Groupsock *rtpGroupsock;
     Groupsock *rtcpGroupsock;
     
@@ -363,6 +364,27 @@ private:
     int videoReader;
 };
 
+class ConnRTCPInstance : public RTCPInstance {
+public:
+    /**
+    * Create new ConnRTCPInstance object
+    */
+    static ConnRTCPInstance* createNew(UsageEnvironment& env, Groupsock* RTCPgs,
+                                    unsigned totSessionBW,
+                                    RTPSink* sink);
+    /**
+    * Class destructor
+    */
+    ~ConnRTCPInstance();
+
+    RTPSink* getRTPSink() { return fSink; };
+
+private:
+    ConnRTCPInstance(UsageEnvironment& env, Groupsock* RTPgs, unsigned totSessionBW,
+                        unsigned char const* cname, RTPSink* sink);
+
+    RTPSink* fSink;
+};
 
 /*! It represents a SinkManager's Connection subsession statistics object. It contains the port (id of the subsession) and average, 
     minumum and maximum values of packet loss, bit rate and inter packet gap parameters, as well as the jitter. */
@@ -403,6 +425,7 @@ public:
     unsigned getMinInterPacketGapUS() { return minInterPacketGapUS; };
     unsigned getMaxInterPacketGapUS() { return maxInterPacketGapUS; };
     struct timeval getTotalGaps() { return totalGaps; };
+    unsigned getRoundTripDelay() { return roundTripDelay; };
     size_t getJitter() { return jitter; };
     RTPSink* getRTPSink() { return fSink; };
 
@@ -416,6 +439,7 @@ private:
     unsigned totNumPacketsReceived, totNumPacketsExpected;
     unsigned minInterPacketGapUS, maxInterPacketGapUS;
     struct timeval totalGaps;
+    unsigned roundTripDelay;
     // Estimate of the statistical variance of the 
     // RTP data interarrival time to be inserted in 
     // the interarrival jitter field of reception reports (in microseconds).

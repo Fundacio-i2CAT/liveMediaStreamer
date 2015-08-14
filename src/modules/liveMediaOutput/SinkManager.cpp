@@ -647,19 +647,19 @@ void SinkManager::doGetState(Jzon::Object &filterNode)
         if ((rtspConn = dynamic_cast<RTSPConnection*>(it.second))){
             jsonConnection.Add("name", rtspConn->getName());
             jsonConnection.Add("uri", rtspConn->getURI());
-            for (auto iter : it.second->getConnectionSubsesionStatsMap()) {
+            /*for (auto iter : it.second->getConnectionSubsesionStatsMap()) {
                 jsonConnection.Add("packetsReceivedSinceLastRR", (int)iter.second->getTotNumPacketsExpected());
                 jsonConnection.Add("jitterInMicroseconds", (int)iter.second->getJitter());
                 jsonConnection.Add("roundTripDelay", (int)iter.second->getRoundTripDelay());
-            }
+            }*/
         } else if ((rtpConn = dynamic_cast<RTPConnection*>(it.second))){
             jsonConnection.Add("ip", rtpConn->getIP());
             jsonConnection.Add("port", std::to_string(rtpConn->getPort()));
-            for (auto iter : it.second->getConnectionSubsesionStatsMap()) {
+            /*for (auto iter : it.second->getConnectionSubsesionStatsMap()) {
                 jsonConnection.Add("packetsReceivedSinceLastRR", (int)iter.second->getTotNumPacketsExpected());
                 jsonConnection.Add("jitterInMicroseconds", (int)iter.second->getJitter());
                 jsonConnection.Add("roundTripDelay", (int)iter.second->getRoundTripDelay());
-            }
+            }*/
         } else {
             filterNode.Add("error", Jzon::null);
         }

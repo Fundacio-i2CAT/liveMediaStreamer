@@ -756,6 +756,7 @@ static void periodicConnStatMeasurement(ConnRTCPInstance* cri)
 
 void ConnRTCPInstance::scheduleNextConnStatMeasurement() 
 {
+    connectionStatsMeasurementTask = NULL;
     nextStatsMeasurementUSecs += statsMeasurementIntervalMS*1000;
     struct timeval timeNow;
     gettimeofday(&timeNow, NULL);
@@ -774,6 +775,7 @@ void ConnRTCPInstance::periodicStatMeasurement(struct timeval const& timeNow)
 
     RTPTransmissionStats* stats;
     while((stats = statsIter.next()) != NULL){
+        //TODO think if required getting min and max values as done in rx side        
         SSRC = stats->SSRC();
         packetLossRatio = stats->packetLossRatio();
         roundTripDelay = stats->roundTripDelay();

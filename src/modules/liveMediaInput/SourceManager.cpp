@@ -648,6 +648,7 @@ static void periodicSubsessionStatsMeasurement(StreamClientState* scs)
 
 void StreamClientState::scheduleNextStatsMeasurement(UsageEnvironment* env) 
 {
+    sessionStatsMeasurementTask = NULL;
     nextStatsMeasurementUSecs += statsMeasurementIntervalMS*1000;
     struct timeval timeNow;
     gettimeofday(&timeNow, NULL);

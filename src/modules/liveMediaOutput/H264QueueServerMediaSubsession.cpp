@@ -60,7 +60,7 @@ RTPSink* H264QueueServerMediaSubsession::createNewRTPSink(Groupsock* rtpGroupsoc
 RTCPInstance* H264QueueServerMediaSubsession::createRTCP(Groupsock* RTCPgs, unsigned totSessionBW, /* in kbps */
                    unsigned char const* cname, RTPSink* sink)
 {
-    utils::infoMsg("NEW RTCP!!!");
+    //TODO: reach setting id as the RTP port (as done for RTPConnection)
     size_t id = rand();
 
     ConnRTCPInstance* newRTCPInstance = ConnRTCPInstance::createNew(fConn, &envir(), RTCPgs, totSessionBW, sink);

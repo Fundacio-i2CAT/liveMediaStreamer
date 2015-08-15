@@ -74,7 +74,7 @@ public:
 
     void addConnectionRTCPInstance(size_t id, ConnRTCPInstance* cri) { cRTCPInstances[id] = cri; };
 
-    void deleteConnectionRTCPInstance(size_t id) { cRTCPInstances.erase (id); };
+    void deleteConnectionRTCPInstance(size_t id) { cRTCPInstances.erase(id); };
 
 protected:
     Connection(UsageEnvironment* env);
@@ -355,8 +355,13 @@ private:
     int videoReader;
 };
 
+//////////////////////////////
+// RTCP CONNECTION INSTANCE //
+//////////////////////////////
 
-
+/*! It represents an RTCP Instance of the RTP connection.
+*   It measures network statistics for each connections' subsession.
+*/
 class ConnRTCPInstance : public RTCPInstance {
 public:
     /**
@@ -380,11 +385,24 @@ public:
 
     size_t getId() { return id; };
 
+    u_int32_t getSSRC() { return SSRC; };
+
+    unsigned getCurrentNumBytes () { return currentNumBytes; };
+
+    double getCurrentElapsedTime () { return currentElapsedTime; };
+
+    u_int8_t getPacketLossRatio() { return packetLossRatio; };
+
+    size_t getRoundTripDelay() { return roundTripDelay; };
+
+    size_t getJitter() { return jitter; };
+
 private:
     ConnRTCPInstance(Connection* conn, UsageEnvironment* env, Groupsock* RTPgs, unsigned totSessionBW,
                         unsigned char const* cname, RTPSink* sink);
     
     size_t id;
+    u_int32_t SSRC;
 
     Connection* fConn;
     UsageEnvironment* fEnv;
@@ -395,7 +413,8 @@ private:
     size_t nextStatsMeasurementUSecs;
     unsigned currentNumBytes;
     double currentElapsedTime;
-    size_t packetsReceivedSinceLastRR, roundTripDelay, jitter;
+    u_int8_t packetLossRatio;
+    size_t roundTripDelay, jitter;
 };
 
 #endif

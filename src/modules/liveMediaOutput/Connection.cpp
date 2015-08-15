@@ -728,40 +728,16 @@ ConnRTCPInstance* ConnRTCPInstance::createNew(Connection* conn, UsageEnvironment
 ConnRTCPInstance::ConnRTCPInstance(Connection* conn, UsageEnvironment* env, Groupsock* RTCPgs, unsigned totSessionBW,
                                     unsigned char const* cname, RTPSink* sink) : 
     RTCPInstance(*env, RTCPgs, totSessionBW, cname, sink, NULL, False), 
-    id(0), fConn(conn), fEnv(env), fSink(sink), connectionStatsMeasurementTask(NULL),
+    id(0), SSRC(0), fConn(conn), fEnv(env), fSink(sink), connectionStatsMeasurementTask(NULL),
     statsMeasurementIntervalMS(DEFAULT_STATS_TIME_INTERVAL), 
     nextStatsMeasurementUSecs(0), currentNumBytes(0), currentElapsedTime(0),
-    packetsReceivedSinceLastRR(0), roundTripDelay(0), jitter(0) 
+    packetLossRatio(0), roundTripDelay(0), jitter(0) 
 {
-    RTPTransmissionStatsDB::Iterator statsIter(fSink->transmissionStatsDB());
-    RTPTransmissionStats* stats;
-
-    fSink->getTotalBitrate(currentNumBytes, currentElapsedTime);
-
-    utils::infoMsg(std::to_string((8*currentNumBytes/currentElapsedTime)/1000.0));
-
-    utils::infoMsg("GETTING TXSTATSDB");
-    while((stats = statsIter.next()) != NULL){
-        utils::infoMsg("ITERATE TXSTATSDB");
-        if (stats != NULL) {
-            utils::infoMsg("GOT TXSTATSDB");
-            packetsReceivedSinceLastRR = stats->packetsReceivedSinceLastRR();
-            roundTripDelay = stats->roundTripDelay();
-            jitter = stats->jitter();
-            /*kBytesTotal = stats->totNumKBytesReceived();
-            totNumPacketsReceived = stats->totNumPacketsReceived();
-            totNumPacketsExpected = stats->totNumPacketsExpected();*/
-        }
-    }
-
     scheduleNextConnStatMeasurement();
 }
 
 ConnRTCPInstance::~ConnRTCPInstance()
 {
-    // remove subsession stats
-    utils::infoMsg("ConnRTCPInstance DELETED");
-
     fConn->deleteConnectionRTCPInstance(this->getId());
     fEnv->taskScheduler().unscheduleDelayedTask(connectionStatsMeasurementTask);
 }
@@ -790,58 +766,15 @@ void ConnRTCPInstance::scheduleNextConnStatMeasurement()
 
 void ConnRTCPInstance::periodicStatMeasurement(struct timeval const& timeNow) 
 {
-    //unsigned secsDiff = timeNow.tv_sec - measurementEndTime.tv_sec;
-    //int usecsDiff = timeNow.tv_usec - measurementEndTime.tv_usec;
-    //double timeDiff = secsDiff + usecsDiff/1000000.0;
-    unsigned currentNumBytes = 0;
-    double currentElapsedTime = 0;
-    //measurementEndTime = timeNow;
     RTPTransmissionStatsDB::Iterator statsIter(fSink->transmissionStatsDB());
-    RTPTransmissionStats* stats;
 
     fSink->getTotalBitrate(currentNumBytes, currentElapsedTime);
 
-    utils::infoMsg(std::to_string((8*currentNumBytes/currentElapsedTime)/1000.0));
-
+    RTPTransmissionStats* stats;
     while((stats = statsIter.next()) != NULL){
-        if (stats != NULL) {
-            packetsReceivedSinceLastRR = stats->packetsReceivedSinceLastRR();
-            roundTripDelay = stats->roundTripDelay();
-            jitter = stats->jitter();
-            utils::infoMsg(std::to_string(jitter));
-            /*kBytesTotal = stats->totNumKBytesReceived();
-            totNumPacketsReceived = stats->totNumPacketsReceived();
-            totNumPacketsExpected = stats->totNumPacketsExpected();*/
-        }
+        SSRC = stats->SSRC();
+        packetLossRatio = stats->packetLossRatio();
+        roundTripDelay = stats->roundTripDelay();
+        jitter = stats->jitter();
     }
-
-        /*double kBytesTotalNow = stats->totNumKBytesReceived();
-        double kBytesDeltaNow = kBytesTotalNow - kBytesTotal;
-        kBytesTotal = kBytesTotalNow;
-
-        double kbpsNow = timeDiff == 0.0 ? 0.0 : 8*kBytesDeltaNow/timeDiff;
-        if (kbpsNow < 0.0) kbpsNow = 0.0; // in case of roundoff error
-        if (kbpsNow < kbitsPerSecondMin) kbitsPerSecondMin = kbpsNow;
-        if (kbpsNow > kbitsPerSecondMax) kbitsPerSecondMax = kbpsNow;
-
-        unsigned totReceivedNow = stats->totNumPacketsReceived();
-        unsigned totExpectedNow = stats->totNumPacketsExpected();
-        unsigned deltaReceivedNow = totReceivedNow - totNumPacketsReceived;
-        unsigned deltaExpectedNow = totExpectedNow - totNumPacketsExpected;
-        totNumPacketsReceived = totReceivedNow;
-        totNumPacketsExpected = totExpectedNow;
-
-        double lossFractionNow = deltaExpectedNow == 0 ? 0.0 : 1.0 - deltaReceivedNow/(double)deltaExpectedNow;
-        // if (lossFractionNow < 0.0) lossFractionNow = 0.0; //reordering can cause
-        if (lossFractionNow < packetLossFractionMin) {
-            packetLossFractionMin = lossFractionNow;
-        }
-        if (lossFractionNow > packetLossFractionMax) {
-            packetLossFractionMax = lossFractionNow;
-        }
-
-        minInterPacketGapUS = stats->minInterPacketGapUS();
-        maxInterPacketGapUS = stats->maxInterPacketGapUS();
-        totalGaps = stats->totalInterPacketGaps();*/
-
 }

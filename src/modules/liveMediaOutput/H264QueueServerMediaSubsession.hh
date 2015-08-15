@@ -48,7 +48,6 @@ protected:
 
 private:
     Connection*         fConn;
-    ConnRTCPInstance*   cRtcp;
 };
 
 #endif

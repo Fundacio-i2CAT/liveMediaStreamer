@@ -26,16 +26,17 @@
 
 #include <liveMedia.hh>
 #include "QueueServerMediaSubsession.hh"
+#include "Connection.hh"
 
 class VP8QueueServerMediaSubsession: public QueueServerMediaSubsession {
 public:
     static VP8QueueServerMediaSubsession*
-    createNew(UsageEnvironment& env, StreamReplicator* replica, int readerId, Boolean reuseFirstSource);
+    createNew(Connection* conn, UsageEnvironment& env, StreamReplicator* replica, int readerId, Boolean reuseFirstSource);
     
     std::vector<int> getReaderIds();
 
 protected:
-    VP8QueueServerMediaSubsession(UsageEnvironment& env,
+    VP8QueueServerMediaSubsession(Connection* conn, UsageEnvironment& env,
                                   StreamReplicator* replica, int readerId, Boolean reuseFirstSource);
   
     ~VP8QueueServerMediaSubsession();
@@ -46,9 +47,13 @@ protected: // redefined virtual functions
     RTPSink* createNewRTPSink(Groupsock* rtpGroupsock,
                               unsigned char rtpPayloadTypeIfDynamic,
                               FramedSource* inputSource);
+    RTCPInstance* createRTCP(Groupsock* RTCPgs, unsigned totSessionBW, /* in kbps */
+                   unsigned char const* cname, RTPSink* sink);
+
 private:
     StreamReplicator* replicator;
     int reader;
+    Connection* fConn;
 };
 
 #endif

@@ -27,23 +27,24 @@
 
 
 AudioQueueServerMediaSubsession*
-AudioQueueServerMediaSubsession::createNew(UsageEnvironment& env,
+AudioQueueServerMediaSubsession::createNew(Connection* conn, UsageEnvironment& env,
                           StreamReplicator* replica, int readerId,
                           ACodecType codec, unsigned channels,
                           unsigned sampleRate, SampleFmt sampleFormat,
                           Boolean reuseFirstSource) {
-  return new AudioQueueServerMediaSubsession(env, replica, readerId, 
+  return new AudioQueueServerMediaSubsession(conn, env, replica, readerId, 
                                              codec, channels, sampleRate,
                                              sampleFormat, reuseFirstSource);
 }
 
-AudioQueueServerMediaSubsession::AudioQueueServerMediaSubsession(UsageEnvironment& env,
+AudioQueueServerMediaSubsession::AudioQueueServerMediaSubsession(Connection* conn, UsageEnvironment& env,
                           StreamReplicator* replica, int readerId, 
                           ACodecType codec, unsigned channels,
                           unsigned sampleRate, SampleFmt sampleFormat,
                           Boolean reuseFirstSource)
   : QueueServerMediaSubsession(env, reuseFirstSource), replicator(replica), reader(readerId), fCodec(codec),
-                          fChannels(channels), fSampleRate(sampleRate), fSampleFormat(sampleFormat) {
+                          fChannels(channels), fSampleRate(sampleRate), fSampleFormat(sampleFormat), fConn(conn)
+{
 }
 
 AudioQueueServerMediaSubsession::~AudioQueueServerMediaSubsession()
@@ -101,6 +102,19 @@ RTPSink* AudioQueueServerMediaSubsession
                 fSampleRate, "audio", 
                 codecStr.c_str(),
                 fChannels, False);
+}
+
+RTCPInstance* AudioQueueServerMediaSubsession::createRTCP(Groupsock* RTCPgs, unsigned totSessionBW, /* in kbps */
+                   unsigned char const* cname, RTPSink* sink)
+{
+    //TODO: reach setting id as the RTP port (as done for RTPConnection)
+    size_t id = rand();
+
+    ConnRTCPInstance* newRTCPInstance = ConnRTCPInstance::createNew(fConn, &envir(), RTCPgs, totSessionBW, sink);
+    newRTCPInstance->setId(id);
+    fConn->addConnectionRTCPInstance(id, newRTCPInstance);
+
+    return newRTCPInstance;
 }
 
 std::vector<int> AudioQueueServerMediaSubsession::getReaderIds()

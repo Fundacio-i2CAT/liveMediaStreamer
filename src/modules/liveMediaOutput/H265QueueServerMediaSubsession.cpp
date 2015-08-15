@@ -24,16 +24,16 @@
 #include "H265QueueServerMediaSubsession.hh"
 
 H265QueueServerMediaSubsession*
-H265QueueServerMediaSubsession::createNew(UsageEnvironment& env,
+H265QueueServerMediaSubsession::createNew(Connection* conn, UsageEnvironment& env,
                           StreamReplicator* replica, int readerId,
                           Boolean reuseFirstSource) 
 {
-    return new H265QueueServerMediaSubsession(env, replica, readerId, reuseFirstSource);
+    return new H265QueueServerMediaSubsession(conn, env, replica, readerId, reuseFirstSource);
 }
 
-H265QueueServerMediaSubsession::H265QueueServerMediaSubsession(UsageEnvironment& env,
+H265QueueServerMediaSubsession::H265QueueServerMediaSubsession(Connection* conn, UsageEnvironment& env,
                           StreamReplicator* replica, int readerId, Boolean reuseFirstSource)
-: H264or5QueueServerMediaSubsession(env, replica, readerId, reuseFirstSource)
+: H264or5QueueServerMediaSubsession(env, replica, readerId, reuseFirstSource), fConn(conn)
 {
 
 }
@@ -54,4 +54,17 @@ RTPSink* H265QueueServerMediaSubsession::createNewRTPSink(Groupsock* rtpGroupsoc
            unsigned char rtpPayloadTypeIfDynamic, FramedSource* /*inputSource*/) 
 {
     return H265VideoRTPSink::createNew(envir(), rtpGroupsock, rtpPayloadTypeIfDynamic);
+}
+
+RTCPInstance* H265QueueServerMediaSubsession::createRTCP(Groupsock* RTCPgs, unsigned totSessionBW, /* in kbps */
+                   unsigned char const* cname, RTPSink* sink)
+{
+    //TODO: reach setting id as the RTP port (as done for RTPConnection)
+    size_t id = rand();
+
+    ConnRTCPInstance* newRTCPInstance = ConnRTCPInstance::createNew(fConn, &envir(), RTCPgs, totSessionBW, sink);
+    newRTCPInstance->setId(id);
+    fConn->addConnectionRTCPInstance(id, newRTCPInstance);
+
+    return newRTCPInstance;
 }

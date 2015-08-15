@@ -76,6 +76,8 @@ public:
 
     void deleteConnectionRTCPInstance(size_t id) { cRTCPInstances.erase(id); };
 
+    UsageEnvironment* envir() { return fEnv; };
+
 protected:
     Connection(UsageEnvironment* env);
 
@@ -405,7 +407,6 @@ private:
     u_int32_t SSRC;
 
     Connection* fConn;
-    UsageEnvironment* fEnv;
     RTPSink* fSink;
 
     TaskToken connectionStatsMeasurementTask;

@@ -732,9 +732,12 @@ ConnRTCPInstance::ConnRTCPInstance(Connection* conn, UsageEnvironment* env, Grou
     RTCPInstance(*env, RTCPgs, totSessionBW, cname, sink, NULL, False), 
     id(0), SSRC(0), fConn(conn), fSink(sink), connectionStatsMeasurementTask(NULL),
     statsMeasurementIntervalMS(DEFAULT_STATS_TIME_INTERVAL), 
-    nextStatsMeasurementUSecs(100000), currentNumBytes(0), currentElapsedTime(0),
+    currentNumBytes(0), currentElapsedTime(0),
     packetLossRatio(0), roundTripDelay(0), jitter(0) 
 {
+    struct timeval startTime;
+    gettimeofday(&startTime, NULL);
+    nextStatsMeasurementUSecs = startTime.tv_sec*1000000 + startTime.tv_usec;
     scheduleNextConnStatMeasurement();
 }
 
@@ -748,7 +751,6 @@ static void periodicConnStatMeasurement(ConnRTCPInstance* cri)
 {
     struct timeval timeNow;
     gettimeofday(&timeNow, NULL);
-
     cri->periodicStatMeasurement(timeNow);
 
     cri->scheduleNextConnStatMeasurement();

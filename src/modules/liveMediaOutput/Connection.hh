@@ -70,9 +70,13 @@ public:
     */
     virtual void stopPlaying() = 0;
 
-    std::map<int, ConnectionSubsessionStats*> getConnectionSubsesionStatsMap() { return cStats; };
+    std::map<int, ConnRTCPInstance*> getConnectionRTCPInstanceMap() { return cRTCPInstances; };
 
-    void scheduleNextStatsMeasurement();
+    void addConnectionRTCPInstance(size_t id, ConnRTCPInstance* cri) { cRTCPInstances[id] = cri; };
+
+    void deleteConnectionRTCPInstance(size_t id) { cRTCPInstances.erase(id); };
+
+    UsageEnvironment* envir() { return fEnv; };
 
 protected:
     Connection(UsageEnvironment* env);
@@ -81,16 +85,9 @@ protected:
     static void afterPlaying(void* clientData);
     virtual bool specificSetup() = 0;
     
-    bool addNewSubsessionStats(size_t id, RTPSink* snk);
-    bool removeSubsessionStats(size_t id);
-    ConnectionSubsessionStats* getSubsessionStats(size_t id);
-
     UsageEnvironment* fEnv;
 
-    TaskToken connectionStatsMeasurementTask;
-    size_t statsMeasurementIntervalMS;
-    size_t nextStatsMeasurementUSecs;
-    std::map<int, ConnectionSubsessionStats*> cStats;
+    std::map<int, ConnRTCPInstance*> cRTCPInstances;
 };
 
 ////////////////////
@@ -138,11 +135,7 @@ public:
                             SampleFmt sampleFormat, int readerId);
     
     /**
-    * Adds a video source to the connection
-    * @param codec represents the video codec of the source to add
-    * @param replicator it is the replicator from where the source is created
-    * @param readerId it is the id of the reader associated with this replicator
-    * @return True if succeded and false if not
+    * @return Return the connection URI
     */
     std::string getURI();
     
@@ -364,12 +357,19 @@ private:
     int videoReader;
 };
 
+//////////////////////////////
+// RTCP CONNECTION INSTANCE //
+//////////////////////////////
+
+/*! It represents an RTCP Instance of the RTP connection.
+*   It measures network statistics for each connections' subsession.
+*/
 class ConnRTCPInstance : public RTCPInstance {
 public:
     /**
     * Create new ConnRTCPInstance object
     */
-    static ConnRTCPInstance* createNew(UsageEnvironment& env, Groupsock* RTCPgs,
+    static ConnRTCPInstance* createNew(Connection* conn, UsageEnvironment* env, Groupsock* RTCPgs,
                                     unsigned totSessionBW,
                                     RTPSink* sink);
     /**
@@ -378,71 +378,44 @@ public:
     ~ConnRTCPInstance();
 
     RTPSink* getRTPSink() { return fSink; };
-
-private:
-    ConnRTCPInstance(UsageEnvironment& env, Groupsock* RTPgs, unsigned totSessionBW,
-                        unsigned char const* cname, RTPSink* sink);
-
-    RTPSink* fSink;
-};
-
-/*! It represents a SinkManager's Connection subsession statistics object. It contains the port (id of the subsession) and average, 
-    minumum and maximum values of packet loss, bit rate and inter packet gap parameters, as well as the jitter. */
-
-class ConnectionSubsessionStats {
-
-public:
-    /**
-    * Class constructor
-    * @param port as the subsession id
-    */
-    ConnectionSubsessionStats(size_t id_, RTPSink* snk, struct timeval const& startTime);
-
-    /**
-    * Class destructor
-    */
-    ~ConnectionSubsessionStats();
-
-    /**
-    * Periodic subsession stat measurement from current input time since last time
-    * @param current time to measure
-    */
-    void periodicStatMeasurement(struct timeval const& timeNow);
     
-    /**
-    * Getters of ConnectionSubsessionStats class attributes
-    */
-    size_t getId() { return id;};
-    struct timeval getMeasurementStartTime() { return measurementStartTime; };
-    struct timeval getMeasurementEndTime() { return measurementEndTime; };
-    double getKbitsPerSecondMin() { return kbitsPerSecondMin; };
-    double getKbitsPerSecondMax() { return kbitsPerSecondMax; };
-    double getKBytesTotal() { return kBytesTotal; };
-    double getPacketLossFractionMin() { return packetLossFractionMin; };
-    double getPacketLossFractionMax() { return packetLossFractionMax; };
-    unsigned getTotNumPacketsReceived() { return totNumPacketsReceived; };
-    unsigned getTotNumPacketsExpected() { return totNumPacketsExpected; };
-    unsigned getMinInterPacketGapUS() { return minInterPacketGapUS; };
-    unsigned getMaxInterPacketGapUS() { return maxInterPacketGapUS; };
-    struct timeval getTotalGaps() { return totalGaps; };
-    unsigned getRoundTripDelay() { return roundTripDelay; };
+    void scheduleNextConnStatMeasurement();
+
+    void periodicStatMeasurement(struct timeval const& timeNow);
+
+    void setId(size_t _id) { id = _id; };
+
+    size_t getId() { return id; };
+
+    u_int32_t getSSRC() { return SSRC; };
+
+    unsigned getCurrentNumBytes () { return currentNumBytes; };
+
+    double getCurrentElapsedTime () { return currentElapsedTime; };
+
+    u_int8_t getPacketLossRatio() { return packetLossRatio; };
+
+    size_t getRoundTripDelay() { return roundTripDelay; };
+
     size_t getJitter() { return jitter; };
-    RTPSink* getRTPSink() { return fSink; };
 
 private:
-    const size_t id;    // port
+    ConnRTCPInstance(Connection* conn, UsageEnvironment* env, Groupsock* RTPgs, unsigned totSessionBW,
+                        unsigned char const* cname, RTPSink* sink);
+    
+    size_t id;
+    u_int32_t SSRC;
+
+    Connection* fConn;
     RTPSink* fSink;
-    struct timeval measurementStartTime, measurementEndTime;
-    double kbitsPerSecondMin, kbitsPerSecondMax;
-    double kBytesTotal;
-    double packetLossFractionMin, packetLossFractionMax;
-    unsigned totNumPacketsReceived, totNumPacketsExpected;
-    unsigned minInterPacketGapUS, maxInterPacketGapUS;
-    struct timeval totalGaps;
-    unsigned roundTripDelay;
-    // Estimate of the statistical variance of the 
-    // RTP data interarrival time to be inserted in 
-    // the interarrival jitter field of reception reports (in microseconds).
-    size_t jitter;
+
+    TaskToken connectionStatsMeasurementTask;
+    size_t statsMeasurementIntervalMS;
+    size_t nextStatsMeasurementUSecs;
+    unsigned currentNumBytes;
+    double currentElapsedTime;
+    u_int8_t packetLossRatio;
+    size_t roundTripDelay, jitter;
 };
+
 #endif

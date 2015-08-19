@@ -643,31 +643,42 @@ void SinkManager::doGetState(Jzon::Object &filterNode)
     for (auto it : connections) {
         Jzon::Array jsonReaders;
         Jzon::Object jsonConnection;
-        
+        Jzon::Array jsonSubsessionsStats;
+        Jzon::Object jsonSubsessionStat;
+
         if ((rtspConn = dynamic_cast<RTSPConnection*>(it.second))){
             jsonConnection.Add("name", rtspConn->getName());
             jsonConnection.Add("uri", rtspConn->getURI());
-            for (auto iter : it.second->getConnectionSubsesionStatsMap()) {
-                jsonConnection.Add("packetsReceivedSinceLastRR", (int)iter.second->getTotNumPacketsExpected());
-                jsonConnection.Add("jitterInMicroseconds", (int)iter.second->getJitter());
-                jsonConnection.Add("roundTripDelay", (int)iter.second->getRoundTripDelay());
+            for (auto iter : it.second->getConnectionRTCPInstanceMap()) {
+                jsonSubsessionStat.Add("SSRC", std::to_string(iter.second->getSSRC()));
+                jsonSubsessionStat.Add("avgBitrateInKbps", (iter.second->getCurrentElapsedTime() == 0 ? 0.0 : ((8*iter.second->getCurrentNumBytes()/iter.second->getCurrentElapsedTime())/1000.0)));
+                jsonSubsessionStat.Add("packetLossRatio", (int)(iter.second->getPacketLossRatio()));
+                jsonSubsessionStat.Add("jitterInMicroseconds", (int)iter.second->getJitter());
+                jsonSubsessionStat.Add("roundTripDelay", (int)iter.second->getRoundTripDelay());
+
+                jsonSubsessionsStats.Add(jsonSubsessionStat);    
             }
         } else if ((rtpConn = dynamic_cast<RTPConnection*>(it.second))){
             jsonConnection.Add("ip", rtpConn->getIP());
             jsonConnection.Add("port", std::to_string(rtpConn->getPort()));
-            for (auto iter : it.second->getConnectionSubsesionStatsMap()) {
-                jsonConnection.Add("packetsReceivedSinceLastRR", (int)iter.second->getTotNumPacketsExpected());
-                jsonConnection.Add("jitterInMicroseconds", (int)iter.second->getJitter());
-                jsonConnection.Add("roundTripDelay", (int)iter.second->getRoundTripDelay());
+            for (auto iter : it.second->getConnectionRTCPInstanceMap()) {
+                jsonSubsessionStat.Add("SSRC", std::to_string(iter.second->getSSRC()));
+                jsonSubsessionStat.Add("avgBitrateInKbps", (iter.second->getCurrentElapsedTime() == 0 ? 0.0 : ((8*iter.second->getCurrentNumBytes()/iter.second->getCurrentElapsedTime())/1000.0)));
+                jsonSubsessionStat.Add("packetLossRatio", (int)(iter.second->getPacketLossRatio()));
+                jsonSubsessionStat.Add("jitterInMicroseconds", (int)iter.second->getJitter());
+                jsonSubsessionStat.Add("roundTripDelay", (int)iter.second->getRoundTripDelay());
+                
+                jsonSubsessionsStats.Add(jsonSubsessionStat);    
             }
         } else {
             filterNode.Add("error", Jzon::null);
         }
 
+        jsonConnection.Add("subsessionsStats", jsonSubsessionsStats);
+
         for (auto reader : it.second->getReaders()){
             jsonReaders.Add(reader);
         }
-        
         jsonConnection.Add("readers", jsonReaders);
         connectionArray.Add(jsonConnection);
     }

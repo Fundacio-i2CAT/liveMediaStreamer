@@ -26,16 +26,16 @@
 
 
 VP8QueueServerMediaSubsession*
-VP8QueueServerMediaSubsession::createNew(UsageEnvironment& env,
+VP8QueueServerMediaSubsession::createNew(Connection* conn, UsageEnvironment& env,
                           StreamReplicator* replica, int readerId,
                           Boolean reuseFirstSource) {
-    return new VP8QueueServerMediaSubsession(env, replica, readerId, reuseFirstSource);
+    return new VP8QueueServerMediaSubsession(conn, env, replica, readerId, reuseFirstSource);
 }
 
-VP8QueueServerMediaSubsession::VP8QueueServerMediaSubsession(UsageEnvironment& env,
+VP8QueueServerMediaSubsession::VP8QueueServerMediaSubsession(Connection* conn, UsageEnvironment& env,
                           StreamReplicator* replica, int readerId, 
                           Boolean reuseFirstSource)
-  : QueueServerMediaSubsession(env, reuseFirstSource), replicator(replica), reader(readerId)
+  : QueueServerMediaSubsession(env, reuseFirstSource), replicator(replica), reader(readerId), fConn(conn)
 {
 }
 
@@ -55,6 +55,19 @@ RTPSink* VP8QueueServerMediaSubsession
            unsigned char rtpPayloadTypeIfDynamic,
            FramedSource* /*inputSource*/) {
     return VP8VideoRTPSink::createNew(envir(), rtpGroupsock, rtpPayloadTypeIfDynamic);
+}
+
+RTCPInstance* VP8QueueServerMediaSubsession::createRTCP(Groupsock* RTCPgs, unsigned totSessionBW, /* in kbps */
+                   unsigned char const* cname, RTPSink* sink)
+{
+    //TODO: reach setting id as the RTP port (as done for RTPConnection)
+    size_t id = rand();
+
+    ConnRTCPInstance* newRTCPInstance = ConnRTCPInstance::createNew(fConn, &envir(), RTCPgs, totSessionBW, sink);
+    newRTCPInstance->setId(id);
+    fConn->addConnectionRTCPInstance(id, newRTCPInstance);
+
+    return newRTCPInstance;
 }
 
 std::vector<int> VP8QueueServerMediaSubsession::getReaderIds()

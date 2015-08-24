@@ -47,35 +47,35 @@ struct TestDataStruct {
 };
 
 struct TestDataStruct TestData[] = {
-    {
+    {   // 0
         "http://download.blender.org/durian/trailer/sintel_trailer-480p.mp4",
         854,
         480,
         2,
         48000
     },
-    {
+    {   // 1
         "http://download.blender.org/durian/trailer/sintel_trailer-720p.mp4",
         1280,
         720,
         2,
         48000
     },
-    {
-        "http://blender-mirror.kino3d.org/mango/download.blender.org/demo/movies/ToS/tears_of_steel_720p.mkv",
+    {   // 2
+        "http://samples.ffmpeg.org/V-codecs/h264/H.264+AAC(A-V%20sync)/H.264+AAC(A-V%20sync).mkv",
+        704,
+        480,
+        2,
+        48000
+    },
+    {   // 3
+        "http://ftp.halifax.rwth-aachen.de/blender/demo/movies/ToS/tears_of_steel_720p.mov",
         1280,
         534,
         2,
         48000
     },
-    {
-        "http://blender-mirror.kino3d.org/mango/download.blender.org/demo/movies/ToS/tears_of_steel_720p.mov",
-        1280,
-        534,
-        2,
-        48000
-    },
-    {
+    {   // 4
         "http://h265.tvclever.com/TearsOfSteel_720p-h265.mkv",
         1280,
         720,

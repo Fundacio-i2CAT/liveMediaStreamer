@@ -80,7 +80,7 @@ RTSPConnection::RTSPConnection(UsageEnvironment* env, TxFormat txformat, RTSPSer
     }
     
     if (format == MPEGTS){
-        subsession = MPEGTSQueueServerMediaSubsession::createNew(*env, False);
+        subsession = MPEGTSQueueServerMediaSubsession::createNew(this, *env, False);
     }
 }
 

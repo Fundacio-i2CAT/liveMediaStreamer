@@ -41,6 +41,7 @@
 
 class ConnRTCPInstance;
 class ConnectionSubsessionStats;
+class MPEGTSQueueServerMediaSubsession;
 
 /*! Each connection represents a RTP/RTSP transmission. It is an interface to different specific connections
     so it cannot be instantiated */

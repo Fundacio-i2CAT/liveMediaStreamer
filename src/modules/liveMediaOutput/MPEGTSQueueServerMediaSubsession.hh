@@ -27,12 +27,14 @@
 
 #include <liveMedia.hh>
 #include "QueueServerMediaSubsession.hh"
+#include "Connection.hh"
 
+class Connection;
 
 class MPEGTSQueueServerMediaSubsession: public QueueServerMediaSubsession {
 public:
     static MPEGTSQueueServerMediaSubsession*
-        createNew(UsageEnvironment& env, Boolean reuseFirstSource);
+        createNew(Connection* conn, UsageEnvironment& env, Boolean reuseFirstSource);
     
     /**
     * Adds a video source to an MPEGTS subsession
@@ -59,17 +61,19 @@ public:
     std::vector<int> getReaderIds();
 
 protected:
-  MPEGTSQueueServerMediaSubsession(UsageEnvironment& env, Boolean reuseFirstSource);
+    MPEGTSQueueServerMediaSubsession(Connection* conn, UsageEnvironment& env, Boolean reuseFirstSource);
 
-  ~MPEGTSQueueServerMediaSubsession();
+    ~MPEGTSQueueServerMediaSubsession();
 
 protected: 
-  FramedSource* createNewStreamSource(unsigned clientSessionId,
+    FramedSource* createNewStreamSource(unsigned clientSessionId,
                           unsigned& estBitrate);
-  RTPSink* createNewRTPSink(Groupsock* rtpGroupsock,
+    RTPSink* createNewRTPSink(Groupsock* rtpGroupsock,
                                     unsigned char rtpPayloadTypeIfDynamic,
                     FramedSource* inputSource);
-
+    RTCPInstance* createRTCP(Groupsock* RTCPgs, unsigned totSessionBW, /* in kbps */
+                   unsigned char const* cname, RTPSink* sink);
+    
 private:
     StreamReplicator* aReplicator;
     StreamReplicator* vReplicator;
@@ -79,6 +83,7 @@ private:
     
     int aReaderId;
     int vReaderId;
+    Connection* fConn;
 };
 
 #endif

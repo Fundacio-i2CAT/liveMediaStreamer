@@ -417,7 +417,9 @@ void SourceManager::doGetState(Jzon::Object &filterNode)
                 jsonSubsession.Add("avgInterPacketGapInMiliseconds", (int)(numPacketsReceived == 0 ? 0.0 : totalGapsMS/numPacketsReceived) );
 
                 // JITTER 
-                jsonSubsession.Add("jitterInMicroseconds", (int)scsss->getJitter());
+                jsonSubsession.Add("minJitterInMicroseconds", (int)scsss->getMinJitter());
+                jsonSubsession.Add("maxJitterInMicroseconds", (int)scsss->getMaxJitter());
+                jsonSubsession.Add("curJitterInMicroseconds", (int)scsss->getJitter());
             }
 
             subsessionArray.Add(jsonSubsession);
@@ -665,7 +667,7 @@ SCSSubsessionStats::SCSSubsessionStats(size_t id_, RTPSource* src, struct timeva
     id(id_), fSource(src), kbitsPerSecondMin(1e20), kbitsPerSecondMax(0),
     kBytesTotal(0.0), packetLossFractionMin(1.0), packetLossFractionMax(0.0),
     totNumPacketsReceived(0), totNumPacketsExpected(0), minInterPacketGapUS(0),
-    maxInterPacketGapUS(0), jitter(0)
+    maxInterPacketGapUS(0), jitter(0), maxJitter(0), minJitter(40000)
 {
     measurementEndTime = measurementStartTime = startTime;
 
@@ -723,5 +725,7 @@ void SCSSubsessionStats::periodicStatMeasurement(struct timeval const& timeNow)
         maxInterPacketGapUS = stats->maxInterPacketGapUS();
         totalGaps = stats->totalInterPacketGaps();
         jitter = stats->jitter();
+        if(maxJitter < jitter) maxJitter = jitter;
+        if(minJitter > jitter) minJitter = jitter; 
     }
 }

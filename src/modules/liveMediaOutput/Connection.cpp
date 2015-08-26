@@ -732,8 +732,10 @@ ConnRTCPInstance::ConnRTCPInstance(Connection* conn, UsageEnvironment* env, Grou
     RTCPInstance(*env, RTCPgs, totSessionBW, cname, sink, NULL, False), 
     id(0), SSRC(0), fConn(conn), fSink(sink), connectionStatsMeasurementTask(NULL),
     statsMeasurementIntervalMS(DEFAULT_STATS_TIME_INTERVAL), 
-    currentNumBytes(0), currentElapsedTime(0),
-    packetLossRatio(0), roundTripDelay(0), jitter(0) 
+    packetLossRatio(0), minPacketLossRatio(100), maxPacketLossRatio(0),
+    avgBitrate(0), minBitrate(1000000), maxBitrate(0),
+    roundTripDelay(0), minRoundTripDelay(1000000), maxRoundTripDelay(0),
+    jitter(0), minJitter(1000000), maxJitter(0)
 {
     struct timeval startTime;
     gettimeofday(&startTime, NULL);
@@ -771,16 +773,30 @@ void ConnRTCPInstance::scheduleNextConnStatMeasurement()
 
 void ConnRTCPInstance::periodicStatMeasurement(struct timeval const& timeNow) 
 {
+    unsigned currentNumBytes;
+    double currentElapsedTime;
+
     RTPTransmissionStatsDB::Iterator statsIter(fSink->transmissionStatsDB());
 
     fSink->getTotalBitrate(currentNumBytes, currentElapsedTime);
 
+    avgBitrate = currentElapsedTime == 0 ? 0.0 : ((8*currentNumBytes/currentElapsedTime)/1000.0);
+    if(minBitrate > avgBitrate) minBitrate = avgBitrate;
+    if(maxBitrate < avgBitrate) maxBitrate = avgBitrate;
+
     RTPTransmissionStats* stats;
     while((stats = statsIter.next()) != NULL){
-        //TODO think if required getting min and max values as done in rx side        
         SSRC = stats->SSRC();
         packetLossRatio = stats->packetLossRatio();
+        if(minPacketLossRatio > packetLossRatio) minPacketLossRatio = packetLossRatio;
+        if(maxPacketLossRatio < packetLossRatio) maxPacketLossRatio = packetLossRatio;        
+        
         roundTripDelay = stats->roundTripDelay();
+        if(minRoundTripDelay > roundTripDelay) minRoundTripDelay = roundTripDelay;
+        if(maxRoundTripDelay < roundTripDelay) maxRoundTripDelay = roundTripDelay;
+
         jitter = stats->jitter();
+        if(minJitter > jitter) minJitter = jitter;
+        if(maxJitter < jitter) maxJitter = jitter;
     }
 }

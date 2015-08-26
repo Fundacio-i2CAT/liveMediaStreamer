@@ -651,10 +651,18 @@ void SinkManager::doGetState(Jzon::Object &filterNode)
             jsonConnection.Add("uri", rtspConn->getURI());
             for (auto iter : it.second->getConnectionRTCPInstanceMap()) {
                 jsonSubsessionStat.Add("SSRC", std::to_string(iter.second->getSSRC()));
-                jsonSubsessionStat.Add("avgBitrateInKbps", (iter.second->getCurrentElapsedTime() == 0 ? 0.0 : ((8*iter.second->getCurrentNumBytes()/iter.second->getCurrentElapsedTime())/1000.0)));
+                jsonSubsessionStat.Add("avgBitrateInKbps", (float)iter.second->getAvgBitrate());
+                jsonSubsessionStat.Add("minBitrateInKbps", (float)iter.second->getMinBitrate());
+                jsonSubsessionStat.Add("maxBitrateInKbps", (float)iter.second->getMaxBitrate());
                 jsonSubsessionStat.Add("packetLossRatio", (int)(iter.second->getPacketLossRatio()));
+                jsonSubsessionStat.Add("minPacketLossRatio", (int)(iter.second->getMinPacketLossRatio()));
+                jsonSubsessionStat.Add("maxPacketLossRatio", (int)(iter.second->getMaxPacketLossRatio()));
                 jsonSubsessionStat.Add("jitterInMicroseconds", (int)iter.second->getJitter());
+                jsonSubsessionStat.Add("minJitterInMicroseconds", (int)iter.second->getMinJitter());
+                jsonSubsessionStat.Add("maxJitterInMicroseconds", (int)iter.second->getMaxJitter());
                 jsonSubsessionStat.Add("roundTripDelay", (int)iter.second->getRoundTripDelay());
+                jsonSubsessionStat.Add("minRoundTripDelay", (int)iter.second->getMinRoundTripDelay());
+                jsonSubsessionStat.Add("maxRoundTripDelay", (int)iter.second->getMaxRoundTripDelay());
 
                 jsonSubsessionsStats.Add(jsonSubsessionStat);    
             }
@@ -663,10 +671,17 @@ void SinkManager::doGetState(Jzon::Object &filterNode)
             jsonConnection.Add("port", std::to_string(rtpConn->getPort()));
             for (auto iter : it.second->getConnectionRTCPInstanceMap()) {
                 jsonSubsessionStat.Add("SSRC", std::to_string(iter.second->getSSRC()));
-                jsonSubsessionStat.Add("avgBitrateInKbps", (iter.second->getCurrentElapsedTime() == 0 ? 0.0 : ((8*iter.second->getCurrentNumBytes()/iter.second->getCurrentElapsedTime())/1000.0)));
+                jsonSubsessionStat.Add("avgBitrateInKbps", (float)iter.second->getAvgBitrate());
+                jsonSubsessionStat.Add("minBitrateInKbps", (float)iter.second->getMinBitrate());
+                jsonSubsessionStat.Add("maxBitrateInKbps", (float)iter.second->getMaxBitrate());
                 jsonSubsessionStat.Add("packetLossRatio", (int)(iter.second->getPacketLossRatio()));
+                jsonSubsessionStat.Add("minPacketLossRatio", (int)(iter.second->getMinPacketLossRatio()));
+                jsonSubsessionStat.Add("maxPacketLossRatio", (int)(iter.second->getMaxPacketLossRatio()));
                 jsonSubsessionStat.Add("jitterInMicroseconds", (int)iter.second->getJitter());
+                jsonSubsessionStat.Add("minJitterInMicroseconds", (int)iter.second->getMinJitter());
+                jsonSubsessionStat.Add("maxJitterInMicroseconds", (int)iter.second->getMaxJitter());
                 jsonSubsessionStat.Add("roundTripDelay", (int)iter.second->getRoundTripDelay());
+                jsonSubsessionStat.Add("minRoundTripDelay", (int)iter.second->getMinRoundTripDelay());
                 
                 jsonSubsessionsStats.Add(jsonSubsessionStat);    
             }

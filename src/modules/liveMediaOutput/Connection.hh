@@ -378,8 +378,6 @@ public:
     */
     ~ConnRTCPInstance();
 
-    RTPSink* getRTPSink() { return fSink; };
-    
     void scheduleNextConnStatMeasurement();
 
     void periodicStatMeasurement(struct timeval const& timeNow);
@@ -390,15 +388,21 @@ public:
 
     u_int32_t getSSRC() { return SSRC; };
 
-    unsigned getCurrentNumBytes () { return currentNumBytes; };
-
-    double getCurrentElapsedTime () { return currentElapsedTime; };
-
     u_int8_t getPacketLossRatio() { return packetLossRatio; };
+    u_int8_t getMinPacketLossRatio() { return minPacketLossRatio; };
+    u_int8_t getMaxPacketLossRatio() { return maxPacketLossRatio; };
+
+    size_t getAvgBitrate() { return avgBitrate; };
+    size_t getMinBitrate() { return minBitrate; };
+    size_t getMaxBitrate() { return maxBitrate; };
 
     size_t getRoundTripDelay() { return roundTripDelay; };
+    size_t getMinRoundTripDelay() { return minRoundTripDelay; };
+    size_t getMaxRoundTripDelay() { return maxRoundTripDelay; };
 
     size_t getJitter() { return jitter; };
+    size_t getMinJitter() { return minJitter; };
+    size_t getMaxJitter() { return maxJitter; };
 
 private:
     ConnRTCPInstance(Connection* conn, UsageEnvironment* env, Groupsock* RTPgs, unsigned totSessionBW,
@@ -413,10 +417,11 @@ private:
     TaskToken connectionStatsMeasurementTask;
     size_t statsMeasurementIntervalMS;
     size_t nextStatsMeasurementUSecs;
-    unsigned currentNumBytes;
-    double currentElapsedTime;
-    u_int8_t packetLossRatio;
-    size_t roundTripDelay, jitter;
+
+    u_int8_t packetLossRatio, minPacketLossRatio, maxPacketLossRatio;
+    size_t avgBitrate, minBitrate, maxBitrate;
+    size_t roundTripDelay, minRoundTripDelay, maxRoundTripDelay;
+    size_t jitter, minJitter, maxJitter;
 };
 
 #endif

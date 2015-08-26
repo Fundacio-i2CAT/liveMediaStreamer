@@ -193,6 +193,8 @@ public:
     unsigned getMaxInterPacketGapUS() { return maxInterPacketGapUS; };
     struct timeval getTotalGaps() { return totalGaps; };
     size_t getJitter() { return jitter; };
+    size_t getMaxJitter() { return maxJitter; };
+    size_t getMinJitter() { return minJitter; };
     RTPSource* getRTPSource() { return fSource; };
 
 private:
@@ -209,6 +211,8 @@ private:
     // RTP data interarrival time to be inserted in 
     // the interarrival jitter field of reception reports (in microseconds).
     size_t jitter;
+    size_t maxJitter;
+    size_t minJitter;
 };
 
 #endif

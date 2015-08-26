@@ -32,6 +32,9 @@ HeadDemuxerLibav::HeadDemuxerLibav() : HeadFilter ()
     av_ctx = NULL;
     av_filter_annexb = NULL;
 
+    av_pkt.data = NULL;
+    buffer = NULL;
+
     fType = DEMUXER;
 
     // Clear all internal data
@@ -61,56 +64,136 @@ void HeadDemuxerLibav::reset()
     }
     av_filter_annexb = NULL;
 
-    // Free extradatas and stream infos
+    if (buffer && buffer != av_pkt.data) {
+        free(buffer);
+    }
+    buffer = NULL;
+
+    if (av_pkt.data) {
+        av_free_packet(&av_pkt);
+    }
+
+    // Free stream infos
     for (auto sinfo : outputStreamInfos) {
         delete sinfo.second;
     }
     outputStreamInfos.clear();
+
+    // Free private stream infos
+    for (auto sinfo : privateStreamInfos) {
+        delete sinfo.second;
+    }
+    privateStreamInfos.clear();
+}
+
+static int findStartCode(uint8_t *buffer, int offs, int buffer_length)
+{
+    while (offs < buffer_length - 3) {
+        if (buffer[offs + 0] == 0 && buffer[offs + 1] == 0) {
+            if (buffer[offs + 2] == 1) {
+                return offs;
+            }
+            if (buffer[offs + 2] == 0 && buffer[offs + 3] == 1) {
+                return offs;
+            }
+        }
+        offs++;
+    }
+    return -1;
 }
 
 bool HeadDemuxerLibav::doProcessFrame(std::map<int, Frame*> &dstFrames)
 {
+    PrivateStreamInfo *psi;
+
     if (!av_ctx) return false;
 
-    // Ask libav for a data packet
-    AVPacket pkt;
-    av_init_packet (&pkt);
-    pkt.data = NULL;
-    pkt.size = 0;
-    if (av_read_frame (av_ctx, &pkt) < 0) {
-        return false;
+    if (!av_pkt.data) {
+        // Ask libav for a new data packet
+        av_init_packet (&av_pkt);
+        av_pkt.data = NULL;
+        av_pkt.size = 0;
+        if (av_read_frame (av_ctx, &av_pkt) < 0) {
+            return false;
+        }
+        if (privateStreamInfos.count(av_pkt.stream_index) == 0) {
+            // Unknown stream? weird...
+            av_free_packet(&av_pkt);
+            return false;
+        }
+        bufferOffset = 0;
+        psi = privateStreamInfos[av_pkt.stream_index];
+        if (psi->needsFraming && !psi->isAnnexB) {
+            // Convert to Annex B (adding startcodes) using temp buffer
+            int res;
+            res = av_bitstream_filter_filter (av_filter_annexb,
+                    av_ctx->streams[av_pkt.stream_index]->codec,
+                    NULL, &buffer, &bufferSize, av_pkt.data,
+                    av_pkt.size, av_pkt.flags & AV_PKT_FLAG_KEY);
+            if (res < 0) {
+                av_free_packet(&av_pkt);
+                buffer = 0;
+                return false;
+            }
+            if (res == 0 && buffer != av_pkt.data) {
+                // No buffer has been allocated, take some precautions so we do not
+                // try to free it later on
+                bufferOffset = buffer - av_pkt.data;
+                buffer = av_pkt.data;
+            }
+        } else {
+            // Processing the packet directly
+            buffer = av_pkt.data;
+            bufferSize = av_pkt.size;
+        }
+    } else {
+        psi = privateStreamInfos[av_pkt.stream_index];
     }
 
-    if (dstFrames.count(pkt.stream_index) == 0) {
+    if (dstFrames.count(av_pkt.stream_index) == 0) {
         // Discard packet if output corresponding to this stream is not connected
-        av_free_packet(&pkt);
+        if (buffer != av_pkt.data) {
+            free(buffer);
+        }
+        buffer = NULL;
+        av_free_packet(&av_pkt);
         return false;
     }
 
     // Find corresponding output frame
-    Frame *f = dstFrames[pkt.stream_index];
-    uint8_t *data = f->getDataBuf();
-    int data_size = pkt.size;
-    if (av_filter_annexb) {
-        // Conversion to AnnexB has been requested
-        uint8_t *out;
-        int res;
-        res = av_bitstream_filter_filter (av_filter_annexb, av_ctx->streams[pkt.stream_index]->codec,
-                NULL, &out, &data_size, pkt.data, pkt.size, pkt.flags & AV_PKT_FLAG_KEY);
-        memcpy(data, out, data_size);
-        if (res > 0) {
-            free(out);
+    Frame *f = dstFrames[av_pkt.stream_index];
+
+    // Copy to destination frame, framing if necessary
+    uint8_t *dst_data = f->getDataBuf();
+    int dst_size = bufferSize;
+    if (psi->needsFraming) {
+        // Split on startcode boundaries
+        int start = findStartCode(buffer, bufferOffset, bufferSize);
+        int end = findStartCode(buffer, bufferOffset + 4, bufferSize - 4);
+        bufferOffset = end;
+        if (end == -1) {
+            end = bufferSize;
         }
+        dst_size = end - start;
+        memcpy(dst_data, buffer + start, dst_size);
     } else {
         // No conversion needed, just copy
-        memcpy (data, pkt.data, pkt.size);
+        memcpy (dst_data, buffer, bufferSize);
+        bufferOffset = -1;
     }
     f->setConsumed(true);
-    f->setLength(data_size);
+    f->setLength(dst_size);
     f->setPresentationTime(
         std::chrono::microseconds(
-            (int64_t)(1000000 * pkt.pts * streamTimeBase[pkt.stream_index])));
-    av_free_packet(&pkt);
+            (int64_t)(1000000 * av_pkt.pts * psi->streamTimeBase)));
+
+    if (bufferOffset == -1) {
+        if (buffer != av_pkt.data) {
+            free(buffer);
+        }
+        buffer = NULL;
+        av_free_packet(&av_pkt);
+    }
 
     return true;
 }
@@ -188,6 +271,8 @@ bool HeadDemuxerLibav::setURI(const std::string URI)
         const AVCodecDescriptor* cdesc =
                 avcodec_descriptor_get(av_ctx->streams[i]->codec->codec_id);
         StreamInfo *si = new StreamInfo();
+        PrivateStreamInfo *psi = new PrivateStreamInfo();
+        memset(psi, 0, sizeof(PrivateStreamInfo));
         if (cdesc) {
             switch (cdesc->type) {
                 case AVMEDIA_TYPE_AUDIO:
@@ -217,23 +302,29 @@ bool HeadDemuxerLibav::setURI(const std::string URI)
                 if (av_ctx->streams[i]->codec->extradata_size > 4 &&
                         si->type == VIDEO &&
                             (si->video.codec == H264 || si->video.codec == H265)) {
+                    // We will always parse H264/5 streams since libav gives us packets containing
+                    // a single frame, which might include more than one NALU.
+                    psi->needsFraming = true;
                     const uint8_t *data = av_ctx->streams[i]->codec->extradata;
                     // First byte of AVCC extradata is always 1 (version)
                     // AnnexB extradata starts with either 0x000001 or 0x00000001
-                    if (data[0] == 1) {
+                    psi->isAnnexB = (data[0] == 0);
+                    if (!psi->isAnnexB) {
                         // This is AVCC, we need conversion
                         av_filter_annexb = av_bitstream_filter_init ("h264_mp4toannexb");
                     }
-                    // Always report AnnexB format
+                    // Always report AnnexB, framed format, since we do all conversions
                     si->video.h264or5.annexb = true;
+                    si->video.h264or5.framed = true;
                 }
             }
             double timeBase = (double)av_ctx->streams[i]->time_base.num /
                     av_ctx->streams[i]->time_base.den;
-            streamTimeBase[i] = timeBase;
+            psi->streamTimeBase = timeBase;
         }
         utils::infoMsg("Found stream " + std::to_string(i) + ": " + utils::getStreamInfoAsString(si));
         outputStreamInfos[i] = si;
+        privateStreamInfos[i] = psi;
     }
 
     return true;

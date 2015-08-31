@@ -37,7 +37,6 @@
 
 #define TTL 255
 #define INITIAL_SERVER_PORT 6970
-#define DEFAULT_STATS_TIME_INTERVAL 1000 // 1 second
 
 class ConnRTCPInstance;
 class ConnectionSubsessionStats;

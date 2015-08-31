@@ -38,8 +38,6 @@
 #include "FrameQueue.hh"
 #endif
 
-#define DEFAULT_STATS_WINDOW 1000000 //1 sec.
-
 class Reader;
 
 /*! Writer class is an IOInterface dedicated to write frames to an specific queue.
@@ -117,7 +115,7 @@ public:
     /**
     * Creates a reader object
     */
-    Reader(std::chrono::microseconds wDelay = std::chrono::microseconds(DEFAULT_STATS_WINDOW));
+    Reader(std::chrono::microseconds wDelay = std::chrono::microseconds(DEFAULT_STATS_TIME_INTERVAL));
 
     /**
     * Class destructor

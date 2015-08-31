@@ -657,12 +657,12 @@ void SinkManager::doGetState(Jzon::Object &filterNode)
                 jsonSubsessionStat.Add("packetLossRatio", (int)(iter.second->getPacketLossRatio()));
                 jsonSubsessionStat.Add("minPacketLossRatio", (int)(iter.second->getMinPacketLossRatio()));
                 jsonSubsessionStat.Add("maxPacketLossRatio", (int)(iter.second->getMaxPacketLossRatio()));
-                jsonSubsessionStat.Add("jitterInMicroseconds", (int)iter.second->getJitter());
-                jsonSubsessionStat.Add("minJitterInMicroseconds", (int)iter.second->getMinJitter());
-                jsonSubsessionStat.Add("maxJitterInMicroseconds", (int)iter.second->getMaxJitter());
                 jsonSubsessionStat.Add("roundTripDelay", (int)iter.second->getRoundTripDelay());
                 jsonSubsessionStat.Add("minRoundTripDelay", (int)iter.second->getMinRoundTripDelay());
                 jsonSubsessionStat.Add("maxRoundTripDelay", (int)iter.second->getMaxRoundTripDelay());
+                jsonSubsessionStat.Add("jitterInMicroseconds", (int)iter.second->getJitter());
+                jsonSubsessionStat.Add("minJitterInMicroseconds", (int)iter.second->getMinJitter());
+                jsonSubsessionStat.Add("maxJitterInMicroseconds", (int)iter.second->getMaxJitter());
 
                 jsonSubsessionsStats.Add(jsonSubsessionStat);    
             }
@@ -677,13 +677,14 @@ void SinkManager::doGetState(Jzon::Object &filterNode)
                 jsonSubsessionStat.Add("packetLossRatio", (int)(iter.second->getPacketLossRatio()));
                 jsonSubsessionStat.Add("minPacketLossRatio", (int)(iter.second->getMinPacketLossRatio()));
                 jsonSubsessionStat.Add("maxPacketLossRatio", (int)(iter.second->getMaxPacketLossRatio()));
+                jsonSubsessionStat.Add("roundTripDelay", (int)iter.second->getRoundTripDelay());
+                jsonSubsessionStat.Add("minRoundTripDelay", (int)iter.second->getMinRoundTripDelay());
+                jsonSubsessionStat.Add("maxRoundTripDelay", (int)iter.second->getMaxRoundTripDelay());
                 jsonSubsessionStat.Add("jitterInMicroseconds", (int)iter.second->getJitter());
                 jsonSubsessionStat.Add("minJitterInMicroseconds", (int)iter.second->getMinJitter());
                 jsonSubsessionStat.Add("maxJitterInMicroseconds", (int)iter.second->getMaxJitter());
-                jsonSubsessionStat.Add("roundTripDelay", (int)iter.second->getRoundTripDelay());
-                jsonSubsessionStat.Add("minRoundTripDelay", (int)iter.second->getMinRoundTripDelay());
-                
-                jsonSubsessionsStats.Add(jsonSubsessionStat);    
+
+               jsonSubsessionsStats.Add(jsonSubsessionStat);    
             }
         } else {
             filterNode.Add("error", Jzon::null);

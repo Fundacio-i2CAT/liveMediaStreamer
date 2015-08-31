@@ -62,7 +62,7 @@ public:
     */
     FrameQueue(ConnectionData cData, const StreamInfo *si = NULL) :
             rear(0), front(0), connected(false), firstFrame(false),
-            connectionData(cData), streamInfo(si) {};
+            lostBlocs(0), connectionData(cData), streamInfo(si) {};
 
     /**
     * Class destructor
@@ -94,9 +94,23 @@ public:
     virtual int removeFrame() = 0;
 
     /**
+    * Counts lost blocs and flushes the queue
+    */
+    void flush() 
+    { 
+        lostBlocs++;
+        doFlush();
+    };
+    
+    /**
     * Flushes the queue
     */
-    virtual void flush() = 0;
+    virtual void doFlush() = 0;
+    
+    /**
+    * Get lost blocs
+    */
+    size_t getLostBlocs() { return lostBlocs; };
 
     /**
     * Forces getting frame from queue's rear
@@ -145,7 +159,8 @@ protected:
     size_t front;
     bool connected;
     bool firstFrame;
-    
+    size_t lostBlocs;
+
     const ConnectionData connectionData;
 
     const StreamInfo *streamInfo;

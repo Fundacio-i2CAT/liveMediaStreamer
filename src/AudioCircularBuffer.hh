@@ -43,7 +43,7 @@ public:
     Frame *getFront();
     int addFrame();
     int removeFrame();
-    void flush();
+    void doFlush();
     Frame *forceGetRear();
     Frame *forceGetFront();
     bool frameToRead() {return false;};

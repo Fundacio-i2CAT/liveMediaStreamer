@@ -79,7 +79,7 @@ int AVFramedQueue::removeFrame()
     return connectionData.wFilterId;
 }
 
-void AVFramedQueue::flush() 
+void AVFramedQueue::doFlush() 
 {
     rear = (rear + (max - 1)) % max;
 }

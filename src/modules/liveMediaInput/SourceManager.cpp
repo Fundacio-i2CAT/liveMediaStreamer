@@ -292,8 +292,6 @@ bool SourceManager::addSessionEvent(Jzon::Node* params)
         session = Session::createNew(*env, sdp, sessionId, this);
 
     } else {
-        utils::infoMsg("SETTING NONEEEEE EVENT ");
-
         return false;
     }
 

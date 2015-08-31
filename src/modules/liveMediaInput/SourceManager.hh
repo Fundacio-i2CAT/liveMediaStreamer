@@ -38,7 +38,6 @@
 
 
 #define PROTOCOL "RTP"
-#define DEFAULT_STATS_TIME_INTERVAL 1000 // 1 second
 
 class SourceManager;
 class SCSSubsessionStats;

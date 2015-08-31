@@ -81,7 +81,7 @@ public:
 
 protected:
     AVFramedQueue(ConnectionData cData, const StreamInfo *si, unsigned maxFrames);
-    void flush();
+    void doFlush();
     Frame* frames[MAX_FRAMES];
     unsigned max;
 };

@@ -48,7 +48,15 @@ struct StreamInfo {
             PixType pixelFormat;
             union {
                 struct {
+                    /** If true, bitstream is in Annex B format, so each NALU is prefixed with a
+                     * startcode (00 00 00 01 or 00 00 01).
+                     * If false, bitstream is in AVCC format, there are no startcodes. */
                     bool annexb;
+                    /** If true, each data buffer (#Frame, in LMS) contains a single NALU.
+                     * Otherwise, multiple NALUs can be present in a single buffer and parsing might
+                     * be required.
+                     */
+                    bool framed;
                 } h264or5;
             };
         } video;
@@ -70,7 +78,7 @@ struct StreamInfo {
     }
 
     /** Sets default values for some attributes, based on the #type and the specific codec.
-     * These default values where in use throughout LMS before the introduction of #StreamInfo */
+     * These default values where in use throughout LMS before the introduction of #StreamInfo. */
     void setCodecDefaults() {
         switch (type) {
             case VIDEO:
@@ -100,6 +108,7 @@ struct StreamInfo {
     /** Just provide as much information as you want, the rest is initialized to sane defaults. */
     StreamInfo(StreamType type = ST_NONE, uint8_t *extradata = NULL, int extradata_size = 0) :
         type(type), extradata(extradata), extradata_size(extradata_size) {
+            /* These are the default values that were previously used (or assumed) in LMS. */
             switch (type) {
                 case AUDIO:
                     audio.codec = AC_NONE;
@@ -111,6 +120,7 @@ struct StreamInfo {
                     video.codec = VC_NONE;
                     video.pixelFormat = P_NONE;
                     video.h264or5.annexb = false;
+                    video.h264or5.framed = true;
                     break;
                 default:
                     break;

@@ -52,6 +52,16 @@ class HeadDemuxerLibav : public HeadFilter {
         virtual void doGetState(Jzon::Object &filterNode);
 
     private:
+        /** Maps writer IDs to the private stream information */
+        struct PrivateStreamInfo {
+            /** Time base needed to convert libav PTS to seconds */
+            double streamTimeBase;
+            /** Whether the input needs to be parsed to split packets into multiple frames */
+            bool needsFraming;
+            /* Whether the input is H264 in AVCC or Annex B format */
+            bool isAnnexB;
+        };
+
         /** URI currently being played */
         std::string uri;
 
@@ -62,15 +72,23 @@ class HeadDemuxerLibav : public HeadFilter {
          * shared with the queues. */
         std::map<int, StreamInfo*> outputStreamInfos;
 
-        /** Maps writer IDs to the time base needed to convert libav PTS to seconds
-         */
-        std::map<int, double> streamTimeBase;
+        /** Stream information needed for demuxer operation, but not public. */
+        std::map<int, PrivateStreamInfo*> privateStreamInfos;
 
         /** Libav media context. Created on #setURI(), destroyed on filter destruction
          * or subsequent #setURI(). */
         AVFormatContext *av_ctx;
-
+        /** Libav filter required to convert H264 AVCC to AnnexB */
         AVBitStreamFilterContext *av_filter_annexb;
+        /** Packet being processed, in case it contains more than one NALU and it needs
+         * to be persisted among multiple calls to doProcessFrame. */
+        AVPacket av_pkt;
+
+        /** Working buffer. It might point inside av_pkt, or to a temp buffer needed
+         * when converting H264 from AVCC to AnnexB */
+        uint8_t *buffer;
+        int bufferSize;
+        int bufferOffset;
 
         /** Clear all data, close all files */
         void reset();

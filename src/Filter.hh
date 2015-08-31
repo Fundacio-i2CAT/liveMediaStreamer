@@ -192,18 +192,11 @@ public:
     std::chrono::microseconds getAvgReaderDelay (int rId);
 
     /**
-     * get losts frames
+     * get losts blocs
      * @param readerId of the reader
-     * @return the losts frames of the reader
+     * @return the losts blocs of the reader
      */
-    size_t getLostFrames (int rId);
-
-    /**
-     * get total frames
-     * @param readerId of the reader
-     * @return the total frames of the reader
-     */
-    size_t getTotalFrames (int rId);
+    size_t getLostBlocs (int rId);
 
 protected:
     BaseFilter(unsigned readersNum = MAX_READERS, unsigned writersNum = MAX_WRITERS, FilterRole fRole_ = REGULAR, bool periodic = false);

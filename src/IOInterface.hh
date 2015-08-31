@@ -187,23 +187,16 @@ public:
     std::chrono::microseconds getAvgDelay();
 
     /**
-    * Get lost frames
-    * @return lost frames in size_t
+    * Get lost blocs
+    * @return lost blocs in size_t
     */
-    size_t getLostFrames();
-
-    /**
-    * Get total frames
-    * @return total frames in size_t
-    */
-    size_t getTotalFrames();
+    size_t getLostBlocs();
 
 protected:
     FrameQueue *queue;
 
 private:
     void measureDelay();
-    void measureLosses();
 
     friend class Writer;
      
@@ -220,8 +213,6 @@ private:
     std::chrono::microseconds lastTs;
     std::chrono::microseconds timeCounter;
     size_t frameCounter;
-    size_t lostFrames;
-    size_t lastSeqNum;
 };
 
 #endif

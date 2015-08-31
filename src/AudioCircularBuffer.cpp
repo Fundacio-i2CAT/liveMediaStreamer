@@ -151,7 +151,7 @@ int AudioCircularBuffer::removeFrame()
     return connectionData.wFilterId;
 }
 
-void AudioCircularBuffer::flush()
+void AudioCircularBuffer::doFlush()
 {
     std::lock_guard<std::mutex> guard(mtx);
     rear = 0;

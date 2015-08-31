@@ -417,6 +417,7 @@ void PipelineManager::getStateEvent(Jzon::Node* params, Jzon::Object &outputNode
     outputNode.Add("filters", filterList);
 
     for (auto it : paths) {
+        size_t totalPathLostBlocs = 0;
         Jzon::Object path;
         Jzon::Array pathFilters;
         std::vector<int> pFilters = it.second->getFilters();
@@ -430,8 +431,14 @@ void PipelineManager::getStateEvent(Jzon::Node* params, Jzon::Object &outputNode
         f = getFilter(it.second->getDestinationFilterID());
         if (f) {
             path.Add("avgDelay", (int)f->getAvgReaderDelay(it.second->getDstReaderID()).count());
-            path.Add("totalFrames", (int)f->getTotalFrames(it.second->getDstReaderID()));
-            path.Add("lostFrames", (int)f->getLostFrames(it.second->getDstReaderID()));
+            totalPathLostBlocs += f->getLostBlocs(it.second->getDstReaderID());
+            for (auto itt : pFilters) {
+                f = getFilter(itt);
+                if (f){
+                    totalPathLostBlocs += f->getLostBlocs(DEFAULT_ID);
+                }
+            }
+            path.Add("lostBlocs", (int)totalPathLostBlocs);
         } else {
             utils::warningMsg("[PipelineManager::getStateEvent] Path filter does not exist. Ambiguous situation! Better pray Jesus...");
         }

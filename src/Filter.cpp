@@ -81,7 +81,7 @@ std::chrono::microseconds BaseFilter::getAvgReaderDelay (int rId)
     return r->getAvgDelay();
 }
 
-size_t BaseFilter::getLostFrames (int rId)
+size_t BaseFilter::getLostBlocs (int rId)
 {
     std::shared_ptr<Reader> r = getReader(rId);
 
@@ -89,18 +89,7 @@ size_t BaseFilter::getLostFrames (int rId)
         return 0;
     }
 
-    return r->getLostFrames();
-}
-
-size_t BaseFilter::getTotalFrames (int rId)
-{
-    std::shared_ptr<Reader> r = getReader(rId);
-
-    if (!r) {
-        return 0;
-    }
-
-    return r->getTotalFrames();
+    return r->getLostBlocs();
 }
 
 bool BaseFilter::isRConnected (int rId) 

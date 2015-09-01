@@ -80,18 +80,17 @@ bool VideoEncoderX264::encodeFrame(VideoFrame* codedFrame)
 
     pts++;
 
-    if (success < 0) {
-        utils::errorMsg("X264 Encoder: Could not encode video frame");
+    if (success == 0) {
         return false;
-    } else if (success == 1) {
-        utils::debugMsg("X264 Encoder: NAL not retrieved after encoding");
+    } else if (success < 0) {
+        utils::errorMsg("X264 Encoder: Could not encode video frame");
         return false;
     }
 
     for (int i = 0; i < piNal; i++) {
 
         if (!slicedFrame->setSlice(nals[i].p_payload, nals[i].i_payload)) {
-            utils::errorMsg("X265 Encoder: too many NALs for one slicedFrame");
+            utils::errorMsg("X264 Encoder: too many NALs for one slicedFrame");
             return false;
         }
     }

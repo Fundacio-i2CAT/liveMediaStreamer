@@ -88,7 +88,12 @@ bool VideoDecoderLibav::doProcessFrame(Frame *org, Frame *dst)
 
         if (gotFrame) {
             if (toBuffer(vDecodedFrame, vCodedFrame)) {
-                vDecodedFrame->setConsumed(true);
+                
+                dst->setConsumed(true);
+                dst->setPresentationTime(org->getPresentationTime());
+                dst->setOriginTime(org->getOriginTime());
+                dst->setSequenceNumber(org->getSequenceNumber());
+                
                 return true;
             }
         }

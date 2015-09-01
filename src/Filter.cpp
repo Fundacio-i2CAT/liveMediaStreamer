@@ -634,24 +634,9 @@ OneToOneFilter::OneToOneFilter(FilterRole fRole_, bool periodic) :
 
 bool OneToOneFilter::runDoProcessFrame(std::map<int, Frame*> &oFrames, std::map<int, Frame*> &dFrames, std::vector<int> /*newFrames*/)
 {
-    FrameTimeParams frameTP;
-    
-    if (qFTP.size() == 0 || qFTP.back().pTime != oFrames.begin()->second->getPresentationTime()){
-        frameTP.pTime = oFrames.begin()->second->getPresentationTime();
-        frameTP.oTime = oFrames.begin()->second->getOriginTime();
-        frameTP.seqNum = oFrames.begin()->second->getSequenceNumber();
-        qFTP.push(frameTP);
-    }
-
     if (!doProcessFrame(oFrames.begin()->second, dFrames.begin()->second)) {
         return false;
     }
-
-    dFrames.begin()->second->setPresentationTime(qFTP.front().pTime);
-    dFrames.begin()->second->setOriginTime(qFTP.front().oTime);
-    dFrames.begin()->second->setSequenceNumber(qFTP.front().seqNum);
-    
-    qFTP.pop();
     
     return true;
 }

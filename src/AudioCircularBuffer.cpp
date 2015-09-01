@@ -325,3 +325,8 @@ void AudioCircularBuffer::setOutputFrameSamples(int samples)
     outputFrame->setLength(samples*bytesPerSample);
 }
 
+unsigned AudioCircularBuffer::getElements() 
+{
+    return elements/(outputFrame->getSamples()*bytesPerSample);
+};
+

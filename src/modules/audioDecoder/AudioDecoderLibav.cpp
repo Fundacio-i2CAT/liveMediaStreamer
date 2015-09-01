@@ -134,7 +134,6 @@ bool AudioDecoderLibav::doProcessFrame(Frame *org, Frame *dst)
         break;
     }
 
-    dst->setPresentationTime(org->getPresentationTime());
     dst->setConsumed(true);
     return true;
 }

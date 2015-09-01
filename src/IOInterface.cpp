@@ -131,7 +131,7 @@ void Reader::measureDelay()
     timeCounter += frame->getPresentationTime() - lastTs;
     lastTs = frame->getPresentationTime();
 
-    if(timeCounter >= windowDelay){
+    if(timeCounter >= windowDelay && frameCounter > 0){
         avgDelay = delay / frameCounter;
         timeCounter = std::chrono::microseconds(0);
         delay = std::chrono::microseconds(0);

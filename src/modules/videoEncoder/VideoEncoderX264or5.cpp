@@ -66,10 +66,6 @@ bool VideoEncoderX264or5::doProcessFrame(Frame *org, Frame *dst)
         utils::errorMsg("Could not fill x264_picture_t from frame");
         return false;
     }
-
-    if (pTimes.size() <= lookahead){
-        pTimes.push(org->getPresentationTime());
-    }
     
     if (!encodeFrame(codedFrame)) {
         utils::warningMsg("Could not encode video frame");
@@ -78,8 +74,6 @@ bool VideoEncoderX264or5::doProcessFrame(Frame *org, Frame *dst)
 
     codedFrame->setSize(rawFrame->getWidth(), rawFrame->getHeight());
     dst->setConsumed(true);
-    dst->setPresentationTime(pTimes.front());
-    pTimes.pop();
     return true;
 }
 

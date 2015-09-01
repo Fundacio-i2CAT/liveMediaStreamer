@@ -660,9 +660,9 @@ void SinkManager::doGetState(Jzon::Object &filterNode)
                 jsonSubsessionStat.Add("jitterInMicroseconds", (int)iter.second->getJitter());
                 jsonSubsessionStat.Add("minJitterInMicroseconds", (int)iter.second->getMinJitter());
                 jsonSubsessionStat.Add("maxJitterInMicroseconds", (int)iter.second->getMaxJitter());
-                jsonSubsessionStat.Add("roundTripDelay", (int)iter.second->getRoundTripDelay());
-                jsonSubsessionStat.Add("minRoundTripDelay", (int)iter.second->getMinRoundTripDelay());
-                jsonSubsessionStat.Add("maxRoundTripDelay", (int)iter.second->getMaxRoundTripDelay());
+                jsonSubsessionStat.Add("roundTripDelayMilliseconds", (int)iter.second->getRoundTripDelay());
+                jsonSubsessionStat.Add("minRoundTripDelayMilliseconds", (int)iter.second->getMinRoundTripDelay());
+                jsonSubsessionStat.Add("maxRoundTripDelayMilliseconds", (int)iter.second->getMaxRoundTripDelay());
 
                 jsonSubsessionsStats.Add(jsonSubsessionStat);    
             }
@@ -680,8 +680,9 @@ void SinkManager::doGetState(Jzon::Object &filterNode)
                 jsonSubsessionStat.Add("jitterInMicroseconds", (int)iter.second->getJitter());
                 jsonSubsessionStat.Add("minJitterInMicroseconds", (int)iter.second->getMinJitter());
                 jsonSubsessionStat.Add("maxJitterInMicroseconds", (int)iter.second->getMaxJitter());
-                jsonSubsessionStat.Add("roundTripDelay", (int)iter.second->getRoundTripDelay());
-                jsonSubsessionStat.Add("minRoundTripDelay", (int)iter.second->getMinRoundTripDelay());
+                jsonSubsessionStat.Add("roundTripDelayMilliseconds", (int)iter.second->getRoundTripDelay());
+                jsonSubsessionStat.Add("minRoundTripDelayMilliseconds", (int)iter.second->getMinRoundTripDelay());
+                jsonSubsessionStat.Add("maxRoundTripDelayMilliseconds", (int)iter.second->getMaxRoundTripDelay());
                 
                 jsonSubsessionsStats.Add(jsonSubsessionStat);    
             }

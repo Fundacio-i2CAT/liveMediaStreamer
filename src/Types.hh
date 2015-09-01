@@ -46,7 +46,7 @@
 #define AUDIO_FRAME_TIME 100 //ms
 #define DEFAULT_FRAME_SAMPLES 960
 #define VIDEO_DEFAULT_FRAMERATE 25  /*!< Default frame rate in frames per second (fps). */
-#define DEFAULT_STATS_TIME_INTERVAL 1000 // 1 second
+#define DEFAULT_STATS_TIME_INTERVAL 1000 // 1 second of window time measurements
 
 /**
 * Stream types

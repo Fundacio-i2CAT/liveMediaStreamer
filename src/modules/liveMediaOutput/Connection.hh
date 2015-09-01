@@ -70,12 +70,24 @@ public:
     */
     virtual void stopPlaying() = 0;
 
+    /**
+    * Returns the ConnRTCPInstances map of its Connection
+    */
     std::map<int, ConnRTCPInstance*> getConnectionRTCPInstanceMap() { return cRTCPInstances; };
 
+    /**
+    * Adds a new ConnRTCPInstance to the Connection map of ConnRTCPInstances
+    */
     void addConnectionRTCPInstance(size_t id, ConnRTCPInstance* cri) { cRTCPInstances[id] = cri; };
 
+    /**
+    * Removes specific ConnRTCPInstance from the ConnRTCPInstances map of its Connection
+    */
     void deleteConnectionRTCPInstance(size_t id) { cRTCPInstances.erase(id); };
 
+    /**
+    * Returns the global Environment usage of the Live555 library
+    */
     UsageEnvironment* envir() { return fEnv; };
 
 protected:
@@ -361,7 +373,7 @@ private:
 // RTCP CONNECTION INSTANCE //
 //////////////////////////////
 
-/*! It represents an RTCP Instance of the RTP connection.
+/*! It represents an RTCP Instance of the RTP connection. It's an RTCPInstance re-implementation.
 *   It measures network statistics for each connections' subsession.
 */
 class ConnRTCPInstance : public RTCPInstance {
@@ -377,30 +389,81 @@ public:
     */
     ~ConnRTCPInstance();
 
+    /**
+    * Schedules next stats measurements
+    */
     void scheduleNextConnStatMeasurement();
 
+    /**
+    * This is the scheduled method to process stats measurements
+    */
     void periodicStatMeasurement(struct timeval const& timeNow);
 
+    /**
+    * Sets the id of the RTCPInstance implementation
+    */
     void setId(size_t _id) { id = _id; };
 
+    /**
+    * Returns the id of the RTCPInstance implementation
+    */
     size_t getId() { return id; };
 
+    /**
+    * Returns the RTCP SSRC parameter of the RTP instance associated to the RTCPInstance implementation
+    */
     u_int32_t getSSRC() { return SSRC; };
 
+    /**
+    * Returns current packet loss ratio in percentage
+    */    
     u_int8_t getPacketLossRatio() { return packetLossRatio; };
+    /**
+    * Returns minimum packet loss ratio achieved in percentage
+    */    
     u_int8_t getMinPacketLossRatio() { return minPacketLossRatio; };
+    /**
+    * Returns maximum packet loss ratio achieved in percentage
+    */   
     u_int8_t getMaxPacketLossRatio() { return maxPacketLossRatio; };
 
+    /**
+    * Returns current average bitrate in kbps
+    */    
     size_t getAvgBitrate() { return avgBitrate; };
+    /**
+    * Returns minimum bitrate achieved in kbps
+    */   
     size_t getMinBitrate() { return minBitrate; };
+    /**
+    * Returns maximum bitrate achieved in kbps
+    */   
     size_t getMaxBitrate() { return maxBitrate; };
 
+    /**
+    * Returns the round trip delay in milliseconds
+    */  
     size_t getRoundTripDelay() { return roundTripDelay; };
+    /**
+    * Returns minimum round trip delay achieved in milliseconds
+    */  
     size_t getMinRoundTripDelay() { return minRoundTripDelay; };
+    /**
+    * Returns maximum round trip delay achieved in milliseconds
+    */  
     size_t getMaxRoundTripDelay() { return maxRoundTripDelay; };
 
+    /**
+    * Returns current jitter in microseconds
+    */  
     size_t getJitter() { return jitter; };
+    /**
+    * Returns maximum jitter achieved in microseconds
+    */  
     size_t getMinJitter() { return minJitter; };
+    /**
+    * Returns maximum jitter achieved in microseconds
+    */  
     size_t getMaxJitter() { return maxJitter; };
 
 private:

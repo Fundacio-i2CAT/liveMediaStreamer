@@ -169,13 +169,25 @@ bool HeadDemuxerLibav::doProcessFrame(std::map<int, Frame*> &dstFrames)
     if (psi->needsFraming) {
         // Split on startcode boundaries
         int start = findStartCode(buffer, bufferOffset, bufferSize);
+        if (start == -1) {
+            utils::errorMsg("Malformed Annex B stream (could not find start code)");
+        }
+
         int end = findStartCode(buffer, bufferOffset + 4, bufferSize - 4);
         bufferOffset = end;
         if (end == -1) {
             end = bufferSize;
         }
         dst_size = end - start;
+
+        // LMS does not like short startcodes, so detect them and turn into long startcodes
+        if (buffer[start + 2] == 1) {
+            dst_data[0] = 0;
+            dst_data++;
+        }
         memcpy(dst_data, buffer + start, dst_size);
+        if (buffer[start + 2] == 1) dst_size++;
+
     } else {
         // No conversion needed, just copy
         memcpy (dst_data, buffer, bufferSize);
@@ -290,6 +302,8 @@ bool HeadDemuxerLibav::setURI(const std::string URI)
                     si->video.codec = utils::getVideoCodecFromLibavString(cdesc->name);
                     // Overwrite libav values with our per-codec defaults
                     si->setCodecDefaults();
+                    // For now, we assume H265 is always in AnnexB format
+                    si->video.h264or5.annexb = true;
                     break;
                 default:
                     // Ignore this stream
@@ -298,11 +312,10 @@ bool HeadDemuxerLibav::setURI(const std::string URI)
             if (av_ctx->streams[i]->codec->extradata_size > 0) {
                 si->setExtraData(av_ctx->streams[i]->codec->extradata,
                         av_ctx->streams[i]->codec->extradata_size);
-                // Detect H264/5 AnnexB format
+                // Detect H264 AnnexB format
                 if (av_ctx->streams[i]->codec->extradata_size > 4 &&
-                        si->type == VIDEO &&
-                            (si->video.codec == H264 || si->video.codec == H265)) {
-                    // We will always parse H264/5 streams since libav gives us packets containing
+                        si->type == VIDEO && si->video.codec == H264) {
+                    // We will always parse H264 streams since libav gives us packets containing
                     // a single frame, which might include more than one NALU.
                     psi->needsFraming = true;
                     const uint8_t *data = av_ctx->streams[i]->codec->extradata;
@@ -312,6 +325,11 @@ bool HeadDemuxerLibav::setURI(const std::string URI)
                     if (!psi->isAnnexB) {
                         // This is AVCC, we need conversion
                         av_filter_annexb = av_bitstream_filter_init ("h264_mp4toannexb");
+                        if (av_filter_annexb == NULL) {
+                            utils::warningMsg("Could not find suitable libav filter to convert stream to Annexb");
+                            // We actually need framing, but we have no filter
+                            psi->needsFraming = false;
+                        }
                     }
                     // Always report AnnexB, framed format, since we do all conversions
                     si->video.h264or5.annexb = true;

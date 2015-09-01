@@ -83,6 +83,7 @@ struct StreamInfo {
         switch (type) {
             case VIDEO:
                 video.h264or5.annexb = false;
+                video.h264or5.framed = true;
                 break;
             case AUDIO:
                 switch (audio.codec) {

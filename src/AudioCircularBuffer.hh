@@ -82,6 +82,8 @@ private:
     std::chrono::microseconds syncTimestamp;
     bool synchronized;
     bool setupSuccess;
+    
+    std::chrono::system_clock::time_point orgTime;
 
     int tsDeviationThreshold;
     std::mutex mtx;

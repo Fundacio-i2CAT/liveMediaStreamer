@@ -44,6 +44,8 @@ VideoEncoderX264or5::~VideoEncoderX264or5()
 
 bool VideoEncoderX264or5::doProcessFrame(Frame *org, Frame *dst)
 {
+    FrameTimeParams frameTP;
+    
     if (!(org && dst)) {
         utils::errorMsg("Error encoding video frame: org or dst are NULL");
         return false;
@@ -67,13 +69,27 @@ bool VideoEncoderX264or5::doProcessFrame(Frame *org, Frame *dst)
         return false;
     }
     
+    if (qFTP.size() == 0 || qFTP.size() <= lookahead){
+        frameTP.pTime = org->getPresentationTime();
+        frameTP.oTime = org->getOriginTime();
+        frameTP.seqNum = org->getSequenceNumber();
+        qFTP.push(frameTP);
+    }
+    
     if (!encodeFrame(codedFrame)) {
         utils::warningMsg("Could not encode video frame");
         return false;
     }
 
     codedFrame->setSize(rawFrame->getWidth(), rawFrame->getHeight());
+    
     dst->setConsumed(true);
+    dst->setPresentationTime(qFTP.front().pTime);
+    dst->setOriginTime(qFTP.front().oTime);
+    dst->setSequenceNumber(qFTP.front().seqNum);
+    
+    qFTP.pop();
+    
     return true;
 }
 

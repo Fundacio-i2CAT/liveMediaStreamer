@@ -267,14 +267,6 @@ protected:
 private:
     bool runDoProcessFrame(std::map<int, Frame*> &oFrames, std::map<int, Frame*> &dFrames, std::vector<int> /*newFrames*/);
     
-    struct FrameTimeParams {
-        std::chrono::microseconds pTime;
-        std::chrono::system_clock::time_point oTime;
-        size_t seqNum;
-    };
-    
-    std::queue<FrameTimeParams> qFTP;
-    
     using BaseFilter::demandOriginFrames;
     using BaseFilter::demandDestinationFrames;
     using BaseFilter::addFrames;

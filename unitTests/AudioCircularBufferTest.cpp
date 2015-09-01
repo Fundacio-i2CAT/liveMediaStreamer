@@ -298,7 +298,7 @@ void AudioCircularBufferTest::flushBecauseOfDeviation()
     buffer->addFrame();
     insertedFrames++;
     
-    CPPUNIT_ASSERT(buffer->getElements() == insertedFrames*samplesPerFrame*bytesPerSample);
+    CPPUNIT_ASSERT(buffer->getElements() == insertedFrames*samplesPerFrame/outputSamples);
 
     inFrame = buffer->getRear();
     aFrame = dynamic_cast<AudioFrame*>(inFrame);

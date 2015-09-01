@@ -34,6 +34,7 @@ AVFramedQueue::AVFramedQueue(ConnectionData cData, const StreamInfo *si, unsigne
                 "Reducing to " + std::to_string(MAX_FRAMES));
         max = MAX_FRAMES;
     }
+    memset(frames, 0, sizeof(frames));
 }
 
 AVFramedQueue::~AVFramedQueue()

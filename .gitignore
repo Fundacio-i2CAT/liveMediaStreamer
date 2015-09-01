@@ -26,6 +26,7 @@ teststreamer
 testaudiomix
 testdash
 testvideomix
+testbypass
 
 autom4te.cache/
 config.log
@@ -101,5 +102,6 @@ unitTests/pipelineManagerTest
 unitTests/videoMixerFunctionalTest
 unitTests/videoMixerTest
 unitTests/workersPoolTest
+unitTests/IOInterfaceTest
 
 

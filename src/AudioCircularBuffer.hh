@@ -50,7 +50,7 @@ public:
     int getFreeSamples();
     void setBufferingThreshold(std::chrono::milliseconds th);
     unsigned getChannelMaxSamples() {return chMaxSamples;};
-    unsigned getElements() {return elements;};
+    unsigned getElements();
 
 private:
     AudioCircularBuffer(struct ConnectionData cData, unsigned ch, unsigned sRate, unsigned maxSamples, SampleFmt sFmt);

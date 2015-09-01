@@ -146,8 +146,12 @@ bool SinkManager::doProcessFrame(std::map<int, Frame*> &oFrames, std::vector<int
         }
     }
     
+    utils::infoMsg("Added frames: " + std::to_string(pFrames));
+    
     if (pFrames == 0){
+        utils::errorMsg("No frames");
         scheduler->SingleStep();
+        utils::errorMsg("ending");
         return false;
     }
     
@@ -159,6 +163,8 @@ bool SinkManager::doProcessFrame(std::map<int, Frame*> &oFrames, std::vector<int
             }
         }
     }
+    
+    utils::infoMsg("Consumed frames: " + std::to_string(pFrames));
 
     return true;
 }

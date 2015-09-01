@@ -76,7 +76,6 @@ protected:
     unsigned lookahead;
     bool needsConfig;
     std::string preset;
-    std::queue<std::chrono::microseconds> pTimes;
 
     StreamInfo *outputStreamInfo;
     

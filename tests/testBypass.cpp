@@ -178,19 +178,17 @@ bool publishRTSPSession(std::vector<int> readers, SinkManager *transmitter)
     std::string sessionId;
     std::vector<int> byPassReaders;
 
+    bool ret = false;
+    
     sessionId = "plainrtp";
     utils::infoMsg("Adding plain RTP session...");
-    if (!transmitter->addRTSPConnection(readers, 1, STD_RTP, sessionId)){
-        return false;
-    }
-
+    ret |= transmitter->addRTSPConnection(readers, 1, STD_RTP, sessionId);
+    
     sessionId = "mpegts";
     utils::infoMsg("Adding plain MPEGTS session...");
-    if (!transmitter->addRTSPConnection(readers, 2, MPEGTS, sessionId)){
-        return false;
-    }
+    ret |= transmitter->addRTSPConnection(readers, 2, MPEGTS, sessionId);
     
-    return true;
+    return ret;
 }
 
 int main(int argc, char* argv[])

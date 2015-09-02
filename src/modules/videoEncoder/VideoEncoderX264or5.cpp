@@ -70,9 +70,9 @@ bool VideoEncoderX264or5::doProcessFrame(Frame *org, Frame *dst)
     }
     
     /*NOTE: lookahead is multiplied by 2 beacuse the buffered frames might be 
-    * higher than lookahead depending on the configuration. 
+    * higher than lookahead plus the threads number depending on the configuration. 
     */
-    if (qFTP.size() == 0 || qFTP.size() <= lookahead * 2){
+    if (qFTP.size() == 0 || qFTP.size() <= (lookahead + threads)* 2){
         frameTP.pTime = org->getPresentationTime();
         frameTP.oTime = org->getOriginTime();
         frameTP.seqNum = org->getSequenceNumber();

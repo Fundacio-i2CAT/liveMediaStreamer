@@ -107,6 +107,12 @@ public:
     std::map<int, Path*> getPaths() {return paths;};
 
     /**
+    * Gets PipelineManager's filters
+    * @return a map with all filters objects
+    */
+    std::map<int, BaseFilter*> getFilters() {return filters;};
+
+    /**
     * Manage and carries out a path connection: connectManyToMany, connectManyToOne,
     * connectOneToOne and connectOneToMany
     * @param id path id

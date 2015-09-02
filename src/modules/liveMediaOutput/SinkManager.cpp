@@ -159,7 +159,7 @@ bool SinkManager::doProcessFrame(std::map<int, Frame*> &oFrames, std::vector<int
             }
         }
     }
-
+    
     return true;
 }
 
@@ -643,21 +643,58 @@ void SinkManager::doGetState(Jzon::Object &filterNode)
     for (auto it : connections) {
         Jzon::Array jsonReaders;
         Jzon::Object jsonConnection;
-        
+        Jzon::Array jsonSubsessionsStats;
+        Jzon::Object jsonSubsessionStat;
+
         if ((rtspConn = dynamic_cast<RTSPConnection*>(it.second))){
             jsonConnection.Add("name", rtspConn->getName());
             jsonConnection.Add("uri", rtspConn->getURI());
+            for (auto iter : it.second->getConnectionRTCPInstanceMap()) {
+                jsonSubsessionStat.Add("SSRC", std::to_string(iter.second->getSSRC()));
+                jsonSubsessionStat.Add("avgBitrateInKbps", (float)iter.second->getAvgBitrate());
+                jsonSubsessionStat.Add("minBitrateInKbps", (float)iter.second->getMinBitrate());
+                jsonSubsessionStat.Add("maxBitrateInKbps", (float)iter.second->getMaxBitrate());
+                jsonSubsessionStat.Add("packetLossRatio", (int)(iter.second->getPacketLossRatio()));
+                jsonSubsessionStat.Add("minPacketLossRatio", (int)(iter.second->getMinPacketLossRatio()));
+                jsonSubsessionStat.Add("maxPacketLossRatio", (int)(iter.second->getMaxPacketLossRatio()));
+                jsonSubsessionStat.Add("jitterInMicroseconds", (int)iter.second->getJitter());
+                jsonSubsessionStat.Add("minJitterInMicroseconds", (int)iter.second->getMinJitter());
+                jsonSubsessionStat.Add("maxJitterInMicroseconds", (int)iter.second->getMaxJitter());
+                jsonSubsessionStat.Add("roundTripDelayMilliseconds", (int)iter.second->getRoundTripDelay());
+                jsonSubsessionStat.Add("minRoundTripDelayMilliseconds", (int)iter.second->getMinRoundTripDelay());
+                jsonSubsessionStat.Add("maxRoundTripDelayMilliseconds", (int)iter.second->getMaxRoundTripDelay());
+
+                jsonSubsessionsStats.Add(jsonSubsessionStat);    
+            }
         } else if ((rtpConn = dynamic_cast<RTPConnection*>(it.second))){
             jsonConnection.Add("ip", rtpConn->getIP());
             jsonConnection.Add("port", std::to_string(rtpConn->getPort()));
+            for (auto iter : it.second->getConnectionRTCPInstanceMap()) {
+                jsonSubsessionStat.Add("SSRC", std::to_string(iter.second->getSSRC()));
+                jsonSubsessionStat.Add("avgBitrateInKbps", (float)iter.second->getAvgBitrate());
+                jsonSubsessionStat.Add("minBitrateInKbps", (float)iter.second->getMinBitrate());
+                jsonSubsessionStat.Add("maxBitrateInKbps", (float)iter.second->getMaxBitrate());
+                jsonSubsessionStat.Add("packetLossRatio", (int)(iter.second->getPacketLossRatio()));
+                jsonSubsessionStat.Add("minPacketLossRatio", (int)(iter.second->getMinPacketLossRatio()));
+                jsonSubsessionStat.Add("maxPacketLossRatio", (int)(iter.second->getMaxPacketLossRatio()));
+                jsonSubsessionStat.Add("jitterInMicroseconds", (int)iter.second->getJitter());
+                jsonSubsessionStat.Add("minJitterInMicroseconds", (int)iter.second->getMinJitter());
+                jsonSubsessionStat.Add("maxJitterInMicroseconds", (int)iter.second->getMaxJitter());
+                jsonSubsessionStat.Add("roundTripDelayMilliseconds", (int)iter.second->getRoundTripDelay());
+                jsonSubsessionStat.Add("minRoundTripDelayMilliseconds", (int)iter.second->getMinRoundTripDelay());
+                jsonSubsessionStat.Add("maxRoundTripDelayMilliseconds", (int)iter.second->getMaxRoundTripDelay());
+                
+                jsonSubsessionsStats.Add(jsonSubsessionStat);    
+            }
         } else {
             filterNode.Add("error", Jzon::null);
         }
 
+        jsonConnection.Add("subsessionsStats", jsonSubsessionsStats);
+
         for (auto reader : it.second->getReaders()){
             jsonReaders.Add(reader);
         }
-        
         jsonConnection.Add("readers", jsonReaders);
         connectionArray.Add(jsonConnection);
     }

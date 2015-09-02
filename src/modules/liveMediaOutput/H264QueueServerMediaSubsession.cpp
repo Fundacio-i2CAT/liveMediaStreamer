@@ -23,29 +23,28 @@
  */
 
 #include "H264QueueServerMediaSubsession.hh"
-
+#include "../../Utils.hh"
 
 H264QueueServerMediaSubsession*
-H264QueueServerMediaSubsession::createNew(UsageEnvironment& env,
+H264QueueServerMediaSubsession::createNew(Connection* conn, UsageEnvironment& env,
                           StreamReplicator* replica, int readerId,
-                          Boolean reuseFirstSource) 
+                          Boolean reuseFirstSource)
 {
-    return new H264QueueServerMediaSubsession(env, replica, readerId, reuseFirstSource);
+    return new H264QueueServerMediaSubsession(conn, env, replica, readerId, reuseFirstSource);
 }
 
-H264QueueServerMediaSubsession::H264QueueServerMediaSubsession(UsageEnvironment& env,
+H264QueueServerMediaSubsession::H264QueueServerMediaSubsession(Connection* conn, UsageEnvironment& env,
                           StreamReplicator* replica, int readerId, Boolean reuseFirstSource)
-: H264or5QueueServerMediaSubsession(env, replica, readerId, reuseFirstSource)
+: H264or5QueueServerMediaSubsession(env, replica, readerId, reuseFirstSource), fConn(conn)
 {
-
 }
 
 H264QueueServerMediaSubsession::~H264QueueServerMediaSubsession() 
 {
-
 }
 
-FramedSource* H264QueueServerMediaSubsession::createNewStreamSource(unsigned /*clientSessionId*/, unsigned& estBitrate) {
+FramedSource* H264QueueServerMediaSubsession::createNewStreamSource(unsigned /*clientSessionId*/, unsigned& estBitrate) 
+{
     //TODO: WTF
     estBitrate = 2000; // kbps, estimate
     
@@ -56,4 +55,17 @@ RTPSink* H264QueueServerMediaSubsession::createNewRTPSink(Groupsock* rtpGroupsoc
            unsigned char rtpPayloadTypeIfDynamic, FramedSource* /*inputSource*/) 
 {
 	  return H264VideoRTPSink::createNew(envir(), rtpGroupsock, rtpPayloadTypeIfDynamic);
+}
+
+RTCPInstance* H264QueueServerMediaSubsession::createRTCP(Groupsock* RTCPgs, unsigned totSessionBW, /* in kbps */
+                   unsigned char const* cname, RTPSink* sink)
+{
+    //TODO: reach setting id as the RTP port (as done for RTPConnection)
+    size_t id = rand();
+
+    ConnRTCPInstance* newRTCPInstance = ConnRTCPInstance::createNew(fConn, &envir(), RTCPgs, totSessionBW, sink);
+    newRTCPInstance->setId(id);
+    fConn->addConnectionRTCPInstance(id, newRTCPInstance);
+
+    return newRTCPInstance;
 }

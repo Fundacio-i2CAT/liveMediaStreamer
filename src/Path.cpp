@@ -43,7 +43,6 @@ Path::Path(int originFilterID, int destinationFilterID, int orgWriterID,
     filterIDs = midFiltersIDs;
 }
 
-
 void Path::addFilterID(int filterID)
 {
     filterIDs.push_back(filterID);

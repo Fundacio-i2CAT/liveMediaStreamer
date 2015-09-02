@@ -184,6 +184,20 @@ public:
      */
     struct ConnectionData getWConnectionData (int wId);
 
+    /**
+     * gets the average delay of the reader
+     * @param readerId of the reader
+     * @return the average delay of the reader 
+     */
+    std::chrono::microseconds getAvgReaderDelay (int rId);
+
+    /**
+     * get losts blocs
+     * @param readerId of the reader
+     * @return the losts blocs of the reader
+     */
+    size_t getLostBlocs (int rId);
+
 protected:
     BaseFilter(unsigned readersNum = MAX_READERS, unsigned writersNum = MAX_WRITERS, FilterRole fRole_ = REGULAR, bool periodic = false);
 

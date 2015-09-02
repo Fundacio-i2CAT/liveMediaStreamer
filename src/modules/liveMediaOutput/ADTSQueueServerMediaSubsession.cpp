@@ -26,17 +26,17 @@
 #include "ADTSStreamParser.hh"
 
 ADTSQueueServerMediaSubsession*
-ADTSQueueServerMediaSubsession::createNew(UsageEnvironment& env, StreamReplicator* replica, int readerId, 
+ADTSQueueServerMediaSubsession::createNew(Connection* conn, UsageEnvironment& env, StreamReplicator* replica, int readerId, 
                                           unsigned channels, unsigned sampleRate, Boolean reuseFirstSource)
 {
-    return new ADTSQueueServerMediaSubsession(env, replica, readerId, channels, sampleRate, reuseFirstSource);
+    return new ADTSQueueServerMediaSubsession(conn, env, replica, readerId, channels, sampleRate, reuseFirstSource);
 }
 
 ADTSQueueServerMediaSubsession
-::ADTSQueueServerMediaSubsession(UsageEnvironment& env, StreamReplicator* replica, int readerId, 
+::ADTSQueueServerMediaSubsession(Connection* conn, UsageEnvironment& env, StreamReplicator* replica, int readerId, 
                                  unsigned channels, unsigned sampleRate, Boolean reuseFirstSource) :
 QueueServerMediaSubsession(env, reuseFirstSource), replicator(replica), reader(readerId), fChannels(channels), 
-fSampleRate(sampleRate), fAuxSDPLine(NULL), fDoneFlag(0), fDummyRTPSink(NULL) 
+fSampleRate(sampleRate), fAuxSDPLine(NULL), fDoneFlag(0), fDummyRTPSink(NULL), fConn(conn)
 {
 
 }
@@ -108,6 +108,19 @@ RTPSink* ADTSQueueServerMediaSubsession::createNewRTPSink(Groupsock* rtpGroupsoc
 {
       return CustomMPEG4GenericRTPSink::createNew(envir(), rtpGroupsock, rtpPayloadTypeIfDynamic, 
                                                   fSampleRate, "audio", "AAC-hbr", fChannels);
+}
+
+RTCPInstance* ADTSQueueServerMediaSubsession::createRTCP(Groupsock* RTCPgs, unsigned totSessionBW, /* in kbps */
+                   unsigned char const* cname, RTPSink* sink)
+{
+    //TODO: reach setting id as the RTP port (as done for RTPConnection)
+    size_t id = rand();
+
+    ConnRTCPInstance* newRTCPInstance = ConnRTCPInstance::createNew(fConn, &envir(), RTCPgs, totSessionBW, sink);
+    newRTCPInstance->setId(id);
+    fConn->addConnectionRTCPInstance(id, newRTCPInstance);
+
+    return newRTCPInstance;
 }
 
 std::vector<int> ADTSQueueServerMediaSubsession::getReaderIds()

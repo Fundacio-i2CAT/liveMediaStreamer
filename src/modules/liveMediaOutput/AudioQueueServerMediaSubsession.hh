@@ -27,11 +27,12 @@
 #include <liveMedia.hh>
 #include "QueueServerMediaSubsession.hh"
 #include "../../Utils.hh"
+#include "Connection.hh"
 
 class AudioQueueServerMediaSubsession: public QueueServerMediaSubsession {
 public:
   static AudioQueueServerMediaSubsession*
-  createNew(UsageEnvironment& env, StreamReplicator* replica, 
+  createNew(Connection* conn, UsageEnvironment& env, StreamReplicator* replica, 
             int readerId, 
             ACodecType codec,
             unsigned channels,
@@ -42,7 +43,7 @@ public:
   std::vector<int> getReaderIds();
 
 protected:
-  AudioQueueServerMediaSubsession(UsageEnvironment& env,
+  AudioQueueServerMediaSubsession(Connection* conn, UsageEnvironment& env,
                                   StreamReplicator* replica, 
                                   int readerId, 
                                   ACodecType codec,
@@ -59,7 +60,8 @@ protected: // redefined virtual functions
     virtual RTPSink* createNewRTPSink(Groupsock* rtpGroupsock,
                                       unsigned char rtpPayloadTypeIfDynamic,
                                       FramedSource* inputSource);
-
+    RTCPInstance* createRTCP(Groupsock* RTCPgs, unsigned totSessionBW, /* in kbps */
+                   unsigned char const* cname, RTPSink* sink);
     StreamReplicator* replicator;
 
 private:
@@ -69,6 +71,8 @@ private:
     unsigned fChannels;
     unsigned fSampleRate;
     SampleFmt fSampleFormat;
+
+    Connection* fConn;
 };
 
 #endif

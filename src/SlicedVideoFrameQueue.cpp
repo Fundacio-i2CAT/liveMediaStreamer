@@ -137,6 +137,7 @@ void SlicedVideoFrameQueue::pushBackSliceGroup(Slice* slices, int sliceNum)
         memcpy(vFrame->getDataBuf(), slices[i].getData(), slices[i].getDataSize());
         vFrame->setLength(slices[i].getDataSize());
         vFrame->setPresentationTime(inputFrame->getPresentationTime());
+        vFrame->setOriginTime(inputFrame->getOriginTime());
         vFrame->setSize(inputFrame->getWidth(), inputFrame->getHeight());
         innerAddFrame();
     }

@@ -27,6 +27,7 @@
 
 #include <string>
 #include <vector>
+#include <map>
 #include <BasicUsageEnvironment.hh>
 #include <liveMedia.hh>
 #include <Groupsock.hh>
@@ -36,6 +37,10 @@
 
 #define TTL 255
 #define INITIAL_SERVER_PORT 6970
+
+class ConnRTCPInstance;
+class ConnectionSubsessionStats;
+class MPEGTSQueueServerMediaSubsession;
 
 /*! Each connection represents a RTP/RTSP transmission. It is an interface to different specific connections
     so it cannot be instantiated */
@@ -65,14 +70,36 @@ public:
     */
     virtual void stopPlaying() = 0;
 
+    /**
+    * Returns the ConnRTCPInstances map of its Connection
+    */
+    std::map<int, ConnRTCPInstance*> getConnectionRTCPInstanceMap() { return cRTCPInstances; };
+
+    /**
+    * Adds a new ConnRTCPInstance to the Connection map of ConnRTCPInstances
+    */
+    void addConnectionRTCPInstance(size_t id, ConnRTCPInstance* cri) { cRTCPInstances[id] = cri; };
+
+    /**
+    * Removes specific ConnRTCPInstance from the ConnRTCPInstances map of its Connection
+    */
+    void deleteConnectionRTCPInstance(size_t id) { cRTCPInstances.erase(id); };
+
+    /**
+    * Returns the global Environment usage of the Live555 library
+    */
+    UsageEnvironment* envir() { return fEnv; };
+
 protected:
     Connection(UsageEnvironment* env);
 
     virtual bool startPlaying() = 0;
     static void afterPlaying(void* clientData);
     virtual bool specificSetup() = 0;
-
+    
     UsageEnvironment* fEnv;
+
+    std::map<int, ConnRTCPInstance*> cRTCPInstances;
 };
 
 ////////////////////
@@ -120,11 +147,7 @@ public:
                             SampleFmt sampleFormat, int readerId);
     
     /**
-    * Adds a video source to the connection
-    * @param codec represents the video codec of the source to add
-    * @param replicator it is the replicator from where the source is created
-    * @param readerId it is the id of the reader associated with this replicator
-    * @return True if succeded and false if not
+    * @return Return the connection URI
     */
     std::string getURI();
     
@@ -203,7 +226,7 @@ protected:
     std::string fIp;
     unsigned fPort;
     struct in_addr destinationAddress;
-    RTCPInstance* rtcp;
+    ConnRTCPInstance* rtcp;
     Groupsock *rtpGroupsock;
     Groupsock *rtcpGroupsock;
     
@@ -344,6 +367,123 @@ private:
     
     int audioReader;
     int videoReader;
+};
+
+//////////////////////////////
+// RTCP CONNECTION INSTANCE //
+//////////////////////////////
+
+/*! It represents an RTCP Instance of the RTP connection. It's an RTCPInstance re-implementation.
+*   It measures network statistics for each connections' subsession.
+*/
+class ConnRTCPInstance : public RTCPInstance {
+public:
+    /**
+    * Create new ConnRTCPInstance object
+    */
+    static ConnRTCPInstance* createNew(Connection* conn, UsageEnvironment* env, Groupsock* RTCPgs,
+                                    unsigned totSessionBW,
+                                    RTPSink* sink);
+    /**
+    * Class destructor
+    */
+    ~ConnRTCPInstance();
+
+    /**
+    * Schedules next stats measurements
+    */
+    void scheduleNextConnStatMeasurement();
+
+    /**
+    * This is the scheduled method to process stats measurements
+    */
+    void periodicStatMeasurement(struct timeval const& timeNow);
+
+    /**
+    * Sets the id of the RTCPInstance implementation
+    */
+    void setId(size_t _id) { id = _id; };
+
+    /**
+    * Returns the id of the RTCPInstance implementation
+    */
+    size_t getId() { return id; };
+
+    /**
+    * Returns the RTCP SSRC parameter of the RTP instance associated to the RTCPInstance implementation
+    */
+    u_int32_t getSSRC() { return SSRC; };
+
+    /**
+    * Returns current packet loss ratio in percentage
+    */    
+    u_int8_t getPacketLossRatio() { return packetLossRatio; };
+    /**
+    * Returns minimum packet loss ratio achieved in percentage
+    */    
+    u_int8_t getMinPacketLossRatio() { return minPacketLossRatio; };
+    /**
+    * Returns maximum packet loss ratio achieved in percentage
+    */   
+    u_int8_t getMaxPacketLossRatio() { return maxPacketLossRatio; };
+
+    /**
+    * Returns current average bitrate in kbps
+    */    
+    size_t getAvgBitrate() { return avgBitrate; };
+    /**
+    * Returns minimum bitrate achieved in kbps
+    */   
+    size_t getMinBitrate() { return minBitrate; };
+    /**
+    * Returns maximum bitrate achieved in kbps
+    */   
+    size_t getMaxBitrate() { return maxBitrate; };
+
+    /**
+    * Returns the round trip delay in milliseconds
+    */  
+    size_t getRoundTripDelay() { return roundTripDelay; };
+    /**
+    * Returns minimum round trip delay achieved in milliseconds
+    */  
+    size_t getMinRoundTripDelay() { return minRoundTripDelay; };
+    /**
+    * Returns maximum round trip delay achieved in milliseconds
+    */  
+    size_t getMaxRoundTripDelay() { return maxRoundTripDelay; };
+
+    /**
+    * Returns current jitter in microseconds
+    */  
+    size_t getJitter() { return jitter; };
+    /**
+    * Returns maximum jitter achieved in microseconds
+    */  
+    size_t getMinJitter() { return minJitter; };
+    /**
+    * Returns maximum jitter achieved in microseconds
+    */  
+    size_t getMaxJitter() { return maxJitter; };
+
+private:
+    ConnRTCPInstance(Connection* conn, UsageEnvironment* env, Groupsock* RTPgs, unsigned totSessionBW,
+                        unsigned char const* cname, RTPSink* sink);
+    
+    size_t id;
+    u_int32_t SSRC;
+
+    Connection* fConn;
+    RTPSink* fSink;
+
+    TaskToken connectionStatsMeasurementTask;
+    size_t statsMeasurementIntervalMS;
+    size_t nextStatsMeasurementUSecs;
+
+    u_int8_t packetLossRatio, minPacketLossRatio, maxPacketLossRatio;
+    size_t avgBitrate, minBitrate, maxBitrate;
+    size_t roundTripDelay, minRoundTripDelay, maxRoundTripDelay;
+    size_t jitter, minJitter, maxJitter;
 };
 
 #endif

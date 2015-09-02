@@ -29,7 +29,9 @@
 //READER IMPLEMENTATION//
 /////////////////////////
 
-Reader::Reader() : queue(NULL), frame(NULL), filters(0), pending(0)
+Reader::Reader(std::chrono::microseconds wDelay) : queue(NULL), frame(NULL), filters(0), pending(0), avgDelay(std::chrono::microseconds(0)), 
+                    delay(std::chrono::microseconds(0)), windowDelay(wDelay), 
+                    lastTs(std::chrono::microseconds(-1)), timeCounter(std::chrono::microseconds(0)), frameCounter(0)
 {
 }
 
@@ -105,6 +107,9 @@ int Reader::removeFrame(int fId)
     }
     
     if (pending == 0){
+
+        measureDelay();
+
         frame = NULL;
         requests.clear();
         return queue->removeFrame();
@@ -112,6 +117,44 @@ int Reader::removeFrame(int fId)
         return -1;
     }
 }
+
+void Reader::measureDelay()
+{
+    if(lastTs.count() < 0){
+        lastTs = frame->getPresentationTime();
+    }
+
+    if (lastTs == frame->getPresentationTime()) {
+        return;
+    }
+
+    timeCounter += frame->getPresentationTime() - lastTs;
+    lastTs = frame->getPresentationTime();
+
+    if(timeCounter >= windowDelay && frameCounter > 0){
+        avgDelay = delay / frameCounter;
+        timeCounter = std::chrono::microseconds(0);
+        delay = std::chrono::microseconds(0);
+        frameCounter = 0;
+    }
+    
+    delay += std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now() - frame->getOriginTime());
+    frameCounter++;
+}
+
+std::chrono::microseconds Reader::getAvgDelay()
+{ 
+    std::lock_guard<std::mutex> guard(lck);
+
+    return avgDelay; 
+};
+
+size_t Reader::getLostBlocs()
+{ 
+    std::lock_guard<std::mutex> guard(lck);
+
+    return queue->getLostBlocs(); 
+};
 
 void Reader::setConnection(FrameQueue *queue)
 {

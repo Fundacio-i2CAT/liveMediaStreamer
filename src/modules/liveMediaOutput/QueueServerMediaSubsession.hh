@@ -35,9 +35,10 @@ public:
     ~QueueServerMediaSubsession();
     
     virtual std::vector<int> getReaderIds() = 0;
-    
+
 protected: 
     QueueServerMediaSubsession(UsageEnvironment& env, Boolean reuseFirstSource);
+
 };
 
 #endif

@@ -26,17 +26,17 @@
 #include "../../Utils.hh"
 
 MPEGTSQueueServerMediaSubsession::MPEGTSQueueServerMediaSubsession(
-    UsageEnvironment& env, Boolean reuseFirstSource) : 
+   Connection* conn, UsageEnvironment& env, Boolean reuseFirstSource) : 
 QueueServerMediaSubsession(env, reuseFirstSource), aReplicator(NULL), 
-vReplicator(NULL), aReaderId(-1), vReaderId(-1)
+vReplicator(NULL), aReaderId(-1), vReaderId(-1), fConn(conn)
 {
 
 }
 
 MPEGTSQueueServerMediaSubsession* MPEGTSQueueServerMediaSubsession::createNew(
-    UsageEnvironment& env, Boolean reuseFirstSource)
+    Connection* conn, UsageEnvironment& env, Boolean reuseFirstSource)
 {
-    return new MPEGTSQueueServerMediaSubsession(env, reuseFirstSource);
+    return new MPEGTSQueueServerMediaSubsession(conn, env, reuseFirstSource);
 }
 
 MPEGTSQueueServerMediaSubsession::~MPEGTSQueueServerMediaSubsession()
@@ -139,3 +139,15 @@ RTPSink* MPEGTSQueueServerMediaSubsession::createNewRTPSink(Groupsock* rtpGroups
                                      "MP2T", 1, True, False /*no 'M' bit*/);
 }
 
+RTCPInstance* MPEGTSQueueServerMediaSubsession::createRTCP(Groupsock* RTCPgs, unsigned totSessionBW, /* in kbps */
+                   unsigned char const* cname, RTPSink* sink)
+{
+    //TODO: reach setting id as the RTP port (as done for RTPConnection)
+    size_t id = rand();
+
+    ConnRTCPInstance* newRTCPInstance = ConnRTCPInstance::createNew(fConn, &envir(), RTCPgs, totSessionBW, sink);
+    newRTCPInstance->setId(id);
+    fConn->addConnectionRTCPInstance(id, newRTCPInstance);
+
+    return newRTCPInstance;
+}

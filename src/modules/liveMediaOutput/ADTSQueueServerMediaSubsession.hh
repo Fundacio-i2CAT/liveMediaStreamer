@@ -25,6 +25,7 @@
 #define _ADTS_QUEUE_SERVER_MEDIA_SUBSESSION_HH
 
 #include "QueueServerMediaSubsession.hh"
+#include "Connection.hh"
 
 /*! An onDemand RTSP subsession for audio AAC codec (with ADTS headers) */
 
@@ -42,7 +43,7 @@ public:
     * @return Pointer to the object if succeded and NULL if not
     */
     static ADTSQueueServerMediaSubsession*
-        createNew(UsageEnvironment& env, StreamReplicator* replica, int readerId, 
+        createNew(Connection* conn, UsageEnvironment& env, StreamReplicator* replica, int readerId, 
                   unsigned channels, unsigned sampleRate, Boolean reuseFirstSource);
 
     /**
@@ -57,7 +58,7 @@ public:
     std::vector<int> getReaderIds();
 
 protected:
-    ADTSQueueServerMediaSubsession(UsageEnvironment& env, StreamReplicator* replica, int readerId, 
+    ADTSQueueServerMediaSubsession(Connection* conn, UsageEnvironment& env, StreamReplicator* replica, int readerId, 
                                    unsigned channels, unsigned sampleRate, Boolean reuseFirstSource);
 
     virtual ~ADTSQueueServerMediaSubsession();
@@ -65,7 +66,8 @@ protected:
     char const* getAuxSDPLine(RTPSink* rtpSink, FramedSource* inputSource);
     FramedSource* createNewStreamSource(unsigned clientSessionId, unsigned& estBitrate);
     RTPSink* createNewRTPSink(Groupsock* rtpGroupsock, unsigned char rtpPayloadTypeIfDynamic, FramedSource* inputSource);
-
+    RTCPInstance* createRTCP(Groupsock* RTCPgs, unsigned totSessionBW, /* in kbps */
+                   unsigned char const* cname, RTPSink* sink);
 private:
     StreamReplicator* replicator;
     int reader;
@@ -74,6 +76,7 @@ private:
     char* fAuxSDPLine;
     char fDoneFlag; 
     RTPSink* fDummyRTPSink;
+    Connection* fConn;
 };
 
 #endif

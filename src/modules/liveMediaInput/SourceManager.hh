@@ -40,15 +40,55 @@
 #define PROTOCOL "RTP"
 
 class SourceManager;
+class SCSSubsessionStats;
 
+/**
+* StreamClientState class. Each Session class has a StreamCleanState associated.
+*/
 class StreamClientState {
 public:
+    /**
+    * Class constructor
+    */    
     StreamClientState(std::string id_, SourceManager *const  manager);
+    /**
+    * Class destructor
+    */
     virtual ~StreamClientState();
-
+    /**
+    * Get SCS Id
+    */
     std::string getId(){return id;}
 
+    /**
+    * Adds a QueueSink, with specific id, to its associated SourceManager instance
+    */
     bool addSinkToMngr(unsigned id, QueueSink* sink);
+
+    /**
+    * Adds a new SCSSubsessionStats stats to its SCSSubsessionStats stats map
+    */
+    bool addNewSubsessionStats(size_t port, MediaSubsession* subsession);
+
+    /**
+    * Remove specific SCSSubsession stats from the map by specifying the port/id
+    */
+    bool removeSubsessionStats(size_t port);
+
+    /**
+    * Returns specific SCSSubsession stat by specifying the port/id
+    */
+    SCSSubsessionStats* getSubsessionStats(size_t port);
+
+    /**
+    * Schedules next stats measurement
+    */
+    void scheduleNextStatsMeasurement(UsageEnvironment* env);
+
+    /**
+    * Returns it SCSSubsessionStats map
+    */
+    std::map<int, SCSSubsessionStats*> getSCSSubsesionStatsMap() { return smsStats; };
 
 public:
     SourceManager *const mngr;
@@ -59,11 +99,15 @@ public:
     TaskToken streamTimerTask;
     double duration;
     TaskToken sessionTimeoutBrokenServerTask;
+    TaskToken sessionStatsMeasurementTask;
+    size_t statsMeasurementIntervalMS;
+    size_t nextStatsMeasurementUSecs;
     bool sendKeepAlivesToBrokenServers;
     unsigned sessionTimeoutParameter;
 
 private:
     std::string id;
+    std::map<int, SCSSubsessionStats*> smsStats;
 };
 
 class Session {
@@ -135,6 +179,68 @@ private:
 
     UsageEnvironment* env;
     BasicTaskScheduler0 *scheduler;
+};
+
+/*! It represents a SourceManager subsession statistics object. It contains the port (id of the subsession) and average, 
+    minumum and maximum values of packet loss, bit rate and inter packet gap parameters, as well as the jitter. */
+
+class SCSSubsessionStats {
+
+public:
+    /**
+    * Class constructor
+    * @param port as the subsession id
+    */
+    SCSSubsessionStats(size_t id_, RTPSource* src, struct timeval const& startTime);
+
+    /**
+    * Class destructor
+    */
+    ~SCSSubsessionStats();
+
+    /**
+    * Periodic subsession stat measurement from current input time since last time
+    * @param current time to measure
+    */
+    void periodicStatMeasurement(struct timeval const& timeNow);
+    
+    /**
+    * Getters of SCSSubsessionStats class attributes
+    */
+    size_t getId() { return id;};
+    struct timeval getMeasurementStartTime() { return measurementStartTime; };
+    struct timeval getMeasurementEndTime() { return measurementEndTime; };
+    double getKbitsPerSecondMin() { return kbitsPerSecondMin; };
+    double getKbitsPerSecondMax() { return kbitsPerSecondMax; };
+    double getKBytesTotal() { return kBytesTotal; };
+    double getPacketLossFractionMin() { return packetLossFractionMin; };
+    double getPacketLossFractionMax() { return packetLossFractionMax; };
+    unsigned getTotNumPacketsReceived() { return totNumPacketsReceived; };
+    unsigned getTotNumPacketsExpected() { return totNumPacketsExpected; };
+    unsigned getMinInterPacketGapUS() { return minInterPacketGapUS; };
+    unsigned getMaxInterPacketGapUS() { return maxInterPacketGapUS; };
+    struct timeval getTotalGaps() { return totalGaps; };
+    size_t getJitter() { return jitter; };
+    size_t getMaxJitter() { return maxJitter; };
+    size_t getMinJitter() { return minJitter; };
+    RTPSource* getRTPSource() { return fSource; };
+
+private:
+    const size_t id;    // port
+    RTPSource* fSource;
+    struct timeval measurementStartTime, measurementEndTime;
+    double kbitsPerSecondMin, kbitsPerSecondMax;
+    double kBytesTotal;
+    double packetLossFractionMin, packetLossFractionMax;
+    unsigned totNumPacketsReceived, totNumPacketsExpected;
+    unsigned minInterPacketGapUS, maxInterPacketGapUS;
+    struct timeval totalGaps;
+    // Estimate of the statistical variance of the 
+    // RTP data interarrival time to be inserted in 
+    // the interarrival jitter field of reception reports (in microseconds).
+    size_t jitter;
+    size_t maxJitter;
+    size_t minJitter;
 };
 
 #endif

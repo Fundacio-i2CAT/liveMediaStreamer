@@ -115,7 +115,7 @@ public:
     /**
     * Creates a reader object
     */
-    Reader();
+    Reader(std::chrono::microseconds wDelay = std::chrono::microseconds(DEFAULT_STATS_TIME_INTERVAL));
 
     /**
     * Class destructor
@@ -178,10 +178,24 @@ public:
     */
     size_t getQueueElements();
 
+    /**
+    * Get average frame delay
+    * @return average frame delay in microseconds
+    */
+    std::chrono::microseconds getAvgDelay();
+
+    /**
+    * Get lost blocs
+    * @return lost blocs in size_t
+    */
+    size_t getLostBlocs();
+
 protected:
     FrameQueue *queue;
 
 private:
+    void measureDelay();
+
     friend class Writer;
      
     Frame *frame;
@@ -189,6 +203,14 @@ private:
     std::map<int, bool> requests;
     unsigned pending;
     std::mutex lck;
+
+    //Stats
+    std::chrono::microseconds avgDelay;
+    std::chrono::microseconds delay;
+    std::chrono::microseconds windowDelay;
+    std::chrono::microseconds lastTs;
+    std::chrono::microseconds timeCounter;
+    size_t frameCounter;
 };
 
 #endif

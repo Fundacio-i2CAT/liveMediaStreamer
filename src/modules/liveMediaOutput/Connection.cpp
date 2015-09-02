@@ -37,7 +37,7 @@
 #include <GroupsockHelper.hh>
 
 Connection::Connection(UsageEnvironment* env) : 
-                       fEnv(env)
+                        fEnv(env)
 {
 }
 
@@ -80,7 +80,7 @@ RTSPConnection::RTSPConnection(UsageEnvironment* env, TxFormat txformat, RTSPSer
     }
     
     if (format == MPEGTS){
-        subsession = MPEGTSQueueServerMediaSubsession::createNew(*env, False);
+        subsession = MPEGTSQueueServerMediaSubsession::createNew(this, *env, False);
     }
 }
 
@@ -134,15 +134,16 @@ bool RTSPConnection::addAudioSubsession(ACodecType codec, StreamReplicator* repl
 bool RTSPConnection::addRawVideoSubsession(VCodecType codec, StreamReplicator* replicator, int readerId)
 {
     ServerMediaSubsession *sSession = NULL;
+
     switch(codec){
         case H264:
-            sSession = H264QueueServerMediaSubsession::createNew(*fEnv, replicator, readerId, False);
+            sSession = H264QueueServerMediaSubsession::createNew(this, *fEnv, replicator, readerId, False);
             break;
         case H265:
-            sSession = H265QueueServerMediaSubsession::createNew(*fEnv, replicator, readerId, False);
+            sSession = H265QueueServerMediaSubsession::createNew(this, *fEnv, replicator, readerId, False);
             break;
         case VP8:
-            sSession =  VP8QueueServerMediaSubsession::createNew(*fEnv, replicator, readerId, False);
+            sSession =  VP8QueueServerMediaSubsession::createNew(this, *fEnv, replicator, readerId, False);
             break;
         default:
             break;
@@ -154,7 +155,7 @@ bool RTSPConnection::addRawVideoSubsession(VCodecType codec, StreamReplicator* r
     }
     
     session->addSubsession(sSession);
-    
+
     return true;
 }
 
@@ -165,11 +166,11 @@ bool RTSPConnection::addRawAudioSubsession(ACodecType codec, StreamReplicator* r
     ServerMediaSubsession *sSession = NULL;
     switch(codec) {
         case AAC:
-            sSession = ADTSQueueServerMediaSubsession::createNew(*fEnv, replicator, readerId, 
+            sSession = ADTSQueueServerMediaSubsession::createNew(this, *fEnv, replicator, readerId, 
                                                                  channels, sampleRate, False);
             break;
         default:
-            sSession = AudioQueueServerMediaSubsession::createNew(*fEnv, replicator,
+            sSession = AudioQueueServerMediaSubsession::createNew(this, *fEnv, replicator,
                                                               readerId, codec, channels,
                                                               sampleRate, sampleFormat, False);
             break;
@@ -220,7 +221,7 @@ bool RTSPConnection::addMPEGTSAudio(ACodecType codec, StreamReplicator* replicat
         session->addSubsession(subsession);
         addedSub = true;
     }
-    
+
     return true;
 }
 
@@ -343,6 +344,7 @@ bool RTPConnection::startPlaying()
     }
 
     fSink->startPlaying(*fSource, &Connection::afterPlaying, fSink);
+
     return true;
 }
 
@@ -416,12 +418,10 @@ bool RTPConnection::finalRTCPSetup()
         return false;
     }
 
-    const unsigned maxCNAMElen = 100;
-    unsigned char CNAME[maxCNAMElen+1];
-    gethostname((char*)CNAME, maxCNAMElen);
-    CNAME[maxCNAMElen] = '\0';
-    rtcp = RTCPInstance::createNew(*fEnv, rtcpGroupsock, 5000, CNAME,
-                                   rtpSink, NULL, False);
+
+    rtcp = ConnRTCPInstance::createNew(this, envir(), rtcpGroupsock, 5000, rtpSink);
+    rtcp->setId(this->getPort());
+    this->addConnectionRTCPInstance(this->getPort(), rtcp);
 
     return true;
 }
@@ -712,4 +712,91 @@ std::vector<int> MpegTsConnection::getReaders()
     }
     
     return readers;
+}
+
+// Implementation of "ConnRTCPInstance" class:
+
+ConnRTCPInstance* ConnRTCPInstance::createNew(Connection* conn, UsageEnvironment* env, Groupsock* RTCPgs,
+                                unsigned totSessionBW, RTPSink* sink)
+{
+    const unsigned maxCNAMElen = 100;
+    unsigned char CNAME[maxCNAMElen+1];
+    gethostname((char*)CNAME, maxCNAMElen);
+    CNAME[maxCNAMElen] = '\0';
+
+    return new ConnRTCPInstance(conn, env, RTCPgs, totSessionBW, CNAME, sink);
+}
+
+ConnRTCPInstance::ConnRTCPInstance(Connection* conn, UsageEnvironment* env, Groupsock* RTCPgs, unsigned totSessionBW,
+                                    unsigned char const* cname, RTPSink* sink) : 
+    RTCPInstance(*env, RTCPgs, totSessionBW, cname, sink, NULL, False), 
+    id(0), SSRC(0), fConn(conn), fSink(sink), connectionStatsMeasurementTask(NULL),
+    statsMeasurementIntervalMS(DEFAULT_STATS_TIME_INTERVAL), 
+    packetLossRatio(0), minPacketLossRatio(100), maxPacketLossRatio(0),
+    avgBitrate(0), minBitrate(1000000), maxBitrate(0),
+    roundTripDelay(0), minRoundTripDelay(1000000), maxRoundTripDelay(0),
+    jitter(0), minJitter(1000000), maxJitter(0)
+{
+    struct timeval startTime;
+    gettimeofday(&startTime, NULL);
+    nextStatsMeasurementUSecs = startTime.tv_sec*1000000 + startTime.tv_usec;
+    scheduleNextConnStatMeasurement();
+}
+
+ConnRTCPInstance::~ConnRTCPInstance()
+{
+    fConn->deleteConnectionRTCPInstance(this->getId());
+    fConn->envir()->taskScheduler().unscheduleDelayedTask(connectionStatsMeasurementTask);
+}
+
+static void periodicConnStatMeasurement(ConnRTCPInstance* cri) 
+{
+    struct timeval timeNow;
+    gettimeofday(&timeNow, NULL);
+    cri->periodicStatMeasurement(timeNow);
+
+    cri->scheduleNextConnStatMeasurement();
+}
+
+void ConnRTCPInstance::scheduleNextConnStatMeasurement() 
+{
+    connectionStatsMeasurementTask = NULL;
+    nextStatsMeasurementUSecs += statsMeasurementIntervalMS;
+    struct timeval timeNow;
+    gettimeofday(&timeNow, NULL);
+    unsigned timeNowUSecs = timeNow.tv_sec*1000000 + timeNow.tv_usec;
+    int usecsToDelay = nextStatsMeasurementUSecs - timeNowUSecs;
+
+    connectionStatsMeasurementTask = fConn->envir()->taskScheduler().scheduleDelayedTask(
+        usecsToDelay, (TaskFunc*)periodicConnStatMeasurement, this);
+}
+
+void ConnRTCPInstance::periodicStatMeasurement(struct timeval const& timeNow) 
+{
+    unsigned currentNumBytes;
+    double currentElapsedTime;
+
+    RTPTransmissionStatsDB::Iterator statsIter(fSink->transmissionStatsDB());
+
+    fSink->getTotalBitrate(currentNumBytes, currentElapsedTime);
+
+    avgBitrate = currentElapsedTime == 0 ? 0.0 : ((8*currentNumBytes/currentElapsedTime)/1000.0);
+    if(minBitrate > avgBitrate) minBitrate = avgBitrate;
+    if(maxBitrate < avgBitrate) maxBitrate = avgBitrate;
+
+    RTPTransmissionStats* stats;
+    while((stats = statsIter.next()) != NULL){
+        SSRC = stats->SSRC();
+        packetLossRatio = stats->packetLossRatio();
+        if(minPacketLossRatio > packetLossRatio) minPacketLossRatio = packetLossRatio;
+        if(maxPacketLossRatio < packetLossRatio) maxPacketLossRatio = packetLossRatio;        
+        
+        roundTripDelay = stats->roundTripDelay();
+        if(minRoundTripDelay > roundTripDelay) minRoundTripDelay = roundTripDelay;
+        if(maxRoundTripDelay < roundTripDelay) maxRoundTripDelay = roundTripDelay;
+
+        jitter = stats->jitter();
+        if(minJitter > jitter) minJitter = jitter;
+        if(maxJitter < jitter) maxJitter = jitter;
+    }
 }

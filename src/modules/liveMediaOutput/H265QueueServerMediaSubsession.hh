@@ -30,11 +30,11 @@ class H265QueueServerMediaSubsession: public H264or5QueueServerMediaSubsession {
     
 public:
     static H265QueueServerMediaSubsession*
-        createNew(UsageEnvironment& env, StreamReplicator* replica, 
+        createNew(Connection* conn, UsageEnvironment& env, StreamReplicator* replica, 
                   int readerId, Boolean reuseFirstSource);
 
 protected:
-    H265QueueServerMediaSubsession(UsageEnvironment& env, StreamReplicator* replica, 
+    H265QueueServerMediaSubsession(Connection* conn, UsageEnvironment& env, StreamReplicator* replica, 
                                  int readerId, Boolean reuseFirstSource);
 
     virtual ~H265QueueServerMediaSubsession();
@@ -42,6 +42,11 @@ protected:
 protected: 
     FramedSource* createNewStreamSource(unsigned clientSessionId, unsigned& estBitrate);
     RTPSink* createNewRTPSink(Groupsock* rtpGroupsock, unsigned char rtpPayloadTypeIfDynamic, FramedSource* inputSource);
+    RTCPInstance* createRTCP(Groupsock* RTCPgs, unsigned totSessionBW, /* in kbps */
+                   unsigned char const* cname, RTPSink* sink);
+
+private:
+	Connection* fConn;
 };
 
 #endif

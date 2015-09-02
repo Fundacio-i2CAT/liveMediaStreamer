@@ -56,8 +56,8 @@ void addAudioPath(unsigned port, int receiverID, int transmitterID)
 {
     PipelineManager *pipe = PipelineManager::getInstance(4);
 
-    int decId = rand();
-    int encId = rand();
+    int decId = 101;
+    int encId = 5000;
     std::vector<int> ids({decId, encId});
 
     AudioDecoderLibav *decoder;
@@ -73,6 +73,17 @@ void addAudioPath(unsigned port, int receiverID, int transmitterID)
     }
 
     pipe->addFilter(encId, encoder);
+    
+    if (!pipe->createPath(BYPASS_AUDIO_PATH, receiverID, transmitterID, port, BYPASS_AUDIO_PATH, std::vector<int>({}))) {
+        utils::errorMsg("Error creating audio path");
+        return;
+    }
+
+    if (!pipe->connectPath(BYPASS_AUDIO_PATH)) {
+        utils::errorMsg("Failed! Path not connected");
+        pipe->removePath(port);
+        return;
+    }
     
     if (!pipe->createPath(port, receiverID, transmitterID, port, -1, ids)) {
         utils::errorMsg("Error creating audio path");
@@ -92,7 +103,7 @@ void addVideoPath(unsigned port, int receiverID, int transmitterID)
 {
     PipelineManager *pipe = Controller::getInstance()->pipelineManager();
 
-    int decId = rand();
+    int decId = 500;
     int resId = 2000;
     int encId = 1000;
 
@@ -118,18 +129,7 @@ void addVideoPath(unsigned port, int receiverID, int transmitterID)
     pipe->addFilter(encId, encoder);
 
     //bitrate, fps, gop, lookahead, threads, annexB, preset
-    encoder->configure(4000, 25, 25, 25, 4, true, "superfast");
-    
-    if (!pipe->createPath(port, receiverID, transmitterID, port, -1, ids)) {
-        utils::errorMsg("Error creating video path");
-        return;
-    }   
-
-    if (!pipe->connectPath(port)) {
-        utils::errorMsg("Failed! Path not connected");
-        pipe->removePath(port);
-        return;
-    }
+    encoder->configure(4000, 25, 25, 0, 4, true, "superfast");
     
     if (!pipe->createPath(BYPASS_VIDEO_PATH, receiverID, transmitterID, port, BYPASS_VIDEO_PATH, std::vector<int>({}))) {
         utils::errorMsg("Error creating video path");
@@ -137,6 +137,17 @@ void addVideoPath(unsigned port, int receiverID, int transmitterID)
     }
 
     if (!pipe->connectPath(BYPASS_VIDEO_PATH)) {
+        utils::errorMsg("Failed! Path not connected");
+        pipe->removePath(port);
+        return;
+    }
+    
+    if (!pipe->createPath(port, receiverID, transmitterID, port, -1, ids)) {
+        utils::errorMsg("Error creating video path");
+        return;
+    }   
+
+    if (!pipe->connectPath(port)) {
         utils::errorMsg("Failed! Path not connected");
         pipe->removePath(port);
         return;
@@ -295,7 +306,7 @@ int main(int argc, char* argv[])
     std::vector<int> readers;
 
     int transmitterID = 1024;
-    int receiverID = rand();
+    int receiverID = 1023;
 
     SinkManager* transmitter = NULL;
     SourceManager* receiver = NULL;
@@ -404,7 +415,7 @@ int main(int argc, char* argv[])
     }
 
     ctrl->destroyInstance();
-    utils::infoMsg("Controlled deleted");
+    utils::infoMsg("Controller deleted");
     pipe->destroyInstance();
     utils::infoMsg("Pipe deleted");
     

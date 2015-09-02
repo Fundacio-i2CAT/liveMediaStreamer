@@ -156,10 +156,12 @@ bool VideoResampler::doProcessFrame(Frame *org, Frame *dst)
         utils::errorMsg("Could not convert image");
         return false;
     }
-    
-    dstFrame->setPresentationTime(orgFrame->getPresentationTime());
-    dst->setConsumed(true);
 
+    dst->setConsumed(true);
+    dst->setPresentationTime(org->getPresentationTime());
+    dst->setOriginTime(org->getOriginTime());
+    dst->setSequenceNumber(org->getSequenceNumber());
+    
     return true;
 }
 

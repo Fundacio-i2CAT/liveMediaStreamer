@@ -44,6 +44,8 @@ VideoEncoderX264or5::~VideoEncoderX264or5()
 
 bool VideoEncoderX264or5::doProcessFrame(Frame *org, Frame *dst)
 {
+    FrameTimeParams frameTP;
+    
     if (!(org && dst)) {
         utils::errorMsg("Error encoding video frame: org or dst are NULL");
         return false;
@@ -66,9 +68,15 @@ bool VideoEncoderX264or5::doProcessFrame(Frame *org, Frame *dst)
         utils::errorMsg("Could not fill x264_picture_t from frame");
         return false;
     }
-
-    if (pTimes.size() <= lookahead){
-        pTimes.push(org->getPresentationTime());
+    
+    /*NOTE: lookahead is multiplied by 2 beacuse the buffered frames might be 
+    * higher than lookahead depending on the configuration. 
+    */
+    if (qFTP.size() == 0 || qFTP.size() <= lookahead * 2){
+        frameTP.pTime = org->getPresentationTime();
+        frameTP.oTime = org->getOriginTime();
+        frameTP.seqNum = org->getSequenceNumber();
+        qFTP.push(frameTP);
     }
     
     if (!encodeFrame(codedFrame)) {
@@ -77,9 +85,14 @@ bool VideoEncoderX264or5::doProcessFrame(Frame *org, Frame *dst)
     }
 
     codedFrame->setSize(rawFrame->getWidth(), rawFrame->getHeight());
+    
     dst->setConsumed(true);
-    dst->setPresentationTime(pTimes.front());
-    pTimes.pop();
+    dst->setPresentationTime(qFTP.front().pTime);
+    dst->setOriginTime(qFTP.front().oTime);
+    dst->setSequenceNumber(qFTP.front().seqNum);
+    
+    qFTP.pop();
+    
     return true;
 }
 

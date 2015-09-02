@@ -76,7 +76,6 @@ protected:
     unsigned lookahead;
     bool needsConfig;
     std::string preset;
-    std::queue<std::chrono::microseconds> pTimes;
 
     StreamInfo *outputStreamInfo;
     
@@ -98,6 +97,14 @@ private:
     //There is no need of specific reader configuration
     bool specificReaderConfig(int /*readerID*/, FrameQueue* /*queue*/)  {return true;};
     bool specificReaderDelete(int /*readerID*/) {return true;};
+    
+    struct FrameTimeParams {
+        std::chrono::microseconds pTime;
+        std::chrono::system_clock::time_point oTime;
+        size_t seqNum;
+    };
+    
+    std::queue<FrameTimeParams> qFTP;
 };
 
 #endif

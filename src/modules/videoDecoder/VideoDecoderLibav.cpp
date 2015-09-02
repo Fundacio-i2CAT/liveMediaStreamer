@@ -88,7 +88,12 @@ bool VideoDecoderLibav::doProcessFrame(Frame *org, Frame *dst)
 
         if (gotFrame) {
             if (toBuffer(vDecodedFrame, vCodedFrame)) {
-                vDecodedFrame->setConsumed(true);
+                
+                dst->setConsumed(true);
+                dst->setPresentationTime(org->getPresentationTime());
+                dst->setOriginTime(org->getOriginTime());
+                dst->setSequenceNumber(org->getSequenceNumber());
+                
                 return true;
             }
         }
@@ -190,7 +195,6 @@ bool VideoDecoderLibav::toBuffer(VideoFrame *decodedFrame, VideoFrame *codedFram
     
     decodedFrame->setLength(length);
     decodedFrame->setSize(frame->width, frame->height);
-    decodedFrame->setPresentationTime(codedFrame->getPresentationTime());
     decodedFrame->setPixelFormat(getPixelFormat((AVPixelFormat) frame->format));
     
     return true;

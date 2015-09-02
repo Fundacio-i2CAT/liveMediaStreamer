@@ -42,23 +42,52 @@
 class SourceManager;
 class SCSSubsessionStats;
 
+/**
+* StreamClientState class. Each Session class has a StreamCleanState associated.
+*/
 class StreamClientState {
 public:
+    /**
+    * Class constructor
+    */    
     StreamClientState(std::string id_, SourceManager *const  manager);
+    /**
+    * Class destructor
+    */
     virtual ~StreamClientState();
-
+    /**
+    * Get SCS Id
+    */
     std::string getId(){return id;}
 
+    /**
+    * Adds a QueueSink, with specific id, to its associated SourceManager instance
+    */
     bool addSinkToMngr(unsigned id, QueueSink* sink);
 
+    /**
+    * Adds a new SCSSubsessionStats stats to its SCSSubsessionStats stats map
+    */
     bool addNewSubsessionStats(size_t port, MediaSubsession* subsession);
 
+    /**
+    * Remove specific SCSSubsession stats from the map by specifying the port/id
+    */
     bool removeSubsessionStats(size_t port);
 
+    /**
+    * Returns specific SCSSubsession stat by specifying the port/id
+    */
     SCSSubsessionStats* getSubsessionStats(size_t port);
 
+    /**
+    * Schedules next stats measurement
+    */
     void scheduleNextStatsMeasurement(UsageEnvironment* env);
 
+    /**
+    * Returns it SCSSubsessionStats map
+    */
     std::map<int, SCSSubsessionStats*> getSCSSubsesionStatsMap() { return smsStats; };
 
 public:

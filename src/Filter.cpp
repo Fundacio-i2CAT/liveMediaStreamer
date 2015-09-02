@@ -656,14 +656,10 @@ OneToOneFilter::OneToOneFilter(FilterRole fRole_, bool periodic) :
 
 bool OneToOneFilter::runDoProcessFrame(std::map<int, Frame*> &oFrames, std::map<int, Frame*> &dFrames, std::vector<int> /*newFrames*/)
 {
-    std::chrono::microseconds outTimestamp;
-
     if (!doProcessFrame(oFrames.begin()->second, dFrames.begin()->second)) {
         return false;
     }
-
-    dFrames.begin()->second->setOriginTime(oFrames.begin()->second->getOriginTime());
-    dFrames.begin()->second->setSequenceNumber(oFrames.begin()->second->getSequenceNumber());
+    
     return true;
 }
 

@@ -761,7 +761,7 @@ static void periodicConnStatMeasurement(ConnRTCPInstance* cri)
 void ConnRTCPInstance::scheduleNextConnStatMeasurement() 
 {
     connectionStatsMeasurementTask = NULL;
-    nextStatsMeasurementUSecs += statsMeasurementIntervalMS*1000;
+    nextStatsMeasurementUSecs += statsMeasurementIntervalMS;
     struct timeval timeNow;
     gettimeofday(&timeNow, NULL);
     unsigned timeNowUSecs = timeNow.tv_sec*1000000 + timeNow.tv_usec;

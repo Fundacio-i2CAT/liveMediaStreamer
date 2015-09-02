@@ -50,7 +50,7 @@ public:
     int getFreeSamples();
     void setBufferingThreshold(std::chrono::milliseconds th);
     unsigned getChannelMaxSamples() {return chMaxSamples;};
-    unsigned getElements() {return elements;};
+    unsigned getElements();
 
 private:
     AudioCircularBuffer(struct ConnectionData cData, unsigned ch, unsigned sRate, unsigned maxSamples, SampleFmt sFmt);
@@ -82,6 +82,8 @@ private:
     std::chrono::microseconds syncTimestamp;
     bool synchronized;
     bool setupSuccess;
+    
+    std::chrono::system_clock::time_point orgTime;
 
     int tsDeviationThreshold;
     std::mutex mtx;

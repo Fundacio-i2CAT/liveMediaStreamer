@@ -86,6 +86,7 @@ Frame* AudioCircularBuffer::getFront()
     frontSampleIdx = front/bytesPerSample;
     ts = std::chrono::microseconds(frontSampleIdx*std::micro::den/sampleRate) + syncTimestamp;
     outputFrame->setPresentationTime(ts);
+    outputFrame->setOriginTime(orgTime - std::chrono::microseconds(elements/(bytesPerSample*sampleRate*1000000)));
 
     if (!popFront(outputFrame->getPlanarDataBuf(), outputFrame->getSamples())) {
         utils::debugMsg("There is not enough data to fill a frame. Impossible to get new frame!");
@@ -141,6 +142,10 @@ int AudioCircularBuffer::addFrame()
         utils::warningMsg("[AudioCircularBuffer] Cannot push frame");
         return -1;
     }
+    
+    std::lock_guard<std::mutex> guard(mtx);
+    
+    orgTime = inputFrame->getOriginTime();
     
     return connectionData.rFilterId;
 }
@@ -324,4 +329,9 @@ void AudioCircularBuffer::setOutputFrameSamples(int samples)
     outputFrame->setSamples(samples);
     outputFrame->setLength(samples*bytesPerSample);
 }
+
+unsigned AudioCircularBuffer::getElements() 
+{
+    return elements/(outputFrame->getSamples()*bytesPerSample);
+};
 

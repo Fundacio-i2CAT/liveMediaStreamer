@@ -117,8 +117,11 @@ bool AudioEncoderLibav::doProcessFrame(Frame *org, Frame *dst)
     codedFrame->setLength(pkt.size);
     codedFrame->setSamples(samples);
 
-    dst->setPresentationTime(org->getPresentationTime());
     dst->setConsumed(true);
+    dst->setPresentationTime(org->getPresentationTime());
+    dst->setOriginTime(org->getOriginTime());
+    dst->setSequenceNumber(org->getSequenceNumber());
+    
     return true;
 }
 

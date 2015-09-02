@@ -524,6 +524,7 @@ namespace utils
                     case H264:
                     case H265:
                         desc += " annexB:" + std::to_string(si->video.h264or5.annexb);
+                        desc += " framed:" + std::to_string(si->video.h264or5.framed);
                         break;
                     default:
                         break;

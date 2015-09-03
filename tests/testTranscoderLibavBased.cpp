@@ -1,5 +1,10 @@
 #include "../src/modules/headDemuxer/HeadDemuxerLibav.hh"
+#include "../src/modules/videoResampler/VideoResampler.hh"
 #include "../src/modules/liveMediaOutput/SinkManager.hh"
+#include "../src/modules/videoEncoder/VideoEncoderX264.hh"
+#include "../src/modules/videoDecoder/VideoDecoderLibav.hh"
+#include "../src/modules/audioEncoder/AudioEncoderLibav.hh"
+#include "../src/modules/audioDecoder/AudioDecoderLibav.hh"
 #include "../src/Controller.hh"
 #include "../src/Utils.hh"
 #include "../src/Jzon.h"
@@ -8,12 +13,98 @@
 #include <vector>
 #include <string>
 
+#define OUT_A_CODEC AAC
+#define OUT_A_FREQ 48000
+#define OUT_A_BITRATE 192000
+#define OUT_A_CHANNELS 2
+
 bool run = true;
 
 void signalHandler( int signum )
 {
     utils::infoMsg("Interruption signal received");
     run = false;
+}
+
+bool addVideoPath(int vWId, int receiverID, int transmitterID)
+{
+    PipelineManager *pipe = Controller::getInstance()->pipelineManager();
+
+    int decId = 500;
+    int resId = 2000;
+    int encId = 1000;
+
+    std::vector<int> ids;
+
+    ids = {decId, resId, encId};
+
+    VideoResampler *resampler;
+    VideoEncoderX264 *encoder;
+    VideoDecoderLibav *decoder;
+
+    decoder = new VideoDecoderLibav();
+    pipe->addFilter(decId, decoder);
+
+    resampler = new VideoResampler();
+    pipe->addFilter(resId, resampler);
+    resampler->configure(1920, 1080, 0, YUV420P);
+
+    encoder = new VideoEncoderX264();
+    pipe->addFilter(encId, encoder);
+
+    //bitrate, fps, gop, lookahead, threads, annexB, preset
+    encoder->configure(4000, 25, 25, 0, 4, true, "superfast");
+       
+    if (!pipe->createPath(vWId, receiverID, transmitterID, vWId, -1, ids)) {
+        utils::errorMsg("Error creating video path");
+        return false;
+    }   
+
+    if (!pipe->connectPath(vWId)) {
+        utils::errorMsg("Failed! Path not connected");
+        pipe->removePath(vWId);
+        return false;
+    }
+
+    utils::infoMsg("Video path created from wId " + std::to_string(vWId));
+    return true;
+}
+
+bool addAudioPath(unsigned port, int receiverID, int transmitterID)
+{
+    PipelineManager *pipe = PipelineManager::getInstance();
+
+    int decId = 101;
+    int encId = 102;
+    std::vector<int> ids({decId, encId});
+
+    AudioDecoderLibav *decoder;
+    AudioEncoderLibav *encoder;
+
+    decoder = new AudioDecoderLibav();
+    pipe->addFilter(decId, decoder);
+
+    encoder = new AudioEncoderLibav();
+    if (!encoder->configure(OUT_A_CODEC, OUT_A_CHANNELS, OUT_A_FREQ, OUT_A_BITRATE)) {
+        utils::errorMsg("Error configuring audio encoder. Check provided parameters");
+        return false;
+    }
+
+    pipe->addFilter(encId, encoder);
+    
+    if (!pipe->createPath(port, receiverID, transmitterID, port, -1, ids)) {
+        utils::errorMsg("Error creating audio path");
+        return false;
+    }
+    
+    if (!pipe->connectPath(port)){
+        utils::errorMsg("Failed! Path not connected");
+        pipe->removePath(port);
+        return false;
+    }
+
+    utils::infoMsg("Audio path created from port " + std::to_string(port));
+    return true;
 }
 
 int main(int argc, char* argv[])
@@ -93,24 +184,13 @@ int main(int argc, char* argv[])
         }
     }
 
-    std::vector<int> ids;
     std::vector<int> readers;
-    if (vWId >= 0) {
-        if (!pipe->createPath(vWId, receiverID, transmitterID, vWId, 1, ids)) {
-            utils::errorMsg("Could not create Video path");
-        } else {
-	        pipe->connectPath(vWId);
-        	readers.push_back(1);
-		}
+    if (vWId >= 0 && addVideoPath(vWId, receiverID, transmitterID)) {
+        readers.push_back(pipe->getPath(vWId)->getDstReaderID());
     }
 
-    if (aWId >= 0) {
-        if (!pipe->createPath(aWId, receiverID, transmitterID, aWId, 2, ids)) {
-            utils::errorMsg("Could not create Audio path");
-        } else {
-	        pipe->connectPath(aWId);
-    	    readers.push_back(2);
-		}
+    if (aWId >= 0 && addAudioPath(aWId, receiverID, transmitterID)) {
+        readers.push_back(pipe->getPath(aWId)->getDstReaderID());
     }
 
     if (!transmitter->addRTSPConnection(readers, 1, MPEGTS, "mpegts")){
@@ -134,3 +214,4 @@ int main(int argc, char* argv[])
 
     return 0;
 }
+

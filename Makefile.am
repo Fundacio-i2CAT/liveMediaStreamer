@@ -1,7 +1,7 @@
 ACLOCAL_AMFLAGS = -I m4
 SUBDIRS = src unitTests
 
-bin_PROGRAMS = livemediastreamer testtranscoder teststreamer testdemuxer fakelive testvideomix testaudiomix testdash testbypass
+bin_PROGRAMS = livemediastreamer testtranscoder teststreamer testdemuxer fakelive testvideomix testaudiomix testdash testbypass testtranscoderlibav
 
 livemediastreamer_SOURCES = tests/liveMediaStreamer.cpp
 livemediastreamer_CPPFLAGS = -Isrc/ -std=c++11 -g -Wall -D__STDC_CONSTANT_MACROS
@@ -41,6 +41,11 @@ testdemuxer_SOURCES = tests/testDemuxer.cpp
 testdemuxer_CPPFLAGS = -std=c++11 -g -Wall -D__STDC_CONSTANT_MACROS
 testdemuxer_LDFLAGS = -Lsrc -llivemediastreamer -lBasicUsageEnvironment -lUsageEnvironment -lliveMedia -lgroupsock -lavcodec -lavformat -lavutil -lswresample -lswscale
 testdemuxer_DEPENDENCIES = src/liblivemediastreamer.la
+
+testtranscoderlibav_SOURCES = tests/testTranscoderLibavBased.cpp
+testtranscoderlibav_CPPFLAGS = -std=c++11 -g -Wall -D__STDC_CONSTANT_MACROS
+testtranscoderlibav_LDFLAGS = -Lsrc -llivemediastreamer -lBasicUsageEnvironment -lUsageEnvironment -lliveMedia -lgroupsock -lavcodec -lavformat -lavutil -lswresample -lswscale
+testtranscoderlibav_DEPENDENCIES = src/liblivemediastreamer.la
 
 fakelive_SOURCES = tests/H264LoopVideoFileServerMediaSubsession.cpp tests/LoopByteStreamFileSource.cpp tests/fakeLive.cpp
 fakelive_CPPFLAGS = -std=c++11 -g -Wall -D__STDC_CONSTANT_MACROS

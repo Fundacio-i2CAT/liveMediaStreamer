@@ -270,7 +270,7 @@ void logState()
         // PATH DELAY and LOST BLOCS
         f = pipe->getFilter(it.second->getDestinationFilterID());
         if (f) {
-            logger += "|avgDelay|"+std::to_string(f->getAvgReaderDelay(it.second->getDstReaderID()).count());
+            logger += "|avgDelay-"+std::to_string(it.first)+"|"+std::to_string(f->getAvgReaderDelay(it.second->getDstReaderID()).count());
             totalPathLostBlocs = 0;
             totalPathLostBlocs += f->getLostBlocs(it.second->getDstReaderID());
             for (auto itt : pFilters) {
@@ -279,7 +279,7 @@ void logState()
                     totalPathLostBlocs += f->getLostBlocs(DEFAULT_ID);
                 }
             }
-            logger += "|lostBlocs|"+std::to_string(totalPathLostBlocs);
+            logger += "|lostBlocs-"+std::to_string(it.first)+"|"+std::to_string(totalPathLostBlocs);
         } else {
             utils::warningMsg("[PipelineManager::getStateEvent] Path filter does not exist. Ambiguous situation! Better pray Jesus...");
         }
@@ -302,46 +302,49 @@ void logState()
                         measurementTime  = secsDiff + usecsDiff/1000000.0;
                         // BITRATE
                         if ( scsss->getKbitsPerSecondMax() == 0) {
-                            logger += "|RXavgBitRateInKbps|0";
+                            logger += "|"+medium+"RXavgBitRateInKbps|0";
                         } else {
-                            logger += "|RXavgBitRateInKbps|"+std::to_string(measurementTime == 0.0 ? 0.0 : 8*scsss->getKBytesTotal()/measurementTime);
+                            logger += "|"+medium+"RXavgBitRateInKbps|"+std::to_string(measurementTime == 0.0 ? 0.0 : 8*scsss->getKBytesTotal()/measurementTime);
                         }
                         // PACKET LOSS
                         packetLossFraction = numPacketsExpected == 0 ? 1.0 : 1.0 - numPacketsReceived/(double)numPacketsExpected;
                         if (packetLossFraction < 0.0){
-                            logger += "|RXavgPacketLossPercentage|0.0";  
+                            logger += "|"+medium+"RXavgPacketLossPercentage|0.0";  
                         } else {
-                            logger += "|RXavgPacketLossPercentage|"+std::to_string(100*packetLossFraction);
+                            logger += "|"+medium+"RXavgPacketLossPercentage|"+std::to_string(100*packetLossFraction);
                         }
                         // INTER PACKET GAP
                         totalGapsMS = scsss->getTotalGaps().tv_sec*1000.0 + scsss->getTotalGaps().tv_usec/1000.0;
-                        logger += "|RXavgInterPacketGapInMiliseconds|"+std::to_string(numPacketsReceived == 0 ? 0.0 : totalGapsMS/numPacketsReceived);
+                        logger += "|"+medium+"RXavgInterPacketGapInMiliseconds|"+std::to_string(numPacketsReceived == 0 ? 0.0 : totalGapsMS/numPacketsReceived);
                         // JITTER 
-                        logger += "|RXcurJitterInMicroseconds|"+std::to_string(scsss->getJitter());
+                        logger += "|"+medium+"RXcurJitterInMicroseconds|"+std::to_string(scsss->getJitter());
                     }
                 }
             }
         }
         if(it.second->getType() == TRANSMITTER){
+            size_t count = 0;
             for (auto itt : dynamic_cast<SinkManager*>(it.second)->getConnections()) {
                 if ((rtspConn = dynamic_cast<RTSPConnection*>(itt.second))){
+                    count = 0;
                     logger += "|TX_URI|"+rtspConn->getURI();
                     for (auto iter : itt.second->getConnectionRTCPInstanceMap()) {
-                        logger += "|TX_SSRC|"+std::to_string(iter.second->getSSRC());
-                        logger += "|TXavgBitrateInKbps|"+std::to_string(iter.second->getAvgBitrate());
-                        logger += "|TXpacketLossRatio|"+std::to_string(iter.second->getPacketLossRatio());
-                        logger += "|TXjitterInMicroseconds|"+std::to_string(iter.second->getJitter());
-                        logger += "|TXroundTripDelayMilliseconds|"+std::to_string(iter.second->getRoundTripDelay());
+                        logger += "|TX_SSRC-"+std::to_string(++count)+"|"+std::to_string(iter.second->getSSRC());
+                        logger += "|TXavgBitrateInKbps-"+std::to_string(count)+"|"+std::to_string(iter.second->getAvgBitrate());
+                        logger += "|TXpacketLossRatio-"+std::to_string(count)+"|"+std::to_string(iter.second->getPacketLossRatio());
+                        logger += "|TXjitterInMicroseconds-"+std::to_string(count)+"|"+std::to_string(iter.second->getJitter());
+                        logger += "|TXroundTripDelayMilliseconds-"+std::to_string(count)+"|"+std::to_string(iter.second->getRoundTripDelay());
                     }
                 } else if ((rtpConn = dynamic_cast<RTPConnection*>(itt.second))){
+                    count = 0;
                     logger += "|TXip|"+rtpConn->getIP();
                     logger += "|TXport|"+std::to_string(rtpConn->getPort());
                     for (auto iter : itt.second->getConnectionRTCPInstanceMap()) {
-                        logger += "|TX_SSRC|"+std::to_string(iter.second->getSSRC());
-                        logger += "|TXavgBitrateInKbps|"+std::to_string(iter.second->getAvgBitrate());
-                        logger += "|TXpacketLossRatio|"+std::to_string(iter.second->getPacketLossRatio());
-                        logger += "|TXjitterInMicroseconds|"+std::to_string(iter.second->getJitter());
-                        logger += "|TXroundTripDelayMilliseconds|"+std::to_string(iter.second->getRoundTripDelay());
+                        logger += "|TX_SSRC-"+std::to_string(++count)+"|"+std::to_string(iter.second->getSSRC());
+                        logger += "|TXavgBitrateInKbps-"+std::to_string(count)+"|"+std::to_string(iter.second->getAvgBitrate());
+                        logger += "|TXpacketLossRatio-"+std::to_string(count)+"|"+std::to_string(iter.second->getPacketLossRatio());
+                        logger += "|TXjitterInMicroseconds-"+std::to_string(count)+"|"+std::to_string(iter.second->getJitter());
+                        logger += "|TXroundTripDelayMilliseconds-"+std::to_string(count)+"|"+std::to_string(iter.second->getRoundTripDelay());
                     }
                 }
             }               

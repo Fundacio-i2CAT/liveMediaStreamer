@@ -101,11 +101,6 @@ class HeadDemuxerLibav : public HeadFilter {
 
         /** Convert from Libav SampleFormat enum to ours */
         SampleFmt getSampleFormatFromLibav(AVSampleFormat libavSampleFmt);
-
-         /** Multiplier for frame timestamps */
-        int time_base_num;
-         /** Divider for frame timestamps */
-        int time_base_den;
 };
 
 #endif

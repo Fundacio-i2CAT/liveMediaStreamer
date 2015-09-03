@@ -1,7 +1,7 @@
 ACLOCAL_AMFLAGS = -I m4
 SUBDIRS = src unitTests
 
-bin_PROGRAMS = livemediastreamer testtranscoder teststreamer testdemuxer fakelive testvideomix testaudiomix testdash testbypass testtranscoderlibav testtranscoderstats
+bin_PROGRAMS = livemediastreamer testtranscoder teststreamer testdemuxer fakelive testvideomix testaudiomix testdash testbypass testtranscoderlibav testtranscoderstats testavmixstats
 
 livemediastreamer_SOURCES = tests/liveMediaStreamer.cpp
 livemediastreamer_CPPFLAGS = -Isrc/ -std=c++11 -g -Wall -D__STDC_CONSTANT_MACROS
@@ -55,3 +55,8 @@ testtranscoderstats_SOURCES = tests/testTranscoderStats.cpp
 testtranscoderstats_CPPFLAGS = -std=c++11 -g -Wall -D__STDC_CONSTANT_MACROS
 testtranscoderstats_LDFLAGS = -Lsrc -llivemediastreamer -lBasicUsageEnvironment -lUsageEnvironment -lliveMedia -lgroupsock -lavcodec -lavformat -lavutil -lswresample -lswscale
 testtranscoderstats_DEPENDENCIES = src/liblivemediastreamer.la
+
+testavmixstats_SOURCES = tests/testAVMixingStats.cpp
+testavmixstats_CPPFLAGS = -std=c++11 -g -Wall -D__STDC_CONSTANT_MACROS
+testavmixstats_LDFLAGS = -Lsrc -llivemediastreamer -lBasicUsageEnvironment -lUsageEnvironment -lliveMedia -lgroupsock -lavcodec -lavformat -lavutil -lswresample -lswscale
+testavmixstats_DEPENDENCIES = src/liblivemediastreamer.la

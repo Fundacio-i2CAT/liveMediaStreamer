@@ -94,6 +94,7 @@ bool AudioMixer::doProcessFrame(std::map<int, Frame*> &orgFrames, Frame *dst, st
     }
 
     dst->setConsumed(true);
+    dst->setOriginTime(std::chrono::system_clock::now());
 
     return true;
 }

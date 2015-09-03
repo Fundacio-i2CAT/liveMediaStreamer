@@ -86,13 +86,14 @@ Frame* AudioCircularBuffer::getFront()
     frontSampleIdx = front/bytesPerSample;
     ts = std::chrono::microseconds(frontSampleIdx*std::micro::den/sampleRate) + syncTimestamp;
     outputFrame->setPresentationTime(ts);
-    outputFrame->setOriginTime(orgTime - std::chrono::microseconds(elements/(bytesPerSample*sampleRate*1000000)));
 
     if (!popFront(outputFrame->getPlanarDataBuf(), outputFrame->getSamples())) {
         utils::debugMsg("There is not enough data to fill a frame. Impossible to get new frame!");
         return NULL;
     }
 
+    outputFrame->setOriginTime(orgTime - std::chrono::microseconds(elements*std::micro::den/(bytesPerSample*sampleRate)));
+    
     fillNewFrame = false;
     return outputFrame;
 }

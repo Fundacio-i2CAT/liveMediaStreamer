@@ -84,6 +84,8 @@ public:
      */
     bool removeConnectionEvent(Jzon::Node* params);
 
+    std::map<int, Connection*> getConnections(){ return connections; };   
+
     UsageEnvironment* envir() {return env;}
 
 private:

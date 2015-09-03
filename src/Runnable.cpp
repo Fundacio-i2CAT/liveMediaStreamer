@@ -87,14 +87,14 @@ void Runnable::setRunning()
     if ((*running) == 0){
         (*running) = group.size();
     }
-
+    
     run = true;
 }
 
 void Runnable::unsetRunning()
 {
     std::lock_guard<std::mutex> guard(mtx);
-
+    
     if ((*running) > 0){
         (*running)--;
     }
@@ -124,7 +124,7 @@ std::vector<int> Runnable::getGroupIds()
     return ids;
 }
 
-bool Runnable::groupRunnable(Runnable *r)
+bool Runnable::groupRunnable(Runnable *r, bool recursive)
 {
     if (!r){
         return false;
@@ -134,7 +134,10 @@ bool Runnable::groupRunnable(Runnable *r)
         r->addInGroup(runnable, this->running);
         runnable->addInGroup(r, this->running);
     }
-    addInGroup(r);
+    
+    if (recursive){
+        r->groupRunnable(this, false);
+    }
     
     return true;
 }

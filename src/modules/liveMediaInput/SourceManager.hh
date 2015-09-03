@@ -148,6 +148,7 @@ public:
     bool removeSession(std::string id);
 
     Session* getSession(std::string id);
+    std::map<std::string, Session*> getSessions() { return sessionMap; };
     int getWriterID(unsigned int port);
 
     UsageEnvironment* envir() {return env;}

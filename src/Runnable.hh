@@ -114,7 +114,7 @@ public:
      * @param Runnable this is the other runnable to get grouped with
      * @return true if succeded false otherwise
      */
-    bool groupRunnable(Runnable *r);
+    bool groupRunnable(Runnable *r, bool recursive = true);
     
     /**
      * Removes this runnable instance from its group

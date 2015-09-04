@@ -27,6 +27,7 @@ testaudiomix
 testdash
 testvideomix
 testbypass
+testtranscoderlibav
 
 autom4te.cache/
 config.log

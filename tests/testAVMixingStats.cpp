@@ -35,9 +35,9 @@
 #define OUT_A_FREQ 48000
 #define OUT_A_BITRATE 192000
 
-#define MIX_WIDTH 640
-#define MIX_HEIGHT 360
-#define MIX_CHANNELS 8
+#define MIX_WIDTH 1280
+#define MIX_HEIGHT 720
+#define MIX_CHANNELS 4
 
 #define RETRIES 10
 
@@ -118,7 +118,7 @@ void addVideoPath(unsigned port, int receiverId, int mixerId)
         return;
     }
 
-    mixer->configChannel(port, 0.5, 0.5, pos/100.0, pos/100.0, layer++, true, 1.0);
+    mixer->configChannel(port, 0.5, 0.5, pos/100.0, pos/100.0, layer++, true, 0.6);
     pos += 15;
     
     utils::infoMsg("Video path created from port " + std::to_string(port));

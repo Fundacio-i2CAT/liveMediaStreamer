@@ -375,7 +375,7 @@ bool setupVMixer(int mixerId, int transmitterId)
 
     encoder = new VideoEncoderX264();
     //bitrate, fps, gop, lookahead, threads, annexB, preset
-    encoder->configure(4000, 50, 25, 25, 4, true, "superfast");
+    encoder->configure(4000, 25, 25, 0, 4, true, "superfast");
     pipe->addFilter(encId, encoder);
 
     if (!pipe->createPath(pathId, mixerId, transmitterId, -1, -1, ids)) {

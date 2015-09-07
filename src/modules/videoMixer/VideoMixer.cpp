@@ -145,7 +145,6 @@ bool VideoMixer::doProcessFrame(std::map<int, Frame*> &orgFrames, Frame *dst, st
     }
 
     dst->setConsumed(true);
-    dst->setOriginTime(std::chrono::system_clock::now());
     
     if (getFrameTime().count() <= 0) {
         dst->setPresentationTime(outTs);

@@ -43,7 +43,9 @@ class HeadDemuxerLibav : public HeadFilter {
         HeadDemuxerLibav();
         ~HeadDemuxerLibav();
 
-        /** Returns TRUE if URI could be opened */
+        /**Sets and tries to open the URI provided
+         * @returns TRUE if URI could be opened 
+         */
         bool setURI(const std::string URI);
 
     protected:
@@ -60,6 +62,11 @@ class HeadDemuxerLibav : public HeadFilter {
             bool needsFraming;
             /* Whether the input is H264 in AVCC or Annex B format */
             bool isAnnexB;
+            /* Initialized to zero, it keeps the last valid pts, in order to be used 
+             * in case an AV_NOPTS_VALUE is found in av_pkt*/
+            int64_t lastPTS;
+            /* Last system time used in a frame*/
+            std::chrono::microseconds lastSTime;
         };
 
         /** URI currently being played */

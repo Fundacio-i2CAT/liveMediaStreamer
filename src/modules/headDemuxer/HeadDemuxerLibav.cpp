@@ -123,6 +123,9 @@ bool HeadDemuxerLibav::doProcessFrame(std::map<int, Frame*> &dstFrames)
         }
         bufferOffset = 0;
         psi = privateStreamInfos[av_pkt.stream_index];
+        if (av_pkt.pts != AV_NOPTS_VALUE){
+            psi->lastPTS = av_pkt.pts;
+        }
         if (psi->needsFraming && !psi->isAnnexB) {
             // Convert to Annex B (adding startcodes) using temp buffer
             int res;
@@ -195,9 +198,19 @@ bool HeadDemuxerLibav::doProcessFrame(std::map<int, Frame*> &dstFrames)
     }
     f->setConsumed(true);
     f->setLength(dst_size);
-    f->setPresentationTime(
-        std::chrono::microseconds(
-            (int64_t)(1000000 * av_pkt.pts * psi->streamTimeBase)));
+    
+    if (av_pkt.pts == AV_NOPTS_VALUE) {
+        f->setPresentationTime(
+            std::chrono::microseconds(psi->lastPTS) + psi->lastSTime);
+    } else {
+        if (av_pkt.pts != psi->lastPTS){
+            psi->lastSTime = std::chrono::duration_cast<std::chrono::microseconds>(
+                std::chrono::high_resolution_clock::now().time_since_epoch());
+        }
+        f->setPresentationTime(
+            std::chrono::microseconds(
+                (int64_t)(av_pkt.pts * psi->streamTimeBase * 1000000)) + psi->lastSTime);
+    }
 
     if (bufferOffset == -1) {
         if (buffer != av_pkt.data) {
@@ -285,6 +298,9 @@ bool HeadDemuxerLibav::setURI(const std::string URI)
         StreamInfo *si = new StreamInfo();
         PrivateStreamInfo *psi = new PrivateStreamInfo();
         memset(psi, 0, sizeof(PrivateStreamInfo));
+        psi->lastSTime = std::chrono::duration_cast<std::chrono::microseconds>(
+            std::chrono::high_resolution_clock::now().time_since_epoch());
+        psi->lastPTS = 0;
         if (cdesc) {
             switch (cdesc->type) {
                 case AVMEDIA_TYPE_AUDIO:

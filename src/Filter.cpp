@@ -281,6 +281,9 @@ bool BaseFilter::connect(BaseFilter *R, int writerID, int readerID)
     FrameQueue *queue = NULL;
     ConnectionData cData;
     
+    processEvent();
+    R->processEvent();
+
     std::lock_guard<std::mutex> guard(mtx);
       
     if (writers.size() >= maxWriters) {

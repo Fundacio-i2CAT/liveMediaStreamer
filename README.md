@@ -2,6 +2,8 @@
 
 Live Media Streamer (LMS) is a real-time streaming multimedia framework. 
 
+Check the official project web site at http://livemediastreamer.i2cat.net/
+
 It has been developed by i2CAT Audiovisual Unit. i2CAT is a non-profit technology centre which promotes R+D+i activities in the field of Information and Communication Technologies and Future Internet. The centre invests in a new model of innovation based on collaboration between companies, public administration, the academic world and end-users, through an open innovation environment that is characteristic of the Internet culture.
 
 LMS is licensed under GPL

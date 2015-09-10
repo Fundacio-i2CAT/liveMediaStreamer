@@ -42,7 +42,7 @@ void QueueSource::deliverFrame()
         return; 
     }
     
-    if (!frame) {
+    if (!frame || processedFrame) {
         return;
     }
 

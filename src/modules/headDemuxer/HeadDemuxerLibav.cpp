@@ -209,7 +209,7 @@ bool HeadDemuxerLibav::doProcessFrame(std::map<int, Frame*> &dstFrames)
         }
         f->setPresentationTime(
             std::chrono::microseconds(
-                (int64_t)(av_pkt.pts * psi->streamTimeBase * 1000000)) + psi->lastSTime);
+                (int64_t)(av_pkt.pts * psi->streamTimeBase * std::micro::den)) + psi->lastSTime);
     }
 
     if (bufferOffset == -1) {

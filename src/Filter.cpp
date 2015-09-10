@@ -283,7 +283,7 @@ bool BaseFilter::connect(BaseFilter *R, int writerID, int readerID)
     
     processEvent();
     R->processEvent();
-    
+
     std::lock_guard<std::mutex> guard(mtx);
       
     if (writers.size() >= maxWriters) {

@@ -5,6 +5,8 @@ lib
 bin
 *.o
 
+*.gcno
+*.gcov
 *.lo
 *.la
 .libs

@@ -52,7 +52,7 @@ Dasher::~Dasher()
     delete mpdMngr;
 }
 
-bool Dasher::configure(std::string dashFolder, std::string baseName_, size_t segDurInSec)
+bool Dasher::configure(std::string dashFolder, std::string baseName_, size_t segDurInSec, size_t maxSeg, size_t minBuffTime)
 {
     if (access(dashFolder.c_str(), W_OK) != 0) {
         utils::errorMsg("Error configuring Dasher: provided folder is not writable");
@@ -76,10 +76,11 @@ bool Dasher::configure(std::string dashFolder, std::string baseName_, size_t seg
     vInitSegTempl = baseName + "_$RepresentationID$_init.m4v";
     aInitSegTempl = baseName + "_$RepresentationID$_init.m4a";
 
-    mpdMngr = new MpdManager();
-    mpdMngr->setMinBufferTime(segDurInSec*(MAX_SEGMENTS_IN_MPD/2));
-    mpdMngr->setMinimumUpdatePeriod(segDurInSec);
-    mpdMngr->setTimeShiftBufferDepth(segDurInSec*MAX_SEGMENTS_IN_MPD);
+    if (!mpdMngr){
+        mpdMngr = new MpdManager();
+    }
+    
+    mpdMngr->configure(minBuffTime, maxSeg, segDurInSec);
 
     timestampOffset = std::chrono::system_clock::now();
     segDur = std::chrono::seconds(segDurInSec);
@@ -260,7 +261,7 @@ bool Dasher::writeVideoSegments()
     }
 
     if (!forceAudioSegmentsGeneration()) {
-        utils::errorMsg("Error forcing the generation of audio segments. This may cause errors!");
+        utils::warningMsg("Forcing the generation of audio segments. This may cause errors!");
     }
 
     ts = vSegments.begin()->second->getTimestamp();
@@ -416,24 +417,38 @@ bool Dasher::configureEvent(Jzon::Node* params)
     std::string dashFolder = basePath;
     std::string bName = baseName;
     size_t segDurInSec = segDur.count();
+    size_t maxSeg = 0;
+    size_t minBuffTime = 0;
 
     if (!params) {
         return false;
     }
 
-    if (params->Has("folder")) {
+    if (params->Has("folder") && params->Get("folder").IsString()) {
         dashFolder = params->Get("folder").ToString();
     }
 
-    if (params->Has("baseName")) {
-        baseName = params->Get("baseName").ToString();
+    if (params->Has("baseName") && params->Get("baseName").IsString()) {
+        bName = params->Get("baseName").ToString();
     }
 
-    if (params->Has("segDurInSec")) {
+    if (params->Has("segDurInSec") && params->Get("segDurInSec").IsNumber()) {
         segDurInSec = params->Get("segDurInSec").ToInt();
     }
+    
+    if (params->Has("maxSeg") && params->Get("maxSeg").IsNumber()) {
+        maxSeg = params->Get("maxSeg").ToInt();
+    } else if (mpdMngr){
+        maxSeg = mpdMngr->getMaxSeg();
+    }
+    
+    if (params->Has("minBuffTime") && params->Get("minBuffTime").IsNumber()) {
+        minBuffTime = params->Get("minBuffTime").ToInt();
+    } else if (mpdMngr){
+        minBuffTime = mpdMngr->getMinBuffTime();
+    }
 
-    return configure(dashFolder, baseName, segDurInSec);
+    return configure(dashFolder, bName, segDurInSec, maxSeg, minBuffTime);
 }
 
 bool Dasher::addSegmenterEvent(Jzon::Node* params)

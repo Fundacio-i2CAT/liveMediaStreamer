@@ -148,6 +148,7 @@ bool WorkersPool::removeTask(const int id)
         removeFromQueue(id);
         while(runnable->isRunning()){
             qCheck.wait_for(guard, std::chrono::milliseconds(IDLE));
+            utils::warningMsg("waiting runnable to finish");
         }
         removeFromQueue(id);
         guard.unlock();

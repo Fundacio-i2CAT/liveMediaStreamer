@@ -26,7 +26,7 @@
 #include <deque>
 #include <tinyxml2.h>
 
-#define MAX_SEGMENTS_IN_MPD 6
+#define MIN_SEGMENT 2
 #define XMLNS_XSI "http://www.w3.org/2001/XMLSchema-instance"
 #define XMLNS "urn:mpeg:dash:schema:mpd:2011"
 #define XMLNS_XLINK "http://www.w3.org/1999/xlink"
@@ -75,24 +75,13 @@ public:
     * @param fileName File name (can be an absolute or relative path)
     */
     void writeToDisk(const char* fileName);
+    
+    //TODO: add documentation
+    size_t getMaxSeg() {return maxSeg;};
+    
+    size_t getMinBuffTime() {return minBufferTime;};
 
-    /**
-    * Sets <MPD> tag attribute 'minimumUpdatePeriod', which represents the MPD file refresh period 
-    * @param seconds Value in seconds in seconds
-    */
-    void setMinimumUpdatePeriod(int seconds);
-
-    /**
-    * Sets <MPD> tag attribute 'minBufferTime', which is used by the player to calculate the minimum data to start playing 
-    * @param seconds Value in seconds
-    */
-    void setMinBufferTime(int seconds);
-
-    /**
-    * Sets <MPD> tag attribute 'tiemShiftBufferDepth' 
-    * @param seconds Value in seconds
-    */
-    void setTimeShiftBufferDepth(int seconds);
+    void configure(size_t minBuffTime, size_t maxSegment, size_t segDurInSec);
 
     /**
     * Updates an existing video adaptation set. If it does not exists, it creates a new one. Each adaptation set is
@@ -111,7 +100,7 @@ public:
 
     /**
     * Updates an adaptation set timestamp, represented in the MPD file with the tag <S>, child of <SegmentTimeline>. If the
-    * number of Timestamps exceeds MAX_SEGMENTS_IN_MPD it replaces the oldest one by the current. If the limit has still not
+    * number of Timestamps exceeds maxSeg attribute it replaces the oldest one by the current. If the limit has still not
     * been reached, it adds the current one to the list.
     * @param id Adaptation set Id. Must exist.
     * @param ts Timestamp of the current segment in timescale base.
@@ -168,8 +157,9 @@ private:
     std::string minimumUpdatePeriod;
     std::string timeShiftBufferDepth;
     std::string suggestedPresentationDelay;
-    std::string minBufferTime;
     std::string location;
+    size_t maxSeg;
+    size_t minBufferTime;
     char availabilityStartTime[AVAILABILITY_START_TIME];
     bool started;
     
@@ -223,7 +213,7 @@ public:
     * Sets timestamp and duration
     * @see MpdManager::updateAdaptationSetTimestamp 
     */
-    unsigned updateTimestamp(unsigned ts, unsigned duration);
+    unsigned updateTimestamp(unsigned ts, unsigned duration, size_t maxSeg);
 
     /**
     * Sets timescale, segment template and init template values

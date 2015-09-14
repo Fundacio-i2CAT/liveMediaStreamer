@@ -34,6 +34,8 @@
 #include "FilterMockup.hh"
 
 #define SEG_DURATION 2 //sec
+#define SEG_NUMBER 4
+#define MIN_BUFFER 4
 #define DASH_FOLDER "testsData/modules/dasher"
 #define BASE_NAME "test"
 #define MPD_LOCATION "http://localhost/testsData/modules/dasher/test.mpd"
@@ -76,7 +78,7 @@ protected:
 void DasherTest::setUp()
 {
     dasher = new Dasher();
-    dasher->configure(dashFolder, baseName, SEG_DURATION);
+    dasher->configure(dashFolder, baseName, SEG_DURATION, SEG_NUMBER, MIN_BUFFER);
     h264Filter = new VideoFilterMockup(H264);
     h265Filter = new VideoFilterMockup(H265);
     vp8Filter = new VideoFilterMockup(VP8);
@@ -105,16 +107,16 @@ void DasherTest::configure()
     std::string invalidFolder("nonExistance");
     
     tmpDasher = new Dasher();
-    CPPUNIT_ASSERT(!tmpDasher->configure(invalidFolder, baseName, SEG_DURATION));
+    CPPUNIT_ASSERT(!tmpDasher->configure(invalidFolder, baseName, SEG_DURATION, SEG_NUMBER, MIN_BUFFER));
 
     tmpDasher = new Dasher();
-    CPPUNIT_ASSERT(!tmpDasher->configure(dashFolder, "", SEG_DURATION));
+    CPPUNIT_ASSERT(!tmpDasher->configure(dashFolder, "", SEG_DURATION, SEG_NUMBER, MIN_BUFFER));
 
     tmpDasher = new Dasher();
-    CPPUNIT_ASSERT(!tmpDasher->configure(dashFolder, baseName, 0));
+    CPPUNIT_ASSERT(!tmpDasher->configure(dashFolder, baseName, 0, 0, 0));
     
     tmpDasher = new Dasher();
-    CPPUNIT_ASSERT(tmpDasher->configure(dashFolder, baseName, SEG_DURATION));
+    CPPUNIT_ASSERT(tmpDasher->configure(dashFolder, baseName, SEG_DURATION, SEG_NUMBER, MIN_BUFFER));
     
     delete tmpDasher;
 }

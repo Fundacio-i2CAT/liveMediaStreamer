@@ -29,6 +29,10 @@
 MpdManager::MpdManager()
 {
     started = false;
+    maxSeg = MIN_SEGMENT;
+    
+    //NOTE: Assuming MIN_SEGMENT and the minimum segment duration 1 second
+    minBufferTime = MIN_SEGMENT; 
 }
 
 MpdManager::~MpdManager()
@@ -38,19 +42,22 @@ MpdManager::~MpdManager()
     }
 }
 
-void MpdManager::setMinimumUpdatePeriod(int seconds)
-{
-    minimumUpdatePeriod = "PT" + std::to_string(seconds) + ".0S";
-}
-
-void MpdManager::setMinBufferTime(int seconds)
-{
-    minBufferTime = "PT" + std::to_string(seconds) + ".0S";
-}
-
-void MpdManager::setTimeShiftBufferDepth(int seconds)
-{
-    timeShiftBufferDepth = "PT" + std::to_string(seconds) + ".0S";
+void MpdManager::configure(size_t minBuffTime, size_t maxSegment, size_t segDurInSec)
+{    
+    if (maxSegment >= MIN_SEGMENT){
+        maxSeg = maxSegment;
+    } else {
+        maxSeg = MIN_SEGMENT;
+    }
+    
+    if (minBuffTime >= 2*segDurInSec){
+        minBufferTime = minBuffTime;
+    } else {
+        minBufferTime = 2*segDurInSec;
+    }
+    
+    timeShiftBufferDepth = "PT" + std::to_string(maxSeg*segDurInSec) + ".0S";
+    minimumUpdatePeriod = "PT" + std::to_string(segDurInSec) + ".0S";
 }
 
 void MpdManager::writeToDisk(const char* fileName)
@@ -78,7 +85,7 @@ void MpdManager::writeToDisk(const char* fileName)
     root->SetAttribute("type", TYPE_DYNAMIC);
     root->SetAttribute("minimumUpdatePeriod", minimumUpdatePeriod.c_str());
     root->SetAttribute("timeShiftBufferDepth", timeShiftBufferDepth.c_str());
-    root->SetAttribute("minBufferTime", minBufferTime.c_str());
+    root->SetAttribute("minBufferTime", ("PT" + std::to_string(minBufferTime) + ".0S").c_str());
     root->SetAttribute("availabilityStartTime", availabilityStartTime);
     doc.InsertFirstChild(root);
 
@@ -115,7 +122,7 @@ unsigned MpdManager::updateAdaptationSetTimestamp(std::string id, unsigned ts, u
         return 0;
     }
 
-    removedTimestamp = adSet->updateTimestamp(ts, duration);
+    removedTimestamp = adSet->updateTimestamp(ts, duration, maxSeg);
     return removedTimestamp;
 }
 
@@ -229,11 +236,11 @@ AdaptationSet::~AdaptationSet()
 { 
 }
 
-unsigned AdaptationSet::updateTimestamp(unsigned ts, unsigned duration)
+unsigned AdaptationSet::updateTimestamp(unsigned ts, unsigned duration, size_t maxSeg)
 {
     unsigned removedTimestamp= 0;
 
-    if (timestamps.size() >= MAX_SEGMENTS_IN_MPD) {
+    while (timestamps.size() >= maxSeg) {
         removedTimestamp = timestamps.front().first;
         timestamps.pop_front();
     }

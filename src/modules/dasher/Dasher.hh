@@ -68,7 +68,8 @@ public:
     */
     ~Dasher();
 
-    bool configure(std::string dashFolder, std::string baseName_, size_t segDurInSeconds);
+    //TODO: add documentation
+    bool configure(std::string dashFolder, std::string baseName_, size_t segDurInSeconds, size_t maxSeg, size_t minBuffTime);
 
     /**
     * Adds a new segmenter associated to an existance reader. Only one segmenter can be associated to each reader

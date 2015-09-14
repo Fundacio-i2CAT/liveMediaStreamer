@@ -31,14 +31,13 @@
 #include <cppunit/XmlOutputter.h>
 
 #define FILE_NAME "/tmp/mpdmanagertest.xml"
+#define MAX_SEGMENTS 4
 
 class MpdManagerTest : public CppUnit::TestFixture
 {
     CPPUNIT_TEST_SUITE(MpdManagerTest);
     CPPUNIT_TEST(writeToDisk);
-    CPPUNIT_TEST(setMinimumUpdatePeriod);
-    CPPUNIT_TEST(setMinBufferTime);
-    CPPUNIT_TEST(setTimeShiftBufferDepth);
+    CPPUNIT_TEST(configureTest);
     CPPUNIT_TEST(updateVideoAdaptationSet);
     CPPUNIT_TEST(updateAudioAdaptationSet);
     CPPUNIT_TEST(updateAdaptationSetTimestamp);
@@ -53,9 +52,7 @@ public:
 
 protected:
     void writeToDisk();
-    void setMinimumUpdatePeriod();
-    void setMinBufferTime();
-    void setTimeShiftBufferDepth();
+    void configureTest();
     void updateVideoAdaptationSet();
     void updateAudioAdaptationSet();
     void updateAdaptationSetTimestamp();
@@ -110,60 +107,35 @@ void MpdManagerTest::writeToDisk()
     CPPUNIT_ASSERT((xmlElement = (const tinyxml2::XMLElement*)xmlElement->FirstChildElement("AdaptationSet")) == NULL);
 }
 
-void MpdManagerTest::setMinimumUpdatePeriod()
+
+void MpdManagerTest::configureTest()
 {
-    const int minimumUpdatePeriod = 123;
+    //TODO: test "invalid" values
+    const size_t maxSeg = 10;
+    const size_t minBufferTime = 6;
+    const size_t segDuration = 2;
     tinyxml2::XMLDocument doc;
     const tinyxml2::XMLElement *xmlRoot;
     const tinyxml2::XMLAttribute *xmlAttribute;
-    const std::string sMinimumUpdatePeriod = "PT" + std::to_string(minimumUpdatePeriod) + ".0S";
-
-    manager->setMinimumUpdatePeriod(minimumUpdatePeriod);
-    manager->writeToDisk(FILE_NAME);
-
-    CPPUNIT_ASSERT(doc.LoadFile(FILE_NAME) == tinyxml2::XML_SUCCESS);
-
-    CPPUNIT_ASSERT((xmlRoot = (const tinyxml2::XMLElement*)doc.FirstChildElement("MPD")) != NULL);
-    CPPUNIT_ASSERT((xmlAttribute = xmlRoot->FindAttribute("minimumUpdatePeriod")) != NULL);
-
-    CPPUNIT_ASSERT(xmlAttribute->Value() == sMinimumUpdatePeriod);
-}
-
-void MpdManagerTest::setMinBufferTime()
-{
-    const int minBufferTime = 123;
-    tinyxml2::XMLDocument doc;
-    const tinyxml2::XMLElement *xmlRoot;
-    const tinyxml2::XMLAttribute *xmlAttribute;
+    const std::string sMinimumUpdatePeriod = "PT" + std::to_string(segDuration) + ".0S";
     const std::string sMinBufferTime = "PT" + std::to_string(minBufferTime) + ".0S";
-
-    manager->setMinBufferTime(minBufferTime);
+    const std::string sTimeShiftBufferDepth = "PT" + std::to_string(segDuration * maxSeg) + ".0S";
+    
+    
+    manager->configure(minBufferTime, maxSeg, segDuration);
     manager->writeToDisk(FILE_NAME);
-
+    
     CPPUNIT_ASSERT(doc.LoadFile(FILE_NAME) == tinyxml2::XML_SUCCESS);
 
     CPPUNIT_ASSERT((xmlRoot = (const tinyxml2::XMLElement*)doc.FirstChildElement("MPD")) != NULL);
+    
+    CPPUNIT_ASSERT((xmlAttribute = xmlRoot->FindAttribute("minimumUpdatePeriod")) != NULL);
+    CPPUNIT_ASSERT(xmlAttribute->Value() == sMinimumUpdatePeriod);
+    
     CPPUNIT_ASSERT((xmlAttribute = xmlRoot->FindAttribute("minBufferTime")) != NULL);
-
     CPPUNIT_ASSERT(xmlAttribute->Value() == sMinBufferTime);
-}
-
-void MpdManagerTest::setTimeShiftBufferDepth()
-{
-    const int timeShiftBufferDepth = 123;
-    tinyxml2::XMLDocument doc;
-    const tinyxml2::XMLElement *xmlRoot;
-    const tinyxml2::XMLAttribute *xmlAttribute;
-    const std::string sTimeShiftBufferDepth = "PT" + std::to_string(timeShiftBufferDepth) + ".0S";
-
-    manager->setTimeShiftBufferDepth(timeShiftBufferDepth);
-    manager->writeToDisk(FILE_NAME);
-
-    CPPUNIT_ASSERT(doc.LoadFile(FILE_NAME) == tinyxml2::XML_SUCCESS);
-
-    CPPUNIT_ASSERT((xmlRoot = (const tinyxml2::XMLElement*)doc.FirstChildElement("MPD")) != NULL);
+    
     CPPUNIT_ASSERT((xmlAttribute = xmlRoot->FindAttribute("timeShiftBufferDepth")) != NULL);
-
     CPPUNIT_ASSERT(xmlAttribute->Value() == sTimeShiftBufferDepth);
 }
 
@@ -572,7 +544,7 @@ void AdaptationSetTest::updateTimestampTest()
 
     adaptSet = doc.NewElement("newElement");
 
-    as->updateTimestamp(iTimestamp, iDuration);
+    as->updateTimestamp(iTimestamp, iDuration, MAX_SEGMENTS);
 
     as->toMpd(doc, adaptSet);
 

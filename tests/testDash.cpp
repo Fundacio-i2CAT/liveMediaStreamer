@@ -18,6 +18,8 @@
 #include <vector>
 #include <string>
 
+#define MAX_SEGMENTS 6
+
 #define V_MEDIUM "video"
 #define PROTOCOL "RTP"
 #define V_PAYLOAD 96
@@ -72,7 +74,7 @@ Dasher* setupDasher(int dasherId, std::string dash_folder, int segDuration)
         exit(1);
     }
 
-    if(!dasher->configure(dash_folder, std::string(BASE_NAME), segDuration)){
+    if(!dasher->configure(dash_folder, std::string(BASE_NAME), segDuration, 30, 16)){
         utils::errorMsg("Error configuring dasher: exit");
         exit(1);        
     }
@@ -171,7 +173,7 @@ void addVideoPath(unsigned port, Dasher* dasher, int dasherId, int receiverID, i
         case H264:
             encoderX264 = new VideoEncoderX264();
             pipe->addFilter(encId, encoderX264);
-            encoderX264->configure(maxBitRate, 25, 25, 25, 4, true, "superfast");
+            encoderX264->configure(maxBitRate, 25, 25, 0, 4, true, "superfast");
             utils::infoMsg("Master reader: " + std::to_string(dstReader));
             break;
         case H265:
@@ -220,7 +222,7 @@ void addVideoPath(unsigned port, Dasher* dasher, int dasherId, int receiverID, i
             case H264:
                 encoderX264 = new VideoEncoderX264();
                 pipe->addFilter(encId, encoderX264);
-                encoderX264->configure(maxBitRate/(n*2), 25, 25, 25, 4, true, "superfast");
+                encoderX264->configure(maxBitRate/(n*2), 25, 25, 0, 4, true, "superfast");
                 break;
             case H265:
                 encoderX265 = new VideoEncoderX265();

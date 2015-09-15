@@ -406,12 +406,21 @@ void Dasher::initializeEventMap()
 
 void Dasher::doGetState(Jzon::Object &filterNode)
 {
+    Jzon::Array readersList;
+
     filterNode.Add("folder", basePath);
     filterNode.Add("baseName", baseName);
     filterNode.Add("mpdURI", mpdPath);
     filterNode.Add("segDurInSec", std::to_string(segDur.count()));
     filterNode.Add("maxSegments", std::to_string(mpdMngr->getMaxSeg()));
     filterNode.Add("minBufferTime", std::to_string(mpdMngr->getMinBuffTime()));
+    
+    for (auto it : segmenters) {
+        readersList.Add(it.first);
+    }
+
+    filterNode.Add("readers", readersList);
+
 }
 
 bool Dasher::configureEvent(Jzon::Node* params)

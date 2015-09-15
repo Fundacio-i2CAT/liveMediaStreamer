@@ -50,7 +50,9 @@ void MpdManager::configure(size_t minBuffTime, size_t maxSegment, size_t segDurI
         maxSeg = MIN_SEGMENT;
     }
     
-    if (minBuffTime >= 2*segDurInSec){
+	if (minBuffTime >= maxSeg*segDurInSec){
+        minBufferTime = maxSeg*segDurInSec;
+	} else if (minBuffTime >= 2*segDurInSec){
         minBufferTime = minBuffTime;
     } else {
         minBufferTime = 2*segDurInSec;

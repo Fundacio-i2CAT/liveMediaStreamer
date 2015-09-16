@@ -38,7 +38,7 @@
 
 #define WORKER_DELETE_SLEEPING_TIME 1000 //us
 
-PipelineManager::PipelineManager(unsigned threads)
+PipelineManager::PipelineManager(const unsigned thds) : threads(thds)
 {
     pipeMngrInstance = this;
     pool = new WorkersPool(threads);
@@ -69,6 +69,11 @@ void PipelineManager::destroyInstance()
 
 bool PipelineManager::stop()
 {
+    if (!pool){
+        utils::warningMsg("No thread pool to stop!");
+        return false;
+    }
+    
     pool->stop();
     utils::infoMsg("All threads stopped");
     
@@ -184,6 +189,11 @@ bool PipelineManager::addFilter(int id, BaseFilter* filter)
     
     filters[id] = filter;
 
+    if (!pool){
+        utils::warningMsg("Creating new thread pool!");
+        pool = new WorkersPool(threads);
+    }
+    
     return pool->addTask(filter);
 }
 

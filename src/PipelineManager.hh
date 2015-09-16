@@ -44,7 +44,7 @@ public:
     * instance for first time or returns the same instance if it already exists.
     * @return PipelineManager instance pointer
     */
-    static PipelineManager* getInstance(unsigned threads = 0);
+    static PipelineManager* getInstance(const unsigned thds = 0);
 
     /**
     * If PipelineManager instance exists it is destroyed.
@@ -165,6 +165,7 @@ private:
     bool validCData(ConnectionData cData, int orgFId, int dstFId);
 
     static PipelineManager* pipeMngrInstance;
+    const unsigned threads;
 
     std::map<int, Path*> paths;
     std::map<int, BaseFilter*> filters;

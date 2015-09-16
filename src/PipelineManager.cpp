@@ -95,6 +95,7 @@ bool PipelineManager::stop()
     
     if (pool){
         delete pool;
+        pool = NULL;
     }
 
     return true;

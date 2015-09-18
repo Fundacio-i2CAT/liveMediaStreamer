@@ -207,12 +207,14 @@ protected:
 
     std::chrono::microseconds getFrameTime() {return frameTime;};
 
-    std::shared_ptr<Reader> setReader(int readerID, FrameQueue* queue);
     std::shared_ptr<Reader> getReader(int id);
     
     //TODO: this should get stream info parameters insted of FrameQueue or get from reader.
     virtual bool specificReaderConfig(int readerID, FrameQueue* queue) = 0;
     virtual bool specificReaderDelete(int readerID) = 0;
+    
+    virtual bool specificWriterConfig(int writerID) = 0;
+    virtual bool specificWriterDelete(int writerID) = 0;
 
     std::vector<int> demandOriginFrames(std::map<int, Frame*> &oFrames);
     std::vector<int> demandOriginFramesBestEffort(std::map<int, Frame*> &oFrames);
@@ -245,7 +247,13 @@ private:
     bool connect(BaseFilter *R, int writerID, int readerID);
     std::vector<int> regularProcessFrame(int& ret);
     std::vector<int> serverProcessFrame(int& ret);
+
+    std::shared_ptr<Reader> setReader(int readerID, FrameQueue* queue);
+    bool setWriter(int writerID);
+    
     bool deleteReader(int readerId);
+    bool deleteWriter(int readerId);
+    
     bool pendingJobs();
 
 private:
@@ -321,7 +329,7 @@ protected:
 
 private: 
     bool runDoProcessFrame(std::map<int, Frame*> &oFrames, std::map<int, Frame*> &dFrames, std::vector<int> /*newFrames*/);
-    //There is no need of specific reader configuration
+    //NOTE: There is no need of specific reader configuration
     bool specificReaderConfig(int /*readerID*/, FrameQueue* /*queue*/)  {return true;};
     bool specificReaderDelete(int /*readerID*/) {return true;};
 
@@ -352,6 +360,11 @@ private:
     FrameQueue *allocQueue(struct ConnectionData cData) {return NULL;};
     bool runDoProcessFrame(std::map<int, Frame*> &oFrames, std::map<int, Frame*> &dFrames, std::vector<int> newFrames);
     virtual bool doProcessFrame(std::map<int, Frame*> &orgFrames, std::vector<int> newFrames) = 0;
+    
+    //NOTE: There is no need of specific writer configuration
+    bool specificWriterConfig(int /*readerID*/) {return true;};
+    bool specificWriterDelete(int /*readerID*/) {return true;};
+    
     using BaseFilter::demandOriginFrames;
     using BaseFilter::demandDestinationFrames;
     using BaseFilter::addFrames;

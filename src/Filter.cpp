@@ -180,7 +180,7 @@ bool BaseFilter::demandDestinationFrames(std::map<int, Frame*> &dFrames)
     for (auto it : writers){
         if (!it.second->isConnected()){
             it.second->disconnect();
-            writers.erase(it.first);
+            deleteWriter(it.first);
             continue;
         }
 
@@ -384,7 +384,6 @@ bool BaseFilter::disconnectWriter(int writerId)
     }
 
     if (writers[writerId]->disconnect()){
-        deleteWriter(writerId);
         return true;
     }
     

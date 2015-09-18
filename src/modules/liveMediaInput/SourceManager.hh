@@ -171,9 +171,8 @@ private:
     static void* startServer(void *args);
     FrameQueue *allocQueue(ConnectionData cData);
     
-    //NOTE: There is no need of specific writer configuration
-    bool specificWriterConfig(int /*readerID*/) {return true;};
-    bool specificWriterDelete(int /*readerID*/) {return true;};
+    bool specificWriterConfig(int /*writerID*/) {return true;};
+    bool specificWriterDelete(int writerID);
 
     std::map<std::string, Session*> sessionMap;
 

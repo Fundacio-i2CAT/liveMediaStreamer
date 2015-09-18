@@ -121,18 +121,18 @@ class VideoMixer : public ManyToOneFilter {
         bool doProcessFrame(std::map<int, Frame*> &orgFrames, Frame *dst, std::vector<int> /*newFrames*/);
         void doGetState(Jzon::Object &filterNode);
         bool configChannel0(int id, float width, float height, float x, float y, int layer, bool enabled, float opacity);
+        bool specificReaderConfig(int readerID, FrameQueue* /*queue*/);
 
     private:
         void initializeEventMap();
         void pasteToLayout(int frameID, VideoFrame* vFrame);
         bool configChannelEvent(Jzon::Node* params);
         
-        bool specificReaderConfig(int readerID, FrameQueue* /*queue*/);
         bool specificReaderDelete(int readerID);
         
         //NOTE: There is no need of specific writer configuration
-        bool specificWriterConfig(int /*readerID*/) {return true;};
-        bool specificWriterDelete(int /*readerID*/) {return true;};
+        bool specificWriterConfig(int /*writerID*/) {return true;};
+        bool specificWriterDelete(int /*writerID*/) {return true;};
 
         StreamInfo *outputStreamInfo;
         std::map<int, ChannelConfig*> channelsConfig;

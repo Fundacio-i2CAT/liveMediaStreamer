@@ -362,8 +362,8 @@ private:
     virtual bool doProcessFrame(std::map<int, Frame*> &orgFrames, std::vector<int> newFrames) = 0;
     
     //NOTE: There is no need of specific writer configuration
-    bool specificWriterConfig(int /*readerID*/) {return true;};
-    bool specificWriterDelete(int /*readerID*/) {return true;};
+    bool specificWriterConfig(int /*writerID*/) {return true;};
+    bool specificWriterDelete(int /*writerID*/) {return true;};
     
     using BaseFilter::demandOriginFrames;
     using BaseFilter::demandDestinationFrames;

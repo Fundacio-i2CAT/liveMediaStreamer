@@ -87,10 +87,12 @@ class VideoSplitter : public OneToManyFilter {
         */
     	bool configCrop(int id, int width, int height, int x, int y);
 
+    	int getMaxCrops() {return maxCrops;};
+
 	protected:
 		VideoSplitter(int outputChannels, std::chrono::microseconds fTime);
 		FrameQueue *allocQueue(ConnectionData cData);
-		bool doProcessFrame(Frame *org, std::map<int, Frame *> dstFrames);
+		bool doProcessFrame(Frame *org, std::map<int, Frame *> &dstFrames);
 		void doGetState(Jzon::Object &filterNode);
 		bool configCrop0(int id, int width, int height, int x, int y);
 
@@ -106,7 +108,8 @@ class VideoSplitter : public OneToManyFilter {
         bool specificWriterDelete(int writerID);
 
         StreamInfo *outputStreamInfo;
-        std::map<int, CropConfig*> cropsConfig; 
+        std::map<int, CropConfig*> cropsConfig;
+        int maxCrops;
 };
 
 #endif

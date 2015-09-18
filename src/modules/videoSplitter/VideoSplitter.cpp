@@ -57,7 +57,7 @@ VideoSplitter* VideoSplitter::createNew(int outputChannels, std::chrono::microse
         return NULL;
     }
 
-    return new VideoSplitter(outputChannels, fTime)
+    return new VideoSplitter(outputChannels, fTime);
 }
 
 VideoSplitter::~VideoSplitter()
@@ -86,7 +86,8 @@ bool VideoSplitter::configCrop(int id, int width, int height, int x, int y)
     return true;
 }
 
-VideoSplitter::VideoSplitter(int outputChannels, std::chrono::microseconds fTime)
+VideoSplitter::VideoSplitter(int outputChannels, std::chrono::microseconds fTime):
+OneToManyFilter(), maxCrops(outputChannels)
 {
 
 	initializeEventMap();
@@ -94,25 +95,30 @@ VideoSplitter::VideoSplitter(int outputChannels, std::chrono::microseconds fTime
 	outputStreamInfo = new StreamInfo(VIDEO);
     outputStreamInfo->video.codec = RAW;
     outputStreamInfo->video.pixelFormat = RGB24;
+    for(int it=1; it<=maxCrops; it++)
+    {
+    	specificWriterConfig(it);
+    }
 }
 
-FrameQueue* VideoMixer::allocQueue(ConnectionData cData)
+FrameQueue* VideoSplitter::allocQueue(ConnectionData cData)
 {
     return VideoFrameQueue::createNew(cData, outputStreamInfo, DEFAULT_RAW_VIDEO_FRAMES);
 }
 
-bool VideoSplitter::doProcessFrame(Frame *org, std::map<int, Frame *> dstFrames)
+bool VideoSplitter::doProcessFrame(Frame *org, std::map<int, Frame *> &dstFrames)
 {
 	bool processFrame = false;
 	cv::Mat cropImage;
+	cv::Mat orgFrame;
 	VideoFrame *vFrame;
 	vFrame = dynamic_cast<VideoFrame*>(org);
 
 	if(!vFrame){
-		utils::errorMsg();
-		return false
+		utils::errorMsg("[VideoSplitter] No origin frame");
+		return false;
 	} else {
-		cv:Mat orgFrame(vFrame->getHeight(), vFrame->getWidth(), CV_8UC3, vFrame->getDataBuf());
+		cv::Mat orgFrame(vFrame->getHeight(), vFrame->getWidth(), CV_8UC3, vFrame->getDataBuf());
 	}
 
 	for (auto it : dstFrames){
@@ -135,11 +141,11 @@ bool VideoSplitter::doProcessFrame(Frame *org, std::map<int, Frame *> dstFrames)
 	return processFrame;
 }
 
-void doGetState(Jzon::Object &filterNode)
+void VideoSplitter::doGetState(Jzon::Object &filterNode)
 {
 	Jzon::Array jsonCropsConfigs;
 
-	filterNode.Ass("outputChannels", outputChannels);
+	filterNode.Add("outputChannels", maxCrops);
 
 	for(auto it : cropsConfig){
 		Jzon::Object crConfig;
@@ -154,10 +160,10 @@ void doGetState(Jzon::Object &filterNode)
 	filterNode.Add("crops", jsonCropsConfigs);
 }
 
-bool configCrop0(int id, int width, int height, int x, int y)
+bool VideoSplitter::configCrop0(int id, int width, int height, int x, int y)
 {
 	if (cropsConfig.count(id) <= 0) {
-        utils::errorMsg("[VideoSplitter] Error configuring crop. Incorrect Id");
+        utils::errorMsg("[VideoSplitter] Error configuring crop. Incorrect Id " + std::to_string(id));
         return false;
     }
 
@@ -196,7 +202,7 @@ bool VideoSplitter::configCropEvent(Jzon::Node* params)
     float x = params->Get("x").ToInt();
     float y = params->Get("y").ToInt();
 
-    return configChannel0(id, width, height, x, y);
+    return configCrop0(id, width, height, x, y);
 }
         
 bool VideoSplitter::specificWriterConfig(int writerID)
@@ -209,7 +215,7 @@ bool VideoSplitter::specificWriterConfig(int writerID)
 bool VideoSplitter::specificWriterDelete(int writerID)
 {
 	delete cropsConfig[writerID];
-	cropsConfig.erease(writerID);
+	cropsConfig.erase(writerID);
 
 	return true;
 }

@@ -25,7 +25,7 @@
 
 #include "../../VideoFrame.hh"
 #include "../../Filter.hh"
- #include "../../StreamInfo.hh"
+#include "../../StreamInfo.hh"
 #include <opencv/cv.hpp>
 
 #define VSPLITTER_MAX_CHANNELS 16
@@ -50,12 +50,14 @@ class CropConfig {
 	    int getHeight() {return height;};
 	    int getX() {return x;};
 	    int getY() {return y;};
-
+	    cv::Mat *getCrop() {return &crop;};
+	    cv::Mat getCropRect(int x, int y, int w, int h) { return crop(cv::Rect(x,y,w,h)); };
 	private:
 		int width;
 	    int height;
 	    int x;
 	    int y;
+	    cv::Mat crop;
 };
 
 /*
@@ -109,6 +111,7 @@ class VideoSplitter : public OneToManyFilter {
 
         StreamInfo *outputStreamInfo;
         std::map<int, CropConfig*> cropsConfig;
+
         int maxCrops;
 };
 

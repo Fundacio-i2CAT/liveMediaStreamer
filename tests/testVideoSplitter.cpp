@@ -21,6 +21,9 @@
 
 #define RETRIES 60
 #define SPLIT_CHANNELS 4
+#define DEFAULT_WIDTH 1280
+#define DEFAULT_HEIGHT 720
+
 
 bool run = true;
 int layer = 0;
@@ -56,7 +59,7 @@ bool setupSplitter(int splitterId, int transmitterID)
 
         encoder = new VideoEncoderX264();
         //bitrate, fps, gop, lookahead, threads, annexB, preset
-        encoder->configure(4000, 50, 25, 25, 4, true, "superfast");
+        encoder->configure(2000, 25, 25, 0, 4, true, "superfast");
         pipe->addFilter(encId + it, encoder);
 
         if (!pipe->createPath(pathId + it, splitterId, transmitterID, it, it, ids)) {
@@ -70,7 +73,15 @@ bool setupSplitter(int splitterId, int transmitterID)
             return false;
         }
 
-        splitter->configCrop(it,500,500,it*100,it*100);
+        int w = DEFAULT_WIDTH/(SPLIT_CHANNELS/2);
+        int h = DEFAULT_HEIGHT/(SPLIT_CHANNELS/2);
+        int x = ((it-1)%2)*(DEFAULT_WIDTH/(SPLIT_CHANNELS/2));
+        int y = ((it>>1)%2)*(DEFAULT_HEIGHT/(SPLIT_CHANNELS/2));
+
+        splitter->configCrop(it,w,h,x,y);
+
+        utils::errorMsg("[TESTVIDEOSPLITTER] Crop config "+std::to_string(it)+":");
+        utils::errorMsg("[TESTVIDEOSPLITTER] width:"+std::to_string(w)+", height:"+std::to_string(h)+", POS.X:"+std::to_string(x)+", POS.Y:"+std::to_string(y));
 
         ids.clear();
     }
@@ -225,6 +236,8 @@ int main(int argc, char* argv[])
     int transmitterId = 11;
     int receiverId = 10;
     int splitterId  = 15;
+    int cPort = 7777;
+    int def_witdth = DEFAULT_WIDTH;
 
     SinkManager* transmitter = NULL;
     SourceManager* receiver = NULL;
@@ -274,13 +287,28 @@ int main(int argc, char* argv[])
         utils::errorMsg("Couldn't start rtsp client session!");
         return 1;
     }
-    
-    while(run) {
-        std::this_thread::sleep_for(std::chrono::seconds(1));
+
+    Controller* ctrl = Controller::getInstance();
+
+    if (!ctrl->createSocket(cPort)) {
+        exit(1);
     }
 
-    Controller::destroyInstance();
-    PipelineManager::destroyInstance();
+    while (run) {
+        if (!ctrl->listenSocket()) {
+            continue;
+        }
+
+        if (!ctrl->readAndParse()) {
+            utils::errorMsg("Controller failed to read and parse the incoming event data");
+            continue;
+        }
+
+        ctrl->processRequest();
+    }
+
+    ctrl->destroyInstance();
+    pipe->destroyInstance();
     
     return 0;
 }

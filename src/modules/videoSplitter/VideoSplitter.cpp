@@ -25,6 +25,8 @@
 #include <iostream>
 #include <chrono> 
 
+#include <opencv2/highgui/highgui.hpp>
+
 ///////////////////////////////////////////////////
 //                 CropConfig Class              //
 ///////////////////////////////////////////////////
@@ -40,6 +42,9 @@ void CropConfig::config(int width, int height, int x, int y)
     this->height = height;
     this->x = x;
     this->y = y;
+    cv::Mat img(height, width, CV_8UC3);
+    img.copyTo(this->crop);
+
 }
 
 ///////////////////////////////////////////////////
@@ -91,7 +96,8 @@ OneToManyFilter(), maxCrops(outputChannels)
 {
 
 	initializeEventMap();
-
+	
+	fType = SPLITTER;
 	outputStreamInfo = new StreamInfo(VIDEO);
     outputStreamInfo->video.codec = RAW;
     outputStreamInfo->video.pixelFormat = RGB24;
@@ -109,31 +115,36 @@ FrameQueue* VideoSplitter::allocQueue(ConnectionData cData)
 bool VideoSplitter::doProcessFrame(Frame *org, std::map<int, Frame *> &dstFrames)
 {
 	bool processFrame = false;
-	cv::Mat cropImage;
-	cv::Mat orgFrame;
+	int xROI = -1;
+	int yROI = -1;
+	int widthROI = 0;
+	int heightROI = 0;
 	VideoFrame *vFrame;
+	VideoFrame *vFrameDst;
 	vFrame = dynamic_cast<VideoFrame*>(org);
 
 	if(!vFrame){
 		utils::errorMsg("[VideoSplitter] No origin frame");
 		return false;
-	} else {
-		cv::Mat orgFrame(vFrame->getHeight(), vFrame->getWidth(), CV_8UC3, vFrame->getDataBuf());
 	}
-
+	cv::Mat orgFrame(vFrame->getHeight(), vFrame->getWidth(), CV_8UC3, vFrame->getDataBuf());
+	
 	for (auto it : dstFrames){
-		int xROI = cropsConfig[it.first]->getX();
-		int yROI = cropsConfig[it.first]->getY();
-		int widthROI = cropsConfig[it.first]->getWidth();
-		int heightROI = cropsConfig[it.first]->getHeight();
 		
+		xROI = cropsConfig[it.first]->getX();
+		yROI = cropsConfig[it.first]->getY();
+		widthROI = cropsConfig[it.first]->getWidth();
+		heightROI = cropsConfig[it.first]->getHeight();
+
 		if(xROI+widthROI <= vFrame->getWidth() && yROI+heightROI <= vFrame->getHeight()){
-			cv::Rect ROI(xROI, yROI, widthROI, heightROI);
-			cropImage = orgFrame(ROI);
-			cropImage.data = it.second->getDataBuf();
+			vFrameDst = dynamic_cast<VideoFrame*>(it.second);
+			cropsConfig[it.first]->getCrop()->data = vFrameDst->getDataBuf();
+			vFrameDst->setLength(widthROI * heightROI);
+    		vFrameDst->setSize(widthROI, heightROI);
+			orgFrame(cv::Rect(xROI, yROI, widthROI, heightROI)).copyTo(cropsConfig[it.first]->getCropRect(0, 0, widthROI, heightROI));
 			it.second->setConsumed(true);
 			it.second->setPresentationTime(vFrame->getPresentationTime());
-			processFrame |= true;
+			processFrame = true;
 		} else {
 			it.second->setConsumed(false);
 		}
@@ -173,7 +184,6 @@ bool VideoSplitter::configCrop0(int id, int width, int height, int x, int y)
     }
 
     cropsConfig[id]->config(width, height, x, y);
-
     return true;
 }
 

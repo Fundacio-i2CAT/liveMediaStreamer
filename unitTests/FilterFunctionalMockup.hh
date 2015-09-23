@@ -186,6 +186,98 @@ private:
     VideoTailFilterMockup *tailF;
 };
 
+///////////////////////////////////////
+// Head-OneToManyVideoScenarioMockup //
+///////////////////////////////////////
+class OneToManyVideoScenarioMockup {
+
+public:
+    OneToManyVideoScenarioMockup(OneToManyFilter* fToTest, VCodecType c, PixType pix = P_NONE): filterToTest(fToTest){
+        headF = new VideoHeadFilterMockup(c, pix);
+    };
+
+    ~OneToManyVideoScenarioMockup()
+    {
+        disconnectFilters();
+
+        delete headF;
+
+        for (auto f : tailFilters) {
+            delete f.second;
+        }
+    }
+
+    bool addTailFilter(int id)
+    {
+        if(tailFilters.count(id) > 0) {
+            return false;
+        }
+
+        tailFilters[id] = new VideoTailFilterMockup();
+        return true;
+    }
+
+    bool connectFilters()
+    {
+        if (filterToTest == NULL || tailFilters.empty()) {
+            return false;
+        }
+
+        if (! headF->connectOneToOne(filterToTest)){
+            return false;
+        }
+
+        for (auto f : tailFilters) {
+            if (!filterToTest->connectOneToMany(f.second, f.first)) {
+                return false;
+            }
+        }
+        return true;
+    };
+
+    void disconnectFilters()
+    {
+        for (auto f : tailFilters) {
+            f.second->disconnectAll();
+        }
+
+        filterToTest->disconnectAll();
+        headF->disconnectAll();
+    }
+
+    int processFrame(InterleavedVideoFrame* srcFrame){
+        int ret;
+
+        if (!headF->inject(srcFrame)){
+            return 0;
+        }
+        headF->processFrame(ret);
+        filterToTest->processFrame(ret);
+        utils::errorMsg("[VideoSplitterFunctionalTest]::[splittingTest]   Post filterToTest processFrame");
+        return ret;
+    }
+
+    InterleavedVideoFrame *extractFrame(int id)
+    {
+        int ret;
+        if(tailFilters.count(id) > 0 ){
+            tailFilters[id]->processFrame(ret);
+            return tailFilters[id]->extract();
+        }
+
+        return NULL;
+    }
+
+private:
+    std::map<int,VideoTailFilterMockup*> tailFilters;
+    OneToManyFilter *filterToTest;
+    VideoHeadFilterMockup *headF;
+};
+///////////////////////////////////////
+// Tail-OneToManyVideoScenarioMockup //
+///////////////////////////////////////
+
+
 class ManyToOneAudioScenarioMockup {
 
 public:

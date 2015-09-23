@@ -1,6 +1,6 @@
 /*
  *  VideoSplitter
- *	Copyright (C) 2014  Fundació i2CAT, Internet i Innovació digital a Catalunya
+ *	Copyright (C) 2015  Fundació i2CAT, Internet i Innovació digital a Catalunya
  *
  *  This file is part of media-streamer.
  *
@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- *  Authors:  Alejandro Jiménez <ajimenezherrero@gmail.com>
+ *  Authors:  Alejandro Jiménez <alejandro.jimenez@i2cat.net>
  */
 
 #include "VideoSplitter.hh"
@@ -156,7 +156,7 @@ void VideoSplitter::doGetState(Jzon::Object &filterNode)
 {
 	Jzon::Array jsonCropsConfigs;
 
-	filterNode.Add("outputChannels", maxCrops);
+	filterNode.Add("maxOutputChannels", maxCrops);
 
 	for(auto it : cropsConfig){
 		Jzon::Object crConfig;

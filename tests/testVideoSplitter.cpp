@@ -21,8 +21,8 @@
 
 #define RETRIES 60
 #define SPLIT_CHANNELS 4
-#define DEFAULT_WIDTH 1280
-#define DEFAULT_HEIGHT 720
+#define SPLIT_WIDTH 1280
+#define SPLIT_HEIGHT 720
 
 
 bool run = true;
@@ -34,7 +34,7 @@ void signalHandler( int signum )
     run = false;
 }
 
-bool setupSplitter(int splitterId, int transmitterID) 
+bool setupSplitter(int splitterId, int transmitterID, int def_witdth, int def_height) 
 {
     PipelineManager *pipe = Controller::getInstance()->pipelineManager();
 
@@ -73,10 +73,10 @@ bool setupSplitter(int splitterId, int transmitterID)
             return false;
         }
 
-        int w = DEFAULT_WIDTH/(SPLIT_CHANNELS/2);
-        int h = DEFAULT_HEIGHT/(SPLIT_CHANNELS/2);
-        int x = ((it-1)%2)*(DEFAULT_WIDTH/(SPLIT_CHANNELS/2));
-        int y = ((it>>1)%2)*(DEFAULT_HEIGHT/(SPLIT_CHANNELS/2));
+        int w = def_witdth/(SPLIT_CHANNELS/2);
+        int h = def_height/(SPLIT_CHANNELS/2);
+        int x = ((it-1)%2)*(def_witdth/(SPLIT_CHANNELS/2));
+        int y = ((it>>1)%2)*(def_height/(SPLIT_CHANNELS/2));
 
         splitter->configCrop(it,w,h,x,y);
 
@@ -236,8 +236,13 @@ int main(int argc, char* argv[])
     int transmitterId = 11;
     int receiverId = 10;
     int splitterId  = 15;
+
     int cPort = 7777;
-    int def_witdth = DEFAULT_WIDTH;
+    
+    int def_witdth = SPLIT_WIDTH;
+    int def_height = SPLIT_HEIGHT;
+
+    int port = 0;
 
     SinkManager* transmitter = NULL;
     SourceManager* receiver = NULL;
@@ -245,15 +250,23 @@ int main(int argc, char* argv[])
 
     utils::setLogLevel(INFO);
     for (int i = 1; i < argc; i++) {
-        if (strcmp(argv[i],"-r")==0) {
+        if (strcmp(argv[i],"-v") == 0){
+            port = std::stoi(argv[i+1]);
+            utils::infoMsg("video input port: " + std::to_string(port));
+        } else if (strcmp(argv[i],"-w")==0) {
+            def_witdth = std::stoi(argv[i+1]);
+        } else if (strcmp(argv[i],"-h")==0) {
+            def_height = std::stoi(argv[i+1]);
+        } else if (strcmp(argv[i],"-r")==0) {
             rtspUri = argv[i+1];
             utils::infoMsg("input RTSP URI: " + rtspUri);
             utils::infoMsg("Ignoring any audio or video input port, just RTSP inputs");
         }
     }
+    utils::infoMsg("input WIDTH: " + std::to_string(def_witdth) + " and input HEIGHT" + std::to_string(def_height));
 
-    if (rtspUri.empty()) { 
-        utils::errorMsg("Usage: -r <uri>");
+    if (port == 0  && rtspUri.empty()) { 
+        utils::errorMsg("Usage: -v <port> -r <uri>");
         return 1;
     }
 
@@ -270,7 +283,7 @@ int main(int argc, char* argv[])
     pipe->addFilter(transmitterId, transmitter);
     pipe->addFilter(receiverId, receiver);
 
-    setupSplitter(splitterId, transmitterId);
+    setupSplitter(splitterId, transmitterId, def_witdth, def_height);
 
     signal(SIGINT, signalHandler);
 
@@ -278,14 +291,24 @@ int main(int argc, char* argv[])
         readers.push_back(it.second->getDstReaderID());
     }
 
+    if (readers.empty()){
+        utils::errorMsg("No readers provided!");
+        return 1;
+    }
+
     if (!publishRTSPSession(readers, transmitter)){
         utils::errorMsg("Failed adding RTSP sessions!");
         return 1;
     }
 
-    if (!addRTSPsession(rtspUri, receiver, receiverId, splitterId)){
-        utils::errorMsg("Couldn't start rtsp client session!");
-        return 1;
+    if (port > 0 && rtspUri.length() == 0){
+        addVideoSDPSession(port, receiver);
+        addVideoPath(port, receiverId, splitterId);
+    } else {
+        if (!addRTSPsession(rtspUri, receiver, receiverId, splitterId)){
+            utils::errorMsg("Couldn't start rtsp client session!");
+            return 1;
+        }
     }
 
     Controller* ctrl = Controller::getInstance();

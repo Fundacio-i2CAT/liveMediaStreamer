@@ -1,7 +1,7 @@
 ACLOCAL_AMFLAGS = -I m4
 SUBDIRS = src unitTests
 
-bin_PROGRAMS = livemediastreamer testtranscoder teststreamer testdemuxer fakelive testvideosplitter testaudiomix testdash testbypass testtranscoderlibav testvideosplitter
+bin_PROGRAMS = livemediastreamer testtranscoder teststreamer testdemuxer fakelive testvideomix testaudiomix testdash testbypass testtranscoderlibav testvideosplitter
 
 livemediastreamer_SOURCES = tests/liveMediaStreamer.cpp
 livemediastreamer_CPPFLAGS = -Isrc/ -std=c++11 -g -Wall -D__STDC_CONSTANT_MACROS

@@ -1,6 +1,6 @@
 /*
  *  VideoSplitter
- *	Copyright (C) 2014  Fundació i2CAT, Internet i Innovació digital a Catalunya
+ *	Copyright (C) 2015  Fundació i2CAT, Internet i Innovació digital a Catalunya
  *
  *  This file is part of media-streamer.
  *
@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- *  Authors:  Alejandro Jiménez <ajimenezherrero@gmail.com>
+ *  Authors:  Alejandro Jiménez <alejandro.jimenez@i2cat.net>
  */
 
 #ifndef _VIDEO_SPLITTER_HH
@@ -97,6 +97,8 @@ class VideoSplitter : public OneToManyFilter {
 		bool doProcessFrame(Frame *org, std::map<int, Frame *> &dstFrames);
 		void doGetState(Jzon::Object &filterNode);
 		bool configCrop0(int id, int width, int height, int x, int y);
+		bool specificWriterConfig(int writerID);
+        bool specificWriterDelete(int writerID);
 
 	private:
 		void initializeEventMap();
@@ -106,8 +108,6 @@ class VideoSplitter : public OneToManyFilter {
         bool specificReaderConfig(int /*readerID*/, FrameQueue* /*queue*/)  {return true;};
         bool specificReaderDelete(int /*readerID*/) {return true;};
 
-        bool specificWriterConfig(int writerID);
-        bool specificWriterDelete(int writerID);
 
         StreamInfo *outputStreamInfo;
         std::map<int, CropConfig*> cropsConfig;

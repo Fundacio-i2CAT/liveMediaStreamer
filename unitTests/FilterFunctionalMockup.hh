@@ -186,9 +186,6 @@ private:
     VideoTailFilterMockup *tailF;
 };
 
-///////////////////////////////////////
-// Head-OneToManyVideoScenarioMockup //
-///////////////////////////////////////
 class OneToManyVideoScenarioMockup {
 
 public:
@@ -198,10 +195,7 @@ public:
 
     ~OneToManyVideoScenarioMockup()
     {
-        disconnectFilters();
-
         delete headF;
-
         for (auto f : tailFilters) {
             delete f.second;
         }
@@ -219,6 +213,7 @@ public:
 
     bool connectFilters()
     {
+
         if (filterToTest == NULL || tailFilters.empty()) {
             return false;
         }
@@ -228,22 +223,12 @@ public:
         }
 
         for (auto f : tailFilters) {
-            if (!filterToTest->connectOneToMany(f.second, f.first)) {
+            if (!filterToTest->connectManyToOne(f.second, f.first)) {
                 return false;
             }
         }
         return true;
     };
-
-    void disconnectFilters()
-    {
-        for (auto f : tailFilters) {
-            f.second->disconnectAll();
-        }
-
-        filterToTest->disconnectAll();
-        headF->disconnectAll();
-    }
 
     int processFrame(InterleavedVideoFrame* srcFrame){
         int ret;
@@ -253,7 +238,6 @@ public:
         }
         headF->processFrame(ret);
         filterToTest->processFrame(ret);
-        utils::errorMsg("[VideoSplitterFunctionalTest]::[splittingTest]   Post filterToTest processFrame");
         return ret;
     }
 
@@ -273,10 +257,6 @@ private:
     OneToManyFilter *filterToTest;
     VideoHeadFilterMockup *headF;
 };
-///////////////////////////////////////
-// Tail-OneToManyVideoScenarioMockup //
-///////////////////////////////////////
-
 
 class ManyToOneAudioScenarioMockup {
 

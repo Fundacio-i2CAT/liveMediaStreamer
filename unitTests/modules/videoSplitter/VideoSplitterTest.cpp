@@ -33,8 +33,8 @@
 
 class VideoSplitterMock : public VideoSplitter {
 	public:
-	VideoSplitterMock(int outChannels, std::chrono::microseconds fTime) : 
-	VideoSplitter(outChannels,fTime){};
+	VideoSplitterMock(std::chrono::microseconds fTime) : 
+	VideoSplitter(fTime){};
 	using VideoSplitter::configCrop0;
 	using VideoSplitter::specificWriterConfig;
 	using VideoSplitter::specificWriterDelete;
@@ -49,25 +49,15 @@ class VideoSplitterTest : public CppUnit::TestFixture {
 	protected:
 		void constructorTest();
 		void cropConfigTest();
-
-		int outChannels = 8;
 };
 
 void VideoSplitterTest::constructorTest(){
 
 	VideoSplitter* splitter;
 
-	int negOutChannels = -2;
-	int zeroOutChannels = 0;
 	std::chrono::microseconds negTime(-200);
 
-	splitter = VideoSplitter::createNew(outChannels);
-	CPPUNIT_ASSERT(splitter);
-	splitter = VideoSplitter::createNew(negOutChannels);
-	CPPUNIT_ASSERT(!splitter);
-	splitter = VideoSplitter::createNew(zeroOutChannels);
-	CPPUNIT_ASSERT(!splitter);
-	splitter = VideoSplitter::createNew(outChannels, negTime);
+	splitter = VideoSplitter::createNew(negTime);
 	CPPUNIT_ASSERT(!splitter);
 
 	delete splitter;
@@ -77,13 +67,14 @@ void VideoSplitterTest::cropConfigTest(){
 
 	VideoSplitterMock* splitter;
 	std::chrono::microseconds fTime(0);
-	int id = 1;
+	int id = 100;
 
-	splitter = new VideoSplitterMock(outChannels, fTime);
+	splitter = new VideoSplitterMock(fTime);
 
 	CPPUNIT_ASSERT(!splitter->configCrop0(id,1,1,0,0));
-	//setWriter 1
-	//setWriter 1 otra vez
+	
+	CPPUNIT_ASSERT(splitter->specificWriterConfig(id));
+	CPPUNIT_ASSERT(!splitter->specificWriterConfig(id));
 	
 	CPPUNIT_ASSERT(splitter->configCrop0(id,1,1,0,0));
 
@@ -97,8 +88,8 @@ void VideoSplitterTest::cropConfigTest(){
 	//x+width > width input
 	//y+height > height input
 
-	//deleteWriter 1
-	//deleteWriter 1 otra vez
+	CPPUNIT_ASSERT(splitter->specificWriterDelete(id));
+	CPPUNIT_ASSERT(!splitter->specificWriterDelete(id));
 
 	delete splitter;
 }

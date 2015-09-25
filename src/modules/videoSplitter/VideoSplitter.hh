@@ -28,7 +28,7 @@
 #include "../../StreamInfo.hh"
 #include <opencv/cv.hpp>
 
-#define VSPLITTER_MAX_CHANNELS 16
+
 
 class CropConfig {
 	public:
@@ -72,8 +72,7 @@ class VideoSplitter : public OneToManyFilter {
         * @param fTime Frame time in microseconds
         * @return Pointer to new object if succeed of NULL if not
         */
-		static VideoSplitter* createNew(int outputChannels = VSPLITTER_MAX_CHANNELS,
-										std::chrono::microseconds fTime = std::chrono::microseconds(0));
+		static VideoSplitter* createNew(std::chrono::microseconds fTime = std::chrono::microseconds(0));
 		/**
         * Class destructor
         */
@@ -89,10 +88,8 @@ class VideoSplitter : public OneToManyFilter {
         */
     	bool configCrop(int id, int width, int height, int x, int y);
 
-    	int getMaxCrops() {return maxCrops;};
-
 	protected:
-		VideoSplitter(int outputChannels, std::chrono::microseconds fTime);
+		VideoSplitter(std::chrono::microseconds fTime);
 		FrameQueue *allocQueue(ConnectionData cData);
 		bool doProcessFrame(Frame *org, std::map<int, Frame *> &dstFrames);
 		void doGetState(Jzon::Object &filterNode);
@@ -111,8 +108,6 @@ class VideoSplitter : public OneToManyFilter {
 
         StreamInfo *outputStreamInfo;
         std::map<int, CropConfig*> cropsConfig;
-
-        int maxCrops;
 };
 
 #endif

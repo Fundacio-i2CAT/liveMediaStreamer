@@ -32,16 +32,17 @@
 #include "modules/videoSplitter/VideoSplitter.hh"
 
 class VideoSplitterFunctionalTest : public CppUnit::TestFixture {
+	
 	CPPUNIT_TEST_SUITE(VideoSplitterFunctionalTest);
 	CPPUNIT_TEST(splittingTest);
 	CPPUNIT_TEST_SUITE_END();
+	
 	public:
 		void setUp();
 		void tearDown();
+	
 	protected:
 		void splittingTest();
-
-		int outChannels = 8;
 
 		OneToManyVideoScenarioMockup *splitterScenario;
 		VideoSplitter* splitter;
@@ -50,7 +51,7 @@ class VideoSplitterFunctionalTest : public CppUnit::TestFixture {
 
 void VideoSplitterFunctionalTest::setUp()
 {
-	splitter = VideoSplitter::createNew(outChannels);
+	splitter = VideoSplitter::createNew();
 	splitterScenario = new OneToManyVideoScenarioMockup(splitter, RAW, RGB24);
 	reader = new AVFramesReader();
 
@@ -76,21 +77,38 @@ void VideoSplitterFunctionalTest::splittingTest()
 {
 	InterleavedVideoFrame *frame = NULL;
     std::map <int, InterleavedVideoFrame*> splitterFrames;
-    CPPUNIT_ASSERT(reader->openFile("testsData/videoSplitterFunctionalTestInputImage.rgb", RAW, RGB24, 200, 200));
+
+    CPPUNIT_ASSERT(reader->openFile("testsData/videoSplitterFunctionalTestInputImage.rgb", RAW, RGB24, 400, 400));
     frame = reader->getFrame();
     CPPUNIT_ASSERT(frame);
     splitterScenario->processFrame(frame);
-    utils::errorMsg("[VideoSplitterFunctionalTest]::[splittingTest]   Post PROCESFRAME");
-    for(auto f : splitterFrames){
-    	f.second = splitterScenario->extractFrame(f.first);
-    	CPPUNIT_ASSERT(f.second);
+    reader->close();
+
+    for(int f = 1; f <=4; f++){
+    	std::string String = "testsData/videoSplitterFunctionalTestResImage" + std::to_string(f) + ".rgb";
+    	CPPUNIT_ASSERT(reader->openFile(String, RAW, RGB24, 100, 100));
+    	frame = reader->getFrame();
+    	CPPUNIT_ASSERT(frame);
+
+    	splitterFrames[f] = splitterScenario->extractFrame(f);
+    	CPPUNIT_ASSERT(splitterFrames[f]);
+    	
+    	CPPUNIT_ASSERT(frame->getLength() == splitterFrames[f]->getLength());
+    	CPPUNIT_ASSERT(frame->getWidth() == splitterFrames[f]->getWidth());
+    	CPPUNIT_ASSERT(frame->getHeight() == splitterFrames[f]->getHeight());
+    	CPPUNIT_ASSERT(memcmp(frame->getDataBuf(), splitterFrames[f]->getDataBuf(), frame->getLength()) == 0);
+    	reader->close();
     }
+    
+
+
 }
 
 CPPUNIT_TEST_SUITE_REGISTRATION(VideoSplitterFunctionalTest);
 
 int main(int argc, char* argv[])
 {
+
 	std::ofstream xmlout("VideoSplitterFunctionalTest.xml");
 	CPPUNIT_NS::TextTestRunner runner;
 	CPPUNIT_NS::XmlOutputter *outputter = new CPPUNIT_NS::XmlOutputter(&runner.result(), xmlout);

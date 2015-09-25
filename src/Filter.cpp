@@ -420,6 +420,7 @@ void BaseFilter::disconnectAll()
         it.second->disconnect();
         deleteReader(it.first);
     }
+
 }
 
 void BaseFilter::processEvent()

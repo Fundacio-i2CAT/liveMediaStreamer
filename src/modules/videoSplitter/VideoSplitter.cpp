@@ -51,18 +51,14 @@ void CropConfig::config(int width, int height, int x, int y)
 //              VideoSplitter Class              //
 ///////////////////////////////////////////////////
 
-VideoSplitter* VideoSplitter::createNew(int outputChannels, std::chrono::microseconds fTime)
+VideoSplitter* VideoSplitter::createNew(std::chrono::microseconds fTime)
 {
-	if (outputChannels <= 0){
-		utils::errorMsg("[VideoSplitter] Error creating VideoSplitter, the minimum number of outputChannels is 1");
-        return NULL;
-	}
 	if (fTime.count() < 0) {
         utils::errorMsg("[VideoSplitter] Error creating VideoSplitter, negative frame time is not valid");
         return NULL;
     }
 
-    return new VideoSplitter(outputChannels, fTime);
+    return new VideoSplitter(fTime);
 }
 
 VideoSplitter::~VideoSplitter()
@@ -91,8 +87,8 @@ bool VideoSplitter::configCrop(int id, int width, int height, int x, int y)
     return true;
 }
 
-VideoSplitter::VideoSplitter(int outputChannels, std::chrono::microseconds fTime):
-OneToManyFilter(), maxCrops(outputChannels)
+VideoSplitter::VideoSplitter(std::chrono::microseconds fTime):
+OneToManyFilter()
 {
 
 	initializeEventMap();
@@ -101,10 +97,6 @@ OneToManyFilter(), maxCrops(outputChannels)
 	outputStreamInfo = new StreamInfo(VIDEO);
     outputStreamInfo->video.codec = RAW;
     outputStreamInfo->video.pixelFormat = RGB24;
-    for(int it=1; it<=maxCrops; it++)
-    {
-    	specificWriterConfig(it);
-    }
 }
 
 FrameQueue* VideoSplitter::allocQueue(ConnectionData cData)
@@ -155,8 +147,6 @@ bool VideoSplitter::doProcessFrame(Frame *org, std::map<int, Frame *> &dstFrames
 void VideoSplitter::doGetState(Jzon::Object &filterNode)
 {
 	Jzon::Array jsonCropsConfigs;
-
-	filterNode.Add("maxOutputChannels", maxCrops);
 
 	for(auto it : cropsConfig){
 		Jzon::Object crConfig;
@@ -217,13 +207,22 @@ bool VideoSplitter::configCropEvent(Jzon::Node* params)
         
 bool VideoSplitter::specificWriterConfig(int writerID)
 {
-	cropsConfig[writerID] = new CropConfig();
-
-	return true;
+	if (cropsConfig.count(writerID) <= 0) {
+        cropsConfig[writerID] = new CropConfig();
+		return true;
+    }
+	
+	utils::errorMsg("[VideoSplitter::specificWriterConfig] Error configuring. This WriterID exist" + std::to_string(writerID));
+    return false;
 }
 
 bool VideoSplitter::specificWriterDelete(int writerID)
 {
+	if (cropsConfig.count(writerID) <= 0) {
+        utils::errorMsg("[VideoSplitter::specificWriterDelete] Error configuring. This WriterID doesn't exist " + std::to_string(writerID));
+        return false;
+    }
+
 	delete cropsConfig[writerID];
 	cropsConfig.erase(writerID);
 

@@ -43,7 +43,7 @@ bool setupSplitter(int splitterId, int transmitterID, int def_witdth, int def_he
 
     VideoSplitter* splitter;
 
-    splitter = VideoSplitter::createNew(SPLIT_CHANNELS, std::chrono::microseconds(40000));
+    splitter = VideoSplitter::createNew(std::chrono::microseconds(40000));
     pipe->addFilter(splitterId, splitter);
 
     int encId = 300;

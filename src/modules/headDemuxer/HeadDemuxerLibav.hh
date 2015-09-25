@@ -54,6 +54,10 @@ class HeadDemuxerLibav : public HeadFilter {
         virtual void doGetState(Jzon::Object &filterNode);
 
     private:
+        //NOTE: There is no need of specific writer configuration
+        bool specificWriterConfig(int /*writerID*/) {return true;};
+        bool specificWriterDelete(int /*writerID*/) {return true;};
+        
         /** Maps writer IDs to the private stream information */
         struct PrivateStreamInfo {
             /** Time base needed to convert libav PTS to seconds */

@@ -356,7 +356,7 @@ bool PipelineManager::validCData(ConnectionData cData, int orgFId, int dstFId)
 
 bool PipelineManager::removePath(int id)
 {
-    Path* path = NULL;
+    Path* path;
 
     path = getPath(id);
 

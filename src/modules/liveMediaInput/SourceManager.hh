@@ -170,6 +170,9 @@ private:
 
     static void* startServer(void *args);
     FrameQueue *allocQueue(ConnectionData cData);
+    
+    bool specificWriterConfig(int /*writerID*/) {return true;};
+    bool specificWriterDelete(int writerID);
 
     std::map<std::string, Session*> sessionMap;
 

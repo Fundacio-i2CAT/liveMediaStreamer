@@ -25,8 +25,6 @@
 #include <iostream>
 #include <chrono> 
 
-#include <opencv2/highgui/highgui.hpp>
-
 ///////////////////////////////////////////////////
 //                 CropConfig Class              //
 ///////////////////////////////////////////////////
@@ -93,7 +91,7 @@ OneToManyFilter()
 
 	initializeEventMap();
 	
-	fType = SPLITTER;
+	fType = VIDEO_SPLITTER;
 	outputStreamInfo = new StreamInfo(VIDEO);
     outputStreamInfo->video.codec = RAW;
     outputStreamInfo->video.pixelFormat = RGB24;
@@ -114,7 +112,6 @@ bool VideoSplitter::doProcessFrame(Frame *org, std::map<int, Frame *> &dstFrames
 	VideoFrame *vFrame;
 	VideoFrame *vFrameDst;
 	vFrame = dynamic_cast<VideoFrame*>(org);
-
 	if(!vFrame){
 		utils::errorMsg("[VideoSplitter] No origin frame");
 		return false;
@@ -122,13 +119,12 @@ bool VideoSplitter::doProcessFrame(Frame *org, std::map<int, Frame *> &dstFrames
 	cv::Mat orgFrame(vFrame->getHeight(), vFrame->getWidth(), CV_8UC3, vFrame->getDataBuf());
 	
 	for (auto it : dstFrames){
-		
 		xROI = cropsConfig[it.first]->getX();
 		yROI = cropsConfig[it.first]->getY();
 		widthROI = cropsConfig[it.first]->getWidth();
 		heightROI = cropsConfig[it.first]->getHeight();
 
-		if(xROI+widthROI <= vFrame->getWidth() && yROI+heightROI <= vFrame->getHeight()){
+		if((xROI >= 0 || yROI >= 0 || widthROI > 0 || heightROI > 0) && xROI+widthROI <= vFrame->getWidth() && yROI+heightROI <= vFrame->getHeight()){
 			vFrameDst = dynamic_cast<VideoFrame*>(it.second);
 			cropsConfig[it.first]->getCrop()->data = vFrameDst->getDataBuf();
 			vFrameDst->setLength(widthROI * heightROI);
@@ -136,11 +132,17 @@ bool VideoSplitter::doProcessFrame(Frame *org, std::map<int, Frame *> &dstFrames
 			orgFrame(cv::Rect(xROI, yROI, widthROI, heightROI)).copyTo(cropsConfig[it.first]->getCropRect(0, 0, widthROI, heightROI));
 			it.second->setConsumed(true);
 			it.second->setPresentationTime(vFrame->getPresentationTime());
+			it.second->setOriginTime(org->getOriginTime());
+    		it.second->setSequenceNumber(org->getSequenceNumber());
 			processFrame = true;
 		} else {
+			utils::warningMsg("[VideoSplitter] Crop not configured or out of scope (Crop ID: " + std::to_string(it.first) 
+							+ " - Origin width: " + std::to_string(vFrame->getWidth()) + " - Origin height: " + std::to_string(vFrame->getHeight()) + ")");
+
 			it.second->setConsumed(false);
 		}
 	}
+
 	return processFrame;
 }
 
@@ -195,13 +197,14 @@ bool VideoSplitter::configCropEvent(Jzon::Node* params)
         utils::errorMsg("[VideoSplitter::configCropEvent] Params node not complete");
         return false;
     }
-
+    
     int id = params->Get("id").ToInt();
-    float width = params->Get("width").ToInt();
-    float height = params->Get("height").ToInt();
-    float x = params->Get("x").ToInt();
-    float y = params->Get("y").ToInt();
-
+    int width = params->Get("width").ToInt();
+    int height = params->Get("height").ToInt();
+    int x = params->Get("x").ToInt();
+    int y = params->Get("y").ToInt();
+    utils::infoMsg("ID: " + std::to_string(id) + " W: " + std::to_string(width) + " H: " + std::to_string(height) + " X: " + std::to_string(x) + " Y: " + std::to_string(y));
+    
     return configCrop0(id, width, height, x, y);
 }
         

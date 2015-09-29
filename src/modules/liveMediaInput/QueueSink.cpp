@@ -51,7 +51,7 @@ Boolean QueueSink::continuePlaying()
     }
 
     if (!frame){
-        utils::debugMsg("Using dummy buffer, no writer connected yet");
+        utils::errorMsg("Using dummy buffer, no writer connected yet");
         fSource->getNextFrame(dummyBuffer, DUMMY_RECEIVE_BUFFER_SIZE,
                               afterGettingFrame, this,
                               onSourceClosure, this);

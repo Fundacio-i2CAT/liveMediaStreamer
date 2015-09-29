@@ -29,6 +29,7 @@
 #include "modules/videoEncoder/VideoEncoderX264.hh"
 #include "modules/videoDecoder/VideoDecoderLibav.hh"
 #include "modules/videoMixer/VideoMixer.hh"
+#include "modules/videoSplitter/VideoSplitter.hh"
 #include "modules/videoResampler/VideoResampler.hh"
 #include "modules/liveMediaInput/SourceManager.hh"
 #include "modules/liveMediaOutput/SinkManager.hh"
@@ -154,6 +155,9 @@ bool PipelineManager::createFilter(int id, FilterType type)
             break;
         case DASHER:
             filter = new Dasher();
+            break;
+        case VIDEO_SPLITTER:
+            filter = VideoSplitter::createNew();
             break;            
         //TODO include sharedMemory filter
         default:

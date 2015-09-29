@@ -274,8 +274,8 @@ namespace utils
             case DEMUXER:
                 stringType = "demuxer";
                 break;
-            case SPLITTER:
-                stringType = "splitter";
+            case VIDEO_SPLITTER:
+                stringType = "videoSplitter";
                 break;
             case DASHER:
                 stringType = "dasher";
@@ -319,8 +319,8 @@ namespace utils
            fType = DASHER;
         }  else if (stringFilterType.compare("demuxer") == 0) {
            fType = DEMUXER;
-        }  else if (stringFilterType.compare("splitter") == 0) {
-           fType = SPLITTER;
+        }  else if (stringFilterType.compare("videoSplitter") == 0) {
+           fType = VIDEO_SPLITTER;
         }  else {
            fType = FT_NONE;
         }

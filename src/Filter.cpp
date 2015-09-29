@@ -506,7 +506,6 @@ std::vector<int> BaseFilter::regularProcessFrame(int& ret)
     std::vector<int> newFrames;
     
     processEvent();
-    
     newFrames = demandOriginFrames(oFrames);
     
     if (newFrames.empty()) {
@@ -516,11 +515,12 @@ std::vector<int> BaseFilter::regularProcessFrame(int& ret)
     
     if (!demandDestinationFrames(dFrames)) {
         ret = WAIT;
+        removeFrames(newFrames);
         return enabledJobs;
     }
 
     runDoProcessFrame(oFrames, dFrames, newFrames);
-
+    
     //TODO: manage ret value
     enabledJobs = addFrames(dFrames);
     

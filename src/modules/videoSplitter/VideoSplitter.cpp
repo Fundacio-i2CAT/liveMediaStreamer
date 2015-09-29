@@ -215,7 +215,7 @@ bool VideoSplitter::specificWriterConfig(int writerID)
 		return true;
     }
 	
-	utils::errorMsg("[VideoSplitter::specificWriterConfig] Error configuring. This WriterID exist" + std::to_string(writerID));
+	utils::errorMsg("[VideoSplitter::specificWriterConfig] Error configuring. This WriterID exist " + std::to_string(writerID));
     return false;
 }
 

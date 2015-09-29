@@ -301,10 +301,13 @@ bool BaseFilter::setWriter(int writerID)
 
 bool BaseFilter::deleteWriter(int writerID)
 {
-    writers.erase(writerID);
-    seqNums.erase(writerID);
-    
-    return specificWriterDelete(writerID);
+    if (writers.count(writerID)){
+        writers.erase(writerID);
+        seqNums.erase(writerID);
+        return specificWriterDelete(writerID);
+    }
+        
+    return false;
 }
 
 bool BaseFilter::connect(BaseFilter *R, int writerID, int readerID)
@@ -384,27 +387,25 @@ bool BaseFilter::disconnectWriter(int writerId)
     }
 
     if (writers[writerId]->disconnect()){
-        return true;
+        return deleteWriter(writerId);
     }
     
     return false;
 }
 
 bool BaseFilter::disconnectReader(int readerId)
-{
-    bool ret;
-    
+{   
     std::lock_guard<std::mutex> guard(mtx);
     
     if (readers.count(readerId) <= 0) {
         return false;
     }
 
-    ret = readers[readerId]->disconnect();
-    if (ret){
-        readers.erase(readerId);
+    if (readers[readerId]->disconnect()){
+        return deleteReader(readerId);
     }
-    return ret;
+
+    return false;
 }
 
 void BaseFilter::disconnectAll()

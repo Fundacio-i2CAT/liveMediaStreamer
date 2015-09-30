@@ -118,10 +118,6 @@ void addAudioPath(unsigned port, Dasher* dasher, int dasherId, int receiverID, i
         return;
     }
 
-    if (!dasher->addSegmenter(dstReader)) {
-        utils::errorMsg("Error adding segmenter");
-    }
-
     if (!dasher->setDashSegmenterBitrate(dstReader, OUT_A_BITRATE)) {
         utils::errorMsg("Error setting bitrate to segmenter");
     }
@@ -199,10 +195,6 @@ void addVideoPath(unsigned port, Dasher* dasher, int dasherId, int receiverID, i
         return;
     }
 
-    if (!dasher->addSegmenter(dstReader)) {
-        utils::errorMsg("Error adding segmenter");
-    }
-
     if (!dasher->setDashSegmenterBitrate(dstReader, maxBitRate*1000)) {
         utils::errorMsg("Error setting bitrate to segmenter");
     } 
@@ -247,9 +239,6 @@ void addVideoPath(unsigned port, Dasher* dasher, int dasherId, int receiverID, i
 
         utils::infoMsg("Slave reader: " + std::to_string(dstReader));
 
-        if (!dasher->addSegmenter(dstReader)) {
-            utils::errorMsg("Error adding segmenter");
-        }
         if (!dasher->setDashSegmenterBitrate(dstReader, maxBitRate*1000/(n*2))) {
             utils::errorMsg("Error setting bitrate to segmenter");
         } 

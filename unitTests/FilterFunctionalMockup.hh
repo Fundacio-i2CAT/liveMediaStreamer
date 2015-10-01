@@ -50,7 +50,6 @@ public:
     };
 
     ~OneToOneVideoScenarioMockup(){
-        disconnectFilter();
         delete headF;
         delete tailF;
     }
@@ -69,13 +68,6 @@ public:
         }
 
         return true;
-    }
-
-    void disconnectFilter(){
-        CPPUNIT_ASSERT(headF->disconnectWriter(1));
-        CPPUNIT_ASSERT(filterToTest->disconnectWriter(1));
-        CPPUNIT_ASSERT(filterToTest->disconnectReader(1));
-        CPPUNIT_ASSERT(tailF->disconnectReader(1));
     }
 
     int processFrame(InterleavedVideoFrame* srcFrame){

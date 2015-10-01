@@ -1,8 +1,8 @@
 #include "../src/Controller.hh"
 #include "../src/Utils.hh"
 #include "../src/Jzon.h"
-#include "../src/modules/liveMediaInput/SourceManager.hh"
-#include "../src/modules/liveMediaOutput/SinkManager.hh"
+#include "../src/modules/receiver/SourceManager.hh"
+#include "../src/modules/transmitter/SinkManager.hh"
 
 #define V_MEDIUM "video"
 #define PROTOCOL "RTP"

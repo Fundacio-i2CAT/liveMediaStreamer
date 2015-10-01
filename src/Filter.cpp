@@ -679,7 +679,6 @@ bool OneToOneFilter::runDoProcessFrame(std::map<int, Frame*> &oFrames, std::map<
     return true;
 }
 
-
 OneToManyFilter::OneToManyFilter(unsigned writersNum, FilterRole fRole_, bool periodic) :
     BaseFilter(1, writersNum, fRole_, periodic)
 {
@@ -698,7 +697,6 @@ bool OneToManyFilter::runDoProcessFrame(std::map<int, Frame*> &oFrames, std::map
 
     return true;
 }
-
 
 HeadFilter::HeadFilter(unsigned writersNum, FilterRole fRole_, bool periodic) :
     BaseFilter(0, writersNum, fRole_, periodic)
@@ -750,7 +748,6 @@ bool TailFilter::runDoProcessFrame(std::map<int, Frame*> &oFrames, std::map<int,
     return doProcessFrame(oFrames, newFrames);
 }
 
-
 void TailFilter::pushEvent(Event e)
 {
     std::string action = e.getAction();
@@ -769,7 +766,6 @@ void TailFilter::pushEvent(Event e)
         utils::errorMsg("Error executing filter event");
     }
 }
-
 
 ManyToOneFilter::ManyToOneFilter(unsigned readersNum, FilterRole fRole_, bool periodic) :
     BaseFilter(readersNum, 1, fRole_, periodic)

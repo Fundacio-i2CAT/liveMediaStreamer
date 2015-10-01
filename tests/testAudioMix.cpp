@@ -1,8 +1,8 @@
 #include "../src/modules/audioEncoder/AudioEncoderLibav.hh"
 #include "../src/modules/audioDecoder/AudioDecoderLibav.hh"
 #include "../src/modules/audioMixer/AudioMixer.hh"
-#include "../src/modules/liveMediaInput/SourceManager.hh"
-#include "../src/modules/liveMediaOutput/SinkManager.hh"
+#include "../src/modules/receiver/SourceManager.hh"
+#include "../src/modules/transmitter/SinkManager.hh"
 #include "../src/Controller.hh"
 #include "../src/Utils.hh"
 

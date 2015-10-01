@@ -408,22 +408,6 @@ bool BaseFilter::disconnectReader(int readerId)
     return false;
 }
 
-void BaseFilter::disconnectAll()
-{
-    std::lock_guard<std::mutex> guard(mtx);
-    
-    for (auto it : writers) {
-        it.second->disconnect();
-        deleteWriter(it.first);
-    }
-
-    for (auto it : readers) {
-        it.second->disconnect();
-        deleteReader(it.first);
-    }
-
-}
-
 void BaseFilter::processEvent()
 {
     std::string action;

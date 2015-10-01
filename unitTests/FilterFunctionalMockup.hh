@@ -72,9 +72,10 @@ public:
     }
 
     void disconnectFilter(){
-        headF->disconnectAll();
-        filterToTest->disconnectAll();
-        tailF->disconnectAll();
+        CPPUNIT_ASSERT(headF->disconnectWriter(1));
+        CPPUNIT_ASSERT(filterToTest->disconnectWriter(1));
+        CPPUNIT_ASSERT(filterToTest->disconnectReader(1));
+        CPPUNIT_ASSERT(tailF->disconnectReader(1));
     }
 
     int processFrame(InterleavedVideoFrame* srcFrame){
@@ -110,8 +111,6 @@ public:
 
     ~ManyToOneVideoScenarioMockup()
     {
-        disconnectFilters();
-
         for (auto f : headFilters) {
             delete f.second;
         }
@@ -148,16 +147,6 @@ public:
         return true;
     };
 
-    void disconnectFilters()
-    {
-        for (auto f : headFilters) {
-            f.second->disconnectAll();
-        }
-
-        filterToTest->disconnectAll();
-        tailF->disconnectAll();
-    }
-
     int processFrame(InterleavedVideoFrame* srcFrame)
     {
         int ret;
@@ -181,6 +170,7 @@ public:
     }
 
 private:
+
     std::map<int,VideoHeadFilterMockup*> headFilters;
     ManyToOneFilter *filterToTest;
     VideoTailFilterMockup *tailF;
@@ -268,7 +258,6 @@ public:
 
     ~ManyToOneAudioScenarioMockup()
     {
-        disconnectFilters();
 
         for (auto f : headFilters) {
             delete f.second;
@@ -305,16 +294,6 @@ public:
 
         return true;
     };
-
-    void disconnectFilters()
-    {
-        for (auto f : headFilters) {
-            f.second->disconnectAll();
-        }
-
-        filterToTest->disconnectAll();
-        tailF->disconnectAll();
-    }
 
     int processFrame(PlanarAudioFrame* srcFrame)
     {

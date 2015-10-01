@@ -124,11 +124,6 @@ void HeadDemuxerFunctionalTest::setUp()
 
 void HeadDemuxerFunctionalTest::tearDown()
 {
-    headDemuxer->disconnectAll();
-    vDecoder->disconnectAll();
-    aDecoder->disconnectAll();
-    vTail->disconnectAll();
-    aTail->disconnectAll();
     delete headDemuxer;
     delete vDecoder;
     delete aDecoder;

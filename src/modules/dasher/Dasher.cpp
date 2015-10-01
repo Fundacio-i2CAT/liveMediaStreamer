@@ -418,7 +418,6 @@ void Dasher::doGetState(Jzon::Object &filterNode)
     }
 
     filterNode.Add("readers", readersList);
-
 }
 
 bool Dasher::configureEvent(Jzon::Node* params)
@@ -615,7 +614,9 @@ segDur(segmentDuration), dashContext(NULL), timeBase(tBase), frameDuration(0), b
 
 DashSegmenter::~DashSegmenter()
 {
-
+    if(dashContext){
+        free(dashContext);
+    }
 }
 
 bool DashSegmenter::generateSegment(DashSegment* segment, Frame* frame, bool force)

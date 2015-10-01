@@ -40,7 +40,9 @@ BaseFilter::~BaseFilter()
 {
     std::lock_guard<std::mutex> guard(mtx);
     for (auto it : readers) {
-        it.second->removeReader(getId());
+        if (it.second && it.first >= 0){
+            it.second->removeReader(getId());
+        }
     }
 
     readers.clear();

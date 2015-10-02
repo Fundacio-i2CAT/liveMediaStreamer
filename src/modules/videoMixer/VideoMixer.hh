@@ -129,6 +129,10 @@ class VideoMixer : public ManyToOneFilter {
         
         bool specificReaderConfig(int readerID, FrameQueue* /*queue*/);
         bool specificReaderDelete(int readerID);
+        
+        //NOTE: There is no need of specific writer configuration
+        bool specificWriterConfig(int /*readerID*/) {return true;};
+        bool specificWriterDelete(int /*readerID*/) {return true;};
 
         StreamInfo *outputStreamInfo;
         std::map<int, ChannelConfig*> channelsConfig;

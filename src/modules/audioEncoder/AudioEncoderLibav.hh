@@ -62,6 +62,10 @@ private:
 
     bool configEvent(Jzon::Node* params);
     void doGetState(Jzon::Object &filterNode);
+    
+    //NOTE: There is no need of specific writer configuration
+    bool specificWriterConfig(int /*readerID*/) {return true;};
+    bool specificWriterDelete(int /*readerID*/) {return true;};
 
     StreamInfo          *outputStreamInfo;
    

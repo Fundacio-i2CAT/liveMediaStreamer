@@ -275,6 +275,38 @@ bool BaseFilter::shareReader(BaseFilter *shared, int sharedRId, int orgRId)
     return true;
 }
 
+bool BaseFilter::setWriter(int writerID)
+{
+    if (writers.size() >= maxWriters) {
+        utils::errorMsg("Too many writers!");
+        return false;
+    }
+    
+    if (writers.count(writerID) > 0){
+        utils::warningMsg("Writer id must be unique");
+        return false;
+    }
+
+    writers[writerID] = std::shared_ptr<Writer>(new Writer());
+    seqNums[writerID] = 0;
+    
+    if (!specificWriterConfig(writerID)){
+        writers.erase(writerID);
+        seqNums.erase(writerID);
+        return false;
+    }
+    
+    return true;
+}
+
+bool BaseFilter::deleteWriter(int writerID)
+{
+    writers.erase(writerID);
+    seqNums.erase(writerID);
+    
+    return specificWriterDelete(writerID);
+}
+
 bool BaseFilter::connect(BaseFilter *R, int writerID, int readerID)
 {
     std::shared_ptr<Reader> r;
@@ -285,24 +317,16 @@ bool BaseFilter::connect(BaseFilter *R, int writerID, int readerID)
     R->processEvent();
 
     std::lock_guard<std::mutex> guard(mtx);
-      
-    if (writers.size() >= maxWriters) {
-        utils::errorMsg("Too many writers!");
-        return false;
-    }
-    
-    if (writers.count(writerID) > 0){
-        utils::warningMsg("Writer id must be unique");
-        return false;
-    }
     
     if (R->getReader(readerID) && R->getReader(readerID)->isConnected()){
         utils::errorMsg("Reader " + std::to_string(readerID) + " null or already connected");
         return false;
     }
-
-    writers[writerID] = std::shared_ptr<Writer>(new Writer());
-    seqNums[writerID] = 0;
+     
+    if (!setWriter(writerID)){
+        utils::warningMsg("Writer creation failed");
+        return false;
+    }
 
     cData.wFilterId = getId();
     cData.writerId = writerID;
@@ -311,12 +335,12 @@ bool BaseFilter::connect(BaseFilter *R, int writerID, int readerID)
     
     queue = allocQueue(cData);
     if (!queue){
-        writers.erase(writerID);
+        deleteWriter(writerID);
         return false;
     }
 
     if (!(r = R->setReader(readerID, queue))) {
-        writers.erase(writerID);
+        deleteWriter(writerID);
         utils::errorMsg("Could not create the reader or set the queue");
         return false;
     }
@@ -360,7 +384,7 @@ bool BaseFilter::disconnectWriter(int writerId)
     }
 
     if (writers[writerId]->disconnect()){
-        writers.erase(writerId);
+        deleteWriter(writerId);
         return true;
     }
     
@@ -390,10 +414,12 @@ void BaseFilter::disconnectAll()
     
     for (auto it : writers) {
         it.second->disconnect();
+        deleteWriter(it.first);
     }
 
     for (auto it : readers) {
         it.second->disconnect();
+        deleteReader(it.first);
     }
 }
 

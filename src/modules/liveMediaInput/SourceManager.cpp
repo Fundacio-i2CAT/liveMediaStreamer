@@ -25,11 +25,28 @@
 #include "ExtendedRTSPClient.hh"
 #include "../../AVFramedQueue.hh"
 #include "../../Utils.hh"
+#include "H264VideoSdpParser.hh"
 
 #include <sstream>
 
 #define RTSP_CLIENT_VERBOSITY_LEVEL 1
 #define RTP_RECEIVE_BUFFER_SIZE 2000000
+
+static void fillH264or5ExtraData(const MediaSubsession *mss, StreamInfo *si)
+{
+    QueueSink* sink;
+    H264VideoSdpParser* parser;
+    
+    if ((sink = dynamic_cast<QueueSink*>(mss->sink)) == NULL){
+        return;
+    }
+    
+    if ((parser = dynamic_cast<H264VideoSdpParser*>(sink->getFilter())) == NULL){
+        return;
+    }
+    
+    si->setExtraData(parser->getExtradata(), parser->getExtradataSize());
+}
 
 static StreamInfo *createStreamInfo(const MediaSubsession *mss)
 {
@@ -67,9 +84,11 @@ static StreamInfo *createStreamInfo(const MediaSubsession *mss)
         if (strcmp(codecName, "H264") == 0) {
             si->video.codec = H264;
             si->video.h264or5.annexb = true;
+            fillH264or5ExtraData(mss, si);
         } else if (strcmp(codecName, "H265") == 0) {
             si->video.codec = H265;
             si->video.h264or5.annexb = true;
+            fillH264or5ExtraData(mss, si);
         } else if (strcmp(codecName, "VP8") == 0) {
             si->video.codec = VP8;
         } else if (strcmp(codecName, "MJPEG") == 0) {
@@ -195,6 +214,20 @@ bool SourceManager::addSink(unsigned port, QueueSink *sink)
     
     sinks[port] = sink;
 
+    return true;
+}
+
+bool SourceManager::specificWriterConfig(int writerID)
+{
+    if (sinks.count(writerID) != 1){
+        return false;
+    } 
+    
+    return true;
+}
+bool SourceManager::specificWriterDelete(int writerID)
+{
+    //TODO: handle inner frame buffer
     return true;
 }
 

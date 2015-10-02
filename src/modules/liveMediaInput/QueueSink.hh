@@ -33,12 +33,35 @@
 class QueueSink: public MediaSink {
 
 public:
-    static QueueSink* createNew(UsageEnvironment& env, unsigned port);
+    
+    /**
+    * Constructor wrapper
+    * @param env Live555 environement
+    * @param port network port of the incoming stream
+    * @param filter pointer of this source, if defined it contains additional headers
+    * @return Pointer to the object if succeded and NULL if not
+    */
+    static QueueSink* createNew(UsageEnvironment& env, unsigned port, FramedFilter* filter);
+    
+    /**
+    * @return port number of the incoming stream
+    */
     unsigned getPort() {return fPort;};
+    
+    /**
+     * Sets the frame pointer where the next incoming framed will be placed.
+     * @param frame pointer where the incoming frame will be copied
+     * @return true if successfully updated frame, false if not ready to set next frame.
+     */
     bool setFrame(Frame *f);
+    
+    /**
+    * @return filter pointer of the source.
+    */
+    FramedFilter* getFilter() {return fFilter;};
 
 protected:
-    QueueSink(UsageEnvironment& env, unsigned port, FrameFilter* filter);
+    QueueSink(UsageEnvironment& env, unsigned port, FramedFilter* filter);
     ~QueueSink();
     
     void static staticContinuePlaying(QueueSink *sink);
@@ -52,10 +75,10 @@ protected:
 protected:
     unsigned fPort;
     Frame *frame;
-    FrameFilter* fFilter;
     
     unsigned char *dummyBuffer;
     bool nextFrame;
+    FramedFilter* fFilter;
 };
 
 #endif

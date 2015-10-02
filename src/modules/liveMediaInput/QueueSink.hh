@@ -38,7 +38,7 @@ public:
     bool setFrame(Frame *f);
 
 protected:
-    QueueSink(UsageEnvironment& env, unsigned port);
+    QueueSink(UsageEnvironment& env, unsigned port, FrameFilter* filter);
     ~QueueSink();
     
     void static staticContinuePlaying(QueueSink *sink);
@@ -52,6 +52,8 @@ protected:
 protected:
     unsigned fPort;
     Frame *frame;
+    FrameFilter* fFilter;
+    
     unsigned char *dummyBuffer;
     bool nextFrame;
 };

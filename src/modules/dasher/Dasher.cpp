@@ -130,7 +130,7 @@ bool Dasher::doProcessFrame(std::map<int, Frame*> &orgFrames, std::vector<int> n
         utils::debugMsg("[Dasher::doProcessFrame] Video segments to disk");
     }
 
-    if (writeAudioSegments()) {
+    if (writeAudioSegments() && !hasVideo) {
         utils::debugMsg("[Dasher::doProcessFrame] Audio segments to disk");
     }
 

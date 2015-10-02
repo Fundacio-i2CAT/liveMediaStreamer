@@ -288,10 +288,15 @@ namespace handlers
     {
         int wId;
         QueueSink *sink;
-        FramedFilter* filter = NULL;
+        H264VideoSdpParser* filter = NULL;
 
         wId = subsession->clientPortNum();
-        sink = QueueSink::createNew(env, wId);
+        
+        if (strcmp(subsession->codecName(), "H264") == 0 || strcmp(subsession->codecName(), "H265") == 0) {
+            filter = H264VideoSdpParser::createNew(env, subsession->readSource(), subsession->fmtp_spropparametersets());
+        }
+        
+        sink = QueueSink::createNew(env, wId, filter);
 
         if (sink == NULL){
             utils::errorMsg("Error creating subsession sink");
@@ -299,10 +304,6 @@ namespace handlers
         }
 
         subsession->sink = sink;
-        
-        if (strcmp(subsession->codecName(), "H264") == 0 || strcmp(subsession->codecName(), "H265") == 0) {
-            filter = H264VideoSdpParser::createNew(env, subsession->readSource(), subsession->fmtp_spropparametersets());
-        }
 
         if (filter) {
             subsession->addFilter(filter);

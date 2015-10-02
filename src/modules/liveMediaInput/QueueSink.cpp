@@ -26,8 +26,8 @@
 
 #include <sys/time.h>
 
-QueueSink::QueueSink(UsageEnvironment& env, unsigned port)
-  : MediaSink(env), fPort(port), nextFrame(true)
+QueueSink::QueueSink(UsageEnvironment& env, unsigned port, FilterFrame* filter)
+  : MediaSink(env), fPort(port), nextFrame(true), fFilter(filter)
 {
     frame = NULL;
     dummyBuffer = new unsigned char[DUMMY_RECEIVE_BUFFER_SIZE];
@@ -92,7 +92,7 @@ void QueueSink::afterGettingFrame(unsigned frameSize, struct timeval presentatio
         nextFrame = true;
     }
     nextTask() = envir().taskScheduler().scheduleDelayedTask(0,
-            (TaskFunc*)QueueSink::staticContinuePlaying, this);
+    (TaskFunc*)QueueSink::staticContinuePlaying, this);
 }
 
 void QueueSink::staticContinuePlaying(QueueSink *sink)

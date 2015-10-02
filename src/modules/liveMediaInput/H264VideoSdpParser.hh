@@ -38,6 +38,16 @@ public:
     * @return Pointer to the object if succeded and NULL if not
     */
     static H264VideoSdpParser* createNew(UsageEnvironment& env, FramedSource* inputSource, char const* sPropParameterSetsStr);
+    
+    /**
+    * @return Pointer to the parsed headers from sdp, mainly SPS and PPS
+    */
+    uint8_t* getExtradata() {return extradata;};
+    
+    /**
+     * @return number of bytes filled in extradata buffer
+     */
+    unsigned getExtradataSize() {return extradataSize;};
 
 protected:
     H264VideoSdpParser(UsageEnvironment& env, FramedSource* inputSource, char const* sPropParameterSetsStr);
@@ -59,7 +69,9 @@ private:
     SPropRecord* sPropRecords;
     unsigned numSPropRecords;
     unsigned injectedMetadataNALs;
-
+    
+    uint8_t extradata[128];
+    unsigned extradataSize;
 };
 
 #endif

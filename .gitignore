@@ -104,5 +104,6 @@ unitTests/videoMixerFunctionalTest
 unitTests/videoMixerTest
 unitTests/workersPoolTest
 unitTests/IOInterfaceTest
-
+unitTests/videoSplitterFunctionalTest
+unitTests/videoSplitterTest
 

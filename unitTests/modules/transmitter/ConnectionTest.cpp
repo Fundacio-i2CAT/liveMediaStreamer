@@ -31,7 +31,7 @@
 #include <cppunit/TestResultCollector.h>
 #include <cppunit/XmlOutputter.h>
 
-#include "modules/liveMediaOutput/Connection.hh"
+#include "modules/transmitter/Connection.hh"
 #include "Utils.hh"
 
 #define CHANNELS 2

@@ -40,7 +40,9 @@ BaseFilter::~BaseFilter()
 {
     std::lock_guard<std::mutex> guard(mtx);
     for (auto it : readers) {
-        it.second->removeReader(getId());
+        if (it.second && it.first >= 0){
+            it.second->removeReader(getId());
+        }
     }
 
     readers.clear();
@@ -180,7 +182,7 @@ bool BaseFilter::demandDestinationFrames(std::map<int, Frame*> &dFrames)
     for (auto it : writers){
         if (!it.second->isConnected()){
             it.second->disconnect();
-            writers.erase(it.first);
+            deleteWriter(it.first);
             continue;
         }
 
@@ -275,6 +277,41 @@ bool BaseFilter::shareReader(BaseFilter *shared, int sharedRId, int orgRId)
     return true;
 }
 
+bool BaseFilter::setWriter(int writerID)
+{
+    if (writers.size() >= maxWriters) {
+        utils::errorMsg("Too many writers!");
+        return false;
+    }
+    
+    if (writers.count(writerID) > 0){
+        utils::warningMsg("Writer id must be unique");
+        return false;
+    }
+
+    writers[writerID] = std::shared_ptr<Writer>(new Writer());
+    seqNums[writerID] = 0;
+    
+    if (!specificWriterConfig(writerID)){
+        writers.erase(writerID);
+        seqNums.erase(writerID);
+        return false;
+    }
+    
+    return true;
+}
+
+bool BaseFilter::deleteWriter(int writerID)
+{
+    if (writers.count(writerID)){
+        writers.erase(writerID);
+        seqNums.erase(writerID);
+        return specificWriterDelete(writerID);
+    }
+        
+    return false;
+}
+
 bool BaseFilter::connect(BaseFilter *R, int writerID, int readerID)
 {
     std::shared_ptr<Reader> r;
@@ -285,24 +322,16 @@ bool BaseFilter::connect(BaseFilter *R, int writerID, int readerID)
     R->processEvent();
 
     std::lock_guard<std::mutex> guard(mtx);
-      
-    if (writers.size() >= maxWriters) {
-        utils::errorMsg("Too many writers!");
-        return false;
-    }
-    
-    if (writers.count(writerID) > 0){
-        utils::warningMsg("Writer id must be unique");
-        return false;
-    }
     
     if (R->getReader(readerID) && R->getReader(readerID)->isConnected()){
         utils::errorMsg("Reader " + std::to_string(readerID) + " null or already connected");
         return false;
     }
-
-    writers[writerID] = std::shared_ptr<Writer>(new Writer());
-    seqNums[writerID] = 0;
+     
+    if (!setWriter(writerID)){
+        utils::warningMsg("Writer creation failed");
+        return false;
+    }
 
     cData.wFilterId = getId();
     cData.writerId = writerID;
@@ -311,12 +340,12 @@ bool BaseFilter::connect(BaseFilter *R, int writerID, int readerID)
     
     queue = allocQueue(cData);
     if (!queue){
-        writers.erase(writerID);
+        deleteWriter(writerID);
         return false;
     }
 
     if (!(r = R->setReader(readerID, queue))) {
-        writers.erase(writerID);
+        deleteWriter(writerID);
         utils::errorMsg("Could not create the reader or set the queue");
         return false;
     }
@@ -360,41 +389,25 @@ bool BaseFilter::disconnectWriter(int writerId)
     }
 
     if (writers[writerId]->disconnect()){
-        writers.erase(writerId);
-        return true;
+        return deleteWriter(writerId);
     }
     
     return false;
 }
 
 bool BaseFilter::disconnectReader(int readerId)
-{
-    bool ret;
-    
+{   
     std::lock_guard<std::mutex> guard(mtx);
     
     if (readers.count(readerId) <= 0) {
         return false;
     }
 
-    ret = readers[readerId]->disconnect();
-    if (ret){
-        readers.erase(readerId);
-    }
-    return ret;
-}
-
-void BaseFilter::disconnectAll()
-{
-    std::lock_guard<std::mutex> guard(mtx);
-    
-    for (auto it : writers) {
-        it.second->disconnect();
+    if (readers[readerId]->disconnect()){
+        return deleteReader(readerId);
     }
 
-    for (auto it : readers) {
-        it.second->disconnect();
-    }
+    return false;
 }
 
 void BaseFilter::processEvent()
@@ -480,7 +493,6 @@ std::vector<int> BaseFilter::regularProcessFrame(int& ret)
     std::vector<int> newFrames;
     
     processEvent();
-    
     newFrames = demandOriginFrames(oFrames);
     
     if (newFrames.empty()) {
@@ -490,11 +502,12 @@ std::vector<int> BaseFilter::regularProcessFrame(int& ret)
     
     if (!demandDestinationFrames(dFrames)) {
         ret = WAIT;
+        removeFrames(newFrames);
         return enabledJobs;
     }
 
     runDoProcessFrame(oFrames, dFrames, newFrames);
-
+    
     //TODO: manage ret value
     enabledJobs = addFrames(dFrames);
     
@@ -666,7 +679,6 @@ bool OneToOneFilter::runDoProcessFrame(std::map<int, Frame*> &oFrames, std::map<
     return true;
 }
 
-
 OneToManyFilter::OneToManyFilter(unsigned writersNum, FilterRole fRole_, bool periodic) :
     BaseFilter(1, writersNum, fRole_, periodic)
 {
@@ -685,7 +697,6 @@ bool OneToManyFilter::runDoProcessFrame(std::map<int, Frame*> &oFrames, std::map
 
     return true;
 }
-
 
 HeadFilter::HeadFilter(unsigned writersNum, FilterRole fRole_, bool periodic) :
     BaseFilter(0, writersNum, fRole_, periodic)
@@ -737,7 +748,6 @@ bool TailFilter::runDoProcessFrame(std::map<int, Frame*> &oFrames, std::map<int,
     return doProcessFrame(oFrames, newFrames);
 }
 
-
 void TailFilter::pushEvent(Event e)
 {
     std::string action = e.getAction();
@@ -756,7 +766,6 @@ void TailFilter::pushEvent(Event e)
         utils::errorMsg("Error executing filter event");
     }
 }
-
 
 ManyToOneFilter::ManyToOneFilter(unsigned readersNum, FilterRole fRole_, bool periodic) :
     BaseFilter(readersNum, 1, fRole_, periodic)

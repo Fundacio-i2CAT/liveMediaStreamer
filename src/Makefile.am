@@ -9,6 +9,7 @@ liblivemediastreamer_la_SOURCES = modules/audioDecoder/AudioDecoderLibav.cpp \
                                   modules/videoEncoder/VideoEncoderX265.cpp \
                                   modules/videoEncoder/VideoEncoderX264or5.cpp \
                                   modules/videoMixer/VideoMixer.cpp \
+                                  modules/videoSplitter/VideoSplitter.cpp \
                                   modules/videoResampler/VideoResampler.cpp \
                                   modules/dasher/Dasher.cpp \
                                   modules/dasher/DashVideoSegmenter.cpp \
@@ -18,30 +19,30 @@ liblivemediastreamer_la_SOURCES = modules/audioDecoder/AudioDecoderLibav.cpp \
                                   modules/dasher/MpdManager.cpp \
                                   modules/dasher/i2libdash.c \
                                   modules/dasher/i2libisoff.c \
-                                  modules/liveMediaInput/ExtendedRTSPClient.cpp \
-                                  modules/liveMediaInput/Handlers.cpp \
-                                  modules/liveMediaInput/QueueSink.cpp \
-                                  modules/liveMediaInput/SourceManager.cpp \
-                                  modules/liveMediaInput/H264VideoSdpParser.cpp \
-                                  modules/liveMediaOutput/AudioQueueServerMediaSubsession.cpp \
-                                  modules/liveMediaOutput/H264or5QueueServerMediaSubsession.cpp \
-                                  modules/liveMediaOutput/H264QueueServerMediaSubsession.cpp \
-                                  modules/liveMediaOutput/H265QueueServerMediaSubsession.cpp \
-                                  modules/liveMediaOutput/H264or5QueueSource.cpp \
-                                  modules/liveMediaOutput/MPEGTSQueueServerMediaSubsession.cpp \
-                                  modules/liveMediaOutput/QueueServerMediaSubsession.cpp \
-                                  modules/liveMediaOutput/QueueSource.cpp \
-                                  modules/liveMediaOutput/SinkManager.cpp \
-                                  modules/liveMediaOutput/VP8QueueServerMediaSubsession.cpp \
-                                  modules/liveMediaOutput/Connection.cpp \
-                                  modules/liveMediaOutput/H264VideoStreamSampler.cpp \
-                                  modules/liveMediaOutput/H264or5StartCodeInjector.cpp \
-                                  modules/liveMediaOutput/UltraGridAudioRTPSink.cpp \
-                                  modules/liveMediaOutput/UltraGridVideoRTPSink.cpp \
-                                  modules/liveMediaOutput/ADTSQueueServerMediaSubsession.cpp \
-                                  modules/liveMediaOutput/ADTSStreamParser.cpp \
-                                  modules/liveMediaOutput/CustomMPEG4GenericRTPSink.cpp \
-                                  modules/liveMediaOutput/SPSparser/h264_stream.c \
+                                  modules/receiver/ExtendedRTSPClient.cpp \
+                                  modules/receiver/Handlers.cpp \
+                                  modules/receiver/QueueSink.cpp \
+                                  modules/receiver/SourceManager.cpp \
+                                  modules/receiver/H264VideoSdpParser.cpp \
+                                  modules/transmitter/AudioQueueServerMediaSubsession.cpp \
+                                  modules/transmitter/H264or5QueueServerMediaSubsession.cpp \
+                                  modules/transmitter/H264QueueServerMediaSubsession.cpp \
+                                  modules/transmitter/H265QueueServerMediaSubsession.cpp \
+                                  modules/transmitter/H264or5QueueSource.cpp \
+                                  modules/transmitter/MPEGTSQueueServerMediaSubsession.cpp \
+                                  modules/transmitter/QueueServerMediaSubsession.cpp \
+                                  modules/transmitter/QueueSource.cpp \
+                                  modules/transmitter/SinkManager.cpp \
+                                  modules/transmitter/VP8QueueServerMediaSubsession.cpp \
+                                  modules/transmitter/Connection.cpp \
+                                  modules/transmitter/H264VideoStreamSampler.cpp \
+                                  modules/transmitter/H264or5StartCodeInjector.cpp \
+                                  modules/transmitter/UltraGridAudioRTPSink.cpp \
+                                  modules/transmitter/UltraGridVideoRTPSink.cpp \
+                                  modules/transmitter/ADTSQueueServerMediaSubsession.cpp \
+                                  modules/transmitter/ADTSStreamParser.cpp \
+                                  modules/transmitter/CustomMPEG4GenericRTPSink.cpp \
+                                  modules/transmitter/SPSparser/h264_stream.c \
                                   modules/sharedMemory/SharedMemory.cpp \
                                   modules/headDemuxer/HeadDemuxerLibav.cpp \
                                   AVFramedQueue.cpp \

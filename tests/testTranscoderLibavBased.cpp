@@ -1,6 +1,6 @@
 #include "../src/modules/headDemuxer/HeadDemuxerLibav.hh"
 #include "../src/modules/videoResampler/VideoResampler.hh"
-#include "../src/modules/liveMediaOutput/SinkManager.hh"
+#include "../src/modules/transmitter/SinkManager.hh"
 #include "../src/modules/videoEncoder/VideoEncoderX264.hh"
 #include "../src/modules/videoDecoder/VideoDecoderLibav.hh"
 #include "../src/modules/audioEncoder/AudioEncoderLibav.hh"

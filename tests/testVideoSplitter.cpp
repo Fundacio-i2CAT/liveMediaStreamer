@@ -1,6 +1,6 @@
 #include "../src/modules/videoEncoder/VideoEncoderX264.hh"
 #include "../src/modules/videoDecoder/VideoDecoderLibav.hh"
-#include "../src/modules/videoMixer/VideoMixer.hh"
+#include "../src/modules/videoSplitter/VideoSplitter.hh"
 #include "../src/modules/videoResampler/VideoResampler.hh"
 #include "../src/modules/receiver/SourceManager.hh"
 #include "../src/modules/transmitter/SinkManager.hh"
@@ -20,9 +20,10 @@
 #define FRAME_RATE 25
 
 #define RETRIES 60
-#define MIX_WIDTH 640
-#define MIX_HEIGHT 360
-#define MIX_CHANNELS 8
+#define SPLIT_CHANNELS 4
+#define SPLIT_WIDTH 1280
+#define SPLIT_HEIGHT 720
+
 
 bool run = true;
 int layer = 0;
@@ -33,47 +34,61 @@ void signalHandler( int signum )
     run = false;
 }
 
-bool setupMixer(int mixerId, int transmitterId) 
+bool setupSplitter(int splitterId, int transmitterID, int def_witdth, int def_height) 
 {
     PipelineManager *pipe = Controller::getInstance()->pipelineManager();
 
-    VideoMixer* mixer;
     VideoEncoderX264* encoder;
     VideoResampler* resampler;
 
-    int encId = rand();
-    int resId = rand();
-    int pathId = rand();
+    VideoSplitter* splitter;
 
-    std::vector<int> ids = {resId, encId};
+    splitter = VideoSplitter::createNew(std::chrono::microseconds(40000));
+    pipe->addFilter(splitterId, splitter);
 
-    mixer = VideoMixer::createNew(MIX_CHANNELS, MIX_WIDTH, MIX_HEIGHT, std::chrono::microseconds(40000));
-    pipe->addFilter(mixerId, mixer);
+    int encId = 300;
+    int resId = 400;
+    int pathId = 500;
 
-    resampler = new VideoResampler();
-    pipe->addFilter(resId, resampler);
-    resampler->configure(0, 0, 0, YUV420P);
+    for(int it = 1; it <= SPLIT_CHANNELS; it++){
+        std::vector<int> ids = {resId + it, encId + it};
+        
+        resampler = new VideoResampler();
+        pipe->addFilter(resId + it, resampler);
+        resampler->configure(0, 0, 0, YUV420P);
 
-    encoder = new VideoEncoderX264();
-    //bitrate, fps, gop, lookahead, threads, annexB, preset
-    encoder->configure(4000, 50, 25, 25, 4, true, "superfast");
-    pipe->addFilter(encId, encoder);
+        encoder = new VideoEncoderX264();
+        //bitrate, fps, gop, lookahead, threads, annexB, preset
+        encoder->configure(2000, 25, 25, 0, 4, true, "superfast");
+        pipe->addFilter(encId + it, encoder);
 
-    if (!pipe->createPath(pathId, mixerId, transmitterId, -1, -1, ids)) {
-        utils::errorMsg("Error creating path");
-        return false;
+        if (!pipe->createPath(pathId + it, splitterId, transmitterID, it, it, ids)) {
+            utils::errorMsg("Error creating path");
+            return false;
+        }
+        
+        if (!pipe->connectPath(pathId + it)) {
+            utils::errorMsg("Error creating path");
+            pipe->removePath(pathId + it);
+            return false;
+        }
+
+        int w = def_witdth/(SPLIT_CHANNELS/2);
+        int h = def_height/(SPLIT_CHANNELS/2);
+        int x = ((it-1)%2)*(def_witdth/(SPLIT_CHANNELS/2));
+        int y = ((it>>1)%2)*(def_height/(SPLIT_CHANNELS/2));
+
+        splitter->configCrop(it,w,h,x,y);
+
+        utils::errorMsg("[TESTVIDEOSPLITTER] Crop config "+std::to_string(it)+":");
+        utils::errorMsg("[TESTVIDEOSPLITTER] width:"+std::to_string(w)+", height:"+std::to_string(h)+", POS.X:"+std::to_string(x)+", POS.Y:"+std::to_string(y));
+
+        ids.clear();
     }
-
-    if (!pipe->connectPath(pathId)) {
-        utils::errorMsg("Error creating path");
-        pipe->removePath(pathId);
-        return false;
-    }
-
     return true;
 }
 
-void addVideoPath(unsigned port, int receiverId, int mixerId)
+void addVideoPath(unsigned port, int receiverId, int splitterId)
 {
     PipelineManager *pipe = Controller::getInstance()->pipelineManager();
 
@@ -87,16 +102,15 @@ void addVideoPath(unsigned port, int receiverId, int mixerId)
 
     VideoDecoderLibav *decoder;
     VideoResampler *resampler;
-    VideoMixer* mixer;
 
     decoder = new VideoDecoderLibav();
     pipe->addFilter(decId, decoder);
 
     resampler = new VideoResampler();
-    resampler->configure(MIX_WIDTH*0.5, MIX_HEIGHT*0.5, 0, RGB24);
+    resampler->configure(0, 0, 0, RGB24);
     pipe->addFilter(resId, resampler);
 
-    if (!pipe->createPath(port, receiverId, mixerId, port, port, ids)) {
+    if (!pipe->createPath(port, receiverId, splitterId, port, -1, ids)) {
         utils::errorMsg("Error creating audio path");
         return;
     }
@@ -107,16 +121,7 @@ void addVideoPath(unsigned port, int receiverId, int mixerId)
         return;
     }
 
-    mixer = dynamic_cast<VideoMixer*>(pipe->getFilter(mixerId));
-
-    if (!mixer) {
-        utils::errorMsg("Error getting videoMixer from pipe");
-        return;
-    }
-
-    mixer->configChannel(port, 0.5, 0.5, rand()%50/100.0, rand()%50/100.0, layer++, true, 1.0);
-
-    utils::infoMsg("Video path created from port " + std::to_string(port));
+    utils::infoMsg("Video path created");
 }
 
 bool addVideoSDPSession(unsigned port, SourceManager *receiver, std::string codec = V_CODEC)
@@ -144,7 +149,7 @@ bool addVideoSDPSession(unsigned port, SourceManager *receiver, std::string code
     return true;
 }
 
-bool addRTSPsession(std::string rtspUri, SourceManager *receiver, int receiverId, int mixerId)
+bool addRTSPsession(std::string rtspUri, SourceManager *receiver, int receiverId, int splitterId)
 {
     Session* session;
     std::string sessionId = utils::randomIdGenerator(ID_LENGTH);
@@ -188,7 +193,7 @@ bool addRTSPsession(std::string rtspUri, SourceManager *receiver, int receiverId
         medium = subsession->mediumName();
 
         if (medium.compare("video") == 0) {
-            addVideoPath(subsession->clientPortNum(), receiverId, mixerId);
+            addVideoPath(subsession->clientPortNum(), receiverId, splitterId);
         } else {
             utils::warningMsg("Only video is supported in this test. Ignoring audio streams");
         }
@@ -201,54 +206,66 @@ bool publishRTSPSession(std::vector<int> readers, SinkManager *transmitter)
 {
     std::string sessionId;
 
-    sessionId = "plainrtp";
     utils::infoMsg("Adding plain RTP session...");
-    if (!transmitter->addRTSPConnection(readers, 1, STD_RTP, sessionId)){
-        return false;
+    for (auto it : readers)
+    {
+        if(it ==0){
+            continue;
+        } 
+        std::vector<int> out;
+        sessionId = "plainrtp" + std::to_string(it);
+        out.push_back(it);
+        if (!transmitter->addRTSPConnection(out, it, STD_RTP, sessionId)){
+            return false;
+        }
     }
-
-    sessionId = "mpegts";
+    /*sessionId = "mpegts";
     utils::infoMsg("Adding plain MPEGTS session...");
     if (!transmitter->addRTSPConnection(readers, 2, MPEGTS, sessionId)){
         return false;
-    }
+    }*/
 
     return true;
 }
 
 int main(int argc, char* argv[])
 {
-    std::vector<int> ports;
-    std::vector<std::string> uris;
     std::vector<int> readers;
-
     std::string rtspUri;
 
-    int transmitterID = 11;
+    int transmitterId = 11;
     int receiverId = 10;
-    int mixerId = 15;
+    int splitterId  = 15;
 
-    int port;
+    int cPort = 7777;
+    
+    int def_witdth = SPLIT_WIDTH;
+    int def_height = SPLIT_HEIGHT;
+
+    int port = 0;
 
     SinkManager* transmitter = NULL;
     SourceManager* receiver = NULL;
     PipelineManager *pipe;
 
     utils::setLogLevel(INFO);
-
     for (int i = 1; i < argc; i++) {
-
-        if (strcmp(argv[i],"-v") == 0) {
+        if (strcmp(argv[i],"-v") == 0){
             port = std::stoi(argv[i+1]);
-            ports.push_back(port);
             utils::infoMsg("video input port: " + std::to_string(port));
+        } else if (strcmp(argv[i],"-w")==0) {
+            def_witdth = std::stoi(argv[i+1]);
+        } else if (strcmp(argv[i],"-h")==0) {
+            def_height = std::stoi(argv[i+1]);
         } else if (strcmp(argv[i],"-r")==0) {
-            uris.push_back(argv[i+1]);
+            rtspUri = argv[i+1];
             utils::infoMsg("input RTSP URI: " + rtspUri);
+            utils::infoMsg("Ignoring any audio or video input port, just RTSP inputs");
         }
     }
- 
-    if (ports.empty() && rtspUri.empty()) { 
+    utils::infoMsg("input WIDTH: " + std::to_string(def_witdth) + " and input HEIGHT" + std::to_string(def_height));
+
+    if (port == 0  && rtspUri.empty()) { 
         utils::errorMsg("Usage: -v <port> -r <uri>");
         return 1;
     }
@@ -263,10 +280,10 @@ int main(int argc, char* argv[])
         return 1;
     }
 
-    pipe->addFilter(transmitterID, transmitter);
+    pipe->addFilter(transmitterId, transmitter);
     pipe->addFilter(receiverId, receiver);
 
-    setupMixer(mixerId, transmitterID);
+    setupSplitter(splitterId, transmitterId, def_witdth, def_height);
 
     signal(SIGINT, signalHandler);
 
@@ -274,29 +291,47 @@ int main(int argc, char* argv[])
         readers.push_back(it.second->getDstReaderID());
     }
 
+    if (readers.empty()){
+        utils::errorMsg("No readers provided!");
+        return 1;
+    }
+
     if (!publishRTSPSession(readers, transmitter)){
         utils::errorMsg("Failed adding RTSP sessions!");
         return 1;
     }
 
-    for (auto p : ports) {
-        addVideoSDPSession(p, receiver);
-        addVideoPath(p, receiverId, mixerId);
-    }
-
-    for (auto uri : uris) {
-        if (!addRTSPsession(uri, receiver, receiverId, mixerId)){
+    if (port > 0 && rtspUri.length() == 0){
+        addVideoSDPSession(port, receiver);
+        addVideoPath(port, receiverId, splitterId);
+    } else {
+        if (!addRTSPsession(rtspUri, receiver, receiverId, splitterId)){
             utils::errorMsg("Couldn't start rtsp client session!");
             return 1;
         }
     }
 
-    while(run) {
-        std::this_thread::sleep_for(std::chrono::seconds(1));
+    Controller* ctrl = Controller::getInstance();
+
+    if (!ctrl->createSocket(cPort)) {
+        exit(1);
     }
 
-    Controller::destroyInstance();
-    PipelineManager::destroyInstance();
+    while (run) {
+        if (!ctrl->listenSocket()) {
+            continue;
+        }
+
+        if (!ctrl->readAndParse()) {
+            utils::errorMsg("Controller failed to read and parse the incoming event data");
+            continue;
+        }
+
+        ctrl->processRequest();
+    }
+
+    ctrl->destroyInstance();
+    pipe->destroyInstance();
     
     return 0;
 }

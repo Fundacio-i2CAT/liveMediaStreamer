@@ -135,6 +135,10 @@ private:
     bool soloChannelEvent(Jzon::Node* params);
     bool changeMasterVolumeEvent(Jzon::Node* params);
     bool muteMasterEvent(Jzon::Node* params);
+    
+    //NOTE: There is no need of specific writer configuration
+    bool specificWriterConfig(int /*writerID*/) {return true;};
+    bool specificWriterDelete(int /*writerID*/) {return true;};
 
     int channels;
     int sampleRate;

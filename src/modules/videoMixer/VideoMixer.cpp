@@ -216,13 +216,22 @@ void VideoMixer::pasteToLayout(int frameID, VideoFrame* vFrame)
 
 bool VideoMixer::specificReaderConfig(int readerId, FrameQueue* /*queue*/)
 {
-    channelsConfig[readerId] = new ChannelConfig();
+    if (channelsConfig.count(readerId) <= 0) {
+        channelsConfig[readerId] = new ChannelConfig();
+        return true;
+    }
 
-    return true;
+    utils::errorMsg("[VideoMixer::specificReaderConfig] Error configuring. This readerId exist " + std::to_string(readerId));
+    return false;
 }
 
 bool VideoMixer::specificReaderDelete(int readerID)
 {
+    if (channelsConfig.count(readerID) <= 0) {
+        utils::errorMsg("[VideoMixer::specificReaderDelete] Error configuring. This readerId doesn't exist " + std::to_string(readerID));
+        return false;
+    }
+
     delete channelsConfig[readerID];
     channelsConfig.erase(readerID);
     

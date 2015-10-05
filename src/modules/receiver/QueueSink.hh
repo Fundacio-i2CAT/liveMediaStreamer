@@ -36,6 +36,7 @@ public:
     static QueueSink* createNew(UsageEnvironment& env, unsigned port);
     unsigned getPort() {return fPort;};
     bool setFrame(Frame *f);
+    void disconnect();
 
 protected:
     QueueSink(UsageEnvironment& env, unsigned port);

@@ -54,6 +54,10 @@ private:
     bool specificReaderConfig(int /*readerID*/, FrameQueue* /*queue*/)  {return true;};
     bool specificReaderDelete(int /*readerID*/) {return true;};
     
+    //NOTE: There is no need of specific writer configuration
+    bool specificWriterConfig(int /*writerID*/) {return true;};
+    bool specificWriterDelete(int /*writerID*/) {return true;};
+    
     AVCodec             *codec;
     AVCodecContext      *codecCtx;
     AVFrame             *frame, *frameCopy;

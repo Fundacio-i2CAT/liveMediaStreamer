@@ -76,7 +76,6 @@ public:
     * @return True if succeeded and false if not
     */
     bool connectManyToMany(BaseFilter *R, int readerID, int writerID);
-
     /**
     * Disconnects and cleans specified writer
     * @param Integer writer ID
@@ -90,12 +89,13 @@ public:
     */
     bool disconnectReader(int readerId);
     /**
-    * Disconnects and cleans all readers and writers
+    * Shares a reader of this filter with the shared filter
+    * @param Filter to share the reader with
+    * @param The id of the shared reader
+    * @param The id of the original reader
+    * @return True if succeeded and false if not
     */
-    void disconnectAll();
-    
     bool shareReader(BaseFilter *shared, int sharedRId, int orgRId);
-
     /**
     * Filter type getter
     * @return filter type
@@ -106,7 +106,6 @@ public:
     * @return filter role
     */
     FilterRole getRole() {return fRole;};
-
     /**
     * Generates a new and random reader ID
     * @return ID
@@ -137,13 +136,11 @@ public:
     * @param filter node pointer
     */
     void getState(Jzon::Object &filterNode);
-
     /**
     * Returns true if filter is enabled or false if not
     * @return Bool enabled
     */
     bool isEnabled(){return enabled;};
-
     /**
     * Class destructor. Deletes and clears its writers, readers, oframes, dframes and rupdates
     */
@@ -162,35 +159,30 @@ public:
     * @param size_t frame time
     */
     void setFrameTime(std::chrono::microseconds fTime);
-    
     /**
      * tests if the specfied reader is connected or not
      * @param readerId of the reader to check
      * @return true if, and only if, the reader exists and it is connected.
      */
     bool isRConnected (int rId);
-    
     /**
      * tests if the specfied writer is connected or not
      * @param writerId of the writer to check
      * @return true if, and only if, the writer exists and it is connected.
      */
     bool isWConnected (int wId);
-    
     /**
      * get the connection data of the specified writer
      * @param writerId of the writer to check
      * @return the connection data. It is a defaut ConnectionData in case of failure (e.g. filter not connected)
      */
     struct ConnectionData getWConnectionData (int wId);
-
     /**
      * gets the average delay of the reader
      * @param readerId of the reader
      * @return the average delay of the reader 
      */
     std::chrono::microseconds getAvgReaderDelay (int rId);
-
     /**
      * get losts blocs
      * @param readerId of the reader
@@ -207,12 +199,14 @@ protected:
 
     std::chrono::microseconds getFrameTime() {return frameTime;};
 
-    std::shared_ptr<Reader> setReader(int readerID, FrameQueue* queue);
     std::shared_ptr<Reader> getReader(int id);
     
     //TODO: this should get stream info parameters insted of FrameQueue or get from reader.
     virtual bool specificReaderConfig(int readerID, FrameQueue* queue) = 0;
     virtual bool specificReaderDelete(int readerID) = 0;
+    
+    virtual bool specificWriterConfig(int writerID) = 0;
+    virtual bool specificWriterDelete(int writerID) = 0;
 
     std::vector<int> demandOriginFrames(std::map<int, Frame*> &oFrames);
     std::vector<int> demandOriginFramesBestEffort(std::map<int, Frame*> &oFrames);
@@ -245,7 +239,13 @@ private:
     bool connect(BaseFilter *R, int writerID, int readerID);
     std::vector<int> regularProcessFrame(int& ret);
     std::vector<int> serverProcessFrame(int& ret);
+
+    std::shared_ptr<Reader> setReader(int readerID, FrameQueue* queue);
+    bool setWriter(int writerID);
+    
     bool deleteReader(int readerId);
+    bool deleteWriter(int readerId);
+    
     bool pendingJobs();
 
 private:
@@ -321,7 +321,7 @@ protected:
 
 private: 
     bool runDoProcessFrame(std::map<int, Frame*> &oFrames, std::map<int, Frame*> &dFrames, std::vector<int> /*newFrames*/);
-    //There is no need of specific reader configuration
+    //NOTE: There is no need of specific reader configuration
     bool specificReaderConfig(int /*readerID*/, FrameQueue* /*queue*/)  {return true;};
     bool specificReaderDelete(int /*readerID*/) {return true;};
 
@@ -352,6 +352,11 @@ private:
     FrameQueue *allocQueue(struct ConnectionData cData) {return NULL;};
     bool runDoProcessFrame(std::map<int, Frame*> &oFrames, std::map<int, Frame*> &dFrames, std::vector<int> newFrames);
     virtual bool doProcessFrame(std::map<int, Frame*> &orgFrames, std::vector<int> newFrames) = 0;
+    
+    //NOTE: There is no need of specific writer configuration
+    bool specificWriterConfig(int /*writerID*/) {return true;};
+    bool specificWriterDelete(int /*writerID*/) {return true;};
+    
     using BaseFilter::demandOriginFrames;
     using BaseFilter::demandDestinationFrames;
     using BaseFilter::addFrames;

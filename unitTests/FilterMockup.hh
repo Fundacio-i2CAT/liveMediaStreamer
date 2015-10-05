@@ -58,6 +58,8 @@ private:
     //There is no need of specific reader configuration
     bool specificReaderConfig(int /*readerID*/, FrameQueue* /*queue*/)  {return true;};
     bool specificReaderDelete(int /*readerID*/) {return true;};
+    bool specificWriterConfig(int /*writerID*/) {return true;};
+    bool specificWriterDelete(int /*writerID*/) {return true;};
 
     bool runDoProcessFrame(std::map<int, Frame*> &oFrames, std::map<int, Frame*> &dFrames, std::vector<int> newFrames) {
         return true;
@@ -94,6 +96,8 @@ private:
     //There is no need of specific reader configuration
     bool specificReaderConfig(int /*readerID*/, FrameQueue* /*queue*/)  {return true;};
     bool specificReaderDelete(int /*readerID*/) {return true;};
+    bool specificWriterConfig(int /*writerID*/) {return true;};
+    bool specificWriterDelete(int /*writerID*/) {return true;};
 
     std::default_random_engine generator;
     size_t queueSize;
@@ -129,6 +133,8 @@ private:
     //There is no need of specific reader configuration
     bool specificReaderConfig(int /*readerID*/, FrameQueue* /*queue*/)  {return true;};
     bool specificReaderDelete(int /*readerID*/) {return true;};
+    bool specificWriterConfig(int /*writerID*/) {return true;};
+    bool specificWriterDelete(int /*writerID*/) {return true;};
 
     std::default_random_engine generator;
     size_t queueSize;
@@ -193,7 +199,7 @@ public:
     }
     
     void doGetState(Jzon::Object &filterNode){};
-    
+
 protected:
     bool doProcessFrame(std::map<int, Frame*> &dstFrames) {
         if (!newFrame){
@@ -214,7 +220,13 @@ protected:
         }
         return gotFrame;
     }
-    
+        
+    //There is no need of specific reader configuration
+    bool specificReaderConfig(int /*readerID*/, FrameQueue* /*queue*/)  {return true;};
+    bool specificReaderDelete(int /*readerID*/) {return true;};
+    bool specificWriterConfig(int /*writerID*/) {return true;};
+    bool specificWriterDelete(int /*writerID*/) {return true;};
+
     Frame* srcFrame;
     bool newFrame;
     
@@ -242,7 +254,7 @@ public:
     size_t getFrames() {return frames;};
     
     void doGetState(Jzon::Object &filterNode){};
-    
+
 protected:
     bool doProcessFrame(std::map<int, Frame*> &orgFrames, std::vector<int> /*newFrames*/) { 
         bool gotframe = false;
@@ -259,12 +271,13 @@ protected:
         
         return gotframe;
     }
-    
-        
+            
     //There is no need of specific reader configuration
     bool specificReaderConfig(int /*readerID*/, FrameQueue* /*queue*/)  {return true;};
     bool specificReaderDelete(int /*readerID*/) {return true;};
-    
+    bool specificWriterConfig(int /*writerID*/) {return true;};
+    bool specificWriterDelete(int /*writerID*/) {return true;};
+
     size_t frames;
     Frame* frame;
     bool newFrame;
@@ -320,6 +333,12 @@ private:
     FrameQueue *allocQueue(struct ConnectionData cData) {
         return VideoFrameQueue::createNew(cData, outputStreamInfo, 10);
     };
+        
+    //There is no need of specific reader configuration
+    bool specificReaderConfig(int /*readerID*/, FrameQueue* /*queue*/)  {return true;};
+    bool specificReaderDelete(int /*readerID*/) {return true;};
+    bool specificWriterConfig(int /*writerID*/) {return true;};
+    bool specificWriterDelete(int /*writerID*/) {return true;};
 
     InterleavedVideoFrame* srcFrame;
     StreamInfo *outputStreamInfo;
@@ -383,7 +402,13 @@ private:
                 outputStreamInfo->audio.sampleRate, DEFAULT_BUFFER_SIZE,
                 outputStreamInfo->audio.sampleFormat, std::chrono::milliseconds(0));
     };
-
+        
+    //There is no need of specific reader configuration
+    bool specificReaderConfig(int /*readerID*/, FrameQueue* /*queue*/)  {return true;};
+    bool specificReaderDelete(int /*readerID*/) {return true;};
+    bool specificWriterConfig(int /*writerID*/) {return true;};
+    bool specificWriterDelete(int /*writerID*/) {return true;};
+    
     PlanarAudioFrame* srcFrame;
     StreamInfo *outputStreamInfo;
 };
@@ -441,7 +466,9 @@ private:
     //There is no need of specific reader configuration
     bool specificReaderConfig(int /*readerID*/, FrameQueue* /*queue*/)  {return true;};
     bool specificReaderDelete(int /*readerID*/) {return true;};
-    
+    bool specificWriterConfig(int /*writerID*/) {return true;};
+    bool specificWriterDelete(int /*writerID*/) {return true;};
+
     InterleavedVideoFrame* oFrame;
     bool newFrame;
 };
@@ -510,7 +537,9 @@ private:
     //There is no need of specific reader configuration
     bool specificReaderConfig(int /*readerID*/, FrameQueue* /*queue*/)  {return true;};
     bool specificReaderDelete(int /*readerID*/) {return true;};
-    
+    bool specificWriterConfig(int /*writerID*/) {return true;};
+    bool specificWriterDelete(int /*writerID*/) {return true;};
+
     PlanarAudioFrame* oFrame;
     bool newFrame;
 };

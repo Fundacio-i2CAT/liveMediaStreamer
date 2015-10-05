@@ -36,7 +36,7 @@ class VideoMixerMock : public VideoMixer {
 public:
     VideoMixerMock(int channels, int width, int height, std::chrono::microseconds fTime) :
     VideoMixer(channels, width, height, fTime) {}; 
-    using VideoMixer::setReader;
+    using VideoMixer::specificReaderConfig;
     using VideoMixer::configChannel0;
 };
 
@@ -116,10 +116,9 @@ void VideoMixerTest::channelConfigTest()
     mixer = new VideoMixerMock(channels, width, height, fTime);
 
     CPPUNIT_ASSERT(!mixer->configChannel0(id, 1.0, 1.0, 0.0, 0.0, 1, true, 1.0));
-    r = mixer->setReader(id, NULL);
-    CPPUNIT_ASSERT(r);
-    r = mixer->setReader(id, NULL);
-    CPPUNIT_ASSERT(!r);
+
+    CPPUNIT_ASSERT(mixer->specificReaderConfig(id, NULL));
+    CPPUNIT_ASSERT(!mixer->specificReaderConfig(id, NULL));
 
     CPPUNIT_ASSERT(mixer->configChannel0(id, 1, 1, 0, 0, 1, true, 1));
     

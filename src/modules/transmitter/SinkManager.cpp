@@ -85,7 +85,8 @@ void SinkManager::stop()
     connections.clear();
 
     for (auto it : replicators) {
-        if (it.second->numReplicas() == 0){
+        if (it.second->numReplicas() != 0){
+            utils::infoMsg("[SinkManager::stop] closing replicator medium");
             Medium::close(it.second);
             sources.erase(it.first);
         }
@@ -464,6 +465,11 @@ bool SinkManager::addSubsessionByReader(RTSPConnection* connection ,int readerId
     std::shared_ptr<Reader> reader = getReader(readerId);
     if (!reader){
         utils::errorMsg("Failed! Reader not found!");
+        return false;
+    }
+
+    if(replicators.count(readerId) == 0){
+        utils::errorMsg("Failed! No replicator found!");
         return false;
     }
 

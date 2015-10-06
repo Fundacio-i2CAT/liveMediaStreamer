@@ -233,7 +233,6 @@ FrameQueue *SourceManager::allocQueue(ConnectionData cData)
 bool SourceManager::specificWriterDelete(int writerID)
 {
     if (outputStreamInfos.count(writerID) > 0) {
-        disconnectWriter(writerID);
         sinks[writerID]->disconnect();
     } else {
         utils::errorMsg (std::string("[SourceManager::specificWriterDelete] Unknown port number ") + std::to_string(writerID));

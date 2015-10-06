@@ -414,10 +414,10 @@ int main(int argc, char* argv[])
         ctrl->processRequest();
     }
 
-    ctrl->destroyInstance();
-    utils::infoMsg("Controller deleted");
     pipe->destroyInstance();
     utils::infoMsg("Pipe deleted");
+    ctrl->destroyInstance();
+    utils::infoMsg("Controller deleted");
     
     return 0;
 }

@@ -44,9 +44,6 @@ class DasherTest : public CppUnit::TestFixture
 {
     CPPUNIT_TEST_SUITE(DasherTest);
     CPPUNIT_TEST(configure);
-    CPPUNIT_TEST(addSegmenter);
-    CPPUNIT_TEST(removeSegmenter);
-    CPPUNIT_TEST(setDashSegmenterBitrate);
     CPPUNIT_TEST_SUITE_END();
 
 public:
@@ -55,9 +52,6 @@ public:
 
 protected:
     void configure();
-    void addSegmenter();
-    void removeSegmenter();
-    void setDashSegmenterBitrate();
 
     Dasher* dasher;
     VideoFilterMockup* h264Filter = NULL;
@@ -119,39 +113,6 @@ void DasherTest::configure()
     CPPUNIT_ASSERT(tmpDasher->configure(dashFolder, baseName, SEG_DURATION, SEG_NUMBER, MIN_BUFFER));
     
     delete tmpDasher;
-}
-
-void DasherTest::addSegmenter()
-{
-    CPPUNIT_ASSERT(!dasher->addSegmenter(nonExistanceReader));
-    CPPUNIT_ASSERT(!dasher->addSegmenter(vp8ReaderId));
-    CPPUNIT_ASSERT(!dasher->addSegmenter(mp3ReaderId));
-    CPPUNIT_ASSERT(dasher->addSegmenter(h264ReaderId));
-    CPPUNIT_ASSERT(dasher->addSegmenter(h265ReaderId));
-    CPPUNIT_ASSERT(dasher->addSegmenter(aacReaderId));
-    CPPUNIT_ASSERT(!dasher->addSegmenter(h264ReaderId));
-    CPPUNIT_ASSERT(!dasher->addSegmenter(aacReaderId));
-}
-
-void DasherTest::removeSegmenter()
-{
-    dasher->addSegmenter(h264ReaderId);
-    dasher->addSegmenter(h265ReaderId);
-    dasher->addSegmenter(aacReaderId);
-    CPPUNIT_ASSERT(dasher->removeSegmenter(h264ReaderId));
-    CPPUNIT_ASSERT(dasher->removeSegmenter(h265ReaderId));
-    CPPUNIT_ASSERT(dasher->removeSegmenter(aacReaderId));
-    CPPUNIT_ASSERT(!dasher->removeSegmenter(h264ReaderId));
-    CPPUNIT_ASSERT(!dasher->removeSegmenter(aacReaderId));
-}
-
-void DasherTest::setDashSegmenterBitrate() 
-{
-    dasher->addSegmenter(h264ReaderId);
-    dasher->addSegmenter(h265ReaderId);
-    CPPUNIT_ASSERT(dasher->setDashSegmenterBitrate(h264ReaderId, 1000000));
-    CPPUNIT_ASSERT(dasher->setDashSegmenterBitrate(h265ReaderId, 2000000));
-    CPPUNIT_ASSERT(!dasher->setDashSegmenterBitrate(aacReaderId, 1000000));
 }
 
 CPPUNIT_TEST_SUITE_REGISTRATION(DasherTest);

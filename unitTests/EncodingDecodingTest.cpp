@@ -84,10 +84,6 @@ void VideoEncoderDecoderFunctionalTest::setUp()
 
 void VideoEncoderDecoderFunctionalTest::tearDown()
 {
-    x264encodingSce->disconnectFilter();
-    x265encodingSce->disconnectFilter();
-    x264decodingSce->disconnectFilter();
-    x265decodingSce->disconnectFilter();
     delete x264encodingSce;
     delete x265encodingSce;
     delete x264decodingSce;

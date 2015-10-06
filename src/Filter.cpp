@@ -40,7 +40,9 @@ BaseFilter::~BaseFilter()
 {
     std::lock_guard<std::mutex> guard(mtx);
     for (auto it : readers) {
-        it.second->removeReader(getId());
+        if (it.second && it.first >= 0){
+            it.second->removeReader(getId());
+        }
     }
 
     readers.clear();
@@ -408,22 +410,6 @@ bool BaseFilter::disconnectReader(int readerId)
     return false;
 }
 
-void BaseFilter::disconnectAll()
-{
-    std::lock_guard<std::mutex> guard(mtx);
-    
-    for (auto it : writers) {
-        it.second->disconnect();
-        deleteWriter(it.first);
-    }
-
-    for (auto it : readers) {
-        it.second->disconnect();
-        deleteReader(it.first);
-    }
-
-}
-
 void BaseFilter::processEvent()
 {
     std::string action;
@@ -693,7 +679,6 @@ bool OneToOneFilter::runDoProcessFrame(std::map<int, Frame*> &oFrames, std::map<
     return true;
 }
 
-
 OneToManyFilter::OneToManyFilter(unsigned writersNum, FilterRole fRole_, bool periodic) :
     BaseFilter(1, writersNum, fRole_, periodic)
 {
@@ -712,7 +697,6 @@ bool OneToManyFilter::runDoProcessFrame(std::map<int, Frame*> &oFrames, std::map
 
     return true;
 }
-
 
 HeadFilter::HeadFilter(unsigned writersNum, FilterRole fRole_, bool periodic) :
     BaseFilter(0, writersNum, fRole_, periodic)
@@ -764,7 +748,6 @@ bool TailFilter::runDoProcessFrame(std::map<int, Frame*> &oFrames, std::map<int,
     return doProcessFrame(oFrames, newFrames);
 }
 
-
 void TailFilter::pushEvent(Event e)
 {
     std::string action = e.getAction();
@@ -783,7 +766,6 @@ void TailFilter::pushEvent(Event e)
         utils::errorMsg("Error executing filter event");
     }
 }
-
 
 ManyToOneFilter::ManyToOneFilter(unsigned readersNum, FilterRole fRole_, bool periodic) :
     BaseFilter(readersNum, 1, fRole_, periodic)

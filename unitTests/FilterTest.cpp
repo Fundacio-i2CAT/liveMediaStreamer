@@ -146,8 +146,10 @@ void FilterUnitTest::connectManyToMany()
     CPPUNIT_ASSERT(filterToTest->connectManyToMany(satelliteFilter,2,1));
     CPPUNIT_ASSERT(filterToTest->connectManyToMany(satelliteFilter,1,2));
 
-    filterToTest->disconnectAll();
-    satelliteFilter->disconnectAll();
+    CPPUNIT_ASSERT(filterToTest->disconnectWriter(2));
+    CPPUNIT_ASSERT(satelliteFilter->disconnectReader(1));
+    CPPUNIT_ASSERT(filterToTest->disconnectWriter(1));
+    CPPUNIT_ASSERT(satelliteFilter->disconnectReader(2));
 
     delete filterToTest;
     delete satelliteFilter;

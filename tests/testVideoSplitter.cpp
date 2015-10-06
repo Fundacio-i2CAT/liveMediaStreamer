@@ -21,8 +21,8 @@
 
 #define RETRIES 60
 #define SPLIT_CHANNELS 4
-#define SPLIT_WIDTH 1280
-#define SPLIT_HEIGHT 720
+#define SPLIT_WIDTH 1920
+#define SPLIT_HEIGHT 1080
 
 
 bool run = true;
@@ -77,9 +77,11 @@ bool setupSplitter(int splitterId, int transmitterID, int def_witdth, int def_he
         int h = def_height/(SPLIT_CHANNELS/2);
         int x = ((it-1)%2)*(def_witdth/(SPLIT_CHANNELS/2));
         int y = ((it>>1)%2)*(def_height/(SPLIT_CHANNELS/2));
-
-        splitter->configCrop(it,w,h,x,y);
-
+        if (it==1){
+            splitter->configCrop(it,400,400,540,540,45);
+        } else {
+            splitter->configCrop(it,w,h,x,y);
+        }
         utils::errorMsg("[TESTVIDEOSPLITTER] Crop config "+std::to_string(it)+":");
         utils::errorMsg("[TESTVIDEOSPLITTER] width:"+std::to_string(w)+", height:"+std::to_string(h)+", POS.X:"+std::to_string(x)+", POS.Y:"+std::to_string(y));
 
@@ -331,7 +333,9 @@ int main(int argc, char* argv[])
     }
 
     ctrl->destroyInstance();
+    utils::infoMsg("Controller deleted");
     pipe->destroyInstance();
+    utils::infoMsg("Pipe deleted");
     
     return 0;
 }

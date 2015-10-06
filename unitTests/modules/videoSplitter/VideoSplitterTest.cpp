@@ -77,6 +77,13 @@ void VideoSplitterTest::cropConfigTest(){
 	CPPUNIT_ASSERT(!splitter->specificWriterConfig(id));
 	
 	CPPUNIT_ASSERT(splitter->configCrop0(id,1,1,0,0));
+	CPPUNIT_ASSERT(splitter->configCrop0(id,1,1,0,0,0));
+	CPPUNIT_ASSERT(splitter->configCrop0(id,1,1,0,0,360));
+	CPPUNIT_ASSERT(splitter->configCrop0(id,1,1,0,0,-360));
+
+	CPPUNIT_ASSERT(!splitter->configCrop0(id,1,1,0,0,361));
+	CPPUNIT_ASSERT(!splitter->configCrop0(id,1,1,0,0,-361));
+
 
 	CPPUNIT_ASSERT(!splitter->configCrop0(id,1,1,-1,0));
 	CPPUNIT_ASSERT(!splitter->configCrop0(id,1,1,0,-1));
@@ -84,9 +91,6 @@ void VideoSplitterTest::cropConfigTest(){
 	CPPUNIT_ASSERT(!splitter->configCrop0(id,-1,1,0,0));
 	CPPUNIT_ASSERT(!splitter->configCrop0(id,1,0,0,0));
 	CPPUNIT_ASSERT(!splitter->configCrop0(id,1,-1,0,0));
-	
-	//x+width > width input
-	//y+height > height input
 
 	CPPUNIT_ASSERT(splitter->specificWriterDelete(id));
 	CPPUNIT_ASSERT(!splitter->specificWriterDelete(id));

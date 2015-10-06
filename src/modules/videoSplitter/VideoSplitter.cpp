@@ -29,17 +29,18 @@
 //                 CropConfig Class              //
 ///////////////////////////////////////////////////
 
- CropConfig::CropConfig() : width(0), height(0), x(-1), y(-1)
+ CropConfig::CropConfig() : width(0), height(0), x(-1), y(-1), degree(0)
 {
 
 }
 
-void CropConfig::config(int width, int height, int x, int y)
+void CropConfig::config(int width, int height, int x, int y, int degree)
 {
     this->width = width;
     this->height = height;
     this->x = x;
     this->y = y;
+    this->degree = degree;
     cv::Mat img(height, width, CV_8UC3);
     img.copyTo(this->crop);
 
@@ -69,7 +70,7 @@ VideoSplitter::~VideoSplitter()
 	delete outputStreamInfo;
 }
 
-bool VideoSplitter::configCrop(int id, int width, int height, int x, int y)
+bool VideoSplitter::configCrop(int id, int width, int height, int x, int y, int degree)
 {
 	Jzon::Object root, params;
 	root.Add("action", "configCrop");
@@ -78,6 +79,7 @@ bool VideoSplitter::configCrop(int id, int width, int height, int x, int y)
 	params.Add("height", height);
 	params.Add("x", x);
 	params.Add("y", y);
+	params.Add("degree", degree);
 	root.Add("params", params);
 
 	Event e(root, std::chrono::system_clock::now(), 0);
@@ -109,13 +111,17 @@ bool VideoSplitter::doProcessFrame(Frame *org, std::map<int, Frame *> &dstFrames
 	int yROI = -1;
 	int widthROI = 0;
 	int heightROI = 0;
+	int degreeCrop = 0;
 	VideoFrame *vFrame;
 	VideoFrame *vFrameDst;
+
 	vFrame = dynamic_cast<VideoFrame*>(org);
+	
 	if(!vFrame){
 		utils::errorMsg("[VideoSplitter] No origin frame");
 		return false;
 	}
+	
 	cv::Mat orgFrame(vFrame->getHeight(), vFrame->getWidth(), CV_8UC3, vFrame->getDataBuf());
 	
 	for (auto it : dstFrames){
@@ -123,13 +129,25 @@ bool VideoSplitter::doProcessFrame(Frame *org, std::map<int, Frame *> &dstFrames
 		yROI = cropsConfig[it.first]->getY();
 		widthROI = cropsConfig[it.first]->getWidth();
 		heightROI = cropsConfig[it.first]->getHeight();
+		degreeCrop = cropsConfig[it.first]->getDegree();
 
 		if((xROI >= 0 || yROI >= 0 || widthROI > 0 || heightROI > 0) && xROI+widthROI <= vFrame->getWidth() && yROI+heightROI <= vFrame->getHeight()){
 			vFrameDst = dynamic_cast<VideoFrame*>(it.second);
 			cropsConfig[it.first]->getCrop()->data = vFrameDst->getDataBuf();
 			vFrameDst->setLength(widthROI * heightROI);
     		vFrameDst->setSize(widthROI, heightROI);
-			orgFrame(cv::Rect(xROI, yROI, widthROI, heightROI)).copyTo(cropsConfig[it.first]->getCropRect(0, 0, widthROI, heightROI));
+    		if (degreeCrop == 0){
+    			orgFrame(cv::Rect(xROI, yROI, widthROI, heightROI)).copyTo(cropsConfig[it.first]->getCropRect(0, 0, widthROI, heightROI));
+			} else {
+				cv::Mat rotationMatrix, rotatedImage;
+				cv::Point orgFrameCenter(orgFrame.cols/2, orgFrame.rows/2);
+				rotationMatrix = cv::getRotationMatrix2D(orgFrameCenter, degreeCrop, 1.0);
+				cv::Rect bbox = cv::RotatedRect(orgFrameCenter,orgFrame.size(), degreeCrop).boundingRect();
+				rotationMatrix.at<double>(0,2) += bbox.width/2.0 - orgFrameCenter.x;
+    			rotationMatrix.at<double>(1,2) += bbox.height/2.0 - orgFrameCenter.y;
+				cv::warpAffine(orgFrame, rotatedImage, rotationMatrix, bbox.size());
+				rotatedImage(cv::Rect(xROI, yROI, widthROI, heightROI)).copyTo(cropsConfig[it.first]->getCropRect(0, 0, widthROI, heightROI));
+			}
 			it.second->setConsumed(true);
 			it.second->setPresentationTime(vFrame->getPresentationTime());
 			it.second->setOriginTime(org->getOriginTime());
@@ -157,25 +175,27 @@ void VideoSplitter::doGetState(Jzon::Object &filterNode)
         crConfig.Add("height", it.second->getHeight());
         crConfig.Add("x", it.second->getX());
         crConfig.Add("y", it.second->getY());
+        crConfig.Add("degree", it.second->getDegree());
 		jsonCropsConfigs.Add(crConfig);
 	}
 
 	filterNode.Add("crops", jsonCropsConfigs);
 }
 
-bool VideoSplitter::configCrop0(int id, int width, int height, int x, int y)
+bool VideoSplitter::configCrop0(int id, int width, int height, int x, int y, int degree)
 {
 	if (cropsConfig.count(id) <= 0) {
         utils::errorMsg("[VideoSplitter] Error configuring crop. Incorrect Id " + std::to_string(id));
         return false;
     }
 
-    if (x < 0 || y < 0 || width <= 0 || height <= 0) {
+
+    if (x < 0 || y < 0 || width <= 0 || height <= 0 || degree > 360 || degree < (-360)) {
         utils::errorMsg("[VideoSplitter] Error configuring crop. Incoherent values");
         return false;
     }
 
-    cropsConfig[id]->config(width, height, x, y);
+    cropsConfig[id]->config(width, height, x, y, degree);
     return true;
 }
 
@@ -203,9 +223,13 @@ bool VideoSplitter::configCropEvent(Jzon::Node* params)
     int height = params->Get("height").ToInt();
     int x = params->Get("x").ToInt();
     int y = params->Get("y").ToInt();
-    utils::infoMsg("ID: " + std::to_string(id) + " W: " + std::to_string(width) + " H: " + std::to_string(height) + " X: " + std::to_string(x) + " Y: " + std::to_string(y));
+    int degree = 0;
+    if(params->Has("degree")){
+    	degree = params->Get("degree").ToInt();
+    }
+    utils::infoMsg("ID: " + std::to_string(id) + " W: " + std::to_string(width) + " H: " + std::to_string(height) + " X: " + std::to_string(x) + " Y: " + std::to_string(y)+ " Degree: " + std::to_string(degree));
     
-    return configCrop0(id, width, height, x, y);
+    return configCrop0(id, width, height, x, y, degree);
 }
         
 bool VideoSplitter::specificWriterConfig(int writerID)

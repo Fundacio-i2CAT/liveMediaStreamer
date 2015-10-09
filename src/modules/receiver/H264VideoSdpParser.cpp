@@ -21,6 +21,8 @@
  */
 
 #include "H264VideoSdpParser.hh"
+#include "../../Utils.hh"
+
 #include <iostream>
 
 static unsigned char const startCode[4] = {0x00, 0x00, 0x00, 0x01};
@@ -44,9 +46,9 @@ H264VideoSdpParser::~H264VideoSdpParser()
 void H264VideoSdpParser::doGetNextFrame() 
 {
     if (injectedMetadataNALs < numSPropRecords) {
-        memmove(extradata, startCode, sizeof(startCode));
-        memmove(extradata + sizeof(startCode), sPropRecords[injectedMetadataNALs].sPropBytes, sPropRecords[injectedMetadataNALs].sPropLength);
-        extradataSize = sizeof(startCode) + sPropRecords[injectedMetadataNALs].sPropLength;
+        memmove(extradata + extradataSize, startCode, sizeof(startCode));
+        memmove(extradata + sizeof(startCode) + extradataSize, sPropRecords[injectedMetadataNALs].sPropBytes, sPropRecords[injectedMetadataNALs].sPropLength);
+        extradataSize += sizeof(startCode) + sPropRecords[injectedMetadataNALs].sPropLength;
         fNumTruncatedBytes = 0;
         injectedMetadataNALs++;
         afterGetting(this);

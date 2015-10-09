@@ -171,7 +171,6 @@ private:
     static void* startServer(void *args);
     FrameQueue *allocQueue(ConnectionData cData);
     
-    //NOTE: There is no need of specific writer configuration
     bool specificWriterConfig(int writerID);
     bool specificWriterDelete(int writerID);
 

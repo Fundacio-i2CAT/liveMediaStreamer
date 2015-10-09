@@ -59,6 +59,11 @@ public:
     * @return filter pointer of the source.
     */
     FramedFilter* getFilter() {return fFilter;};
+    
+    /**
+     * Disconnects the sink from the queue
+     */
+    void disconnect();
 
 protected:
     QueueSink(UsageEnvironment& env, unsigned port, FramedFilter* filter);

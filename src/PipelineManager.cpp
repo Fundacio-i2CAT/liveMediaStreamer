@@ -29,9 +29,10 @@
 #include "modules/videoEncoder/VideoEncoderX264.hh"
 #include "modules/videoDecoder/VideoDecoderLibav.hh"
 #include "modules/videoMixer/VideoMixer.hh"
+#include "modules/videoSplitter/VideoSplitter.hh"
 #include "modules/videoResampler/VideoResampler.hh"
-#include "modules/liveMediaInput/SourceManager.hh"
-#include "modules/liveMediaOutput/SinkManager.hh"
+#include "modules/receiver/SourceManager.hh"
+#include "modules/transmitter/SinkManager.hh"
 #include "modules/headDemuxer/HeadDemuxerLibav.hh"
 #include "modules/dasher/Dasher.hh"
 #include "modules/sharedMemory/SharedMemory.hh"
@@ -154,6 +155,9 @@ bool PipelineManager::createFilter(int id, FilterType type)
             break;
         case DASHER:
             filter = new Dasher();
+            break;
+        case VIDEO_SPLITTER:
+            filter = VideoSplitter::createNew();
             break;            
         //TODO include sharedMemory filter
         default:
@@ -356,7 +360,7 @@ bool PipelineManager::validCData(ConnectionData cData, int orgFId, int dstFId)
 
 bool PipelineManager::removePath(int id)
 {
-    Path* path = NULL;
+    Path* path;
 
     path = getPath(id);
 

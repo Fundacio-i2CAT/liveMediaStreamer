@@ -82,7 +82,7 @@ Frame* Reader::getFrame(int fId, bool &newFrame)
         newFrame = false;
         return queue->forceGetFront();
     }
-    
+
     if (pending == 0){
         pending = filters;
     }

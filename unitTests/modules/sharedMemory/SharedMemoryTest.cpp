@@ -64,7 +64,6 @@ void SharedMemoryTest::setUp()
 void SharedMemoryTest::tearDown()
 {
     if (sharedMemoryFilter) {
-        sharedMemoryFilter->disconnectAll();
         delete sharedMemoryFilter;
         sharedMemoryFilter = NULL;
     }
@@ -116,11 +115,7 @@ void SharedMemoryFunctionalTest::setUp()
 void SharedMemoryFunctionalTest::tearDown()
 {
     if (sharedMemoryFilter) {
-        sharedMemoryFilter->disconnectAll();
         delete sharedMemoryFilter;
-    }
-    if (sharedMemorySce) {
-        sharedMemorySce->disconnectFilter();
     }
     if (reader) {
         delete reader;

@@ -1,5 +1,5 @@
 #include "../src/modules/headDemuxer/HeadDemuxerLibav.hh"
-#include "../src/modules/liveMediaOutput/SinkManager.hh"
+#include "../src/modules/transmitter/SinkManager.hh"
 #include "../src/Controller.hh"
 #include "../src/Utils.hh"
 #include "../src/Jzon.h"

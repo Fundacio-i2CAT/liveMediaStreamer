@@ -399,8 +399,6 @@ bool Dasher::cleanSegments(std::map<int,DashSegment*> segments, size_t timestamp
 void Dasher::initializeEventMap()
 {
     eventMap["configure"] = std::bind(&Dasher::configureEvent, this, std::placeholders::_1);
-    eventMap["addSegmenter"] = std::bind(&Dasher::addSegmenterEvent, this, std::placeholders::_1);
-    eventMap["removeSegmenter"] = std::bind(&Dasher::removeSegmenterEvent, this, std::placeholders::_1);
     eventMap["setBitrate"] = std::bind(&Dasher::setBitrateEvent, this, std::placeholders::_1);
 }
 
@@ -420,7 +418,6 @@ void Dasher::doGetState(Jzon::Object &filterNode)
     }
 
     filterNode.Add("readers", readersList);
-
 }
 
 bool Dasher::configureEvent(Jzon::Node* params)
@@ -462,40 +459,6 @@ bool Dasher::configureEvent(Jzon::Node* params)
     return configure(dashFolder, bName, segDurInSec, maxSeg, minBuffTime);
 }
 
-bool Dasher::addSegmenterEvent(Jzon::Node* params)
-{
-    int id;
-
-    if (!params) {
-        return false;
-    }
-
-    if (!params->Has("id")){
-        return false;
-    }
-
-    id = params->Get("id").ToInt();
-
-    return addSegmenter(id);
-}
-
-bool Dasher::removeSegmenterEvent(Jzon::Node* params)
-{
-    int id;
-
-    if (!params) {
-        return false;
-    }
-
-    if (!params->Has("id")){
-        return false;
-    }
-
-    id = params->Get("id").ToInt();
-
-    return removeSegmenter(id);
-}
-
 bool Dasher::setBitrateEvent(Jzon::Node* params)
 {
     int id, bitrate;
@@ -514,22 +477,14 @@ bool Dasher::setBitrateEvent(Jzon::Node* params)
     return setDashSegmenterBitrate(id, bitrate);
 }
 
-bool Dasher::addSegmenter(int readerId)
+bool Dasher::specificReaderConfig(int readerId, FrameQueue* queue)
 {
     VideoFrameQueue *vQueue;
     AudioFrameQueue *aQueue;
-    std::shared_ptr<Reader> r;
     std::string completeSegBasePath;
 
     if (!mpdMngr) {
         utils::errorMsg("Dasher MUST be configured in order to add a mew segmenter");
-        return false;
-    }
-
-    r = getReader(readerId);
-
-    if (!r) {
-        utils::errorMsg("Error adding segmenter: reader does not exist");
         return false;
     }
 
@@ -538,7 +493,7 @@ bool Dasher::addSegmenter(int readerId)
         return false;
     }
 
-    if ((vQueue = dynamic_cast<VideoFrameQueue*>(r->getQueue())) != NULL) {
+    if ((vQueue = dynamic_cast<VideoFrameQueue*>(queue)) != NULL) {
 
         if (vQueue->getStreamInfo()->video.codec != H264 && vQueue->getStreamInfo()->video.codec != H265) {
             utils::errorMsg("Error setting dasher reader: only H264 & H265 codecs are supported for video");
@@ -556,7 +511,7 @@ bool Dasher::addSegmenter(int readerId)
         hasVideo = true;
     }
 
-    if ((aQueue = dynamic_cast<AudioFrameQueue*>(r->getQueue())) != NULL) {
+    if ((aQueue = dynamic_cast<AudioFrameQueue*>(queue)) != NULL) {
 
         if (aQueue->getStreamInfo()->audio.codec != AAC) {
             utils::errorMsg("Error setting Dasher reader: only AAC codec is supported for audio");
@@ -571,7 +526,7 @@ bool Dasher::addSegmenter(int readerId)
     return true;
 }
 
-bool Dasher::removeSegmenter(int readerId)
+bool Dasher::specificReaderDelete(int readerId)
 {
     if (segmenters.count(readerId) <= 0) {
         utils::errorMsg("Error removing DASH segmenter: no segmenter associated to provided reader");
@@ -659,7 +614,9 @@ segDur(segmentDuration), dashContext(NULL), timeBase(tBase), frameDuration(0), b
 
 DashSegmenter::~DashSegmenter()
 {
-
+    if(dashContext){
+        free(dashContext);
+    }
 }
 
 bool DashSegmenter::generateSegment(DashSegment* segment, Frame* frame, bool force)

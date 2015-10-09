@@ -44,7 +44,7 @@ static void fillH264or5ExtraData(const MediaSubsession *mss, StreamInfo *si)
     if ((parser = dynamic_cast<H264VideoSdpParser*>(sink->getFilter())) == NULL){
         return;
     }
-    
+
     si->setExtraData(parser->getExtradata(), parser->getExtradataSize());
 }
 
@@ -225,11 +225,6 @@ bool SourceManager::specificWriterConfig(int writerID)
     
     return true;
 }
-bool SourceManager::specificWriterDelete(int writerID)
-{
-    //TODO: handle inner frame buffer
-    return true;
-}
 
 FrameQueue *SourceManager::allocQueue(ConnectionData cData)
 {
@@ -261,6 +256,18 @@ FrameQueue *SourceManager::allocQueue(ConnectionData cData)
         return VideoFrameQueue::createNew(cData, si, DEFAULT_VIDEO_FRAMES);
     }
     return NULL;
+}
+
+bool SourceManager::specificWriterDelete(int writerID)
+{
+    if (outputStreamInfos.count(writerID) > 0) {
+        sinks[writerID]->disconnect();
+    } else {
+        utils::errorMsg (std::string("[SourceManager::specificWriterDelete] Unknown port number ") + std::to_string(writerID));
+        return false;
+    }
+
+    return true;
 }
 
 void SourceManager::initializeEventMap()

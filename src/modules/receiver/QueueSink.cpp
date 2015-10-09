@@ -108,3 +108,9 @@ bool QueueSink::setFrame(Frame *f){
     }
     return false;
 }
+
+
+void QueueSink::disconnect()
+{
+  frame = NULL;
+}

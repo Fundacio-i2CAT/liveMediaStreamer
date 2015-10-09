@@ -72,21 +72,6 @@ public:
     bool configure(std::string dashFolder, std::string baseName_, size_t segDurInSeconds, size_t maxSeg, size_t minBuffTime);
 
     /**
-    * Adds a new segmenter associated to an existance reader. Only one segmenter can be associated to each reader
-    * @param readerId Reader associated to the segmenter
-    * @return true if suceeded and false if not
-    */
-    bool addSegmenter(int readerId);
-
-    /**
-    * Remvoes an existant segmenter, using its associated reader id. A segment with the remaining
-    * data buffered (if any) is created and written to disk
-    * @param readerId Reader associated to the segmenter
-    * @return true if suceeded and false if not
-    */
-    bool removeSegmenter(int readerId);
-
-    /**
     * Creates a segment name as a function of the input and required params
     * @param basePath is the folder path where the segments are written
     * @param baseName is the base name for that segment specified as a convention
@@ -124,13 +109,11 @@ private:
     bool writeSegmentsToDisk(std::map<int,DashSegment*> segments, size_t timestamp, std::string segExt);
     bool cleanSegments(std::map<int,DashSegment*> segments, size_t timestamp, std::string segExt);
     bool configureEvent(Jzon::Node* params);
-    bool addSegmenterEvent(Jzon::Node* params);
-    bool removeSegmenterEvent(Jzon::Node* params);
+
     bool setBitrateEvent(Jzon::Node* params);
     
-    //There is no need of specific reader configuration
-    bool specificReaderConfig(int /*readerID*/, FrameQueue* /*queue*/)  {return true;};
-    bool specificReaderDelete(int /*readerID*/) {return true;};
+    bool specificReaderConfig(int readerID, FrameQueue* queue);
+    bool specificReaderDelete(int readerID);
 
     std::map<int, DashSegmenter*> segmenters;
     std::map<int, DashSegment*> vSegments;

@@ -4,13 +4,19 @@ bin_PROGRAMS = connectionTest sinkManagerTest filterTest dasherTest dashAudioSeg
                dashVideoSegmenterTest mpdManagerTest encodingDecodingTest sharedMemoryTest \
                slicedVideoFrameQueueTest audioCircularBufferTest videoMixerTest videoMixerFunctionalTest \
                audioMixerFunctionalTest headDemuxerTest headDemuxerFunctionalTest workersPoolTest \
-               avFramedQueueTest pipelineManagerTest IOInterfaceTest
+               avFramedQueueTest pipelineManagerTest IOInterfaceTest videoSplitterTest videoSplitterFunctionalTest
 
 videoMixerTest_SOURCES = modules/videoMixer/VideoMixerTest.cpp 
 videoMixerTest_CPPFLAGS = -g -Wall -D__STDC_CONSTANT_MACROS -I../src/
 videoMixerTest_CXXFLAGS = -std=c++11
 videoMixerTest_LDFLAGS = -L../src -lcppunit -llivemediastreamer
 videoMixerTest_DEPENDENCIES = ../src/liblivemediastreamer.la
+
+videoSplitterTest_SOURCES = modules/videoSplitter/VideoSplitterTest.cpp 
+videoSplitterTest_CPPFLAGS = -g -Wall -D__STDC_CONSTANT_MACROS -I../src/
+videoSplitterTest_CXXFLAGS = -std=c++11
+videoSplitterTest_LDFLAGS = -L../src -lcppunit -llivemediastreamer
+videoSplitterTest_DEPENDENCIES = ../src/liblivemediastreamer.la
 
 avFramedQueueTest_SOURCES = AVFramedQueueTest.cpp
 avFramedQueueTest_CPPFLAGS = -g -Wall -D__STDC_CONSTANT_MACROS -I../src/
@@ -41,6 +47,12 @@ videoMixerFunctionalTest_CPPFLAGS = -g -Wall -D__STDC_CONSTANT_MACROS -I../src/
 videoMixerFunctionalTest_CXXFLAGS = -std=c++11
 videoMixerFunctionalTest_LDFLAGS = -L../src -lcppunit -lavutil -lavcodec -lavformat -lswresample -llivemediastreamer
 videoMixerFunctionalTest_DEPENDENCIES = ../src/liblivemediastreamer.la
+
+videoSplitterFunctionalTest_SOURCES = VideoSplitterFunctionalTest.cpp
+videoSplitterFunctionalTest_CPPFLAGS = -g -Wall -D__STDC_CONSTANT_MACROS -I../src/
+videoSplitterFunctionalTest_CXXFLAGS = -std=c++11
+videoSplitterFunctionalTest_LDFLAGS = -L../src -lcppunit -lavutil -lavcodec -lavformat -lswresample -llivemediastreamer
+videoSplitterFunctionalTest_DEPENDENCIES = ../src/liblivemediastreamer.la
 
 encodingDecodingTest_SOURCES = EncodingDecodingTest.cpp 
 encodingDecodingTest_CPPFLAGS = -g -Wall -D__STDC_CONSTANT_MACROS -I../src/
@@ -78,13 +90,13 @@ dashVideoSegmenterTest_CXXFLAGS = -std=c++11
 dashVideoSegmenterTest_LDFLAGS = -L../src -lcppunit -llivemediastreamer
 dashVideoSegmenterTest_DEPENDENCIES = ../src/liblivemediastreamer.la
 
-connectionTest_SOURCES = modules/liveMediaOutput/ConnectionTest.cpp 
+connectionTest_SOURCES = modules/transmitter/ConnectionTest.cpp 
 connectionTest_CPPFLAGS = -g -Wall -D__STDC_CONSTANT_MACROS -I../src/
 connectionTest_CXXFLAGS = -std=c++11
 connectionTest_LDFLAGS = -L../src -lcppunit -lBasicUsageEnvironment -lUsageEnvironment -lliveMedia -lgroupsock -lavcodec -lavformat -lavutil -lswresample -lswscale -llivemediastreamer
 connectionTest_DEPENDENCIES = ../src/liblivemediastreamer.la
 
-sinkManagerTest_SOURCES = modules/liveMediaOutput/SinkManagerTest.cpp 
+sinkManagerTest_SOURCES = modules/transmitter/SinkManagerTest.cpp 
 sinkManagerTest_CPPFLAGS = -g -Wall -g -D__STDC_CONSTANT_MACROS -I../src/
 sinkManagerTest_CXXFLAGS = -std=c++11
 sinkManagerTest_LDFLAGS = -L../src -lcppunit -lBasicUsageEnvironment -lUsageEnvironment -lliveMedia -lgroupsock -llivemediastreamer

@@ -27,7 +27,7 @@
 #include <cppunit/TestResultCollector.h>
 #include <cppunit/XmlOutputter.h>
 
-#include "modules/liveMediaOutput/SinkManager.hh"
+#include "modules/transmitter/SinkManager.hh"
 #include "../../FilterMockup.hh"
 
 class SinkManagerTest : public CppUnit::TestFixture

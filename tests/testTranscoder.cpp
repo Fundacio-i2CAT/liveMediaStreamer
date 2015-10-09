@@ -5,8 +5,8 @@
 #include "../src/modules/videoDecoder/VideoDecoderLibav.hh"
 #include "../src/modules/videoMixer/VideoMixer.hh"
 #include "../src/modules/videoResampler/VideoResampler.hh"
-#include "../src/modules/liveMediaInput/SourceManager.hh"
-#include "../src/modules/liveMediaOutput/SinkManager.hh"
+#include "../src/modules/receiver/SourceManager.hh"
+#include "../src/modules/transmitter/SinkManager.hh"
 #include "../src/AudioFrame.hh"
 #include "../src/Controller.hh"
 #include "../src/Utils.hh"
@@ -232,21 +232,29 @@ bool addRTSPsession(std::string rtspUri, SourceManager *receiver, int receiverID
 
     MediaSubsessionIterator iter(*(session->getScs()->session));
     MediaSubsession* subsession;
-
-    while(iter.next() == NULL && retries <= RETRIES){
+    
+    while(true){
+        if (retries > RETRIES){
+            delete receiver;
+            return false;
+        }
+        
         sleep(1);
         retries++;
-    }
-
-    if (retries > RETRIES){
-        delete receiver;
-        return false;
+        
+        if ((subsession = iter.next()) == NULL){
+            iter.reset();
+            continue;
+        }
+        
+        if (subsession->clientPortNum() > 0){
+            iter.reset();
+            break;
+        }
     }
 
     utils::infoMsg("RTSP client session created!");
-
-    iter.reset();
-
+    
     while((subsession = iter.next()) != NULL){
         medium = subsession->mediumName();
 
@@ -414,10 +422,10 @@ int main(int argc, char* argv[])
         ctrl->processRequest();
     }
 
-    ctrl->destroyInstance();
-    utils::infoMsg("Controller deleted");
     pipe->destroyInstance();
     utils::infoMsg("Pipe deleted");
+    ctrl->destroyInstance();
+    utils::infoMsg("Controller deleted");
     
     return 0;
 }

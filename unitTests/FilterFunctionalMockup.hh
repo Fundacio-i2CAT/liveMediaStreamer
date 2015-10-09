@@ -50,7 +50,6 @@ public:
     };
 
     ~OneToOneVideoScenarioMockup(){
-        disconnectFilter();
         delete headF;
         delete tailF;
     }
@@ -69,12 +68,6 @@ public:
         }
 
         return true;
-    }
-
-    void disconnectFilter(){
-        headF->disconnectAll();
-        filterToTest->disconnectAll();
-        tailF->disconnectAll();
     }
 
     int processFrame(InterleavedVideoFrame* srcFrame){
@@ -110,8 +103,6 @@ public:
 
     ~ManyToOneVideoScenarioMockup()
     {
-        disconnectFilters();
-
         for (auto f : headFilters) {
             delete f.second;
         }
@@ -148,16 +139,6 @@ public:
         return true;
     };
 
-    void disconnectFilters()
-    {
-        for (auto f : headFilters) {
-            f.second->disconnectAll();
-        }
-
-        filterToTest->disconnectAll();
-        tailF->disconnectAll();
-    }
-
     int processFrame(InterleavedVideoFrame* srcFrame)
     {
         int ret;
@@ -181,9 +162,82 @@ public:
     }
 
 private:
+
     std::map<int,VideoHeadFilterMockup*> headFilters;
     ManyToOneFilter *filterToTest;
     VideoTailFilterMockup *tailF;
+};
+
+class OneToManyVideoScenarioMockup {
+
+public:
+    OneToManyVideoScenarioMockup(OneToManyFilter* fToTest, VCodecType c, PixType pix = P_NONE): filterToTest(fToTest){
+        headF = new VideoHeadFilterMockup(c, pix);
+    };
+
+    ~OneToManyVideoScenarioMockup()
+    {
+        delete headF;
+        for (auto f : tailFilters) {
+            delete f.second;
+        }
+    }
+
+    bool addTailFilter(int id)
+    {
+        if(tailFilters.count(id) > 0) {
+            return false;
+        }
+
+        tailFilters[id] = new VideoTailFilterMockup();
+        return true;
+    }
+
+    bool connectFilters()
+    {
+
+        if (filterToTest == NULL || tailFilters.empty()) {
+            return false;
+        }
+
+        if (! headF->connectOneToOne(filterToTest)){
+            return false;
+        }
+
+        for (auto f : tailFilters) {
+            if (!filterToTest->connectManyToOne(f.second, f.first)) {
+                return false;
+            }
+        }
+        return true;
+    };
+
+    int processFrame(InterleavedVideoFrame* srcFrame){
+        int ret;
+
+        if (!headF->inject(srcFrame)){
+            return 0;
+        }
+        headF->processFrame(ret);
+        filterToTest->processFrame(ret);
+        return ret;
+    }
+
+    InterleavedVideoFrame *extractFrame(int id)
+    {
+        int ret;
+        if(tailFilters.count(id) > 0 ){
+            tailFilters[id]->processFrame(ret);
+            return tailFilters[id]->extract();
+        }
+
+        return NULL;
+    }
+
+private:
+    std::map<int,VideoTailFilterMockup*> tailFilters;
+    OneToManyFilter *filterToTest;
+    VideoHeadFilterMockup *headF;
 };
 
 class ManyToOneAudioScenarioMockup {
@@ -196,7 +250,6 @@ public:
 
     ~ManyToOneAudioScenarioMockup()
     {
-        disconnectFilters();
 
         for (auto f : headFilters) {
             delete f.second;
@@ -233,16 +286,6 @@ public:
 
         return true;
     };
-
-    void disconnectFilters()
-    {
-        for (auto f : headFilters) {
-            f.second->disconnectAll();
-        }
-
-        filterToTest->disconnectAll();
-        tailF->disconnectAll();
-    }
 
     int processFrame(PlanarAudioFrame* srcFrame)
     {

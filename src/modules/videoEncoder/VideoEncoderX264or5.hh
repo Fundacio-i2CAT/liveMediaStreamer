@@ -99,8 +99,8 @@ private:
     bool specificReaderDelete(int /*readerID*/) {return true;};
     
     //NOTE: There is no need of specific writer configuration
-    bool specificWriterConfig(int /*readerID*/) {return true;};
-    bool specificWriterDelete(int /*readerID*/) {return true;};
+    bool specificWriterConfig(int /*writerID*/) {return true;};
+    bool specificWriterDelete(int /*writerID*/) {return true;};
     
     struct FrameTimeParams {
         std::chrono::microseconds pTime;

@@ -23,8 +23,10 @@
 #ifndef _H264_VIDEO_SDP_PARSER_HH
 #define _H264_VIDEO_SDP_PARSER_HH
 
-#include "FramedFilter.hh"
-#include "H264VideoRTPSource.hh" // for "parseSPropParameterSets()"
+#include <FramedFilter.hh>
+#include <H264VideoRTPSource.hh> // for "parseSPropParameterSets()"
+
+#define MAX_EXTRADATA_SIZE 128
 
 /*! An AAC ADTS header parser, which constructs the Audio Specific Config string from extracted information */
 
@@ -42,7 +44,7 @@ public:
     /**
     * @return Pointer to the parsed headers from sdp, mainly SPS and PPS
     */
-    uint8_t* getExtradata() {return extradata;};
+    unsigned char* getExtradata() {return extradata;};
     
     /**
      * @return number of bytes filled in extradata buffer
@@ -70,7 +72,7 @@ private:
     unsigned numSPropRecords;
     unsigned injectedMetadataNALs;
     
-    uint8_t extradata[128];
+    unsigned char extradata[MAX_EXTRADATA_SIZE];
     unsigned extradataSize;
 };
 

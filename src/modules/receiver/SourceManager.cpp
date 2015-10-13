@@ -45,6 +45,8 @@ static void fillH264or5ExtraData(const MediaSubsession *mss, StreamInfo *si)
         return;
     }
 
+    utils::infoMsg("setting extradata!");
+    
     si->setExtraData(parser->getExtradata(), parser->getExtradataSize());
 }
 
@@ -71,7 +73,7 @@ static StreamInfo *createStreamInfo(const MediaSubsession *mss)
         if (strcmp(codecName, "PCM") == 0) {
             si->audio.codec = PCM;
         } else {
-            utils::errorMsg (std::string("Unsupported audio codec ") + codecName);
+            utils::errorMsg ("Unsupported audio codec " + std::string(codecName));
             delete si;
             return NULL;
         }
@@ -94,7 +96,7 @@ static StreamInfo *createStreamInfo(const MediaSubsession *mss)
         } else if (strcmp(codecName, "MJPEG") == 0) {
             si->video.codec = MJPEG;
         } else {
-            utils::errorMsg (std::string("Unsupported video codec ") + codecName);
+            utils::errorMsg ("Unsupported video codec " + std::string(codecName));
             delete si;
             return NULL;
         }
@@ -246,7 +248,7 @@ FrameQueue *SourceManager::allocQueue(ConnectionData cData)
     }
 
     if (!si) {
-        utils::errorMsg (std::string("Unknown port number ") + std::to_string(cData.writerId));
+        utils::errorMsg ("Unknown port number " + std::to_string(cData.writerId));
         return NULL;
     }
     if (si->type == AUDIO) {
@@ -263,7 +265,7 @@ bool SourceManager::specificWriterDelete(int writerID)
     if (outputStreamInfos.count(writerID) > 0) {
         sinks[writerID]->disconnect();
     } else {
-        utils::errorMsg (std::string("[SourceManager::specificWriterDelete] Unknown port number ") + std::to_string(writerID));
+        utils::errorMsg ("[SourceManager::specificWriterDelete] Unknown port number " + std::to_string(writerID));
         return false;
     }
 

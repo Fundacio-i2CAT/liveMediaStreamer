@@ -102,12 +102,11 @@ bool VideoEncoderX265::encodeFrame(VideoFrame* codedFrame)
     return true;
 }
 
-bool VideoEncoderX265::encodeHeadersFrame(VideoFrame* frame)
+bool VideoEncoderX265::encodeHeadersFrame()
 {
     int encodeSize;
     unsigned piNal;
     x265_nal* nals;
-    SlicedVideoFrame *slicedFrame;
 
     encodeSize = x265_encoder_headers(encoder, &nals, &piNal);
 
@@ -115,21 +114,9 @@ bool VideoEncoderX265::encodeHeadersFrame(VideoFrame* frame)
         utils::errorMsg("Could not encode headers");
         return false;
     }
-
-    slicedFrame = dynamic_cast<SlicedVideoFrame*> (frame);
-
-    if (!slicedFrame) {
-        utils::errorMsg("Error reconfiguring x265VideoEncoder. DstFrame MUST be a SlicedVideoFrame");
-        return false;
-    }
-
-    for (unsigned i = 0; i < piNal; i++) {
-        if (!slicedFrame->copySlice(nals[i].payload, nals[i].sizeBytes)) {
-            utils::errorMsg("X265 Encoder: too many NALs for one slicedFrame or ");
-            return false;
-        }
-    }
-
+       
+    outputStreamInfo->setExtraData(nals[0].payload, encodeSize);
+        
     return true;
 }
 
@@ -217,9 +204,5 @@ bool VideoEncoderX265::reconfigure(VideoFrame* orgFrame, VideoFrame* dstFrame)
 
     needsConfig = false;
 
-    if (!outputStreamInfo->video.h264or5.annexb) {
-        return encodeHeadersFrame(dstFrame);
-    }
-
-    return true;
+    return encodeHeadersFrame();
 }

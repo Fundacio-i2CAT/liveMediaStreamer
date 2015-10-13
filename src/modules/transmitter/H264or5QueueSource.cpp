@@ -30,15 +30,14 @@
 #define SHORT_START_LENGTH 3
 #define LONG_START_LENGTH 4
 
+#define H264_NALU_TYPE_MASK 0x1F
+#define H265_NALU_TYPE_MASK 0x7E
 
-H264or5QueueSource* H264or5QueueSource::createNew(UsageEnvironment& env, int readerId) 
-{
-  return new H264or5QueueSource(env, readerId);
-}
-
-H264or5QueueSource::H264or5QueueSource(UsageEnvironment& env, int readerId)
-: QueueSource(env, readerId) {
-}
+#define VPS 32
+#define SPS_HEVC 33
+#define PPS_HEVC 34
+#define SPS_AVC 7
+#define PPS_AVC 8
 
 uint8_t startOffset(unsigned char const* ptr) {
     u_int32_t bytes = 0|(ptr[0]<<16)|(ptr[1]<<8)|ptr[2];
@@ -52,6 +51,105 @@ uint8_t startOffset(unsigned char const* ptr) {
     return 0;
 }
 
+H264or5QueueSource* H264or5QueueSource::createNew(UsageEnvironment& env, const StreamInfo *streamInfo) 
+{
+  return new H264or5QueueSource(env, streamInfo);
+}
+
+H264or5QueueSource::H264or5QueueSource(UsageEnvironment& env, const StreamInfo *streamInfo)
+: QueueSource(env, streamInfo), fVPS(NULL), fSPS(NULL), fPPS(NULL), fVPSSize(0), fSPSSize(0), fPPSSize(0) 
+{    
+    if (si->video.h264or5.annexb && si->extradata_size > 0){
+        parseExtradata();
+    }
+}
+
+H264or5QueueSource::~H264or5QueueSource()
+{
+    if(fVPS){
+        delete fVPS;
+    }
+    
+    if (fSPS){
+        delete fSPS;
+    }
+    
+    if (fPPS){
+        delete fPPS;
+    }
+}
+
+bool H264or5QueueSource::parseExtradata()
+{
+    int offset = 0;
+    int nalStart = 0;
+    uint8_t *nal;
+
+    if (si->extradata_size == 0){
+        return false;
+    }
+    
+    if ((offset = startOffset(si->extradata)) > 0){
+        nalStart = offset;
+        while (offset < si->extradata_size){
+            if (startOffset(si->extradata + offset) > 0){
+                nal = new uint8_t[offset - nalStart];
+                memcpy(nal, si->extradata + nalStart, offset - nalStart);
+                feedHeaders(nal, offset - nalStart, si->video.codec);
+                offset += startOffset(si->extradata + offset);
+                nalStart = offset;
+            } else {
+                offset++;
+            }
+        }
+        nal = new uint8_t[si->extradata_size - nalStart];
+        memcpy(nal, si->extradata + nalStart, si->extradata_size - nalStart);
+        feedHeaders(nal, si->extradata_size - nalStart, si->video.codec);
+    }
+    
+    if (si->video.codec == H264 && fSPS && fPPS){
+        return true;
+    }
+    
+    if (si->video.codec == H265 && fSPS && fPPS && fVPS){
+        return true;
+    }
+    
+    return false;
+}
+
+void H264or5QueueSource::feedHeaders(uint8_t *nal, uint8_t nalSize, VCodecType codec)
+{
+    uint8_t nalType;
+    
+    switch (codec){
+        case H264:
+            nalType = nal[0] & H264_NALU_TYPE_MASK;
+            if (nalType == SPS_AVC) {
+                fSPS = nal;
+                fSPSSize = nalSize;
+            } else if (nalType == PPS_AVC) {
+                fPPS = nal;
+                fPPSSize = nalSize;
+            }
+            break;
+        case H265:
+            nalType = (nal[0] & H265_NALU_TYPE_MASK) >> 1;
+            if (nalType == SPS_HEVC) {
+                fSPS = nal;
+                fSPSSize = nalSize;
+            } else if (nalType == PPS_HEVC) {
+                fPPS = nal;
+                fPPSSize = nalSize;
+            } else if (nalType == VPS) {
+                fVPS = nal;
+                fVPSSize = nalSize;
+            }
+            break;
+        default:
+            break;
+    }
+}
 
 void H264or5QueueSource::deliverFrame()
 {

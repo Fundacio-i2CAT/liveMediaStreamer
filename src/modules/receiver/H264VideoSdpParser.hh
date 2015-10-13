@@ -25,7 +25,6 @@
 
 #include <FramedFilter.hh>
 #include <H264VideoRTPSource.hh> // for "parseSPropParameterSets()"
-
 #define MAX_EXTRADATA_SIZE 128
 
 /*! An AAC ADTS header parser, which constructs the Audio Specific Config string from extracted information */

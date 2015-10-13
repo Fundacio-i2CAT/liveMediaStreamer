@@ -491,15 +491,17 @@ std::vector<int> BaseFilter::regularProcessFrame(int& ret)
     std::map<int, Frame*> oFrames;
     std::map<int, Frame*> dFrames;
     std::vector<int> newFrames;
+    bool framesToProcess;
     
     processEvent();
-    newFrames = demandOriginFrames(oFrames);
+    newFrames = demandOriginFrames(oFrames, framesToProcess);
     
-    if (newFrames.empty()) {
+    if (!framesToProcess || newFrames.empty()) {
         ret = WAIT;
+        removeFrames(newFrames);
         return enabledJobs;
     }
-    
+        
     if (!demandDestinationFrames(dFrames)) {
         ret = WAIT;
         removeFrames(newFrames);
@@ -522,10 +524,11 @@ std::vector<int> BaseFilter::serverProcessFrame(int& ret)
     std::map<int, Frame*> oFrames;
     std::map<int, Frame*> dFrames;
     std::vector<int> newFrames;
+    bool framesToProcess;
     
     processEvent();
     
-    newFrames = demandOriginFrames(oFrames);
+    newFrames = demandOriginFrames(oFrames, framesToProcess);
     demandDestinationFrames(dFrames);
 
     runDoProcessFrame(oFrames, dFrames, newFrames);
@@ -538,7 +541,7 @@ std::vector<int> BaseFilter::serverProcessFrame(int& ret)
     return enabledJobs;
 }
 
-std::vector<int> BaseFilter::demandOriginFrames(std::map<int, Frame*> &oFrames)
+std::vector<int> BaseFilter::demandOriginFrames(std::map<int, Frame*> &oFrames, bool &framesToProcess)
 {
     if (maxReaders == 0) {
         return std::vector<int>({-1});
@@ -549,9 +552,10 @@ std::vector<int> BaseFilter::demandOriginFrames(std::map<int, Frame*> &oFrames)
     }
 
     if (frameTime.count() <= 0) {
+        framesToProcess = true;
         return demandOriginFramesBestEffort(oFrames);
     } else {
-        return demandOriginFramesFrameTime(oFrames);
+        return demandOriginFramesFrameTime(oFrames, framesToProcess);
     }
 }
 
@@ -595,7 +599,7 @@ std::vector<int> BaseFilter::demandOriginFramesBestEffort(std::map<int, Frame*> 
     return newFrames;
 }
 
-std::vector<int> BaseFilter::demandOriginFramesFrameTime(std::map<int, Frame*> &oFrames) 
+std::vector<int> BaseFilter::demandOriginFramesFrameTime(std::map<int, Frame*> &oFrames, bool &framesToProcess) 
 {
     Frame* frame;
     std::chrono::microseconds outOfScopeTs = std::chrono::microseconds(-1);
@@ -627,8 +631,8 @@ std::vector<int> BaseFilter::demandOriginFramesFrameTime(std::map<int, Frame*> &
             continue;
         }
 
-        // If the current frame is out of our mixing scope, 
-        // we do not consider it as a new mixing frame (keep noFrame value)
+        // If the current frame is out of our processing scope, 
+        // we do not consider it as a new frame (keep noFrame value)
         if (frame->getPresentationTime() > syncTs + frameTime) {
             if (outOfScopeTs.count() < 0) {
                 outOfScopeTs = frame->getPresentationTime();
@@ -643,12 +647,13 @@ std::vector<int> BaseFilter::demandOriginFramesFrameTime(std::map<int, Frame*> &
             continue;
         }
 
-        // Normal case, which means that the frame is in our mixing scope (syncTime -> syncTime+frameTime)
+        // Normal case, which means that the frame is in our processing scope (syncTime -> syncTime+frameTime)
         validFrame = true;
     }
 
     // There is no new frame
     if (newFrames.empty()) {
+        framesToProcess = false;
         return newFrames;
     }
     
@@ -656,12 +661,14 @@ std::vector<int> BaseFilter::demandOriginFramesFrameTime(std::map<int, Frame*> &
         if (outOfScopeTs > syncTs && !outDated) {
             syncTs = outOfScopeTs;
         }
-        //We return true if there are no outDated frames
+        //We set framesToProcess true if there are no outDated frames
+        framesToProcess = !outDated;
         return newFrames;
     } 
 
     // Finally set syncTs
     syncTs += frameTime;
+    framesToProcess = true;
     return newFrames;
 }
 

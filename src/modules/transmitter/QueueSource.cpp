@@ -1,14 +1,14 @@
 #include "QueueSource.hh"
 #include "SinkManager.hh"
 
-QueueSource* QueueSource::createNew(UsageEnvironment& env, int readerId) 
+QueueSource* QueueSource::createNew(UsageEnvironment& env, const StreamInfo* streamInfo) 
 {
-  return new QueueSource(env, readerId);
+  return new QueueSource(env, streamInfo);
 }
 
 
-QueueSource::QueueSource(UsageEnvironment& env, int readerId)
-  : FramedSource(env), eventTriggerId(0), frame(NULL), fReaderId(readerId), processedFrame(false), stopFrames(true)
+QueueSource::QueueSource(UsageEnvironment& env, const StreamInfo* streamInfo)
+  : FramedSource(env), eventTriggerId(0), frame(NULL), si(streamInfo), processedFrame(false), stopFrames(true)
 {
     if (eventTriggerId == 0){
         eventTriggerId = envir().taskScheduler().createEventTrigger(deliverFrame0);

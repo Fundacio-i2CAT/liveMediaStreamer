@@ -29,7 +29,7 @@ OneToOneFilter(), inPixFmt(P_NONE), forceIntra(false), fps(0), bitrate(0), gop(0
     fType = VIDEO_ENCODER;
     midFrame = av_frame_alloc();
     outputStreamInfo = new StreamInfo(VIDEO);
-    outputStreamInfo->video.h264or5.annexb = false;
+    outputStreamInfo->video.h264or5.annexb = true;
     initializeEventMap();
     configure0(DEFAULT_BITRATE, VIDEO_DEFAULT_FRAMERATE, DEFAULT_GOP, 
               DEFAULT_LOOKAHEAD, DEFAULT_THREADS, DEFAULT_ANNEXB, DEFAULT_PRESET);

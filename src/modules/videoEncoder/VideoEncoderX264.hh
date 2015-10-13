@@ -48,7 +48,7 @@ private:
     void initializeEventMap();
 
     x264_picture_t picIn;
-	x264_picture_t picOut;
+    x264_picture_t picOut;
     x264_param_t xparams;
     x264_t* encoder;
 
@@ -57,7 +57,7 @@ private:
     bool fillPicturePlanes(unsigned char** data, int* linesize);
     bool encodeFrame(VideoFrame* codedFrame);
     bool reconfigure(VideoFrame *orgFrame, VideoFrame* dstFrame);
-    bool encodeHeadersFrame(VideoFrame* frame);
+    bool encodeHeadersFrame();
 };
 
 #endif

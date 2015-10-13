@@ -46,8 +46,6 @@ class SlicedVideoFrameQueueTest : public CppUnit::TestFixture
     CPPUNIT_TEST_SUITE(SlicedVideoFrameQueueTest);
     CPPUNIT_TEST(create);
     CPPUNIT_TEST(okSliceBehaviour);
-    CPPUNIT_TEST(okCopySliceBehaviour);
-    CPPUNIT_TEST(okCopySlicesandSetSlicesBehaviour);
     CPPUNIT_TEST(tooManySlices);
     CPPUNIT_TEST_SUITE_END();
 
@@ -58,8 +56,6 @@ public:
 protected:
     void create();
     void okSliceBehaviour();
-    void okCopySliceBehaviour();
-    void okCopySlicesandSetSlicesBehaviour();
     void tooManySlices();
 
     SlicedVideoFrameQueue* queue;
@@ -110,6 +106,8 @@ void SlicedVideoFrameQueueTest::create()
     tmpMaxSliceSize = 16;
     tmpqueue = SlicedVideoFrameQueue::createNew(cData, &mockStreamInfo, tmpMaxFrames, tmpMaxSliceSize);
     CPPUNIT_ASSERT(tmpqueue);
+    
+    CPPUNIT_ASSERT(tmpqueue->getRear());
 
     delete tmpqueue;
 }
@@ -153,106 +151,6 @@ void SlicedVideoFrameQueueTest::okSliceBehaviour()
     CPPUNIT_ASSERT(!outputFrame);
 }
 
-void SlicedVideoFrameQueueTest::okCopySliceBehaviour()
-{
-    unsigned buffersNum = 2;
-    int bufferDataSize = 1;
-    Buffer buffers[buffersNum];
-    SlicedVideoFrame* slicedFrame;
-    Frame* inputFrame;
-    Frame* outputFrame;
-
-    for (unsigned i = 0; i < buffersNum; i++) {
-        buffers[i].data = new unsigned char [bufferDataSize];
-        buffers[i].size = bufferDataSize;
-        std::fill_n(buffers[i].data, bufferDataSize, i);
-    }
-
-    inputFrame = queue->getRear();
-
-    CPPUNIT_ASSERT(inputFrame);
-    slicedFrame = dynamic_cast<SlicedVideoFrame*>(inputFrame);
-
-    for (unsigned i = 0; i < buffersNum; i++) {
-        CPPUNIT_ASSERT(slicedFrame->copySlice(buffers[i].data, buffers[i].size));
-    }
-
-    queue->addFrame();
-    CPPUNIT_ASSERT(queue->getElements() == buffersNum);
-
-    for (unsigned i = 0; i < buffersNum; i++) {
-        outputFrame = queue->getFront();
-        CPPUNIT_ASSERT(outputFrame);
-        CPPUNIT_ASSERT(*outputFrame->getDataBuf() == i);
-        queue->removeFrame();
-    }
-
-    CPPUNIT_ASSERT(queue->getElements() == 0);
-    outputFrame = queue->getFront();
-    CPPUNIT_ASSERT(!outputFrame);
-}
-
-void SlicedVideoFrameQueueTest::okCopySlicesandSetSlicesBehaviour()
-{
-    int bufferDataSize = 1;
-    
-    unsigned buffersNum = 2;
-    unsigned copyBuffersNumber = 1;
-    
-    Buffer buffers[buffersNum];
-    Buffer copyBuffers[copyBuffersNumber];
-
-    SlicedVideoFrame* slicedFrame;
-    Frame* inputFrame;
-    Frame* outputFrame;
-
-    for (unsigned i = 0; i < buffersNum; i++) {
-        buffers[i].data = new unsigned char [bufferDataSize];
-        buffers[i].size = bufferDataSize;
-        std::fill_n(buffers[i].data, bufferDataSize, i);
-    }
-
-    for (unsigned i = 0; i < copyBuffersNumber; i++) {
-        copyBuffers[i].data = new unsigned char [bufferDataSize];
-        copyBuffers[i].size = bufferDataSize;
-        std::fill_n(copyBuffers[i].data, bufferDataSize, i + buffersNum);
-    }
-
-    inputFrame = queue->getRear();
-
-    CPPUNIT_ASSERT(inputFrame);
-    slicedFrame = dynamic_cast<SlicedVideoFrame*>(inputFrame);
-
-    for (unsigned i = 0; i < buffersNum; i++) {
-        CPPUNIT_ASSERT(slicedFrame->setSlice(buffers[i].data, buffers[i].size));
-    }
-
-    for (unsigned i = 0; i < copyBuffersNumber; i++) {
-        CPPUNIT_ASSERT(slicedFrame->copySlice(copyBuffers[i].data, copyBuffers[i].size));
-    }
-
-    queue->addFrame();
-
-    CPPUNIT_ASSERT(queue->getElements() == buffersNum + copyBuffersNumber);
-    
-    for (unsigned i = 0; i < copyBuffersNumber; i++) {
-        outputFrame = queue->getFront();
-        CPPUNIT_ASSERT(outputFrame);
-        CPPUNIT_ASSERT(*outputFrame->getDataBuf() == i + buffersNum);
-        queue->removeFrame();
-    }
-
-    for (unsigned i = 0; i < buffersNum; i++) {
-        outputFrame = queue->getFront();
-        CPPUNIT_ASSERT(outputFrame);
-        CPPUNIT_ASSERT(*outputFrame->getDataBuf() == i);
-        queue->removeFrame();
-    }
-
-    CPPUNIT_ASSERT(queue->getElements() == 0);
-    outputFrame = queue->getFront();
-    CPPUNIT_ASSERT(!outputFrame);
-}
 
 void SlicedVideoFrameQueueTest::tooManySlices()
 {

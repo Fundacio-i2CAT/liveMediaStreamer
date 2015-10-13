@@ -208,9 +208,9 @@ protected:
     virtual bool specificWriterConfig(int writerID) = 0;
     virtual bool specificWriterDelete(int writerID) = 0;
 
-    std::vector<int> demandOriginFrames(std::map<int, Frame*> &oFrames, bool &framesToProcess);
-    std::vector<int> demandOriginFramesBestEffort(std::map<int, Frame*> &oFrames);
-    std::vector<int> demandOriginFramesFrameTime(std::map<int, Frame*> &oFrames, bool &framesToProcess); 
+    bool demandOriginFrames(std::map<int, Frame*> &oFrames, std::vector<int> &newFrames);
+    bool demandOriginFramesBestEffort(std::map<int, Frame*> &oFrames, std::vector<int> &newFrames);
+    bool demandOriginFramesFrameTime(std::map<int, Frame*> &oFrames, std::vector<int> &newFrames); 
 
     bool demandDestinationFrames(std::map<int, Frame*> &dFrames);
 

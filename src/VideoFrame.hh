@@ -84,9 +84,9 @@ public:
     unsigned getDataSize() {return dataSize;};
     void setData(unsigned char *p) {data = p;};
     void setDataSize(unsigned s) {dataSize = s;};
-    void allocData(unsigned size);
-    void releaseData();
-    void copyData(unsigned char *p, unsigned s);
+//     void allocData(unsigned size);
+//     void releaseData();
+//     void copyData(unsigned char *p, unsigned s);
 
 private:
     unsigned char *data;
@@ -96,17 +96,15 @@ private:
 class SlicedVideoFrame : public VideoFrame {
 
 public:
-    static SlicedVideoFrame* createNew(VCodecType codec, unsigned copiedSlicesMaxSize);
+    static SlicedVideoFrame* createNew(VCodecType codec);
     virtual ~SlicedVideoFrame();
     void clear();
 
     Slice* getSlices() {return pointedSlices;};
-    Slice* getCopiedSlices() {return copiedSlices;};
+    
     bool setSlice(unsigned char *data, unsigned size);
-    bool copySlice(unsigned char *data, unsigned size);
-
+    
     int getSliceNum() {return pointedSliceNum;};
-    int getCopiedSliceNum() {return copiedSliceNum;};
 
     unsigned char *getDataBuf() {return NULL;};
     unsigned char **getPlanarDataBuf() {return NULL;};
@@ -116,14 +114,11 @@ public:
     bool isPlanar() {return false;};
 
 private:
-    SlicedVideoFrame(VCodecType codec, unsigned copiedSlicesMaxSize);
+    SlicedVideoFrame(VCodecType codec);
 
     Slice pointedSlices[MAX_SLICES];
-    Slice copiedSlices[MAX_COPIED_SLICES];
 
     int pointedSliceNum;
-    int copiedSliceNum;
-    unsigned copiedSlicesMaxSize;
 };
 
 

@@ -106,35 +106,25 @@ InterleavedVideoFrame::~InterleavedVideoFrame()
 // X264or5 VIDEO FRAME //
 /////////////////////////
 
-SlicedVideoFrame* SlicedVideoFrame::createNew(VCodecType codec, unsigned copiedSlicesMaxSize) 
+SlicedVideoFrame* SlicedVideoFrame::createNew(VCodecType codec) 
 {
-    if (copiedSlicesMaxSize <= 0) {
-        utils::errorMsg("Error creating slicedFrame: copiedSlicesMaxSize negative or 0");
-        return NULL;
-    }
-
-    return new SlicedVideoFrame(codec, copiedSlicesMaxSize);
+    return new SlicedVideoFrame(codec);
 }
 
-SlicedVideoFrame::SlicedVideoFrame(VCodecType codec, unsigned copiedSlicesMaxSize_) :
-VideoFrame(codec), pointedSliceNum(0), copiedSliceNum(0), copiedSlicesMaxSize(copiedSlicesMaxSize_) 
+SlicedVideoFrame::SlicedVideoFrame(VCodecType codec) :
+VideoFrame(codec), pointedSliceNum(0) 
 {
-    for (int i = 0; i < MAX_COPIED_SLICES; i++) {
-        copiedSlices[i].allocData(copiedSlicesMaxSize);
-    }
+
 }
 
 SlicedVideoFrame::~SlicedVideoFrame()
 {
-    for (int i = 0; i < MAX_COPIED_SLICES; i++) {
-        copiedSlices[i].releaseData();
-    }
+
 }
 
 void SlicedVideoFrame::clear()
 {
     pointedSliceNum = 0; 
-    copiedSliceNum = 0;
 }
 
 bool SlicedVideoFrame::setSlice(unsigned char *data, unsigned size)
@@ -150,36 +140,25 @@ bool SlicedVideoFrame::setSlice(unsigned char *data, unsigned size)
     return true;
 }
 
-bool SlicedVideoFrame::copySlice(unsigned char *data, unsigned size)
-{
-    if (copiedSliceNum >= MAX_COPIED_SLICES || size > copiedSlicesMaxSize) {
-        return false;
-    }
-
-    copiedSlices[copiedSliceNum].copyData(data, size);
-
-    copiedSliceNum++;
-    return true;
-}
 
 Slice::Slice() : data(NULL), dataSize(0)
 {
 
 }
 
-void Slice::allocData(unsigned size)
-{
-    data = new unsigned char [size]();
-}
-
-void Slice::releaseData()
-{
-    delete data;
-}
-
-void Slice::copyData(unsigned char *p, unsigned s)
-{
-    memcpy(data, p, s);
-    dataSize = s;
-}
+// void Slice::allocData(unsigned size)
+// {
+//     data = new unsigned char [size]();
+// }
+// 
+// void Slice::releaseData()
+// {
+//     delete data;
+// }
+// 
+// void Slice::copyData(unsigned char *p, unsigned s)
+// {
+//     memcpy(data, p, s);
+//     dataSize = s;
+// }
 

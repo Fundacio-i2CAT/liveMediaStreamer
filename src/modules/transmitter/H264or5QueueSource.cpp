@@ -84,8 +84,8 @@ bool H264or5QueueSource::parseExtradata()
     int offset = 0;
     int nalStart = 0;
     uint8_t *nal;
-
-    if (si->extradata_size == 0){
+    
+    if (!si->video.h264or5.annexb || si->extradata_size == 0){
         return false;
     }
     

@@ -44,8 +44,6 @@ static void fillH264or5ExtraData(const MediaSubsession *mss, StreamInfo *si)
     if ((parser = dynamic_cast<H264VideoSdpParser*>(sink->getFilter())) == NULL){
         return;
     }
-
-    utils::infoMsg("setting extradata!");
     
     si->setExtraData(parser->getExtradata(), parser->getExtradataSize());
 }
@@ -58,7 +56,7 @@ static StreamInfo *createStreamInfo(const MediaSubsession *mss)
     if (strcmp(mss->mediumName(), "audio") == 0) {
         si = new StreamInfo(AUDIO);
         if (mss->rtpPayloadFormat() == 0) {
-            // Is this one neeeded? it should be implicit in PCMU case
+            //NOTE: Is this one neeeded? it should be implicit in PCMU case
             si->audio.codec = G711;
         } else
         if (strcmp(codecName, "OPUS") == 0) {
@@ -85,11 +83,9 @@ static StreamInfo *createStreamInfo(const MediaSubsession *mss)
         si = new StreamInfo(VIDEO);
         if (strcmp(codecName, "H264") == 0) {
             si->video.codec = H264;
-            si->video.h264or5.annexb = true;
             fillH264or5ExtraData(mss, si);
         } else if (strcmp(codecName, "H265") == 0) {
             si->video.codec = H265;
-            si->video.h264or5.annexb = true;
             fillH264or5ExtraData(mss, si);
         } else if (strcmp(codecName, "VP8") == 0) {
             si->video.codec = VP8;

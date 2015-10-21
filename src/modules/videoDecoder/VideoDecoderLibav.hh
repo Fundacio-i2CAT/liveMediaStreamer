@@ -64,9 +64,17 @@ private:
     AVPacket            pkt;
     AVCodecID           libavCodecId;
 
-    VCodecType          fCodec;
+    
 
     StreamInfo *outputStreamInfo;
+
+    struct InputStreamInfo {
+            unsigned    inputWidth;
+            unsigned    inputHeight;
+            VCodecType  fCodec;
+        };
+
+    InputStreamInfo          psi;   
 };
 
 #endif

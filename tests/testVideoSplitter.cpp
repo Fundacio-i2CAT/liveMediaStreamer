@@ -77,11 +77,13 @@ bool setupSplitter(int splitterId, int transmitterID, int def_witdth, int def_he
         int h = def_height/(SPLIT_CHANNELS/2);
         int x = ((it-1)%2)*(def_witdth/(SPLIT_CHANNELS/2));
         int y = ((it>>1)%2)*(def_height/(SPLIT_CHANNELS/2));
+        
         if (it==1){
-            splitter->configCrop(it,400,400,540,540,45);
+            splitter->configCrop(it,100,100,2,2,90);
         } else {
             splitter->configCrop(it,w,h,x,y);
         }
+
         utils::errorMsg("[TESTVIDEOSPLITTER] Crop config "+std::to_string(it)+":");
         utils::errorMsg("[TESTVIDEOSPLITTER] width:"+std::to_string(w)+", height:"+std::to_string(h)+", POS.X:"+std::to_string(x)+", POS.Y:"+std::to_string(y));
 
@@ -238,8 +240,6 @@ int main(int argc, char* argv[])
     int transmitterId = 11;
     int receiverId = 10;
     int splitterId  = 15;
-
-    int cPort = 7777;
     
     int def_witdth = SPLIT_WIDTH;
     int def_height = SPLIT_HEIGHT;
@@ -313,29 +313,12 @@ int main(int argc, char* argv[])
         }
     }
 
-    Controller* ctrl = Controller::getInstance();
-
-    if (!ctrl->createSocket(cPort)) {
-        exit(1);
+    while(run) {
+        std::this_thread::sleep_for(std::chrono::seconds(1));
     }
 
-    while (run) {
-        if (!ctrl->listenSocket()) {
-            continue;
-        }
-
-        if (!ctrl->readAndParse()) {
-            utils::errorMsg("Controller failed to read and parse the incoming event data");
-            continue;
-        }
-
-        ctrl->processRequest();
-    }
-
-    ctrl->destroyInstance();
-    utils::infoMsg("Controller deleted");
-    pipe->destroyInstance();
-    utils::infoMsg("Pipe deleted");
+    Controller::destroyInstance();
+    PipelineManager::destroyInstance();
     
     return 0;
 }

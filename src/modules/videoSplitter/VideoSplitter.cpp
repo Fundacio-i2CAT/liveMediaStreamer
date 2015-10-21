@@ -145,8 +145,20 @@ bool VideoSplitter::doProcessFrame(Frame *org, std::map<int, Frame *> &dstFrames
 				cv::Rect bbox = cv::RotatedRect(orgFrameCenter,orgFrame.size(), degreeCrop).boundingRect();
 				rotationMatrix.at<double>(0,2) += bbox.width/2.0 - orgFrameCenter.x;
     			rotationMatrix.at<double>(1,2) += bbox.height/2.0 - orgFrameCenter.y;
-				cv::warpAffine(orgFrame, rotatedImage, rotationMatrix, bbox.size());
-				rotatedImage(cv::Rect(xROI, yROI, widthROI, heightROI)).copyTo(cropsConfig[it.first]->getCropRect(0, 0, widthROI, heightROI));
+
+    			float limit = rotationMatrix.at<double>(0,2);
+				float limitWidth = bbox.width - limit;
+				float limitHeight = bbox.height - limit;
+				if(xROI+yROI < limit || ((yROI + heightROI - limit) / (xROI)) > ((bbox.height - limit) / (limitWidth))
+					|| (yROI + heightROI - bbox.height) / (xROI + widthROI - limitWidth) > (limitHeight - bbox.height) / (bbox.width - limitWidth)
+					|| yROI / (xROI + widthROI - limit) < limitHeight / (bbox.width - limit)
+				){
+					utils::warningMsg("[VideoSplitter] Crop out of scope");
+				} else {
+					cv::warpAffine(orgFrame, rotatedImage, rotationMatrix, bbox.size());
+					rotatedImage(cv::Rect(xROI, yROI, widthROI, heightROI)).copyTo(cropsConfig[it.first]->getCropRect(0, 0, widthROI, heightROI));
+				}
+				
 			}
 			it.second->setConsumed(true);
 			it.second->setPresentationTime(vFrame->getPresentationTime());

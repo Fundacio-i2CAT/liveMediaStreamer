@@ -30,6 +30,7 @@ testdash
 testvideomix
 testbypass
 testtranscoderlibav
+testvideosplitter
 
 autom4te.cache/
 config.log

@@ -31,6 +31,8 @@ testvideomix
 testbypass
 testtranscoderlibav
 testvideosplitter
+profileVideoMixer.log
+profileVideoMixer.stats
 
 autom4te.cache/
 config.log

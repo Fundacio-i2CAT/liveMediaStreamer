@@ -247,6 +247,9 @@ int main(int argc, char* argv[])
 
     std::string out_address;
     int out_port = 0;
+    int timeout = 0;
+
+    std::string stats_filename;
 
     for (int i = 1; i < argc; i++) {
 
@@ -269,13 +272,19 @@ int main(int argc, char* argv[])
             utils::infoMsg("output bitrate: " + std::to_string(out_bitrate));
         } else if (strcmp(argv[i],"-op")==0) {
             out_period = std::stoi(argv[i+1]);
-            utils::infoMsg("output period: " + std::to_string(out_period) + "us");
+            utils::infoMsg("output period: " + std::to_string(out_period) + "us.");
         } else if (strcmp(argv[i],"-oaddr")==0) {
             out_address = argv[i+1];
             utils::infoMsg("output RTP address: " + out_address);
         } else if (strcmp(argv[i],"-oport")==0) {
             out_port = std::stoi(argv[i+1]);
             utils::infoMsg("output RTP port: " + std::to_string(out_port));
+        } else if (strcmp(argv[i],"-statsfile")==0) {
+            stats_filename = argv[i+1];
+            utils::infoMsg("output stats filename: " + stats_filename);
+        } else if (strcmp(argv[i],"-timeout")==0) {
+            timeout = std::stoi(argv[i+1]);
+            utils::infoMsg("timeout: " + std::to_string(timeout) + "s.");
         }
     }
 
@@ -286,6 +295,8 @@ int main(int argc, char* argv[])
                 "Usage: -viport <video input port> -ri <input RTSP uri>\n"
                 "-ow <output width in pixels> -oh <output height in pixels>\n"
                 "-ob <output bitrate> -op <output period in microseconds>\n"
+                "-statsfile <output statistics filename>\n"
+                "-timeout <secons to wait before closing. 0 means forever>"
                 "-oaddr <optional output RTP IP address> -oport <optional output RTP port>\n");
         return 1;
     }
@@ -336,10 +347,22 @@ int main(int argc, char* argv[])
 
     while(run) {
         std::this_thread::sleep_for(std::chrono::seconds(1));
+        if (timeout) {
+            timeout--;
+            if (!timeout) {
+                run = false;
+            }
+        }
     }
 
     Controller::destroyInstance();
     PipelineManager::destroyInstance();
+
+    if (!stats_filename.empty()) {
+        FILE *f = fopen(stats_filename.c_str(), "a+t");
+        fprintf(f, "%d %d ", out_bitrate, mix_channels);
+        fclose(f);
+    }
 
     return 0;
 }

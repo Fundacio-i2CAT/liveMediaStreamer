@@ -20,12 +20,21 @@
 #define FRAME_RATE 25
 
 #define RETRIES 60
-#define MIX_WIDTH 640
-#define MIX_HEIGHT 360
-#define MIX_CHANNELS 8
+#define DEFAULT_MIX_WIDTH 640
+#define DEFAULT_MIX_HEIGHT 360
+#define DEFAULT_MIX_CHANNELS 9
+#define DEFAULT_MIX_COLS 3 // number of columns of the layout = sqrt(MIX_CHANNELS)
+#define DEFAULT_OUTPUT_BITRATE 4000
+#define DEFAULT_OUTPUT_PERIOD 40000 // microseconds
 
 bool run = true;
 int layer = 0;
+int mix_width = DEFAULT_MIX_WIDTH;
+int mix_height = DEFAULT_MIX_HEIGHT;
+int mix_channels = DEFAULT_MIX_CHANNELS;
+int mix_cols = DEFAULT_MIX_COLS;
+int out_bitrate = DEFAULT_OUTPUT_BITRATE;
+int out_period = DEFAULT_OUTPUT_PERIOD;
 
 void signalHandler( int signum )
 {
@@ -33,7 +42,7 @@ void signalHandler( int signum )
     run = false;
 }
 
-bool setupMixer(int mixerId, int transmitterId) 
+bool setupMixer(int mixerId, int transmitterId)
 {
     PipelineManager *pipe = Controller::getInstance()->pipelineManager();
 
@@ -47,7 +56,8 @@ bool setupMixer(int mixerId, int transmitterId)
 
     std::vector<int> ids = {resId, encId};
 
-    mixer = VideoMixer::createNew(MIX_CHANNELS, MIX_WIDTH, MIX_HEIGHT, std::chrono::microseconds(40000));
+    mixer = VideoMixer::createNew(mix_channels, mix_width, mix_height, std::chrono::microseconds(out_period));
+    mix_cols = ceil(sqrt(mix_channels));
     pipe->addFilter(mixerId, mixer);
 
     resampler = new VideoResampler();
@@ -56,7 +66,7 @@ bool setupMixer(int mixerId, int transmitterId)
 
     encoder = new VideoEncoderX264();
     //bitrate, fps, gop, lookahead, threads, annexB, preset
-    encoder->configure(4000, 50, 25, 25, 4, true, "superfast");
+    encoder->configure(out_bitrate, 1000000 / out_period, 25, 25, 4, true, "superfast");
     pipe->addFilter(encId, encoder);
 
     if (!pipe->createPath(pathId, mixerId, transmitterId, -1, -1, ids)) {
@@ -93,11 +103,11 @@ void addVideoPath(unsigned port, int receiverId, int mixerId)
     pipe->addFilter(decId, decoder);
 
     resampler = new VideoResampler();
-    resampler->configure(MIX_WIDTH*0.5, MIX_HEIGHT*0.5, 0, RGB24);
+    resampler->configure(mix_width / mix_cols, mix_height / mix_cols, 0, RGB24);
     pipe->addFilter(resId, resampler);
 
     if (!pipe->createPath(port, receiverId, mixerId, port, port, ids)) {
-        utils::errorMsg("Error creating audio path");
+        utils::errorMsg("Error creating video path");
         return;
     }
 
@@ -114,7 +124,10 @@ void addVideoPath(unsigned port, int receiverId, int mixerId)
         return;
     }
 
-    mixer->configChannel(port, 0.5, 0.5, rand()%50/100.0, rand()%50/100.0, layer++, true, 1.0);
+    mixer->configChannel(port, 1.f / mix_cols, 1.f / mix_cols,
+            (layer % mix_cols) / (float)mix_cols, (layer / mix_cols) / (float)mix_cols,
+            layer, true, 1.0);
+    layer++;
 
     utils::infoMsg("Video path created from port " + std::to_string(port));
 }
@@ -222,13 +235,9 @@ int main(int argc, char* argv[])
     std::vector<std::string> uris;
     std::vector<int> readers;
 
-    std::string rtspUri;
-
     int transmitterID = 11;
     int receiverId = 10;
     int mixerId = 15;
-
-    int port;
 
     SinkManager* transmitter = NULL;
     SourceManager* receiver = NULL;
@@ -236,20 +245,48 @@ int main(int argc, char* argv[])
 
     utils::setLogLevel(INFO);
 
+    std::string out_address;
+    int out_port = 0;
+
     for (int i = 1; i < argc; i++) {
 
-        if (strcmp(argv[i],"-v") == 0) {
-            port = std::stoi(argv[i+1]);
+        if (strcmp(argv[i],"-viport") == 0) {
+            int port = std::stoi(argv[i+1]);
             ports.push_back(port);
             utils::infoMsg("video input port: " + std::to_string(port));
-        } else if (strcmp(argv[i],"-r")==0) {
-            uris.push_back(argv[i+1]);
+        } else if (strcmp(argv[i],"-ri")==0) {
+            std::string rtspUri = argv[i+1];
+            uris.push_back(rtspUri);
             utils::infoMsg("input RTSP URI: " + rtspUri);
+        } else if (strcmp(argv[i],"-ow")==0) {
+            mix_width = std::stoi(argv[i+1]);
+            utils::infoMsg("output width: " + std::to_string(mix_width));
+        } else if (strcmp(argv[i],"-oh")==0) {
+            mix_height = std::stoi(argv[i+1]);
+            utils::infoMsg("output height: " + std::to_string(mix_height));
+        } else if (strcmp(argv[i],"-ob")==0) {
+            out_bitrate = std::stoi(argv[i+1]);
+            utils::infoMsg("output bitrate: " + std::to_string(out_bitrate));
+        } else if (strcmp(argv[i],"-op")==0) {
+            out_period = std::stoi(argv[i+1]);
+            utils::infoMsg("output period: " + std::to_string(out_period) + "us");
+        } else if (strcmp(argv[i],"-oaddr")==0) {
+            out_address = argv[i+1];
+            utils::infoMsg("output RTP address: " + out_address);
+        } else if (strcmp(argv[i],"-oport")==0) {
+            out_port = std::stoi(argv[i+1]);
+            utils::infoMsg("output RTP port: " + std::to_string(out_port));
         }
     }
- 
-    if (ports.empty() && rtspUri.empty()) { 
-        utils::errorMsg("Usage: -v <port> -r <uri>");
+
+    mix_channels = ports.size() + uris.size();
+
+    if (ports.empty() && uris.empty()) {
+        utils::errorMsg(
+                "Usage: -viport <video input port> -ri <input RTSP uri>\n"
+                "-ow <output width in pixels> -oh <output height in pixels>\n"
+                "-ob <output bitrate> -op <output period in microseconds>\n"
+                "-oaddr <optional output RTP IP address> -oport <optional output RTP port>\n");
         return 1;
     }
 
@@ -257,7 +294,7 @@ int main(int argc, char* argv[])
     pipe = Controller::getInstance()->pipelineManager();
 
     transmitter = SinkManager::createNew();
-    
+
     if (!transmitter) {
         utils::errorMsg("RTSPServer constructor failed");
         return 1;
@@ -279,6 +316,12 @@ int main(int argc, char* argv[])
         return 1;
     }
 
+    if (!out_address.empty() && out_port != 0) {
+        if (transmitter->addRTPConnection(readers, rand(), out_address, out_port, STD_RTP)) {
+            utils::infoMsg("Added output RTP connection for " + out_address + ":" + std::to_string(out_port));
+        }
+    }
+
     for (auto p : ports) {
         addVideoSDPSession(p, receiver);
         addVideoPath(p, receiverId, mixerId);
@@ -297,6 +340,6 @@ int main(int argc, char* argv[])
 
     Controller::destroyInstance();
     PipelineManager::destroyInstance();
-    
+
     return 0;
 }

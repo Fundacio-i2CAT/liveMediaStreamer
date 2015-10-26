@@ -11,7 +11,7 @@
 class QueueSource: public FramedSource {
 
 public:
-    static QueueSource* createNew(UsageEnvironment& env, int readerId);
+    static QueueSource* createNew(UsageEnvironment& env, const StreamInfo* streamInfo);
     bool setFrame(Frame *f);
     bool gotFrame();
     EventTriggerId getTriggerId() const {return eventTriggerId;};
@@ -19,7 +19,7 @@ public:
 
 protected:
     void doGetNextFrame();
-    QueueSource(UsageEnvironment& env, int readerId);
+    QueueSource(UsageEnvironment& env, const StreamInfo* streamInfo);
     static void deliverFrame0(void* clientData);
     virtual void deliverFrame();
     void doStopGettingFrames();
@@ -27,7 +27,7 @@ protected:
 protected:
     EventTriggerId eventTriggerId;
     Frame* frame;
-    int fReaderId;
+    const StreamInfo* si;
     bool processedFrame;
     bool stopFrames;
 };

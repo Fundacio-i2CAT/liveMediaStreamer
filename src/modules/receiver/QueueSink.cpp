@@ -26,8 +26,8 @@
 
 #include <sys/time.h>
 
-QueueSink::QueueSink(UsageEnvironment& env, unsigned port)
-  : MediaSink(env), fPort(port), nextFrame(true)
+QueueSink::QueueSink(UsageEnvironment& env, unsigned port, FramedFilter* filter)
+  : MediaSink(env), fPort(port), nextFrame(true), fFilter(filter)
 {
     frame = NULL;
     dummyBuffer = new unsigned char[DUMMY_RECEIVE_BUFFER_SIZE];
@@ -38,9 +38,9 @@ QueueSink::~QueueSink()
     delete[] dummyBuffer;
 }
 
-QueueSink* QueueSink::createNew(UsageEnvironment& env, unsigned port)
+QueueSink* QueueSink::createNew(UsageEnvironment& env, unsigned port, FramedFilter* filter)
 {
-    return new QueueSink(env, port);
+    return new QueueSink(env, port, filter);
 }
 
 Boolean QueueSink::continuePlaying()
@@ -51,7 +51,7 @@ Boolean QueueSink::continuePlaying()
     }
 
     if (!frame){
-        utils::errorMsg("Using dummy buffer, no writer connected yet");
+        utils::debugMsg("Using dummy buffer, no writer connected yet");
         fSource->getNextFrame(dummyBuffer, DUMMY_RECEIVE_BUFFER_SIZE,
                               afterGettingFrame, this,
                               onSourceClosure, this);
@@ -92,7 +92,7 @@ void QueueSink::afterGettingFrame(unsigned frameSize, struct timeval presentatio
         nextFrame = true;
     }
     nextTask() = envir().taskScheduler().scheduleDelayedTask(0,
-            (TaskFunc*)QueueSink::staticContinuePlaying, this);
+        (TaskFunc*)QueueSink::staticContinuePlaying, this);
 }
 
 void QueueSink::staticContinuePlaying(QueueSink *sink)

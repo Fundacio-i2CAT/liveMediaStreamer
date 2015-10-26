@@ -66,7 +66,6 @@ Frame* SlicedVideoFrameQueue::getRear()
 
 int SlicedVideoFrameQueue::addFrame()
 {
-    pushBackSliceGroup(inputFrame->getCopiedSlices(), inputFrame->getCopiedSliceNum());
     pushBackSliceGroup(inputFrame->getSlices(), inputFrame->getSliceNum());
     inputFrame->clear();
     return connectionData.rFilterId;
@@ -103,7 +102,7 @@ void SlicedVideoFrameQueue::innerAddFrame()
 
 bool SlicedVideoFrameQueue::setup(unsigned maxSliceSize)
 {
-    inputFrame = SlicedVideoFrame::createNew(streamInfo->video.codec, maxSliceSize);
+    inputFrame = SlicedVideoFrame::createNew(streamInfo->video.codec);
 
     if (!inputFrame) {
         return false;

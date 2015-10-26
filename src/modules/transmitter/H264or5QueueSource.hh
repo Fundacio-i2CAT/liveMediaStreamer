@@ -31,13 +31,33 @@
 class H264or5QueueSource: public QueueSource {
 
 public:
-    static H264or5QueueSource* createNew(UsageEnvironment& env, int readerId);
+    static H264or5QueueSource* createNew(UsageEnvironment& env, const StreamInfo *streamInfo);
     
+    bool parseExtradata();
+    
+    uint8_t* getVPS() const {return fVPS;};
+    uint8_t* getSPS() const {return fSPS;};
+    uint8_t* getPPS() const {return fPPS;};
+    
+    unsigned getVPSSize() const {return fVPSSize;};
+    unsigned getSPSSize() const {return fSPSSize;};
+    unsigned getPPSSize() const {return fPPSSize;};
 
 protected:
-    H264or5QueueSource(UsageEnvironment& env, int readerId);
-
+    H264or5QueueSource(UsageEnvironment& env, const StreamInfo *streamInfo);
+    ~H264or5QueueSource();
+    
+    void feedHeaders(uint8_t *nal, uint8_t nalSize, VCodecType codec);
+    
     void deliverFrame();
+    
+    uint8_t* fVPS; 
+    uint8_t* fSPS;
+    uint8_t* fPPS;
+    
+    unsigned fVPSSize;
+    unsigned fSPSSize; 
+    unsigned fPPSSize;
 };
 
 #endif

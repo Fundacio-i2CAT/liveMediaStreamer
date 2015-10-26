@@ -2,6 +2,7 @@
 #include "../src/modules/audioDecoder/AudioDecoderLibav.hh"
 #include "../src/modules/audioMixer/AudioMixer.hh"
 #include "../src/modules/videoEncoder/VideoEncoderX264.hh"
+#include "../src/modules/videoEncoder/VideoEncoderX265.hh"
 #include "../src/modules/videoDecoder/VideoDecoderLibav.hh"
 #include "../src/modules/videoMixer/VideoMixer.hh"
 #include "../src/modules/videoResampler/VideoResampler.hh"
@@ -115,7 +116,7 @@ void addVideoPath(unsigned port, int receiverID, int transmitterID)
     std::string sdp;
 
     VideoResampler *resampler;
-    VideoEncoderX264 *encoder;
+    VideoEncoderX265 *encoder;
     VideoDecoderLibav *decoder;
 
     decoder = new VideoDecoderLibav();
@@ -125,11 +126,11 @@ void addVideoPath(unsigned port, int receiverID, int transmitterID)
     pipe->addFilter(resId, resampler);
     resampler->configure(1280, 720, 0, YUV420P);
 
-    encoder = new VideoEncoderX264();
+    encoder = new VideoEncoderX265();
     pipe->addFilter(encId, encoder);
 
     //bitrate, fps, gop, lookahead, threads, annexB, preset
-    encoder->configure(4000, 25, 25, 0, 4, true, "superfast");
+    encoder->configure(4000, 5, 5, 0, 4, true, "superfast");
     
     if (!pipe->createPath(BYPASS_VIDEO_PATH, receiverID, transmitterID, port, BYPASS_VIDEO_PATH, std::vector<int>({}))) {
         utils::errorMsg("Error creating video path");
@@ -232,21 +233,29 @@ bool addRTSPsession(std::string rtspUri, SourceManager *receiver, int receiverID
 
     MediaSubsessionIterator iter(*(session->getScs()->session));
     MediaSubsession* subsession;
-
-    while(iter.next() == NULL && retries <= RETRIES){
+    
+    while(true){
+        if (retries > RETRIES){
+            delete receiver;
+            return false;
+        }
+        
         sleep(1);
         retries++;
-    }
-
-    if (retries > RETRIES){
-        delete receiver;
-        return false;
+        
+        if ((subsession = iter.next()) == NULL){
+            iter.reset();
+            continue;
+        }
+        
+        if (subsession->clientPortNum() > 0){
+            iter.reset();
+            break;
+        }
     }
 
     utils::infoMsg("RTSP client session created!");
-
-    iter.reset();
-
+    
     while((subsession = iter.next()) != NULL){
         medium = subsession->mediumName();
 

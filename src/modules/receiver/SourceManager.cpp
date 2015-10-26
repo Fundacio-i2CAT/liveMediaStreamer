@@ -25,11 +25,28 @@
 #include "ExtendedRTSPClient.hh"
 #include "../../AVFramedQueue.hh"
 #include "../../Utils.hh"
+#include "H264VideoSdpParser.hh"
 
 #include <sstream>
 
 #define RTSP_CLIENT_VERBOSITY_LEVEL 1
 #define RTP_RECEIVE_BUFFER_SIZE 2000000
+
+static void fillH264or5ExtraData(const MediaSubsession *mss, StreamInfo *si)
+{
+    QueueSink* sink;
+    H264VideoSdpParser* parser;
+    
+    if ((sink = dynamic_cast<QueueSink*>(mss->sink)) == NULL){
+        return;
+    }
+    
+    if ((parser = dynamic_cast<H264VideoSdpParser*>(sink->getFilter())) == NULL){
+        return;
+    }
+    
+    si->setExtraData(parser->getExtradata(), parser->getExtradataSize());
+}
 
 static StreamInfo *createStreamInfo(const MediaSubsession *mss)
 {
@@ -39,7 +56,7 @@ static StreamInfo *createStreamInfo(const MediaSubsession *mss)
     if (strcmp(mss->mediumName(), "audio") == 0) {
         si = new StreamInfo(AUDIO);
         if (mss->rtpPayloadFormat() == 0) {
-            // Is this one neeeded? it should be implicit in PCMU case
+            //NOTE: Is this one neeeded? it should be implicit in PCMU case
             si->audio.codec = G711;
         } else
         if (strcmp(codecName, "OPUS") == 0) {
@@ -54,7 +71,7 @@ static StreamInfo *createStreamInfo(const MediaSubsession *mss)
         if (strcmp(codecName, "PCM") == 0) {
             si->audio.codec = PCM;
         } else {
-            utils::errorMsg (std::string("Unsupported audio codec ") + codecName);
+            utils::errorMsg ("Unsupported audio codec " + std::string(codecName));
             delete si;
             return NULL;
         }
@@ -66,16 +83,16 @@ static StreamInfo *createStreamInfo(const MediaSubsession *mss)
         si = new StreamInfo(VIDEO);
         if (strcmp(codecName, "H264") == 0) {
             si->video.codec = H264;
-            si->video.h264or5.annexb = true;
+            fillH264or5ExtraData(mss, si);
         } else if (strcmp(codecName, "H265") == 0) {
             si->video.codec = H265;
-            si->video.h264or5.annexb = true;
+            fillH264or5ExtraData(mss, si);
         } else if (strcmp(codecName, "VP8") == 0) {
             si->video.codec = VP8;
         } else if (strcmp(codecName, "MJPEG") == 0) {
             si->video.codec = MJPEG;
         } else {
-            utils::errorMsg (std::string("Unsupported video codec ") + codecName);
+            utils::errorMsg ("Unsupported video codec " + std::string(codecName));
             delete si;
             return NULL;
         }
@@ -198,6 +215,15 @@ bool SourceManager::addSink(unsigned port, QueueSink *sink)
     return true;
 }
 
+bool SourceManager::specificWriterConfig(int writerID)
+{
+    if (sinks.count(writerID) != 1){
+        return false;
+    } 
+    
+    return true;
+}
+
 FrameQueue *SourceManager::allocQueue(ConnectionData cData)
 {
     MediaSubsession *mSubsession;
@@ -218,7 +244,7 @@ FrameQueue *SourceManager::allocQueue(ConnectionData cData)
     }
 
     if (!si) {
-        utils::errorMsg (std::string("Unknown port number ") + std::to_string(cData.writerId));
+        utils::errorMsg ("Unknown port number " + std::to_string(cData.writerId));
         return NULL;
     }
     if (si->type == AUDIO) {
@@ -235,7 +261,7 @@ bool SourceManager::specificWriterDelete(int writerID)
     if (outputStreamInfos.count(writerID) > 0) {
         sinks[writerID]->disconnect();
     } else {
-        utils::errorMsg (std::string("[SourceManager::specificWriterDelete] Unknown port number ") + std::to_string(writerID));
+        utils::errorMsg ("[SourceManager::specificWriterDelete] Unknown port number " + std::to_string(writerID));
         return false;
     }
 

@@ -82,8 +82,17 @@ struct StreamInfo {
     void setCodecDefaults() {
         switch (type) {
             case VIDEO:
-                video.h264or5.annexb = false;
-                video.h264or5.framed = true;
+                switch(video.codec){
+                    case H264:
+                    case H265:
+                        video.h264or5.annexb = true;
+                        video.h264or5.framed = true;
+                        break;
+                    default:
+                        video.h264or5.annexb = false;
+                        video.h264or5.framed = false;
+                        break;
+                }
                 break;
             case AUDIO:
                 switch (audio.codec) {

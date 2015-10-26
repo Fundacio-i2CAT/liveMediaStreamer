@@ -179,7 +179,6 @@ bool VideoSplitter::doProcessFrame(Frame *org, std::map<int, Frame *> &dstFrames
 				
 			}*/
 			it.second->setConsumed(true);
-			utils::errorMsg("[VideoSplitter::doProcessFrame] Presentation Time: " + std::to_string(vFrame->getPresentationTime().count()));
 			it.second->setPresentationTime(vFrame->getPresentationTime());
 			it.second->setOriginTime(org->getOriginTime());
     		it.second->setSequenceNumber(org->getSequenceNumber());

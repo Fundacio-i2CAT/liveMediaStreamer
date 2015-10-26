@@ -22,6 +22,7 @@
  */
 
 #include "H265QueueServerMediaSubsession.hh"
+#include "H264or5QueueSource.hh"
 
 H265QueueServerMediaSubsession*
 H265QueueServerMediaSubsession::createNew(Connection* conn, UsageEnvironment& env,
@@ -53,6 +54,19 @@ FramedSource* H265QueueServerMediaSubsession::createNewStreamSource(unsigned /*c
 RTPSink* H265QueueServerMediaSubsession::createNewRTPSink(Groupsock* rtpGroupsock,
            unsigned char rtpPayloadTypeIfDynamic, FramedSource* /*inputSource*/) 
 {
+    H264or5QueueSource *source;
+    
+    if ((source = dynamic_cast<H264or5QueueSource *>(replicator->inputSource()))){
+        if (source->parseExtradata()){
+            return H265VideoRTPSink::createNew(envir(), rtpGroupsock, rtpPayloadTypeIfDynamic,
+                                           source->getVPS(), source->getVPSSize(),
+                                           source->getSPS(), source->getSPSSize(),
+                                           source->getPPS(), source->getPPSSize());
+        } else {
+            utils::infoMsg("failed parsing h265");
+        }
+    }
+    
     return H265VideoRTPSink::createNew(envir(), rtpGroupsock, rtpPayloadTypeIfDynamic);
 }
 

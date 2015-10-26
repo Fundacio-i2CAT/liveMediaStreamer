@@ -493,14 +493,8 @@ std::vector<int> BaseFilter::regularProcessFrame(int& ret)
     std::vector<int> newFrames;
     
     processEvent();
-    newFrames = demandOriginFrames(oFrames);
     
-    if (newFrames.empty()) {
-        ret = WAIT;
-        return enabledJobs;
-    }
-    
-    if (!demandDestinationFrames(dFrames)) {
+    if (!demandOriginFrames(oFrames, newFrames) || !demandDestinationFrames(dFrames)){
         ret = WAIT;
         removeFrames(newFrames);
         return enabledJobs;
@@ -525,7 +519,7 @@ std::vector<int> BaseFilter::serverProcessFrame(int& ret)
     
     processEvent();
     
-    newFrames = demandOriginFrames(oFrames);
+    demandOriginFrames(oFrames, newFrames);
     demandDestinationFrames(dFrames);
 
     runDoProcessFrame(oFrames, dFrames, newFrames);
@@ -538,20 +532,20 @@ std::vector<int> BaseFilter::serverProcessFrame(int& ret)
     return enabledJobs;
 }
 
-std::vector<int> BaseFilter::demandOriginFrames(std::map<int, Frame*> &oFrames)
+bool BaseFilter::demandOriginFrames(std::map<int, Frame*> &oFrames, std::vector<int> &newFrames)
 {
     if (maxReaders == 0) {
-        return std::vector<int>({-1});
+        return true;
     }
 
     if (readers.empty()) {
-        return std::vector<int>({});
+        return false;
     }
 
     if (frameTime.count() <= 0) {
-        return demandOriginFramesBestEffort(oFrames);
+        return demandOriginFramesBestEffort(oFrames, newFrames);
     } else {
-        return demandOriginFramesFrameTime(oFrames);
+        return demandOriginFramesFrameTime(oFrames, newFrames);
     }
 }
 
@@ -566,10 +560,9 @@ bool BaseFilter::deleteReader(int readerId)
     return false;
 }
 
-std::vector<int> BaseFilter::demandOriginFramesBestEffort(std::map<int, Frame*> &oFrames) 
+bool BaseFilter::demandOriginFramesBestEffort(std::map<int, Frame*> &oFrames, std::vector<int> &newFrames) 
 {
     bool newFrame;
-    std::vector<int> newFrames;
     Frame* frame;
 
     for (auto r : readers) {
@@ -592,17 +585,16 @@ std::vector<int> BaseFilter::demandOriginFramesBestEffort(std::map<int, Frame*> 
         }
     }
 
-    return newFrames;
+    return !newFrames.empty();
 }
 
-std::vector<int> BaseFilter::demandOriginFramesFrameTime(std::map<int, Frame*> &oFrames) 
+bool BaseFilter::demandOriginFramesFrameTime(std::map<int, Frame*> &oFrames, std::vector<int> &newFrames) 
 {
     Frame* frame;
     std::chrono::microseconds outOfScopeTs = std::chrono::microseconds(-1);
     bool newFrame;
     bool validFrame = false;
     bool outDated = false;
-    std::vector<int> newFrames;
 
     for (auto r : readers) {
         if (!r.second || !r.second->isConnected()) {
@@ -627,16 +619,8 @@ std::vector<int> BaseFilter::demandOriginFramesFrameTime(std::map<int, Frame*> &
             continue;
         }
 
-        // If the current frame is out of our mixing scope, 
-        // we do not consider it as a new mixing frame (keep noFrame value)
-        if(fType == 12) {
-            utils::infoMsg("[BaseFilter::demandOriginFramesFrameTime] Configure Frame Time del filtro " + utils::getFilterTypeAsString(fType));
-            utils::infoMsg("[BaseFilter::demandOriginFramesFrameTime] Frame Presentation Time " + std::to_string(frame->getPresentationTime().count()));
-            utils::infoMsg("[BaseFilter::demandOriginFramesFrameTime] syncTs Time " + std::to_string(syncTs.count()));
-            utils::infoMsg("[BaseFilter::demandOriginFramesFrameTime] Frame Time " + std::to_string(frameTime.count()));
-            utils::infoMsg("[BaseFilter::demandOriginFramesFrameTime] Out Of Scope " + std::to_string(outOfScopeTs.count()));
-        }
-        
+        // If the current frame is out of our processing scope, 
+        // we do not consider it as a new frame (keep noFrame value)
         if (frame->getPresentationTime() > syncTs + frameTime) {
             if (outOfScopeTs.count() < 0) {
                 outOfScopeTs = frame->getPresentationTime();
@@ -651,26 +635,26 @@ std::vector<int> BaseFilter::demandOriginFramesFrameTime(std::map<int, Frame*> &
             continue;
         }
 
-        // Normal case, which means that the frame is in our mixing scope (syncTime -> syncTime+frameTime)
+        // Normal case, which means that the frame is in our processing scope (syncTime -> syncTime+frameTime)
         validFrame = true;
     }
 
     // There is no new frame
     if (newFrames.empty()) {
-        return newFrames;
+        return false;
     }
     
     if (!validFrame) {
         if (outOfScopeTs > syncTs && !outDated) {
             syncTs = outOfScopeTs;
         }
-        //We return true if there are no outDated frames
-        return newFrames;
+        //We set framesToProcess true if there are no outDated frames
+        return !outDated;
     } 
 
     // Finally set syncTs
     syncTs += frameTime;
-    return newFrames;
+    return true;
 }
 
 OneToOneFilter::OneToOneFilter(FilterRole fRole_, bool periodic) :

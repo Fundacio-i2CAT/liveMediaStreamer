@@ -57,7 +57,7 @@ private:
     bool fillPicturePlanes(unsigned char** data, int* linesize);
     bool encodeFrame(VideoFrame* codedFrame);
     bool reconfigure(VideoFrame *orgFrame, VideoFrame* dstFrame);
-    bool encodeHeadersFrame(VideoFrame* frame);
+    bool encodeHeadersFrame();
 };
 
 #endif

@@ -84,13 +84,13 @@ void SinkManager::stop()
     }
     connections.clear();
 
-    for (auto it : replicators) {
-        if (it.second->numReplicas() != 0){
-            utils::infoMsg("[SinkManager::stop] closing replicator medium");
-            Medium::close(it.second);
-            sources.erase(it.first);
-        }
-    }
+    //NOTE: Medium::close() over replicators fail for some reason, even when numReplicas == 0
+//     for (auto it : replicators) {
+//         if (it.second->numReplicas() == 0){
+//             Medium::close(it.second);
+//             sources.erase(it.first);
+//         }
+//     }
     replicators.clear();
     
     for (auto it : sources) {
@@ -412,26 +412,26 @@ bool SinkManager::specificReaderConfig(int readerId, FrameQueue* queue)
     AudioFrameQueue *aQueue;  
 
     if ((vQueue = dynamic_cast<VideoFrameQueue*>(queue)) != NULL){
-        return createVideoQueueSource(vQueue->getStreamInfo()->video.codec, readerId);
+        return createVideoQueueSource(vQueue->getStreamInfo(), readerId);
     }
 
     if ((aQueue = dynamic_cast<AudioFrameQueue*>(queue)) != NULL){
-        return createAudioQueueSource(aQueue->getStreamInfo()->audio.codec, readerId);
+        return createAudioQueueSource(aQueue->getStreamInfo(), readerId);
     }
     
     return false;
 }
 
-bool SinkManager::createVideoQueueSource(VCodecType codec, int readerId)
+bool SinkManager::createVideoQueueSource(const StreamInfo* si, int readerId)
 {
-    switch(codec){
+    switch(si->video.codec){
         case H264:
         case H265:
-            sources[readerId] = H264or5QueueSource::createNew(*(envir()), readerId);
+            sources[readerId] = H264or5QueueSource::createNew(*(envir()), si);
             replicators[readerId] = StreamReplicator::createNew(*(envir()), sources[readerId], False);
             break;
         case VP8:
-            sources[readerId] = QueueSource::createNew(*(envir()), readerId);
+            sources[readerId] = QueueSource::createNew(*(envir()), si);
             replicators[readerId] =  StreamReplicator::createNew(*(envir()), sources[readerId], False);
             break;
         default:
@@ -445,9 +445,9 @@ bool SinkManager::createVideoQueueSource(VCodecType codec, int readerId)
     return true;
 }
 
-bool SinkManager::createAudioQueueSource(ACodecType /*codec*/, int readerId)
+bool SinkManager::createAudioQueueSource(const StreamInfo* si, int readerId)
 {    
-    sources[readerId] = QueueSource::createNew(*(envir()), readerId);
+    sources[readerId] = QueueSource::createNew(*(envir()), si);
     replicators[readerId] = StreamReplicator::createNew(*(envir()), sources[readerId], False);
     if (!replicators[readerId] || !sources[readerId]){
         replicators.erase(readerId);

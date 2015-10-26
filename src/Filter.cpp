@@ -629,6 +629,14 @@ std::vector<int> BaseFilter::demandOriginFramesFrameTime(std::map<int, Frame*> &
 
         // If the current frame is out of our mixing scope, 
         // we do not consider it as a new mixing frame (keep noFrame value)
+        if(fType == 12) {
+            utils::infoMsg("[BaseFilter::demandOriginFramesFrameTime] Configure Frame Time del filtro " + utils::getFilterTypeAsString(fType));
+            utils::infoMsg("[BaseFilter::demandOriginFramesFrameTime] Frame Presentation Time " + std::to_string(frame->getPresentationTime().count()));
+            utils::infoMsg("[BaseFilter::demandOriginFramesFrameTime] syncTs Time " + std::to_string(syncTs.count()));
+            utils::infoMsg("[BaseFilter::demandOriginFramesFrameTime] Frame Time " + std::to_string(frameTime.count()));
+            utils::infoMsg("[BaseFilter::demandOriginFramesFrameTime] Out Of Scope " + std::to_string(outOfScopeTs.count()));
+        }
+        
         if (frame->getPresentationTime() > syncTs + frameTime) {
             if (outOfScopeTs.count() < 0) {
                 outOfScopeTs = frame->getPresentationTime();

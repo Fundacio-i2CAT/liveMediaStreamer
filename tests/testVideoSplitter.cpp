@@ -78,11 +78,7 @@ bool setupSplitter(int splitterId, int transmitterID, int def_witdth, int def_he
         int x = ((it-1)%2)*(def_witdth/(SPLIT_CHANNELS/2));
         int y = ((it>>1)%2)*(def_height/(SPLIT_CHANNELS/2));
         
-        if (it==1){
-            splitter->configCrop(it,100,100,2,2,90);
-        } else {
-            splitter->configCrop(it,w,h,x,y);
-        }
+        splitter->configCrop(it,w,h,x,y);
 
         utils::errorMsg("[TESTVIDEOSPLITTER] Crop config "+std::to_string(it)+":");
         utils::errorMsg("[TESTVIDEOSPLITTER] width:"+std::to_string(w)+", height:"+std::to_string(h)+", POS.X:"+std::to_string(x)+", POS.Y:"+std::to_string(y));

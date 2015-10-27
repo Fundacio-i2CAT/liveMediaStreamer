@@ -7,12 +7,13 @@ echo $0 $1 $2 >> profileVideoMixer.log
 
 date >> profileVideoMixer.stats
 echo $0 $1 $2 >> profileVideoMixer.stats
+echo "Selected Out Bitrate, Selected Channels, In Avg. Delay (us), Out Avg. Delay (us), Avg. Delay (us), In Losses, Out Losses, Losses, In Bitrate (kbs), In Pkt Losses, Out Bitrate (kbs), Out Pkt Losses, CPU%" >> profileVideoMixer.stats
 
 baseport=`echo $1 | sed -e "s/.*:\([0-9]*\).*/\1/g"`
-for bitrate in 1000 2000 4000 8000
+for bitrate in 1000 #2000 4000 8000
 do
     commandline="./testvideomix -ow 1920 -oh 1080 -ob "$bitrate
-    commandline+=" -oaddr 127.0.0.1 -oport 8650 -timeout 10 -statsfile profileVideoMixer.stats"
+    commandline+=" -oaddr 127.0.0.1 -oport 8650 -timeout 30 -statsfile profileVideoMixer.stats"
     port=$baseport
     for channels in `seq 1 1 $2`
     do
@@ -20,6 +21,6 @@ do
         echo $commandline
         let port=$port+2
         echo $commandline >> profileVideoMixer.log
-        /usr/bin/time -f "%P" -o profileVideoMixer.stats -a $commandline >> profileVideoMixer.log 2> /dev/null
+        $commandline >> profileVideoMixer.log 2>&1
     done
 done

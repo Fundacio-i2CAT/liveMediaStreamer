@@ -42,7 +42,7 @@
 
 #define RETRIES 60
 
-#define MAX_VIDEO_QUALITIES 3
+#define MAX_VIDEO_QUALITIES 6
 #define DEFAULT_OUTPUT_VIDEO_QUALITIES 3
 #define DEFAULT_FIRST_VIDEO_QUALITY 2000
 
@@ -455,7 +455,7 @@ int main(int argc, char* argv[])
     }
 
     if (numVidQ < 1 || numVidQ > MAX_VIDEO_QUALITIES){
-        utils::errorMsg("Number of output video qualities can be 1, 2 or 3");
+        utils::errorMsg("Number of output video qualities must be between 1 and " + std::to_string(MAX_VIDEO_QUALITIES));
         usage();
         return 1;
     }

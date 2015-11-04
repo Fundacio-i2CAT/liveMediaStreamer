@@ -363,16 +363,15 @@ bool PipelineManager::removePath(int id)
     Path* path;
 
     path = getPath(id);
-
     if (!path) {
         return false;
     }
-
     if (!deletePath(path)) {
         return false;
     }
-
+    utils::errorMsg("[PipelineManager::removePath] PRE PATH.EREASE");
     paths.erase(id);
+    utils::errorMsg("[PipelineManager::removePath] POST PATH.EREASE");
 
     return true;
 }
@@ -387,29 +386,25 @@ bool PipelineManager::deletePath(Path* path)
     if (filters.count(orgFilterId) <= 0 || filters.count(dstFilterId) <= 0) {
         return false;
     }
-
     for (auto it : pathFilters) {
         if (filters.count(it) <= 0) {
             return false;
         }
     }
-
     if(!filters[orgFilterId]->disconnectWriter(path->getOrgWriterID())) {
         utils::errorMsg("Error disconnecting path head!");
         return false;
     }
-
     if(!filters[dstFilterId]->disconnectReader(path->getDstReaderID())) {
         utils::errorMsg("Error disconnecting path tail!");
         return false;
     }
-
+    
     for (auto it : pathFilters) {
         pool->removeTask(it);
         delete filters[it];
         filters.erase(it);
     }
-
     delete path;
 
     return true;

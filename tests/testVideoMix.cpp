@@ -370,15 +370,6 @@ int main(int argc, char* argv[])
         Jzon::Object pipe_state;
         pipe->getStateEvent(NULL, pipe_state);
 
-
-
-        Jzon::Writer writer(pipe_state, Jzon::StandardFormat);
-        writer.Write();
-        std::string result = writer.GetResult();
-        std::cout << result << std::endl;
-
-
-
         FILE *f = fopen(stats_filename.c_str(), "a+t");
         fprintf(f, "%d, %d, ", out_bitrate, mix_channels);
 

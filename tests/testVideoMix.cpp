@@ -296,7 +296,7 @@ int main(int argc, char* argv[])
                 "-ow <output width in pixels> -oh <output height in pixels>\n"
                 "-ob <output bitrate> -op <output period in microseconds>\n"
                 "-statsfile <output statistics filename>\n"
-                "-timeout <secons to wait before closing. 0 means forever>"
+                "-timeout <seconds to wait before closing. 0 means forever>"
                 "-oaddr <optional output RTP IP address> -oport <optional output RTP port>\n");
         return 1;
     }

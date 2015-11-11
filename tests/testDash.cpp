@@ -56,6 +56,13 @@
 
 bool run = true;
 
+struct Configuration {
+    int width;
+    int height;
+    int bitrate;
+    VCodecType codec;
+};
+
 void signalHandler( int signum )
 {
     utils::infoMsg("Interruption signal received");
@@ -138,7 +145,7 @@ void addAudioPath(unsigned port, Dasher* dasher, int dasherId, int receiverID, i
 }
 
 void addVideoPath(unsigned port, Dasher* dasher, int dasherId, int receiverID, int transmitterID,
-                    VCodecType codec, int nQ, int maxBitRate)
+                    Configuration *config, int numConfig)
 {
     PipelineManager *pipe = Controller::getInstance()->pipelineManager();
 
@@ -164,19 +171,19 @@ void addVideoPath(unsigned port, Dasher* dasher, int dasherId, int receiverID, i
 
     resampler = new VideoResampler();
     pipe->addFilter(resId, resampler);
-    resampler->configure(1280, 720, 0, YUV420P);
+    resampler->configure(config[0].width, config[0].height, 0, YUV420P);
 
-    switch (codec) {
+    switch (config[0].codec) {
         case H264:
             encoderX264 = new VideoEncoderX264();
             pipe->addFilter(encId, encoderX264);
-            encoderX264->configure(maxBitRate, 25, 25, 0, 4, true, "superfast");
+            encoderX264->configure(config[0].bitrate, 25, 25, 0, 4, true, "superfast");
             utils::infoMsg("Master reader: " + std::to_string(dstReader));
             break;
         case H265:
             encoderX265 = new VideoEncoderX265();
             pipe->addFilter(encId, encoderX265);
-            encoderX265->configure(maxBitRate, 25, 25, 25, 4, true, "superfast");
+            encoderX265->configure(config[0].bitrate, 25, 25, 25, 4, true, "superfast");
             utils::infoMsg("Master reader: " + std::to_string(dstReader));
             break;
         default:
@@ -196,11 +203,11 @@ void addVideoPath(unsigned port, Dasher* dasher, int dasherId, int receiverID, i
         return;
     }
 
-    if (!dasher->setDashSegmenterBitrate(dstReader, maxBitRate*1000)) {
+    if (!dasher->setDashSegmenterBitrate(dstReader, config[0].bitrate*1000)) {
         utils::errorMsg("Error setting bitrate to segmenter");
     } 
 
-    for (int n = 1; n < nQ; n++) {
+    for (int n = 1; n < numConfig; n++) {
         resId += n;
         encId += n;
         dstReader += n;
@@ -209,18 +216,18 @@ void addVideoPath(unsigned port, Dasher* dasher, int dasherId, int receiverID, i
 
         resampler = new VideoResampler();
         pipe->addFilter(resId, resampler);
-        resampler->configure(1280/2, 720/2, 0, YUV420P);
+        resampler->configure(config[n].width, config[n].height, 0, YUV420P);
 
-        switch (codec) {
+        switch (config[n].codec) {
             case H264:
                 encoderX264 = new VideoEncoderX264();
                 pipe->addFilter(encId, encoderX264);
-                encoderX264->configure(maxBitRate/(n*2), 25, 25, 0, 4, true, "superfast");
+                encoderX264->configure(config[n].bitrate, 25, 25, 0, 4, true, "superfast");
                 break;
             case H265:
                 encoderX265 = new VideoEncoderX265();
                 pipe->addFilter(encId, encoderX265);
-                encoderX265->configure(maxBitRate/(n*2), 25, 25, 25, 4, true, "superfast");
+                encoderX265->configure(config[n].bitrate, 25, 25, 25, 4, true, "superfast");
                 break;
             default:
                 utils::errorMsg("Only H264 and H265 are supported... exiting...");
@@ -240,7 +247,7 @@ void addVideoPath(unsigned port, Dasher* dasher, int dasherId, int receiverID, i
 
         utils::infoMsg("Slave reader: " + std::to_string(dstReader));
 
-        if (!dasher->setDashSegmenterBitrate(dstReader, maxBitRate*1000/(n*2))) {
+        if (!dasher->setDashSegmenterBitrate(dstReader, config[n].bitrate*1000)) {
             utils::errorMsg("Error setting bitrate to segmenter");
         } 
     }
@@ -312,7 +319,7 @@ bool addAudioSDPSession(unsigned port, SourceManager *receiver, std::string code
 
 bool addRTSPsession(std::string rtspUri, Dasher* dasher, int dasherId,
                     SourceManager *receiver, int receiverID, int transmitterID,
-                    VCodecType codec, int nQ, int maxBitRate)
+                    Configuration *config, int numConfig)
 {
     Session* session;
     std::string sessionId = utils::randomIdGenerator(ID_LENGTH);
@@ -356,7 +363,7 @@ bool addRTSPsession(std::string rtspUri, Dasher* dasher, int dasherId,
         medium = subsession->mediumName();
 
         if (medium.compare("video") == 0){
-            addVideoPath(subsession->clientPortNum(), dasher, dasherId, receiverID, transmitterID, codec, nQ, maxBitRate);
+            addVideoPath(subsession->clientPortNum(), dasher, dasherId, receiverID, transmitterID, config, numConfig);
         } else if (medium.compare("audio") == 0){
             addAudioPath(subsession->clientPortNum(), dasher, dasherId, receiverID, transmitterID);
         }
@@ -367,10 +374,10 @@ bool addRTSPsession(std::string rtspUri, Dasher* dasher, int dasherId,
 
 void usage(){
     utils::infoMsg("usage: \n\r \
-        testdash -v <RTP input video port> -a <RTP input audio port> -r <input RTSP URI> -c <socket control port> -nvq <number of output video qualities> -vc <output video codec> -f <dash folder> -b <max video bit rate> -s <segment duration> -statsfile <output statistics filename> -timeout <secons to wait before closing. 0 means forever> \
+        testdash -v <RTP input video port> -a <RTP input audio port> -r <input RTSP URI> -c <socket control port> -f <dash folder> -s <segment duration> -statsfile <output statistics filename> -timeout <secons to wait before closing. 0 means forever> -cf <configuration file>\
         \n INPUTS: RTP or RTSP \n QUALITIES: from 1 to "+std::to_string(MAX_VIDEO_QUALITIES)+"                      \
-        \n OUTPUT VIDEO CODECS: H264 or H265                                                                        \
         \n FOLDER: specify system folder where to write DASH MPD, INIT and SEGMENTS files.                          \
+        \n Each line in the configuration file must contain 'width, height, bitrate (kbps), codec (0:H264 1:H265)'  \
     ");
 }
 
@@ -395,13 +402,10 @@ int main(int argc, char* argv[])
     int vPort = 0;
     int aPort = 0;
     int cPort = 7777;
-    int numVidQ = DEFAULT_OUTPUT_VIDEO_QUALITIES;
     int transmitterID = 1024;
     
     std::string vCodec = V_CODEC;
-    VCodecType codec;
     std::string dFolder = DASH_FOLDER;
-    int maxVideoBitRate = DEFAULT_FIRST_VIDEO_QUALITY;
     int segDuration = SEG_DURATION;
     std::string ip;
     std::string rtspUri = "none";
@@ -419,6 +423,7 @@ int main(int argc, char* argv[])
 
     int elapsed_time = 0, timeout = 0;
     std::string stats_filename;
+    std::string config_filename;
 
     for (int i = 1; i < argc; i++) {
         if (strcmp(argv[i],"-v")==0) {
@@ -434,18 +439,9 @@ int main(int argc, char* argv[])
         } else if (strcmp(argv[i],"-c")==0) {
             cPort = std::stoi(argv[i+1]);
             utils::infoMsg("configuring control port: " + std::to_string(cPort));
-        } else if (strcmp(argv[i],"-nvq")==0) {
-            numVidQ = std::stoi(argv[i+1]);
-            utils::infoMsg("configuring number of video qualities: " + std::to_string(numVidQ));
-        } else if (strcmp(argv[i],"-vc")==0) {
-            vCodec = argv[i+1];
-            utils::infoMsg("configuring output video codec: " + vCodec);
         } else if (strcmp(argv[i],"-f")==0) {
             dFolder = argv[i+1];
             utils::infoMsg("configuring dash folder: " + dFolder);
-        } else if (strcmp(argv[i],"-b")==0) {
-            maxVideoBitRate = std::stoi(argv[i+1]);
-            utils::infoMsg("configuring maximum video bitrate: " + std::to_string(maxVideoBitRate));
         } else if (strcmp(argv[i],"-s")==0) {
             segDuration = std::stoi(argv[i+1]);
             utils::infoMsg("configuring dash segments duration: " + std::to_string(segDuration));
@@ -456,6 +452,9 @@ int main(int argc, char* argv[])
             timeout = std::stoi(argv[i+1]);
             utils::infoMsg("timeout: " + std::to_string(timeout) + "s.");
             timeout *= 1000000; // Timeout in useconds
+        } else if (strcmp(argv[i],"-configfile")==0) {
+            config_filename = argv[i+1];
+            utils::infoMsg("config filename: " + config_filename);
         }
     }
 
@@ -465,18 +464,35 @@ int main(int argc, char* argv[])
         return 1;
     }
 
-    if (numVidQ < 1 || numVidQ > MAX_VIDEO_QUALITIES){
-        utils::errorMsg("Number of output video qualities must be between 1 and " + std::to_string(MAX_VIDEO_QUALITIES));
-        usage();
+    if (config_filename.empty()) {
+        utils::errorMsg("Please specify a configuration file");
         return 1;
     }
+    Configuration config[MAX_VIDEO_QUALITIES];
+    int numConfig = 0;
+    FILE *cf = fopen (config_filename.c_str(), "rt");
+    if (!cf) {
+        utils::errorMsg("Could not open config file " + config_filename);
+        return 1;
+    }
+    int codecType;
+    while (fscanf (cf, "%d, %d, %d, %d",
+                &config[numConfig].width,
+                &config[numConfig].height,
+                &config[numConfig].bitrate,
+                &codecType) == 4) {
+        config[numConfig].codec = (VCodecType)codecType;
+        if (config[numConfig].codec != H264 &&
+            config[numConfig].codec != H265) {
+            utils::errorMsg("Only H264 and H265 are supported (codec type 0 and 1)");
+            return 1;
+        }
+        numConfig++;
+    }
+    fclose(cf);
 
-    if (vCodec == "H264") {
-        codec = H264;
-    } else if (vCodec == "H265") {
-        codec = H265;
-    } else {
-        utils::errorMsg("Only H264 and H265 ouput codecs are supported");
+    if (numConfig < 1 || numConfig > MAX_VIDEO_QUALITIES){
+        utils::errorMsg("Number of output video qualities must be between 1 and " + std::to_string(MAX_VIDEO_QUALITIES));
         usage();
         return 1;
     }
@@ -492,7 +508,7 @@ int main(int argc, char* argv[])
         \n\t\t\t\t - audio receiver port: " + std::to_string(aPort) + "                      \
         \n\t\t\t\t - input RTSP URI: " + rtspUri + "                                         \
         \n\t\t\t\t - output video codec: " + vCodec + "                                      \
-        \n\t\t\t\t - number of output video qualities: " + std::to_string(numVidQ) + "       \
+        \n\t\t\t\t - number of output configurations: " + std::to_string(numConfig) + "      \
         \n\t\t\t\t - dash folder: " + dFolder + "                                            \
     ");
 
@@ -515,7 +531,7 @@ int main(int argc, char* argv[])
 
     if (vPort != 0 && rtspUri.length() == 4){
         addVideoSDPSession(vPort, receiver);
-        addVideoPath(vPort, dasher, dasherId, receiverID, transmitterID, codec, numVidQ, maxVideoBitRate);
+        addVideoPath(vPort, dasher, dasherId, receiverID, transmitterID, config, numConfig);
     }
 
     if (aPort != 0 && rtspUri.length() == 4){
@@ -524,7 +540,7 @@ int main(int argc, char* argv[])
     }
 
     if (rtspUri.length() > 4){
-        if (!addRTSPsession(rtspUri, dasher, dasherId, receiver, receiverID, transmitterID, codec, numVidQ, maxVideoBitRate)){
+        if (!addRTSPsession(rtspUri, dasher, dasherId, receiver, receiverID, transmitterID, config, numConfig)){
             utils::errorMsg("Couldn't start rtsp client session!");
             usage();
             return 1;

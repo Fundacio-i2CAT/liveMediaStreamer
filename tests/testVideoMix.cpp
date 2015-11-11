@@ -93,7 +93,7 @@ void addVideoPath(unsigned port, int receiverId, int mixerId)
     pipe->addFilter(decId, decoder);
 
     resampler = new VideoResampler();
-    resampler->configure(MIX_WIDTH*0.5, MIX_HEIGHT*0.5, 0, RGB24);
+    resampler->configure(0, 0, 0, RGB24);
     pipe->addFilter(resId, resampler);
 
     if (!pipe->createPath(port, receiverId, mixerId, port, port, ids)) {
@@ -222,8 +222,6 @@ int main(int argc, char* argv[])
     std::vector<std::string> uris;
     std::vector<int> readers;
 
-    std::string rtspUri;
-
     int transmitterID = 11;
     int receiverId = 10;
     int mixerId = 15;
@@ -232,6 +230,7 @@ int main(int argc, char* argv[])
 
     SinkManager* transmitter = NULL;
     SourceManager* receiver = NULL;
+    Controller* ctrl;
     PipelineManager *pipe;
 
     utils::setLogLevel(INFO);
@@ -244,17 +243,18 @@ int main(int argc, char* argv[])
             utils::infoMsg("video input port: " + std::to_string(port));
         } else if (strcmp(argv[i],"-r")==0) {
             uris.push_back(argv[i+1]);
-            utils::infoMsg("input RTSP URI: " + rtspUri);
+            utils::infoMsg("input RTSP URI: " + std::string(argv[i+1]));
         }
     }
  
-    if (ports.empty() && rtspUri.empty()) { 
+    if (ports.empty() && uris.empty()) { 
         utils::errorMsg("Usage: -v <port> -r <uri>");
         return 1;
     }
 
     receiver = new SourceManager();
-    pipe = Controller::getInstance()->pipelineManager();
+    ctrl = Controller::getInstance();
+    pipe = ctrl->pipelineManager();
 
     transmitter = SinkManager::createNew();
     
@@ -291,10 +291,19 @@ int main(int argc, char* argv[])
         }
     }
 
-    while(run) {
-        std::this_thread::sleep_for(std::chrono::seconds(1));
-    }
+    while (run) {
+        if (!ctrl->listenSocket()) {
+            continue;
+        }
 
+        if (!ctrl->readAndParse()) {
+            //TDODO: error msg
+            continue;
+        }
+
+        ctrl->processRequest();
+    }
+    
     Controller::destroyInstance();
     PipelineManager::destroyInstance();
     

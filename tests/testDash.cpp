@@ -13,6 +13,7 @@
 #include "../src/Controller.hh"
 #include "../src/Utils.hh"
 #include "../src/modules/sharedMemory/SharedMemory.hh"
+#include <sys/resource.h>
 
 #include <csignal>
 #include <vector>
@@ -42,7 +43,7 @@
 
 #define RETRIES 60
 
-#define MAX_VIDEO_QUALITIES 6
+#define MAX_VIDEO_QUALITIES 32
 #define DEFAULT_OUTPUT_VIDEO_QUALITIES 3
 #define DEFAULT_FIRST_VIDEO_QUALITY 2000
 
@@ -366,7 +367,7 @@ bool addRTSPsession(std::string rtspUri, Dasher* dasher, int dasherId,
 
 void usage(){
     utils::infoMsg("usage: \n\r \
-        testdash -v <RTP input video port> -a <RTP input audio port> -r <input RTSP URI> -c <socket control port> -nvq <number of output video qualities> -vc <output video codec> -f <dash folder> -b <max video bit rate> -s <segment duration> \
+        testdash -v <RTP input video port> -a <RTP input audio port> -r <input RTSP URI> -c <socket control port> -nvq <number of output video qualities> -vc <output video codec> -f <dash folder> -b <max video bit rate> -s <segment duration> -statsfile <output statistics filename> -timeout <secons to wait before closing. 0 means forever> \
         \n INPUTS: RTP or RTSP \n QUALITIES: from 1 to "+std::to_string(MAX_VIDEO_QUALITIES)+"                      \
         \n OUTPUT VIDEO CODECS: H264 or H265                                                                        \
         \n FOLDER: specify system folder where to write DASH MPD, INIT and SEGMENTS files.                          \
@@ -416,6 +417,9 @@ int main(int argc, char* argv[])
 
     utils::setLogLevel(INFO);
 
+    int elapsed_time = 0, timeout = 0;
+    std::string stats_filename;
+
     for (int i = 1; i < argc; i++) {
         if (strcmp(argv[i],"-v")==0) {
             vPort = std::stoi(argv[i+1]);
@@ -445,6 +449,13 @@ int main(int argc, char* argv[])
         } else if (strcmp(argv[i],"-s")==0) {
             segDuration = std::stoi(argv[i+1]);
             utils::infoMsg("configuring dash segments duration: " + std::to_string(segDuration));
+        } else if (strcmp(argv[i],"-statsfile")==0) {
+            stats_filename = argv[i+1];
+            utils::infoMsg("output stats filename: " + stats_filename);
+        } else if (strcmp(argv[i],"-timeout")==0) {
+            timeout = std::stoi(argv[i+1]);
+            utils::infoMsg("timeout: " + std::to_string(timeout) + "s.");
+            timeout *= 1000000; // Timeout in useconds
         }
     }
 
@@ -537,8 +548,18 @@ int main(int argc, char* argv[])
         exit(1);
     }
 
+    struct rusage usage0;
+    getrusage(RUSAGE_SELF, &usage0);
+
+    elapsed_time = 0;
     while (run) {
         if (!ctrl->listenSocket()) {
+            if (timeout) {
+                elapsed_time += TIMEOUT; // Defined in Controller.hh
+                if (elapsed_time > timeout) {
+                    run = false;
+                }
+            }
             continue;
         }
 
@@ -550,6 +571,57 @@ int main(int argc, char* argv[])
         ctrl->processRequest();
     }
 
+    struct rusage usage1;
+    getrusage(RUSAGE_SELF, &usage1);
+
+    if (!stats_filename.empty()) {
+        Jzon::Object pipe_state;
+        pipe->getStateEvent(NULL, pipe_state);
+
+        FILE *f = fopen(stats_filename.c_str(), "wt");
+
+        const Jzon::Array &paths = pipe_state.Get("paths");
+        int inDelay = 0, inLosses = 0, inCount = 0;
+        for (Jzon::Array::const_iterator it = paths.begin(); it != paths.end(); ++it) {
+            int destinationFilter = (*it).Get("destinationFilter").ToInt();
+            if (destinationFilter == dasherId) {
+                // Input path: Receiver -> Dasher
+                inDelay += (*it).Get("avgDelay").ToInt();
+                inLosses += (*it).Get("lostBlocs").ToInt();
+                inCount++;
+            }
+        }
+        inDelay /= inCount;
+
+        fprintf(f, "%d, %d, ", inDelay, inLosses);
+
+        float inBitrate = 0, inPacketLoss = 0;
+        const Jzon::Array &filters = pipe_state.Get("filters");
+        for (Jzon::Array::const_iterator it = filters.begin(); it != filters.end(); ++it) {
+            std::string type = (*it).Get("type").ToString();
+            if (type.compare("receiver") == 0) {
+                const Jzon::Array &sessions = (*it).Get("sessions");
+                for (Jzon::Array::const_iterator it2 = sessions.begin(); it2 != sessions.end(); ++it2) {
+                    const Jzon::Array subs = (*it2).Get("subsessions").AsArray();
+                    for (Jzon::Array::const_iterator it3 = subs.begin(); it3 != subs.end(); ++it3) {
+                        inBitrate += (*it3).Get("avgBitRateInKbps").ToFloat();
+                        inPacketLoss += (*it3).Get("avgPacketLossPercentage").ToFloat();
+                    }
+                }
+            }
+        }
+
+        fprintf(f, "%f, %f, ", inBitrate, inPacketLoss);
+
+        int time0 = usage0.ru_utime.tv_usec + usage0.ru_utime.tv_sec * 1000000 +
+                    usage0.ru_stime.tv_usec + usage0.ru_stime.tv_sec * 1000000;
+        int time1 = usage1.ru_utime.tv_usec + usage1.ru_utime.tv_sec * 1000000 +
+                    usage1.ru_stime.tv_usec + usage1.ru_stime.tv_sec * 1000000;
+
+        fprintf(f, "%f\n", (time1 - time0) / (float)timeout * 100.f);
+
+        fclose(f);
+    }
     ctrl->destroyInstance();
     utils::infoMsg("Controlled deleted");
     pipe->destroyInstance();

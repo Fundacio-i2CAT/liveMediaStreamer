@@ -51,7 +51,7 @@ void ChannelConfig::config(float width, float height, float x, float y, int laye
 
 VideoMixer* VideoMixer::createNew(int inputChannels, int outWidth, int outHeight, std::chrono::microseconds fTime)
 {
-    if (outWidth < MIN_HEIGHT || outWidth > DEFAULT_WIDTH || outHeight < MIN_HEIGHT || outHeight > DEFAULT_HEIGHT) {
+    if (outWidth <= 0 || outWidth > DEFAULT_WIDTH || outHeight <= 0 || outHeight > DEFAULT_HEIGHT) {
         utils::errorMsg("[VideoMixer] Error creating VideoMixer, output size range is  (0," + 
                          std::to_string(DEFAULT_WIDTH) + "]x(0," + std::to_string(DEFAULT_HEIGHT) + "]");
         return NULL;
@@ -67,10 +67,9 @@ VideoMixer* VideoMixer::createNew(int inputChannels, int outWidth, int outHeight
 
 VideoMixer::VideoMixer(int inputChannels, 
                        int outWidth, int outHeight, std::chrono::microseconds fTime) :
-ManyToOneFilter(inputChannels), outputWidth(outWidth), outputHeight(outHeight), maxChannels(inputChannels)
+ManyToOneFilter(inputChannels), /*outputWidth(outWidth), outputHeight(outHeight),*/ maxChannels(inputChannels)
 {
-    setFrameTime(fTime);
-    layoutImg = cv::Mat(outputHeight, outputWidth, CV_8UC3);
+    configure0(outWidth, outHeight,std::micro::den/fTime.count());
     initializeEventMap();
     fType = VIDEO_MIXER;
 
@@ -162,14 +161,13 @@ bool VideoMixer::configChannel0(int id, float width, float height, float x, floa
         return false;
     }
 
-    if (x < 0 || y < 0 || width <= MIN_WIDTH || height <= MIN_HEIGHT || opacity < 0 || opacity > 1.0) {
+    if (x < 0 || y < 0 || width <= 0 || height <= 0 || opacity < 0 || opacity > 1.0) {
         utils::errorMsg("[VideoMixer] Error configuring channel. Incoherent values");
         return false;
     }
 
     if (x + width > 1 || y + height > 1) {
-        utils::errorMsg("[VideoMixer] Error configuring channel. Position + size exceed layout edges");
-        return false;
+        utils::warningMsg("[VideoMixer] Position + size exceed layout edges!");
     }
 
     if (layer < 0 || layer > maxChannels) {
@@ -184,7 +182,7 @@ bool VideoMixer::configChannel0(int id, float width, float height, float x, floa
 
 bool VideoMixer::configure0(int width, int height, int fps)
 {
-    if (width < MIN_WIDTH || width > DEFAULT_WIDTH || height < MIN_HEIGHT || height > DEFAULT_HEIGHT){
+    if (width <= 0 || width > DEFAULT_WIDTH || height <= 0 || height > DEFAULT_HEIGHT){
         utils::errorMsg("[Video Mixer] Not valid layout resolution");
         return false;
     }
@@ -200,7 +198,7 @@ bool VideoMixer::configure0(int width, int height, int fps)
     layoutImg.release();
         
     layoutImg = cv::Mat(outputHeight, outputWidth, CV_8UC3);
-
+    
     return true;
 }
 
@@ -214,19 +212,26 @@ void VideoMixer::pasteToLayout(int frameID, VideoFrame* vFrame)
     int x = chConfig->getX()*outputWidth;
     int y = chConfig->getY()*outputHeight;
 
-    int cropX = (vFrame->getWidth() - chConfig->getWidth()*outputWidth)/2;
-    int cropY = (vFrame->getHeight() - chConfig->getHeight()*outputHeight)/2;
-
-    if (cropX < 0 || cropX + sz.width > vFrame->getWidth() || cropY < 0 || cropY + sz.height > vFrame->getHeight()) {
-        utils::errorMsg("[VideoMixer] Input size does not match with channel config");
-        return;
+    if (vFrame->getHeight() != sz.height || vFrame->getWidth() != sz.width) {
+        cv::Mat resized(sz, img.type());
+        cv::resize(img, resized,sz);
+        cv::swap(img, resized);
+        resized.release();
     }
-
+    
+    if (x + sz.width > outputWidth){
+        sz.width = outputWidth - x;
+    }
+    
+    if (y + sz.height > outputHeight){
+        sz.height = outputHeight - y;
+    }
+    
     if (chConfig->getOpacity() == 1) {
-        img(cv::Rect(cropX, cropY, sz.width, sz.height)).copyTo(layoutImg(cv::Rect(x, y, sz.width, sz.height)));
+        img(cv::Rect(0, 0, sz.width, sz.height)).copyTo(layoutImg(cv::Rect(x, y, sz.width, sz.height)));
     } else {
         addWeighted(
-            img(cv::Rect(cropX, cropY, sz.width, sz.height)),
+            img(cv::Rect(0, 0, sz.width, sz.height)),
             chConfig->getOpacity(),
             layoutImg(cv::Rect(x, y, sz.width, sz.height)),
             1 - chConfig->getOpacity(),
@@ -298,19 +303,19 @@ bool VideoMixer::configureEvent(Jzon::Node* params)
     int width = outputWidth;
     int height = outputHeight;
     int fps = 0;
-    
+       
     if (!params) {
         utils::errorMsg("[VideoMixer::configChannelEvent] Params node missing");
         return false;
     }
 
-    if (!params->Has("width") || !params->Has("height") || 
-        !params->Get("width").IsNumber() || !params->Get("height").IsNumber()) {
+    if (params->Has("width") && params->Has("height") && 
+        params->Get("width").IsNumber() && params->Get("height").IsNumber()) {
         width = params->Get("width").ToInt();
         height = params->Get("height").ToInt();
     }
     
-    if (!params->Has("fps") || !params->Get("fps").IsNumber()) {
+    if (params->Has("fps") && params->Get("fps").IsNumber()) {
         fps = params->Get("fps").ToInt();
     }
 

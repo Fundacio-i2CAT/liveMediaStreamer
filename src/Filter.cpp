@@ -535,7 +535,7 @@ std::vector<int> BaseFilter::serverProcessFrame(int& ret)
 bool BaseFilter::demandOriginFrames(std::map<int, Frame*> &oFrames, std::vector<int> &newFrames)
 {
     if (maxReaders == 0) {
-        return false;
+        return true;
     }
 
     if (readers.empty()) {

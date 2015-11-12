@@ -33,6 +33,7 @@ testtranscoderlibav
 testvideosplitter
 profileVideoMixer.log
 profileVideoMixer.stats
+profiledash
 
 autom4te.cache/
 config.log

@@ -67,11 +67,13 @@ VideoMixer* VideoMixer::createNew(int inputChannels, int outWidth, int outHeight
 
 VideoMixer::VideoMixer(int inputChannels, 
                        int outWidth, int outHeight, std::chrono::microseconds fTime) :
-ManyToOneFilter(inputChannels), /*outputWidth(outWidth), outputHeight(outHeight),*/ maxChannels(inputChannels)
+ManyToOneFilter(inputChannels), maxChannels(inputChannels)
 {
-    configure0(outWidth, outHeight,std::micro::den/fTime.count());
+    configure0(outWidth, outHeight, 0);
     initializeEventMap();
     fType = VIDEO_MIXER;
+    
+    setFrameTime(fTime);
 
     outputStreamInfo = new StreamInfo(VIDEO);
     outputStreamInfo->video.codec = RAW;

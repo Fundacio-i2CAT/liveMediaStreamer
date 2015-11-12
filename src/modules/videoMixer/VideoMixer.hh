@@ -111,6 +111,7 @@ class VideoMixer : public ManyToOneFilter {
         * Configure layout, validating introduced data
         * @param width width in pixels of the layout
         * @param height height in pixels of the layout
+        * @param fps maximum output frames per second
         */
         bool configure(int width, int height, int fps);
 

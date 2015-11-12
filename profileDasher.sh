@@ -8,7 +8,7 @@ date >> profileDasher.stats
 echo $0 $1 $2 $3 >> profileDasher.stats
 echo "Config file   Num Dashers avgDelay    Block Losses    IN bitrate  Pkt Losses  CPU%" >> profileDasher.stats
 
-for n in `seq 6 1 $2`
+for n in `seq 1 1 $2`
 do
     commandline="./profiledash -r $1 -f /tmp -timeout $4 -statsfile profileDasher.stats -configfile $3 -n $n"
     echo $commandline

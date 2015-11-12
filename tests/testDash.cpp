@@ -51,9 +51,6 @@
 #define DASH_FOLDER "/tmp/dash"
 #define BASE_NAME "test"
 
-#define BYPASS_VIDEO_PATH 3113
-#define BYPASS_AUDIO_PATH 4224
-
 bool run = true;
 
 struct Configuration {
@@ -92,7 +89,7 @@ Dasher* setupDasher(int dasherId, std::string dash_folder, int segDuration)
     return dasher;
 }
 
-void addAudioPath(unsigned port, Dasher* dasher, int dasherId, int receiverID, int transmitterID)
+void addAudioPath(unsigned port, Dasher* dasher, int dasherId, int receiverID)
 {
     PipelineManager *pipe = Controller::getInstance()->pipelineManager();
 
@@ -130,21 +127,10 @@ void addAudioPath(unsigned port, Dasher* dasher, int dasherId, int receiverID, i
         utils::errorMsg("Error setting bitrate to segmenter");
     }
     
-    if (!pipe->createPath(BYPASS_AUDIO_PATH, encId, transmitterID, DEFAULT_ID, BYPASS_AUDIO_PATH, std::vector<int>({}))) {
-        utils::errorMsg("Error creating audio path");
-        return;
-    }
-    
-    if (!pipe->connectPath(BYPASS_AUDIO_PATH)){
-        utils::errorMsg("Failed! Path not connected");
-        pipe->removePath(port);
-        return;
-    }
-
     utils::infoMsg("Audio path created from port " + std::to_string(port));
 }
 
-void addVideoPath(unsigned port, Dasher* dasher, int dasherId, int receiverID, int transmitterID,
+void addVideoPath(unsigned port, Dasher* dasher, int dasherId, int receiverID,
                     Configuration *config, int numConfig)
 {
     PipelineManager *pipe = Controller::getInstance()->pipelineManager();
@@ -252,17 +238,6 @@ void addVideoPath(unsigned port, Dasher* dasher, int dasherId, int receiverID, i
         } 
     }
     
-    if (!pipe->createPath(BYPASS_VIDEO_PATH, encId, transmitterID, DEFAULT_ID, BYPASS_VIDEO_PATH, std::vector<int>({}))) {
-        utils::errorMsg("Error creating video path");
-        return;
-    }
-    
-    if (!pipe->connectPath(BYPASS_VIDEO_PATH)){
-        utils::errorMsg("Failed! Path not connected");
-        pipe->removePath(port);
-        return;
-    }
-    
     utils::infoMsg("Video path created from port " + std::to_string(port));
 }
 
@@ -318,7 +293,7 @@ bool addAudioSDPSession(unsigned port, SourceManager *receiver, std::string code
 }
 
 bool addRTSPsession(std::string rtspUri, Dasher* dasher, int dasherId,
-                    SourceManager *receiver, int receiverID, int transmitterID,
+                    SourceManager *receiver, int receiverID,
                     Configuration *config, int numConfig)
 {
     Session* session;
@@ -363,9 +338,9 @@ bool addRTSPsession(std::string rtspUri, Dasher* dasher, int dasherId,
         medium = subsession->mediumName();
 
         if (medium.compare("video") == 0){
-            addVideoPath(subsession->clientPortNum(), dasher, dasherId, receiverID, transmitterID, config, numConfig);
+            addVideoPath(subsession->clientPortNum(), dasher, dasherId, receiverID, config, numConfig);
         } else if (medium.compare("audio") == 0){
-            addAudioPath(subsession->clientPortNum(), dasher, dasherId, receiverID, transmitterID);
+            addAudioPath(subsession->clientPortNum(), dasher, dasherId, receiverID);
         }
     }
 
@@ -381,20 +356,6 @@ void usage(){
     ");
 }
 
-bool publishRTSPSession(std::vector<int> readers, SinkManager *transmitter)
-{
-    std::string sessionId;
-
-    sessionId = "mpegts";
-    utils::infoMsg("Adding plain RTP session...");
-    if (!transmitter->addRTSPConnection(readers, 2, STD_RTP, sessionId)){
-        return false;
-    }
-    
-    return true;
-}
-
-
 //TODO: Define width and height of the master stream and fps
 //      define each parameter per stream
 int main(int argc, char* argv[])
@@ -402,7 +363,6 @@ int main(int argc, char* argv[])
     int vPort = 0;
     int aPort = 0;
     int cPort = 7777;
-    int transmitterID = 1024;
     
     std::string vCodec = V_CODEC;
     std::string dFolder = DASH_FOLDER;
@@ -416,7 +376,6 @@ int main(int argc, char* argv[])
     int receiverID = rand();
 
     SourceManager* receiver = NULL;
-    SinkManager* transmitter = NULL;
     PipelineManager *pipe;
 
     utils::setLogLevel(INFO);
@@ -517,45 +476,26 @@ int main(int argc, char* argv[])
     receiver = new SourceManager();
     pipe->addFilter(receiverID, receiver);
     
-    transmitter = SinkManager::createNew();
-    if (!transmitter){
-        utils::errorMsg("RTSPServer constructor failed");
-        return 1;
-    }
-
-    pipe->addFilter(transmitterID, transmitter);
-
     dasher = setupDasher(dasherId, dFolder, segDuration);
     
     signal(SIGINT, signalHandler);
 
     if (vPort != 0 && rtspUri.length() == 4){
         addVideoSDPSession(vPort, receiver);
-        addVideoPath(vPort, dasher, dasherId, receiverID, transmitterID, config, numConfig);
+        addVideoPath(vPort, dasher, dasherId, receiverID, config, numConfig);
     }
 
     if (aPort != 0 && rtspUri.length() == 4){
         addAudioSDPSession(aPort, receiver);
-        addAudioPath(aPort, dasher, dasherId, receiverID, transmitterID);
+        addAudioPath(aPort, dasher, dasherId, receiverID);
     }
 
     if (rtspUri.length() > 4){
-        if (!addRTSPsession(rtspUri, dasher, dasherId, receiver, receiverID, transmitterID, config, numConfig)){
+        if (!addRTSPsession(rtspUri, dasher, dasherId, receiver, receiverID, config, numConfig)){
             utils::errorMsg("Couldn't start rtsp client session!");
             usage();
             return 1;
         }
-    }
-    
-    for (auto it : pipe->getPaths()) {
-        if (it.second->getDstReaderID() == BYPASS_VIDEO_PATH || it.second->getDstReaderID() == BYPASS_AUDIO_PATH){
-            readers.push_back(it.second->getDstReaderID());
-        }
-    }
-    
-    if (!publishRTSPSession(readers, transmitter)){
-        utils::errorMsg("Failed adding RTSP sessions!");
-        return 1;
     }
 
     Controller* ctrl = Controller::getInstance();

@@ -131,8 +131,8 @@ void VideoMixerTest::channelConfigTest()
     CPPUNIT_ASSERT(!mixer->configChannel0(id, 1, 1, 0, 0, 1, true, -1));
     CPPUNIT_ASSERT(!mixer->configChannel0(id, 1, 1, 0, 0, 1, true, 1.01));
     
-    CPPUNIT_ASSERT(!mixer->configChannel0(id, 0.6, 1, 0.7, 0, 1, true, 1));
-    CPPUNIT_ASSERT(!mixer->configChannel0(id, 1, 0.8, 0, 0.4, 1, true, 1));
+    CPPUNIT_ASSERT(mixer->configChannel0(id, 0.6, 1, 0.7, 0, 1, true, 1));
+    CPPUNIT_ASSERT(mixer->configChannel0(id, 1, 0.8, 0, 0.4, 1, true, 1));
 
     CPPUNIT_ASSERT(!mixer->configChannel0(id, 1, 1, 0, 0, -1, true, 1));
     CPPUNIT_ASSERT(!mixer->configChannel0(id, 1, 1, 0, 0, mixer->getMaxChannels()+1, true, 1));

@@ -110,9 +110,46 @@ int main (int argc, char *argv[]) {
         std::this_thread::sleep_for(std::chrono::seconds(1));
     }
 
-    // Wait for children to finish, and give them one extra second to cleanup
-    std::this_thread::sleep_for(std::chrono::seconds(timeout + 1));
+    // Now wait for stats to be available, collect them and generate totals
+    int avgDelay = 0, blockLosses = 0;
+    float bitrate = 0, packetLosses = 0, cpu = 0;
+    for (int i=0; i<numDashers; i++) {
+        std::string statsfilestr = statsFilename + "." + std::to_string(i);
+        FILE *f = NULL;
+        do {
+            f = fopen (statsfilestr.c_str(), "rt");
+            if (!f) {
+                std::this_thread::sleep_for(std::chrono::seconds(1));
+            }
+        } while (!f);
+        int i1, i2;
+        float f1, f2, f3;
+        if (fscanf (f, "%d, %d, %f, %f, %f", &i1, &i2, &f1, &f2, &f3) != 5) {
+            utils::errorMsg("Incorrect statsfile for child " + std::to_string(i));
+        }
+        fclose (f);
+        remove (statsfilestr.c_str());
+        avgDelay += i1;
+        blockLosses += i2;
+        bitrate += f1;
+        packetLosses += f2;
+        cpu += f3;
+        utils::infoMsg(std::string("Collected stats from child ") + std::to_string(i));
+    }
+    avgDelay /= numDashers;
 
+    // Write result
+    FILE *f = fopen (statsFilename.c_str(), "a+t");
+    if (!f) {
+        utils::errorMsg(std::string("Could not open result statsfile: ") + statsFilename);
+        return 1;
+    }
+    fprintf (f, "%s\t%d\t%d\t%d\t%f\t%f\t%f\n", configFilename.c_str(), numDashers,
+            avgDelay, blockLosses, bitrate, packetLosses, cpu);
+    fclose(f);
+
+    // At this point all children have produced their stats, collect their processes
+    // or kill them (because sometimes testdash fails to shutdown...)
     for (int i=0; i<numDashers; i++) {
         int status = 0;
         if (waitpid(dasher[i].pid, &status, WNOHANG) != 0) {
@@ -130,40 +167,4 @@ int main (int argc, char *argv[]) {
         }
         posix_spawn_file_actions_destroy(&dasher[i].action);
     }
-
-    // Now collect stats and generate totals
-    int avgDelay = 0, blockLosses = 0;
-    float bitrate = 0, packetLosses = 0, cpu = 0;
-    for (int i=0; i<numDashers; i++) {
-        std::string statsfilestr = statsFilename + "." + std::to_string(i);
-        FILE *f = fopen (statsfilestr.c_str(), "rt");
-        if (!f) {
-            utils::errorMsg(std::string("Could not open result statsfile: ") + statsfilestr);
-            return 1;
-        }
-        int i1, i2;
-        float f1, f2, f3;
-        if (fscanf (f, "%d, %d, %f, %f, %f", &i1, &i2, &f1, &f2, &f3) != 5) {
-            utils::errorMsg("Incorrect statsfile for child " + std::to_string(i));
-        }
-        fclose (f);
-        remove (statsfilestr.c_str());
-        avgDelay += i1;
-        blockLosses += i2;
-        bitrate += f1;
-        packetLosses += f2;
-        cpu += f3;
-    }
-    avgDelay /= numDashers;
-
-    // Write result
-    FILE *f = fopen (statsFilename.c_str(), "a+t");
-    if (!f) {
-        utils::errorMsg(std::string("Could not open result statsfile: ") + statsFilename);
-        return 1;
-    }
-    fprintf (f, "%s\t%d\t%d\t%d\t%f\t%f\t%f\n", configFilename.c_str(), numDashers,
-            avgDelay, blockLosses, bitrate, packetLosses, cpu);
-    fclose(f);
-
 }

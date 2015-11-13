@@ -6,7 +6,7 @@ echo $0 $1 $2 $3 >> profileDasher.log
 
 date >> profileDasher.stats
 echo $0 $1 $2 $3 >> profileDasher.stats
-echo "Config file   Num Dashers avgDelay    Block Losses    IN bitrate  Pkt Losses  CPU%" >> profileDasher.stats
+echo "Config file	Num Dashers	avgDelay	Block Losses	IN bitra	Pkt Losses	uCPU%	sCPU%	tCPU%" >> profileDasher.stats
 
 for n in `seq 1 1 $2`
 do

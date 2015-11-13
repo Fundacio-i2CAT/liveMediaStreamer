@@ -112,7 +112,7 @@ int main (int argc, char *argv[]) {
 
     // Now wait for stats to be available, collect them and generate totals
     int avgDelay = 0, blockLosses = 0;
-    float bitrate = 0, packetLosses = 0, cpu = 0;
+    float bitrate = 0, packetLosses = 0, ucpu = 0, scpu = 0, tcpu = 0;
     for (int i=0; i<numDashers; i++) {
         std::string statsfilestr = statsFilename + "." + std::to_string(i);
         FILE *f = NULL;
@@ -123,8 +123,8 @@ int main (int argc, char *argv[]) {
             }
         } while (!f);
         int i1, i2;
-        float f1, f2, f3;
-        if (fscanf (f, "%d, %d, %f, %f, %f", &i1, &i2, &f1, &f2, &f3) != 5) {
+        float f1, f2, f3, f4, f5;
+        if (fscanf (f, "%d, %d, %f, %f, %f, %f, %f", &i1, &i2, &f1, &f2, &f3, &f4, &f5) != 7) {
             utils::errorMsg("Incorrect statsfile for child " + std::to_string(i));
         }
         fclose (f);
@@ -133,7 +133,9 @@ int main (int argc, char *argv[]) {
         blockLosses += i2;
         bitrate += f1;
         packetLosses += f2;
-        cpu += f3;
+        ucpu += f3;
+        scpu += f4;
+        tcpu += f5;
         utils::infoMsg(std::string("Collected stats from child ") + std::to_string(i));
     }
     avgDelay /= numDashers;
@@ -144,8 +146,8 @@ int main (int argc, char *argv[]) {
         utils::errorMsg(std::string("Could not open result statsfile: ") + statsFilename);
         return 1;
     }
-    fprintf (f, "%s\t%d\t%d\t%d\t%f\t%f\t%f\n", configFilename.c_str(), numDashers,
-            avgDelay, blockLosses, bitrate, packetLosses, cpu);
+    fprintf (f, "%s\t%d\t%d\t%d\t%f\t%f\t%f\t%f\t%f\n", configFilename.c_str(), numDashers,
+            avgDelay, blockLosses, bitrate, packetLosses, ucpu, scpu, tcpu);
     fclose(f);
 
     // At this point all children have produced their stats, collect their processes

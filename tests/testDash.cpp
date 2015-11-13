@@ -349,7 +349,7 @@ bool addRTSPsession(std::string rtspUri, Dasher* dasher, int dasherId,
 
 void usage(){
     utils::infoMsg("usage: \n\r \
-        testdash -v <RTP input video port> -a <RTP input audio port> -r <input RTSP URI> -c <socket control port> -f <dash folder> -s <segment duration> -statsfile <output statistics filename> -timeout <secons to wait before closing. 0 means forever> -cf <configuration file>\
+        testdash -v <RTP input video port> -a <RTP input audio port> -r <input RTSP URI> -c <socket control port> -f <dash folder> -s <segment duration> -statsfile <output statistics filename> -timeout <secons to wait before closing. 0 means forever> -configfile <configuration file>\
         \n INPUTS: RTP or RTSP \n QUALITIES: from 1 to "+std::to_string(MAX_VIDEO_QUALITIES)+"                      \
         \n FOLDER: specify system folder where to write DASH MPD, INIT and SEGMENTS files.                          \
         \n Each line in the configuration file must contain 'width, height, bitrate (kbps), codec (0:H264 1:H265)'  \
@@ -380,7 +380,7 @@ int main(int argc, char* argv[])
 
     utils::setLogLevel(INFO);
 
-    int elapsed_time = 0, timeout = 0;
+    int timeout = 0;
     std::string stats_filename;
     std::string config_filename;
 
@@ -410,7 +410,6 @@ int main(int argc, char* argv[])
         } else if (strcmp(argv[i],"-timeout")==0) {
             timeout = std::stoi(argv[i+1]);
             utils::infoMsg("timeout: " + std::to_string(timeout) + "s.");
-            timeout *= 1000000; // Timeout in useconds
         } else if (strcmp(argv[i],"-configfile")==0) {
             config_filename = argv[i+1];
             utils::infoMsg("config filename: " + config_filename);
@@ -507,12 +506,14 @@ int main(int argc, char* argv[])
     struct rusage usage0;
     getrusage(RUSAGE_SELF, &usage0);
 
-    elapsed_time = 0;
+    // Running time (wall clock)
+    struct timespec rtime0str, rtime1str;
+    clock_gettime (CLOCK_REALTIME, &rtime0str);
     while (run) {
         if (!ctrl->listenSocket()) {
             if (timeout) {
-                elapsed_time += TIMEOUT; // Defined in Controller.hh
-                if (elapsed_time > timeout) {
+                clock_gettime (CLOCK_REALTIME_COARSE, &rtime1str);
+                if (rtime1str.tv_sec > rtime0str.tv_sec + timeout) {
                     run = false;
                 }
             }
@@ -569,12 +570,20 @@ int main(int argc, char* argv[])
 
         fprintf(f, "%f, %f, ", inBitrate, inPacketLoss);
 
-        int time0 = usage0.ru_utime.tv_usec + usage0.ru_utime.tv_sec * 1000000 +
-                    usage0.ru_stime.tv_usec + usage0.ru_stime.tv_sec * 1000000;
-        int time1 = usage1.ru_utime.tv_usec + usage1.ru_utime.tv_sec * 1000000 +
-                    usage1.ru_stime.tv_usec + usage1.ru_stime.tv_sec * 1000000;
+        // User time and System time, in microseconds
+        int utime0 = usage0.ru_utime.tv_usec + usage0.ru_utime.tv_sec * 1000000;
+        int stime0 = usage0.ru_stime.tv_usec + usage0.ru_stime.tv_sec * 1000000;
+        int utime1 = usage1.ru_utime.tv_usec + usage1.ru_utime.tv_sec * 1000000;
+        int stime1 = usage1.ru_stime.tv_usec + usage1.ru_stime.tv_sec * 1000000;
 
-        fprintf(f, "%f\n", (time1 - time0) / (float)timeout * 100.f);
+        // Total running time, in microseconds
+        int rtime0 = rtime0str.tv_nsec / 1000 + rtime0str.tv_sec * 1000000;
+        int rtime1 = rtime1str.tv_nsec / 1000 + rtime1str.tv_sec * 1000000;
+
+        fprintf(f, "%f, %f, %f\n",
+                (utime1 - utime0) / (float)(rtime1 - rtime0) * 100.f,
+                (stime1 - stime0) / (float)(rtime1 - rtime0) * 100.f,
+                (utime1 + stime1 - utime0 - stime0) / (float)(rtime1 - rtime0) * 100.f);
 
         fclose(f);
     }

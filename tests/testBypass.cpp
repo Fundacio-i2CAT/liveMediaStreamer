@@ -145,10 +145,25 @@ bool addRTSPsession(std::string rtspUri, SourceManager *receiver, int receiverID
 
     MediaSubsessionIterator iter(*(session->getScs()->session));
     MediaSubsession* subsession;
-
-    while(iter.next() == NULL && retries <= RETRIES){
+    
+    while(true){
+        if (retries > RETRIES){
+            delete receiver;
+            return false;
+        }
+        
         sleep(1);
         retries++;
+        
+        if ((subsession = iter.next()) == NULL){
+            iter.reset();
+            continue;
+        }
+        
+        if (subsession->clientPortNum() > 0){
+            iter.reset();
+            break;
+        }
     }
 
     if (retries > RETRIES){

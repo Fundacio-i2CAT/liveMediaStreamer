@@ -405,6 +405,10 @@ bool PipelineManager::deletePath(Path* path)
     }
 
     for (auto it : pathFilters) {
+        if (!deleteRelatedPaths(it)){
+            utils::errorMsg("Error deleting other related paths!");
+            return false;
+        }
         pool->removeTask(it);
         delete filters[it];
         filters.erase(it);
@@ -413,6 +417,17 @@ bool PipelineManager::deletePath(Path* path)
     delete path;
 
     return true;
+}
+
+bool PipelineManager::deleteRelatedPaths(int filterId)
+{
+    bool ret = true;
+    for (auto it : paths){
+        if (it.second->getOriginFilterID() == filterId){
+            ret &= deletePath(it.second);
+        }
+    }
+    return ret;
 }
 
 void PipelineManager::getStateEvent(Jzon::Node* params, Jzon::Object &outputNode)

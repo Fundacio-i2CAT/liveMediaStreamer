@@ -26,13 +26,14 @@
 #include "Utils.hh"
 
 #include <thread>
+#include <algorithm>
 
 #define WAIT 1000 //usec
 
 
 BaseFilter::BaseFilter(unsigned readersNum, unsigned writersNum, FilterRole fRole_, bool periodic): Runnable(periodic), 
 maxReaders(readersNum), maxWriters(writersNum),  frameTime(std::chrono::microseconds(0)), 
-fRole(fRole_), syncTs(std::chrono::microseconds(0))
+fRole(fRole_), syncTs(std::chrono::microseconds(0)), refReader(0),  syncMargin(std::chrono::microseconds(0))
 {
 }
 
@@ -549,6 +550,58 @@ bool BaseFilter::demandOriginFrames(std::map<int, Frame*> &oFrames, std::vector<
     }
 }
 
+void BaseFilter::syncFrames(std::map<int, Frame*> &oFrames, std::vector<int> &newFrames)
+{      
+    if (oFrames.count(refReader) == 0){
+        return;
+    } 
+    
+    bool newFrame = false;
+    
+    std::chrono::microseconds wallClock = oFrames[refReader]->getPresentationTime();
+    std::chrono::microseconds currentFTime;
+    
+    Frame* frame;
+        
+    for (std::map<int, Frame*>::iterator it; it != oFrames.end(); ){
+        
+        currentFTime = it->second->getPresentationTime();
+        
+        while (wallClock - syncMargin > currentFTime){
+            removeFrames(std::vector<int>(it->first));           
+            newFrames.erase(std::remove(newFrames.begin(), newFrames.end(), it->first), newFrames.end());
+            
+            if (readers.count(it->first) == 0){
+                break;
+            }
+            
+            frame = readers[it->first]->getFrame(getId(), newFrame);
+            
+            if (!frame) {
+                oFrames.erase(it++);
+                break;
+            }
+
+            frame->setConsumed(newFrame);
+            //NOTE: it can be done?
+            oFrames[it->first] = frame;
+            if (newFrame){
+                newFrames.push_back(it->first);
+            }
+        }
+        
+        if (wallClock - syncMargin > currentFTime){
+            continue;
+        }
+        
+        if (wallClock + syncMargin < currentFTime) {
+            newFrames.erase(std::remove(newFrames.begin(), newFrames.end(), it->first), newFrames.end());
+        }
+        
+        ++it;
+    }
+}
+
 bool BaseFilter::deleteReader(int readerId)
 {
     if (readers.count(readerId) > 0){
@@ -564,7 +617,7 @@ bool BaseFilter::demandOriginFramesBestEffort(std::map<int, Frame*> &oFrames, st
 {
     bool newFrame;
     Frame* frame;
-
+ 
     for (auto r : readers) {
         if (!r.second || !r.second->isConnected()) {
             deleteReader(r.first);

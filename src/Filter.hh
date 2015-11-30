@@ -247,6 +247,7 @@ private:
     bool deleteWriter(int readerId);
     
     bool pendingJobs();
+    void syncFrames(std::map<int, Frame*> &oFrames, std::vector<int> &newFrames);
 
 private:
     std::priority_queue<Event> eventQueue;
@@ -254,6 +255,9 @@ private:
     bool enabled;
     FilterRole const fRole;
     std::chrono::microseconds syncTs;
+    
+    unsigned refReader;
+    std::chrono::microseconds syncMargin;
 };
 
 class OneToOneFilter : public BaseFilter {

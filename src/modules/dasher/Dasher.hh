@@ -121,7 +121,6 @@ private:
     std::map<int, DashSegment*> initSegments;
 
     MpdManager* mpdMngr;
-    std::chrono::system_clock::time_point timestampOffset;
     std::chrono::seconds segDur;
 
     std::string basePath;
@@ -134,6 +133,8 @@ private:
 
     bool hasVideo;
     bool videoStarted;
+    
+    std::chrono::system_clock::time_point timestampOffset;
 };
 
 /*! Abstract class implemented by DashVideoSegmenter and DashAudioSegmenter */
@@ -148,8 +149,9 @@ public:
     * @param tBase segDur timeBase
     * @param segBaseName Base name for the segments. Segment names will be: segBaseName_<timestamp>.segExt and segBaseName_init.segExt
     * @param segExt segment file extension (.m4v for video and .m4a for audio)
+    * @param offset timestamp of the current dash session
     */
-    DashSegmenter(std::chrono::seconds segmentDuration, size_t tBase);
+    DashSegmenter(std::chrono::seconds segmentDuration, size_t tBase, std::chrono::microseconds& offset);
 
     /**
     * Class destructor
@@ -204,7 +206,7 @@ protected:
     std::string getInitSegmentName();
     std::string getSegmentName();
     size_t customTimestamp(std::chrono::system_clock::time_point timestamp);
-    size_t nanosToTimeBase(std::chrono::nanoseconds nanosValue);
+    //size_t nanosToTimeBase(std::chrono::nanoseconds nanosValue);
     size_t microsToTimeBase(std::chrono::microseconds microValue);
 
     std::chrono::seconds segDur;
@@ -215,6 +217,8 @@ protected:
     size_t frameDuration;
     std::vector<unsigned char> metadata;
     size_t bitrateInBitsPerSec;
+    
+    std::chrono::microseconds tsOffset;
 };
 
 /*! It represents a dash segment. It contains a buffer with the segment data (it allocates data) and its length. Moreover, it contains the

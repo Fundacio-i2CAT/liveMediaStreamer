@@ -66,7 +66,7 @@ void signalHandler( int signum )
     run = false;
 }
 
-Dasher* setupDasher(int dasherId, std::string dash_folder, int segDuration)
+Dasher* setupDasher(int dasherId, std::string dash_folder, int segDuration, std::string basename)
 {
     Dasher* dasher = NULL;
 
@@ -79,7 +79,7 @@ Dasher* setupDasher(int dasherId, std::string dash_folder, int segDuration)
         exit(1);
     }
 
-    if(!dasher->configure(dash_folder, std::string(BASE_NAME), segDuration, 30, 16)){
+    if(!dasher->configure(dash_folder, basename, segDuration, 30, 16)){
         utils::errorMsg("Error configuring dasher: exit");
         exit(1);        
     }
@@ -387,6 +387,7 @@ int main(int argc, char* argv[])
     Dasher* dasher = NULL;
     int dasherId = 4000;
     std::vector<int> readers;
+    std::string basename = BASE_NAME;
 
     int receiverID = rand();
 
@@ -428,6 +429,9 @@ int main(int argc, char* argv[])
         } else if (strcmp(argv[i],"-configfile")==0) {
             config_filename = argv[i+1];
             utils::infoMsg("config filename: " + config_filename);
+        } else if (strcmp(argv[i],"-basename")) {
+            basename = argv[i+1];
+            utils::infoMsg("basename: " + basename);
         }
     }
 
@@ -483,6 +487,7 @@ int main(int argc, char* argv[])
         \n\t\t\t\t - output video codec: " + vCodec + "                                      \
         \n\t\t\t\t - number of output configurations: " + std::to_string(numConfig) + "      \
         \n\t\t\t\t - dash folder: " + dFolder + "                                            \
+        \n\t\t\t\t - basename: " + basename + "                                              \
     ");
 
     pipe = Controller::getInstance()->pipelineManager();
@@ -490,7 +495,7 @@ int main(int argc, char* argv[])
     receiver = new SourceManager();
     pipe->addFilter(receiverID, receiver);
     
-    dasher = setupDasher(dasherId, dFolder, segDuration);
+    dasher = setupDasher(dasherId, dFolder, segDuration, basename);
     
     signal(SIGINT, signalHandler);
 
@@ -602,10 +607,10 @@ int main(int argc, char* argv[])
 
         fclose(f);
     }
-    ctrl->destroyInstance();
-    utils::infoMsg("Controlled deleted");
     pipe->destroyInstance();
     utils::infoMsg("Pipe deleted");
+    ctrl->destroyInstance();
+    utils::infoMsg("Controller deleted");
     
     return 0;
 }

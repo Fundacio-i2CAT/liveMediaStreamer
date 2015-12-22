@@ -106,6 +106,14 @@ class VideoMixer : public ManyToOneFilter {
         * @param opacity See ChannelConfig::config
         */
         bool configChannel(int id, float width, float height, float x, float y, int layer, bool enabled, float opacity);
+        
+        /**
+        * Configure layout, validating introduced data
+        * @param width width in pixels of the layout
+        * @param height height in pixels of the layout
+        * @param fps maximum output frames per second
+        */
+        bool configure(int width, int height, int fps);
 
         /**
         * @return Mixing max channels
@@ -127,6 +135,9 @@ class VideoMixer : public ManyToOneFilter {
         void initializeEventMap();
         void pasteToLayout(int frameID, VideoFrame* vFrame);
         bool configChannelEvent(Jzon::Node* params);
+        
+        bool configure0(int width, int height, int fps);
+        bool configureEvent(Jzon::Node* params);
         
         bool specificReaderDelete(int readerID);
         

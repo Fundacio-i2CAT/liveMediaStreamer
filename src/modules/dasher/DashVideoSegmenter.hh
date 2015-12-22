@@ -18,6 +18,7 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  *  Authors:  Marc Palau <marc.palau@i2cat.net>
+ *            David Cassany <david.cassany@i2cat.net>
  *
  */
 
@@ -84,15 +85,15 @@ public:
     */
     virtual bool flushDashContext() = 0;
 
-    bool isIntraFrame() {return isIntra;};
+    bool isIntraFrame() {return previousIntra;};
     bool generateInitSegment(DashSegment* segment);
 
 protected:
     DashVideoSegmenter(std::chrono::seconds segDur, std::string video_format_);
     virtual ~DashVideoSegmenter();
 
-    virtual void updateMetadata() = 0;
-    virtual void createMetadata() = 0;
+    virtual void updateExtradata() = 0;
+    //virtual void createExtradata() = 0;
     virtual uint8_t generateContext() = 0;
     virtual VideoFrame* parseNal(VideoFrame* nal) = 0;
     virtual void resetFrame() = 0;
@@ -103,11 +104,12 @@ protected:
     int detectStartCode(unsigned char const* ptr);
     bool setup(size_t width, size_t height);
     unsigned customGenerateSegment(unsigned char *segBuffer, std::chrono::microseconds nextFrameTs, 
-                                    unsigned &segTimestamp, unsigned &segDuration, bool force);
+                                    uint64_t &segTimestamp, uint32_t &segDuration, bool force);
 
 
     size_t frameRate;
-    bool isIntra;
+    bool currentIntra;
+    bool previousIntra;
     const std::string video_format;
 };
 

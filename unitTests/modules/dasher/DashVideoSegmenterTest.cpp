@@ -97,6 +97,7 @@ protected:
     VideoFrame *nonIdrNal;
     VideoFrame *dummyNal;
     std::chrono::microseconds frameTime;
+    std::chrono::microseconds timestamp = std::chrono::microseconds(0);
 };
 
 void DashVideoSegmenterAVCTest::setUp()
@@ -208,7 +209,7 @@ void DashVideoSegmenterAVCTest::manageIDRNals()
     audNal->setPresentationTime(timestamp + frameTime);
     frame = segmenter->manageFrame(audNal);
     CPPUNIT_ASSERT(frame);
-    CPPUNIT_ASSERT(segmenter->getFrameDataSize() > 0);
+    CPPUNIT_ASSERT(segmenter->getFrameDataSize() <= 0);
     CPPUNIT_ASSERT(segmenter->isIntraFrame());
 
     vFrame = dynamic_cast<VideoFrame*>(frame);
@@ -246,7 +247,7 @@ void DashVideoSegmenterAVCTest::manageNonIDRNals()
     audNal->setPresentationTime(timestamp + frameTime);
     frame = segmenter->manageFrame(audNal);
     CPPUNIT_ASSERT(frame);
-    CPPUNIT_ASSERT(segmenter->getFrameDataSize() > 0);
+    CPPUNIT_ASSERT(segmenter->getFrameDataSize() <= 0);
     CPPUNIT_ASSERT(!segmenter->isIntraFrame());
 
     vFrame = dynamic_cast<VideoFrame*>(frame);
@@ -400,6 +401,8 @@ protected:
     VideoFrame *nonTsaNal;
     VideoFrame *dummyNal;
     std::chrono::microseconds frameTime;
+    
+    std::chrono::microseconds timestamp = std::chrono::microseconds(0);
 };
 
 void DashVideoSegmenterHEVCTest::setUp()
@@ -557,7 +560,7 @@ void DashVideoSegmenterHEVCTest::manageIDRNals()
     audNal->setPresentationTime(timestamp + frameTime);
     frame = segmenter->manageFrame(audNal);
     CPPUNIT_ASSERT(frame);
-    CPPUNIT_ASSERT(segmenter->getFrameDataSize() > 0);
+    CPPUNIT_ASSERT(segmenter->getFrameDataSize() <= 0);
     CPPUNIT_ASSERT(segmenter->isIntraFrame());
 
     vFrame = dynamic_cast<VideoFrame*>(frame);
@@ -597,7 +600,7 @@ void DashVideoSegmenterHEVCTest::manageNonIDRNals()
     audNal->setPresentationTime(timestamp + frameTime);
     frame = segmenter->manageFrame(audNal);
     CPPUNIT_ASSERT(frame);
-    CPPUNIT_ASSERT(segmenter->getFrameDataSize() > 0);
+    CPPUNIT_ASSERT(segmenter->getFrameDataSize() <= 0);
     CPPUNIT_ASSERT(!segmenter->isIntraFrame());
 
     vFrame = dynamic_cast<VideoFrame*>(frame);

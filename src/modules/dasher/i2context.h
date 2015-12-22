@@ -53,10 +53,10 @@ typedef unsigned char byte;
 typedef struct {
     uint32_t        size;
     uint32_t        duration;
-    uint32_t        presentation_timestamp;
+    uint64_t        presentation_timestamp;
     unsigned        key:1;//Flags mp4parser.com
     uint32_t        index;
-    uint32_t        decode_timestamp;//not used
+    uint64_t        decode_timestamp;//Not properly used, be careful if using B-Frames
 } mdat_sample;
 
 typedef struct {
@@ -79,7 +79,7 @@ typedef struct {
     uint16_t        width;
     uint16_t        height;
     uint32_t        frame_rate;
-    uint32_t        earliest_presentation_time;
+    uint64_t        earliest_presentation_time;
     uint32_t        sequence_number;
     uint32_t        current_video_duration;
     i2ctx_sample    *ctxsample;
@@ -96,7 +96,7 @@ typedef struct {
     uint16_t        channels;
     uint16_t        sample_rate;
     uint16_t        sample_size;
-    uint32_t        earliest_presentation_time;
+    uint64_t        earliest_presentation_time;
     uint32_t        sequence_number;
     uint32_t        current_audio_duration;
     i2ctx_sample    *ctxsample;

@@ -19,6 +19,7 @@
  *
  *  Authors:  Gerard Castillo <gerard.castillo@i2cat.net>
  *            Marc Palau <marc.palau@i2cat.net>
+ *            David Cassany <david.cassany@i2cat.net> 
  */
 
 #include "DashVideoSegmenterHEVC.hh"
@@ -27,6 +28,7 @@ DashVideoSegmenterHEVC::DashVideoSegmenterHEVC(std::chrono::seconds segDur) :
 DashVideoSegmenter(segDur, VIDEO_CODEC_HEVC)
 {
     vFrame = InterleavedVideoFrame::createNew(H265, LENGTH_H264_FRAME);
+    tmpFrame = InterleavedVideoFrame::createNew(H265, LENGTH_H264_FRAME);
 
 }
 
@@ -40,13 +42,13 @@ uint8_t DashVideoSegmenterHEVC::generateContext()
     return generate_context(&dashContext, VIDEO_TYPE_HEVC);
 }
 
-void DashVideoSegmenterHEVC::updateMetadata()
+void DashVideoSegmenterHEVC::updateExtradata()
 {
     if (vps.empty() || sps.empty() || pps.empty()) {
         return;
     }
 
-    createMetadata();
+    createExtradata();
     vps.clear();
     sps.clear();
     pps.clear();
@@ -69,6 +71,7 @@ VideoFrame* DashVideoSegmenterHEVC::parseNal(VideoFrame* nal)
     unsigned char* nalData;
     int nalDataLength;
     unsigned char nalType;
+    bool newFrame = false;
 
     startCodeOffset = detectStartCode(nal->getDataBuf());
     nalData = nal->getDataBuf() + startCodeOffset;
@@ -80,48 +83,58 @@ VideoFrame* DashVideoSegmenterHEVC::parseNal(VideoFrame* nal)
     }
 
     nalType = (nalData[0] & H265_NALU_TYPE_MASK) >> 1;
+    
+    previousIntra = currentIntra;
 
     switch (nalType) {
         case VPS:
             saveVPS(nalData, nalDataLength);
-            isIntra = false;
+            currentIntra = false;
             break;
         case SPS_HEVC:
             saveSPS(nalData, nalDataLength);
-            isIntra = false;
+            currentIntra = false;
             break;
         case PPS_HEVC:
             savePPS(nalData, nalDataLength);
-            isIntra = false;
+            currentIntra = false;
             break;
         case PREFIX_SEI_NUT:
         case SUFFIX_SEI_NUT:
-            isIntra = false;
+            currentIntra = false;
             break;
         case AUD_HEVC:
-            return vFrame;
+            break;
         case IDR1:
         case IDR2:
         case CRA:
-            isIntra = true;
+            currentIntra = true;
             break;
         case NON_TSA_STSA_0:
         case NON_TSA_STSA_1:
-            isIntra = false;
+            currentIntra = false;
             break;
         default:
             utils::errorMsg("Error parsing NAL: NalType " + std::to_string(nalType) + " not contemplated");
             return NULL;
     }
-
-    if (nalType == IDR1 || nalType == IDR2 || nalType == CRA || nalType == NON_TSA_STSA_0 || nalType == NON_TSA_STSA_1) {
-        
-        if (!appendNalToFrame(vFrame, nalData, nalDataLength, nal->getWidth(), nal->getHeight(), nal->getPresentationTime())) {
-            utils::errorMsg("[DashVideoSegmenterHEVC::parseNal] Error appending NAL to frame");
-            return NULL;
-        }
+    
+    if (nalType == AUD_HEVC || nal->getPresentationTime() > tmpFrame->getPresentationTime()){
+        std::swap(tmpFrame,vFrame);
+        resetFrame();
+        newFrame = true;
     }
 
+    if ((nalType == IDR1 || nalType == IDR2 || nalType == CRA 
+        || nalType == NON_TSA_STSA_0 || nalType == NON_TSA_STSA_1) && 
+        !appendNalToFrame(tmpFrame, nalData, nalDataLength, nal->getWidth(), nal->getHeight(), nal->getPresentationTime())) {
+        utils::errorMsg("[DashVideoSegmenterHEVC::parseNal] Error appending NAL to frame");
+    }
+
+    if (newFrame){
+        return vFrame;
+    }
+    
     return NULL;
 }
 
@@ -143,57 +156,57 @@ void DashVideoSegmenterHEVC::savePPS(unsigned char* data, int dataLength)
     pps.insert(pps.begin(), data, data + dataLength);
 }
 
-void DashVideoSegmenterHEVC::createMetadata()
+void DashVideoSegmenterHEVC::createExtradata()
 {
     int vpsLength = vps.size();
     int spsLength = sps.size();
     int ppsLength = pps.size();
 
-    metadata.clear();
+    extradata.clear();
 
-    metadata.insert(metadata.end(), H265_METADATA_VERSION_FLAG);
-    metadata.insert(metadata.end(), H265_METADATA_CONFIG_FLAGS);
-    metadata.insert(metadata.end(), H265_METADATA_PROFILE_COMPATIBILITY_FLAGS);
-    metadata.insert(metadata.end(), H265_METADATA_PROFILE_COMPATIBILITY_FLAGS_PADDING, 0x00);
-    metadata.insert(metadata.end(), H265_METADATA_CONSTRAINT_INDICATOR_FLAGS);
-    metadata.insert(metadata.end(), H265_METADATA_CONSTRAINT_INDICATOR_FLAGS_PADDING, 0x00);
-    metadata.insert(metadata.end(), H265_METADATA_GENERAL_LEVEL_IDC);
+    extradata.insert(extradata.end(), H265_METADATA_VERSION_FLAG);
+    extradata.insert(extradata.end(), H265_METADATA_CONFIG_FLAGS);
+    extradata.insert(extradata.end(), H265_METADATA_PROFILE_COMPATIBILITY_FLAGS);
+    extradata.insert(extradata.end(), H265_METADATA_PROFILE_COMPATIBILITY_FLAGS_PADDING, 0x00);
+    extradata.insert(extradata.end(), H265_METADATA_CONSTRAINT_INDICATOR_FLAGS);
+    extradata.insert(extradata.end(), H265_METADATA_CONSTRAINT_INDICATOR_FLAGS_PADDING, 0x00);
+    extradata.insert(extradata.end(), H265_METADATA_GENERAL_LEVEL_IDC);
 
-    metadata.insert(metadata.end(), (H265_METADATA_MIN_SPATIAL_SEGMENTATION >> 8) | H265_METADATA_MIN_SPATIAL_SEGMENTATION_RESERVED_BYTES);
-    metadata.insert(metadata.end(), H265_METADATA_MIN_SPATIAL_SEGMENTATION);
-    metadata.insert(metadata.end(), H265_METADATA_PARALLELISM_TYPE_RESERVED_BYTES | H265_METADATA_PARALLELISM_TYPE);
-    metadata.insert(metadata.end(), H265_METADATA_CHROMA_FORMAT_RESERVED_BYTES | H265_METADATA_CHROMA_FORMAT);
-    metadata.insert(metadata.end(), H265_METADATA_BIT_DEPTH_LUMA_MINUS_8_RESERVED_BYTES | H265_METADATA_BIT_DEPTH_LUMA_MINUS_8);
-    metadata.insert(metadata.end(), H265_METADATA_BIT_DEPTH_CHROMA_MINUS_8_RESERVED_BYTES | H265_METADATA_BIT_DEPTH_CHROMA_MINUS_8);
-    metadata.insert(metadata.end(), H265_METADATA_AVG_FRAMERATE >> 8);
-    metadata.insert(metadata.end(), H265_METADATA_AVG_FRAMERATE);
-    metadata.insert(metadata.end(), 
+    extradata.insert(extradata.end(), (H265_METADATA_MIN_SPATIAL_SEGMENTATION >> 8) | H265_METADATA_MIN_SPATIAL_SEGMENTATION_RESERVED_BYTES);
+    extradata.insert(extradata.end(), H265_METADATA_MIN_SPATIAL_SEGMENTATION);
+    extradata.insert(extradata.end(), H265_METADATA_PARALLELISM_TYPE_RESERVED_BYTES | H265_METADATA_PARALLELISM_TYPE);
+    extradata.insert(extradata.end(), H265_METADATA_CHROMA_FORMAT_RESERVED_BYTES | H265_METADATA_CHROMA_FORMAT);
+    extradata.insert(extradata.end(), H265_METADATA_BIT_DEPTH_LUMA_MINUS_8_RESERVED_BYTES | H265_METADATA_BIT_DEPTH_LUMA_MINUS_8);
+    extradata.insert(extradata.end(), H265_METADATA_BIT_DEPTH_CHROMA_MINUS_8_RESERVED_BYTES | H265_METADATA_BIT_DEPTH_CHROMA_MINUS_8);
+    extradata.insert(extradata.end(), H265_METADATA_AVG_FRAMERATE >> 8);
+    extradata.insert(extradata.end(), H265_METADATA_AVG_FRAMERATE);
+    extradata.insert(extradata.end(), 
         (H265_METADATA_CTX_FRAMERATE << 6) | 
         (H265_METADATA_NUM_TEMPORAL_LAYERS << 3) |
         (H265_METADATA_TEMPORAL_ID_NESTED << 2) |
         (H265_METADATA_LENGTH_SIZE_MINUS_ONE)
     );
-    metadata.insert(metadata.end(), H265_NUMBER_OF_ARRAYS);
+    extradata.insert(extradata.end(), H265_NUMBER_OF_ARRAYS);
 
-    metadata.insert(metadata.end(), VPS);
-    metadata.insert(metadata.end(), H265_NUM_NALUS_IN_ARRAY >> 8);
-    metadata.insert(metadata.end(), H265_NUM_NALUS_IN_ARRAY);
-    metadata.insert(metadata.end(), (vpsLength >> 8) & 0xFF);
-    metadata.insert(metadata.end(), vpsLength & 0xFF);
-    metadata.insert(metadata.end(), vps.begin(), vps.end());
+    extradata.insert(extradata.end(), VPS);
+    extradata.insert(extradata.end(), H265_NUM_NALUS_IN_ARRAY >> 8);
+    extradata.insert(extradata.end(), H265_NUM_NALUS_IN_ARRAY);
+    extradata.insert(extradata.end(), (vpsLength >> 8) & 0xFF);
+    extradata.insert(extradata.end(), vpsLength & 0xFF);
+    extradata.insert(extradata.end(), vps.begin(), vps.end());
 
-    metadata.insert(metadata.end(), SPS_HEVC);
-    metadata.insert(metadata.end(), H265_NUM_NALUS_IN_ARRAY >> 8);
-    metadata.insert(metadata.end(), H265_NUM_NALUS_IN_ARRAY);
-    metadata.insert(metadata.end(), (spsLength >> 8) & 0xFF);
-    metadata.insert(metadata.end(), spsLength & 0xFF);
-    metadata.insert(metadata.end(), sps.begin(), sps.end());
+    extradata.insert(extradata.end(), SPS_HEVC);
+    extradata.insert(extradata.end(), H265_NUM_NALUS_IN_ARRAY >> 8);
+    extradata.insert(extradata.end(), H265_NUM_NALUS_IN_ARRAY);
+    extradata.insert(extradata.end(), (spsLength >> 8) & 0xFF);
+    extradata.insert(extradata.end(), spsLength & 0xFF);
+    extradata.insert(extradata.end(), sps.begin(), sps.end());
 
-    metadata.insert(metadata.end(), PPS_HEVC);
-    metadata.insert(metadata.end(), H265_NUM_NALUS_IN_ARRAY >> 8);
-    metadata.insert(metadata.end(), H265_NUM_NALUS_IN_ARRAY);
-    metadata.insert(metadata.end(), (ppsLength >> 8) & 0xFF);
-    metadata.insert(metadata.end(), ppsLength & 0xFF);
-    metadata.insert(metadata.end(), pps.begin(), pps.end());
+    extradata.insert(extradata.end(), PPS_HEVC);
+    extradata.insert(extradata.end(), H265_NUM_NALUS_IN_ARRAY >> 8);
+    extradata.insert(extradata.end(), H265_NUM_NALUS_IN_ARRAY);
+    extradata.insert(extradata.end(), (ppsLength >> 8) & 0xFF);
+    extradata.insert(extradata.end(), ppsLength & 0xFF);
+    extradata.insert(extradata.end(), pps.begin(), pps.end());
 }
 

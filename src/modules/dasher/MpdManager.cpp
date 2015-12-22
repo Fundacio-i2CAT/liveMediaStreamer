@@ -113,10 +113,10 @@ void MpdManager::writeToDisk(const char* fileName)
     doc.SaveFile(fileName);
 }
 
-unsigned MpdManager::updateAdaptationSetTimestamp(std::string id, unsigned ts, unsigned duration)
+size_t MpdManager::updateAdaptationSetTimestamp(std::string id, size_t ts, size_t duration)
 {
     AdaptationSet* adSet;
-    unsigned removedTimestamp;
+    size_t removedTimestamp;
 
     adSet = getAdaptationSet(id);
 
@@ -238,9 +238,9 @@ AdaptationSet::~AdaptationSet()
 { 
 }
 
-unsigned AdaptationSet::updateTimestamp(unsigned ts, unsigned duration, size_t maxSeg)
+size_t AdaptationSet::updateTimestamp(size_t ts, size_t duration, size_t maxSeg)
 {
-    unsigned removedTimestamp= 0;
+    size_t removedTimestamp= 0;
 
     while (timestamps.size() >= maxSeg) {
         removedTimestamp = timestamps.front().first;

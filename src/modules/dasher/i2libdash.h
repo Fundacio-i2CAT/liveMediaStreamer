@@ -46,7 +46,7 @@ uint32_t new_init_video_handler(byte *metadata, uint32_t metadata_size, byte *ou
 
 uint32_t init_audio_handler(byte *input_data, uint32_t size_input, byte *output_data, i2ctx **context);
 
-uint32_t add_sample(byte *input_data, uint32_t size_input, uint32_t duration_sample, uint32_t pts, uint32_t dts, 
+uint32_t add_sample(byte *input_data, uint32_t size_input, uint32_t duration_sample, uint64_t pts, uint64_t dts, 
                     uint32_t seqNumber, uint32_t media_type, byte *output_data, uint8_t is_intra, i2ctx **context);
 
 uint32_t finish_segment(uint32_t media_type, byte *output_data, i2ctx **context);
@@ -60,17 +60,17 @@ void set_sample_rate(uint32_t sample_rate, i2ctx **context);
 uint32_t get_sample_rate(i2ctx *context);
 
 uint32_t generate_video_segment(uint8_t nextFrameIsIntra, uint32_t nextFramePts, byte *output_data, 
-                                 i2ctx **context, uint32_t* segmentTimestamp, uint32_t* segmentDuration);
+                                 i2ctx **context, uint64_t* segmentTimestamp, uint32_t* segmentDuration);
 
-uint32_t generate_audio_segment(byte *output_data, i2ctx **context, uint32_t* segmentTimestamp, uint32_t* segmentDuration);
+uint32_t generate_audio_segment(byte *output_data, i2ctx **context, uint64_t* segmentTimestamp, uint32_t* segmentDuration);
 
-uint32_t force_generate_audio_segment(byte *output_data, i2ctx **context, uint32_t* segmentTimestamp, uint32_t* segmentDuration);
+uint32_t force_generate_audio_segment(byte *output_data, i2ctx **context, uint64_t* segmentTimestamp, uint32_t* segmentDuration);
 
-uint32_t add_video_sample(byte *input_data, uint32_t input_data_length, uint32_t pts, 
-                           uint32_t dts, uint32_t seqNumber, uint8_t is_intra, i2ctx **context);
+uint32_t add_video_sample(byte *input_data, uint32_t input_data_length, uint64_t pts, 
+                           uint64_t dts, uint32_t seqNumber, uint8_t is_intra, i2ctx **context);
 
 uint32_t add_audio_sample(byte *input_data, uint32_t input_data_length, uint32_t sample_duration, 
-                          uint32_t pts, uint32_t dts, uint32_t seqNumber, i2ctx **context);
+                          uint64_t pts, uint64_t dts, uint32_t seqNumber, i2ctx **context);
 
 void context_refresh(i2ctx **context, uint32_t media_type);
 

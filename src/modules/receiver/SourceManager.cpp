@@ -30,7 +30,6 @@
 #include <sstream>
 
 #define RTSP_CLIENT_VERBOSITY_LEVEL 1
-#define RTP_RECEIVE_BUFFER_SIZE 2000000
 
 static void fillH264or5ExtraData(const MediaSubsession *mss, StreamInfo *si)
 {

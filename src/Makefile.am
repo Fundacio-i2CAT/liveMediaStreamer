@@ -62,10 +62,10 @@ liblivemediastreamer_la_SOURCES = modules/audioDecoder/AudioDecoderLibav.cpp \
                                   Runnable.cpp \
                                   WorkersPool.cpp 
 
-liblivemediastreamer_la_CPPFLAGS = -g -D__STDC_CONSTANT_MACROS -Wall
+liblivemediastreamer_la_CPPFLAGS = -g -D__STDC_CONSTANT_MACROS -Wall -O0
 
 liblivemediastreamer_la_CXXFLAGS = -std=c++11 
 
-liblivemediastreamer_la_CFLAGS = -g -D__STDC_CONSTANT_MACROS -Wall
+liblivemediastreamer_la_CFLAGS = -g -D__STDC_CONSTANT_MACROS -Wall -O0
 
 liblivemediastreamer_la_LDFLAGS = -shared -fPIC -pthread -lBasicUsageEnvironment -lUsageEnvironment -lliveMedia -lgroupsock -lavcodec -lavformat -lavutil -lswresample -lswscale -llog4cplus -lopencv_core -lopencv_imgproc -lx264 -lx265

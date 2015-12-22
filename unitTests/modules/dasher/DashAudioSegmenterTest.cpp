@@ -79,6 +79,8 @@ protected:
     DashAudioSegmenter* segmenter;
     AudioFrame* modelFrame;
     VideoFrame *vFrame;
+    
+    std::chrono::microseconds timestamp = std::chrono::microseconds(0);
 };
 
 void DashAudioSegmenterTest::setUp()

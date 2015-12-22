@@ -13,6 +13,7 @@
 #include "../src/Controller.hh"
 #include "../src/Utils.hh"
 #include "../src/modules/sharedMemory/SharedMemory.hh"
+#include <sys/resource.h>
 
 #include <csignal>
 #include <vector>
@@ -42,7 +43,7 @@
 
 #define RETRIES 60
 
-#define MAX_VIDEO_QUALITIES 3
+#define MAX_VIDEO_QUALITIES 32
 #define DEFAULT_OUTPUT_VIDEO_QUALITIES 3
 #define DEFAULT_FIRST_VIDEO_QUALITY 2000
 
@@ -50,10 +51,14 @@
 #define DASH_FOLDER "/tmp/dash"
 #define BASE_NAME "test"
 
-#define BYPASS_VIDEO_PATH 3113
-#define BYPASS_AUDIO_PATH 4224
-
 bool run = true;
+
+struct Configuration {
+    int width;
+    int height;
+    int bitrate;
+    VCodecType codec;
+};
 
 void signalHandler( int signum )
 {
@@ -61,7 +66,7 @@ void signalHandler( int signum )
     run = false;
 }
 
-Dasher* setupDasher(int dasherId, std::string dash_folder, int segDuration)
+Dasher* setupDasher(int dasherId, std::string dash_folder, int segDuration, std::string basename)
 {
     Dasher* dasher = NULL;
 
@@ -74,7 +79,7 @@ Dasher* setupDasher(int dasherId, std::string dash_folder, int segDuration)
         exit(1);
     }
 
-    if(!dasher->configure(dash_folder, std::string(BASE_NAME), segDuration, 30, 16)){
+    if(!dasher->configure(dash_folder, basename, segDuration, 30, 16)){
         utils::errorMsg("Error configuring dasher: exit");
         exit(1);        
     }
@@ -84,7 +89,7 @@ Dasher* setupDasher(int dasherId, std::string dash_folder, int segDuration)
     return dasher;
 }
 
-void addAudioPath(unsigned port, Dasher* dasher, int dasherId, int receiverID, int transmitterID)
+void addAudioPath(unsigned port, Dasher* dasher, int dasherId, int receiverID)
 {
     PipelineManager *pipe = Controller::getInstance()->pipelineManager();
 
@@ -122,22 +127,11 @@ void addAudioPath(unsigned port, Dasher* dasher, int dasherId, int receiverID, i
         utils::errorMsg("Error setting bitrate to segmenter");
     }
     
-    if (!pipe->createPath(BYPASS_AUDIO_PATH, encId, transmitterID, DEFAULT_ID, BYPASS_AUDIO_PATH, std::vector<int>({}))) {
-        utils::errorMsg("Error creating audio path");
-        return;
-    }
-    
-    if (!pipe->connectPath(BYPASS_AUDIO_PATH)){
-        utils::errorMsg("Failed! Path not connected");
-        pipe->removePath(port);
-        return;
-    }
-
     utils::infoMsg("Audio path created from port " + std::to_string(port));
 }
 
-void addVideoPath(unsigned port, Dasher* dasher, int dasherId, int receiverID, int transmitterID,
-                    VCodecType codec, int nQ, int maxBitRate)
+void addVideoPath(unsigned port, Dasher* dasher, int dasherId, int receiverID,
+                    Configuration *config, int numConfig)
 {
     PipelineManager *pipe = Controller::getInstance()->pipelineManager();
 
@@ -163,19 +157,19 @@ void addVideoPath(unsigned port, Dasher* dasher, int dasherId, int receiverID, i
 
     resampler = new VideoResampler();
     pipe->addFilter(resId, resampler);
-    resampler->configure(1280, 720, 0, YUV420P);
+    resampler->configure(config[0].width, config[0].height, 0, YUV420P);
 
-    switch (codec) {
+    switch (config[0].codec) {
         case H264:
             encoderX264 = new VideoEncoderX264();
             pipe->addFilter(encId, encoderX264);
-            encoderX264->configure(maxBitRate, 25, 25, 0, 4, true, "superfast");
+            encoderX264->configure(config[0].bitrate, 25, 25, 0, 4, true, "superfast");
             utils::infoMsg("Master reader: " + std::to_string(dstReader));
             break;
         case H265:
             encoderX265 = new VideoEncoderX265();
             pipe->addFilter(encId, encoderX265);
-            encoderX265->configure(maxBitRate, 25, 25, 25, 4, true, "superfast");
+            encoderX265->configure(config[0].bitrate, 25, 25, 25, 4, true, "superfast");
             utils::infoMsg("Master reader: " + std::to_string(dstReader));
             break;
         default:
@@ -195,11 +189,11 @@ void addVideoPath(unsigned port, Dasher* dasher, int dasherId, int receiverID, i
         return;
     }
 
-    if (!dasher->setDashSegmenterBitrate(dstReader, maxBitRate*1000)) {
+    if (!dasher->setDashSegmenterBitrate(dstReader, config[0].bitrate*1000)) {
         utils::errorMsg("Error setting bitrate to segmenter");
     } 
 
-    for (int n = 1; n < nQ; n++) {
+    for (int n = 1; n < numConfig; n++) {
         resId += n;
         encId += n;
         dstReader += n;
@@ -208,18 +202,18 @@ void addVideoPath(unsigned port, Dasher* dasher, int dasherId, int receiverID, i
 
         resampler = new VideoResampler();
         pipe->addFilter(resId, resampler);
-        resampler->configure(1280/2, 720/2, 0, YUV420P);
+        resampler->configure(config[n].width, config[n].height, 0, YUV420P);
 
-        switch (codec) {
+        switch (config[n].codec) {
             case H264:
                 encoderX264 = new VideoEncoderX264();
                 pipe->addFilter(encId, encoderX264);
-                encoderX264->configure(maxBitRate/(n*2), 25, 25, 0, 4, true, "superfast");
+                encoderX264->configure(config[n].bitrate, 25, 25, 0, 4, true, "superfast");
                 break;
             case H265:
                 encoderX265 = new VideoEncoderX265();
                 pipe->addFilter(encId, encoderX265);
-                encoderX265->configure(maxBitRate/(n*2), 25, 25, 25, 4, true, "superfast");
+                encoderX265->configure(config[n].bitrate, 25, 25, 25, 4, true, "superfast");
                 break;
             default:
                 utils::errorMsg("Only H264 and H265 are supported... exiting...");
@@ -239,20 +233,9 @@ void addVideoPath(unsigned port, Dasher* dasher, int dasherId, int receiverID, i
 
         utils::infoMsg("Slave reader: " + std::to_string(dstReader));
 
-        if (!dasher->setDashSegmenterBitrate(dstReader, maxBitRate*1000/(n*2))) {
+        if (!dasher->setDashSegmenterBitrate(dstReader, config[n].bitrate*1000)) {
             utils::errorMsg("Error setting bitrate to segmenter");
         } 
-    }
-    
-    if (!pipe->createPath(BYPASS_VIDEO_PATH, encId, transmitterID, DEFAULT_ID, BYPASS_VIDEO_PATH, std::vector<int>({}))) {
-        utils::errorMsg("Error creating video path");
-        return;
-    }
-    
-    if (!pipe->connectPath(BYPASS_VIDEO_PATH)){
-        utils::errorMsg("Failed! Path not connected");
-        pipe->removePath(port);
-        return;
     }
     
     utils::infoMsg("Video path created from port " + std::to_string(port));
@@ -310,8 +293,8 @@ bool addAudioSDPSession(unsigned port, SourceManager *receiver, std::string code
 }
 
 bool addRTSPsession(std::string rtspUri, Dasher* dasher, int dasherId,
-                    SourceManager *receiver, int receiverID, int transmitterID,
-                    VCodecType codec, int nQ, int maxBitRate)
+                    SourceManager *receiver, int receiverID,
+                    Configuration *config, int numConfig)
 {
     Session* session;
     std::string sessionId = utils::randomIdGenerator(ID_LENGTH);
@@ -334,17 +317,32 @@ bool addRTSPsession(std::string rtspUri, Dasher* dasher, int dasherId,
         retries++;
     }
 
-    MediaSubsessionIterator iter(*(session->getScs()->session));
-    MediaSubsession* subsession;
-
-    while(iter.next() == NULL && retries <= RETRIES){
+    while (session->getScs()->session == NULL && retries <= RETRIES){
         sleep(1);
         retries++;
     }
 
-    if (retries > RETRIES){
-        delete receiver;
-        return false;
+    MediaSubsessionIterator iter(*(session->getScs()->session));
+    MediaSubsession* subsession;
+    
+    while(true){
+        if (retries > RETRIES){
+            delete receiver;
+            return false;
+        }
+        
+        sleep(1);
+        retries++;
+        
+        if ((subsession = iter.next()) == NULL){
+            iter.reset();
+            continue;
+        }
+        
+        if (subsession->clientPortNum() > 0){
+            iter.reset();
+            break;
+        }
     }
 
     utils::infoMsg("RTSP client session created!");
@@ -355,9 +353,9 @@ bool addRTSPsession(std::string rtspUri, Dasher* dasher, int dasherId,
         medium = subsession->mediumName();
 
         if (medium.compare("video") == 0){
-            addVideoPath(subsession->clientPortNum(), dasher, dasherId, receiverID, transmitterID, codec, nQ, maxBitRate);
+            addVideoPath(subsession->clientPortNum(), dasher, dasherId, receiverID, config, numConfig);
         } else if (medium.compare("audio") == 0){
-            addAudioPath(subsession->clientPortNum(), dasher, dasherId, receiverID, transmitterID);
+            addAudioPath(subsession->clientPortNum(), dasher, dasherId, receiverID);
         }
     }
 
@@ -366,26 +364,12 @@ bool addRTSPsession(std::string rtspUri, Dasher* dasher, int dasherId,
 
 void usage(){
     utils::infoMsg("usage: \n\r \
-        testdash -v <RTP input video port> -a <RTP input audio port> -r <input RTSP URI> -c <socket control port> -nvq <number of output video qualities> -vc <output video codec> -f <dash folder> -b <max video bit rate> -s <segment duration> \
+        testdash -v <RTP input video port> -a <RTP input audio port> -r <input RTSP URI> -c <socket control port> -f <dash folder> -s <segment duration> -statsfile <output statistics filename> -timeout <secons to wait before closing. 0 means forever> -configfile <configuration file>\
         \n INPUTS: RTP or RTSP \n QUALITIES: from 1 to "+std::to_string(MAX_VIDEO_QUALITIES)+"                      \
-        \n OUTPUT VIDEO CODECS: H264 or H265                                                                        \
         \n FOLDER: specify system folder where to write DASH MPD, INIT and SEGMENTS files.                          \
+        \n Each line in the configuration file must contain 'width, height, bitrate (kbps), codec (0:H264 1:H265)'  \
     ");
 }
-
-bool publishRTSPSession(std::vector<int> readers, SinkManager *transmitter)
-{
-    std::string sessionId;
-
-    sessionId = "mpegts";
-    utils::infoMsg("Adding plain RTP session...");
-    if (!transmitter->addRTSPConnection(readers, 2, STD_RTP, sessionId)){
-        return false;
-    }
-    
-    return true;
-}
-
 
 //TODO: Define width and height of the master stream and fps
 //      define each parameter per stream
@@ -394,27 +378,27 @@ int main(int argc, char* argv[])
     int vPort = 0;
     int aPort = 0;
     int cPort = 7777;
-    int numVidQ = DEFAULT_OUTPUT_VIDEO_QUALITIES;
-    int transmitterID = 1024;
     
     std::string vCodec = V_CODEC;
-    VCodecType codec;
     std::string dFolder = DASH_FOLDER;
-    int maxVideoBitRate = DEFAULT_FIRST_VIDEO_QUALITY;
     int segDuration = SEG_DURATION;
     std::string ip;
     std::string rtspUri = "none";
     Dasher* dasher = NULL;
     int dasherId = 4000;
     std::vector<int> readers;
+    std::string basename = BASE_NAME;
 
     int receiverID = rand();
 
     SourceManager* receiver = NULL;
-    SinkManager* transmitter = NULL;
     PipelineManager *pipe;
 
     utils::setLogLevel(INFO);
+
+    int timeout = 0;
+    std::string stats_filename;
+    std::string config_filename;
 
     for (int i = 1; i < argc; i++) {
         if (strcmp(argv[i],"-v")==0) {
@@ -430,21 +414,24 @@ int main(int argc, char* argv[])
         } else if (strcmp(argv[i],"-c")==0) {
             cPort = std::stoi(argv[i+1]);
             utils::infoMsg("configuring control port: " + std::to_string(cPort));
-        } else if (strcmp(argv[i],"-nvq")==0) {
-            numVidQ = std::stoi(argv[i+1]);
-            utils::infoMsg("configuring number of video qualities: " + std::to_string(numVidQ));
-        } else if (strcmp(argv[i],"-vc")==0) {
-            vCodec = argv[i+1];
-            utils::infoMsg("configuring output video codec: " + vCodec);
         } else if (strcmp(argv[i],"-f")==0) {
             dFolder = argv[i+1];
             utils::infoMsg("configuring dash folder: " + dFolder);
-        } else if (strcmp(argv[i],"-b")==0) {
-            maxVideoBitRate = std::stoi(argv[i+1]);
-            utils::infoMsg("configuring maximum video bitrate: " + std::to_string(maxVideoBitRate));
         } else if (strcmp(argv[i],"-s")==0) {
             segDuration = std::stoi(argv[i+1]);
             utils::infoMsg("configuring dash segments duration: " + std::to_string(segDuration));
+        } else if (strcmp(argv[i],"-statsfile")==0) {
+            stats_filename = argv[i+1];
+            utils::infoMsg("output stats filename: " + stats_filename);
+        } else if (strcmp(argv[i],"-timeout")==0) {
+            timeout = std::stoi(argv[i+1]);
+            utils::infoMsg("timeout: " + std::to_string(timeout) + "s.");
+        } else if (strcmp(argv[i],"-configfile")==0) {
+            config_filename = argv[i+1];
+            utils::infoMsg("config filename: " + config_filename);
+        } else if (strcmp(argv[i],"-basename")==0) {
+            basename = argv[i+1];
+            utils::infoMsg("basename: " + basename);
         }
     }
 
@@ -454,18 +441,35 @@ int main(int argc, char* argv[])
         return 1;
     }
 
-    if (numVidQ < 1 || numVidQ > MAX_VIDEO_QUALITIES){
-        utils::errorMsg("Number of output video qualities can be 1, 2 or 3");
-        usage();
+    if (config_filename.empty()) {
+        utils::errorMsg("Please specify a configuration file");
         return 1;
     }
+    Configuration config[MAX_VIDEO_QUALITIES];
+    int numConfig = 0;
+    FILE *cf = fopen (config_filename.c_str(), "rt");
+    if (!cf) {
+        utils::errorMsg("Could not open config file " + config_filename);
+        return 1;
+    }
+    int codecType;
+    while (fscanf (cf, "%d, %d, %d, %d",
+                &config[numConfig].width,
+                &config[numConfig].height,
+                &config[numConfig].bitrate,
+                &codecType) == 4) {
+        config[numConfig].codec = (VCodecType)codecType;
+        if (config[numConfig].codec != H264 &&
+            config[numConfig].codec != H265) {
+            utils::errorMsg("Only H264 and H265 are supported (codec type 0 and 1)");
+            return 1;
+        }
+        numConfig++;
+    }
+    fclose(cf);
 
-    if (vCodec == "H264") {
-        codec = H264;
-    } else if (vCodec == "H265") {
-        codec = H265;
-    } else {
-        utils::errorMsg("Only H264 and H265 ouput codecs are supported");
+    if (numConfig < 1 || numConfig > MAX_VIDEO_QUALITIES){
+        utils::errorMsg("Number of output video qualities must be between 1 and " + std::to_string(MAX_VIDEO_QUALITIES));
         usage();
         return 1;
     }
@@ -481,8 +485,9 @@ int main(int argc, char* argv[])
         \n\t\t\t\t - audio receiver port: " + std::to_string(aPort) + "                      \
         \n\t\t\t\t - input RTSP URI: " + rtspUri + "                                         \
         \n\t\t\t\t - output video codec: " + vCodec + "                                      \
-        \n\t\t\t\t - number of output video qualities: " + std::to_string(numVidQ) + "       \
+        \n\t\t\t\t - number of output configurations: " + std::to_string(numConfig) + "      \
         \n\t\t\t\t - dash folder: " + dFolder + "                                            \
+        \n\t\t\t\t - basename: " + basename + "                                              \
     ");
 
     pipe = Controller::getInstance()->pipelineManager();
@@ -490,45 +495,26 @@ int main(int argc, char* argv[])
     receiver = new SourceManager();
     pipe->addFilter(receiverID, receiver);
     
-    transmitter = SinkManager::createNew();
-    if (!transmitter){
-        utils::errorMsg("RTSPServer constructor failed");
-        return 1;
-    }
-
-    pipe->addFilter(transmitterID, transmitter);
-
-    dasher = setupDasher(dasherId, dFolder, segDuration);
+    dasher = setupDasher(dasherId, dFolder, segDuration, basename);
     
     signal(SIGINT, signalHandler);
 
     if (vPort != 0 && rtspUri.length() == 4){
         addVideoSDPSession(vPort, receiver);
-        addVideoPath(vPort, dasher, dasherId, receiverID, transmitterID, codec, numVidQ, maxVideoBitRate);
+        addVideoPath(vPort, dasher, dasherId, receiverID, config, numConfig);
     }
 
     if (aPort != 0 && rtspUri.length() == 4){
         addAudioSDPSession(aPort, receiver);
-        addAudioPath(aPort, dasher, dasherId, receiverID, transmitterID);
+        addAudioPath(aPort, dasher, dasherId, receiverID);
     }
 
     if (rtspUri.length() > 4){
-        if (!addRTSPsession(rtspUri, dasher, dasherId, receiver, receiverID, transmitterID, codec, numVidQ, maxVideoBitRate)){
+        if (!addRTSPsession(rtspUri, dasher, dasherId, receiver, receiverID, config, numConfig)){
             utils::errorMsg("Couldn't start rtsp client session!");
             usage();
             return 1;
         }
-    }
-    
-    for (auto it : pipe->getPaths()) {
-        if (it.second->getDstReaderID() == BYPASS_VIDEO_PATH || it.second->getDstReaderID() == BYPASS_AUDIO_PATH){
-            readers.push_back(it.second->getDstReaderID());
-        }
-    }
-    
-    if (!publishRTSPSession(readers, transmitter)){
-        utils::errorMsg("Failed adding RTSP sessions!");
-        return 1;
     }
 
     Controller* ctrl = Controller::getInstance();
@@ -537,8 +523,20 @@ int main(int argc, char* argv[])
         exit(1);
     }
 
+    struct rusage usage0;
+    getrusage(RUSAGE_SELF, &usage0);
+
+    // Running time (wall clock)
+    struct timespec rtime0str, rtime1str;
+    clock_gettime (CLOCK_REALTIME, &rtime0str);
     while (run) {
         if (!ctrl->listenSocket()) {
+            if (timeout) {
+                clock_gettime (CLOCK_REALTIME_COARSE, &rtime1str);
+                if (rtime1str.tv_sec > rtime0str.tv_sec + timeout) {
+                    run = false;
+                }
+            }
             continue;
         }
 
@@ -550,10 +548,69 @@ int main(int argc, char* argv[])
         ctrl->processRequest();
     }
 
-    ctrl->destroyInstance();
-    utils::infoMsg("Controlled deleted");
+    struct rusage usage1;
+    getrusage(RUSAGE_SELF, &usage1);
+
+    if (!stats_filename.empty()) {
+        Jzon::Object pipe_state;
+        pipe->getStateEvent(NULL, pipe_state);
+
+        FILE *f = fopen(stats_filename.c_str(), "wt");
+
+        const Jzon::Array &paths = pipe_state.Get("paths");
+        int inDelay = 0, inLosses = 0, inCount = 0;
+        for (Jzon::Array::const_iterator it = paths.begin(); it != paths.end(); ++it) {
+            int destinationFilter = (*it).Get("destinationFilter").ToInt();
+            if (destinationFilter == dasherId) {
+                // Input path: Receiver -> Dasher
+                inDelay += (*it).Get("avgDelay").ToInt();
+                inLosses += (*it).Get("lostBlocs").ToInt();
+                inCount++;
+            }
+        }
+        inDelay /= inCount;
+
+        fprintf(f, "%d, %d, ", inDelay, inLosses);
+
+        float inBitrate = 0, inPacketLoss = 0;
+        const Jzon::Array &filters = pipe_state.Get("filters");
+        for (Jzon::Array::const_iterator it = filters.begin(); it != filters.end(); ++it) {
+            std::string type = (*it).Get("type").ToString();
+            if (type.compare("receiver") == 0) {
+                const Jzon::Array &sessions = (*it).Get("sessions");
+                for (Jzon::Array::const_iterator it2 = sessions.begin(); it2 != sessions.end(); ++it2) {
+                    const Jzon::Array subs = (*it2).Get("subsessions").AsArray();
+                    for (Jzon::Array::const_iterator it3 = subs.begin(); it3 != subs.end(); ++it3) {
+                        inBitrate += (*it3).Get("avgBitRateInKbps").ToFloat();
+                        inPacketLoss += (*it3).Get("avgPacketLossPercentage").ToFloat();
+                    }
+                }
+            }
+        }
+
+        fprintf(f, "%f, %f, ", inBitrate, inPacketLoss);
+
+        // User time and System time, in microseconds
+        int utime0 = usage0.ru_utime.tv_usec + usage0.ru_utime.tv_sec * 1000000;
+        int stime0 = usage0.ru_stime.tv_usec + usage0.ru_stime.tv_sec * 1000000;
+        int utime1 = usage1.ru_utime.tv_usec + usage1.ru_utime.tv_sec * 1000000;
+        int stime1 = usage1.ru_stime.tv_usec + usage1.ru_stime.tv_sec * 1000000;
+
+        // Total running time, in microseconds
+        int rtime0 = rtime0str.tv_nsec / 1000 + rtime0str.tv_sec * 1000000;
+        int rtime1 = rtime1str.tv_nsec / 1000 + rtime1str.tv_sec * 1000000;
+
+        fprintf(f, "%f, %f, %f\n",
+                (utime1 - utime0) / (float)(rtime1 - rtime0) * 100.f,
+                (stime1 - stime0) / (float)(rtime1 - rtime0) * 100.f,
+                (utime1 + stime1 - utime0 - stime0) / (float)(rtime1 - rtime0) * 100.f);
+
+        fclose(f);
+    }
     pipe->destroyInstance();
     utils::infoMsg("Pipe deleted");
+    ctrl->destroyInstance();
+    utils::infoMsg("Controller deleted");
     
     return 0;
 }

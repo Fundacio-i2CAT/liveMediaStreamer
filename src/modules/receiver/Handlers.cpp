@@ -196,6 +196,8 @@ namespace handlers
             } else {
                 env << "Initiated the subsession (client ports " << scs.subsession->clientPortNum() << "-" << scs.subsession->clientPortNum()+1 << ")\n";
 
+                increaseReceiveBufferTo(env, scs.subsession->rtpSource()->RTPgs()->socketNum(), RTP_RECEIVE_BUFFER_SIZE);
+
                 rtspClient->sendSetupCommand(*scs.subsession, continueAfterSETUP, False, False);
             }
             return;

@@ -6,6 +6,7 @@
 #include "../src/modules/transmitter/SinkManager.hh"
 #include "../src/Controller.hh"
 #include "../src/Utils.hh"
+#include <sys/resource.h>
 
 #include <csignal>
 #include <vector>
@@ -236,18 +237,17 @@ int main(int argc, char* argv[])
     std::vector<int> readers;
 
     int transmitterID = 11;
-    int receiverId = 10;
+    int receiverId = 20;
     int mixerId = 15;
 
     SinkManager* transmitter = NULL;
-    SourceManager* receiver = NULL;
     PipelineManager *pipe;
 
-    utils::setLogLevel(INFO);
+    utils::setLogLevel(DEBUG);
 
     std::string out_address;
     int out_port = 0;
-    int timeout = 0;
+    int elapsed_time = 0, timeout = 0;
 
     std::string stats_filename;
 
@@ -296,12 +296,11 @@ int main(int argc, char* argv[])
                 "-ow <output width in pixels> -oh <output height in pixels>\n"
                 "-ob <output bitrate> -op <output period in microseconds>\n"
                 "-statsfile <output statistics filename>\n"
-                "-timeout <secons to wait before closing. 0 means forever>"
+                "-timeout <seconds to wait before closing. 0 means forever>"
                 "-oaddr <optional output RTP IP address> -oport <optional output RTP port>\n");
         return 1;
     }
 
-    receiver = new SourceManager();
     pipe = Controller::getInstance()->pipelineManager();
 
     transmitter = SinkManager::createNew();
@@ -312,7 +311,6 @@ int main(int argc, char* argv[])
     }
 
     pipe->addFilter(transmitterID, transmitter);
-    pipe->addFilter(receiverId, receiver);
 
     setupMixer(mixerId, transmitterID);
 
@@ -334,35 +332,116 @@ int main(int argc, char* argv[])
     }
 
     for (auto p : ports) {
+        SourceManager* receiver = new SourceManager();
+        pipe->addFilter(receiverId, receiver);
         addVideoSDPSession(p, receiver);
         addVideoPath(p, receiverId, mixerId);
+        receiverId++;
     }
 
     for (auto uri : uris) {
+        SourceManager* receiver = new SourceManager();
+        pipe->addFilter(receiverId, receiver);
         if (!addRTSPsession(uri, receiver, receiverId, mixerId)){
             utils::errorMsg("Couldn't start rtsp client session!");
             return 1;
         }
+        receiverId++;
     }
 
+    struct rusage usage0;
+    getrusage(RUSAGE_SELF, &usage0);
+
+    elapsed_time = 0;
     while(run) {
         std::this_thread::sleep_for(std::chrono::seconds(1));
         if (timeout) {
-            timeout--;
-            if (!timeout) {
+            elapsed_time++;
+            if (elapsed_time == timeout) {
                 run = false;
             }
         }
     }
 
-    Controller::destroyInstance();
-    PipelineManager::destroyInstance();
+    struct rusage usage1;
+    getrusage(RUSAGE_SELF, &usage1);
 
     if (!stats_filename.empty()) {
+        Jzon::Object pipe_state;
+        pipe->getStateEvent(NULL, pipe_state);
+
         FILE *f = fopen(stats_filename.c_str(), "a+t");
-        fprintf(f, "%d %d ", out_bitrate, mix_channels);
+        fprintf(f, "%d, %d, ", out_bitrate, mix_channels);
+
+        const Jzon::Array &paths = pipe_state.Get("paths");
+        int inDelay = 0, inLosses = 0, inCount = 0;
+        int outDelay, outLosses;
+        for (Jzon::Array::const_iterator it = paths.begin(); it != paths.end(); ++it) {
+            int originFilter = (*it).Get("originFilter").ToInt();
+            if (originFilter >= 20 && originFilter < 50) {
+                // Input path: Receiver -> Mixer
+                inDelay += (*it).Get("avgDelay").ToInt();
+                inLosses += (*it).Get("lostBlocs").ToInt();
+                inCount++;
+            } else {
+                // Output path: Mixer -> Transmitter
+                outDelay = (*it).Get("avgDelay").ToInt();
+                outLosses = (*it).Get("lostBlocs").ToInt();
+            }
+        }
+        inDelay /= inCount;
+
+        fprintf(f, "%d, %d, %d, ", inDelay, outDelay, inDelay + outDelay);
+        fprintf(f, "%d, %d, %d, ", inLosses, outLosses, inLosses + outLosses);
+
+        float inBitrate = 0, inPacketLoss = 0;
+        const Jzon::Array &filters = pipe_state.Get("filters");
+        for (Jzon::Array::const_iterator it = filters.begin(); it != filters.end(); ++it) {
+            std::string type = (*it).Get("type").ToString();
+            if (type.compare("receiver") == 0) {
+                const Jzon::Array &sessions = (*it).Get("sessions");
+                for (Jzon::Array::const_iterator it2 = sessions.begin(); it2 != sessions.end(); ++it2) {
+                    const Jzon::Array subs = (*it2).Get("subsessions").AsArray();
+                    for (Jzon::Array::const_iterator it3 = subs.begin(); it3 != subs.end(); ++it3) {
+                        inBitrate += (*it3).Get("avgBitRateInKbps").ToFloat();
+                        inPacketLoss += (*it3).Get("avgPacketLossPercentage").ToFloat();
+                    }
+                }
+            }
+        }
+        inPacketLoss /= inCount;
+
+        fprintf(f, "%f, %f, ", inBitrate, inPacketLoss / inCount);
+
+        Jzon::Object tran_state;
+        transmitter->getState(tran_state);
+        const Jzon::Array &sessions2 = tran_state.Get("sessions");
+        float outBitrate = 0, outPacketLoss = 0;
+        for (Jzon::Array::const_iterator it = sessions2.begin(); it != sessions2.end(); ++it) {
+            if ((*it).Has("ip")) {
+                // The RTP output session (the only one that runs when no
+                // client is connected)
+                const Jzon::Array &stats = (*it).Get("subsessionsStats").AsArray();
+                for (Jzon::Array::const_iterator it2 = stats.begin(); it2 != stats.end(); ++it2) {
+                    outBitrate = (*it2).Get("avgBitrateInKbps").ToInt();
+                    outPacketLoss = (*it2).Get("packetLossRatio").ToInt();
+                }
+            }
+        }
+        fprintf(f, "%f, %f, ", outBitrate, outPacketLoss);
+
+        int time0 = usage0.ru_utime.tv_usec + usage0.ru_utime.tv_sec * 1000000 +
+                    usage0.ru_stime.tv_usec + usage0.ru_stime.tv_sec * 1000000;
+        int time1 = usage1.ru_utime.tv_usec + usage1.ru_utime.tv_sec * 1000000 +
+                    usage1.ru_stime.tv_usec + usage1.ru_stime.tv_sec * 1000000;
+
+        fprintf(f, "%f\n", (time1 - time0) / 1e6 / (float)timeout * 100.f);
+
         fclose(f);
     }
+
+    Controller::destroyInstance();
+    PipelineManager::destroyInstance();
 
     return 0;
 }

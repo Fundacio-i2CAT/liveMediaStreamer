@@ -163,6 +163,7 @@ private:
     
     bool handleGrouping(int orgFId, int dstFId, int orgWId, int dstRId);
     bool validCData(ConnectionData cData, int orgFId, int dstFId);
+    bool deleteRelatedPaths(int filterId);
 
     static PipelineManager* pipeMngrInstance;
     const unsigned threads;

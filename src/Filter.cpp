@@ -26,13 +26,14 @@
 #include "Utils.hh"
 
 #include <thread>
+#include <algorithm>
 
 #define WAIT 1000 //usec
 
 
 BaseFilter::BaseFilter(unsigned readersNum, unsigned writersNum, FilterRole fRole_, bool periodic): Runnable(periodic), 
 maxReaders(readersNum), maxWriters(writersNum),  frameTime(std::chrono::microseconds(0)), 
-fRole(fRole_), syncTs(std::chrono::microseconds(0))
+fRole(fRole_), syncTs(std::chrono::microseconds(0)), refReader(0),  syncMargin(std::chrono::microseconds(0))
 {
 }
 
@@ -177,19 +178,22 @@ bool BaseFilter::demandDestinationFrames(std::map<int, Frame*> &dFrames)
     if (maxWriters == 0) {
         return true;
     }
-
+    
     bool newFrame = false;
-    for (auto it : writers){
-        if (!it.second->isConnected()){
-            it.second->disconnect();
-            deleteWriter(it.first);
+    for (std::map<int, std::shared_ptr<Writer>>::iterator it = writers.begin() ; it != writers.end(); ) {
+        if (!it->second->isConnected()){
+            it->second->disconnect();
+            int wId = it->first;
+            ++it;
+            deleteWriter(wId);
             continue;
         }
 
-        Frame *f = it.second->getFrame(true);
+        Frame *f = it->second->getFrame(true);
         f->setConsumed(false);
-        dFrames[it.first] = f;
+        dFrames[it->first] = f;
         newFrame = true;
+        ++it;
     }
 
     return newFrame;
@@ -549,6 +553,58 @@ bool BaseFilter::demandOriginFrames(std::map<int, Frame*> &oFrames, std::vector<
     }
 }
 
+void BaseFilter::syncFrames(std::map<int, Frame*> &oFrames, std::vector<int> &newFrames)
+{      
+    if (oFrames.count(refReader) == 0){
+        return;
+    } 
+    
+    bool newFrame = false;
+    
+    std::chrono::microseconds wallClock = oFrames[refReader]->getPresentationTime();
+    std::chrono::microseconds currentFTime;
+    
+    Frame* frame;
+        
+    for (std::map<int, Frame*>::iterator it; it != oFrames.end(); ){
+        
+        currentFTime = it->second->getPresentationTime();
+        
+        while (wallClock - syncMargin > currentFTime){
+            removeFrames(std::vector<int>(it->first));           
+            newFrames.erase(std::remove(newFrames.begin(), newFrames.end(), it->first), newFrames.end());
+            
+            if (readers.count(it->first) == 0){
+                break;
+            }
+            
+            frame = readers[it->first]->getFrame(getId(), newFrame);
+            
+            if (!frame) {
+                oFrames.erase(it);
+                break;
+            }
+
+            frame->setConsumed(newFrame);
+            //NOTE: it can be done?
+            oFrames[it->first] = frame;
+            if (newFrame){
+                newFrames.push_back(it->first);
+            }
+        }
+        
+        if (wallClock - syncMargin > currentFTime){
+            continue;
+        }
+        
+        if (wallClock + syncMargin < currentFTime) {
+            newFrames.erase(std::remove(newFrames.begin(), newFrames.end(), it->first), newFrames.end());
+        }
+        
+        ++it;
+    }
+}
+
 bool BaseFilter::deleteReader(int readerId)
 {
     if (readers.count(readerId) > 0){
@@ -564,25 +620,31 @@ bool BaseFilter::demandOriginFramesBestEffort(std::map<int, Frame*> &oFrames, st
 {
     bool newFrame;
     Frame* frame;
-
-    for (auto r : readers) {
-        if (!r.second || !r.second->isConnected()) {
-            deleteReader(r.first);
+    
+    std::map<int, Frame*>::iterator it; it != oFrames.end(); 
+    
+    for (std::map<int, std::shared_ptr<Reader>>::iterator r = readers.begin() ; r != readers.end(); ) {
+        if (!r->second || !r->second->isConnected()) {
+            int rId = r->first;
+            ++r;
+            deleteReader(rId);
             continue;
         }
         
-        frame = r.second->getFrame(getId(), newFrame);
+        frame = r->second->getFrame(getId(), newFrame);
 
         if (!frame) {
             utils::errorMsg("[BaseFilter::demandOriginFramesBestEffort] Reader->getFrame() returned NULL. It cannot happen...");
+            ++r;
             continue;
         }
 
         frame->setConsumed(newFrame);
-        oFrames[r.first] = frame;
+        oFrames[r->first] = frame;
         if (newFrame){
-            newFrames.push_back(r.first);
+            newFrames.push_back(r->first);
         }
+        ++r;
     }
 
     return !newFrames.empty();
@@ -596,26 +658,30 @@ bool BaseFilter::demandOriginFramesFrameTime(std::map<int, Frame*> &oFrames, std
     bool validFrame = false;
     bool outDated = false;
 
-    for (auto r : readers) {
-        if (!r.second || !r.second->isConnected()) {
-            deleteReader(r.first);
+    for (std::map<int, std::shared_ptr<Reader>>::iterator r = readers.begin() ; r != readers.end(); ) {
+        if (!r->second || !r->second->isConnected()) {
+            int rId = r->first;
+            ++r;
+            deleteReader(rId);
             continue;
         }
 
-        frame = r.second->getFrame(getId(), newFrame);
+        frame = r->second->getFrame(getId(), newFrame);
 
         if (!frame) {
             utils::errorMsg("[BaseFilter::demandOriginFramesFrameTime] Reader->getFrame() returned NULL. It cannot happen...");
+            ++r;
             continue;
         }
 
         frame->setConsumed(newFrame);
-        oFrames[r.first] = frame;
+        oFrames[r->first] = frame;
         if (newFrame){
-            newFrames.push_back(r.first);
+            newFrames.push_back(r->first);
         }
 
         if (!newFrame) {
+            ++r;
             continue;
         }
 
@@ -627,16 +693,19 @@ bool BaseFilter::demandOriginFramesFrameTime(std::map<int, Frame*> &oFrames, std
             } else {
                 outOfScopeTs = std::min(frame->getPresentationTime(), outOfScopeTs);
             }
+            ++r;
             continue;
         }
         
         if (frame->getPresentationTime() < syncTs){
             outDated = true;
+            ++r;
             continue;
         }
 
         // Normal case, which means that the frame is in our processing scope (syncTime -> syncTime+frameTime)
         validFrame = true;
+        ++r;
     }
 
     // There is no new frame

@@ -429,7 +429,7 @@ int main(int argc, char* argv[])
         } else if (strcmp(argv[i],"-configfile")==0) {
             config_filename = argv[i+1];
             utils::infoMsg("config filename: " + config_filename);
-        } else if (strcmp(argv[i],"-basename")) {
+        } else if (strcmp(argv[i],"-basename")==0) {
             basename = argv[i+1];
             utils::infoMsg("basename: " + basename);
         }

@@ -97,6 +97,7 @@ protected:
     VideoFrame *nonIdrNal;
     VideoFrame *dummyNal;
     std::chrono::microseconds frameTime;
+    std::chrono::microseconds timestamp = std::chrono::microseconds(0);
 };
 
 void DashVideoSegmenterAVCTest::setUp()
@@ -105,7 +106,7 @@ void DashVideoSegmenterAVCTest::setUp()
 
     frameTime = std::chrono::microseconds(40000);
 
-    segmenter = new DashVideoSegmenterAVC(std::chrono::seconds(SEG_DURATION));
+    segmenter = new DashVideoSegmenterAVC(std::chrono::seconds(SEG_DURATION), timestamp);
     dummyNal = InterleavedVideoFrame::createNew(H264, MAX_H264_OR_5_NAL_SIZE);
 
     spsNal = InterleavedVideoFrame::createNew(H264, MAX_H264_OR_5_NAL_SIZE);
@@ -208,7 +209,7 @@ void DashVideoSegmenterAVCTest::manageIDRNals()
     audNal->setPresentationTime(timestamp + frameTime);
     frame = segmenter->manageFrame(audNal);
     CPPUNIT_ASSERT(frame);
-    CPPUNIT_ASSERT(segmenter->getFrameDataSize() > 0);
+    CPPUNIT_ASSERT(segmenter->getFrameDataSize() <= 0);
     CPPUNIT_ASSERT(segmenter->isIntraFrame());
 
     vFrame = dynamic_cast<VideoFrame*>(frame);
@@ -246,7 +247,7 @@ void DashVideoSegmenterAVCTest::manageNonIDRNals()
     audNal->setPresentationTime(timestamp + frameTime);
     frame = segmenter->manageFrame(audNal);
     CPPUNIT_ASSERT(frame);
-    CPPUNIT_ASSERT(segmenter->getFrameDataSize() > 0);
+    CPPUNIT_ASSERT(segmenter->getFrameDataSize() <= 0);
     CPPUNIT_ASSERT(!segmenter->isIntraFrame());
 
     vFrame = dynamic_cast<VideoFrame*>(frame);
@@ -400,6 +401,8 @@ protected:
     VideoFrame *nonTsaNal;
     VideoFrame *dummyNal;
     std::chrono::microseconds frameTime;
+    
+    std::chrono::microseconds timestamp = std::chrono::microseconds(0);
 };
 
 void DashVideoSegmenterHEVCTest::setUp()
@@ -408,7 +411,7 @@ void DashVideoSegmenterHEVCTest::setUp()
 
     frameTime = std::chrono::microseconds(40000);
 
-    segmenter = new DashVideoSegmenterHEVC(std::chrono::seconds(SEG_DURATION));
+    segmenter = new DashVideoSegmenterHEVC(std::chrono::seconds(SEG_DURATION), timestamp);
     dummyNal = InterleavedVideoFrame::createNew(H265, MAX_H264_OR_5_NAL_SIZE);
 
     vpsNal = InterleavedVideoFrame::createNew(H265, MAX_H264_OR_5_NAL_SIZE);
@@ -557,7 +560,7 @@ void DashVideoSegmenterHEVCTest::manageIDRNals()
     audNal->setPresentationTime(timestamp + frameTime);
     frame = segmenter->manageFrame(audNal);
     CPPUNIT_ASSERT(frame);
-    CPPUNIT_ASSERT(segmenter->getFrameDataSize() > 0);
+    CPPUNIT_ASSERT(segmenter->getFrameDataSize() <= 0);
     CPPUNIT_ASSERT(segmenter->isIntraFrame());
 
     vFrame = dynamic_cast<VideoFrame*>(frame);
@@ -597,7 +600,7 @@ void DashVideoSegmenterHEVCTest::manageNonIDRNals()
     audNal->setPresentationTime(timestamp + frameTime);
     frame = segmenter->manageFrame(audNal);
     CPPUNIT_ASSERT(frame);
-    CPPUNIT_ASSERT(segmenter->getFrameDataSize() > 0);
+    CPPUNIT_ASSERT(segmenter->getFrameDataSize() <= 0);
     CPPUNIT_ASSERT(!segmenter->isIntraFrame());
 
     vFrame = dynamic_cast<VideoFrame*>(frame);

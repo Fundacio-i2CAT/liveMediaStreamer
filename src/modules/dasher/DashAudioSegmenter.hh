@@ -39,9 +39,9 @@ public:
     /**
     * Class constructor
     * @param segDur Segment duration in milliseconds
-    * @param segBaseName Base name for the segments. Segment names will be: segBaseName_<timestamp>.m4a and segBaseName_init.m4a
+    * @param offset of the initial timestamp
     */
-    DashAudioSegmenter(std::chrono::seconds segDur);
+    DashAudioSegmenter(std::chrono::seconds segDur, std::chrono::microseconds& offset);
 
     /**
     * Class destructor
@@ -73,7 +73,7 @@ public:
     bool generateInitSegment(DashSegment* segment);
 
 private:
-    bool updateMetadata(AudioFrame* aFrame);
+    bool updateExtradata(AudioFrame* aFrame);
     unsigned customGenerateSegment(unsigned char *segBuffer, std::chrono::microseconds nextFrameTs, 
                                     unsigned &segTimestamp, unsigned &segDuration, bool force);
 
@@ -82,8 +82,8 @@ private:
     unsigned char getProfileFromADTSHeader(unsigned char* adtsHeader);
     unsigned char getSamplingFreqIdxFromADTSHeader(unsigned char* adtsHeader);
     unsigned char getChannelConfFromADTSHeader(unsigned char* adtsHeader);
-    unsigned char getMetadata1stByte(unsigned char audioObjectType, unsigned char samplingFrequencyIndex);
-    unsigned char getMetadata2ndByte(unsigned char samplingFrequencyIndex, unsigned char channelConfiguration);
+    unsigned char getExtradata1stByte(unsigned char audioObjectType, unsigned char samplingFrequencyIndex);
+    unsigned char getExtradata2ndByte(unsigned char samplingFrequencyIndex, unsigned char channelConfiguration);
 
     unsigned char profile;
     unsigned char audioObjectType;

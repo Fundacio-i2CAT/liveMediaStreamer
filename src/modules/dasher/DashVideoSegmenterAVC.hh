@@ -18,6 +18,7 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  *  Authors:  Gerard Castillo <gerard.castillo@i2cat.net>
+ *            David Cassany <david.cassany@i2cat.net> 
  *
  */
 
@@ -51,8 +52,9 @@ public:
     /**
     * Class constructor
     * @param segDur Segment duration in milliseconds
+    * @param offset of the initial timestamp
     */
-    DashVideoSegmenterAVC(std::chrono::seconds segDur);
+    DashVideoSegmenterAVC(std::chrono::seconds segDur, std::chrono::microseconds& offset);
 
     /**
     * Class destructor
@@ -76,19 +78,20 @@ public:
     * @return true if success, false otherwise.
     */
     bool flushDashContext();
-    size_t getFrameDataSize() {return vFrame->getLength();};
+    size_t getFrameDataSize() {return tmpFrame->getLength();};
     
 
 private:
-    void updateMetadata();
+    void updateExtradata();
     void saveSPS(unsigned char* data, int dataLength);
     void savePPS(unsigned char* data, int dataLength);
-    void createMetadata();
+    void createExtradata();
     uint8_t generateContext();
     VideoFrame* parseNal(VideoFrame* nal);
-    void resetFrame(){vFrame->setLength(0);};
+    void resetFrame(){tmpFrame->setLength(0);};
 
     InterleavedVideoFrame* vFrame;
+    InterleavedVideoFrame* tmpFrame;
 
     std::vector<unsigned char> sps;
     std::vector<unsigned char> pps;

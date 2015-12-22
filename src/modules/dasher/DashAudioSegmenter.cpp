@@ -23,8 +23,8 @@
 
  #include "DashAudioSegmenter.hh"
 
-DashAudioSegmenter::DashAudioSegmenter(std::chrono::seconds segDur) :
-DashSegmenter(segDur, 0)
+DashAudioSegmenter::DashAudioSegmenter(std::chrono::seconds segDur, std::chrono::microseconds& offset) :
+DashSegmenter(segDur, 0, offset)
 {
 
 }
@@ -51,7 +51,7 @@ Frame* DashAudioSegmenter::manageFrame(Frame* frame)
         return NULL;
     }
 
-    if (!updateMetadata(aFrame)) {
+    if (!updateExtradata(aFrame)) {
         utils::errorMsg("[DashAudioSegmenter::manageFrame] Error updating metadata");
         return NULL;
     }
@@ -91,12 +91,12 @@ bool DashAudioSegmenter::generateInitSegment(DashSegment* segment)
     unsigned char* data;
     unsigned dataLength;
 
-    if (!dashContext || metadata.empty() || !segment || !segment->getDataBuffer()) {
+    if (!dashContext || extradata.empty() || !segment || !segment->getDataBuffer()) {
         return false;
     }
 
-    data = reinterpret_cast<unsigned char*> (&metadata[0]);
-    dataLength = metadata.size();
+    data = reinterpret_cast<unsigned char*> (&extradata[0]);
+    dataLength = extradata.size();
 
     if (!data) {
         return false;
@@ -109,7 +109,7 @@ bool DashAudioSegmenter::generateInitSegment(DashSegment* segment)
     }
 
     segment->setDataLength(initSize);
-    metadata.clear();
+    extradata.clear();
     return true;
 }
 
@@ -132,7 +132,7 @@ bool DashAudioSegmenter::appendFrameToDashSegment(DashSegment* segment, Frame* f
     unsigned char* dataWithoutADTS;
     size_t dataLengthWithoutADTS;
     size_t addSampleReturn;
-    size_t timeBasePts;
+    uint32_t timeBasePts;
 
     if (!frame || !frame->getDataBuf() || frame->getLength() <= 0 || !dashContext) {
         utils::errorMsg("Error appeding frame to segment: frame not valid");
@@ -148,7 +148,7 @@ bool DashAudioSegmenter::appendFrameToDashSegment(DashSegment* segment, Frame* f
                                         timeBasePts, timeBasePts, segment->getSeqNumber(), &dashContext);
 
     if (addSampleReturn != I2OK) {
-        utils::errorMsg("Error adding video sample. Code error: " + std::to_string(addSampleReturn));
+        utils::errorMsg("Error adding audio sample. Code error: " + std::to_string(addSampleReturn));
         return false;
     }
 
@@ -165,7 +165,7 @@ bool DashAudioSegmenter::flushDashContext()
     return true;
 }
 
-bool DashAudioSegmenter::updateMetadata(AudioFrame* aFrame)
+bool DashAudioSegmenter::updateExtradata(AudioFrame* aFrame)
 {
     unsigned char* data;
 
@@ -182,7 +182,7 @@ bool DashAudioSegmenter::updateMetadata(AudioFrame* aFrame)
     }
 
     if (profile == getProfileFromADTSHeader(data) && samplingFrequencyIndex == getSamplingFreqIdxFromADTSHeader(data) &&
-        channelConfiguration == getChannelConfFromADTSHeader(data) && !metadata.empty())
+        channelConfiguration == getChannelConfFromADTSHeader(data) && !extradata.empty())
     {
         return true;
     }
@@ -192,9 +192,9 @@ bool DashAudioSegmenter::updateMetadata(AudioFrame* aFrame)
     samplingFrequencyIndex = getSamplingFreqIdxFromADTSHeader(data);
     channelConfiguration = getChannelConfFromADTSHeader(data);
 
-    metadata.clear();
-    metadata.insert(metadata.end(), getMetadata1stByte(audioObjectType, samplingFrequencyIndex));
-    metadata.insert(metadata.end(), getMetadata2ndByte(samplingFrequencyIndex, channelConfiguration));
+    extradata.clear();
+    extradata.insert(extradata.end(), getExtradata1stByte(audioObjectType, samplingFrequencyIndex));
+    extradata.insert(extradata.end(), getExtradata2ndByte(samplingFrequencyIndex, channelConfiguration));
 
     return true;
 }
@@ -214,12 +214,12 @@ unsigned char DashAudioSegmenter::getChannelConfFromADTSHeader(unsigned char* ad
     return (adtsHeader[2] & 0x01) | ((adtsHeader[3] >> 6) & 0x03);
 }
 
-unsigned char DashAudioSegmenter::getMetadata1stByte(unsigned char audioObjectType, unsigned char samplingFrequencyIndex)
+unsigned char DashAudioSegmenter::getExtradata1stByte(unsigned char audioObjectType, unsigned char samplingFrequencyIndex)
 {
     return (audioObjectType<<3) | (samplingFrequencyIndex>>1);
 }
 
-unsigned char DashAudioSegmenter::getMetadata2ndByte(unsigned char samplingFrequencyIndex, unsigned char channelConfiguration)
+unsigned char DashAudioSegmenter::getExtradata2ndByte(unsigned char samplingFrequencyIndex, unsigned char channelConfiguration)
 {
     return (samplingFrequencyIndex<<7) | (channelConfiguration<<3);
 }

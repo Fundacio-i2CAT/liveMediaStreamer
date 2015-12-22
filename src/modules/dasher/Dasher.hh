@@ -134,7 +134,7 @@ private:
     bool hasVideo;
     bool videoStarted;
     
-    std::chrono::system_clock::time_point timestampOffset;
+    std::chrono::microseconds timestampOffset;
 };
 
 /*! Abstract class implemented by DashVideoSegmenter and DashAudioSegmenter */
@@ -215,7 +215,7 @@ protected:
     size_t timeBase;
     size_t segDurInTimeBaseUnits;
     size_t frameDuration;
-    std::vector<unsigned char> metadata;
+    std::vector<unsigned char> extradata;
     size_t bitrateInBitsPerSec;
     
     std::chrono::microseconds tsOffset;

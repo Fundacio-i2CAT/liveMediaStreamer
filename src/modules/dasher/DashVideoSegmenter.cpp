@@ -18,15 +18,16 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  *  Authors:  Marc Palau <marc.palau@i2cat.net>
- *            Gerard Castillo <gerard.castillo@i2cat.net>  
+ *            Gerard Castillo <gerard.castillo@i2cat.net>
+ *            David Cassany <david.cassany@i2cat.net>  
  *
  */
 
  #include "DashVideoSegmenter.hh"
 
-DashVideoSegmenter::DashVideoSegmenter(std::chrono::seconds segDur, std::string video_format_) : 
-DashSegmenter(segDur, DASH_VIDEO_TIME_BASE), 
-isIntra(false), video_format(video_format_)
+DashVideoSegmenter::DashVideoSegmenter(std::chrono::seconds segDur, std::string video_format_, std::chrono::microseconds& offset) : 
+DashSegmenter(segDur, DASH_VIDEO_TIME_BASE, offset), 
+currentIntra(false), previousIntra(false), video_format(video_format_)
 {
 
 }
@@ -50,7 +51,7 @@ Frame* DashVideoSegmenter::manageFrame(Frame* frame)
 
     vFrame = parseNal(nal);
 
-    updateMetadata();
+    updateExtradata();
     
     if (!vFrame || vFrame->getLength() == 0) {
         return NULL;
@@ -92,12 +93,12 @@ bool DashVideoSegmenter::generateInitSegment(DashSegment* segment)
     unsigned char* data;
     unsigned dataLength;
 
-    if (!dashContext || metadata.empty() || !segment || !segment->getDataBuffer()) {
+    if (!dashContext || extradata.empty() || !segment || !segment->getDataBuffer()) {
         return false;
     }
 
-    data = reinterpret_cast<unsigned char*> (&metadata[0]);
-    dataLength = metadata.size();
+    data = reinterpret_cast<unsigned char*> (&extradata[0]);
+    dataLength = extradata.size();
 
     if (!data) {
         return false;
@@ -110,7 +111,7 @@ bool DashVideoSegmenter::generateInitSegment(DashSegment* segment)
     }
 
     segment->setDataLength(initSize);
-    metadata.clear();
+    extradata.clear();
     return true;
 }
 
@@ -121,7 +122,7 @@ unsigned DashVideoSegmenter::customGenerateSegment(unsigned char *segBuffer, std
 
     timeBasePts = microsToTimeBase(nextFrameTs);
 
-    return generate_video_segment(isIntra, timeBasePts, segBuffer, &dashContext, &segTimestamp, &segDuration);
+    return generate_video_segment(isIntraFrame(), timeBasePts, segBuffer, &dashContext, &segTimestamp, &segDuration);
 }
 
 bool DashVideoSegmenter::appendFrameToDashSegment(DashSegment* segment, Frame* frame)
@@ -137,14 +138,13 @@ bool DashVideoSegmenter::appendFrameToDashSegment(DashSegment* segment, Frame* f
     timeBasePts = microsToTimeBase(frame->getPresentationTime());
 
     addSampleReturn = add_video_sample(frame->getDataBuf(), frame->getLength(), timeBasePts, 
-                                        timeBasePts, segment->getSeqNumber(), isIntra, &dashContext);
+                                        timeBasePts, segment->getSeqNumber(), isIntraFrame(), &dashContext);
 
     if (addSampleReturn != I2OK) {
         utils::errorMsg("Error adding video sample. Code error: " + std::to_string(addSampleReturn));
         return false;
     }
 
-    resetFrame();
     return true;
 }
 

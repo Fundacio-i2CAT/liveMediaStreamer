@@ -35,13 +35,12 @@
 #include <unistd.h>
 #include <math.h>
 
-std::chrono::microseconds tsOffset = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now().time_since_epoch());
-
 Dasher::Dasher(unsigned readersNum) :
-TailFilter(readersNum), mpdMngr(NULL), hasVideo(false), videoStarted(false), timestampOffset(std::chrono::system_clock::now())
+TailFilter(readersNum), mpdMngr(NULL), hasVideo(false), videoStarted(false)
 {
     fType = DASHER;
     initializeEventMap();
+    timestampOffset = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now().time_since_epoch());
 }
 
 Dasher::~Dasher()
@@ -499,9 +498,9 @@ bool Dasher::specificReaderConfig(int readerId, FrameQueue* queue)
         }
 
         if (vQueue->getStreamInfo()->video.codec == H264) {
-            segmenters[readerId] = new DashVideoSegmenterAVC(segDur);
+            segmenters[readerId] = new DashVideoSegmenterAVC(segDur, timestampOffset);
         } else if (vQueue->getStreamInfo()->video.codec == H265) {
-            segmenters[readerId] = new DashVideoSegmenterHEVC(segDur);
+            segmenters[readerId] = new DashVideoSegmenterHEVC(segDur, timestampOffset);
         } else {
             utils::errorMsg("Error setting dasher video segmenter: only H264 & H265 codecs are supported for video");
             return false;
@@ -518,7 +517,7 @@ bool Dasher::specificReaderConfig(int readerId, FrameQueue* queue)
             return false;
         }
 
-        segmenters[readerId] = new DashAudioSegmenter(segDur);
+        segmenters[readerId] = new DashAudioSegmenter(segDur, timestampOffset);
         aSegments[readerId] = new DashSegment();
         initSegments[readerId] = new DashSegment();
     }

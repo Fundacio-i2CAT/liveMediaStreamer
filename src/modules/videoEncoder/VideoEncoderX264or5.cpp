@@ -90,7 +90,11 @@ bool VideoEncoderX264or5::doProcessFrame(Frame *org, Frame *dst)
     dst->setPresentationTime(qFTP.front().pTime);
     dst->setOriginTime(qFTP.front().oTime);
     dst->setSequenceNumber(qFTP.front().seqNum);
-    
+    /*
+    std::chrono::system_clock::time_point now = std::chrono::system_clock::now();
+    std::chrono::system_clock::duration microSecondsNow = now.time_since_epoch();
+    utils::warningMsg("[VideoEncoderX264or5:dorocessFrame] PresentationTime: " + std::to_string((qFTP.front().pTime).count()) + " actual time: " + std::to_string(microSecondsNow.count()));
+    */
     qFTP.pop();
     
     return true;

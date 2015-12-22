@@ -11,6 +11,7 @@ bin
 *.la
 .libs
 .deps
+.idea
 Makefile
 Makefile.in
 config.h

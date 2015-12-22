@@ -179,9 +179,14 @@ bool VideoSplitter::doProcessFrame(Frame *org, std::map<int, Frame *> &dstFrames
 				
 			}*/
 			it.second->setConsumed(true);
-			it.second->setPresentationTime(vFrame->getPresentationTime());
+			it.second->setPresentationTime(org->getPresentationTime());
 			it.second->setOriginTime(org->getOriginTime());
     		it.second->setSequenceNumber(org->getSequenceNumber());
+    		/*
+    		std::chrono::system_clock::time_point now = std::chrono::system_clock::now();
+    		std::chrono::system_clock::duration microSecondsNow = now.time_since_epoch();
+    		utils::warningMsg("[VideoSplitter:doProcessFrame] Crop ID: " + std::to_string(it.first) + " PresentationTime: " + std::to_string((org->getPresentationTime()).count()) + " actual time: " + std::to_string(microSecondsNow.count()));
+			*/
 			processFrame = true;
 		} else {
 			utils::warningMsg("[VideoSplitter] Crop not configured or out of scope (Crop ID: " + std::to_string(it.first) 

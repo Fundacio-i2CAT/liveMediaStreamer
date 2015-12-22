@@ -38,6 +38,7 @@
 
 
 #define PROTOCOL "RTP"
+#define RTP_RECEIVE_BUFFER_SIZE 2000000
 
 class SourceManager;
 class SCSSubsessionStats;

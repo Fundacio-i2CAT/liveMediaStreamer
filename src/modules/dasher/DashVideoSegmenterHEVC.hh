@@ -80,7 +80,7 @@ public:
     * @param segDur Segment duration in milliseconds
     * @param offset of the initial timestamp
     */
-    DashVideoSegmenterHEVC(std::chrono::seconds segDur, std::chrono::microseconds& offset);
+    DashVideoSegmenterHEVC(std::chrono::seconds segDur);
 
     /**
     * Class destructor

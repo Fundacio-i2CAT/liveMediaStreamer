@@ -25,8 +25,8 @@
 
  #include "DashVideoSegmenter.hh"
 
-DashVideoSegmenter::DashVideoSegmenter(std::chrono::seconds segDur, std::string video_format_, std::chrono::microseconds& offset) : 
-DashSegmenter(segDur, DASH_VIDEO_TIME_BASE, offset), 
+DashVideoSegmenter::DashVideoSegmenter(std::chrono::seconds segDur, std::string video_format_) : 
+DashSegmenter(segDur, DASH_VIDEO_TIME_BASE), 
 currentIntra(false), previousIntra(false), video_format(video_format_)
 {
 
@@ -116,7 +116,7 @@ bool DashVideoSegmenter::generateInitSegment(DashSegment* segment)
 }
 
 unsigned DashVideoSegmenter::customGenerateSegment(unsigned char *segBuffer, std::chrono::microseconds nextFrameTs, 
-                                                    unsigned &segTimestamp, unsigned &segDuration, bool force)
+                                                    uint64_t &segTimestamp, uint32_t &segDuration, bool force)
 {
     size_t timeBasePts;
 
@@ -134,11 +134,15 @@ bool DashVideoSegmenter::appendFrameToDashSegment(DashSegment* segment, Frame* f
         utils::errorMsg("Error appeding frame to segment: frame not valid");
         return false;
     }
+    
+    if (dashContext->ctxvideo->segment_data_size == 0 && currentTimestamp == 0){
+        tsOffset = frame->getPresentationTime();
+    }
 
     timeBasePts = microsToTimeBase(frame->getPresentationTime());
 
     addSampleReturn = add_video_sample(frame->getDataBuf(), frame->getLength(), timeBasePts, 
-                                        timeBasePts, segment->getSeqNumber(), isIntraFrame(), &dashContext);
+                                        timeBasePts, sequenceNumber, isIntraFrame(), &dashContext);
 
     if (addSampleReturn != I2OK) {
         utils::errorMsg("Error adding video sample. Code error: " + std::to_string(addSampleReturn));

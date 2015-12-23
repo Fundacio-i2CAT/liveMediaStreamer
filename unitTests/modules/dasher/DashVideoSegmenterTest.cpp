@@ -106,7 +106,7 @@ void DashVideoSegmenterAVCTest::setUp()
 
     frameTime = std::chrono::microseconds(40000);
 
-    segmenter = new DashVideoSegmenterAVC(std::chrono::seconds(SEG_DURATION), timestamp);
+    segmenter = new DashVideoSegmenterAVC(std::chrono::seconds(SEG_DURATION));
     dummyNal = InterleavedVideoFrame::createNew(H264, MAX_H264_OR_5_NAL_SIZE);
 
     spsNal = InterleavedVideoFrame::createNew(H264, MAX_H264_OR_5_NAL_SIZE);
@@ -411,7 +411,7 @@ void DashVideoSegmenterHEVCTest::setUp()
 
     frameTime = std::chrono::microseconds(40000);
 
-    segmenter = new DashVideoSegmenterHEVC(std::chrono::seconds(SEG_DURATION), timestamp);
+    segmenter = new DashVideoSegmenterHEVC(std::chrono::seconds(SEG_DURATION));
     dummyNal = InterleavedVideoFrame::createNew(H265, MAX_H264_OR_5_NAL_SIZE);
 
     vpsNal = InterleavedVideoFrame::createNew(H265, MAX_H264_OR_5_NAL_SIZE);

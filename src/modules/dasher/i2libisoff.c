@@ -25,6 +25,7 @@
 #include "i2libisoff.h"
 
 #define INIT_TIMESCALE 1000 //ms
+#define BOX_TYPE_SIZE 4
 
 // ftyp for audio and video files is the same
 uint32_t write_ftyp(byte *data, uint32_t media_type, i2ctx *context);
@@ -128,6 +129,9 @@ uint32_t write_mdat(byte* source_data, uint32_t size_source_data, byte *data, ui
 
 uint32_t write_matrix(byte *data, uint32_t a, uint32_t b, uint32_t c, uint32_t d, uint32_t tx, uint32_t ty);
 
+// Conversion to network order of uint64_t values
+uint64_t htonl_64(uint64_t value);
+
 // source_data equals to pps_sps_data
 uint32_t initVideoGenerator(byte *source_data, uint32_t size_source_data, byte *destination_data, i2ctx **context) {
     uint32_t count, size_ftyp, size_moov;
@@ -229,7 +233,7 @@ uint32_t segmentGenerator(byte *source_data, uint32_t size_source_data, byte *de
     
     count+= size_styp;
     
-    size_sidx = 44;
+    size_sidx = write_sidx(destination_data + count, media_type, (*context));
     if ((media_type == VIDEO_TYPE_AVC) || (media_type == VIDEO_TYPE_HEVC)) {
         (*context)->ctxvideo->ctxsample->trun_pos+= count + size_sidx;
         (*context)->ctxvideo->ctxsample->moof_pos+= count + size_sidx;
@@ -238,14 +242,14 @@ uint32_t segmentGenerator(byte *source_data, uint32_t size_source_data, byte *de
         (*context)->ctxaudio->ctxsample->trun_pos+= count + size_sidx;
         (*context)->ctxaudio->ctxsample->moof_pos+= count + size_sidx;
     }
+    
     size_moof = write_moof(destination_data + count + size_sidx, media_type, context);
-
     if (size_moof < 8)
         return I2ERROR_ISOFF;
 
     (*context)->reference_size = size_moof + 8 + size_source_data;
-    size_sidx = write_sidx(destination_data + count, media_type, (*context));
     
+    size_sidx = write_sidx(destination_data + count, media_type, (*context));
     if (size_sidx < 8)
         return I2ERROR_ISOFF;
 
@@ -266,11 +270,11 @@ uint32_t write_ftyp(byte *data, uint32_t media_type, i2ctx *context) {
     version = 1;
     
     // Box type
-    memcpy(data + count, "ftyp", 4);
+    memcpy(data + count, "ftyp", BOX_TYPE_SIZE);
     count+= 4;
 
     // Major brand
-    memcpy(data + count, "iso6", 4);
+    memcpy(data + count, "iso6", BOX_TYPE_SIZE);
     count+= 4;
 
     // Version
@@ -279,12 +283,12 @@ uint32_t write_ftyp(byte *data, uint32_t media_type, i2ctx *context) {
     count+= 4;
 
     // Compatible brands
-    memcpy(data + count, "isom", 4);
-    count+= 4;
-    memcpy(data + count, "iso6", 4);
-    count+= 4;
-    memcpy(data + count, "dash", 4);
-    count+= 4;
+    memcpy(data + count, "isom", BOX_TYPE_SIZE);
+    count+= BOX_TYPE_SIZE;
+    memcpy(data + count, "iso6", BOX_TYPE_SIZE);
+    count+= BOX_TYPE_SIZE;
+    memcpy(data + count, "dash", BOX_TYPE_SIZE);
+    count+= BOX_TYPE_SIZE;
     
     // Box size
     size = count;
@@ -331,8 +335,8 @@ uint32_t write_mvhd(byte *data, uint32_t media_type, i2ctx *context) {
 
     count = 4;  
     // Box type
-    memcpy(data + count, "mvhd", 4);
-    count+= 4;
+    memcpy(data + count, "mvhd", BOX_TYPE_SIZE);
+    count+= BOX_TYPE_SIZE;
 
     // Version
     flag32 = 0;
@@ -418,8 +422,8 @@ uint32_t write_mvex(byte *data, uint32_t media_type, i2ctx *context) {
     count = 4;
 
     // Box type
-    memcpy(data + count, "mvex", 4);
-    count+= 4;
+    memcpy(data + count, "mvex", BOX_TYPE_SIZE);
+    count+= BOX_TYPE_SIZE;
 
     size_trex = write_trex(data + count, media_type, context);
     if (size_trex < 8)
@@ -453,8 +457,8 @@ uint32_t write_trex(byte *data, uint32_t media_type, i2ctx *context) {
     count+= 4;
 
     // Box type
-    memcpy(data + count, "trex", 4);
-    count+= 4;
+    memcpy(data + count, "trex", BOX_TYPE_SIZE);
+    count+= BOX_TYPE_SIZE;
 
     // Version & flags
     flag32 = 0x0;
@@ -498,8 +502,8 @@ uint32_t write_trak(byte *data, uint32_t media_type, i2ctx *context) {
     count = 4;
 
     // Box type
-    memcpy(data + count, "trak", 4);
-    count+= 4;
+    memcpy(data + count, "trak", BOX_TYPE_SIZE);
+    count+= BOX_TYPE_SIZE;
 
     size_tkhd = write_tkhd(data + count, media_type, context);
     if (size_tkhd < 8)
@@ -526,8 +530,8 @@ uint32_t write_tkhd(byte *data, uint32_t media_type, i2ctx *context) {
     count = 4;
 
     // Box type
-    memcpy(data + count, "tkhd", 4);
-    count+= 4;
+    memcpy(data + count, "tkhd", BOX_TYPE_SIZE);
+    count+= BOX_TYPE_SIZE;
 
     // version
     flag8 = 0;
@@ -627,8 +631,8 @@ uint32_t write_mdia(byte *data, uint32_t media_type, i2ctx *context) {
     count = 4;
 
     // Box type
-    memcpy(data + count, "mdia", 4);
-    count+= 4;
+    memcpy(data + count, "mdia", BOX_TYPE_SIZE);
+    count+= BOX_TYPE_SIZE;
 
     size_mdhd = write_mdhd(data + count, media_type, context);
     if (size_mdhd < 8)
@@ -671,8 +675,8 @@ uint32_t write_mdhd(byte *data, uint32_t media_type, i2ctx *context) {
     count = 4;
 
     // Box type
-    memcpy(data + count, "mdhd", 4);
-    count+= 4;
+    memcpy(data + count, "mdhd", BOX_TYPE_SIZE);
+    count+= BOX_TYPE_SIZE;
 
     // Version
     flag32 = 0;
@@ -724,8 +728,8 @@ uint32_t write_hdlr(byte *data, uint32_t media_type, i2ctx *context) {
     count = 4;
 
     // Box type
-    memcpy(data + count, "hdlr", 4);
-    count+= 4;
+    memcpy(data + count, "hdlr", BOX_TYPE_SIZE);
+    count+= BOX_TYPE_SIZE;
 
     // Version and flags
     flag32 = 0;
@@ -738,10 +742,10 @@ uint32_t write_hdlr(byte *data, uint32_t media_type, i2ctx *context) {
     count+= 4;
 
     if ((media_type == VIDEO_TYPE_AVC) || (media_type == VIDEO_TYPE_HEVC)) {
-        memcpy(data + count, "vide", 4);
+        memcpy(data + count, "vide", BOX_TYPE_SIZE);
         count+= 4;
     } else {
-        memcpy(data + count, "soun", 4);
+        memcpy(data + count, "soun", BOX_TYPE_SIZE);
         count+= 4;
     }
 
@@ -777,8 +781,8 @@ uint32_t write_minf(byte *data, uint32_t media_type, i2ctx *context) {
     count = 4;
 
     // Box type
-    memcpy(data + count, "minf", 4);
-    count+= 4;
+    memcpy(data + count, "minf", BOX_TYPE_SIZE);
+    count+= BOX_TYPE_SIZE;
     if ((media_type == VIDEO_TYPE_AVC) || (media_type == VIDEO_TYPE_HEVC)) {
         size_vmhd = write_vmhd(data + count);
         if (size_vmhd < 8)
@@ -822,8 +826,8 @@ uint32_t write_vmhd(byte *data) {
     count+= 4;
 
     // Box type
-    memcpy(data + count, "vmhd", 4);
-    count+= 4;
+    memcpy(data + count, "vmhd", BOX_TYPE_SIZE);
+    count+= BOX_TYPE_SIZE;
 
     // Version and flags
     hton_flag32 = htonl(flag32);
@@ -855,8 +859,8 @@ uint32_t write_smhd(byte *data) {
     count+= 4;
 
     // Box type
-    memcpy(data + count, "smhd", 4);
-    count+= 4;
+    memcpy(data + count, "smhd", BOX_TYPE_SIZE);
+    count+= BOX_TYPE_SIZE;
 
     // Version and flags and reserved (balance normally = 0)
     memcpy(data + count, &zero, 8);
@@ -869,8 +873,8 @@ uint32_t write_dinf(byte *data, uint32_t media_type, i2ctx *context) {
     uint32_t count, size, hton_size, size_dref;
 
     count = 4;
-    memcpy(data + count, "dinf", 4);
-    count+= 4;
+    memcpy(data + count, "dinf", BOX_TYPE_SIZE);
+    count+= BOX_TYPE_SIZE;
     size_dref = write_dref(data + count, media_type, context);
     if (size_dref < 8)
         return I2ERROR_ISOFF;
@@ -892,8 +896,8 @@ uint32_t write_dref(byte *data, uint32_t media_type, i2ctx *context) {
     one = 1;
 
     // box type
-    memcpy(data + count, "dref", 4);
-    count+= 4;
+    memcpy(data + count, "dref", BOX_TYPE_SIZE);
+    count+= BOX_TYPE_SIZE;
     // version and flags
     memcpy(data + count, &zero, 4);
     count+= 4;
@@ -926,8 +930,8 @@ uint32_t write_url(byte * data) {
     count+= 4;
 
     // box type
-    memcpy(data + count, "url ", 4);
-    count+= 4;
+    memcpy(data + count, "url ", BOX_TYPE_SIZE);
+    count+= BOX_TYPE_SIZE;
 
     // version and flags
     hton_flags = htonl(flags);
@@ -943,8 +947,8 @@ uint32_t write_stbl(byte *data, uint32_t media_type, i2ctx *context) {
     count = 4;
     
     // box type
-    memcpy(data + count, "stbl", 4);
-    count+= 4;
+    memcpy(data + count, "stbl", BOX_TYPE_SIZE);
+    count+= BOX_TYPE_SIZE;
 
     // write subBoxes and update count value
     size_stsd = write_stsd(data + count, media_type, context);
@@ -991,8 +995,8 @@ uint32_t write_stsd(byte *data, uint32_t media_type, i2ctx *context) {
     ctxaudio = context->ctxaudio;
 
     // box type
-    memcpy(data + count, "stsd", 4);
-    count+= 4;
+    memcpy(data + count, "stsd", BOX_TYPE_SIZE);
+    count+= BOX_TYPE_SIZE;
 
     // version and flags
     memcpy(data + count, &zero, 4);
@@ -1050,8 +1054,8 @@ uint32_t write_avc1(byte *data, i2ctx_video *ctxVideo) {
     height = ctxVideo->height;
 
     // box type
-    memcpy(data + count, "avc1", 4);
-    count+= 4;
+    memcpy(data + count, "avc1", BOX_TYPE_SIZE);
+    count+= BOX_TYPE_SIZE;
 
     // reserved
     memcpy(data + count, &zero_32, 4);
@@ -1146,8 +1150,8 @@ uint32_t write_hev1(byte *data, i2ctx_video *ctxVideo){
     height = ctxVideo->height;
 
     // box type
-    memcpy(data + count, "hev1", 4);
-    count+= 4;
+    memcpy(data + count, "hev1", BOX_TYPE_SIZE);
+    count+= BOX_TYPE_SIZE;
 
     // reserved
     memcpy(data + count, &zero_32, 4);
@@ -1263,8 +1267,8 @@ uint32_t write_hvcc(byte *data, i2ctx_video *ctxVideo) {
     count+= 4;
 
     // box type
-    memcpy(data + count, "hvcC", 4);
-    count+= 4;
+    memcpy(data + count, "hvcC", BOX_TYPE_SIZE);
+    count+= BOX_TYPE_SIZE;
 
     // avc header, includes version, profile, level, sps and pps
     memcpy(data + count, ctxVideo->pps_sps_data, ctxVideo->pps_sps_data_length);
@@ -1376,8 +1380,8 @@ uint32_t write_esds(byte *data, i2ctx_audio *ctxAudio) {
     flag_sld = 0x02;
 
     // box type
-    memcpy(data + count, "esds", 4);
-    count+= 4;
+    memcpy(data + count, "esds", BOX_TYPE_SIZE);
+    count+= BOX_TYPE_SIZE;
     
     // box version
     memcpy(data + count, &zero_32, 4);
@@ -1469,8 +1473,8 @@ uint32_t write_stts(byte *data, uint32_t media_type, i2ctx *context) {
     count+= 4;
 
     // box type
-    memcpy(data + count, "stts", 4);
-    count+= 4;
+    memcpy(data + count, "stts", BOX_TYPE_SIZE);
+    count+= BOX_TYPE_SIZE;
 
     // version
     memcpy(data + count, &zero, 4);
@@ -1496,8 +1500,8 @@ uint32_t write_stsc(byte *data, uint32_t media_type, i2ctx *context) {
     count+= 4;
 
     // box type
-    memcpy(data + count, "stsc", 4);
-    count+= 4;
+    memcpy(data + count, "stsc", BOX_TYPE_SIZE);
+    count+= BOX_TYPE_SIZE;
 
     // version
     memcpy(data + count, &zero, 4);
@@ -1523,8 +1527,8 @@ uint32_t write_stsz(byte *data, uint32_t media_type, i2ctx *context) {
     count+= 4;
 
     // Box type
-    memcpy(data + count, "stsz", 4);
-    count+= 4;
+    memcpy(data + count, "stsz", BOX_TYPE_SIZE);
+    count+= BOX_TYPE_SIZE;
 
     // Version
     memcpy(data + count, &zero, 4);
@@ -1554,8 +1558,8 @@ uint32_t write_stco(byte *data, uint32_t media_type, i2ctx *context) {
     count+= 4;
 
     // box type
-    memcpy(data + count, "stco", 4);
-    count+= 4;
+    memcpy(data + count, "stco", BOX_TYPE_SIZE);
+    count+= BOX_TYPE_SIZE;
 
     // version
     memcpy(data + count, &zero, 4);
@@ -1581,12 +1585,12 @@ uint32_t write_styp(byte *data, uint32_t media_type, i2ctx *context) {
     count+= 4;
 
     // box type
-    memcpy(data + count, "styp", 4);
-    count+= 4;
+    memcpy(data + count, "styp", BOX_TYPE_SIZE);
+    count+= BOX_TYPE_SIZE;
 
     // major brand
-    memcpy(data + count, "iso6", 4);
-    count+= 4;
+    memcpy(data + count, "iso6", BOX_TYPE_SIZE);
+    count+= BOX_TYPE_SIZE;
 
     // Version
     hton_version = htonl(version);
@@ -1594,20 +1598,20 @@ uint32_t write_styp(byte *data, uint32_t media_type, i2ctx *context) {
     count+= 4;
 
     // compatible brands
-    memcpy(data + count, "isom", 4);
-    count+= 4;
-    memcpy(data + count, "iso6", 4);
-    count+= 4;
-    memcpy(data + count, "dash", 4);
-    count+= 4;
+    memcpy(data + count, "isom", BOX_TYPE_SIZE);
+    count+= BOX_TYPE_SIZE;
+    memcpy(data + count, "iso6", BOX_TYPE_SIZE);
+    count+= BOX_TYPE_SIZE;
+    memcpy(data + count, "dash", BOX_TYPE_SIZE);
+    count+= BOX_TYPE_SIZE;
 
     return count;
 }
 
 uint32_t write_sidx(byte *data, uint32_t media_type, i2ctx *context) {
-    uint32_t count, zero_32, duration, hton_duration, one_32, hton_one_32;
+    uint32_t count, version, duration, one_32, hton_one_32;
     uint32_t reference_size, hton_reference_size, size, hton_size, hton_timescale;
-    uint32_t earliest_presentation_time, hton_earliest_presentation_time;
+    uint64_t earliest_presentation_time, hton_earliest_presentation_time, hton_duration;
     uint32_t time_base;
     uint8_t zero_8;
     uint16_t zero_16, one_16, hton_one_16;
@@ -1629,59 +1633,59 @@ uint32_t write_sidx(byte *data, uint32_t media_type, i2ctx *context) {
     count = 4;
     zero_8 = 0;
     zero_16 = 0;
-    zero_32 = 0;
+    version = 1;
     one_16 = 1;
     one_32 = 1;
     reference_size = context->reference_size;
 
     // box type
-    memcpy(data + count, "sidx", 4);
-    count+= 4;
+    memcpy(data + count, "sidx", BOX_TYPE_SIZE);
+    count+= BOX_TYPE_SIZE;
 
     // version
-    memcpy(data + count, &zero_32, 4);
-    count+= 4;
+    memcpy(data + count, &version, sizeof(version));
+    count+= sizeof(version);
 
     // reference id
     hton_one_32 = htonl(one_32);
-    memcpy(data + count, &hton_one_32, 4);
-    count+= 4;
+    memcpy(data + count, &hton_one_32, sizeof(one_32));
+    count+= sizeof(one_32);
 
     // timescale
     hton_timescale = htonl(time_base);
-    memcpy(data + count, &hton_timescale, 4);
-    count+= 4;
+    memcpy(data + count, &hton_timescale, sizeof(time_base));
+    count+= sizeof(time_base);
 
     // earliest_presentation_time
-    hton_earliest_presentation_time = htonl(earliest_presentation_time);
-    memcpy(data + count, &hton_earliest_presentation_time, 4);
-    count+= 4;
+    hton_earliest_presentation_time = htonl_64(earliest_presentation_time);
+    memcpy(data + count, &hton_earliest_presentation_time, sizeof(earliest_presentation_time));
+    count+= sizeof(earliest_presentation_time);
 
     // first offset
     //TODO: review this value -> "is the distance in bytes, in the file containing media, from the anchor point, to the first byte of the indexed material"
     // ISO/IEC 14496-12:2008/FDAM 3:2011(E);
-    hton_duration = htonl(0);
-    memcpy(data + count, &hton_duration, 4);
-    count+= 4;
+    hton_duration = htonl_64(0);
+    memcpy(data + count, &hton_duration, sizeof(hton_duration));
+    count+= sizeof(hton_duration);
 
     // reserved
-    memcpy(data + count, &zero_16, 2);
-    count+= 2;
+    memcpy(data + count, &zero_16, sizeof(zero_16));
+    count+= sizeof(zero_16);
 
     // reference count = 1
     hton_one_16 = htons(one_16);
-    memcpy(data + count, &hton_one_16, 2);
-    count+= 2;
+    memcpy(data + count, &hton_one_16, sizeof(one_16));
+    count+= sizeof(one_16);
 
     // reference size
     hton_reference_size = htonl(reference_size);
-    memcpy(data + count, &hton_reference_size, 4);
-    count+= 4;
+    memcpy(data + count, &hton_reference_size, sizeof(reference_size));
+    count+= sizeof(reference_size);
 
     // subsegment_duration
     hton_duration =  htonl(duration);
-    memcpy(data + count, &hton_duration, 4);
-    count+= 4;
+    memcpy(data + count, &hton_duration, sizeof(duration));
+    count+= sizeof(duration);
 
     // 1st bit is reference type, the rest is reference size
     flag8 = 0x90;
@@ -1689,15 +1693,15 @@ uint32_t write_sidx(byte *data, uint32_t media_type, i2ctx *context) {
     count+= 1;
 
     // SAP delta time
-    memcpy(data + count, &zero_16, 2);
-    count+= 2;
+    memcpy(data + count, &zero_16, sizeof(zero_16));
+    count+= sizeof(zero_16);
     memcpy(data + count, &zero_8, 1);
     count+= 1;
 
     // box size
     size = count;
     hton_size = htonl(size);
-    memcpy(data, &hton_size, 4);
+    memcpy(data, &hton_size, sizeof(size));
     return count;
 }
 
@@ -1707,8 +1711,8 @@ uint32_t write_moof(byte *data, uint32_t media_type, i2ctx **context) {
     count = 4;
 
     // box type
-    memcpy(data + count, "moof", 4);
-    count+= 4;
+    memcpy(data + count, "moof", BOX_TYPE_SIZE);
+    count+= BOX_TYPE_SIZE;
 
     // write mfhd
     size_mfhd = write_mfhd(data + count, media_type, (*context));
@@ -1759,8 +1763,8 @@ uint32_t write_mfhd(byte *data, uint32_t media_type, i2ctx *context) {
     count+= 4;
 
     // box type
-    memcpy(data + count, "mfhd", 4);
-    count+= 4;
+    memcpy(data + count, "mfhd", BOX_TYPE_SIZE);
+    count+= BOX_TYPE_SIZE;
 
     // version and flags
     memcpy(data + count, &zero, 4);
@@ -1780,8 +1784,8 @@ uint32_t write_traf(byte *data, uint32_t media_type, i2ctx **context) {
     count = 4;
 
     // box type
-    memcpy(data + count, "traf", 4);
-    count+= 4;
+    memcpy(data + count, "traf", BOX_TYPE_SIZE);
+    count+= BOX_TYPE_SIZE;
     
     // write tfhd
     size_tfhd = write_tfhd(data + count, media_type, (*context));
@@ -1829,8 +1833,8 @@ uint32_t write_tfhd(byte *data, uint32_t media_type, i2ctx *context) {
     count+= 4;
 
     // box type
-    memcpy(data + count, "tfhd", 4);
-    count+= 4;
+    memcpy(data + count, "tfhd", BOX_TYPE_SIZE);
+    count+= BOX_TYPE_SIZE;
 
     // version and flags
     hton_flags = htonl(flags);
@@ -1846,8 +1850,8 @@ uint32_t write_tfhd(byte *data, uint32_t media_type, i2ctx *context) {
 }
 
 uint32_t write_tfdt(byte *data, uint32_t media_type, i2ctx *context) {
-    uint32_t count, zero, size, hton_size;
-    uint32_t earliest_presentation_time, hton_earliest_presentation_time;
+    uint32_t count, version, size, hton_size;
+    uint64_t earliest_presentation_time, hton_earliest_presentation_time;
 
     i2ctx_video *ctxVideo = context->ctxvideo;
     i2ctx_audio *ctxAudio = context->ctxaudio;
@@ -1861,26 +1865,26 @@ uint32_t write_tfdt(byte *data, uint32_t media_type, i2ctx *context) {
     }
 
     count = 0;
-    zero = 0;
+    version = 1;
 
     // Size
-    size = 16;
+    size = sizeof(size) + BOX_TYPE_SIZE + sizeof(version) + sizeof(earliest_presentation_time);
     hton_size = htonl(size);
-    memcpy(data + count, &hton_size, 4);
-    count+= 4;
+    memcpy(data + count, &hton_size, sizeof(size));
+    count+= sizeof(size);
 
     // box type
-    memcpy(data + count, "tfdt", 4);
-    count+= 4;
+    memcpy(data + count, "tfdt", BOX_TYPE_SIZE);
+    count+= BOX_TYPE_SIZE;
     
     // flags
-    memcpy(data + count, &zero, 4);
-    count+= 4;
+    memcpy(data + count, &version, sizeof(version));
+    count+= sizeof(version);
     
     // baseMediaDecodeTime
-    hton_earliest_presentation_time = htonl(earliest_presentation_time);
-    memcpy(data + count, &hton_earliest_presentation_time, 4);
-    count+= 4;
+    hton_earliest_presentation_time = htonl_64(earliest_presentation_time);
+    memcpy(data + count, &hton_earliest_presentation_time, sizeof(earliest_presentation_time));
+    count+= sizeof(earliest_presentation_time);
 
     return count;
 }
@@ -1911,8 +1915,8 @@ uint32_t write_trun(byte *data, uint32_t media_type, i2ctx *context) {
     trun_pos = samples->trun_pos;
 
     // box type
-    memcpy(data + count, "trun", 4);
-    count+= 4;
+    memcpy(data + count, "trun", BOX_TYPE_SIZE);
+    count+= BOX_TYPE_SIZE;
     offset = (trun_pos - moof_pos) + 20 + (sample_num * nitems * 4) + 8;
 
     // flags
@@ -1972,8 +1976,8 @@ uint32_t write_mdat(byte* source_data, uint32_t size_source_data, byte *data, ui
     hton_mdat_size = htonl(mdat_size);
     memcpy(data + count, &hton_mdat_size, 4);
     count+= 4;
-    memcpy(data + count, "mdat", 4);
-    count+= 4;
+    memcpy(data + count, "mdat", BOX_TYPE_SIZE);
+    count+= BOX_TYPE_SIZE;
     memcpy(data + count, source_data, size_source_data);
     count+= size_source_data;
 
@@ -2043,4 +2047,19 @@ uint32_t write_matrix(byte *data, uint32_t a, uint32_t b, uint32_t c, uint32_t d
     count+= 4;
 
     return count;
+}
+
+uint64_t htonl_64(uint64_t value)
+{
+    static const int num = 42;
+
+    if (*(char*)&num == num) {
+
+        const uint32_t high_part = htonl((uint32_t)(value >> 32));
+        const uint32_t low_part = htonl((uint32_t)(value & 0xFFFFFFFFLL));
+
+        return ((uint64_t)(low_part) << 32) | high_part;
+    } else {
+        return value;
+    }
 }

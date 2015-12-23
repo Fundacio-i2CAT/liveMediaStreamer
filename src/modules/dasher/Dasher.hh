@@ -151,7 +151,7 @@ public:
     * @param segExt segment file extension (.m4v for video and .m4a for audio)
     * @param offset timestamp of the current dash session
     */
-    DashSegmenter(std::chrono::seconds segmentDuration, size_t tBase, std::chrono::microseconds& offset);
+    DashSegmenter(std::chrono::seconds segmentDuration, size_t tBase);
 
     /**
     * Class destructor
@@ -201,7 +201,7 @@ public:
 
 protected:
     virtual unsigned customGenerateSegment(unsigned char *segBuffer, std::chrono::microseconds nextFrameTs, 
-                                            unsigned &segTimestamp, unsigned &segDuration, bool force) = 0;
+                                            uint64_t &segTimestamp, uint32_t &segDuration, bool force) = 0;
     
     std::string getInitSegmentName();
     std::string getSegmentName();
@@ -215,6 +215,8 @@ protected:
     size_t timeBase;
     size_t segDurInTimeBaseUnits;
     size_t frameDuration;
+    size_t currentTimestamp;
+    size_t sequenceNumber;
     std::vector<unsigned char> extradata;
     size_t bitrateInBitsPerSec;
     

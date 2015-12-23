@@ -89,7 +89,7 @@ public:
     bool generateInitSegment(DashSegment* segment);
 
 protected:
-    DashVideoSegmenter(std::chrono::seconds segDur, std::string video_format_, std::chrono::microseconds& offset);
+    DashVideoSegmenter(std::chrono::seconds segDur, std::string video_format_);
     virtual ~DashVideoSegmenter();
 
     virtual void updateExtradata() = 0;
@@ -104,7 +104,7 @@ protected:
     int detectStartCode(unsigned char const* ptr);
     bool setup(size_t width, size_t height);
     unsigned customGenerateSegment(unsigned char *segBuffer, std::chrono::microseconds nextFrameTs, 
-                                    unsigned &segTimestamp, unsigned &segDuration, bool force);
+                                    uint64_t &segTimestamp, uint32_t &segDuration, bool force);
 
 
     size_t frameRate;

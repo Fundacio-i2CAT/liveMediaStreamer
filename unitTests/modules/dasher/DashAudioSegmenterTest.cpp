@@ -87,7 +87,7 @@ void DashAudioSegmenterTest::setUp()
 {
     size_t dataLength;
 
-    segmenter = new DashAudioSegmenter(std::chrono::seconds(SEG_DURATION), timestamp);
+    segmenter = new DashAudioSegmenter(std::chrono::seconds(SEG_DURATION));
     modelFrame = InterleavedAudioFrame::createNew(CHANNELS, SAMPLE_RATE, AudioFrame::getMaxSamples(SAMPLE_RATE), AAC, S16);
 
     dataLength = readFile("testsData/modules/dasher/dashAudioSegmenterTest/modelFrame.aac", (char*)modelFrame->getDataBuf());

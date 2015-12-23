@@ -41,7 +41,7 @@ public:
     * @param segDur Segment duration in milliseconds
     * @param offset of the initial timestamp
     */
-    DashAudioSegmenter(std::chrono::seconds segDur, std::chrono::microseconds& offset);
+    DashAudioSegmenter(std::chrono::seconds segDur);
 
     /**
     * Class destructor
@@ -75,7 +75,7 @@ public:
 private:
     bool updateExtradata(AudioFrame* aFrame);
     unsigned customGenerateSegment(unsigned char *segBuffer, std::chrono::microseconds nextFrameTs, 
-                                    unsigned &segTimestamp, unsigned &segDuration, bool force);
+                                    uint64_t &segTimestamp, uint32_t &segDuration, bool force);
 
 
     bool setup(size_t channels, size_t sampleRate, size_t samples, size_t bitsPerSample);

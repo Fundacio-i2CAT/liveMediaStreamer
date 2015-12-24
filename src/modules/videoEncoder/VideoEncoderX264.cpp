@@ -160,7 +160,7 @@ bool VideoEncoderX264::reconfigure(VideoFrame* orgFrame, VideoFrame* dstFrame)
     x264_param_parse(&xparams, "fps", std::to_string(fps).c_str());
     x264_param_parse(&xparams, "intra-refresh", std::to_string(0).c_str());
     x264_param_parse(&xparams, "threads", std::to_string(threads).c_str());
-    x264_param_parse(&xparams, "aud", std::to_string(0).c_str());
+    x264_param_parse(&xparams, "aud", std::to_string(1).c_str());
     x264_param_parse(&xparams, "bitrate", std::to_string(bitrate).c_str());
     x264_param_parse(&xparams, "bframes", std::to_string(0).c_str());
     x264_param_parse(&xparams, "repeat-headers", std::to_string(0).c_str());

@@ -122,7 +122,7 @@ unsigned DashVideoSegmenter::customGenerateSegment(unsigned char *segBuffer, std
 
     timeBasePts = microsToTimeBase(nextFrameTs);
 
-    return generate_video_segment(isIntraFrame(), timeBasePts, segBuffer, &dashContext, &segTimestamp, &segDuration);
+    return generate_video_segment(isPreviousFrameIntra(), timeBasePts, segBuffer, &dashContext, &segTimestamp, &segDuration);
 }
 
 bool DashVideoSegmenter::appendFrameToDashSegment(DashSegment* segment, Frame* frame)
@@ -142,7 +142,7 @@ bool DashVideoSegmenter::appendFrameToDashSegment(DashSegment* segment, Frame* f
     timeBasePts = microsToTimeBase(frame->getPresentationTime());
 
     addSampleReturn = add_video_sample(frame->getDataBuf(), frame->getLength(), timeBasePts, 
-                                        timeBasePts, sequenceNumber, isIntraFrame(), &dashContext);
+                                        timeBasePts, sequenceNumber, isPreviousFrameIntra(), &dashContext);
 
     if (addSampleReturn != I2OK) {
         utils::errorMsg("Error adding video sample. Code error: " + std::to_string(addSampleReturn));

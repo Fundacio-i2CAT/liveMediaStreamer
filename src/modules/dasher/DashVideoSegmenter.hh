@@ -85,7 +85,7 @@ public:
     */
     virtual bool flushDashContext() = 0;
 
-    bool isIntraFrame() {return previousIntra;};
+    bool isPreviousFrameIntra() {return previousIntra;};
     bool generateInitSegment(DashSegment* segment);
 
 protected:

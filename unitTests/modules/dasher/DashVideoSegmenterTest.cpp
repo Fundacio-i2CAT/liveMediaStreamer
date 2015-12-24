@@ -166,22 +166,22 @@ void DashVideoSegmenterAVCTest::manageNonVCLNals()
     frame = segmenter->manageFrame(spsNal);
     CPPUNIT_ASSERT(!frame);
     CPPUNIT_ASSERT(segmenter->getFrameDataSize() <= 0);
-    CPPUNIT_ASSERT(!segmenter->isIntraFrame());
+    CPPUNIT_ASSERT(!segmenter->isPreviousFrameIntra());
 
     frame = segmenter->manageFrame(ppsNal);
     CPPUNIT_ASSERT(!frame);
     CPPUNIT_ASSERT(segmenter->getFrameDataSize() <= 0);
-    CPPUNIT_ASSERT(!segmenter->isIntraFrame());
+    CPPUNIT_ASSERT(!segmenter->isPreviousFrameIntra());
 
     frame = segmenter->manageFrame(seiNal);
     CPPUNIT_ASSERT(!frame);
     CPPUNIT_ASSERT(segmenter->getFrameDataSize() <= 0);
-    CPPUNIT_ASSERT(!segmenter->isIntraFrame());
+    CPPUNIT_ASSERT(!segmenter->isPreviousFrameIntra());
 
     frame = segmenter->manageFrame(audNal);
     CPPUNIT_ASSERT(!frame);
     CPPUNIT_ASSERT(segmenter->getFrameDataSize() <= 0);
-    CPPUNIT_ASSERT(!segmenter->isIntraFrame());
+    CPPUNIT_ASSERT(!segmenter->isPreviousFrameIntra());
 }
 
 void DashVideoSegmenterAVCTest::manageIDRNals()
@@ -197,20 +197,20 @@ void DashVideoSegmenterAVCTest::manageIDRNals()
     frame = segmenter->manageFrame(audNal);
     CPPUNIT_ASSERT(!frame);
     CPPUNIT_ASSERT(segmenter->getFrameDataSize() <= 0);
-    CPPUNIT_ASSERT(!segmenter->isIntraFrame());
+    CPPUNIT_ASSERT(!segmenter->isPreviousFrameIntra());
 
     idrNal->setPresentationTime(timestamp);
     idrNal->setSize(WIDTH, HEIGHT);
     frame = segmenter->manageFrame(idrNal);
     CPPUNIT_ASSERT(!frame);
     CPPUNIT_ASSERT(segmenter->getFrameDataSize() > 0);
-    CPPUNIT_ASSERT(segmenter->isIntraFrame());
+    CPPUNIT_ASSERT(!segmenter->isPreviousFrameIntra());
 
     audNal->setPresentationTime(timestamp + frameTime);
     frame = segmenter->manageFrame(audNal);
     CPPUNIT_ASSERT(frame);
     CPPUNIT_ASSERT(segmenter->getFrameDataSize() <= 0);
-    CPPUNIT_ASSERT(segmenter->isIntraFrame());
+    CPPUNIT_ASSERT(segmenter->isPreviousFrameIntra());
 
     vFrame = dynamic_cast<VideoFrame*>(frame);
 
@@ -235,20 +235,20 @@ void DashVideoSegmenterAVCTest::manageNonIDRNals()
     frame = segmenter->manageFrame(audNal);
     CPPUNIT_ASSERT(!frame);
     CPPUNIT_ASSERT(segmenter->getFrameDataSize() <= 0);
-    CPPUNIT_ASSERT(!segmenter->isIntraFrame());
+    CPPUNIT_ASSERT(!segmenter->isPreviousFrameIntra());
 
     nonIdrNal->setPresentationTime(timestamp);
     nonIdrNal->setSize(WIDTH, HEIGHT);
     frame = segmenter->manageFrame(nonIdrNal);
     CPPUNIT_ASSERT(!frame);
     CPPUNIT_ASSERT(segmenter->getFrameDataSize() > 0);
-    CPPUNIT_ASSERT(!segmenter->isIntraFrame());
+    CPPUNIT_ASSERT(!segmenter->isPreviousFrameIntra());
 
     audNal->setPresentationTime(timestamp + frameTime);
     frame = segmenter->manageFrame(audNal);
     CPPUNIT_ASSERT(frame);
     CPPUNIT_ASSERT(segmenter->getFrameDataSize() <= 0);
-    CPPUNIT_ASSERT(!segmenter->isIntraFrame());
+    CPPUNIT_ASSERT(!segmenter->isPreviousFrameIntra());
 
     vFrame = dynamic_cast<VideoFrame*>(frame);
 
@@ -493,32 +493,32 @@ void DashVideoSegmenterHEVCTest::manageNonVCLNals()
     frame = segmenter->manageFrame(vpsNal);
     CPPUNIT_ASSERT(!frame);
     CPPUNIT_ASSERT(segmenter->getFrameDataSize() <= 0);
-    CPPUNIT_ASSERT(!segmenter->isIntraFrame());
+    CPPUNIT_ASSERT(!segmenter->isPreviousFrameIntra());
 
     frame = segmenter->manageFrame(spsNal);
     CPPUNIT_ASSERT(!frame);
     CPPUNIT_ASSERT(segmenter->getFrameDataSize() <= 0);
-    CPPUNIT_ASSERT(!segmenter->isIntraFrame());
+    CPPUNIT_ASSERT(!segmenter->isPreviousFrameIntra());
 
     frame = segmenter->manageFrame(ppsNal);
     CPPUNIT_ASSERT(!frame);
     CPPUNIT_ASSERT(segmenter->getFrameDataSize() <= 0);
-    CPPUNIT_ASSERT(!segmenter->isIntraFrame());
+    CPPUNIT_ASSERT(!segmenter->isPreviousFrameIntra());
 
     frame = segmenter->manageFrame(prefixSeiNal);
     CPPUNIT_ASSERT(!frame);
     CPPUNIT_ASSERT(segmenter->getFrameDataSize() <= 0);
-    CPPUNIT_ASSERT(!segmenter->isIntraFrame());
+    CPPUNIT_ASSERT(!segmenter->isPreviousFrameIntra());
 
     frame = segmenter->manageFrame(suffixSeiNal);
     CPPUNIT_ASSERT(!frame);
     CPPUNIT_ASSERT(segmenter->getFrameDataSize() <= 0);
-    CPPUNIT_ASSERT(!segmenter->isIntraFrame());
+    CPPUNIT_ASSERT(!segmenter->isPreviousFrameIntra());
 
     frame = segmenter->manageFrame(audNal);
     CPPUNIT_ASSERT(!frame);
     CPPUNIT_ASSERT(segmenter->getFrameDataSize() <= 0);
-    CPPUNIT_ASSERT(!segmenter->isIntraFrame());
+    CPPUNIT_ASSERT(!segmenter->isPreviousFrameIntra());
 }
 
 void DashVideoSegmenterHEVCTest::manageIDRNals()
@@ -534,34 +534,34 @@ void DashVideoSegmenterHEVCTest::manageIDRNals()
     frame = segmenter->manageFrame(audNal);
     CPPUNIT_ASSERT(!frame);
     CPPUNIT_ASSERT(segmenter->getFrameDataSize() <= 0);
-    CPPUNIT_ASSERT(!segmenter->isIntraFrame());
+    CPPUNIT_ASSERT(!segmenter->isPreviousFrameIntra());
 
     idr1Nal->setPresentationTime(timestamp);
     idr1Nal->setSize(WIDTH, HEIGHT);
     frame = segmenter->manageFrame(idr1Nal);
     CPPUNIT_ASSERT(!frame);
     CPPUNIT_ASSERT(segmenter->getFrameDataSize() > 0);
-    CPPUNIT_ASSERT(segmenter->isIntraFrame());
+    CPPUNIT_ASSERT(!segmenter->isPreviousFrameIntra());
     
     idr2Nal->setPresentationTime(timestamp);
     idr2Nal->setSize(WIDTH, HEIGHT);
     frame = segmenter->manageFrame(idr2Nal);
     CPPUNIT_ASSERT(!frame);
     CPPUNIT_ASSERT(segmenter->getFrameDataSize() > 0);
-    CPPUNIT_ASSERT(segmenter->isIntraFrame());
+    CPPUNIT_ASSERT(segmenter->isPreviousFrameIntra());
 
     craNal->setPresentationTime(timestamp);
     craNal->setSize(WIDTH, HEIGHT);
     frame = segmenter->manageFrame(craNal);
     CPPUNIT_ASSERT(!frame);
     CPPUNIT_ASSERT(segmenter->getFrameDataSize() > 0);
-    CPPUNIT_ASSERT(segmenter->isIntraFrame());
+    CPPUNIT_ASSERT(segmenter->isPreviousFrameIntra());
 
     audNal->setPresentationTime(timestamp + frameTime);
     frame = segmenter->manageFrame(audNal);
     CPPUNIT_ASSERT(frame);
     CPPUNIT_ASSERT(segmenter->getFrameDataSize() <= 0);
-    CPPUNIT_ASSERT(segmenter->isIntraFrame());
+    CPPUNIT_ASSERT(segmenter->isPreviousFrameIntra());
 
     vFrame = dynamic_cast<VideoFrame*>(frame);
 
@@ -588,20 +588,20 @@ void DashVideoSegmenterHEVCTest::manageNonIDRNals()
     frame = segmenter->manageFrame(audNal);
     CPPUNIT_ASSERT(!frame);
     CPPUNIT_ASSERT(segmenter->getFrameDataSize() <= 0);
-    CPPUNIT_ASSERT(!segmenter->isIntraFrame());
+    CPPUNIT_ASSERT(!segmenter->isPreviousFrameIntra());
 
     nonTsaNal->setPresentationTime(timestamp);
     nonTsaNal->setSize(WIDTH, HEIGHT);
     frame = segmenter->manageFrame(nonTsaNal);
     CPPUNIT_ASSERT(!frame);
     CPPUNIT_ASSERT(segmenter->getFrameDataSize() > 0);
-    CPPUNIT_ASSERT(!segmenter->isIntraFrame());
+    CPPUNIT_ASSERT(!segmenter->isPreviousFrameIntra());
 
     audNal->setPresentationTime(timestamp + frameTime);
     frame = segmenter->manageFrame(audNal);
     CPPUNIT_ASSERT(frame);
     CPPUNIT_ASSERT(segmenter->getFrameDataSize() <= 0);
-    CPPUNIT_ASSERT(!segmenter->isIntraFrame());
+    CPPUNIT_ASSERT(!segmenter->isPreviousFrameIntra());
 
     vFrame = dynamic_cast<VideoFrame*>(frame);
 
@@ -720,7 +720,7 @@ void DashVideoSegmenterHEVCTest::generateSegment()
             CPPUNIT_FAIL("Segmenter appendFrameToDashSegment failed when testing general workflow\n");
         }
     }
-
+    
     CPPUNIT_ASSERT(segmentModelLength == segment->getDataLength());
 }
 

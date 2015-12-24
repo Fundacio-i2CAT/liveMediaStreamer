@@ -92,6 +92,8 @@ class VideoSplitter : public OneToManyFilter {
         * @param degree See CropConfig::config
         */
     	bool configCrop(int id, int width, int height, int x, int y, int degree=0);
+    	bool configure(int fTime);
+    	int getConfigure(){return getFrameTime().count();};
 
 	protected:
 		VideoSplitter(std::chrono::microseconds fTime);
@@ -99,12 +101,14 @@ class VideoSplitter : public OneToManyFilter {
 		bool doProcessFrame(Frame *org, std::map<int, Frame *> &dstFrames);
 		void doGetState(Jzon::Object &filterNode);
 		bool configCrop0(int id, int width, int height, int x, int y, int degree=0);
+		bool configure0(std::chrono::microseconds fTime);
 		bool specificWriterConfig(int writerID);
         bool specificWriterDelete(int writerID);
 
 	private:
 		void initializeEventMap();
         bool configCropEvent(Jzon::Node* params);
+        bool configureEvent(Jzon::Node* params);
         
         //There is no need of specific reader configuration
         bool specificReaderConfig(int /*readerID*/, FrameQueue* /*queue*/)  {return true;};

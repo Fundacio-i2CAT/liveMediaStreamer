@@ -121,10 +121,10 @@ bool SinkManager::readerInConnection(int rId)
 
 bool SinkManager::specificReaderDelete(int readerId)
 {
-    removeConnectionByReaderId(readerId);
-    if (sources.count(readerId) > 0){
-        delete sources[readerId];
+    if (removeConnectionByReaderId(readerId) && sources.count(readerId) > 0 && replicators.count(readerId) > 0){
+        Medium::close(sources[readerId]);
         sources.erase(readerId);
+        replicators.erase(readerId);
         return true;
     }
     return false;
@@ -143,7 +143,7 @@ bool SinkManager::doProcessFrame(std::map<int, Frame*> &oFrames, std::vector<int
             if (sources.count(id) > 0 && sources[id]->setFrame(oFrames[id])){
                 QueueSource::signalNewFrameData(scheduler, sources[id]);
                 pFrames++;
-            }
+            } 
         }
     }
     
@@ -157,10 +157,15 @@ bool SinkManager::doProcessFrame(std::map<int, Frame*> &oFrames, std::vector<int
         for (auto it : sources){
             if (it.second && it.second->gotFrame()){
                 pFrames--;
+                /*
+                std::chrono::system_clock::time_point now = std::chrono::system_clock::now();
+                std::chrono::system_clock::duration microSecondsNow = now.time_since_epoch();
+                utils::warningMsg("[SinkManager:dorocessFrame] Source: " + std::to_string(it.first) + "PresentationTime: " + std::to_string((oFrames[it.first]->getPresentationTime()).count()) + " actual time: " + std::to_string(microSecondsNow.count()));
+                */
             }
         }
-    }
-    
+    } 
+
     return true;
 }
 

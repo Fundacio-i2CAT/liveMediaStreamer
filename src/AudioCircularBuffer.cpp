@@ -98,6 +98,7 @@ Frame* AudioCircularBuffer::getFront()
     return outputFrame;
 }
 
+//TODO it should return a vector of filter ids
 int AudioCircularBuffer::addFrame()
 {
     std::chrono::microseconds inTs;
@@ -148,7 +149,7 @@ int AudioCircularBuffer::addFrame()
     
     orgTime = inputFrame->getOriginTime();
     
-    return connectionData.rFilterId;
+    return connectionData.readers.front().rFilterId;
 }
 
 int AudioCircularBuffer::removeFrame()

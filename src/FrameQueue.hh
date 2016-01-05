@@ -30,8 +30,10 @@
 
 #include <sys/time.h>
 #include <chrono>
+#include <list>
 #include "Types.hh"
 #include "StreamInfo.hh"
+#include "Utils.hh"
 
 #define SLOW_THRESHOLD 0.4
 #define FAST_THRESHOLD 0.6
@@ -41,16 +43,29 @@
 */
 
 /**
- * A structure to represent four identifiers. The writer ID of the producer filter, producer filter ID, 
- * reader ID of the consuming filter and consuming filter ID. By default all values are set to -1, which is an invalid id.
+ * A structure to represent consumers connection identifiers. The reader ID of the consumer filter and consumer filter ID. 
+ * By default all values are set to -1, which is an invalid id.
  */
+
+struct ReaderData
+{
+    int rFilterId = -1;
+    int readerId = -1;
+};
+
+/**
+ * A structure to represent connection identifiers. The writer ID of the producer filter, producer filter ID, 
+ * and an array of the consumers data structs. By default all values are set to -1, which is an invalid id.
+ */
+
 struct ConnectionData
 {
     int wFilterId = -1;
     int writerId = -1;
-    int rFilterId = -1;
-    int readerId = -1;
+    std::list<ReaderData> readers;
 };
+
+
 
 class FrameQueue {
 
@@ -147,6 +162,49 @@ public:
     * @return the struct that contains the connection data.
     */
     ConnectionData getCData() const {return connectionData;};
+    
+    /**
+    * Adds reader to the CData
+    * @param int consumer filter id
+    * @param int reader id
+    * @return true if the addition succeeded
+    */
+    bool addReaderCData(int rFilterId, int readerId) {
+        for(auto r : connectionData.readers){
+            if (r.rFilterId == rFilterId){
+                return false;
+            }
+        }
+        
+        ReaderData reader;
+        
+        reader.rFilterId = rFilterId;
+        reader.readerId = readerId;
+        
+        connectionData.readers.push_back(reader);
+        
+        return true;
+    };
+    
+    /**
+    * Removes reader to the CData
+    * @param int consumer filter id
+    * @return true if the removal succeeded
+    */
+    bool removeReaderCData(int fId) {            
+        std::list<ReaderData>::iterator i = connectionData.readers.begin();
+        while (i != connectionData.readers.end())
+        {
+            if ((*i).rFilterId == fId){
+                i = connectionData.readers.erase(i);
+                return true;
+            } else {
+                ++i;
+            }
+        }
+        
+        return false;
+    };
 
     /**
     * Gets the StreamInfo for the stream passing through this queue.
@@ -161,7 +219,7 @@ protected:
     bool firstFrame;
     size_t lostBlocs;
 
-    const ConnectionData connectionData;
+    ConnectionData connectionData;
 
     const StreamInfo *streamInfo;
 

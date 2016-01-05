@@ -64,11 +64,12 @@ Frame* SlicedVideoFrameQueue::getRear()
     return inputFrame;
 }
 
+//TODO: it should return a vector of filter Ids
 int SlicedVideoFrameQueue::addFrame()
 {
     pushBackSliceGroup(inputFrame->getSlices(), inputFrame->getSliceNum());
     inputFrame->clear();
-    return connectionData.rFilterId;
+    return connectionData.readers.front().rFilterId;
 }
 
 Frame* SlicedVideoFrameQueue::forceGetRear()

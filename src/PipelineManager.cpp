@@ -342,19 +342,27 @@ bool PipelineManager::handleGrouping(int orgFId, int dstFId, int orgWId, int dst
         return false;
     }
 
-    return filters[cData.rFilterId]->shareReader(filters[dstFId], dstRId, cData.readerId) &&
-        filters[cData.rFilterId]->groupRunnable(filters[dstFId]);
+    return filters[cData.readers.front().rFilterId]->shareReader(filters[dstFId], dstRId, cData.readers.front().readerId) &&
+        filters[cData.readers.front().rFilterId]->groupRunnable(filters[dstFId]);
 }
 
 bool PipelineManager::validCData(ConnectionData cData, int orgFId, int dstFId)
 {
-    if (orgFId != cData.wFilterId || dstFId == cData.rFilterId){
+    if (orgFId != cData.wFilterId) {
         return false;
     }
-    if (filters.count(cData.wFilterId) > 0 && filters[cData.wFilterId]->isWConnected(cData.writerId) &&
-        filters.count(cData.rFilterId) > 0 && filters[cData.rFilterId]->isRConnected(cData.readerId)) {
+    
+    for (auto r : cData.readers) {
+        if (r.rFilterId == dstFId || filters.count(r.rFilterId) == 0 || 
+            !filters[r.rFilterId]->isRConnected(r.readerId)){
+            return false;
+        }
+    }
+    
+    if (filters.count(cData.wFilterId) > 0 && filters[cData.wFilterId]->isWConnected(cData.writerId)) {
         return true;
     }
+    
     return false;
 }
 

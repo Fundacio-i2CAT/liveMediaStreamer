@@ -155,16 +155,20 @@ public:
     FrameQueue* getQueue() const {return queue;};
 
     /**
-    * Disconnects from its queue (sets queue disconnected) or deletes the queue
-    * if it is not connected
+    * Updates connection data and if there isn't anyother filter liked with this 
+    * reader it disconnects from its queue (sets queue disconnected) or deletes the queue
+    * if it is already disconnected
+    * @param int id of the filter requesting the disconnection
     * @return true if successful disconnecting, otherwise returns false
     */
-    bool disconnect();
+    bool disconnect(int id);
     
     /**
-    * Increases the number of filters that make use of this reader
+    * Records the filters that are sharing this reader
+    * @param int the filter Id that will use this reader.
+    * @param int the reader Id that will use the filter.
     */
-    void addReader();
+    void addReader(int fId, int rId);
     
     /**
     * Decreases the number of filters that make use of this reader. It disconnects if filters number is zero.
@@ -194,14 +198,17 @@ protected:
     FrameQueue *queue;
 
 private:
+    bool disconnectQueue();
     void measureDelay();
+    bool allRead();
 
     friend class Writer;
      
     Frame *frame;
-    unsigned filters;
-    std::map<int, bool> requests;
-    unsigned pending;
+    //Fist boolean is related to getFrame status, second one to remove frame status
+    std::map<int, std::pair<bool, bool>> filters;
+    bool ready;
+    
     std::mutex lck;
 
     //Stats

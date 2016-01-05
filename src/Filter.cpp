@@ -276,7 +276,7 @@ bool BaseFilter::shareReader(BaseFilter *shared, int sharedRId, int orgRId)
     }
     
     shared->readers[sharedRId] = readers[orgRId];
-    readers[orgRId]->addReader();
+    readers[orgRId]->addReader(shared->getId(), sharedRId);
     
     return true;
 }
@@ -321,6 +321,7 @@ bool BaseFilter::connect(BaseFilter *R, int writerID, int readerID)
     std::shared_ptr<Reader> r;
     FrameQueue *queue = NULL;
     ConnectionData cData;
+    ReaderData reader;
     
     processEvent();
     R->processEvent();
@@ -339,8 +340,9 @@ bool BaseFilter::connect(BaseFilter *R, int writerID, int readerID)
 
     cData.wFilterId = getId();
     cData.writerId = writerID;
-    cData.rFilterId = R->getId();
-    cData.readerId = readerID;
+    reader.rFilterId = R->getId();
+    reader.readerId = readerID;
+    cData.readers.push_back(reader);
     
     queue = allocQueue(cData);
     if (!queue){
@@ -407,7 +409,7 @@ bool BaseFilter::disconnectReader(int readerId)
         return false;
     }
 
-    if (readers[readerId]->disconnect()){
+    if (readers[readerId]->disconnect(getId())){
         return deleteReader(readerId);
     }
 
@@ -620,9 +622,7 @@ bool BaseFilter::demandOriginFramesBestEffort(std::map<int, Frame*> &oFrames, st
 {
     bool newFrame;
     Frame* frame;
-    
-    std::map<int, Frame*>::iterator it; it != oFrames.end(); 
-    
+       
     for (std::map<int, std::shared_ptr<Reader>>::iterator r = readers.begin() ; r != readers.end(); ) {
         if (!r->second || !r->second->isConnected()) {
             int rId = r->first;

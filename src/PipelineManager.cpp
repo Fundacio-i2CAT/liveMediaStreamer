@@ -35,6 +35,7 @@
 #include "modules/transmitter/SinkManager.hh"
 #include "modules/headDemuxer/HeadDemuxerLibav.hh"
 #include "modules/dasher/Dasher.hh"
+#include "modules/decoderPi/DecoderPi.hh"
 #include "modules/sharedMemory/SharedMemory.hh"
 
 #define WORKER_DELETE_SLEEPING_TIME 1000 //us
@@ -158,7 +159,10 @@ bool PipelineManager::createFilter(int id, FilterType type)
             break;
         case VIDEO_SPLITTER:
             filter = VideoSplitter::createNew();
-            break;            
+            break;
+        case DECODER_PI:
+            filter = DecoderPi::createNew();
+            break;              
         //TODO include sharedMemory filter
         default:
             utils::errorMsg("Unknown filter type");

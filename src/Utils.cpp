@@ -279,7 +279,10 @@ namespace utils
                 break;
             case DASHER:
                 stringType = "dasher";
-                break;                
+                break;
+            case DECODER_PI:
+                stringType = "decoderPi";
+                break;               
             case SHARED_MEMORY:
                 stringType = "sharedMemory";
                 break;  
@@ -321,6 +324,8 @@ namespace utils
            fType = DEMUXER;
         }  else if (stringFilterType.compare("videoSplitter") == 0) {
            fType = VIDEO_SPLITTER;
+        }  else if (stringFilterType.compare("decoderPi") == 0) {
+           fType = DECODER_PI;
         }  else {
            fType = FT_NONE;
         }

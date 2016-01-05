@@ -1,5 +1,5 @@
 /*
- *  VideoSplitter
+ *  VideoSplitter.hh - Class to handle crops of video 
  *	Copyright (C) 2015  Fundació i2CAT, Internet i Innovació digital a Catalunya
  *
  *  This file is part of media-streamer.

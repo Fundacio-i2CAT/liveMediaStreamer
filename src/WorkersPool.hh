@@ -46,7 +46,6 @@ public:
     
 private:
     bool addJob(int id);
-    bool addGroupJob(std::vector<int> group);
     bool removeFromQueue(int id);
 
 private:

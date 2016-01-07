@@ -54,9 +54,9 @@ public:
     /**
     * It dumps input frame data into internal VideoFrameQueue. Each NAL unit stored in input frame is copied
     * into a VideoFrame structure.
-    * @return input frame pointer or NULL if internal buffer is full
+    * @return the ids of the reader filters that has a new frame available.
     */
-    int addFrame();
+    std::vector<int> addFrame();
 
     /**
     * It returns the input frame, flushing the internal buffer if the internal buffer is full. It may cause data loss.

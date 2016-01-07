@@ -31,6 +31,7 @@
 #include <sys/time.h>
 #include <chrono>
 #include <list>
+#include <vector>
 #include "Types.hh"
 #include "StreamInfo.hh"
 #include "Utils.hh"
@@ -98,9 +99,9 @@ public:
 
     /**
     * Adds frame to queue elements
-    * @return the id of the reader filter that has a new frame available.
+    * @return the ids of the reader filters that has a new frame available.
     */
-    virtual int addFrame() = 0;
+    virtual std::vector<int> addFrame() = 0;
 
     /**
     * Removes frame from queue elements

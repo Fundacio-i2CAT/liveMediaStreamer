@@ -329,7 +329,7 @@ Frame* Writer::getFrame(bool force) const
     return frame;
 }
 
-int Writer::addFrame() const
+std::vector<int> Writer::addFrame() const
 {
     return queue->addFrame();
 }

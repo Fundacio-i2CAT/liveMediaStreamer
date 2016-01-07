@@ -99,11 +99,12 @@ Frame* AudioCircularBuffer::getFront()
 }
 
 //TODO it should return a vector of filter ids
-int AudioCircularBuffer::addFrame()
+std::vector<int> AudioCircularBuffer::addFrame()
 {
     std::chrono::microseconds inTs;
     std::chrono::microseconds rearTs;
     std::chrono::microseconds deviation;
+    std::vector<int> ret;
     unsigned paddingSamples;
     unsigned rearSampleIdx;
 
@@ -120,7 +121,7 @@ int AudioCircularBuffer::addFrame()
 
     if (deviation.count() < -tsDeviationThreshold) {
         utils::warningMsg("[AudioCircularBuffer] Timestamp from the past, discarding entire frame");
-        return -1;
+        return ret;
     }
 
     if (deviation.count() > tsDeviationThreshold) {
@@ -131,25 +132,29 @@ int AudioCircularBuffer::addFrame()
         if (paddingSamples >= chMaxSamples) {
             utils::warningMsg("[AudioCircularBuffer] Time discontinuity. Flushing buffer!");
             flush();
-            return -1;
+            return ret;
         }
 
         if(!pushBack(dummyFrame->getPlanarDataBuf(), paddingSamples)) {
             utils::warningMsg("[AudioCircularBuffer] Cannot push padding");
-            return -1;
+            return ret;
         }
     }
 
     if(!pushBack(inputFrame->getPlanarDataBuf(), inputFrame->getSamples())) {
         utils::warningMsg("[AudioCircularBuffer] Cannot push frame");
-        return -1;
+        return ret;
     }
     
     std::lock_guard<std::mutex> guard(mtx);
     
     orgTime = inputFrame->getOriginTime();
     
-    return connectionData.readers.front().rFilterId;
+    for (auto& r : connectionData.readers){
+        ret.push_back(r.rFilterId);
+    }
+    
+    return ret;
 }
 
 int AudioCircularBuffer::removeFrame()

@@ -83,7 +83,7 @@ void AVFramedQueueTest::normalBehaviour()
         CPPUNIT_ASSERT(frame);
         frame->setSequenceNumber(seq++);
         CPPUNIT_ASSERT(q->getElements() == i);
-        CPPUNIT_ASSERT(q->addFrame() == cData.readers.front().rFilterId);
+        CPPUNIT_ASSERT(q->addFrame()[0] == reader.rFilterId);
         CPPUNIT_ASSERT(q->getElements() == i + 1);
     }
 
@@ -112,7 +112,7 @@ void AVFramedQueueTest::forceGetRearTest()
         CPPUNIT_ASSERT(frame);
         frame->setSequenceNumber(seq++);
         CPPUNIT_ASSERT(q->getElements() == i);
-        CPPUNIT_ASSERT(q->addFrame() == cData.readers.front().rFilterId);
+        CPPUNIT_ASSERT(q->addFrame()[0] == reader.rFilterId);
         CPPUNIT_ASSERT(q->getElements() == i + 1);
     }
 
@@ -123,7 +123,7 @@ void AVFramedQueueTest::forceGetRearTest()
     CPPUNIT_ASSERT(frame);
     frame->setSequenceNumber(seq++);
     CPPUNIT_ASSERT(q->getElements() == maxFrames - 2);
-    CPPUNIT_ASSERT(q->addFrame() == cData.readers.front().rFilterId);
+    CPPUNIT_ASSERT(q->addFrame()[0] == reader.rFilterId);
     CPPUNIT_ASSERT(q->getElements() == maxFrames - 1);
 
     seq = 0;
@@ -154,7 +154,7 @@ void AVFramedQueueTest::forceGetFrontTest()
         CPPUNIT_ASSERT(frame);
         frame->setSequenceNumber(seq++);
         CPPUNIT_ASSERT(q->getElements() == i);
-        CPPUNIT_ASSERT(q->addFrame() == cData.readers.front().rFilterId);
+        CPPUNIT_ASSERT(q->addFrame()[0] == reader.rFilterId);
         CPPUNIT_ASSERT(q->getElements() == i + 1);
     }
 

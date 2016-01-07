@@ -62,14 +62,20 @@ Frame* AVFramedQueue::getFront()
     return frames[front];
 }
 
-//TODO: it should return a vector of filters ID
-int AVFramedQueue::addFrame() 
+std::vector<int> AVFramedQueue::addFrame() 
 {
+    std::vector<int> ret;
+    
+    for (auto& r : connectionData.readers){
+        ret.push_back(r.rFilterId);
+    }
+    
     if ((rear + 1) % max == front){
-        return connectionData.readers.front().rFilterId;
+        return ret;
     }
     rear =  (rear + 1) % max;
-    return connectionData.readers.front().rFilterId;
+    
+    return ret;
 }
 
 int AVFramedQueue::removeFrame() 

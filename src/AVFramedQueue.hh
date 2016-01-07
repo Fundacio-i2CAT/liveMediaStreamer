@@ -47,9 +47,9 @@ public:
     Frame *getFront();
 
     /**
-    * See FrameQueue::adFrame
+    * See FrameQueue::addFrame
     */
-    virtual int addFrame();
+    virtual std::vector<int> addFrame();
 
     /**
     * See FrameQueue::removeFrame

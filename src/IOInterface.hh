@@ -87,8 +87,9 @@ public:
 
     /**
     * Adds a frame element to its queue
+    * @return a vector containing all consumer filters Ids.
     */
-    int addFrame() const;
+    std::vector<int> addFrame() const;
 
     /**
     * Disconnects from its queue (sets queue disconnected) or deletes the queue

@@ -39,17 +39,60 @@ public:
     ~AudioCircularBuffer();
     void setOutputFrameSamples(int samples); 
 
+    /**
+    * See FrameQueue::getRear
+    */
     Frame *getRear();
+    
+    /**
+    * See FrameQueue::getFront
+    */
     Frame *getFront();
-    int addFrame();
+    
+    /**
+    * See FrameQueue::addFrame
+    */
+    std::vector<int> addFrame();
+    
+    /**
+    * See FrameQueue::removeFrame
+    */
     int removeFrame();
+    
+    
     void doFlush();
+    
+    /**
+    * See FrameQueue::forceGetRear
+    */
     Frame *forceGetRear();
+    
+    /**
+    * See FrameQueue::forceGetFront
+    */
     Frame *forceGetFront();
-    bool frameToRead() {return false;};
+
+    /**
+     * get the number of free samples in the current buffer
+     * @return number of free samples.
+     */
     int getFreeSamples();
+    
+    /**
+     * Sets the buffering threshold in order to start providing output frames. This number is a tradeoff
+     * between latency and stability.
+     */
     void setBufferingThreshold(std::chrono::milliseconds th);
+    
+    /**
+     * returns the maximum number of samples per channel.
+     * @return max number of samples.
+     */
     unsigned getChannelMaxSamples() {return chMaxSamples;};
+    
+    /**
+    * See FrameQueue::getElements
+    */
     unsigned getElements();
 
 private:

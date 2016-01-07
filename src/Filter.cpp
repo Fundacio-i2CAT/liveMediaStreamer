@@ -208,7 +208,8 @@ std::vector<int> BaseFilter::addFrames(std::map<int, Frame*> &dFrames)
         if (it.second->getConsumed()) {
             int wId = it.first;
             if (writers.count(wId) > 0 && writers[wId]->isConnected()){
-                enabledJobs.push_back(writers[wId]->addFrame());
+                std::vector<int> addFrameReturn = writers[wId]->addFrame();
+                enabledJobs.insert(enabledJobs.begin(), addFrameReturn.begin(), addFrameReturn.end());
             }
         }
     }

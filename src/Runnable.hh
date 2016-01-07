@@ -29,7 +29,6 @@
 #include <functional>
 #include <vector>
 #include <set>
-#include <memory>
 #include <mutex>
 
 #include "Utils.hh"
@@ -84,12 +83,6 @@ public:
      * Sets the running flag to false
      */
     void unsetRunning();
-    
-    /**
-     * get the ids of the grouped Runnables
-     * @return a vector containing the ids of the group
-     */
-    std::vector<int> getGroupIds();
 
     /**
     * Get next time point of processFrame execution
@@ -108,18 +101,6 @@ public:
      * @return false if the ID could not be set, returns true otherwise.
      */
     bool setId(int id_);
-    
-    /**
-     * Groups two runnables
-     * @param Runnable this is the other runnable to get grouped with
-     * @return true if succeded false otherwise
-     */
-    bool groupRunnable(Runnable *r, bool recursive = true);
-    
-    /**
-     * Removes this runnable instance from its group
-     */
-    void removeFromGroup();
     
     /**
      * Used after processig its task, in order to check if there is something else to process.
@@ -143,18 +124,14 @@ protected:
     virtual std::vector<int> processFrame(int& ret) = 0;
     
 private:
-    void addInGroup(Runnable *r, std::shared_ptr<unsigned> run = NULL);
-    void removeFromGroup(Runnable *r);
     
 protected:
     std::chrono::system_clock::time_point time;
-    std::set<Runnable*> group;
     std::mutex mtx;
     bool run;
 
 private:
     const bool periodic;
-    std::shared_ptr<unsigned> running;
     int id;
 };
 

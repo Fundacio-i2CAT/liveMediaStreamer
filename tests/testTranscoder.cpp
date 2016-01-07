@@ -116,7 +116,7 @@ void addVideoPath(unsigned port, int receiverID, int transmitterID)
     std::string sdp;
 
     VideoResampler *resampler;
-    VideoEncoderX265 *encoder;
+    VideoEncoderX264 *encoder;
     VideoDecoderLibav *decoder;
 
     decoder = new VideoDecoderLibav();
@@ -126,11 +126,11 @@ void addVideoPath(unsigned port, int receiverID, int transmitterID)
     pipe->addFilter(resId, resampler);
     resampler->configure(1280, 720, 0, YUV420P);
 
-    encoder = new VideoEncoderX265();
+    encoder = new VideoEncoderX264();
     pipe->addFilter(encId, encoder);
 
     //bitrate, fps, gop, lookahead, threads, annexB, preset
-    encoder->configure(4000, 5, 5, 0, 4, true, "superfast");
+    encoder->configure(4000, 0, 25, 0, 4, true, "superfast");
     
     if (!pipe->createPath(BYPASS_VIDEO_PATH, receiverID, transmitterID, port, BYPASS_VIDEO_PATH, std::vector<int>({}))) {
         utils::errorMsg("Error creating video path");

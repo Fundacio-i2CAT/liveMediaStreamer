@@ -664,7 +664,7 @@ bool StreamClientState::removeSubsessionStats(size_t port)
 SCSSubsessionStats* StreamClientState::getSubsessionStats(size_t port)
 {
     if (smsStats.count(port) <= 0) {
-        utils::errorMsg("No subsession stats with id " +std::to_string(port) +" in SourceManager");
+        utils::errorMsg("No subsession stats with id " + std::to_string(port) +" in SourceManager");
         return NULL;
     }
 

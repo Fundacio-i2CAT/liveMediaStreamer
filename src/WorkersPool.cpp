@@ -143,7 +143,6 @@ bool WorkersPool::removeTask(const int id)
     if (runnables.count(id) > 0){
         runnable = runnables[id];
         runnables.erase(id);
-        runnable->removeFromGroup();
         removeFromQueue(id);
         while(runnable->isRunning()){
             qCheck.wait_for(guard, std::chrono::milliseconds(IDLE));

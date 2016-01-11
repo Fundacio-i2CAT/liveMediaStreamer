@@ -66,21 +66,21 @@ struct TestDataStruct TestData[] = {
         704,
         480,
         2,
-        48000
+        44100
     },
     {   // 3
         "http://ftp.halifax.rwth-aachen.de/blender/demo/movies/ToS/tears_of_steel_720p.mov",
         1280,
         534,
         2,
-        48000
+        44100
     },
     {   // 4
-        "http://h265.tvclever.com/TearsOfSteel_720p-h265.mkv",
-        1280,
-        720,
+        "http://www.libde265.org/hevc-bitstreams/spreed-1080p.mkv",
+        1920,
+        1080,
         2,
-        48000
+        44100
     }
 };
 
@@ -167,11 +167,16 @@ void HeadDemuxerFunctionalTest::test(int test_ndx)
     for (Jzon::Array::const_iterator it = array.begin(); it != array.end(); ++it) {
         int type = (*it).Get("type").ToInt();
         int wId = (*it).Get("wId").ToInt();
+        int sampleRate;
+        int channels;
         switch (type) {
         case VIDEO:
             vWId = wId;
             break;
         case AUDIO:
+            sampleRate = (*it).Get("sampleRate").ToInt();
+            channels = (*it).Get("channels").ToInt();
+            aDecoder->configure(S16P, channels, sampleRate);
             aWId = wId;
             break;
         default:

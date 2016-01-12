@@ -549,63 +549,95 @@ bool BaseFilter::demandOriginFrames(std::map<int, Frame*> &oFrames, std::vector<
         return false;
     }
 
-    if (frameTime.count() <= 0) {
+    if (frameTime.count() <= 0 && readers.count(refReader) == 0) {
         return demandOriginFramesBestEffort(oFrames, newFrames);
+    } else if (frameTime.count() <= 0 && readers.count(refReader) > 0) {
+        return demandOriginFramesSync(oFrames, newFrames);
     } else {
         return demandOriginFramesFrameTime(oFrames, newFrames);
     }
 }
 
-void BaseFilter::syncFrames(std::map<int, Frame*> &oFrames, std::vector<int> &newFrames)
+//TODO: this is not functional test timestamps but not "get" the frame as then it is marked as consumed and it might not be the case.
+bool BaseFilter::demandOriginFramesSync(std::map<int, Frame*> &oFrames, std::vector<int> &newFrames)
 {      
-    if (oFrames.count(refReader) == 0){
-        return;
-    } 
-    
-    bool newFrame = false;
-    
-    std::chrono::microseconds wallClock = oFrames[refReader]->getPresentationTime();
-    std::chrono::microseconds currentFTime;
-    
+    bool newFrame;
     Frame* frame;
+    
+    if (!readers[refReader] || !readers[refReader]->isConnected()) {
+        deleteReader(refReader);
+        return false;
+    }
+    
+    frame = readers[refReader]->getFrame(getId(), newFrame);
+    
+    if (!frame) {
+        utils::errorMsg("[BaseFilter::demandOriginFramesSync] Reader->getFrame() returned NULL. It cannot happen...");
+        return false;
+    }
+    
+    oFrames[refReader] = frame;
+    frame->setConsumed(newFrame);
+    if (newFrame){
+        newFrames.push_back(refReader);
+    }
+    
+    std::chrono::microseconds wallClock = frame->getPresentationTime();
+    std::chrono::microseconds currentFTime;
         
-    for (std::map<int, Frame*>::iterator it; it != oFrames.end(); ){
-        
-        currentFTime = it->second->getPresentationTime();
-        
-        while (wallClock - syncMargin > currentFTime){
-            removeFrames(std::vector<int>(it->first));           
-            newFrames.erase(std::remove(newFrames.begin(), newFrames.end(), it->first), newFrames.end());
-            
-            if (readers.count(it->first) == 0){
-                break;
-            }
-            
-            frame = readers[it->first]->getFrame(getId(), newFrame);
-            
-            if (!frame) {
-                oFrames.erase(it);
-                break;
-            }
-
-            frame->setConsumed(newFrame);
-            //NOTE: it can be done?
-            oFrames[it->first] = frame;
-            if (newFrame){
-                newFrames.push_back(it->first);
-            }
-        }
-        
-        if (wallClock - syncMargin > currentFTime){
+    for (std::map<int, std::shared_ptr<Reader>>::iterator r = readers.begin() ; r != readers.end(); ) {
+        if (!r->second || !r->second->isConnected()) {
+            int rId = r->first;
+            ++r;
+            deleteReader(rId);
             continue;
         }
         
-        if (wallClock + syncMargin < currentFTime) {
-            newFrames.erase(std::remove(newFrames.begin(), newFrames.end(), it->first), newFrames.end());
+        if (r->first == refReader){
+            ++r;
+            continue;
         }
         
-        ++it;
+        frame = r->second->getFrame(getId(), newFrame);
+
+        if (!frame) {
+            utils::errorMsg("[BaseFilter::demandOriginFramesBestEffort] Reader->getFrame() returned NULL. It cannot happen...");
+            ++r;
+            continue;
+        }
+        
+        currentFTime = frame->getPresentationTime();
+        
+        while (wallClock - syncMargin > currentFTime){
+            r->second->removeFrame(getId());            
+            frame = r->second->getFrame(getId(), newFrame);
+            
+            if (!frame) {
+                utils::errorMsg("[BaseFilter::demandOriginFramesBestEffort] Reader->getFrame() returned NULL. It cannot happen...");
+                return false;
+            } else if (newFrame) {
+                currentFTime = frame->getPresentationTime();
+            } else {
+                break;
+            }
+        }
+        
+        if (!(wallClock - syncMargin > currentFTime || wallClock + syncMargin < currentFTime)){
+            oFrames[r->first] = frame;
+            frame->setConsumed(newFrame);
+            if (newFrame){
+                newFrames.push_back(r->first);
+            }
+        }
+        
+        ++r;
     }
+    
+    if (oFrames.size() == readers.size()){
+        return !newFrames.empty();;
+    }
+
+    return false;
 }
 
 bool BaseFilter::deleteReader(int readerId)

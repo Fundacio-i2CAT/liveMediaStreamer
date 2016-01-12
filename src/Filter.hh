@@ -247,7 +247,7 @@ private:
     bool deleteWriter(int readerId);
     
     bool pendingJobs();
-    void syncFrames(std::map<int, Frame*> &oFrames, std::vector<int> &newFrames);
+    bool demandOriginFramesSync(std::map<int, Frame*> &oFrames, std::vector<int> &newFrames);
 
 private:
     std::priority_queue<Event> eventQueue;
@@ -256,7 +256,7 @@ private:
     FilterRole const fRole;
     std::chrono::microseconds syncTs;
     
-    unsigned refReader;
+    int refReader;
     std::chrono::microseconds syncMargin;
 };
 

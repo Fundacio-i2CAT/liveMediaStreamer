@@ -93,7 +93,7 @@ dashVideoSegmenterTest_DEPENDENCIES = ../src/liblivemediastreamer.la
 connectionTest_SOURCES = modules/transmitter/ConnectionTest.cpp 
 connectionTest_CPPFLAGS = -g -Wall -D__STDC_CONSTANT_MACROS -I../src/
 connectionTest_CXXFLAGS = -std=c++11
-connectionTest_LDFLAGS = -L../src -llivemediastreamer -lcppunit -lBasicUsageEnvironment -lUsageEnvironment -lliveMedia -lgroupsock -lavcodec -lavformat -lavutil -lswresample -lswscale -lilclient
+connectionTest_LDFLAGS = -L../src -llivemediastreamer -lcppunit -lBasicUsageEnvironment -lUsageEnvironment -lliveMedia -lgroupsock -lavcodec -lavformat -lavutil -lswresample -lswscale 
 connectionTest_DEPENDENCIES = ../src/liblivemediastreamer.la
 
 sinkManagerTest_SOURCES = modules/transmitter/SinkManagerTest.cpp 

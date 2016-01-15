@@ -35,9 +35,10 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <bcm_host.h>
-#include <ilclient.h>
-
+extern "C" {	
+    #include <bcm_host.h>
+    #include <ilclient.h>
+}
 
 
 struct OPENMAX_H264_DECODER {

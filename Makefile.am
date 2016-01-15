@@ -1,11 +1,11 @@
 ACLOCAL_AMFLAGS = -I m4
-SUBDIRS = src unitTests
+SUBDIRS = src unitTests 
 
 bin_PROGRAMS = livemediastreamer testtranscoder teststreamer testdemuxer fakelive testvideomix testaudiomix testdash testbypass testtranscoderlibav testvideosplitter profiledash
 
 livemediastreamer_SOURCES = tests/liveMediaStreamer.cpp
 livemediastreamer_CPPFLAGS = -Isrc/ -std=c++11 -g -Wall -D__STDC_CONSTANT_MACROS
-livemediastreamer_LDFLAGS = -Lsrc -llivemediastreamer -lBasicUsageEnvironment -lUsageEnvironment -lliveMedia -lgroupsock -lavcodec -lavformat -lavutil -lswresample -lswscale -lilclient
+livemediastreamer_LDFLAGS = -Lsrc -llivemediastreamer -lBasicUsageEnvironment -lUsageEnvironment -lliveMedia -lgroupsock -lavcodec -lavformat -lavutil -lswresample -lswscale 
 livemediastreamer_DEPENDENCIES = src/liblivemediastreamer.la
 
 testtranscoder_SOURCES = tests/testTranscoder.cpp
@@ -30,7 +30,7 @@ testaudiomix_DEPENDENCIES = src/liblivemediastreamer.la
 
 testdash_SOURCES = tests/testDash.cpp
 testdash_CPPFLAGS = -std=c++11 -g -Wall -D__STDC_CONSTANT_MACROS
-testdash_LDFLAGS = -Lsrc -llivemediastreamer -lBasicUsageEnvironment -lUsageEnvironment -lliveMedia -lgroupsock -lavcodec -lavformat -lavutil -lswresample -lswscale
+testdash_LDFLAGS = -Lsrc -llivemediastreamer -lBasicUsageEnvironment -lUsageEnvironment -lliveMedia -lgroupsock -lavcodec -lavformat -lavutil -lswresample -lswscale -lrt
 testdash_DEPENDENCIES = src/liblivemediastreamer.la
 
 teststreamer_SOURCES = tests/H264LoopVideoFileServerMediaSubsession.cpp tests/LoopByteStreamFileSource.cpp tests/testStreamer.cpp

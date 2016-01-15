@@ -21,27 +21,31 @@
  */
 
 #include "DecoderPi.hh"
+#include <chrono>
 
-
-DecoderPi* DecoderPi::createNew(std::chrono::microseconds fTime)
+DecoderPi* DecoderPi::createNew(unsigned readersNum, std::chrono::microseconds fTime)
 {
-	if (fTime.count() < 0) {
+    if (readersNum != 1) {
+	utils::warningMsg("[DecoderPi] ReadersNum < 1");
+	return NULL;
+    }
+    if (fTime.count() < 0) {
         utils::errorMsg("[DecoderPi] Error creating DecoderPi, negative frame time is not valid");
         return NULL;
     }
 
-    return new DecoderPi(fTime);
+    return new DecoderPi(readersNum, fTime);
 }
 
-DecoderPi::DecoderPi(std::chrono::microseconds fTime) : 
-	TailFilter(readersNum)
+DecoderPi::DecoderPi(unsigned readersNum, std::chrono::microseconds fTime)
+:TailFilter(readersNum)
 {
-    bcm_host_init();
-    omxInit(&piH264Decoder);
     initializeEventMap();
-    
+
     fType = DECODER_PI;
     setFrameTime(fTime);
+    bcm_host_init();
+    omxInit(&piH264Decoder);
 }
 
 DecoderPi::~DecoderPi()
@@ -51,11 +55,22 @@ DecoderPi::~DecoderPi()
 
 bool DecoderPi::configure(int fTime)
 {
+    Jzon::Object root, params;
+    root.Add("action", "configure");
+    params.Add("fTime", fTime);
+    root.Add("params", params);
+    Event e(root, std::chrono::system_clock::now(), 0);
+    pushEvent(e);
+    return true;
+}
+
+bool DecoderPi::configure0(std::chrono::microseconds fTime)
+{
     if (fTime.count() < 0) {
         utils::errorMsg("[VideoSplitter::configCrop0] Error, negative frame time is not valid");
         return NULL;
     }
-    
+
     setFrameTime(fTime);
 
     return true;
@@ -68,6 +83,7 @@ void DecoderPi::initializeEventMap()
 
 bool DecoderPi::doProcessFrame(std::map<int, Frame*> &orgFrames, std::vector<int> newFrames)
 {
+    VideoFrame *vFrame;
     vFrame = dynamic_cast<VideoFrame*>(orgFrames[0]);
 
     if(!vFrame){
@@ -75,32 +91,26 @@ bool DecoderPi::doProcessFrame(std::map<int, Frame*> &orgFrames, std::vector<int
         return false;
     }
 
-    omxDecode(&piH264Decoder, &vFrame);
-}
-
-void DecoderPi::stop()
-{
-
-}
-void DecoderPi::pause()
-{
-
+    omxDecode(&piH264Decoder, vFrame);
+    return true;
 }
 
 bool DecoderPi::configureEvent(Jzon::Node* params)
 {
-	if (!params) {
+    if (!params)
+    {
         utils::errorMsg("[DecoderPi::configureEvent] Params node missing");
         return false;
     }
 
     std::chrono::microseconds fTime = std::chrono::microseconds(0);
 
-    if (params->Has("fTime") && params->Get("fTime").IsNumber()){
+    if (params->Has("fTime") && params->Get("fTime").IsNumber())
+    {
         fTime = std::chrono::microseconds(params->Get("fTime").ToInt());
     }
 
-    return configure(fTime);
+    return configure0(fTime);
 }
 
 void DecoderPi::doGetState(Jzon::Object &filterNode)
@@ -113,7 +123,8 @@ bool DecoderPi::omxInit(OPENMAX_H264_DECODER *d)
     memset(d->tunnel, 0, sizeof(d->tunnel));
     memset(d->list, 0, sizeof(d->list));
 
-    if ((d->client = ilclient_init()) == NULL){ 
+    if ((d->client = ilclient_init()) == NULL)
+    {
         utils::errorMsg("[DecoderPi::omxInit] Error starting IL Client");
         return false;
     }
@@ -124,10 +135,11 @@ bool DecoderPi::omxInit(OPENMAX_H264_DECODER *d)
         return false;
     }
 
-    if (ilclient_create_component(d->client, &d->decode, "video_decode", ILCLIENT_DISABLE_ALL_PORTS | ILCLIENT_ENABLE_INPUT_BUFFERS) != 0) {
+    if ( ilclient_create_component(d->client, &d->decode, "video_decode", ILCLIENT_DISABLE_ALL_PORTS) != 0) {
         utils::errorMsg("[DecoderPi::omxInit] Error creating OMX_decode");
         return false;
     }
+
     d->list[0] = d->decode;
 
     if (ilclient_create_component(d->client, &d->render, "video_render", ILCLIENT_DISABLE_ALL_PORTS) != 0) {
@@ -203,7 +215,7 @@ bool DecoderPi::omxDecode(OPENMAX_H264_DECODER *d, VideoFrame* vFrame)
         return false;
     }
 
-    if (vFrame.getLength() == 0) {
+    if (vFrame->getLength() == 0) {
         buf->nFilledLen = 0;
         buf->nFlags = OMX_BUFFERFLAG_TIME_UNKNOWN | OMX_BUFFERFLAG_EOS;
 
@@ -223,12 +235,12 @@ bool DecoderPi::omxDecode(OPENMAX_H264_DECODER *d, VideoFrame* vFrame)
 
     unsigned char *dest = buf->pBuffer;
 
-    memcpy(dest, *vFrame->getDataBuf(), vFrame.getLength());
-    buf->nFilledLen = vFrame.getLength();
+    memcpy(&dest, vFrame->getDataBuf(), vFrame->getLength());
+    buf->nFilledLen = vFrame->getLength();
     buf->nOffset = 0;
 
     if (d->port_settings_changed == 0 &&
-    (vFrame.getLength() > 0 && ilclient_remove_event(d->decode, OMX_EventPortSettingsChanged, 131, 0, 0, 1) == 0)) {
+    (vFrame->getLength() > 0 && ilclient_remove_event(d->decode, OMX_EventPortSettingsChanged, 131, 0, 0, 1) == 0)) {
         d->port_settings_changed = 1;
 
         if (ilclient_setup_tunnel(d->tunnel, 0, 0) != 0){
@@ -254,7 +266,7 @@ bool DecoderPi::omxDecode(OPENMAX_H264_DECODER *d, VideoFrame* vFrame)
 
     if (OMX_EmptyThisBuffer(ILC_GET_HANDLE(d->decode), buf) != OMX_ErrorNone){
         utils::errorMsg("[DecoderPi::omxDecode] Error OMX_buffer is empty");
-        return false
+        return false;
     }
     
     return true;

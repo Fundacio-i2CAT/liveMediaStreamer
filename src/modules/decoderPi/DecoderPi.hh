@@ -35,8 +35,10 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include "bcm_host.h"
-#include "ilclient.h"
+#include <bcm_host.h>
+#include <ilclient.h>
+
+
 
 struct OPENMAX_H264_DECODER {
     ILCLIENT_T *client;
@@ -55,27 +57,27 @@ struct OPENMAX_H264_DECODER {
 
 class DecoderPi : public TailFilter {
 public:
-    static DecoderPi* createNew(unsigned readersNum = 1,std::chrono::microseconds fTime = std::chrono::microseconds(0));
-    
+    static DecoderPi* createNew(unsigned readersNum = 1, std::chrono::microseconds fTime = std::chrono::microseconds(0));
+
     ~DecoderPi();
 
     bool configure(int fTime);
-private:
+    int getConfigure() {return getFrameTime().count();};
+
+protected:
     DecoderPi(unsigned readersNum, std::chrono::microseconds fTime);
-    
+    bool doProcessFrame(std::map<int, Frame*> &orgFrames, std::vector<int> newFrames);
+    void doGetState(Jzon::Object &filterNode);
+    bool configure0(std::chrono::microseconds fTime);
+
+private:
     void initializeEventMap();
-    
+
     bool specificReaderConfig(int /*readerID*/, FrameQueue* /*queue*/)  {return true;};
     bool specificReaderDelete(int /*readerID*/) {return true;};
 
-    bool doProcessFrame(std::map<int, Frame*> &orgFrames, std::vector<int> newFrames);
-    
-    void stop();
-    void pause();
-
     bool configureEvent(Jzon::Node* params);
 
-    void doGetState(Jzon::Object &filterNode);
 
     bool omxInit(OPENMAX_H264_DECODER *d);
     bool omxDecode(OPENMAX_H264_DECODER *d,  VideoFrame* vFrame);

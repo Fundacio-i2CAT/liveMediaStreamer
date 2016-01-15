@@ -11,7 +11,8 @@ liblivemediastreamer_la_SOURCES = modules/audioDecoder/AudioDecoderLibav.cpp \
                                   modules/videoMixer/VideoMixer.cpp \
                                   modules/videoSplitter/VideoSplitter.cpp \
                                   modules/videoResampler/VideoResampler.cpp \
-                                  modules/dasher/Dasher.cpp \
+                                  modules/decoderPi/DecoderPi.cpp \
+				  modules/dasher/Dasher.cpp \
                                   modules/dasher/DashVideoSegmenter.cpp \
                                   modules/dasher/DashVideoSegmenterAVC.cpp \
                                   modules/dasher/DashVideoSegmenterHEVC.cpp \
@@ -62,10 +63,10 @@ liblivemediastreamer_la_SOURCES = modules/audioDecoder/AudioDecoderLibav.cpp \
                                   Runnable.cpp \
                                   WorkersPool.cpp 
 
-liblivemediastreamer_la_CPPFLAGS = -g -D__STDC_CONSTANT_MACROS -Wall -O0
-
 liblivemediastreamer_la_CXXFLAGS = -std=c++11 
 
 liblivemediastreamer_la_CFLAGS = -g -D__STDC_CONSTANT_MACROS -Wall -O0
 
-liblivemediastreamer_la_LDFLAGS = -shared -fPIC -pthread -lBasicUsageEnvironment -lUsageEnvironment -lliveMedia -lgroupsock -lavcodec -lavformat -lavutil -lswresample -lswscale -llog4cplus -lopencv_core -lopencv_imgproc -lx264 -lx265
+liblivemediastreamer_la_CPPFLAGS = -g -D__STDC_CONSTANT_MACROS -Wall -O0
+
+liblivemediastreamer_la_LDFLAGS = -shared -fPIC -pthread -lBasicUsageEnvironment -lUsageEnvironment -lliveMedia -lgroupsock -lavcodec -lavformat -lavutil -lswresample -lswscale -llog4cplus -lopencv_core -lopencv_imgproc -lx264 -lx265 -L/opt/vc/lib -lbcm_host -lvcos -lvchiq_arm -lpthread -lEGL -lGLESv2 -lopenmaxil -lilclient

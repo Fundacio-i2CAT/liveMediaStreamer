@@ -5,7 +5,7 @@ bin_PROGRAMS = livemediastreamer testtranscoder teststreamer testdemuxer fakeliv
 
 livemediastreamer_SOURCES = tests/liveMediaStreamer.cpp
 livemediastreamer_CPPFLAGS = -Isrc/ -std=c++11 -g -Wall -D__STDC_CONSTANT_MACROS
-livemediastreamer_LDFLAGS = -Lsrc -llivemediastreamer -lBasicUsageEnvironment -lUsageEnvironment -lliveMedia -lgroupsock -lavcodec -lavformat -lavutil -lswresample -lswscale
+livemediastreamer_LDFLAGS = -Lsrc -llivemediastreamer -lBasicUsageEnvironment -lUsageEnvironment -lliveMedia -lgroupsock -lavcodec -lavformat -lavutil -lswresample -lswscale -lilclient
 livemediastreamer_DEPENDENCIES = src/liblivemediastreamer.la
 
 testtranscoder_SOURCES = tests/testTranscoder.cpp

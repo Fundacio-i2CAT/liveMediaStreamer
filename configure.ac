@@ -21,7 +21,7 @@ AM_PROG_CC_C_O
 
 AC_LANG_PUSH([C++])
 
-LDFLAGS="$LDFLAGS -L/usr/local/lib"
+LDFLAGS="$LDFLAGS -L/usr/local/lib -L/opt/vc/src/hello_pi/libs/ilclient"
 
 ###############
 #Live555 staff#
@@ -116,9 +116,14 @@ AC_CHECK_LIB([tinyxml2], [main], [], AC_MSG_ERROR([cannot find tinyxml2]))
 
 AC_CHECK_FILE(/usr/local/include/opencv/cv.h, [CPPFLAGS="$CPPFLAGS -I/usr/local/include/opencv"; break;],[
     AC_CHECK_FILE(/usr/include/opencv/cv.h, [CPPFLAGS="$CPPFLAGS -I/usr/include/opencv"; break;],[])])
-    
+
+AC_CHECK_FILE(/opt/vc/include/bcm_host.h, [CPPFLAGS="$CPPFLAGS -I/opt/vc/include/ -I/opt/vc/include/interface/vmcs_host/ -I/opt/vc/include/interface/vcos/pthreads/  -I/opt/vc/include/interface/vmcs_host/linux/ -I/opt/vc/include/IL/"; break;],[])
+AC_CHECK_FILE(/opt/vc/src/hello_pi/libs/ilclient/ilclient.h, [CPPFLAGS="$CPPFLAGS -I/opt/vc/src/hello_pi/libs/ilclient/"; break;],[])
+
+AC_CHECK_LIB([ilclient], [ilclient_wait_for_event], [], AC_MSG_ERROR([cannot find ilclient]))
+
 # Checks for header files.
-AC_CHECK_HEADERS([stdint.h string.h sys/time.h cv.h])
+AC_CHECK_HEADERS([stdint.h string.h sys/time.h cv.h bcm_host.h ilclient.h])
 
 # Checks for typedefs, structures, and compiler characteristics.
 AC_HEADER_STDBOOL

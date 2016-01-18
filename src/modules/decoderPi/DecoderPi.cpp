@@ -26,8 +26,8 @@
 DecoderPi* DecoderPi::createNew(unsigned readersNum, std::chrono::microseconds fTime)
 {
     if (readersNum != 1) {
-	utils::warningMsg("[DecoderPi] ReadersNum < 1");
-	return NULL;
+	   utils::errorMsg("[DecoderPi] Error creating DecoderPi, ReadersNum must be equal to 1");
+	   return NULL;
     }
     if (fTime.count() < 0) {
         utils::errorMsg("[DecoderPi] Error creating DecoderPi, negative frame time is not valid");

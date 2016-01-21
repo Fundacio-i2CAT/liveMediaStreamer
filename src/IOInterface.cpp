@@ -247,6 +247,22 @@ size_t Reader::getQueueElements()
     return queue->getElements();
 }
 
+std::chrono::microseconds Reader::getCurrentTime()
+{
+    if (frame){
+        return frame->getPresentationTime();
+    }
+    
+    Frame *f;
+    
+    f = queue->getFront();
+    if (f){
+        return f->getPresentationTime();
+    }
+    
+    return std::chrono::microseconds(0);
+}
+
 
 
 /////////////////////////

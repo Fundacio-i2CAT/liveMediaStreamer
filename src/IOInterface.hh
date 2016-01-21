@@ -194,6 +194,12 @@ public:
     * @return lost blocs in size_t
     */
     size_t getLostBlocs();
+    
+    /**
+    * Get the oldest presentation time of a valid frame in queue, zero time if empty queue
+    * @return presentation time
+    */
+    std::chrono::microseconds getCurrentTime();
 
 protected:
     FrameQueue *queue;

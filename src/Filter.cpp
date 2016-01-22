@@ -550,6 +550,10 @@ bool BaseFilter::demandOriginFrames(std::map<int, Frame*> &oFrames, std::vector<
     }
     
     std::vector<int> readersVec = framesSync();
+    
+    if (readersVec.empty()){
+        return false;
+    }
 
     if (frameTime.count() <= 0) {
         return demandOriginFramesBestEffort(oFrames, newFrames, readersVec);
@@ -558,7 +562,6 @@ bool BaseFilter::demandOriginFrames(std::map<int, Frame*> &oFrames, std::vector<
     }
 }
 
-//TODO: this is not functional test timestamps but not "get" the frame as then it is marked as consumed and it might not be the case.
 std::vector<int> BaseFilter::framesSync()
 {      
     std::vector<int> allReaders;
@@ -569,23 +572,29 @@ std::vector<int> BaseFilter::framesSync()
     std::chrono::microseconds margin = std::chrono::microseconds(45000);
     
     for(std::map<int, std::shared_ptr<Reader>>::iterator r = readers.begin() ; r != readers.end(); ){
-        if (r->second){
-            allReaders.push_back(r->first);
-        } else if (wallClock < r->second->getCurrentTime()){
+        if (!r->second){
+            ++r;
+            continue;
+        }
+        allReaders.push_back(r->first);
+        if (wallClock < r->second->getCurrentTime()){
             wallClock = r->second->getCurrentTime();
         }
         ++r;
     }
-        
+    
+    if (!sync){
+        return allReaders;
+    }
+    
+    bool emptyQueue = false;
     for (std::map<int, std::shared_ptr<Reader>>::iterator r = readers.begin() ; r != readers.end(); ) {
-        if (!r->second || !r->second->isConnected()) {
-            int rId = r->first;
+        currentFTime = r->second->getCurrentTime();
+        if (currentFTime.count() == 0){
             ++r;
-            deleteReader(rId);
+            emptyQueue = true;
             continue;
         }
-        
-        currentFTime = r->second->getCurrentTime();
         
         if (wallClock - margin > currentFTime){
             framesToPass.push_back(r->first);
@@ -594,7 +603,7 @@ std::vector<int> BaseFilter::framesSync()
         ++r;
     }
     
-    if (!framesToPass.empty()){
+    if (!framesToPass.empty()  || emptyQueue){
         return framesToPass;
     }
 
@@ -612,34 +621,30 @@ bool BaseFilter::deleteReader(int readerId)
     return false;
 }
 
-bool BaseFilter::demandOriginFramesBestEffort(std::map<int, Frame*> &oFrames, std::vector<int> &newFrames, std::vector<int> /*readersVec*/) 
+bool BaseFilter::demandOriginFramesBestEffort(std::map<int, Frame*> &oFrames, std::vector<int> &newFrames, std::vector<int> readersVec) 
 {
     bool newFrame;
     Frame* frame;
        
-    for (std::map<int, std::shared_ptr<Reader>>::iterator r = readers.begin() ; r != readers.end(); ) {
-        if (!r->second || !r->second->isConnected()) {
-            int rId = r->first;
-            ++r;
+    for (auto id : readersVec) {
+        if (readers[id] == NULL || !readers[id]->isConnected()) {
             utils::warningMsg("demandOriginFramesBestEffort: deleted reader, it shouldn't happen");
-            deleteReader(rId);
+            deleteReader(id);
             continue;
         }
         
-        frame = r->second->getFrame(getId(), newFrame);
+        frame = readers[id]->getFrame(getId(), newFrame);
 
         if (!frame) {
             utils::errorMsg("[BaseFilter::demandOriginFramesBestEffort] Reader->getFrame() returned NULL. It cannot happen...");
-            ++r;
             continue;
         }
 
         frame->setConsumed(newFrame);
-        oFrames[r->first] = frame;
+        oFrames[id] = frame;
         if (newFrame){
-            newFrames.push_back(r->first);
+            newFrames.push_back(id);
         }
-        ++r;
     }
 
     return !newFrames.empty();

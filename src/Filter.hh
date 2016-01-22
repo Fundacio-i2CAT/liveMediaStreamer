@@ -189,6 +189,9 @@ public:
      * @return the losts blocs of the reader
      */
     size_t getLostBlocs (int rId);
+    
+    
+    void setSync(bool sync_){sync = sync_;};
 
 protected:
     BaseFilter(unsigned readersNum = MAX_READERS, unsigned writersNum = MAX_WRITERS, FilterRole fRole_ = REGULAR, bool periodic = false);
@@ -209,7 +212,7 @@ protected:
     virtual bool specificWriterDelete(int writerID) = 0;
 
     bool demandOriginFrames(std::map<int, Frame*> &oFrames, std::vector<int> &newFrames);
-    bool demandOriginFramesBestEffort(std::map<int, Frame*> &oFrames, std::vector<int> &newFrames, std::vector<int> /*readersVec*/);
+    bool demandOriginFramesBestEffort(std::map<int, Frame*> &oFrames, std::vector<int> &newFrames, std::vector<int> readersVec);
     bool demandOriginFramesFrameTime(std::map<int, Frame*> &oFrames, std::vector<int> &newFrames); 
 
     bool demandDestinationFrames(std::map<int, Frame*> &dFrames);
@@ -224,8 +227,6 @@ protected:
 
     void setSyncTs(std::chrono::microseconds ts){syncTs = ts;};
     std::chrono::microseconds getSyncTs(){return syncTs;};
-
-    void setSync(bool sync_){sync = sync_;};
     
 protected:
     std::map<int, std::shared_ptr<Reader>> readers;

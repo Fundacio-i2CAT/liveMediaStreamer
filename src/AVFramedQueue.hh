@@ -24,7 +24,7 @@
 #ifndef _AV_FRAMED_QUEUE_HH
 #define _AV_FRAMED_QUEUE_HH
 
-#define MAX_FRAMES 50 //!< The highest value for DEFAULT_AUDIO_FRAMES, DEFAULT_VIDEO_FRAMES, ...
+#define MAX_FRAMES 250 //!< The highest value for DEFAULT_AUDIO_FRAMES, DEFAULT_VIDEO_FRAMES, ...
 
 #include "FrameQueue.hh"
 #include "AudioFrame.hh"

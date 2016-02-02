@@ -43,8 +43,8 @@ AudioCircularBuffer* AudioCircularBuffer::createNew(struct ConnectionData cData,
 
 AudioCircularBuffer::AudioCircularBuffer(struct ConnectionData cData, unsigned ch, unsigned sRate, unsigned maxSamples, SampleFmt sFmt)
 : FrameQueue(cData), channels(ch), sampleRate(sRate), bytesPerSample(0), chMaxSamples(maxSamples), channelMaxLength(0), 
-sampleFormat(sFmt), fillNewFrame(true), samplesBufferingThreshold(0), bufferingState(BUFFERING), 
-inputFrame(NULL), outputFrame(NULL), dummyFrame(NULL), synchronized(false), setupSuccess(false), tsDeviationThreshold(0), elements(0)
+sampleFormat(sFmt), fillNewFrame(true), samplesBufferingThreshold(0), inputFrame(NULL), outputFrame(NULL), dummyFrame(NULL), 
+synchronized(false), setupSuccess(false), tsDeviationThreshold(0), elements(0)
 {
 
 }
@@ -268,13 +268,7 @@ bool AudioCircularBuffer::popFront(unsigned char **buffer, unsigned samplesReque
     }
 
     if (elements < samplesBufferingThreshold * bytesPerSample) {
-        bufferingState = BUFFERING;
-    } else {
-	    bufferingState = OK;
-    }
-
-    if (bufferingState == BUFFERING) {
-	   return false;
+        return false;
     }
 
     fillOutputBuffers(buffer, bytesRequested);

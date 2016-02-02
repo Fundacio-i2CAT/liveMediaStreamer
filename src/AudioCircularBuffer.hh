@@ -98,8 +98,6 @@ public:
 private:
     AudioCircularBuffer(struct ConnectionData cData, unsigned ch, unsigned sRate, unsigned maxSamples, SampleFmt sFmt);
 
-    enum State {BUFFERING, OK, FULL};
-
     bool pushBack(unsigned char **buffer, int samplesRequested);
     bool forcePushBack(unsigned char **buffer, int samplesRequested);
     bool popFront(unsigned char **buffer, unsigned samplesRequested);
@@ -116,7 +114,6 @@ private:
     bool fillNewFrame;
 
     unsigned samplesBufferingThreshold;
-    State bufferingState;
 
     PlanarAudioFrame* inputFrame;
     PlanarAudioFrame* outputFrame;

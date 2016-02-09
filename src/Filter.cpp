@@ -28,12 +28,10 @@
 #include <thread>
 #include <algorithm>
 
-#define WAIT 1000 //usec
 
-
-BaseFilter::BaseFilter(unsigned readersNum, unsigned writersNum, FilterRole fRole_, bool periodic): Runnable(periodic), 
-maxReaders(readersNum), maxWriters(writersNum),  frameTime(std::chrono::microseconds(0)), 
-fRole(fRole_), syncTs(std::chrono::microseconds(0)), sync(false)
+BaseFilter::BaseFilter(unsigned readersNum, unsigned writersNum, FilterRole fRole_, bool periodic): 
+    Runnable(periodic), maxReaders(readersNum), maxWriters(writersNum),  frameTime(std::chrono::microseconds(0)), 
+    syncMargin(std::chrono::microseconds(DEFAULT_SYNC_MARGIN)), fRole(fRole_), syncTs(std::chrono::microseconds(0)), sync(false)
 {
 }
 
@@ -569,7 +567,6 @@ std::vector<int> BaseFilter::framesSync()
     
     std::chrono::microseconds wallClock = std::chrono::microseconds(0);
     std::chrono::microseconds currentFTime;
-    std::chrono::microseconds margin = std::chrono::microseconds(45000);
     
     for(std::map<int, std::shared_ptr<Reader>>::iterator r = readers.begin() ; r != readers.end(); ){
         if (!r->second){
@@ -577,7 +574,7 @@ std::vector<int> BaseFilter::framesSync()
             continue;
         }
         allReaders.push_back(r->first);
-        if (wallClock < r->second->getCurrentTime()){
+        if (sync && wallClock < r->second->getCurrentTime()){
             wallClock = r->second->getCurrentTime();
         }
         ++r;
@@ -594,16 +591,16 @@ std::vector<int> BaseFilter::framesSync()
             ++r;
             emptyQueue = true;
             continue;
-        }
+        } 
         
-        if (wallClock - margin > currentFTime){
+        if (r->second->isFull() || wallClock - syncMargin > currentFTime){
             framesToPass.push_back(r->first);
         }
         
         ++r;
     }
     
-    if (!framesToPass.empty()  || emptyQueue){
+    if (emptyQueue || !framesToPass.empty()){
         return framesToPass;
     }
 
@@ -802,6 +799,9 @@ void HeadFilter::pushEvent(Event e)
 TailFilter::TailFilter(unsigned readersNum, FilterRole fRole_, bool periodic) :
     BaseFilter(readersNum, 0, fRole_, periodic)
 {
+    //NOTE: it should be set to true in order to force synchronization between inputs, 
+    // all TailFilters should use it.
+    setSync(false);
 }
 
 bool TailFilter::runDoProcessFrame(std::map<int, Frame*> &oFrames, std::map<int, Frame*> &dFrames, std::vector<int> newFrames)

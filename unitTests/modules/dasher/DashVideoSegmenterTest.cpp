@@ -106,7 +106,7 @@ void DashVideoSegmenterAVCTest::setUp()
 
     frameTime = std::chrono::microseconds(40000);
 
-    segmenter = new DashVideoSegmenterAVC(std::chrono::seconds(SEG_DURATION));
+    segmenter = new DashVideoSegmenterAVC(std::chrono::seconds(SEG_DURATION), timestamp);
     dummyNal = InterleavedVideoFrame::createNew(H264, MAX_H264_OR_5_NAL_SIZE);
 
     spsNal = InterleavedVideoFrame::createNew(H264, MAX_H264_OR_5_NAL_SIZE);
@@ -298,10 +298,9 @@ void DashVideoSegmenterAVCTest::generateInitSegment()
 void DashVideoSegmenterAVCTest::appendFrameToDashSegment()
 {
     Frame* frame = NULL;
-    DashSegment* segment = new DashSegment();
     std::chrono::microseconds ts(1000);
 
-    CPPUNIT_ASSERT(!segmenter->appendFrameToDashSegment(segment, frame));
+    CPPUNIT_ASSERT(!segmenter->appendFrameToDashSegment(frame));
 
     idrNal->setPresentationTime(ts);
     idrNal->setSize(WIDTH, HEIGHT);
@@ -313,7 +312,7 @@ void DashVideoSegmenterAVCTest::appendFrameToDashSegment()
     frame = segmenter->manageFrame(audNal);
     CPPUNIT_ASSERT(frame);
 
-    CPPUNIT_ASSERT(segmenter->appendFrameToDashSegment(segment, frame));
+    CPPUNIT_ASSERT(segmenter->appendFrameToDashSegment(frame));
 }
 
 void DashVideoSegmenterAVCTest::generateSegment()
@@ -351,7 +350,7 @@ void DashVideoSegmenterAVCTest::generateSegment()
             break;
         }
 
-        if(!segmenter->appendFrameToDashSegment(segment, frame)) {
+        if(!segmenter->appendFrameToDashSegment(frame)) {
             CPPUNIT_FAIL("Segmenter appendFrameToDashSegment failed when testing general workflow\n");
         }
     }
@@ -411,7 +410,7 @@ void DashVideoSegmenterHEVCTest::setUp()
 
     frameTime = std::chrono::microseconds(40000);
 
-    segmenter = new DashVideoSegmenterHEVC(std::chrono::seconds(SEG_DURATION));
+    segmenter = new DashVideoSegmenterHEVC(std::chrono::seconds(SEG_DURATION), timestamp);
     dummyNal = InterleavedVideoFrame::createNew(H265, MAX_H264_OR_5_NAL_SIZE);
 
     vpsNal = InterleavedVideoFrame::createNew(H265, MAX_H264_OR_5_NAL_SIZE);
@@ -661,10 +660,9 @@ void DashVideoSegmenterHEVCTest::generateInitSegment()
 void DashVideoSegmenterHEVCTest::appendFrameToDashSegment()
 {
     Frame* frame = NULL;
-    DashSegment* segment = new DashSegment();
     std::chrono::microseconds ts(1000);
 
-    CPPUNIT_ASSERT(!segmenter->appendFrameToDashSegment(segment, frame));
+    CPPUNIT_ASSERT(!segmenter->appendFrameToDashSegment(frame));
 
     idr1Nal->setPresentationTime(ts);
     idr1Nal->setSize(WIDTH, HEIGHT);
@@ -676,7 +674,7 @@ void DashVideoSegmenterHEVCTest::appendFrameToDashSegment()
     frame = segmenter->manageFrame(audNal);
     CPPUNIT_ASSERT(frame);
 
-    CPPUNIT_ASSERT(segmenter->appendFrameToDashSegment(segment, frame));
+    CPPUNIT_ASSERT(segmenter->appendFrameToDashSegment(frame));
 }
 
 void DashVideoSegmenterHEVCTest::generateSegment()
@@ -716,7 +714,7 @@ void DashVideoSegmenterHEVCTest::generateSegment()
             break;
         }
 
-        if(!segmenter->appendFrameToDashSegment(segment, frame)) {
+        if(!segmenter->appendFrameToDashSegment(frame)) {
             CPPUNIT_FAIL("Segmenter appendFrameToDashSegment failed when testing general workflow\n");
         }
     }

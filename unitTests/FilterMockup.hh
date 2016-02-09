@@ -400,7 +400,7 @@ private:
     FrameQueue *allocQueue(struct ConnectionData cData) {
         return AudioCircularBuffer::createNew(cData, outputStreamInfo->audio.channels,
                 outputStreamInfo->audio.sampleRate, DEFAULT_BUFFER_SIZE,
-                outputStreamInfo->audio.sampleFormat, std::chrono::milliseconds(0));
+                outputStreamInfo->audio.sampleFormat);
     };
         
     //There is no need of specific reader configuration

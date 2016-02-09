@@ -29,13 +29,12 @@
 #include <mutex>
 
 #define DEFAULT_BUFFER_SIZE 32768 //samples (~600ms at 48KHz)
-#define BUFFERING_THRESHOLD 40 //ms
 
 
  class AudioCircularBuffer : public FrameQueue {
 
 public:
-    static AudioCircularBuffer* createNew(struct ConnectionData cData, unsigned ch, unsigned sRate, unsigned maxSamples, SampleFmt sFmt, std::chrono::milliseconds bufferingThreshold);
+    static AudioCircularBuffer* createNew(struct ConnectionData cData, unsigned ch, unsigned sRate, unsigned maxSamples, SampleFmt sFmt);
     ~AudioCircularBuffer();
     void setOutputFrameSamples(int samples); 
 
@@ -79,12 +78,6 @@ public:
     int getFreeSamples();
     
     /**
-     * Sets the buffering threshold in order to start providing output frames. This number is a tradeoff
-     * between latency and stability.
-     */
-    void setBufferingThreshold(std::chrono::milliseconds th);
-    
-    /**
      * returns the maximum number of samples per channel.
      * @return max number of samples.
      */
@@ -93,7 +86,13 @@ public:
     /**
     * See FrameQueue::getElements
     */
-    unsigned getElements();
+    unsigned getElements() const;
+    
+    /**
+    * Tests if the current queue is full or not
+    * @return true if the number of elements exceeds the threshold level
+    */
+    bool isFull() const;
 
 private:
     AudioCircularBuffer(struct ConnectionData cData, unsigned ch, unsigned sRate, unsigned maxSamples, SampleFmt sFmt);
@@ -112,8 +111,6 @@ private:
     unsigned char *data[MAX_CHANNELS];
     SampleFmt sampleFormat;
     bool fillNewFrame;
-
-    unsigned samplesBufferingThreshold;
 
     PlanarAudioFrame* inputFrame;
     PlanarAudioFrame* outputFrame;

@@ -200,6 +200,12 @@ public:
     * @return presentation time
     */
     std::chrono::microseconds getCurrentTime();
+    
+    /**
+     * Returns true if the queue can be considered full. It is a wrapper of isFull method of FrameQueue
+     * @return true if the queue is considered to be full, false otherwise.
+     */
+    bool isFull() const;
 
 protected:
     FrameQueue *queue;

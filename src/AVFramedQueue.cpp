@@ -96,7 +96,7 @@ Frame* AVFramedQueue::forceGetRear()
 {
     Frame *frame;
     while ((frame = getRear()) == NULL) {
-        utils::debugMsg("Frame discarted by AVFramedQueue");
+        utils::warningMsg("Frame discarted by AVFramedQueue " + std::to_string(connectionData.wFilterId) + " " + std::to_string((float)getElements()/max));
         flush();
     }
     return frame;
@@ -107,11 +107,15 @@ Frame* AVFramedQueue::forceGetFront()
     return frames[(front + (max - 1)) % max]; 
 }
 
-unsigned AVFramedQueue::getElements()
+unsigned AVFramedQueue::getElements() const
 {
     return front > rear ? (max - front + rear) : (rear - front);
 }
 
+bool AVFramedQueue::isFull() const
+{
+    return ((float) getElements())/max >= FULL_THRESHOLD;
+}
 
 ////////////////////////////////////////////
 //VIDEO FRAME QUEUE METHODS IMPLEMENTATION//

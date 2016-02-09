@@ -23,8 +23,8 @@
 
  #include "DashAudioSegmenter.hh"
 
-DashAudioSegmenter::DashAudioSegmenter(std::chrono::seconds segDur) :
-DashSegmenter(segDur, 0)
+DashAudioSegmenter::DashAudioSegmenter(std::chrono::seconds segDur, std::chrono::microseconds offset) :
+DashSegmenter(segDur, 0, offset)
 {
 
 }
@@ -127,7 +127,7 @@ unsigned DashAudioSegmenter::customGenerateSegment(unsigned char *segBuffer, std
     return segSize;
 }
 
-bool DashAudioSegmenter::appendFrameToDashSegment(DashSegment* segment, Frame* frame)
+bool DashAudioSegmenter::appendFrameToDashSegment(Frame* frame)
 {
     unsigned char* dataWithoutADTS;
     size_t dataLengthWithoutADTS;
@@ -137,10 +137,6 @@ bool DashAudioSegmenter::appendFrameToDashSegment(DashSegment* segment, Frame* f
     if (!frame || !frame->getDataBuf() || frame->getLength() <= 0 || !dashContext) {
         utils::errorMsg("Error appeding frame to segment: frame not valid");
         return false;
-    }
-    
-    if (dashContext->ctxaudio->segment_data_size == 0 && currentTimestamp == 0){
-        tsOffset = frame->getPresentationTime();
     }
     
     timeBasePts = microsToTimeBase(frame->getPresentationTime());

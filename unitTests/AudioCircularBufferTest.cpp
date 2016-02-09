@@ -68,12 +68,11 @@ protected:
     const unsigned maxSamples = 320;
     const SampleFmt format = S16P;
     const unsigned bytesPerSample = 2;
-    std::chrono::milliseconds buffering = std::chrono::milliseconds(0);
 };
 
 void AudioCircularBufferTest::setUp()
 {
-    buffer = AudioCircularBuffer::createNew(cData, channels, sampleRate, maxSamples, format, buffering);
+    buffer = AudioCircularBuffer::createNew(cData, channels, sampleRate, maxSamples, format);
 
     if (!buffer) {
         CPPUNIT_FAIL("AudioCircularBufferTest failed. Error creating AudioCircularBuffer in setUp()\n");
@@ -93,19 +92,19 @@ void AudioCircularBufferTest::create()
     SampleFmt badFormat = FLT;
     AudioCircularBuffer* tmpbuffer;
 
-    tmpbuffer = AudioCircularBuffer::createNew(cData, badChannels, sampleRate, maxSamples, format, buffering);
+    tmpbuffer = AudioCircularBuffer::createNew(cData, badChannels, sampleRate, maxSamples, format);
     CPPUNIT_ASSERT(!tmpbuffer);
 
-    tmpbuffer = AudioCircularBuffer::createNew(cData, channels, badSampleRate, maxSamples, format, buffering);
+    tmpbuffer = AudioCircularBuffer::createNew(cData, channels, badSampleRate, maxSamples, format);
     CPPUNIT_ASSERT(!tmpbuffer);
     
-    tmpbuffer = AudioCircularBuffer::createNew(cData, channels, sampleRate, badMaxSamples, format, buffering);
+    tmpbuffer = AudioCircularBuffer::createNew(cData, channels, sampleRate, badMaxSamples, format);
     CPPUNIT_ASSERT(!tmpbuffer);
 
-    tmpbuffer = AudioCircularBuffer::createNew(cData, channels, badSampleRate, maxSamples, badFormat, buffering);
+    tmpbuffer = AudioCircularBuffer::createNew(cData, channels, badSampleRate, maxSamples, badFormat);
     CPPUNIT_ASSERT(!tmpbuffer);
 
-    tmpbuffer = AudioCircularBuffer::createNew(cData, channels, sampleRate, maxSamples, format, buffering);
+    tmpbuffer = AudioCircularBuffer::createNew(cData, channels, sampleRate, maxSamples, format);
     CPPUNIT_ASSERT(tmpbuffer);
 
     delete tmpbuffer;

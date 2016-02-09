@@ -40,6 +40,7 @@
 #define DEFAULT_ID 1                /*!< Default ID for unique filter's readers and/or writers. */
 #define MAX_WRITERS 16              /*!< Default maximum writers for a filter. */
 #define MAX_READERS 16              /*!< Default maximum readers for a filter. */
+#define WAIT 1000                   /*!< Default wait time in usec when there are no origin or destionation frames */
 
 /*! Generic filter class methods. It is an interface to different specific filters
     so it cannot be instantiated
@@ -189,9 +190,6 @@ public:
      * @return the losts blocs of the reader
      */
     size_t getLostBlocs (int rId);
-    
-    
-    void setSync(bool sync_){sync = sync_;};
 
 protected:
     BaseFilter(unsigned readersNum = MAX_READERS, unsigned writersNum = MAX_WRITERS, FilterRole fRole_ = REGULAR, bool periodic = false);
@@ -228,6 +226,8 @@ protected:
     void setSyncTs(std::chrono::microseconds ts){syncTs = ts;};
     std::chrono::microseconds getSyncTs(){return syncTs;};
     
+    void setSync(bool sync_){sync = sync_;};
+    
 protected:
     std::map<int, std::shared_ptr<Reader>> readers;
     std::map<int, std::shared_ptr<Writer>> writers;
@@ -237,6 +237,7 @@ protected:
     const unsigned maxReaders;
     const unsigned maxWriters;
     std::chrono::microseconds frameTime;
+    const std::chrono::microseconds syncMargin;
 
 private:
     bool connect(BaseFilter *R, int writerID, int readerID);

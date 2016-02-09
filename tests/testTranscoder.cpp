@@ -75,17 +75,6 @@ void addAudioPath(unsigned port, int receiverID, int transmitterID)
 
     pipe->addFilter(encId, encoder);
     
-    if (!pipe->createPath(BYPASS_AUDIO_PATH, receiverID, transmitterID, port, BYPASS_AUDIO_PATH, std::vector<int>({}))) {
-        utils::errorMsg("Error creating audio path");
-        return;
-    }
-
-    if (!pipe->connectPath(BYPASS_AUDIO_PATH)) {
-        utils::errorMsg("Failed! Path not connected");
-        pipe->removePath(port);
-        return;
-    }
-    
     if (!pipe->createPath(port, receiverID, transmitterID, port, -1, ids)) {
         utils::errorMsg("Error creating audio path");
         return;
@@ -130,19 +119,8 @@ void addVideoPath(unsigned port, int receiverID, int transmitterID)
     pipe->addFilter(encId, encoder);
 
     //bitrate, fps, gop, lookahead, threads, annexB, preset
-    encoder->configure(4000, 0, 25, 15, 4, true, "superfast");
-    
-    if (!pipe->createPath(BYPASS_VIDEO_PATH, receiverID, transmitterID, port, BYPASS_VIDEO_PATH, std::vector<int>({}))) {
-        utils::errorMsg("Error creating video path");
-        return;
-    }
-
-    if (!pipe->connectPath(BYPASS_VIDEO_PATH)) {
-        utils::errorMsg("Failed! Path not connected");
-        pipe->removePath(port);
-        return;
-    }
-    
+    encoder->configure(4000, 0, 25, 25, 4, true, "superfast");
+        
     if (!pipe->createPath(port, receiverID, transmitterID, port, -1, ids)) {
         utils::errorMsg("Error creating video path");
         return;
@@ -269,36 +247,21 @@ bool addRTSPsession(std::string rtspUri, SourceManager *receiver, int receiverID
     return true;
 }
 
-bool publishRTSPSession(std::vector<int> readers, SinkManager *transmitter)
+bool publishRTSPSession(std::vector<int> readers, SinkManager *transmitter, int id)
 {
     std::string sessionId;
     std::vector<int> byPassReaders;
 
     sessionId = "plainrtp";
     utils::infoMsg("Adding plain RTP session...");
-    if (!transmitter->addRTSPConnection(readers, 1, STD_RTP, sessionId)){
+    if (!transmitter->addRTSPConnection(readers, id, STD_RTP, sessionId)){
         return false;
     }
 
     sessionId = "mpegts";
-    utils::infoMsg("Adding plain MPEGTS session...");
-    if (!transmitter->addRTSPConnection(readers, 2, MPEGTS, sessionId)){
-        return false;
-    }
-
-    
-    if (transmitter->isRConnected(BYPASS_AUDIO_PATH)){
-        byPassReaders.push_back(BYPASS_AUDIO_PATH);
-    }
-    
-    if (transmitter->isRConnected(BYPASS_VIDEO_PATH)){
-        byPassReaders.push_back(BYPASS_VIDEO_PATH);
-    }
-    
-    sessionId = "bypass";
-    utils::infoMsg("Adding bypass session...");
-    if (!transmitter->addRTSPConnection(byPassReaders, 3, STD_RTP, sessionId)){
-        return false;
+    utils::infoMsg("Adding MPEGTS session...");
+    if (!transmitter->addRTSPConnection(readers, id + 1, MPEGTS, sessionId)){
+        utils::warningMsg("Couldn't publish " + sessionId + " session");
     }
     
     return true;
@@ -314,8 +277,8 @@ int main(int argc, char* argv[])
     std::string rtspUri;
     std::vector<int> readers;
 
-    int transmitterID = 1024;
     int receiverID = 1023;
+    int transmitterID = 1024;
 
     SinkManager* transmitter = NULL;
     SourceManager* receiver = NULL;
@@ -351,7 +314,6 @@ int main(int argc, char* argv[])
         return 1;
     }
 
-    receiver = new SourceManager();
     pipe = Controller::getInstance()->pipelineManager();
     
     transmitter = SinkManager::createNew();
@@ -359,8 +321,10 @@ int main(int argc, char* argv[])
         utils::errorMsg("RTSPServer constructor failed");
         return 1;
     }
+    
+    receiver = new SourceManager();
 
-    pipe->addFilter(transmitterID, transmitter);        
+    pipe->addFilter(transmitterID, transmitter);
     pipe->addFilter(receiverID, receiver);
 
     signal(SIGINT, signalHandler);
@@ -383,7 +347,7 @@ int main(int argc, char* argv[])
     }
 
     for (auto it : pipe->getPaths()) {
-        if (it.second->getDstReaderID() != BYPASS_VIDEO_PATH && it.second->getDstReaderID() != BYPASS_AUDIO_PATH){
+        if (it.second->getDestinationFilterID() == transmitterID){
             readers.push_back(it.second->getDstReaderID());
         }
     }
@@ -393,7 +357,7 @@ int main(int argc, char* argv[])
         return 1;
     }
 
-    if (!publishRTSPSession(readers, transmitter)){
+    if (!publishRTSPSession(readers, transmitter, 1)){
         utils::errorMsg("Failed adding RTSP sessions!");
         return 1;
     }

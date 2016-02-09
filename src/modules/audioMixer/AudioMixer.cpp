@@ -59,7 +59,7 @@ AudioMixer::~AudioMixer()
 FrameQueue *AudioMixer::allocQueue(ConnectionData cData) 
 {
     return AudioCircularBuffer::createNew(cData, channels, sampleRate, DEFAULT_BUFFER_SIZE, 
-                                            sampleFormat, std::chrono::milliseconds(0));
+                                            sampleFormat);
 }
 
 bool AudioMixer::doProcessFrame(std::map<int, Frame*> &orgFrames, Frame *dst, std::vector<int> newFrames) 

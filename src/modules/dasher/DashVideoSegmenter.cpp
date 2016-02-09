@@ -25,8 +25,8 @@
 
  #include "DashVideoSegmenter.hh"
 
-DashVideoSegmenter::DashVideoSegmenter(std::chrono::seconds segDur, std::string video_format_) : 
-DashSegmenter(segDur, DASH_VIDEO_TIME_BASE), 
+DashVideoSegmenter::DashVideoSegmenter(std::chrono::seconds segDur, std::string video_format_, std::chrono::microseconds offset) : 
+DashSegmenter(segDur, DASH_VIDEO_TIME_BASE, offset), 
 currentIntra(false), previousIntra(false), video_format(video_format_)
 {
 
@@ -125,7 +125,7 @@ unsigned DashVideoSegmenter::customGenerateSegment(unsigned char *segBuffer, std
     return generate_video_segment(isPreviousFrameIntra(), timeBasePts, segBuffer, &dashContext, &segTimestamp, &segDuration);
 }
 
-bool DashVideoSegmenter::appendFrameToDashSegment(DashSegment* segment, Frame* frame)
+bool DashVideoSegmenter::appendFrameToDashSegment(Frame* frame)
 {
     size_t addSampleReturn;
     size_t timeBasePts;
@@ -135,10 +135,6 @@ bool DashVideoSegmenter::appendFrameToDashSegment(DashSegment* segment, Frame* f
         return false;
     }
     
-    if (dashContext->ctxvideo->segment_data_size == 0 && currentTimestamp == 0){
-        tsOffset = frame->getPresentationTime();
-    }
-
     timeBasePts = microsToTimeBase(frame->getPresentationTime());
 
     addSampleReturn = add_video_sample(frame->getDataBuf(), frame->getLength(), timeBasePts, 

@@ -69,13 +69,19 @@ public:
     /**
     * See FrameQueue::getElements
     */
-    unsigned getElements();
+    unsigned getElements() const;
 
     /**
      * The maximum number of frames allocated during construction. Used for replication, basically.
      * @returns the #maxFrames parameter using at construction
      */
     unsigned getMaxFrames() const {return max;}
+    
+    /**
+    * Tests if the current queue is full or not
+    * @return true if the number of elements exceeds the threshold level
+    */
+    bool isFull() const;
 
     virtual ~AVFramedQueue();
 

@@ -36,8 +36,7 @@
 #include "StreamInfo.hh"
 #include "Utils.hh"
 
-#define SLOW_THRESHOLD 0.4
-#define FAST_THRESHOLD 0.6
+#define FULL_THRESHOLD 0.9
 
 /*! FrameQueue class is pure abstract class that represents buffering structure
     of the pipeline
@@ -156,7 +155,13 @@ public:
     * Get number of elements in the queue
     * @return elements
     */
-    virtual unsigned getElements() = 0;
+    virtual unsigned getElements() const = 0;
+    
+    /**
+    * Tests if the current queue is full or not
+    * @return true if the number of elements exceeds the threshold level
+    */
+    virtual bool isFull() const = 0;
     
     /**
     * Gets the connection cData.

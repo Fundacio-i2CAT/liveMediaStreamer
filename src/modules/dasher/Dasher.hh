@@ -147,11 +147,9 @@ public:
     * Class constructor
     * @param segDur Segment duration in tBase units
     * @param tBase segDur timeBase
-    * @param segBaseName Base name for the segments. Segment names will be: segBaseName_<timestamp>.segExt and segBaseName_init.segExt
-    * @param segExt segment file extension (.m4v for video and .m4a for audio)
     * @param offset timestamp of the current dash session
     */
-    DashSegmenter(std::chrono::seconds segmentDuration, size_t tBase);
+    DashSegmenter(std::chrono::seconds segmentDuration, size_t tBase, std::chrono::microseconds offset);
 
     /**
     * Class destructor
@@ -168,7 +166,7 @@ public:
     */
     virtual bool generateInitSegment(DashSegment* segment) = 0;
 
-    virtual bool appendFrameToDashSegment(DashSegment* segment, Frame* frame) = 0;
+    virtual bool appendFrameToDashSegment(Frame* frame) = 0;
     bool generateSegment(DashSegment* segment, Frame* frame, bool force = false);
     /**
     * Returns average frame duration
@@ -189,11 +187,17 @@ public:
     size_t getSegmentTimestamp();
 
     /**
+    * Sets the timestamp offset of the segmenter
+    * @param microseconds timestamp in microseconds
+    */
+    void setOffset(std::chrono::microseconds offset) {tsOffset = offset;};
+    
+    /**
     * Return the segment duration
     * @return segment duration in timeBase units
     */
-    std::chrono::seconds getsegDur() {return segDur;};
     size_t getSegDurInTimeBaseUnits() {return segDurInTimeBaseUnits;};
+    
     virtual bool flushDashContext() = 0;
 
     void setBitrate(size_t bps) {bitrateInBitsPerSec = bps;};
@@ -206,7 +210,6 @@ protected:
     std::string getInitSegmentName();
     std::string getSegmentName();
     size_t customTimestamp(std::chrono::system_clock::time_point timestamp);
-    //size_t nanosToTimeBase(std::chrono::nanoseconds nanosValue);
     size_t microsToTimeBase(std::chrono::microseconds microValue);
 
     std::chrono::seconds segDur;
@@ -261,7 +264,7 @@ public:
     */
     void setSeqNumber(size_t seqNum);
 
-    /**
+    /**setSegmentsOffset
     * @return Segment sequence number
     */
     size_t getSeqNumber(){return seqNumber;};

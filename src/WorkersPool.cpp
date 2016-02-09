@@ -24,11 +24,13 @@
 #include "WorkersPool.hh"
 #include "Utils.hh"
 
+#define HW_CONC_FACTOR 2
+
 WorkersPool::WorkersPool(size_t threads) : run(true)
 {
     if (threads == 0 || 
-        threads > std::thread::hardware_concurrency()){
-        threads = std::thread::hardware_concurrency();
+        threads > std::thread::hardware_concurrency()*HW_CONC_FACTOR){
+        threads = std::thread::hardware_concurrency()*HW_CONC_FACTOR;
     }
     
     utils::infoMsg("starting "  + std::to_string(threads) + " threads");

@@ -24,8 +24,8 @@
 
 #include "DashVideoSegmenterHEVC.hh"
 
-DashVideoSegmenterHEVC::DashVideoSegmenterHEVC(std::chrono::seconds segDur) : 
-DashVideoSegmenter(segDur, VIDEO_CODEC_HEVC)
+DashVideoSegmenterHEVC::DashVideoSegmenterHEVC(std::chrono::seconds segDur, std::chrono::microseconds offset) : 
+DashVideoSegmenter(segDur, VIDEO_CODEC_HEVC, offset)
 {
     vFrame = InterleavedVideoFrame::createNew(H265, LENGTH_H264_FRAME);
     tmpFrame = InterleavedVideoFrame::createNew(H265, LENGTH_H264_FRAME);

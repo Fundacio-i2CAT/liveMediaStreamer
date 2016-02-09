@@ -36,11 +36,10 @@
 #include <math.h>
 
 Dasher::Dasher(unsigned readersNum) :
-TailFilter(readersNum), mpdMngr(NULL), hasVideo(false), videoStarted(false)
+TailFilter(readersNum), mpdMngr(NULL), hasVideo(false), videoStarted(false), timestampOffset(std::chrono::microseconds(0))
 {
     fType = DASHER;
     initializeEventMap();
-    timestampOffset = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now().time_since_epoch());
 }
 
 Dasher::~Dasher()
@@ -101,6 +100,13 @@ bool Dasher::doProcessFrame(std::map<int, Frame*> &orgFrames, std::vector<int> n
         if (!segmenter) {
             continue;
         }
+        
+        if (timestampOffset.count() == 0){
+            timestampOffset = orgFrames[id]->getPresentationTime();
+            for(auto seg : segmenters){
+                seg.second->setOffset(timestampOffset);
+            }
+        }
 
         frame = segmenter->manageFrame(orgFrames[id]);
 
@@ -127,7 +133,7 @@ bool Dasher::doProcessFrame(std::map<int, Frame*> &orgFrames, std::vector<int> n
         utils::debugMsg("[Dasher::doProcessFrame] Video segments to disk");
     }
 
-    if (writeAudioSegments() && !hasVideo) {
+    if (writeAudioSegments()) {
         utils::debugMsg("[Dasher::doProcessFrame] Audio segments to disk");
     }
 
@@ -141,23 +147,16 @@ bool Dasher::appendFrameToSegment(size_t id, Frame* frame, DashSegmenter* segmen
 
     if ((vSeg = dynamic_cast<DashVideoSegmenter*>(segmenter)) != NULL) {
 
-        if (!vSeg->appendFrameToDashSegment(vSegments[id], frame)) {
+        if (!vSeg->appendFrameToDashSegment(frame)) {
             utils::errorMsg("Error appending video frame to segment");
             return false;
         }
 
-        videoStarted = true;
     }   
 
     if ((aSeg = dynamic_cast<DashAudioSegmenter*>(segmenter)) != NULL) {
 
-        if (hasVideo && !videoStarted) {
-            mpdMngr->flushAdaptationSetTimestamps(A_ADAPT_SET_ID);
-            aSeg->flushDashContext();
-            return true;
-        }
-
-        if (!aSeg->appendFrameToDashSegment(aSegments[id], frame)) {
+        if (!aSeg->appendFrameToDashSegment(frame)) {
             utils::errorMsg("Error appending audio frame to segment");
             return false;
         }
@@ -223,8 +222,8 @@ bool Dasher::generateSegment(size_t id, Frame* frame, DashSegmenter* segmenter)
 
     }
 
-    if ((aSeg = dynamic_cast<DashAudioSegmenter*>(segmenter)) != NULL) {
-
+    if (!hasVideo && (aSeg = dynamic_cast<DashAudioSegmenter*>(segmenter)) != NULL) {
+        
         if (!aSeg->generateSegment(aSegments[id], frame)) {
             return false;
         }
@@ -333,7 +332,6 @@ bool Dasher::forceAudioSegmentsGeneration()
     DashAudioSegmenter* aSeg;
 
     for (auto seg : aSegments) {
-
         segmenter = getSegmenter(seg.first);
 
         if (!segmenter) {
@@ -498,9 +496,9 @@ bool Dasher::specificReaderConfig(int readerId, FrameQueue* queue)
         }
 
         if (vQueue->getStreamInfo()->video.codec == H264) {
-            segmenters[readerId] = new DashVideoSegmenterAVC(segDur);
+            segmenters[readerId] = new DashVideoSegmenterAVC(segDur, timestampOffset);
         } else if (vQueue->getStreamInfo()->video.codec == H265) {
-            segmenters[readerId] = new DashVideoSegmenterHEVC(segDur);
+            segmenters[readerId] = new DashVideoSegmenterHEVC(segDur, timestampOffset);
         } else {
             utils::errorMsg("Error setting dasher video segmenter: only H264 & H265 codecs are supported for video");
             return false;
@@ -517,7 +515,7 @@ bool Dasher::specificReaderConfig(int readerId, FrameQueue* queue)
             return false;
         }
 
-        segmenters[readerId] = new DashAudioSegmenter(segDur);
+        segmenters[readerId] = new DashAudioSegmenter(segDur, timestampOffset);
         aSegments[readerId] = new DashSegment();
         initSegments[readerId] = new DashSegment();
     }
@@ -605,9 +603,9 @@ bool Dasher::setDashSegmenterBitrate(int id, size_t bps)
 // DashSegmenter //
 ///////////////////
 
-DashSegmenter::DashSegmenter(std::chrono::seconds segmentDuration, size_t tBase) :
-segDur(segmentDuration), dashContext(NULL), timeBase(tBase), frameDuration(0), currentTimestamp(0), 
-sequenceNumber(0), bitrateInBitsPerSec(0), tsOffset(std::chrono::microseconds(0))
+DashSegmenter::DashSegmenter(std::chrono::seconds segmentDuration, size_t tBase, std::chrono::microseconds offset) :
+segDur(segmentDuration), dashContext(NULL), timeBase(tBase), frameDuration(0), currentTimestamp(0),
+sequenceNumber(0), bitrateInBitsPerSec(0), tsOffset(offset)
 {
     segDurInTimeBaseUnits = segDur.count()*timeBase;
 }
@@ -639,23 +637,24 @@ bool DashSegmenter::generateSegment(DashSegment* segment, Frame* frame, bool for
     if (segmentSize <= I2ERROR_MAX) {
         return false;
     }
-
-    segment->setTimestamp(currentTimestamp);
+    
+    segment->setTimestamp(segTimestamp);
     segment->setDuration(segDuration);
     segment->setDataLength(segmentSize);
     segment->setComplete(true);
     segment->setSeqNumber(++sequenceNumber);
+    
+    if (currentTimestamp != segDuration){
+        currentTimestamp = segTimestamp;
+    }
+    
     currentTimestamp += segDuration;
     return true;
 }
 
 size_t DashSegmenter::microsToTimeBase(std::chrono::microseconds microValue)
 {
-    //if (microValue > tsOffset){
-        return (microValue-tsOffset).count()*timeBase/std::micro::den;
-    //} else {
-    //    return microValue.count()*timeBase/std::micro::den;
-    //}
+    return (microValue-tsOffset).count()*timeBase/std::micro::den;
 }
 
 

@@ -263,6 +263,11 @@ std::chrono::microseconds Reader::getCurrentTime()
     return std::chrono::microseconds(0);
 }
 
+bool Reader::isFull() const
+{
+    return queue->isFull(); 
+}
+
 
 
 /////////////////////////

@@ -801,7 +801,7 @@ TailFilter::TailFilter(unsigned readersNum, FilterRole fRole_, bool periodic) :
 {
     //NOTE: it should be set to true in order to force synchronization between inputs, 
     // all TailFilters should use it.
-    setSync(false);
+    setSync(true);
 }
 
 bool TailFilter::runDoProcessFrame(std::map<int, Frame*> &oFrames, std::map<int, Frame*> &dFrames, std::vector<int> newFrames)

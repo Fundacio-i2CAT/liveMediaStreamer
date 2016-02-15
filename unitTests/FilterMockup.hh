@@ -241,6 +241,7 @@ class TailFilterMockup : public TailFilter
 public:
     TailFilterMockup() : TailFilter(), frames(0), frame(NULL), newFrame(false) {
         frame = FrameMock::createNew(0);
+        setSync(false);
     };
     
     Frame* extract(){

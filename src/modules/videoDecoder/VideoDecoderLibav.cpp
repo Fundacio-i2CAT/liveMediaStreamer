@@ -82,7 +82,8 @@ bool VideoDecoderLibav::doProcessFrame(Frame *org, Frame *dst)
         len = avcodec_decode_video2(codecCtx, frame, &gotFrame, &pkt);
 
         if(len < 0) {
-            utils::errorMsg("Decoding video frame");
+            utils::errorMsg("Decoding video frame, reconfiguring decoder");
+            inputConfig();
             return false;
         }
 

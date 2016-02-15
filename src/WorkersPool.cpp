@@ -39,7 +39,7 @@ WorkersPool::WorkersPool(size_t threads) : run(true)
         workers.push_back(
             std::thread([this](unsigned int j){
                 Runnable* job = NULL;
-                std::list<Runnable*>::iterator iter;
+                std::set<Runnable*>::iterator iter;
                 std::vector<int> enabledJobs;
                 bool added = false;
                 
@@ -87,10 +87,10 @@ WorkersPool::WorkersPool(size_t threads) : run(true)
                     }
                     
                     if (job->isPeriodic()){
-                        jobQueue.push_back(job);
-                        jobQueue.sort(RunnableLess());
+                        jobQueue.insert(job);
                         added = true;
                     }
+
                     
                     guard.unlock();
                     if (added){
@@ -129,8 +129,7 @@ bool WorkersPool::addTask(Runnable* const task)
     std::unique_lock<std::mutex> guard(mtx);
     if (runnables.count(id) == 0){
         runnables[id] = task;
-        jobQueue.push_back(task);
-        jobQueue.sort(RunnableLess());
+        jobQueue.insert(task);
         guard.unlock();
         qCheck.notify_one();
         return true;
@@ -140,17 +139,9 @@ bool WorkersPool::addTask(Runnable* const task)
 
 bool WorkersPool::removeTask(const int id)
 {
-    Runnable* runnable;
     std::unique_lock<std::mutex> guard(mtx);
     if (runnables.count(id) > 0){
-        runnable = runnables[id];
         runnables.erase(id);
-        removeFromQueue(id);
-        while(runnable->isRunning()){
-            qCheck.wait_for(guard, std::chrono::milliseconds(IDLE));
-            utils::warningMsg("waiting runnable to finish");
-        }
-        removeFromQueue(id);
         guard.unlock();
         qCheck.notify_one();
         return true;
@@ -159,26 +150,11 @@ bool WorkersPool::removeTask(const int id)
     return false;
 }
 
-bool WorkersPool::removeFromQueue(int id)
-{
-    std::list<Runnable*>::iterator iter;
-    bool found = false;
-    iter = jobQueue.begin();
-    while (iter != jobQueue.end()){
-        if ((*iter)->getId() == id){
-            iter = jobQueue.erase(iter);
-            found = true;
-        }
-        iter++;
-    }
-    return found;
-}
 
 bool WorkersPool::addJob(const int id)
 {
     if (runnables.count(id) > 0 && !runnables[id]->isPeriodic() && !runnables[id]->isRunning()){
-        jobQueue.push_back(runnables[id]);
-        jobQueue.sort(RunnableLess());
+        jobQueue.insert(runnables[id]);
         return true;
     }
     return false;

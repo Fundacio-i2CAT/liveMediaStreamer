@@ -27,7 +27,7 @@
 #include <mutex>
 #include <condition_variable>
 #include <map>
-#include <list>
+#include <set>
 
 #include "Runnable.hh"
 
@@ -46,14 +46,13 @@ public:
     
 private:
     bool addJob(int id);
-    bool removeFromQueue(int id);
 
 private:
     std::vector<std::thread>    workers;
     std::mutex                  mtx;
     std::condition_variable     qCheck;
     std::map<int, Runnable*>    runnables;
-    std::list<Runnable*>        jobQueue;
+    std::set<Runnable*, RunnableLess>        jobQueue;
     bool                        run;
 };
 

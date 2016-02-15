@@ -1,5 +1,5 @@
 /*
- *  VideoSplitter
+ *  VideoSplitter.cpp - Class to handle crops of video 
  *	Copyright (C) 2015  Fundació i2CAT, Internet i Innovació digital a Catalunya
  *
  *  This file is part of media-streamer.
@@ -124,7 +124,6 @@ bool VideoSplitter::doProcessFrame(Frame *org, std::map<int, Frame *> &dstFrames
 	int yROI = -1;
 	int widthROI = 0;
 	int heightROI = 0;
-	//int degreeCrop = 0;
 	VideoFrame *vFrame;
 	VideoFrame *vFrameDst;
 
@@ -142,42 +141,13 @@ bool VideoSplitter::doProcessFrame(Frame *org, std::map<int, Frame *> &dstFrames
 		yROI = cropsConfig[it.first]->getY();
 		widthROI = cropsConfig[it.first]->getWidth();
 		heightROI = cropsConfig[it.first]->getHeight();
-		//degreeCrop = cropsConfig[it.first]->getDegree();
 
 		if((xROI >= 0 || yROI >= 0 || widthROI > 0 || heightROI > 0) && xROI+widthROI <= vFrame->getWidth() && yROI+heightROI <= vFrame->getHeight()){
 			vFrameDst = dynamic_cast<VideoFrame*>(it.second);
 			cropsConfig[it.first]->getCrop()->data = vFrameDst->getDataBuf();
 			vFrameDst->setLength(widthROI * heightROI);
     		vFrameDst->setSize(widthROI, heightROI);
-
-    		//Sin degree
     		orgFrame(cv::Rect(xROI, yROI, widthROI, heightROI)).copyTo(cropsConfig[it.first]->getCropRect(0, 0, widthROI, heightROI));
-    		
-    		//Con degree
-    		/*if (degreeCrop == 0){
-    			orgFrame(cv::Rect(xROI, yROI, widthROI, heightROI)).copyTo(cropsConfig[it.first]->getCropRect(0, 0, widthROI, heightROI));
-			} else {
-				cv::Mat rotationMatrix, rotatedImage;
-				cv::Point orgFrameCenter(orgFrame.cols/2, orgFrame.rows/2);
-				rotationMatrix = cv::getRotationMatrix2D(orgFrameCenter, degreeCrop, 1.0);
-				cv::Rect bbox = cv::RotatedRect(orgFrameCenter,orgFrame.size(), degreeCrop).boundingRect();
-				rotationMatrix.at<double>(0,2) += bbox.width/2.0 - orgFrameCenter.x;
-    			rotationMatrix.at<double>(1,2) += bbox.height/2.0 - orgFrameCenter.y;
-
-    			float limit = rotationMatrix.at<double>(0,2);
-				float limitWidth = bbox.width - limit;
-				float limitHeight = bbox.height - limit;
-				if(xROI+yROI < limit || ((yROI + heightROI - limit) / (xROI)) > ((bbox.height - limit) / (limitWidth))
-					|| (yROI + heightROI - bbox.height) / (xROI + widthROI - limitWidth) > (limitHeight - bbox.height) / (bbox.width - limitWidth)
-					|| yROI / (xROI + widthROI - limit) < limitHeight / (bbox.width - limit)
-				){
-					utils::warningMsg("[VideoSplitter] Crop out of scope");
-				} else {
-					cv::warpAffine(orgFrame, rotatedImage, rotationMatrix, bbox.size());
-					rotatedImage(cv::Rect(xROI, yROI, widthROI, heightROI)).copyTo(cropsConfig[it.first]->getCropRect(0, 0, widthROI, heightROI));
-				}
-				
-			}*/
 			it.second->setConsumed(true);
 			it.second->setPresentationTime(org->getPresentationTime());
 			it.second->setOriginTime(org->getOriginTime());

@@ -70,7 +70,7 @@ void HeadDemuxerLibav::reset()
     buffer = NULL;
 
     if (av_pkt.data) {
-        av_free_packet(&av_pkt);
+        av_packet_unref(&av_pkt);
     }
 
     // Free stream infos
@@ -118,7 +118,7 @@ bool HeadDemuxerLibav::doProcessFrame(std::map<int, Frame*> &dstFrames)
         }
         if (privateStreamInfos.count(av_pkt.stream_index) == 0) {
             // Unknown stream? weird...
-            av_free_packet(&av_pkt);
+            av_packet_unref(&av_pkt);
             return false;
         }
         bufferOffset = 0;
@@ -134,7 +134,7 @@ bool HeadDemuxerLibav::doProcessFrame(std::map<int, Frame*> &dstFrames)
                     NULL, &buffer, &bufferSize, av_pkt.data,
                     av_pkt.size, av_pkt.flags & AV_PKT_FLAG_KEY);
             if (res < 0) {
-                av_free_packet(&av_pkt);
+                av_packet_unref(&av_pkt);
                 buffer = 0;
                 return false;
             }
@@ -159,7 +159,7 @@ bool HeadDemuxerLibav::doProcessFrame(std::map<int, Frame*> &dstFrames)
             free(buffer);
         }
         buffer = NULL;
-        av_free_packet(&av_pkt);
+        av_packet_unref(&av_pkt);
         return false;
     }
 
@@ -217,7 +217,7 @@ bool HeadDemuxerLibav::doProcessFrame(std::map<int, Frame*> &dstFrames)
             free(buffer);
         }
         buffer = NULL;
-        av_free_packet(&av_pkt);
+        av_packet_unref(&av_pkt);
     }
 
     return true;

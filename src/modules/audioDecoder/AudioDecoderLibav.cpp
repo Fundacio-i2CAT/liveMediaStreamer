@@ -77,7 +77,7 @@ AudioDecoderLibav::~AudioDecoderLibav()
     av_free(codecCtx);
     swr_free(&resampleCtx);
     av_free(inFrame);
-    av_free_packet(&pkt);
+    av_packet_unref(&pkt);
 }
 
 FrameQueue* AudioDecoderLibav::allocQueue(ConnectionData cData)

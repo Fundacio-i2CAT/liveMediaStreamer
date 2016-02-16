@@ -29,7 +29,7 @@
 #include "PipelineManager.hh"
 #include "FilterMockup.hh"
 
-#define TIME_WAIT 50
+#define TIME_WAIT 10
 
 class PipelineManagerTest : public CppUnit::TestFixture
 {

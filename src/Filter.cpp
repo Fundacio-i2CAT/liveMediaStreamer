@@ -485,6 +485,10 @@ std::vector<int> BaseFilter::processFrame(int& ret)
             ret = WAIT;
             break;
     }
+    
+    if (isPeriodic()){
+        enabledJobs.push_back(getId());
+    }
 
     return enabledJobs;
 }

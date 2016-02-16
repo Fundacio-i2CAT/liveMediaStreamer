@@ -138,10 +138,13 @@ private:
 
 struct RunnableLess : public std::binary_function<Runnable*, Runnable*, bool>
 {
-  bool operator()(const Runnable* lhs, const Runnable* rhs) const
-  {
-    return lhs->getTime() < rhs->getTime();
-  }
+    bool operator()(const Runnable* lhs, const Runnable* rhs) const
+    {
+        if (lhs->getTime() == rhs->getTime()){
+            return lhs->getId() < rhs->getId();
+        }
+        return lhs->getTime() < rhs->getTime();
+    }
 };
 
 

@@ -83,14 +83,9 @@ WorkersPool::WorkersPool(size_t threads) : run(true)
                     }
                     
                     for(auto id : enabledJobs){
-                        added |= addJob(id);
-                    }
-                    
-                    if (job->isPeriodic()){
-                        jobQueue.insert(job);
+                        jobQueue.insert(runnables[id]);
                         added = true;
                     }
-
                     
                     guard.unlock();
                     if (added){
@@ -149,14 +144,3 @@ bool WorkersPool::removeTask(const int id)
     
     return false;
 }
-
-
-bool WorkersPool::addJob(const int id)
-{
-    if (runnables.count(id) > 0 && !runnables[id]->isPeriodic() && !runnables[id]->isRunning()){
-        jobQueue.insert(runnables[id]);
-        return true;
-    }
-    return false;
-}
-

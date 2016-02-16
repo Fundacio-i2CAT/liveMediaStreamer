@@ -116,7 +116,7 @@ private:
 
 void PipelineManagerFunctionalTest::setUp() 
 {
-    pipe = PipelineManager::getInstance(2);
+    pipe = PipelineManager::getInstance(1);
 }
 
 void PipelineManagerFunctionalTest::tearDown()
@@ -140,10 +140,14 @@ void PipelineManagerFunctionalTest::lineConnection()
     CPPUNIT_ASSERT(pipe->connectPath(1));
     
     CPPUNIT_ASSERT(head->inject(FrameMock::createNew(0)));
-    std::this_thread::sleep_for(std::chrono::milliseconds(TIME_WAIT));
+    while (tail->getFrames() < 1){
+        std::this_thread::sleep_for(std::chrono::milliseconds(TIME_WAIT));
+    }
     CPPUNIT_ASSERT(tail->getFrames() == 1);
     head->inject(FrameMock::createNew(1));
-    std::this_thread::sleep_for(std::chrono::milliseconds(TIME_WAIT));
+    while (tail->getFrames() < 2){
+        std::this_thread::sleep_for(std::chrono::milliseconds(TIME_WAIT));
+    }
     CPPUNIT_ASSERT(tail->getFrames() == 2);
 }
 
@@ -169,10 +173,14 @@ void PipelineManagerFunctionalTest::diamondConnection()
     CPPUNIT_ASSERT(pipe->connectPath(2));
     
     CPPUNIT_ASSERT(head->inject(FrameMock::createNew(0)));
-    std::this_thread::sleep_for(std::chrono::milliseconds(TIME_WAIT));
+    while (tail->getFrames() < 2){
+        std::this_thread::sleep_for(std::chrono::milliseconds(TIME_WAIT));
+    }
     CPPUNIT_ASSERT(tail->getFrames() == 2);
     head->inject(FrameMock::createNew(1));
-    std::this_thread::sleep_for(std::chrono::milliseconds(TIME_WAIT));
+    while (tail->getFrames() < 4){
+        std::this_thread::sleep_for(std::chrono::milliseconds(TIME_WAIT));
+    }
     CPPUNIT_ASSERT(tail->getFrames() == 4);
 }
 
@@ -199,7 +207,9 @@ void PipelineManagerFunctionalTest::forkConnectionOrigin()
     CPPUNIT_ASSERT(pipe->connectPath(2));
     
     CPPUNIT_ASSERT(head->inject(FrameMock::createNew(0)));
-    std::this_thread::sleep_for(std::chrono::milliseconds(TIME_WAIT));
+    while (tail->getFrames() < 1 || tail2->getFrames() < 1){
+        std::this_thread::sleep_for(std::chrono::milliseconds(TIME_WAIT));
+    }
     CPPUNIT_ASSERT(tail->getFrames() == 1);
     CPPUNIT_ASSERT(tail2->getFrames() == 1);
     
@@ -210,7 +220,9 @@ void PipelineManagerFunctionalTest::forkConnectionOrigin()
     CPPUNIT_ASSERT(frame && frame->getSequenceNumber() == 0);
     
     head->inject(FrameMock::createNew(1));
-    std::this_thread::sleep_for(std::chrono::milliseconds(TIME_WAIT));
+    while (tail->getFrames() < 2 || tail2->getFrames() < 2){
+        std::this_thread::sleep_for(std::chrono::milliseconds(TIME_WAIT));
+    }
     CPPUNIT_ASSERT(tail->getFrames() == 2);
     CPPUNIT_ASSERT(tail2->getFrames() == 2);
     
@@ -244,7 +256,9 @@ void PipelineManagerFunctionalTest::forkConnectionEnding()
     CPPUNIT_ASSERT(pipe->connectPath(2));
     
     CPPUNIT_ASSERT(head->inject(FrameMock::createNew(0)));
-    std::this_thread::sleep_for(std::chrono::milliseconds(TIME_WAIT));
+    while (tail->getFrames() < 1 || tail2->getFrames() < 1){
+        std::this_thread::sleep_for(std::chrono::milliseconds(TIME_WAIT));
+    }
     CPPUNIT_ASSERT(tail->getFrames() == 1);
     CPPUNIT_ASSERT(tail2->getFrames() == 1);
     
@@ -255,7 +269,9 @@ void PipelineManagerFunctionalTest::forkConnectionEnding()
     CPPUNIT_ASSERT(frame && frame->getSequenceNumber() == 0);
     
     head->inject(FrameMock::createNew(1));
-    std::this_thread::sleep_for(std::chrono::milliseconds(TIME_WAIT));
+    while (tail->getFrames() < 2 || tail2->getFrames() < 2){
+        std::this_thread::sleep_for(std::chrono::milliseconds(TIME_WAIT));
+    }
     CPPUNIT_ASSERT(tail->getFrames() == 2);
     CPPUNIT_ASSERT(tail2->getFrames() == 2);
     
@@ -294,12 +310,16 @@ void PipelineManagerFunctionalTest::forkedDiamondConnectionOrigin()
     CPPUNIT_ASSERT(pipe->connectPath(3));
     
     CPPUNIT_ASSERT(head->inject(FrameMock::createNew(0)));
-    std::this_thread::sleep_for(std::chrono::milliseconds(TIME_WAIT));
+    while (tail->getFrames() < 2 || tail2->getFrames() < 1){
+        std::this_thread::sleep_for(std::chrono::milliseconds(TIME_WAIT));
+    }
     CPPUNIT_ASSERT(tail->getFrames() == 2);
     CPPUNIT_ASSERT(tail2->getFrames() == 1);
     
     head->inject(FrameMock::createNew(1));
-    std::this_thread::sleep_for(std::chrono::milliseconds(TIME_WAIT));
+    while (tail->getFrames() < 4 || tail2->getFrames() < 2){
+        std::this_thread::sleep_for(std::chrono::milliseconds(TIME_WAIT));
+    }
     CPPUNIT_ASSERT(tail->getFrames() == 4);
     CPPUNIT_ASSERT(tail2->getFrames() == 2);
 }
@@ -332,12 +352,16 @@ void PipelineManagerFunctionalTest::forkedDiamondConnectionEnding()
     CPPUNIT_ASSERT(pipe->connectPath(3));
     
     CPPUNIT_ASSERT(head->inject(FrameMock::createNew(0)));
-    std::this_thread::sleep_for(std::chrono::milliseconds(TIME_WAIT));
+    while (tail->getFrames() < 2 || tail2->getFrames() < 1){
+        std::this_thread::sleep_for(std::chrono::milliseconds(TIME_WAIT));
+    }
     CPPUNIT_ASSERT(tail->getFrames() == 2);
     CPPUNIT_ASSERT(tail2->getFrames() == 1);
     
     head->inject(FrameMock::createNew(1));
-    std::this_thread::sleep_for(std::chrono::milliseconds(TIME_WAIT));
+    while (tail->getFrames() < 4 || tail2->getFrames() < 2){
+        std::this_thread::sleep_for(std::chrono::milliseconds(TIME_WAIT));
+    }
     CPPUNIT_ASSERT(tail->getFrames() == 4);
     CPPUNIT_ASSERT(tail2->getFrames() == 2);
 }

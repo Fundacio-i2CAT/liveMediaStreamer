@@ -29,23 +29,41 @@
 //READER IMPLEMENTATION//
 /////////////////////////
 
-Reader::Reader(std::chrono::microseconds wDelay) : queue(NULL), frame(NULL), filters(0), pending(0), avgDelay(std::chrono::microseconds(0)), 
-                    delay(std::chrono::microseconds(0)), windowDelay(wDelay), 
+Reader::Reader(std::chrono::microseconds wDelay) : queue(NULL), frame(NULL), ready(true),
+                    avgDelay(std::chrono::microseconds(0)), delay(std::chrono::microseconds(0)), windowDelay(wDelay), 
                     lastTs(std::chrono::microseconds(-1)), timeCounter(std::chrono::microseconds(0)), frameCounter(0)
 {
 }
 
 Reader::~Reader()
 {
-    disconnect();
+    disconnectQueue();
 }
 
-void Reader::addReader()
+bool Reader::disconnectQueue()
+{
+    if (!queue) {
+        return false;
+    }
+
+    if (queue->isConnected()) {
+        queue->setConnected(false);
+    } else {
+        delete queue;
+    }
+    
+    queue = NULL;
+    
+    return true;
+}
+
+void Reader::addReader(int fId, int rId)
 {
     std::lock_guard<std::mutex> guard(lck);
-    
-    if (filters >= 1 && queue->isConnected()){
-        filters++;
+        
+    if (queue->isConnected() && queue->addReaderCData(fId, rId)){
+        filters[fId].first = false;
+        filters[fId].second = false;
     }
 }
 
@@ -53,15 +71,17 @@ void Reader::removeReader(int id)
 {
     std::unique_lock<std::mutex> guard(lck);
     
-    if (filters > 0){
-        filters--;
-        if (requests.count(id) > 0 && requests[id] && pending > 0){
-            pending--;
-        }
-        if (filters == 0){
-            guard.unlock();
-            disconnect();
-        }
+    if (queue){
+        queue->removeReaderCData(id);
+    }
+    
+    if (filters.count(id) > 0){
+        filters.erase(id);
+    }
+    
+    if (filters.size() == 0){
+        guard.unlock();
+        disconnectQueue();
     }
 }
 
@@ -71,6 +91,11 @@ Frame* Reader::getFrame(int fId, bool &newFrame)
     
     if (!queue->isConnected()) {
         utils::errorMsg("The queue is not connected");
+        return NULL;
+    }
+    
+    if (filters.count(fId) == 0) {
+        utils::errorMsg("Reader not included in filter: " + std::to_string(fId));
         return NULL;
     }
 
@@ -83,13 +108,17 @@ Frame* Reader::getFrame(int fId, bool &newFrame)
         return queue->forceGetFront();
     }
 
-    if (pending == 0){
-        pending = filters;
+    if (ready){
+        for (auto& f : filters){
+            f.second.first = true;
+            f.second.second = true;
+        }
+        ready = false;
     }
-
-    if (requests.count(fId) == 0) {
+    
+    if (filters[fId].first){
         newFrame = true;
-        requests[fId] = true;
+        filters[fId].first = false;
     } else {
         newFrame = false;
     }
@@ -97,25 +126,33 @@ Frame* Reader::getFrame(int fId, bool &newFrame)
     return frame;
 }
 
+bool Reader::allRead()
+{  
+    for (auto it : filters){
+        if (it.second.first || it.second.second){
+            return false;
+        }
+    }
+
+    return true;
+}
+
 int Reader::removeFrame(int fId)
 {
     std::lock_guard<std::mutex> guard(lck);
-
-    if (pending != 0 && requests.count(fId) > 0 && requests[fId]){
-        pending--;
-        requests[fId] = false;
+    
+    if (filters.count(fId) > 0){
+        filters[fId].second = false;
     }
     
-    if (pending == 0){
-
+    if (allRead()){
         measureDelay();
-
         frame = NULL;
-        requests.clear();
+        ready = true;
         return queue->removeFrame();
-    } else {
-        return -1;
     }
+    
+    return -1;
 }
 
 void Reader::measureDelay()
@@ -137,7 +174,7 @@ void Reader::measureDelay()
         delay = std::chrono::microseconds(0);
         frameCounter = 0;
     }
-    
+
     delay += std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now() - frame->getOriginTime());
     frameCounter++;
 }
@@ -163,31 +200,33 @@ void Reader::setConnection(FrameQueue *queue)
     }
     
     std::lock_guard<std::mutex> guard(lck);
+    ReaderData rData;
+    
     this->queue = queue;
-    filters = 1;
+    
+    rData = queue->getCData().readers.front();
+    filters[rData.rFilterId].first = false;
+    filters[rData.rFilterId].second = false;
 }
 
-bool Reader::disconnect()
+bool Reader::disconnect(int id)
 {
     std::lock_guard<std::mutex> guard(lck);
     
-    if (filters > 1){
-        filters--;
+    if (filters.count(id) == 0){
+        return false;
+    }
+    
+    filters.erase(id);
+    if (queue){
+        queue->removeReaderCData(id);
+    }
+    
+    if (filters.size() > 1){
         return true;
     }
     
-    if (!queue) {
-        return false;
-    }
-
-    if (queue->isConnected()) {
-        queue->setConnected(false);
-        queue = NULL;
-    } else {
-        delete queue;
-        queue = NULL;
-    }
-    return true;
+    return disconnectQueue();
 }
 
 bool Reader::isConnected()
@@ -206,6 +245,27 @@ size_t Reader::getQueueElements()
     }
 
     return queue->getElements();
+}
+
+std::chrono::microseconds Reader::getCurrentTime()
+{
+    if (frame){
+        return frame->getPresentationTime();
+    }
+    
+    Frame *f;
+    
+    f = queue->getFront();
+    if (f){
+        return f->getPresentationTime();
+    }
+    
+    return std::chrono::microseconds(0);
+}
+
+bool Reader::isFull() const
+{
+    return queue->isFull(); 
 }
 
 
@@ -254,10 +314,8 @@ bool Writer::disconnect() const
 
 bool Writer::disconnect(std::shared_ptr<Reader> reader) const
 {
-    if (reader->disconnect()){
-        return disconnect();
-    }
-    return false;
+    //NOTE: Maybe it should disconnect all associated consumers too
+    return disconnect();
 }
 
 bool Writer::isConnected() const
@@ -292,7 +350,7 @@ Frame* Writer::getFrame(bool force) const
     return frame;
 }
 
-int Writer::addFrame() const
+std::vector<int> Writer::addFrame() const
 {
     return queue->addFrame();
 }

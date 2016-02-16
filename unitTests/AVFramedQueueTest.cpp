@@ -53,7 +53,9 @@ protected:
     void forceGetRearTest();
     void forceGetFrontTest();
 
-    struct ConnectionData cData;
+    ConnectionData cData;
+    ReaderData reader;
+    
     unsigned maxFrames;
 
     AVFramedQueue* q;
@@ -62,6 +64,7 @@ protected:
 void AVFramedQueueTest::setUp()
 {
     maxFrames = 4;
+    cData.readers.push_back(reader);
     q = new AVFramedQueueMock(cData, &mockStreamInfo, maxFrames);
 }
 
@@ -80,7 +83,7 @@ void AVFramedQueueTest::normalBehaviour()
         CPPUNIT_ASSERT(frame);
         frame->setSequenceNumber(seq++);
         CPPUNIT_ASSERT(q->getElements() == i);
-        CPPUNIT_ASSERT(q->addFrame() == cData.rFilterId);
+        CPPUNIT_ASSERT(q->addFrame()[0] == reader.rFilterId);
         CPPUNIT_ASSERT(q->getElements() == i + 1);
     }
 
@@ -109,7 +112,7 @@ void AVFramedQueueTest::forceGetRearTest()
         CPPUNIT_ASSERT(frame);
         frame->setSequenceNumber(seq++);
         CPPUNIT_ASSERT(q->getElements() == i);
-        CPPUNIT_ASSERT(q->addFrame() == cData.rFilterId);
+        CPPUNIT_ASSERT(q->addFrame()[0] == reader.rFilterId);
         CPPUNIT_ASSERT(q->getElements() == i + 1);
     }
 
@@ -120,7 +123,7 @@ void AVFramedQueueTest::forceGetRearTest()
     CPPUNIT_ASSERT(frame);
     frame->setSequenceNumber(seq++);
     CPPUNIT_ASSERT(q->getElements() == maxFrames - 2);
-    CPPUNIT_ASSERT(q->addFrame() == cData.rFilterId);
+    CPPUNIT_ASSERT(q->addFrame()[0] == reader.rFilterId);
     CPPUNIT_ASSERT(q->getElements() == maxFrames - 1);
 
     seq = 0;
@@ -151,7 +154,7 @@ void AVFramedQueueTest::forceGetFrontTest()
         CPPUNIT_ASSERT(frame);
         frame->setSequenceNumber(seq++);
         CPPUNIT_ASSERT(q->getElements() == i);
-        CPPUNIT_ASSERT(q->addFrame() == cData.rFilterId);
+        CPPUNIT_ASSERT(q->addFrame()[0] == reader.rFilterId);
         CPPUNIT_ASSERT(q->getElements() == i + 1);
     }
 

@@ -41,7 +41,7 @@ public:
     * @param segDur Segment duration in milliseconds
     * @param offset of the initial timestamp
     */
-    DashAudioSegmenter(std::chrono::seconds segDur);
+    DashAudioSegmenter(std::chrono::seconds segDur, std::chrono::microseconds offset);
 
     /**
     * Class destructor
@@ -68,7 +68,7 @@ public:
     */
     size_t getChannels();
 
-    bool appendFrameToDashSegment(DashSegment* segment, Frame* frame);
+    bool appendFrameToDashSegment(Frame* frame);
     bool flushDashContext();
     bool generateInitSegment(DashSegment* segment);
 

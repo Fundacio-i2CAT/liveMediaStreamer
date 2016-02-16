@@ -24,7 +24,7 @@
 #ifndef _AV_FRAMED_QUEUE_HH
 #define _AV_FRAMED_QUEUE_HH
 
-#define MAX_FRAMES 50 //!< The highest value for DEFAULT_AUDIO_FRAMES, DEFAULT_VIDEO_FRAMES, ...
+#define MAX_FRAMES 250 //!< The highest value for DEFAULT_AUDIO_FRAMES, DEFAULT_VIDEO_FRAMES, ...
 
 #include "FrameQueue.hh"
 #include "AudioFrame.hh"
@@ -47,9 +47,9 @@ public:
     Frame *getFront();
 
     /**
-    * See FrameQueue::adFrame
+    * See FrameQueue::addFrame
     */
-    virtual int addFrame();
+    virtual std::vector<int> addFrame();
 
     /**
     * See FrameQueue::removeFrame
@@ -69,13 +69,19 @@ public:
     /**
     * See FrameQueue::getElements
     */
-    unsigned getElements();
+    unsigned getElements() const;
 
     /**
      * The maximum number of frames allocated during construction. Used for replication, basically.
      * @returns the #maxFrames parameter using at construction
      */
     unsigned getMaxFrames() const {return max;}
+    
+    /**
+    * Tests if the current queue is full or not
+    * @return true if the number of elements exceeds the threshold level
+    */
+    bool isFull() const;
 
     virtual ~AVFramedQueue();
 

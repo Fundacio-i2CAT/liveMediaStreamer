@@ -29,33 +29,73 @@
 #include <mutex>
 
 #define DEFAULT_BUFFER_SIZE 32768 //samples (~600ms at 48KHz)
-#define BUFFERING_THRESHOLD 40 //ms
 
 
  class AudioCircularBuffer : public FrameQueue {
 
 public:
-    static AudioCircularBuffer* createNew(struct ConnectionData cData, unsigned ch, unsigned sRate, unsigned maxSamples, SampleFmt sFmt, std::chrono::milliseconds bufferingThreshold);
+    static AudioCircularBuffer* createNew(struct ConnectionData cData, unsigned ch, unsigned sRate, unsigned maxSamples, SampleFmt sFmt);
     ~AudioCircularBuffer();
     void setOutputFrameSamples(int samples); 
 
+    /**
+    * See FrameQueue::getRear
+    */
     Frame *getRear();
+    
+    /**
+    * See FrameQueue::getFront
+    */
     Frame *getFront();
-    int addFrame();
+    
+    /**
+    * See FrameQueue::addFrame
+    */
+    std::vector<int> addFrame();
+    
+    /**
+    * See FrameQueue::removeFrame
+    */
     int removeFrame();
+    
+    
     void doFlush();
+    
+    /**
+    * See FrameQueue::forceGetRear
+    */
     Frame *forceGetRear();
+    
+    /**
+    * See FrameQueue::forceGetFront
+    */
     Frame *forceGetFront();
-    bool frameToRead() {return false;};
+
+    /**
+     * get the number of free samples in the current buffer
+     * @return number of free samples.
+     */
     int getFreeSamples();
-    void setBufferingThreshold(std::chrono::milliseconds th);
+    
+    /**
+     * returns the maximum number of samples per channel.
+     * @return max number of samples.
+     */
     unsigned getChannelMaxSamples() {return chMaxSamples;};
-    unsigned getElements();
+    
+    /**
+    * See FrameQueue::getElements
+    */
+    unsigned getElements() const;
+    
+    /**
+    * Tests if the current queue is full or not
+    * @return true if the number of elements exceeds the threshold level
+    */
+    bool isFull() const;
 
 private:
     AudioCircularBuffer(struct ConnectionData cData, unsigned ch, unsigned sRate, unsigned maxSamples, SampleFmt sFmt);
-
-    enum State {BUFFERING, OK, FULL};
 
     bool pushBack(unsigned char **buffer, int samplesRequested);
     bool forcePushBack(unsigned char **buffer, int samplesRequested);
@@ -71,9 +111,6 @@ private:
     unsigned char *data[MAX_CHANNELS];
     SampleFmt sampleFormat;
     bool fillNewFrame;
-
-    unsigned samplesBufferingThreshold;
-    State bufferingState;
 
     PlanarAudioFrame* inputFrame;
     PlanarAudioFrame* outputFrame;

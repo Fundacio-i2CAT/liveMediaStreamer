@@ -57,12 +57,15 @@ void IOInterfaceTest::setUp()
 {
     reader = new Reader();
     ConnectionData cData;
+    ReaderData reader;
     StreamInfo si;
+    
+    reader.rFilterId = 2;
+    reader.readerId = 2;
     
     cData.wFilterId = 1;
     cData.writerId = 1;
-    cData.rFilterId = 2;
-    cData.readerId = 2;
+    cData.readers.push_back(reader);
     
     queue = new AVFramedQueueMock(cData, &si, 8);
     CPPUNIT_ASSERT(queue != NULL);
@@ -122,7 +125,7 @@ void IOInterfaceTest::readerTest()
     reader->getFrame(2, gotFrame);
     CPPUNIT_ASSERT(gotFrame == true);
     
-    reader->addReader();
+    reader->addReader(3, 3);
     queue->addFrame();
     queue->addFrame();
     queue->addFrame();
@@ -161,7 +164,7 @@ void IOInterfaceTest::readerTest()
     reader->getFrame(2, gotFrame);
     CPPUNIT_ASSERT(gotFrame == true);
     
-    reader->addReader();
+    reader->addReader(4, 4);
     
     reader->getFrame(3, gotFrame);
     CPPUNIT_ASSERT(gotFrame == true);

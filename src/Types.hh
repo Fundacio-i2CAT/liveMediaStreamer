@@ -36,8 +36,8 @@
 #define MIN_HEIGHT 16
 #define MIN_WIDTH 16
 #define DEFAULT_BYTES_PER_PIXEL 3
-#define DEFAULT_VIDEO_FRAMES 50
-#define DEFAULT_AUDIO_FRAMES 50
+#define DEFAULT_VIDEO_FRAMES 100
+#define DEFAULT_AUDIO_FRAMES 100
 #define DEFAULT_RAW_VIDEO_FRAMES 10
 #define MAX_H264_OR_5_NAL_SIZE 1024*1024*2 //2MB
 #define LENGTH_H264_FRAME 1024*1024*10 //10MB
@@ -49,6 +49,7 @@
 #define DEFAULT_FRAME_SAMPLES 960
 #define VIDEO_DEFAULT_FRAMERATE 25  /*!< Default frame rate in frames per second (fps). */
 #define DEFAULT_STATS_TIME_INTERVAL 1000000 // usecs of window time measurements
+#define DEFAULT_SYNC_MARGIN 40000 // usecs of synchronization margin
 
 /**
 * Stream types

@@ -64,23 +64,34 @@ void WorkersPoolTest::tearDown()
 
 void WorkersPoolTest::addAndRemoveTask()
 {
-    std::vector<int> periodic(2);
-    std::vector<int> notPeriodic(3);
+    std::vector<int> periodic(1,2);
+    std::vector<int> notPeriodic(1,1);
     Runnable* periodicR = new RunnableMockup(40000, periodic, true);
     Runnable* notPeriodicR = new RunnableMockup(40000, notPeriodic, false);
     periodicR->setId(1);
     notPeriodicR->setId(2);
+    std::cout << "Adding periodic" << std::endl;
     CPPUNIT_ASSERT(pool->addTask(periodicR));
+    std::cout << "Readding periodic" << std::endl;
     CPPUNIT_ASSERT(!pool->addTask(periodicR));
+    std::cout << "Removing not periodic" << std::endl;
     CPPUNIT_ASSERT(!pool->removeTask(2));
+    std::cout << "Removing periodic" << std::endl;
     CPPUNIT_ASSERT(pool->removeTask(1));
+    std::cout << "Adding periodic" << std::endl;
     CPPUNIT_ASSERT(pool->addTask(periodicR));
+    std::cout << "Adding not periodic" << std::endl;
     CPPUNIT_ASSERT(pool->addTask(notPeriodicR));
+    std::cout << "Removing periodic" << std::endl;
     CPPUNIT_ASSERT(pool->removeTask(1));
+    std::cout << "Removing not periodic" << std::endl;
     CPPUNIT_ASSERT(pool->removeTask(2));
+    std::cout << "Re-removing periodic" << std::endl;
     CPPUNIT_ASSERT(!pool->removeTask(1));
+    std::cout << "Re-removing not periodic" << std::endl;
     CPPUNIT_ASSERT(!pool->removeTask(2));
     
+    std::cout << "stopping" << std::endl;
     pool->stop();
     
     delete periodicR;

@@ -40,6 +40,7 @@
 #define DEFAULT_ID 1                /*!< Default ID for unique filter's readers and/or writers. */
 #define MAX_WRITERS 16              /*!< Default maximum writers for a filter. */
 #define MAX_READERS 16              /*!< Default maximum readers for a filter. */
+#define WAIT 1000                   /*!< Default wait time in usec when there are no origin or destionation frames */
 
 /*! Generic filter class methods. It is an interface to different specific filters
     so it cannot be instantiated
@@ -209,7 +210,7 @@ protected:
     virtual bool specificWriterDelete(int writerID) = 0;
 
     bool demandOriginFrames(std::map<int, Frame*> &oFrames, std::vector<int> &newFrames);
-    bool demandOriginFramesBestEffort(std::map<int, Frame*> &oFrames, std::vector<int> &newFrames);
+    bool demandOriginFramesBestEffort(std::map<int, Frame*> &oFrames, std::vector<int> &newFrames, std::vector<int> readersVec);
     bool demandOriginFramesFrameTime(std::map<int, Frame*> &oFrames, std::vector<int> &newFrames); 
 
     bool demandDestinationFrames(std::map<int, Frame*> &dFrames);
@@ -224,7 +225,9 @@ protected:
 
     void setSyncTs(std::chrono::microseconds ts){syncTs = ts;};
     std::chrono::microseconds getSyncTs(){return syncTs;};
-
+    
+    void setSync(bool sync_){sync = sync_;};
+    
 protected:
     std::map<int, std::shared_ptr<Reader>> readers;
     std::map<int, std::shared_ptr<Writer>> writers;
@@ -234,6 +237,7 @@ protected:
     const unsigned maxReaders;
     const unsigned maxWriters;
     std::chrono::microseconds frameTime;
+    const std::chrono::microseconds syncMargin;
 
 private:
     bool connect(BaseFilter *R, int writerID, int readerID);
@@ -247,7 +251,7 @@ private:
     bool deleteWriter(int readerId);
     
     bool pendingJobs();
-    void syncFrames(std::map<int, Frame*> &oFrames, std::vector<int> &newFrames);
+    std::vector<int> framesSync();
 
 private:
     std::priority_queue<Event> eventQueue;
@@ -256,8 +260,7 @@ private:
     FilterRole const fRole;
     std::chrono::microseconds syncTs;
     
-    unsigned refReader;
-    std::chrono::microseconds syncMargin;
+    bool sync;
 };
 
 class OneToOneFilter : public BaseFilter {

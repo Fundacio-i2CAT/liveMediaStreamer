@@ -30,7 +30,6 @@ PixType getPixelFormat(AVPixelFormat format);
 VideoDecoderLibav::VideoDecoderLibav() : OneToOneFilter()
 {
     avcodec_register_all();
-
     codecCtx = NULL;;
     frame = NULL;
     av_init_packet(&pkt);
@@ -45,7 +44,10 @@ VideoDecoderLibav::VideoDecoderLibav() : OneToOneFilter()
     frame = av_frame_alloc();
     frameCopy = av_frame_alloc();
     
-    fCodec = VC_NONE;
+    psi.inputWidth = 0;
+    psi.inputHeight = 0;
+
+    psi.fCodec = VC_NONE;
 }
 
 VideoDecoderLibav::~VideoDecoderLibav()
@@ -104,13 +106,13 @@ bool VideoDecoderLibav::doProcessFrame(Frame *org, Frame *dst)
             pkt.data += len;
         }
     }
-   
+
     return false;
 }
 
 bool VideoDecoderLibav::inputConfig()
 {   
-    switch(fCodec){
+    switch(psi.fCodec){
         case H264:
             libavCodecId = AV_CODEC_ID_H264;
             break;
@@ -187,7 +189,10 @@ bool VideoDecoderLibav::toBuffer(VideoFrame *decodedFrame, VideoFrame *codedFram
     frameCopy->width = frame->width;
     frameCopy->height = frame->height;
     frameCopy->format = frame->format;
-       
+    
+    psi.inputWidth = frame->width;
+    psi.inputHeight = frame->height;
+
     ret = av_frame_copy(frameCopy, frame);
     if (ret < 0){
         utils::errorMsg("Could not copy decoded frame data");
@@ -205,11 +210,11 @@ bool VideoDecoderLibav::toBuffer(VideoFrame *decodedFrame, VideoFrame *codedFram
 
 bool VideoDecoderLibav::reconfigure(VCodecType codec)
 {
-    if (fCodec == codec) {
+    if (psi.fCodec == codec) {
         return true;
     }
 
-    fCodec = codec;
+    psi.fCodec = codec;
 
     if(!inputConfig()) {
         utils::errorMsg("Configuring decoder");
@@ -226,7 +231,13 @@ void VideoDecoderLibav::initializeEventMap()
 
 void VideoDecoderLibav::doGetState(Jzon::Object &filterNode)
 {
-    filterNode.Add("codec", utils::getVideoCodecAsString(fCodec));
+    Jzon::Object jsonDecoderConfig;
+
+    jsonDecoderConfig.Add("codec", utils::getVideoCodecAsString(psi.fCodec));
+    jsonDecoderConfig.Add("width", std::to_string(psi.inputWidth));
+    jsonDecoderConfig.Add("height", std::to_string(psi.inputHeight));
+
+    filterNode.Add("inputInfo", jsonDecoderConfig);
 }
 
 PixType getPixelFormat(AVPixelFormat format)

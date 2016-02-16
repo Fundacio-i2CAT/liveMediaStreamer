@@ -121,10 +121,10 @@ bool SinkManager::readerInConnection(int rId)
 
 bool SinkManager::specificReaderDelete(int readerId)
 {
-    removeConnectionByReaderId(readerId);
-    if (sources.count(readerId) > 0){
-        delete sources[readerId];
+    if (removeConnectionByReaderId(readerId) && sources.count(readerId) > 0 && replicators.count(readerId) > 0){
+        Medium::close(sources[readerId]);
         sources.erase(readerId);
+        replicators.erase(readerId);
         return true;
     }
     return false;

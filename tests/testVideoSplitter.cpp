@@ -77,11 +77,9 @@ bool setupSplitter(int splitterId, int transmitterID, int def_witdth, int def_he
         int h = def_height/(SPLIT_CHANNELS/2);
         int x = ((it-1)%2)*(def_witdth/(SPLIT_CHANNELS/2));
         int y = ((it>>1)%2)*(def_height/(SPLIT_CHANNELS/2));
-        if (it==1){
-            splitter->configCrop(it,400,400,540,540,45);
-        } else {
-            splitter->configCrop(it,w,h,x,y);
-        }
+        
+        splitter->configCrop(it,w,h,x,y);
+
         utils::errorMsg("[TESTVIDEOSPLITTER] Crop config "+std::to_string(it)+":");
         utils::errorMsg("[TESTVIDEOSPLITTER] width:"+std::to_string(w)+", height:"+std::to_string(h)+", POS.X:"+std::to_string(x)+", POS.Y:"+std::to_string(y));
 
@@ -238,13 +236,13 @@ int main(int argc, char* argv[])
     int transmitterId = 11;
     int receiverId = 10;
     int splitterId  = 15;
-
-    int cPort = 7777;
     
     int def_witdth = SPLIT_WIDTH;
     int def_height = SPLIT_HEIGHT;
 
     int port = 0;
+    int vPort = 0;
+    std::string ip;
 
     SinkManager* transmitter = NULL;
     SourceManager* receiver = NULL;
@@ -253,8 +251,8 @@ int main(int argc, char* argv[])
     utils::setLogLevel(INFO);
     for (int i = 1; i < argc; i++) {
         if (strcmp(argv[i],"-v") == 0){
-            port = std::stoi(argv[i+1]);
-            utils::infoMsg("video input port: " + std::to_string(port));
+            vPort = std::stoi(argv[i+1]);
+            utils::infoMsg("video input port: " + std::to_string(vPort));  
         } else if (strcmp(argv[i],"-w")==0) {
             def_witdth = std::stoi(argv[i+1]);
         } else if (strcmp(argv[i],"-h")==0) {
@@ -263,11 +261,17 @@ int main(int argc, char* argv[])
             rtspUri = argv[i+1];
             utils::infoMsg("input RTSP URI: " + rtspUri);
             utils::infoMsg("Ignoring any audio or video input port, just RTSP inputs");
+        } else if (strcmp(argv[i],"-d")==0) {
+            ip = argv[i + 1];
+            utils::infoMsg("destination IP: " + ip);
+        } else if (strcmp(argv[i],"-P")==0) {
+            port = std::stoi(argv[i+1]);
+            utils::infoMsg("destination port: " + std::to_string(port));
         }
     }
     utils::infoMsg("input WIDTH: " + std::to_string(def_witdth) + " and input HEIGHT" + std::to_string(def_height));
 
-    if (port == 0  && rtspUri.empty()) { 
+    if (vPort == 0  && rtspUri.empty()) { 
         utils::errorMsg("Usage: -v <port> -r <uri>");
         return 1;
     }
@@ -303,9 +307,23 @@ int main(int argc, char* argv[])
         return 1;
     }
 
-    if (port > 0 && rtspUri.length() == 0){
-        addVideoSDPSession(port, receiver);
-        addVideoPath(port, receiverId, splitterId);
+    if (port != 0 && !ip.empty()){
+        for (auto it : readers)
+        {
+            if(it == 0){
+                continue;
+            } 
+            std::vector<int> out;
+            out.push_back(it);
+            if (it == 1 && transmitter->addRTPConnection(out, rand(), ip, port, STD_RTP)) {
+                utils::infoMsg("added connection for " + ip + ":" + std::to_string(port));
+            }
+        }    
+    }
+
+    if (vPort > 0 && rtspUri.length() == 0){
+        addVideoSDPSession(vPort, receiver);
+        addVideoPath(vPort, receiverId, splitterId);
     } else {
         if (!addRTSPsession(rtspUri, receiver, receiverId, splitterId)){
             utils::errorMsg("Couldn't start rtsp client session!");
@@ -313,29 +331,12 @@ int main(int argc, char* argv[])
         }
     }
 
-    Controller* ctrl = Controller::getInstance();
-
-    if (!ctrl->createSocket(cPort)) {
-        exit(1);
+    while(run) {
+        std::this_thread::sleep_for(std::chrono::seconds(1));
     }
 
-    while (run) {
-        if (!ctrl->listenSocket()) {
-            continue;
-        }
-
-        if (!ctrl->readAndParse()) {
-            utils::errorMsg("Controller failed to read and parse the incoming event data");
-            continue;
-        }
-
-        ctrl->processRequest();
-    }
-
-    ctrl->destroyInstance();
-    utils::infoMsg("Controller deleted");
-    pipe->destroyInstance();
-    utils::infoMsg("Pipe deleted");
+    Controller::destroyInstance();
+    PipelineManager::destroyInstance();
     
     return 0;
 }

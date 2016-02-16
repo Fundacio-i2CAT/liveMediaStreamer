@@ -1,5 +1,5 @@
 /*
- *  VideoSplitter
+ *  VideoSplitter.hh - Class to handle crops of video 
  *	Copyright (C) 2015  Fundació i2CAT, Internet i Innovació digital a Catalunya
  *
  *  This file is part of media-streamer.
@@ -47,13 +47,50 @@ class CropConfig {
 	    */
 		void config(int width, int height, int x, int y, int degree = 0);
 
-
+		/**
+	    * Get Width.
+	    * @return width of Crop
+	    */
 		int getWidth() {return width;};
+
+		/**
+	    * Get Height.
+	    * @return height of Crop
+	    */
 	    int getHeight() {return height;};
+	    
+		/**
+	    * Get X.
+	    * @return X of Crop
+	    */
 	    int getX() {return x;};
+	    
+	    /**
+	    * Get Y.
+	    * @return Y of Crop
+	    */
 	    int getY() {return y;};
+
+	    /**
+	    * Get Degree.
+	    * @return degree of Crop
+	    */
 	    int getDegree() {return degree;};
+
+	    /**
+	    * Class constructor.
+	    * @return Crop
+	    */
 	    cv::Mat *getCrop() {return &crop;};
+
+	    /**
+	    * Class constructor.
+	    * @param x Upper left corner X position
+	    * @param y Upper left corner Y position
+	    * @param w width Channel
+	    * @param h height Channel 
+	    * @return Crop based on params
+	    */
 	    cv::Mat getCropRect(int x, int y, int w, int h) { return crop(cv::Rect(x,y,w,h)); };
 	private:
 		int width;
@@ -92,6 +129,16 @@ class VideoSplitter : public OneToManyFilter {
         * @param degree See CropConfig::config
         */
     	bool configCrop(int id, int width, int height, int x, int y, int degree=0);
+    	/**
+        * Configure 
+        * @param fTime Frame Time of Splitter
+        */
+    	bool configure(int fTime);
+
+    	/**
+        * Get Configure - Frame Time of Splitter 
+        */
+    	int getConfigure(){return getFrameTime().count();};
 
 	protected:
 		VideoSplitter(std::chrono::microseconds fTime);
@@ -99,12 +146,14 @@ class VideoSplitter : public OneToManyFilter {
 		bool doProcessFrame(Frame *org, std::map<int, Frame *> &dstFrames);
 		void doGetState(Jzon::Object &filterNode);
 		bool configCrop0(int id, int width, int height, int x, int y, int degree=0);
+		bool configure0(std::chrono::microseconds fTime);
 		bool specificWriterConfig(int writerID);
         bool specificWriterDelete(int writerID);
 
 	private:
 		void initializeEventMap();
         bool configCropEvent(Jzon::Node* params);
+        bool configureEvent(Jzon::Node* params);
         
         //There is no need of specific reader configuration
         bool specificReaderConfig(int /*readerID*/, FrameQueue* /*queue*/)  {return true;};

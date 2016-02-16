@@ -37,7 +37,7 @@ VideoDecoderLibav::VideoDecoderLibav() : OneToOneFilter()
     pkt.size = 0;
     fType = VIDEO_DECODER;
 
-    outputStreamInfo = new StreamInfo (AUDIO);
+    outputStreamInfo = new StreamInfo (VIDEO);
     outputStreamInfo->video.codec = RAW;
     outputStreamInfo->video.pixelFormat = RGB24;
 
@@ -83,8 +83,9 @@ bool VideoDecoderLibav::doProcessFrame(Frame *org, Frame *dst)
     while (pkt.size > 0) {
         len = avcodec_decode_video2(codecCtx, frame, &gotFrame, &pkt);
 
-        if(len <= 0) {
-            utils::errorMsg("Decoding video frame");
+        if(len < 0) {
+            utils::errorMsg("Decoding video frame, reconfiguring decoder");
+            inputConfig();
             return false;
         }
 

@@ -111,7 +111,7 @@ void WorkersPool::stop()
     qCheck.notify_all();
     for (std::thread &worker : workers){
         if (worker.joinable()){
-            worker.join();            
+            worker.join();
         }
     }
     jobQueue.clear();

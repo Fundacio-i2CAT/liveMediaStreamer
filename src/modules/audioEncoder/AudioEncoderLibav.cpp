@@ -111,6 +111,7 @@ bool AudioEncoderLibav::doProcessFrame(Frame *org, Frame *dst)
     }
 
     if (!gotFrame) {
+        utils::warningMsg("Could not encode audio frame");
         return false;
     }
 

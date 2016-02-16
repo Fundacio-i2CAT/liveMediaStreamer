@@ -28,12 +28,10 @@
 #include <thread>
 #include <algorithm>
 
-#define WAIT 1000 //usec
 
-
-BaseFilter::BaseFilter(unsigned readersNum, unsigned writersNum, FilterRole fRole_, bool periodic): Runnable(periodic), 
-maxReaders(readersNum), maxWriters(writersNum),  frameTime(std::chrono::microseconds(0)), 
-fRole(fRole_), syncTs(std::chrono::microseconds(0)), refReader(0),  syncMargin(std::chrono::microseconds(0))
+BaseFilter::BaseFilter(unsigned readersNum, unsigned writersNum, FilterRole fRole_, bool periodic): 
+    Runnable(periodic), maxReaders(readersNum), maxWriters(writersNum),  frameTime(std::chrono::microseconds(0)), 
+    syncMargin(std::chrono::microseconds(DEFAULT_SYNC_MARGIN)), fRole(fRole_), syncTs(std::chrono::microseconds(0)), sync(false)
 {
 }
 
@@ -208,7 +206,8 @@ std::vector<int> BaseFilter::addFrames(std::map<int, Frame*> &dFrames)
         if (it.second->getConsumed()) {
             int wId = it.first;
             if (writers.count(wId) > 0 && writers[wId]->isConnected()){
-                enabledJobs.push_back(writers[wId]->addFrame());
+                std::vector<int> addFrameReturn = writers[wId]->addFrame();
+                enabledJobs.insert(enabledJobs.begin(), addFrameReturn.begin(), addFrameReturn.end());
             }
         }
     }
@@ -276,7 +275,7 @@ bool BaseFilter::shareReader(BaseFilter *shared, int sharedRId, int orgRId)
     }
     
     shared->readers[sharedRId] = readers[orgRId];
-    readers[orgRId]->addReader();
+    readers[orgRId]->addReader(shared->getId(), sharedRId);
     
     return true;
 }
@@ -321,6 +320,7 @@ bool BaseFilter::connect(BaseFilter *R, int writerID, int readerID)
     std::shared_ptr<Reader> r;
     FrameQueue *queue = NULL;
     ConnectionData cData;
+    ReaderData reader;
     
     processEvent();
     R->processEvent();
@@ -339,8 +339,9 @@ bool BaseFilter::connect(BaseFilter *R, int writerID, int readerID)
 
     cData.wFilterId = getId();
     cData.writerId = writerID;
-    cData.rFilterId = R->getId();
-    cData.readerId = readerID;
+    reader.rFilterId = R->getId();
+    reader.readerId = readerID;
+    cData.readers.push_back(reader);
     
     queue = allocQueue(cData);
     if (!queue){
@@ -407,7 +408,7 @@ bool BaseFilter::disconnectReader(int readerId)
         return false;
     }
 
-    if (readers[readerId]->disconnect()){
+    if (readers[readerId]->disconnect(getId())){
         return deleteReader(readerId);
     }
 
@@ -484,6 +485,10 @@ std::vector<int> BaseFilter::processFrame(int& ret)
             ret = WAIT;
             break;
     }
+    
+    if (isPeriodic()){
+        enabledJobs.push_back(getId());
+    }
 
     return enabledJobs;
 }
@@ -545,64 +550,65 @@ bool BaseFilter::demandOriginFrames(std::map<int, Frame*> &oFrames, std::vector<
     if (readers.empty()) {
         return false;
     }
+    
+    std::vector<int> readersVec = framesSync();
+    
+    if (readersVec.empty()){
+        return false;
+    }
 
     if (frameTime.count() <= 0) {
-        return demandOriginFramesBestEffort(oFrames, newFrames);
+        return demandOriginFramesBestEffort(oFrames, newFrames, readersVec);
     } else {
         return demandOriginFramesFrameTime(oFrames, newFrames);
     }
 }
 
-void BaseFilter::syncFrames(std::map<int, Frame*> &oFrames, std::vector<int> &newFrames)
+std::vector<int> BaseFilter::framesSync()
 {      
-    if (oFrames.count(refReader) == 0){
-        return;
-    } 
+    std::vector<int> allReaders;
+    std::vector<int> framesToPass;
     
-    bool newFrame = false;
-    
-    std::chrono::microseconds wallClock = oFrames[refReader]->getPresentationTime();
+    std::chrono::microseconds wallClock = std::chrono::microseconds(0);
     std::chrono::microseconds currentFTime;
     
-    Frame* frame;
-        
-    for (std::map<int, Frame*>::iterator it; it != oFrames.end(); ){
-        
-        currentFTime = it->second->getPresentationTime();
-        
-        while (wallClock - syncMargin > currentFTime){
-            removeFrames(std::vector<int>(it->first));           
-            newFrames.erase(std::remove(newFrames.begin(), newFrames.end(), it->first), newFrames.end());
-            
-            if (readers.count(it->first) == 0){
-                break;
-            }
-            
-            frame = readers[it->first]->getFrame(getId(), newFrame);
-            
-            if (!frame) {
-                oFrames.erase(it);
-                break;
-            }
-
-            frame->setConsumed(newFrame);
-            //NOTE: it can be done?
-            oFrames[it->first] = frame;
-            if (newFrame){
-                newFrames.push_back(it->first);
-            }
-        }
-        
-        if (wallClock - syncMargin > currentFTime){
+    for(std::map<int, std::shared_ptr<Reader>>::iterator r = readers.begin() ; r != readers.end(); ){
+        if (!r->second){
+            ++r;
             continue;
         }
+        allReaders.push_back(r->first);
+        if (sync && wallClock < r->second->getCurrentTime()){
+            wallClock = r->second->getCurrentTime();
+        }
+        ++r;
+    }
+    
+    if (!sync){
+        return allReaders;
+    }
+    
+    bool emptyQueue = false;
+    for (std::map<int, std::shared_ptr<Reader>>::iterator r = readers.begin() ; r != readers.end(); ) {
+        currentFTime = r->second->getCurrentTime();
+        if (currentFTime.count() == 0){
+            ++r;
+            emptyQueue = true;
+            continue;
+        } 
         
-        if (wallClock + syncMargin < currentFTime) {
-            newFrames.erase(std::remove(newFrames.begin(), newFrames.end(), it->first), newFrames.end());
+        if (r->second->isFull() || wallClock - syncMargin > currentFTime){
+            framesToPass.push_back(r->first);
         }
         
-        ++it;
+        ++r;
     }
+    
+    if (emptyQueue || !framesToPass.empty()){
+        return framesToPass;
+    }
+
+    return allReaders;
 }
 
 bool BaseFilter::deleteReader(int readerId)
@@ -616,35 +622,30 @@ bool BaseFilter::deleteReader(int readerId)
     return false;
 }
 
-bool BaseFilter::demandOriginFramesBestEffort(std::map<int, Frame*> &oFrames, std::vector<int> &newFrames) 
+bool BaseFilter::demandOriginFramesBestEffort(std::map<int, Frame*> &oFrames, std::vector<int> &newFrames, std::vector<int> readersVec) 
 {
     bool newFrame;
     Frame* frame;
-    
-    std::map<int, Frame*>::iterator it; it != oFrames.end(); 
-    
-    for (std::map<int, std::shared_ptr<Reader>>::iterator r = readers.begin() ; r != readers.end(); ) {
-        if (!r->second || !r->second->isConnected()) {
-            int rId = r->first;
-            ++r;
-            deleteReader(rId);
+       
+    for (auto id : readersVec) {
+        if (readers[id] == NULL || !readers[id]->isConnected()) {
+            utils::warningMsg("demandOriginFramesBestEffort: deleted reader, it shouldn't happen");
+            deleteReader(id);
             continue;
         }
         
-        frame = r->second->getFrame(getId(), newFrame);
+        frame = readers[id]->getFrame(getId(), newFrame);
 
         if (!frame) {
             utils::errorMsg("[BaseFilter::demandOriginFramesBestEffort] Reader->getFrame() returned NULL. It cannot happen...");
-            ++r;
             continue;
         }
 
         frame->setConsumed(newFrame);
-        oFrames[r->first] = frame;
+        oFrames[id] = frame;
         if (newFrame){
-            newFrames.push_back(r->first);
+            newFrames.push_back(id);
         }
-        ++r;
     }
 
     return !newFrames.empty();
@@ -802,6 +803,9 @@ void HeadFilter::pushEvent(Event e)
 TailFilter::TailFilter(unsigned readersNum, FilterRole fRole_, bool periodic) :
     BaseFilter(readersNum, 0, fRole_, periodic)
 {
+    //NOTE: it should be set to true in order to force synchronization between inputs, 
+    // all TailFilters should use it.
+    setSync(true);
 }
 
 bool TailFilter::runDoProcessFrame(std::map<int, Frame*> &oFrames, std::map<int, Frame*> &dFrames, std::vector<int> newFrames)

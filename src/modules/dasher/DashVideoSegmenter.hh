@@ -77,7 +77,7 @@ public:
     * Processes incoming frames to be appended to current segment
     * @return true if success, false otherwise.
     */
-    bool appendFrameToDashSegment(DashSegment* segment, Frame* frame);
+    bool appendFrameToDashSegment(Frame* frame);
 
     /**
     * Virtual method that flushes segment context at children classes
@@ -89,7 +89,7 @@ public:
     bool generateInitSegment(DashSegment* segment);
 
 protected:
-    DashVideoSegmenter(std::chrono::seconds segDur, std::string video_format_);
+    DashVideoSegmenter(std::chrono::seconds segDur, std::string video_format_, std::chrono::microseconds offset);
     virtual ~DashVideoSegmenter();
 
     virtual void updateExtradata() = 0;

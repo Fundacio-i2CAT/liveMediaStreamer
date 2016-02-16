@@ -87,7 +87,7 @@ void DashAudioSegmenterTest::setUp()
 {
     size_t dataLength;
 
-    segmenter = new DashAudioSegmenter(std::chrono::seconds(SEG_DURATION));
+    segmenter = new DashAudioSegmenter(std::chrono::seconds(SEG_DURATION), timestamp);
     modelFrame = InterleavedAudioFrame::createNew(CHANNELS, SAMPLE_RATE, AudioFrame::getMaxSamples(SAMPLE_RATE), AAC, S16);
 
     dataLength = readFile("testsData/modules/dasher/dashAudioSegmenterTest/modelFrame.aac", (char*)modelFrame->getDataBuf());
@@ -134,19 +134,18 @@ void DashAudioSegmenterTest::generateInitSegment()
 void DashAudioSegmenterTest::appendFrameToDashSegment()
 {
     Frame* frame;
-    DashSegment* segment = new DashSegment();
     std::chrono::microseconds ts = std::chrono::microseconds(1000);
 
     modelFrame->setSamples(AAC_FRAME_SAMPLES);
     modelFrame->setPresentationTime(ts);
 
-    CPPUNIT_ASSERT(!segmenter->appendFrameToDashSegment(segment, NULL));
-    CPPUNIT_ASSERT(!segmenter->appendFrameToDashSegment(segment, modelFrame));
+    CPPUNIT_ASSERT(!segmenter->appendFrameToDashSegment(NULL));
+    CPPUNIT_ASSERT(!segmenter->appendFrameToDashSegment(modelFrame));
 
     frame = segmenter->manageFrame(modelFrame);
 
     CPPUNIT_ASSERT(frame);
-    CPPUNIT_ASSERT(segmenter->appendFrameToDashSegment(segment, frame));
+    CPPUNIT_ASSERT(segmenter->appendFrameToDashSegment(frame));
 }
 
 void DashAudioSegmenterTest::generateSegment()
@@ -177,7 +176,7 @@ void DashAudioSegmenterTest::generateSegment()
             break;
         }
 
-        CPPUNIT_ASSERT(segmenter->appendFrameToDashSegment(segment, frame));
+        CPPUNIT_ASSERT(segmenter->appendFrameToDashSegment(frame));
     }
 
     CPPUNIT_ASSERT(segmentModelLength == segment->getDataLength());

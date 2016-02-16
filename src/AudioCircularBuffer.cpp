@@ -27,7 +27,7 @@
 
 #define MAX_DEVIATION_SAMPLES 64
 
-AudioCircularBuffer* AudioCircularBuffer::createNew(struct ConnectionData cData, unsigned ch, unsigned sRate, unsigned maxSamples, SampleFmt sFmt, std::chrono::milliseconds bufferingThreshold)
+AudioCircularBuffer* AudioCircularBuffer::createNew(struct ConnectionData cData, unsigned ch, unsigned sRate, unsigned maxSamples, SampleFmt sFmt)
 {
     AudioCircularBuffer* b = new AudioCircularBuffer(cData, ch, sRate, maxSamples, sFmt);
 
@@ -37,14 +37,13 @@ AudioCircularBuffer* AudioCircularBuffer::createNew(struct ConnectionData cData,
         return NULL;
     }
 
-    b->setBufferingThreshold(bufferingThreshold);
     return b;
 }
 
 AudioCircularBuffer::AudioCircularBuffer(struct ConnectionData cData, unsigned ch, unsigned sRate, unsigned maxSamples, SampleFmt sFmt)
 : FrameQueue(cData), channels(ch), sampleRate(sRate), bytesPerSample(0), chMaxSamples(maxSamples), channelMaxLength(0), 
-sampleFormat(sFmt), fillNewFrame(true), samplesBufferingThreshold(0), bufferingState(BUFFERING), 
-inputFrame(NULL), outputFrame(NULL), dummyFrame(NULL), synchronized(false), setupSuccess(false), tsDeviationThreshold(0), elements(0)
+sampleFormat(sFmt), fillNewFrame(true), inputFrame(NULL), outputFrame(NULL), dummyFrame(NULL), 
+synchronized(false), setupSuccess(false), tsDeviationThreshold(0), elements(0)
 {
 
 }
@@ -60,11 +59,6 @@ AudioCircularBuffer::~AudioCircularBuffer()
         delete inputFrame;
         delete outputFrame;
     }
-}
-
-void AudioCircularBuffer::setBufferingThreshold(std::chrono::milliseconds th)
-{
-    samplesBufferingThreshold = th.count()*sampleRate/std::milli::den;
 }
 
 Frame* AudioCircularBuffer::getRear()
@@ -98,11 +92,13 @@ Frame* AudioCircularBuffer::getFront()
     return outputFrame;
 }
 
-int AudioCircularBuffer::addFrame()
+//TODO it should return a vector of filter ids
+std::vector<int> AudioCircularBuffer::addFrame()
 {
     std::chrono::microseconds inTs;
     std::chrono::microseconds rearTs;
     std::chrono::microseconds deviation;
+    std::vector<int> ret;
     unsigned paddingSamples;
     unsigned rearSampleIdx;
 
@@ -119,7 +115,7 @@ int AudioCircularBuffer::addFrame()
 
     if (deviation.count() < -tsDeviationThreshold) {
         utils::warningMsg("[AudioCircularBuffer] Timestamp from the past, discarding entire frame");
-        return -1;
+        return ret;
     }
 
     if (deviation.count() > tsDeviationThreshold) {
@@ -130,25 +126,29 @@ int AudioCircularBuffer::addFrame()
         if (paddingSamples >= chMaxSamples) {
             utils::warningMsg("[AudioCircularBuffer] Time discontinuity. Flushing buffer!");
             flush();
-            return -1;
+            return ret;
         }
 
         if(!pushBack(dummyFrame->getPlanarDataBuf(), paddingSamples)) {
             utils::warningMsg("[AudioCircularBuffer] Cannot push padding");
-            return -1;
+            return ret;
         }
     }
 
     if(!pushBack(inputFrame->getPlanarDataBuf(), inputFrame->getSamples())) {
         utils::warningMsg("[AudioCircularBuffer] Cannot push frame");
-        return -1;
+        return ret;
     }
     
     std::lock_guard<std::mutex> guard(mtx);
     
     orgTime = inputFrame->getOriginTime();
     
-    return connectionData.rFilterId;
+    for (auto& r : connectionData.readers){
+        ret.push_back(r.rFilterId);
+    }
+    
+    return ret;
 }
 
 int AudioCircularBuffer::removeFrame()
@@ -261,16 +261,6 @@ bool AudioCircularBuffer::popFront(unsigned char **buffer, unsigned samplesReque
         return false;
     }
 
-    if (elements < samplesBufferingThreshold * bytesPerSample) {
-        bufferingState = BUFFERING;
-    } else {
-	    bufferingState = OK;
-    }
-
-    if (bufferingState == BUFFERING) {
-	   return false;
-    }
-
     fillOutputBuffers(buffer, bytesRequested);
 
     return true;
@@ -331,8 +321,13 @@ void AudioCircularBuffer::setOutputFrameSamples(int samples)
     outputFrame->setLength(samples*bytesPerSample);
 }
 
-unsigned AudioCircularBuffer::getElements() 
+unsigned AudioCircularBuffer::getElements() const
 {
     return elements/(outputFrame->getSamples()*bytesPerSample);
-};
+}
+
+bool AudioCircularBuffer::isFull() const
+{
+    return ((float) elements)/chMaxSamples >= FULL_THRESHOLD;
+}
 

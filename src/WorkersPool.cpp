@@ -24,11 +24,13 @@
 #include "WorkersPool.hh"
 #include "Utils.hh"
 
+#define HW_CONC_FACTOR 2
+
 WorkersPool::WorkersPool(size_t threads) : run(true)
 {
     if (threads == 0 || 
-        threads > std::thread::hardware_concurrency()){
-        threads = std::thread::hardware_concurrency();
+        threads > std::thread::hardware_concurrency()*HW_CONC_FACTOR){
+        threads = std::thread::hardware_concurrency()*HW_CONC_FACTOR;
     }
     
     utils::infoMsg("starting "  + std::to_string(threads) + " threads");
@@ -37,7 +39,7 @@ WorkersPool::WorkersPool(size_t threads) : run(true)
         workers.push_back(
             std::thread([this](unsigned int j){
                 Runnable* job = NULL;
-                std::list<Runnable*>::iterator iter;
+                std::set<Runnable*>::iterator iter;
                 std::vector<int> enabledJobs;
                 bool added = false;
                 
@@ -81,13 +83,9 @@ WorkersPool::WorkersPool(size_t threads) : run(true)
                     }
                     
                     for(auto id : enabledJobs){
-                        added |= addJob(id);
-                    }
-                    
-                    if (job->isPeriodic()){
-                        jobQueue.push_back(job);
-                        addGroupJob(job->getGroupIds());
-                        jobQueue.sort(RunnableLess());
+                        if (runnables.count(id) > 0){
+                            jobQueue.insert(runnables[id]);
+                        }
                         added = true;
                     }
                     
@@ -113,7 +111,7 @@ void WorkersPool::stop()
     qCheck.notify_all();
     for (std::thread &worker : workers){
         if (worker.joinable()){
-            worker.join();
+            worker.join();            
         }
     }
     jobQueue.clear();
@@ -128,8 +126,7 @@ bool WorkersPool::addTask(Runnable* const task)
     std::unique_lock<std::mutex> guard(mtx);
     if (runnables.count(id) == 0){
         runnables[id] = task;
-        jobQueue.push_back(task);
-        jobQueue.sort(RunnableLess());
+        jobQueue.insert(task);
         guard.unlock();
         qCheck.notify_one();
         return true;
@@ -139,59 +136,13 @@ bool WorkersPool::addTask(Runnable* const task)
 
 bool WorkersPool::removeTask(const int id)
 {
-    Runnable* runnable;
     std::unique_lock<std::mutex> guard(mtx);
     if (runnables.count(id) > 0){
-        runnable = runnables[id];
         runnables.erase(id);
-        runnable->removeFromGroup();
-        removeFromQueue(id);
-        while(runnable->isRunning()){
-            qCheck.wait_for(guard, std::chrono::milliseconds(IDLE));
-            utils::warningMsg("waiting runnable to finish");
-        }
-        removeFromQueue(id);
         guard.unlock();
         qCheck.notify_one();
         return true;
     }
     
     return false;
-}
-
-bool WorkersPool::removeFromQueue(int id)
-{
-    std::list<Runnable*>::iterator iter;
-    bool found = false;
-    iter = jobQueue.begin();
-    while (iter != jobQueue.end()){
-        if ((*iter)->getId() == id){
-            iter = jobQueue.erase(iter);
-            found = true;
-        }
-        iter++;
-    }
-    return found;
-}
-
-bool WorkersPool::addJob(const int id)
-{
-    bool added = false;
-    if (runnables.count(id) > 0 && !runnables[id]->isPeriodic()){
-        added = addGroupJob(runnables[id]->getGroupIds());
-        jobQueue.sort(RunnableLess());
-    }
-    return added;
-}
-
-bool WorkersPool::addGroupJob(std::vector<int> group)
-{
-    bool added = false;
-    for (auto runId : group){
-        if (runnables.count(runId) > 0 && !runnables[runId]->isRunning() && !runnables[runId]->isPeriodic()){
-            jobQueue.push_back(runnables[runId]);
-            added = true;
-        }
-    }
-    return added;
 }

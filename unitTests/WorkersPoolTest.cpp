@@ -64,12 +64,13 @@ void WorkersPoolTest::tearDown()
 
 void WorkersPoolTest::addAndRemoveTask()
 {
-    std::vector<int> periodic(2);
-    std::vector<int> notPeriodic(3);
+    std::vector<int> periodic(1,2);
+    std::vector<int> notPeriodic(1,1);
     Runnable* periodicR = new RunnableMockup(40000, periodic, true);
     Runnable* notPeriodicR = new RunnableMockup(40000, notPeriodic, false);
     periodicR->setId(1);
     notPeriodicR->setId(2);
+    
     CPPUNIT_ASSERT(pool->addTask(periodicR));
     CPPUNIT_ASSERT(!pool->addTask(periodicR));
     CPPUNIT_ASSERT(!pool->removeTask(2));

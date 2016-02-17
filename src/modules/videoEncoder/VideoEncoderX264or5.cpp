@@ -98,9 +98,9 @@ bool VideoEncoderX264or5::doProcessFrame(Frame *org, Frame *dst)
 
 bool VideoEncoderX264or5::fill_x264or5_picture(VideoFrame* videoFrame)
 {
-    if (avpicture_fill((AVPicture *) midFrame, videoFrame->getDataBuf(),
+    if (av_image_fill_arrays(midFrame->data, midFrame->linesize, videoFrame->getDataBuf(),
             (AVPixelFormat) libavInPixFmt, videoFrame->getWidth(),
-            videoFrame->getHeight()) <= 0){
+            videoFrame->getHeight(), 1) <= 0){
         utils::errorMsg("Could not feed AVFrame");
         return false;
     }

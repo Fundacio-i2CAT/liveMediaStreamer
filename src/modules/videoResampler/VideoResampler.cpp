@@ -141,7 +141,7 @@ bool VideoResampler::doProcessFrame(Frame *org, Frame *dst)
         outHeight = outputHeight;
     }
     
-    dstFrame->setLength(avpicture_get_size (libavOutPixFmt, outWidth, outHeight));
+    dstFrame->setLength(av_image_get_buffer_size(libavOutPixFmt, outWidth, outHeight, 1));
     dstFrame->setSize(outWidth, outHeight);
     dstFrame->setPixelFormat(outPixFmt);
 
@@ -264,9 +264,9 @@ AVPixelFormat getLibavPixFmt(PixType pixType)
 
 bool VideoResampler::setAVFrame(AVFrame *aFrame, VideoFrame* vFrame, AVPixelFormat format)
 {      
-    if (avpicture_fill((AVPicture *) aFrame, vFrame->getDataBuf(), 
+    if (av_image_fill_arrays(aFrame->data, aFrame->linesize, vFrame->getDataBuf(), 
             format, vFrame->getWidth(), 
-            vFrame->getHeight()) <= 0){
+            vFrame->getHeight(), 1) <= 0){
         utils::errorMsg("Could not feed AVFrame");
         return false;
     }

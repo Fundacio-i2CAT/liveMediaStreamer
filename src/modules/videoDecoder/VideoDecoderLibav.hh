@@ -25,8 +25,8 @@
 #define _VIDEO_DECODER_LIBAV_HH
 
 extern "C" {
-#include <libavcodec/avcodec.h>
-#include <libavutil/avutil.h>
+    #include <libavcodec/avcodec.h>
+    #include <libavutil/imgutils.h>
 }
 
 #include "../../VideoFrame.hh"

@@ -34,9 +34,8 @@
 #include "../../StreamInfo.hh"
 
 extern "C" {
-#include <libswscale/swscale.h>
-#include <libavcodec/avcodec.h>
-#include <libavformat/avformat.h>
+    #include <libavcodec/avcodec.h>
+    #include <libavutil/imgutils.h>
 }
 
 #define DEFAULT_BITRATE 2000

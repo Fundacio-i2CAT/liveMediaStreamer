@@ -179,8 +179,8 @@ bool VideoDecoderLibav::toBuffer(VideoFrame *decodedFrame, VideoFrame *codedFram
 {
     int ret, length;
     
-    length = avpicture_fill((AVPicture *) frameCopy, decodedFrame->getDataBuf(), 
-                            (AVPixelFormat) frame->format, frame->width, frame->height); 
+    length = av_image_fill_arrays(frameCopy->data, frameCopy->linesize, decodedFrame->getDataBuf(), 
+                            (AVPixelFormat) frame->format, frame->width, frame->height, 1); 
     if (length <= 0){
         utils::errorMsg("Could not fill decoded frame");
         return false;

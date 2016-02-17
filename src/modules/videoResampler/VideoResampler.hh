@@ -25,9 +25,9 @@
 #define _VIDEO_RESAMPLER_HH
 
 extern "C" {
-#include <libavutil/avutil.h>
-#include <libswscale/swscale.h>
-#include <libavcodec/avcodec.h>
+    #include <libswscale/swscale.h>
+    #include <libavcodec/avcodec.h>
+    #include <libavutil/imgutils.h>
 }
 
 #include "../../VideoFrame.hh"

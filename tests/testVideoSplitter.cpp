@@ -21,8 +21,8 @@
 
 #define RETRIES 60
 #define SPLIT_CHANNELS 4
-#define SPLIT_WIDTH 1920
-#define SPLIT_HEIGHT 1080
+#define SPLIT_WIDTH 1280
+#define SPLIT_HEIGHT 720
 
 
 bool run = true;
@@ -34,7 +34,7 @@ void signalHandler( int signum )
     run = false;
 }
 
-bool setupSplitter(int splitterId, int transmitterID, int def_witdth, int def_height) 
+bool setupSplitter(int splitterId, int transmitterID) 
 {
     PipelineManager *pipe = Controller::getInstance()->pipelineManager();
 
@@ -289,7 +289,7 @@ int main(int argc, char* argv[])
     pipe->addFilter(transmitterId, transmitter);
     pipe->addFilter(receiverId, receiver);
 
-    setupSplitter(splitterId, transmitterId, def_witdth, def_height);
+    setupSplitter(splitterId, transmitterId);
 
     signal(SIGINT, signalHandler);
 

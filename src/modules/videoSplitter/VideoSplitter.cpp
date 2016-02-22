@@ -41,9 +41,12 @@ void CropConfig::config(float width, float height, float x, float y, float degre
     this->x = x;
     this->y = y;
     this->degree = degree;
-    cv::Mat img(height, width, CV_8UC3);
-    img.copyTo(this->crop);
+}
 
+void CropConfig::setCrop(int width, int height)
+{
+	cv::Mat img(height, width, CV_8UC3);
+    img.copyTo(this->crop);
 }
 
 ///////////////////////////////////////////////////
@@ -144,6 +147,7 @@ bool VideoSplitter::doProcessFrame(Frame *org, std::map<int, Frame *> &dstFrames
 
 		if((xROI >= 0 || yROI >= 0 || widthROI > 0 || heightROI > 0) && xROI+widthROI <= vFrame->getWidth() && yROI+heightROI <= vFrame->getHeight()){
 			vFrameDst = dynamic_cast<VideoFrame*>(it.second);
+			cropsConfig[it.first]->setCrop(widthROI, heightROI);
 			cropsConfig[it.first]->getCrop()->data = vFrameDst->getDataBuf();
 			vFrameDst->setLength(widthROI * heightROI);
     		vFrameDst->setSize(widthROI, heightROI);

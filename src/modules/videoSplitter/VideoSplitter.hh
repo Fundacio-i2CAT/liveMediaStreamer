@@ -92,6 +92,8 @@ class CropConfig {
 	    * @return Crop based on params
 	    */
 	    cv::Mat getCropRect(float x, float y, float w, float h) { return crop(cv::Rect(x,y,w,h)); };
+
+	    void setCrop(int w, int h);
 	private:
 		float width;
 	    float height;

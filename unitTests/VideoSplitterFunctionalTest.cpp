@@ -59,11 +59,12 @@ void VideoSplitterFunctionalTest::setUp()
 	CPPUNIT_ASSERT(splitterScenario->addTailFilter(2));
 	CPPUNIT_ASSERT(splitterScenario->addTailFilter(3));
 	CPPUNIT_ASSERT(splitterScenario->addTailFilter(4));
+	CPPUNIT_ASSERT(splitterScenario->addTailFilter(4));
 	CPPUNIT_ASSERT(splitterScenario->connectFilters());
-	CPPUNIT_ASSERT(splitter->configCrop(1,100,100,0,0));
-	CPPUNIT_ASSERT(splitter->configCrop(2,100,100,100,0));
-	CPPUNIT_ASSERT(splitter->configCrop(3,100,100,0,100));
-	CPPUNIT_ASSERT(splitter->configCrop(4,100,100,100,100));
+	CPPUNIT_ASSERT(splitter->configCrop(1,0.5,0.5,0,0));
+	CPPUNIT_ASSERT(splitter->configCrop(2,0.5,0.5,0.5,0));
+	CPPUNIT_ASSERT(splitter->configCrop(3,0.5,0.5,0,0.5));
+	CPPUNIT_ASSERT(splitter->configCrop(4,0.5,0.5,0.5,0.5));
 }
 
 void VideoSplitterFunctionalTest::tearDown()

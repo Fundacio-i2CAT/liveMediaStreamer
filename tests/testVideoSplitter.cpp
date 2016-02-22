@@ -73,15 +73,15 @@ bool setupSplitter(int splitterId, int transmitterID, int def_witdth, int def_he
             return false;
         }
 
-        int w = def_witdth/(SPLIT_CHANNELS/2);
-        int h = def_height/(SPLIT_CHANNELS/2);
-        int x = ((it-1)%2)*(def_witdth/(SPLIT_CHANNELS/2));
-        int y = ((it>>1)%2)*(def_height/(SPLIT_CHANNELS/2));
+        float w = 0.5;
+        float h = 0.5;
+        float x = ((it-1)%2)*0.5;
+        float y = ((it>>1)%2)*0.5;
         
         splitter->configCrop(it,w,h,x,y);
 
         utils::errorMsg("[TESTVIDEOSPLITTER] Crop config "+std::to_string(it)+":");
-        utils::errorMsg("[TESTVIDEOSPLITTER] width:"+std::to_string(w)+", height:"+std::to_string(h)+", POS.X:"+std::to_string(x)+", POS.Y:"+std::to_string(y));
+        utils::errorMsg("[TESTVIDEOSPLITTER] Wwidth:"+std::to_string(w)+", height:"+std::to_string(h)+", POS.X:"+std::to_string(x)+", POS.Y:"+std::to_string(y));
 
         ids.clear();
     }
@@ -269,7 +269,7 @@ int main(int argc, char* argv[])
             utils::infoMsg("destination port: " + std::to_string(port));
         }
     }
-    utils::infoMsg("input WIDTH: " + std::to_string(def_witdth) + " and input HEIGHT" + std::to_string(def_height));
+    utils::infoMsg("input WIDTH: " + std::to_string(def_witdth) + " and input HEIGHT: " + std::to_string(def_height));
 
     if (vPort == 0  && rtspUri.empty()) { 
         utils::errorMsg("Usage: -v <port> -r <uri>");

@@ -45,37 +45,37 @@ class CropConfig {
 	    * @param y Upper left corner Y position
 	    * @param degree [-360º,360º] rotate image
 	    */
-		void config(int width, int height, int x, int y, int degree = 0);
+		void config(float width, float height, float x, float y, float degree = 0);
 
 		/**
 	    * Get Width.
 	    * @return width of Crop
 	    */
-		int getWidth() {return width;};
+		float getWidth() {return width;};
 
 		/**
 	    * Get Height.
 	    * @return height of Crop
 	    */
-	    int getHeight() {return height;};
+	    float getHeight() {return height;};
 	    
 		/**
 	    * Get X.
 	    * @return X of Crop
 	    */
-	    int getX() {return x;};
+	    float getX() {return x;};
 	    
 	    /**
 	    * Get Y.
 	    * @return Y of Crop
 	    */
-	    int getY() {return y;};
+	    float getY() {return y;};
 
 	    /**
 	    * Get Degree.
 	    * @return degree of Crop
 	    */
-	    int getDegree() {return degree;};
+	    float getDegree() {return degree;};
 
 	    /**
 	    * Class constructor.
@@ -91,13 +91,13 @@ class CropConfig {
 	    * @param h height Channel 
 	    * @return Crop based on params
 	    */
-	    cv::Mat getCropRect(int x, int y, int w, int h) { return crop(cv::Rect(x,y,w,h)); };
+	    cv::Mat getCropRect(float x, float y, float w, float h) { return crop(cv::Rect(x,y,w,h)); };
 	private:
-		int width;
-	    int height;
-	    int x;
-	    int y;
-	    int degree;
+		float width;
+	    float height;
+	    float x;
+	    float y;
+	    float degree;
 	    cv::Mat crop;
 };
 
@@ -128,7 +128,7 @@ class VideoSplitter : public OneToManyFilter {
         * @param y See CropConfig::config
         * @param degree See CropConfig::config
         */
-    	bool configCrop(int id, int width, int height, int x, int y, int degree=0);
+    	bool configCrop(int id, float width, float height, float x, float y, float degree = 0);
     	/**
         * Configure 
         * @param fTime Frame Time of Splitter
@@ -145,8 +145,8 @@ class VideoSplitter : public OneToManyFilter {
 		FrameQueue *allocQueue(ConnectionData cData);
 		bool doProcessFrame(Frame *org, std::map<int, Frame *> &dstFrames);
 		void doGetState(Jzon::Object &filterNode);
-		bool configCrop0(int id, int width, int height, int x, int y, int degree=0);
-		bool configure0(std::chrono::microseconds fTime);
+		bool configCrop0(int id, float width, float height, float x, float y, float degree = 0);
+		bool configure0(int fps);
 		bool specificWriterConfig(int writerID);
         bool specificWriterDelete(int writerID);
 
@@ -158,7 +158,6 @@ class VideoSplitter : public OneToManyFilter {
         //There is no need of specific reader configuration
         bool specificReaderConfig(int /*readerID*/, FrameQueue* /*queue*/)  {return true;};
         bool specificReaderDelete(int /*readerID*/) {return true;};
-
 
         StreamInfo *outputStreamInfo;
         std::map<int, CropConfig*> cropsConfig;

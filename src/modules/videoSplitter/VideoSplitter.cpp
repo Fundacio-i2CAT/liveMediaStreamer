@@ -34,7 +34,7 @@ CropConfig::CropConfig() : width(0), height(0), x(-1), y(-1), degree(0)
 
 }
 
-void CropConfig::config(int width, int height, int x, int y, int degree)
+void CropConfig::config(float width, float height, float x, float y, float degree)
 {
     this->width = width;
     this->height = height;
@@ -70,7 +70,7 @@ VideoSplitter::~VideoSplitter()
 	delete outputStreamInfo;
 }
 
-bool VideoSplitter::configCrop(int id, int width, int height, int x, int y, int degree)
+bool VideoSplitter::configCrop(int id, float width, float height, float x, float y, float degree)
 {
 	Jzon::Object root, params;
 	root.Add("action", "configCrop");
@@ -137,10 +137,10 @@ bool VideoSplitter::doProcessFrame(Frame *org, std::map<int, Frame *> &dstFrames
 	cv::Mat orgFrame(vFrame->getHeight(), vFrame->getWidth(), CV_8UC3, vFrame->getDataBuf());
 	
 	for (auto it : dstFrames){
-		xROI = cropsConfig[it.first]->getX();
-		yROI = cropsConfig[it.first]->getY();
-		widthROI = cropsConfig[it.first]->getWidth();
-		heightROI = cropsConfig[it.first]->getHeight();
+		xROI = cropsConfig[it.first]->getX()*vFrame->getWidth();
+		yROI = cropsConfig[it.first]->getY()*vFrame->getHeight();
+		widthROI = cropsConfig[it.first]->getWidth()*vFrame->getWidth();
+		heightROI = cropsConfig[it.first]->getHeight()*vFrame->getHeight();
 
 		if((xROI >= 0 || yROI >= 0 || widthROI > 0 || heightROI > 0) && xROI+widthROI <= vFrame->getWidth() && yROI+heightROI <= vFrame->getHeight()){
 			vFrameDst = dynamic_cast<VideoFrame*>(it.second);
@@ -182,7 +182,7 @@ void VideoSplitter::doGetState(Jzon::Object &filterNode)
 	filterNode.Add("crops", jsonCropsConfigs);
 }
 
-bool VideoSplitter::configCrop0(int id, int width, int height, int x, int y, int degree)
+bool VideoSplitter::configCrop0(int id, float width, float height, float x, float y, float degree)
 {
 	if (cropsConfig.count(id) <= 0) {
         utils::errorMsg("[VideoSplitter] Error configuring crop. Incorrect Id " + std::to_string(id));
@@ -190,8 +190,13 @@ bool VideoSplitter::configCrop0(int id, int width, int height, int x, int y, int
     }
 
 
-    if (x < 0 || y < 0 || width <= 0 || height <= 0 || degree > 360 || degree < (-360)) {
+    if (x < 0 || y < 0 || width <= 0 || height <= 0 || width > 1 || height > 1 || degree < 0 || degree > 1) {
         utils::errorMsg("[VideoSplitter] Error configuring crop. Incoherent values");
+        return false;
+    }
+
+    if (x + width > 1 || y + height > 1) {
+        utils::errorMsg("[VideoSplitter] Position + size exceed edges!");
         return false;
     }
 
@@ -199,14 +204,16 @@ bool VideoSplitter::configCrop0(int id, int width, int height, int x, int y, int
     return true;
 }
 
-bool VideoSplitter::configure0(std::chrono::microseconds fTime)
+bool VideoSplitter::configure0(int fps)
 {
-	if (fTime.count() < 0) {
+	if (fps < 0) {
         utils::errorMsg("[VideoSplitter::configCrop0] Error, negative frame time is not valid");
         return NULL;
     }
     
-    setFrameTime(fTime);
+    if (fps > 0) {
+    	setFrameTime(std::chrono::microseconds(std::micro::den/fps));
+    }
 
 	return true;
 }
@@ -234,14 +241,16 @@ bool VideoSplitter::configCropEvent(Jzon::Node* params)
     }
     
     int id = params->Get("id").ToInt();
-    int width = params->Get("width").ToInt();
-    int height = params->Get("height").ToInt();
-    int x = params->Get("x").ToInt();
-    int y = params->Get("y").ToInt();
-    int degree = 0;
+    float width = params->Get("width").ToFloat();
+    float height = params->Get("height").ToFloat();
+    float x = params->Get("x").ToFloat();
+    float y = params->Get("y").ToFloat();
+    float degree = 0;
+    
     if(params->Has("degree")){
     	degree = params->Get("degree").ToInt();
     }
+    
     utils::infoMsg("ID: " + std::to_string(id) + " W: " + std::to_string(width) + " H: " + std::to_string(height) + " X: " + std::to_string(x) + " Y: " + std::to_string(y)+ " Degree: " + std::to_string(degree));
     
     return configCrop0(id, width, height, x, y, degree);
@@ -249,18 +258,18 @@ bool VideoSplitter::configCropEvent(Jzon::Node* params)
 
 bool VideoSplitter::configureEvent(Jzon::Node* params)
 {
+    int fps = 0;
+
 	if (!params) {
         utils::errorMsg("[VideoSplitter::configureEvent] Params node missing");
         return false;
     }
 
-    std::chrono::microseconds fTime = std::chrono::microseconds(0);
-
-    if (params->Has("fTime") && params->Get("fTime").IsNumber()){
-  		fTime = std::chrono::microseconds(params->Get("fTime").ToInt());
+    if (params->Has("fps") && params->Get("fps").IsNumber()){
+  		fps = params->Get("fps").ToInt();
     }
 
-    return configure0(fTime);
+    return configure0(fps);
 }
         
 bool VideoSplitter::specificWriterConfig(int writerID)

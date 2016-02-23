@@ -140,6 +140,9 @@ struct RunnableLess : public std::binary_function<Runnable*, Runnable*, bool>
 {
     bool operator()(const Runnable* lhs, const Runnable* rhs) const
     {
+        if (lhs->getId() == rhs->getId()){
+            return false;
+        }
         if (lhs->getTime() == rhs->getTime()){
             return lhs->getId() < rhs->getId();
         }

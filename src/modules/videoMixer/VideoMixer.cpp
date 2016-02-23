@@ -22,7 +22,6 @@
 
 #include "VideoMixer.hh"
 #include "../../AVFramedQueue.hh"
-#include <iostream>
 #include <chrono>
 
 ///////////////////////////////////////////////////

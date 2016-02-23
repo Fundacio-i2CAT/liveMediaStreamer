@@ -221,7 +221,9 @@ protected:
 
     std::map<std::string, std::function<bool(Jzon::Node* params)> > eventMap;
 
-    virtual bool runDoProcessFrame(std::map<int, Frame*> &oFrames, std::map<int, Frame*> &dFrames, std::vector<int> newFrames) = 0;
+    virtual bool runDoProcessFrame(std::map<int, Frame*> &oFrames, 
+                                   std::map<int, Frame*> &dFrames, 
+                                   std::vector<int> newFrames, int& ret) = 0;
 
     void setSyncTs(std::chrono::microseconds ts){syncTs = ts;};
     std::chrono::microseconds getSyncTs(){return syncTs;};
@@ -272,7 +274,9 @@ protected:
     using BaseFilter::getFrameTime;
 
 private:
-    bool runDoProcessFrame(std::map<int, Frame*> &oFrames, std::map<int, Frame*> &dFrames, std::vector<int> /*newFrames*/);
+    bool runDoProcessFrame(std::map<int, Frame*> &oFrames, 
+                           std::map<int, Frame*> &dFrames, 
+                           std::vector<int> /*newFrames*/, int& /*ret*/);
     
     using BaseFilter::demandOriginFrames;
     using BaseFilter::demandDestinationFrames;
@@ -297,7 +301,9 @@ protected:
     using BaseFilter::getFrameTime;
 
 private:
-    bool runDoProcessFrame(std::map<int, Frame*> &oFrames, std::map<int, Frame*> &dFrames, std::vector<int> /*newFrames*/);
+    bool runDoProcessFrame(std::map<int, Frame*> &oFrames, 
+                           std::map<int, Frame*> &dFrames, 
+                           std::vector<int> /*newFrames*/, int& /*ret*/);
 
     using BaseFilter::demandOriginFrames;
     using BaseFilter::demandDestinationFrames;
@@ -320,14 +326,17 @@ public:
 
 protected:
     HeadFilter(unsigned writersNum = MAX_WRITERS, FilterRole fRole_ = REGULAR, bool periodic = true);
-    virtual bool doProcessFrame(std::map<int, Frame*> &dstFrames) = 0;
+    virtual bool doProcessFrame(std::map<int, Frame*> &dstFrames, int& ret) = 0;
     
     int getNullWriterID();
     using BaseFilter::setFrameTime;
     using BaseFilter::getFrameTime;
 
 private: 
-    bool runDoProcessFrame(std::map<int, Frame*> &oFrames, std::map<int, Frame*> &dFrames, std::vector<int> /*newFrames*/);
+    bool runDoProcessFrame(std::map<int, Frame*> &oFrames, 
+                           std::map<int, Frame*> &dFrames, 
+                           std::vector<int> /*newFrames*/, int& ret);
+    
     //NOTE: There is no need of specific reader configuration
     bool specificReaderConfig(int /*readerID*/, FrameQueue* /*queue*/)  {return true;};
     bool specificReaderDelete(int /*readerID*/) {return true;};
@@ -357,8 +366,11 @@ protected:
 
 private:
     FrameQueue *allocQueue(struct ConnectionData cData) {return NULL;};
-    bool runDoProcessFrame(std::map<int, Frame*> &oFrames, std::map<int, Frame*> &dFrames, std::vector<int> newFrames);
-    virtual bool doProcessFrame(std::map<int, Frame*> &orgFrames, std::vector<int> newFrames) = 0;
+    bool runDoProcessFrame(std::map<int, Frame*> &oFrames, 
+                           std::map<int, Frame*> &dFrames, 
+                           std::vector<int> newFrames, int& ret);
+    
+    virtual bool doProcessFrame(std::map<int, Frame*> &orgFrames, std::vector<int> newFrames, int& ret) = 0;
     
     //NOTE: There is no need of specific writer configuration
     bool specificWriterConfig(int /*writerID*/) {return true;};
@@ -387,7 +399,9 @@ protected:
     using BaseFilter::getFrameTime;
 
 private:   
-    bool runDoProcessFrame(std::map<int, Frame*> &oFrames, std::map<int, Frame*> &dFrames, std::vector<int> newFrames);
+    bool runDoProcessFrame(std::map<int, Frame*> &oFrames, 
+                           std::map<int, Frame*> &dFrames, 
+                           std::vector<int> newFrames, int& /*ret*/);
 
     using BaseFilter::demandOriginFrames;
     using BaseFilter::demandDestinationFrames;

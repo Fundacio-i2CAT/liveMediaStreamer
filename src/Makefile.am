@@ -45,6 +45,7 @@ liblivemediastreamer_la_SOURCES = modules/audioDecoder/AudioDecoderLibav.cpp \
                                   modules/transmitter/SPSparser/h264_stream.c \
                                   modules/sharedMemory/SharedMemory.cpp \
                                   modules/headDemuxer/HeadDemuxerLibav.cpp \
+                                  modules/videoCapture/VideoCapture.cpp \
                                   AVFramedQueue.cpp \
                                   AudioCircularBuffer.cpp \
                                   SlicedVideoFrameQueue.cpp \
@@ -68,4 +69,4 @@ liblivemediastreamer_la_CXXFLAGS = -std=c++11
 
 liblivemediastreamer_la_CFLAGS = -g -D__STDC_CONSTANT_MACROS -Wall -O0
 
-liblivemediastreamer_la_LDFLAGS = -shared -fPIC -pthread -lBasicUsageEnvironment -lUsageEnvironment -lliveMedia -lgroupsock -lavcodec -lavformat -lavutil -lswresample -lswscale -llog4cplus -lopencv_core -lopencv_imgproc -lx264 -lx265
+liblivemediastreamer_la_LDFLAGS = -shared -fPIC -pthread -lBasicUsageEnvironment -lUsageEnvironment -lliveMedia -lgroupsock -lavcodec -lavformat -lavutil -lswresample -lswscale -llog4cplus -lopencv_core -lopencv_imgproc -lopencv_highgui -lx264 -lx265

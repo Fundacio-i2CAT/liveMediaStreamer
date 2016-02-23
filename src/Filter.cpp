@@ -509,7 +509,7 @@ std::vector<int> BaseFilter::regularProcessFrame(int& ret)
         return enabledJobs;
     }
 
-    runDoProcessFrame(oFrames, dFrames, newFrames);
+    runDoProcessFrame(oFrames, dFrames, newFrames, ret);
     
     //TODO: manage ret value
     enabledJobs = addFrames(dFrames);
@@ -531,12 +531,12 @@ std::vector<int> BaseFilter::serverProcessFrame(int& ret)
     demandOriginFrames(oFrames, newFrames);
     demandDestinationFrames(dFrames);
 
-    runDoProcessFrame(oFrames, dFrames, newFrames);
+    runDoProcessFrame(oFrames, dFrames, newFrames, ret);
 
     enabledJobs = addFrames(dFrames);
     removeFrames(newFrames);
     
-    ret = 0;
+    //ret = 0;
     
     return enabledJobs;
 }
@@ -732,7 +732,9 @@ OneToOneFilter::OneToOneFilter(FilterRole fRole_, bool periodic) :
 {
 }
 
-bool OneToOneFilter::runDoProcessFrame(std::map<int, Frame*> &oFrames, std::map<int, Frame*> &dFrames, std::vector<int> /*newFrames*/)
+bool OneToOneFilter::runDoProcessFrame(std::map<int, Frame*> &oFrames, 
+                                       std::map<int, Frame*> &dFrames, 
+                                       std::vector<int> /*newFrames*/, int& /*ret*/)
 {
     if (!doProcessFrame(oFrames.begin()->second, dFrames.begin()->second)) {
         return false;
@@ -746,7 +748,9 @@ OneToManyFilter::OneToManyFilter(unsigned writersNum, FilterRole fRole_, bool pe
 {
 }
 
-bool OneToManyFilter::runDoProcessFrame(std::map<int, Frame*> &oFrames, std::map<int, Frame*> &dFrames, std::vector<int> /*newFrames*/)
+bool OneToManyFilter::runDoProcessFrame(std::map<int, Frame*> &oFrames, 
+                                        std::map<int, Frame*> &dFrames, 
+                                        std::vector<int> /*newFrames*/, int& /*ret*/)
 {
     if (!doProcessFrame(oFrames.begin()->second, dFrames)) {
         return false;
@@ -765,9 +769,11 @@ HeadFilter::HeadFilter(unsigned writersNum, FilterRole fRole_, bool periodic) :
 {
 }
 
-bool HeadFilter::runDoProcessFrame(std::map<int, Frame*> &oFrames, std::map<int, Frame*> &dFrames, std::vector<int> /*newFrames*/)
+bool HeadFilter::runDoProcessFrame(std::map<int, Frame*> &oFrames, 
+                                   std::map<int, Frame*> &dFrames, 
+                                   std::vector<int> /*newFrames*/, int& ret)
 {
-    if (!doProcessFrame(dFrames)) {
+    if (!doProcessFrame(dFrames, ret)) {
         return false;
     }
 
@@ -808,9 +814,11 @@ TailFilter::TailFilter(unsigned readersNum, FilterRole fRole_, bool periodic) :
     setSync(true);
 }
 
-bool TailFilter::runDoProcessFrame(std::map<int, Frame*> &oFrames, std::map<int, Frame*> &dFrames, std::vector<int> newFrames)
+bool TailFilter::runDoProcessFrame(std::map<int, Frame*> &oFrames, 
+                                   std::map<int, Frame*> &dFrames, 
+                                   std::vector<int> newFrames, int& ret)
 {
-    return doProcessFrame(oFrames, newFrames);
+    return doProcessFrame(oFrames, newFrames, ret);
 }
 
 void TailFilter::pushEvent(Event e)
@@ -837,7 +845,9 @@ ManyToOneFilter::ManyToOneFilter(unsigned readersNum, FilterRole fRole_, bool pe
 {
 }
 
-bool ManyToOneFilter::runDoProcessFrame(std::map<int, Frame*> &oFrames, std::map<int, Frame*> &dFrames, std::vector<int> newFrames)
+bool ManyToOneFilter::runDoProcessFrame(std::map<int, Frame*> &oFrames, 
+                                        std::map<int, Frame*> &dFrames, 
+                                        std::vector<int> newFrames, int& /*ret*/)
 {
     if (!doProcessFrame(oFrames, dFrames.begin()->second, newFrames)) {
         return false;

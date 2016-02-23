@@ -84,7 +84,7 @@ bool Dasher::configure(std::string dashFolder, std::string baseName_, size_t seg
     return true;
 }
 
-bool Dasher::doProcessFrame(std::map<int, Frame*> &orgFrames, std::vector<int> newFrames)
+bool Dasher::doProcessFrame(std::map<int, Frame*> &orgFrames, std::vector<int> newFrames, int& ret)
 {
     DashSegmenter* segmenter;
     Frame* frame;
@@ -136,6 +136,8 @@ bool Dasher::doProcessFrame(std::map<int, Frame*> &orgFrames, std::vector<int> n
     if (writeAudioSegments()) {
         utils::debugMsg("[Dasher::doProcessFrame] Audio segments to disk");
     }
+    
+    ret = 0;
 
     return true;
 }

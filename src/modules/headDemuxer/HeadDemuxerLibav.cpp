@@ -102,7 +102,7 @@ static int findStartCode(uint8_t *buffer, int offs, int buffer_length)
     return -1;
 }
 
-bool HeadDemuxerLibav::doProcessFrame(std::map<int, Frame*> &dstFrames)
+bool HeadDemuxerLibav::doProcessFrame(std::map<int, Frame*> &dstFrames, int& ret)
 {
     PrivateStreamInfo *psi;
 

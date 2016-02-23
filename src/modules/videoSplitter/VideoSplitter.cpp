@@ -144,14 +144,14 @@ bool VideoSplitter::doProcessFrame(Frame *org, std::map<int, Frame *> &dstFrames
 		yROI = cropsConfig[it.first]->getY()*vFrame->getHeight();
 		widthROI = cropsConfig[it.first]->getWidth()*vFrame->getWidth();
 		heightROI = cropsConfig[it.first]->getHeight()*vFrame->getHeight();
+		cv::Mat img(widthROI, heightROI, CV_8UC3);
 
 		if((xROI >= 0 || yROI >= 0 || widthROI > 0 || heightROI > 0) && xROI+widthROI <= vFrame->getWidth() && yROI+heightROI <= vFrame->getHeight()){
 			vFrameDst = dynamic_cast<VideoFrame*>(it.second);
-			cropsConfig[it.first]->setCrop(widthROI, heightROI);
-			cropsConfig[it.first]->getCrop()->data = vFrameDst->getDataBuf();
+			img.data.ptr = vFrameDst->getDataBuf();
 			vFrameDst->setLength(widthROI * heightROI);
     		vFrameDst->setSize(widthROI, heightROI);
-    		orgFrame(cv::Rect(xROI, yROI, widthROI, heightROI)).copyTo(cropsConfig[it.first]->getCropRect(0, 0, widthROI, heightROI));
+    		orgFrame(cv::Rect(xROI, yROI, widthROI, heightROI)).copyTo(img);
 			it.second->setConsumed(true);
 			it.second->setPresentationTime(org->getPresentationTime());
 			it.second->setOriginTime(org->getOriginTime());

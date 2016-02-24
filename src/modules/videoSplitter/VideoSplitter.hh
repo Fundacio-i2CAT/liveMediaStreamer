@@ -76,31 +76,13 @@ class CropConfig {
 	    * @return degree of Crop
 	    */
 	    float getDegree() {return degree;};
-
-	    /**
-	    * Class constructor.
-	    * @return Crop
-	    */
-	    cv::Mat *getCrop() {return &crop;};
-
-	    /**
-	    * Class constructor.
-	    * @param x Upper left corner X position
-	    * @param y Upper left corner Y position
-	    * @param w width Channel
-	    * @param h height Channel 
-	    * @return Crop based on params
-	    */
-	    cv::Mat getCropRect(float x, float y, float w, float h) { return crop(cv::Rect(x,y,w,h)); };
-
-	    void setCrop(int w, int h);
+	    
 	private:
 		float width;
 	    float height;
 	    float x;
 	    float y;
 	    float degree;
-	    cv::Mat crop;
 };
 
 /*
@@ -160,6 +142,8 @@ class VideoSplitter : public OneToManyFilter {
         //There is no need of specific reader configuration
         bool specificReaderConfig(int /*readerID*/, FrameQueue* /*queue*/)  {return true;};
         bool specificReaderDelete(int /*readerID*/) {return true;};
+
+        cv::Mat crop;
 
         StreamInfo *outputStreamInfo;
         std::map<int, CropConfig*> cropsConfig;

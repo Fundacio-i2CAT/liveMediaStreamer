@@ -43,12 +43,6 @@ void CropConfig::config(float width, float height, float x, float y, float degre
     this->degree = degree;
 }
 
-void CropConfig::setCrop(int width, int height)
-{
-	cv::Mat img(height, width, CV_8UC3);
-    img.copyTo(this->crop);
-}
-
 ///////////////////////////////////////////////////
 //              VideoSplitter Class              //
 ///////////////////////////////////////////////////
@@ -113,6 +107,8 @@ OneToManyFilter()
     outputStreamInfo->video.codec = RAW;
     outputStreamInfo->video.pixelFormat = RGB24;
     setFrameTime(fTime);
+
+    crop = cv::Mat(100, 100, CV_8UC3);
 }
 
 FrameQueue* VideoSplitter::allocQueue(ConnectionData cData)
@@ -144,14 +140,15 @@ bool VideoSplitter::doProcessFrame(Frame *org, std::map<int, Frame *> &dstFrames
 		yROI = cropsConfig[it.first]->getY()*vFrame->getHeight();
 		widthROI = cropsConfig[it.first]->getWidth()*vFrame->getWidth();
 		heightROI = cropsConfig[it.first]->getHeight()*vFrame->getHeight();
-		cv::Mat img(widthROI, heightROI, CV_8UC3);
 
 		if((xROI >= 0 || yROI >= 0 || widthROI > 0 || heightROI > 0) && xROI+widthROI <= vFrame->getWidth() && yROI+heightROI <= vFrame->getHeight()){
 			vFrameDst = dynamic_cast<VideoFrame*>(it.second);
-			img.data.ptr = vFrameDst->getDataBuf();
-			vFrameDst->setLength(widthROI * heightROI);
+			cv::Size sz(widthROI, heightROI);
+			cv::resize(crop, crop, sz);
+			crop.data = vFrameDst->getDataBuf();
+			vFrameDst->setLength(crop.step * heightROI);
     		vFrameDst->setSize(widthROI, heightROI);
-    		orgFrame(cv::Rect(xROI, yROI, widthROI, heightROI)).copyTo(img);
+    		orgFrame(cv::Rect(xROI, yROI, widthROI, heightROI)).copyTo(crop(cv::Rect(0, 0, widthROI, heightROI)));
 			it.second->setConsumed(true);
 			it.second->setPresentationTime(org->getPresentationTime());
 			it.second->setOriginTime(org->getOriginTime());

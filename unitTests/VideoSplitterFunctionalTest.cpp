@@ -59,7 +59,6 @@ void VideoSplitterFunctionalTest::setUp()
 	CPPUNIT_ASSERT(splitterScenario->addTailFilter(2));
 	CPPUNIT_ASSERT(splitterScenario->addTailFilter(3));
 	CPPUNIT_ASSERT(splitterScenario->addTailFilter(4));
-	CPPUNIT_ASSERT(splitterScenario->addTailFilter(4));
 	CPPUNIT_ASSERT(splitterScenario->connectFilters());
 	CPPUNIT_ASSERT(splitter->configCrop(1,0.5,0.5,0,0));
 	CPPUNIT_ASSERT(splitter->configCrop(2,0.5,0.5,0.5,0));
@@ -87,13 +86,12 @@ void VideoSplitterFunctionalTest::splittingTest()
 
     for(int f = 1; f <=4; f++){
     	std::string String = "testsData/videoSplitterFunctionalTestResImage" + std::to_string(f) + ".rgb";
-    	CPPUNIT_ASSERT(reader->openFile(String, RAW, RGB24, 100, 100));
+    	CPPUNIT_ASSERT(reader->openFile(String, RAW, RGB24, 200, 200));
     	frame = reader->getFrame();
     	CPPUNIT_ASSERT(frame);
 
     	splitterFrames[f] = splitterScenario->extractFrame(f);
     	CPPUNIT_ASSERT(splitterFrames[f]);
-    	
     	CPPUNIT_ASSERT(frame->getLength() == splitterFrames[f]->getLength());
     	CPPUNIT_ASSERT(frame->getWidth() == splitterFrames[f]->getWidth());
     	CPPUNIT_ASSERT(frame->getHeight() == splitterFrames[f]->getHeight());

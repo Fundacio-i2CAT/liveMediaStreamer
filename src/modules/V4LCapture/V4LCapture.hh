@@ -1,5 +1,5 @@
 /*
- *  VideoCapture.hh - Video capture filter based on OpenCV
+ *  V4LCapture.hh - Capture based on V4L2
  * 
  *  Copyright (C) 2016  Fundació i2CAT, Internet i Innovació digital a Catalunya
  *
@@ -21,53 +21,77 @@
  *  Authors: David Cassany <david.cassany@i2cat.net>  
  */
 
-#ifndef _VIDEO_CAPTURE_HH
-#define _VIDEO_CAPTURE_HH
+#ifndef _V4L_CAPTURE_HH
+#define _V4L_CAPTURE_HH
 
+#include <string>
 #include <chrono>
-#include<opencv2/opencv.hpp>
+#include <linux/videodev2.h>
 
+#include "../../Utils.hh"
+#include "../../VideoFrame.hh"
+#include "../../StreamInfo.hh"
 #include "../../Filter.hh"
 
-/** Video capture module based on OpenCV
-  * 
-  * It produces one writer for each stream contained in the muxed file.
-  * Use #BaseFilter::getState() to retrieve the description of the streams and their
-  * writerId so you can connect further filters.
-  */
-class VideoCapture : public HeadFilter {
+struct buffer {
+      void   *data;
+      size_t  size;
+};
+
+enum DeviceStatus {OPEN, INIT, CAPTURE, CLOSE};
+
+class V4LCapture : public HeadFilter {
 
 public:
-    VideoCapture();
-    ~VideoCapture();
+    V4LCapture();
+    ~V4LCapture();
     
-    bool configure(int cam, int width, int height, float fps);
-    void releaseDevice();
+    bool configure(std::string device, unsigned width, unsigned height, float fps, bool fFormat = true);
+    bool releaseDevice();
     
 protected:
     virtual bool doProcessFrame(std::map<int, Frame*> &dstFrames, int& ret);
     virtual FrameQueue *allocQueue(ConnectionData cData);
     virtual void doGetState(Jzon::Object &filterNode);
-    
+
 private:
-    
     //NOTE: There is no need of specific writer configuration
     bool specificWriterConfig(int /*writerID*/) {return true;};
     bool specificWriterDelete(int /*writerID*/) {return true;};
     
-    cv::VideoCapture device;
+    const bool getFrame(std::chrono::microseconds timeout, VideoFrame *dstFrame);
+    
+    bool init_mmap();
+
+    bool openDevice(std::string device);
+    void closeDevice();
+
+    bool initDevice(unsigned xres, unsigned yres);
+    bool uninitDevice();
+
+    bool startCapturing();
+    bool stopCapturing();
+
+    bool readFrame();
+
     StreamInfo* oStreamInfo;
     
-    int camera;
+    std::string device;
+    
+    struct v4l2_format fmt;
+    DeviceStatus status;
+    
+    int fd;
+
+    struct buffer   *buffers;
+    unsigned        n_buffers;
+
+    bool forceFormat;
     
     std::chrono::microseconds frameDuration;
     std::chrono::microseconds diff;
     std::chrono::high_resolution_clock::time_point wallclock;
     std::chrono::high_resolution_clock::time_point currentTime;
-    //std::chrono::high_resolution_clock::time_point lastTimePoint;
-    //std::chrono::high_resolution_clock::time_point tmpTimePoint;
-    
-    cv::Mat img;
 };
 
 #endif

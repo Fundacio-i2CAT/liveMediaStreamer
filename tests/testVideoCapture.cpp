@@ -4,7 +4,7 @@
 #include "../src/modules/transmitter/SinkManager.hh"
 #include "../src/modules/videoResampler/VideoResampler.hh"
 #include "../src/modules/videoEncoder/VideoEncoderX264.hh"
-#include "../src/modules/videoCapture/VideoCapture.hh"
+#include "../src/modules/V4LCapture/V4LCapture.hh"
 
 #include <csignal>
 #include <vector>
@@ -42,7 +42,7 @@ int main(int argc, char* argv[])
     int cPort = 7777;
     std::vector<int> readers;
     std::vector<int> midFilters;
-    int cam = 0;
+    std::string cam;
     int width = 0;
     int height = 0;
     float fps = 0;
@@ -51,8 +51,8 @@ int main(int argc, char* argv[])
 
     for (int i = 1; i < argc; i++) {
         if (strcmp(argv[i],"-cam")==0) {
-            cam = std::stoi(argv[i+1]);
-            utils::infoMsg("camera index: " + std::to_string(cam));
+            cam = argv[i+1];
+            utils::infoMsg("camera: " + cam);
         } else if (strcmp(argv[i],"-w")==0) {
             width = std::stoi(argv[i+1]);
             utils::infoMsg("desired width: " + std::to_string(width));
@@ -73,7 +73,7 @@ int main(int argc, char* argv[])
         return 1;
     }
     
-    VideoCapture *capture = new VideoCapture();
+    V4LCapture *capture = new V4LCapture();
     VideoResampler *resampler = new VideoResampler();
     VideoEncoderX264 *encoder = new VideoEncoderX264();
     

@@ -46,7 +46,7 @@ public:
     V4LCapture();
     ~V4LCapture();
     
-    bool configure(std::string device, unsigned width, unsigned height, float fps, bool fFormat = true);
+    bool configure(std::string device, unsigned width, unsigned height, unsigned fps, bool fFormat = true);
     bool releaseDevice();
     
 protected:
@@ -66,13 +66,13 @@ private:
     bool openDevice(std::string device);
     void closeDevice();
 
-    bool initDevice(unsigned xres, unsigned yres);
+    bool initDevice(unsigned& xres, unsigned& yres, unsigned &den);
     bool uninitDevice();
 
     bool startCapturing();
     bool stopCapturing();
 
-    bool readFrame();
+    bool readFrame(VideoFrame* dstFrame);
 
     StreamInfo* oStreamInfo;
     
@@ -92,6 +92,8 @@ private:
     std::chrono::microseconds diff;
     std::chrono::high_resolution_clock::time_point wallclock;
     std::chrono::high_resolution_clock::time_point currentTime;
+    
+    unsigned frameCount;
 };
 
 #endif

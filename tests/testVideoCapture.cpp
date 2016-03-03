@@ -45,7 +45,7 @@ int main(int argc, char* argv[])
     std::string cam;
     int width = 0;
     int height = 0;
-    float fps = 0;
+    unsigned fps = 0;
 
     PipelineManager *pipe;
 
@@ -60,7 +60,7 @@ int main(int argc, char* argv[])
             height = std::stoi(argv[i + 1]);
             utils::infoMsg("desired width: " + std::to_string(height));
         } else if (strcmp(argv[i],"-r")==0) {
-            fps = std::stof(argv[i+1]);
+            fps = std::stoi(argv[i+1]);
             utils::infoMsg("frame rate: " + std::to_string(fps));
         } 
     }
@@ -77,7 +77,9 @@ int main(int argc, char* argv[])
     VideoResampler *resampler = new VideoResampler();
     VideoEncoderX264 *encoder = new VideoEncoderX264();
     
-    capture->configure(cam, width, height, fps);
+    if (!capture->configure(cam, width, height, fps)){
+        return 1;
+    }
     resampler->configure(0, 0, 0, YUV420P);
     encoder->configure(4000, 0, 25, 0, 4, true, "superfast");
     

@@ -26,11 +26,12 @@
 #include <sys/stat.h>
 #include <sys/mman.h>
 #include <sys/ioctl.h>
-
+#include <errno.h>
 #include "V4LCapture.hh"
 #include "../../AVFramedQueue.hh"
 
 #define CLEAR(x) memset(&(x), 0, sizeof(x))
+#define TOLERANCE_FACTOR 32
 
 static int xioctl(int fh, unsigned long int request, void *arg);
 static PixType pixelType(int pixelFormat);
@@ -47,7 +48,7 @@ V4LCapture::~V4LCapture()
     releaseDevice();
 }
 
-bool V4LCapture::configure(std::string device, unsigned width, unsigned height, float fps, bool fFormat)
+bool V4LCapture::configure(std::string device, unsigned width, unsigned height, unsigned fps, bool fFormat)
 {
     forceFormat = fFormat;
     switch (status) {
@@ -56,7 +57,7 @@ bool V4LCapture::configure(std::string device, unsigned width, unsigned height, 
                 return false;
             }
         case OPEN:
-            if (!initDevice(width, height)){
+            if (!initDevice(width, height, fps)){
                 releaseDevice();
                 return false;
             }
@@ -114,24 +115,23 @@ bool V4LCapture::doProcessFrame(std::map<int, Frame*> &dstFrames, int& ret)
         return false;
     }
     
-    diff = std::chrono::duration_cast<std::chrono::microseconds> (wallclock - std::chrono::high_resolution_clock::now());
-    if (std::abs(diff.count()) > frameDuration.count()/16){
+    diff = std::chrono::duration_cast<std::chrono::microseconds> (std::chrono::high_resolution_clock::now() - wallclock);
+    if (std::abs(diff.count()) > frameDuration.count()/TOLERANCE_FACTOR){
         utils::warningMsg("Resetting wallclock");
         wallclock = std::chrono::high_resolution_clock::now();
     }
     
     wallclock += frameDuration;
     
-    if (!getFrame(std::chrono::microseconds(1000), frame)){
+    if (!getFrame(frameDuration, frame)){
         frame->setConsumed(false);
-        ret = WAIT;
+        ret = 0;
         return false;
     }
     
-    frame->setConsumed(true);
-    
     currentTime = std::chrono::high_resolution_clock::now();
     
+    frame->setConsumed(true);
     frame->setPresentationTime(std::chrono::duration_cast<std::chrono::microseconds>(
         currentTime.time_since_epoch()));
     
@@ -169,20 +169,11 @@ const bool V4LCapture::getFrame(std::chrono::microseconds timeout, VideoFrame *d
         utils::warningMsg("Select timeout ");
         return false;
     }
-    
-    int idx = readFrame();
-    if (idx >= 0) {
-        memcpy(dstFrame->getDataBuf(), buffers[idx].data, 
-               fmt.fmt.pix.height * fmt.fmt.pix.bytesperline);
-        dstFrame->setSize(fmt.fmt.pix.width, fmt.fmt.pix.height);
-        dstFrame->setPixelFormat(oStreamInfo->video.pixelFormat);
-        return true;
-    }
 
-    return false;
+    return readFrame(dstFrame);
 }
 
-bool V4LCapture::readFrame()
+bool V4LCapture::readFrame(VideoFrame *dstFrame)
 {
 
     struct v4l2_buffer buf;
@@ -193,14 +184,19 @@ bool V4LCapture::readFrame()
     buf.memory = V4L2_MEMORY_MMAP;
 
     if (xioctl(fd, VIDIOC_DQBUF, &buf) < 0) {
-        return -1;
+        return false;
     }
-
+    
+    memcpy(dstFrame->getDataBuf(), buffers[buf.index].data, 
+               fmt.fmt.pix.height * fmt.fmt.pix.bytesperline);
+    dstFrame->setSize(fmt.fmt.pix.width, fmt.fmt.pix.height);
+    dstFrame->setPixelFormat(oStreamInfo->video.pixelFormat);
+    
     if (xioctl(fd, VIDIOC_QBUF, &buf) < 0){
-        return -1;
+        return false;
     }
 
-    return buf.index;
+    return true;
 }
 
 bool V4LCapture::openDevice(std::string device)
@@ -301,11 +297,12 @@ void V4LCapture::closeDevice(void)
     status = CLOSE;
 }
 
-bool V4LCapture::initDevice(unsigned xres, unsigned yres)
+bool V4LCapture::initDevice(unsigned& xres, unsigned& yres, unsigned& den)
 {
     struct v4l2_capability cap;
     struct v4l2_cropcap cropcap;
     struct v4l2_crop crop;
+    struct v4l2_streamparm fps;
     
     if (status != OPEN){
         return false;
@@ -336,7 +333,7 @@ bool V4LCapture::initDevice(unsigned xres, unsigned yres)
         
         xioctl(fd, VIDIOC_S_CROP, &crop);
     }
-
+    
     CLEAR(fmt);
 
     fmt.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
@@ -346,37 +343,51 @@ bool V4LCapture::initDevice(unsigned xres, unsigned yres)
         fmt.fmt.pix.height      = yres;
         fmt.fmt.pix.pixelformat = V4L2_PIX_FMT_YUYV;
         fmt.fmt.pix.field       = V4L2_FIELD_INTERLACED;
-
+        
         if (xioctl(fd, VIDIOC_S_FMT, &fmt) < 0){
-            utils::errorMsg("Error setting message");
-            CLEAR(fmt);
+            utils::errorMsg("Error setting format");
             return false;
         }
 
         if (fmt.fmt.pix.pixelformat != V4L2_PIX_FMT_YUYV){
-            utils::errorMsg("Webcam does not support YUYV format!");
-            CLEAR(fmt);
-            return false;
+            utils::warningMsg("Webcam does not support YUYV format!");
         }
 
         if (fmt.fmt.pix.width != xres || fmt.fmt.pix.height != yres){
             utils::warningMsg("Requested resolution could not be set, is set to: \n\t\t" 
-                + std::to_string(xres) + " xres\n\t\t"
-                + std::to_string(yres) + " yres");
+                + std::to_string(fmt.fmt.pix.width) + " xres\n\t\t"
+                + std::to_string(fmt.fmt.pix.height) + " yres");
+            xres = fmt.fmt.pix.width;
+            yres = fmt.fmt.pix.height;
         }
         
     } else {    
         if (xioctl(fd, VIDIOC_G_FMT, &fmt) < 0){
             utils::errorMsg("Error setting format");
-            CLEAR(fmt);
             return false;
         }
     }
     
     oStreamInfo->video.pixelFormat = pixelType(fmt.fmt.pix.pixelformat);
+    
+    CLEAR(fps);
+    fps.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+    
+    fps.parm.capture.capturemode |= V4L2_CAP_TIMEPERFRAME;
+    fps.parm.capture.timeperframe.numerator = 1;
+    fps.parm.capture.timeperframe.denominator = den;
+    if (xioctl(fd, VIDIOC_S_PARM, &fps) < 0) {
+        utils::errorMsg("Error setting fps!");
+        return false;
+    }
+    
+    if (fps.parm.capture.timeperframe.denominator != den){
+        utils::warningMsg("Couldn't set fps to " + std::to_string(den) + ". Set to " 
+            + std::to_string(fps.parm.capture.timeperframe.denominator));
+        den = fps.parm.capture.timeperframe.denominator;
+    }
 
     if (!init_mmap()){
-        CLEAR(fmt);
         return false;
     }
     
@@ -481,6 +492,7 @@ static PixType pixelType(int pixelFormat)
             return YUV420P;
             break;
         default:
+            utils::warningMsg("Unknown pixelFormat!");
             return P_NONE;
             break;
     }

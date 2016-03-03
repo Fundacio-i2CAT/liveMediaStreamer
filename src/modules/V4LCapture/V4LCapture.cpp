@@ -41,6 +41,8 @@ V4LCapture::V4LCapture() : HeadFilter(1, REGULAR, true), status(CLOSE), forceFor
     oStreamInfo = new StreamInfo (VIDEO);
     oStreamInfo->video.codec = RAW;
     oStreamInfo->video.pixelFormat = YUYV422;
+    
+    fType = V4L_CAPTURE;
 }
 
 V4LCapture::~V4LCapture()
@@ -125,20 +127,19 @@ bool V4LCapture::doProcessFrame(std::map<int, Frame*> &dstFrames, int& ret)
     
     if (!getFrame(frameDuration, frame)){
         frame->setConsumed(false);
-        ret = 0;
-        return false;
+    } else {
+        frame->setConsumed(true);
     }
     
     currentTime = std::chrono::high_resolution_clock::now();
     
-    frame->setConsumed(true);
     frame->setPresentationTime(std::chrono::duration_cast<std::chrono::microseconds>(
         currentTime.time_since_epoch()));
     
     ret = (std::chrono::duration_cast<std::chrono::microseconds> (
         wallclock - currentTime)).count();
     
-    return true;
+    return frame->getConsumed();
 }
 
 FrameQueue* V4LCapture::allocQueue(ConnectionData cData)

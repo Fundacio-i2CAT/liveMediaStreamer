@@ -137,7 +137,7 @@ bool V4LCapture::doProcessFrame(std::map<int, Frame*> &dstFrames, int& ret)
         currentTime.time_since_epoch()));
     
     ret = (std::chrono::duration_cast<std::chrono::microseconds> (
-        wallclock - currentTime)).count();
+            wallclock - currentTime)).count();
     
     return frame->getConsumed();
 }
@@ -167,7 +167,7 @@ const bool V4LCapture::getFrame(std::chrono::microseconds timeout, VideoFrame *d
     }
 
     if (ret == 0) {
-        utils::warningMsg("Select timeout ");
+        utils::warningMsg("Select timeout");
         return false;
     }
 

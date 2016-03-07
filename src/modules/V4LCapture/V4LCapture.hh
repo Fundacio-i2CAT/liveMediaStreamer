@@ -46,7 +46,7 @@ public:
     V4LCapture();
     ~V4LCapture();
     
-    bool configure(std::string device, unsigned width, unsigned height, unsigned fps, bool fFormat = true);
+    bool configure(std::string device, unsigned width, unsigned height, unsigned fps, std::string format = "YUYV", bool fFormat = true);
     bool releaseDevice();
     
 protected:
@@ -66,7 +66,7 @@ private:
     bool openDevice(std::string device);
     void closeDevice();
 
-    bool initDevice(unsigned& xres, unsigned& yres, unsigned &den);
+    bool initDevice(unsigned& xres, unsigned& yres, unsigned &den, std::string &format);
     bool uninitDevice();
 
     bool startCapturing();

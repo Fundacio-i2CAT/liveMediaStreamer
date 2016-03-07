@@ -77,7 +77,7 @@ int main(int argc, char* argv[])
     VideoResampler *resampler = new VideoResampler();
     VideoEncoderX264 *encoder = new VideoEncoderX264();
     
-    if (!capture->configure(cam, width, height, fps)){
+    if (!capture->configure(cam, width, height, fps, "YUYV", true)){
         return 1;
     }
     resampler->configure(0, 0, 0, YUV420P);

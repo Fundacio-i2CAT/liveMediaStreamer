@@ -35,6 +35,8 @@
 
 static int xioctl(int fh, unsigned long int request, void *arg);
 static PixType pixelType(int pixelFormat);
+static VCodecType codecType(int pixelFormat);
+static unsigned getFormatFromString(std::string format);
 
 V4LCapture::V4LCapture() : HeadFilter(1, REGULAR, true), status(CLOSE), forceFormat(true)
 {
@@ -50,7 +52,7 @@ V4LCapture::~V4LCapture()
     releaseDevice();
 }
 
-bool V4LCapture::configure(std::string device, unsigned width, unsigned height, unsigned fps, bool fFormat)
+bool V4LCapture::configure(std::string device, unsigned width, unsigned height, unsigned fps, std::string format, bool fFormat)
 {
     forceFormat = fFormat;
     switch (status) {
@@ -59,7 +61,7 @@ bool V4LCapture::configure(std::string device, unsigned width, unsigned height, 
                 return false;
             }
         case OPEN:
-            if (!initDevice(width, height, fps)){
+            if (!initDevice(width, height, fps, format)){
                 releaseDevice();
                 return false;
             }
@@ -298,7 +300,7 @@ void V4LCapture::closeDevice(void)
     status = CLOSE;
 }
 
-bool V4LCapture::initDevice(unsigned& xres, unsigned& yres, unsigned& den)
+bool V4LCapture::initDevice(unsigned& xres, unsigned& yres, unsigned& den, std::string &format)
 {
     struct v4l2_capability cap;
     struct v4l2_cropcap cropcap;
@@ -342,7 +344,7 @@ bool V4LCapture::initDevice(unsigned& xres, unsigned& yres, unsigned& den)
     if (forceFormat) {
         fmt.fmt.pix.width       = xres;
         fmt.fmt.pix.height      = yres;
-        fmt.fmt.pix.pixelformat = V4L2_PIX_FMT_YUYV;
+        fmt.fmt.pix.pixelformat = getFormatFromString(format);
         fmt.fmt.pix.field       = V4L2_FIELD_INTERLACED;
         
         if (xioctl(fd, VIDIOC_S_FMT, &fmt) < 0){
@@ -362,6 +364,15 @@ bool V4LCapture::initDevice(unsigned& xres, unsigned& yres, unsigned& den)
             yres = fmt.fmt.pix.height;
         }
         
+        if (fmt.fmt.pix.pixelformat != getFormatFromString(format)){
+            if (pixelType(fmt.fmt.pix.pixelformat) != P_NONE){
+                format = utils::getPixTypeAsString(pixelType(fmt.fmt.pix.pixelformat));
+            } else {
+                format = utils::getVideoCodecAsString(codecType(fmt.fmt.pix.pixelformat));
+            }
+            utils::warningMsg("Could not set pixel format, set to " + format);
+        }
+        
     } else {    
         if (xioctl(fd, VIDIOC_G_FMT, &fmt) < 0){
             utils::errorMsg("Error setting format");
@@ -370,6 +381,9 @@ bool V4LCapture::initDevice(unsigned& xres, unsigned& yres, unsigned& den)
     }
     
     oStreamInfo->video.pixelFormat = pixelType(fmt.fmt.pix.pixelformat);
+    if (oStreamInfo->video.pixelFormat == P_NONE){
+        oStreamInfo->video.codec = codecType(fmt.fmt.pix.pixelformat);
+    }
     
     CLEAR(fps);
     fps.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
@@ -495,6 +509,53 @@ static PixType pixelType(int pixelFormat)
         default:
             utils::warningMsg("Unknown pixelFormat!");
             return P_NONE;
+            break;
+    }
+}
+
+static VCodecType codecType(int pixelFormat)
+{
+    switch(pixelFormat){
+        case V4L2_PIX_FMT_H264:
+            return H264;
+            break;
+        case V4L2_PIX_FMT_MPEG:
+            return MJPEG;
+            break;
+        default:
+            utils::warningMsg("Unknown codec!");
+            return VC_NONE;
+            break;
+    }
+}
+
+static unsigned getFormatFromString(std::string format)
+{
+    PixType pix = utils::getPixTypeFromString(format);
+    switch (pix){
+        case YUYV422:
+            return V4L2_PIX_FMT_YUYV;
+            break;
+        case YUV420P:
+            return V4L2_PIX_FMT_YUV420;
+            break;
+        case YUV422P:
+            return V4L2_PIX_FMT_YUV422P;
+            break;
+        default:
+            break;
+    }
+    VCodecType codec =  utils::getVideoCodecFromString(format);
+    switch (codec){
+        case H264:
+            return V4L2_PIX_FMT_H264;
+            break;
+        case MJPEG:
+            return V4L2_PIX_FMT_MPEG;
+            break;
+        default:
+            //default format
+            return V4L2_PIX_FMT_YUYV; 
             break;
     }
 }

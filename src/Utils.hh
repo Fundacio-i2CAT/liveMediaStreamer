@@ -35,6 +35,7 @@ enum DefinedLogLevel {ERROR, WARNING, DEBUG, INFO};
 namespace utils
 {
     SampleFmt getSampleFormatFromString(std::string stringSampleFmt);
+    PixType getPixTypeFromString(std::string pixel);
     ACodecType getAudioCodecFromString(std::string stringCodec);
     VCodecType getVideoCodecFromString(std::string stringCodec);
     ACodecType getAudioCodecFromLibavString(std::string stringCodec);

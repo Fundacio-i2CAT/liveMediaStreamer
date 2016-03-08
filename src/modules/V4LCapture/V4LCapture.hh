@@ -33,6 +33,9 @@
 #include "../../StreamInfo.hh"
 #include "../../Filter.hh"
 
+#define TOLERANCE_FACTOR 100
+#define FRAME_AVG_COUNT 128
+
 struct buffer {
       void   *data;
       size_t  size;
@@ -48,13 +51,16 @@ public:
     
     bool configure(std::string device, unsigned width, unsigned height, unsigned fps, std::string format = "YUYV", bool fFormat = true);
     bool releaseDevice();
-    
-protected:
-    virtual bool doProcessFrame(std::map<int, Frame*> &dstFrames, int& ret);
-    virtual FrameQueue *allocQueue(ConnectionData cData);
-    virtual void doGetState(Jzon::Object &filterNode);
 
 private:
+    bool doProcessFrame(std::map<int, Frame*> &dstFrames, int& ret);
+    FrameQueue *allocQueue(ConnectionData cData);
+    
+    void doGetState(Jzon::Object &filterNode);
+    void initializeEventMap();
+    bool configureEvent(Jzon::Node* params);
+    bool releaseEvent(Jzon::Node* /*params*/);
+    
     //NOTE: There is no need of specific writer configuration
     bool specificWriterConfig(int /*writerID*/) {return true;};
     bool specificWriterDelete(int /*writerID*/) {return true;};
@@ -73,6 +79,8 @@ private:
     bool stopCapturing();
 
     bool readFrame(VideoFrame* dstFrame);
+    
+    int getAvgFrameDuration(std::chrono::microseconds duration);
 
     StreamInfo* oStreamInfo;
     
@@ -88,12 +96,13 @@ private:
 
     bool forceFormat;
     
+    unsigned frameCount;
+    
     std::chrono::microseconds frameDuration;
-    std::chrono::microseconds diff;
+    std::chrono::microseconds durationCount;
     std::chrono::high_resolution_clock::time_point wallclock;
     std::chrono::high_resolution_clock::time_point currentTime;
-    
-    unsigned frameCount;
+    std::chrono::high_resolution_clock::time_point lastTime;
 };
 
 #endif

@@ -31,18 +31,21 @@
 #include "../../AVFramedQueue.hh"
 
 #define CLEAR(x) memset(&(x), 0, sizeof(x))
-#define TOLERANCE_FACTOR 32
 
 static int xioctl(int fh, unsigned long int request, void *arg);
-static PixType pixelType(int pixelFormat);
-static VCodecType codecType(int pixelFormat);
+static PixType pixelType(unsigned pixelFormat);
+static VCodecType codecType(unsigned pixelFormat);
 static unsigned getFormatFromString(std::string format);
 
-V4LCapture::V4LCapture() : HeadFilter(1, REGULAR, true), status(CLOSE), forceFormat(true)
+V4LCapture::V4LCapture() : HeadFilter(1, REGULAR, true), status(CLOSE), forceFormat(true), 
+    frameCount(0), durationCount(std::chrono::microseconds(0))
 {
     oStreamInfo = new StreamInfo (VIDEO);
     oStreamInfo->video.codec = RAW;
-    oStreamInfo->video.pixelFormat = YUYV422;
+    oStreamInfo->video.pixelFormat = P_NONE;
+    
+    currentTime = std::chrono::high_resolution_clock::now();
+    lastTime = currentTime;
     
     fType = V4L_CAPTURE;
 }
@@ -119,7 +122,9 @@ bool V4LCapture::doProcessFrame(std::map<int, Frame*> &dstFrames, int& ret)
         return false;
     }
     
-    diff = std::chrono::duration_cast<std::chrono::microseconds> (std::chrono::high_resolution_clock::now() - wallclock);
+    std::chrono::microseconds diff = std::chrono::duration_cast<std::chrono::microseconds>
+        (std::chrono::high_resolution_clock::now() - wallclock);
+        
     if (std::abs(diff.count()) > frameDuration.count()/TOLERANCE_FACTOR){
         utils::warningMsg("Resetting wallclock");
         wallclock = std::chrono::high_resolution_clock::now();
@@ -129,11 +134,22 @@ bool V4LCapture::doProcessFrame(std::map<int, Frame*> &dstFrames, int& ret)
     
     if (!getFrame(frameDuration, frame)){
         frame->setConsumed(false);
-    } else {
-        frame->setConsumed(true);
-    }
+        ret = 0;
+        return false;
+    } 
     
+    frame->setConsumed(true);
     currentTime = std::chrono::high_resolution_clock::now();
+
+    int avgFrameTime =
+        getAvgFrameDuration(std::chrono::duration_cast<std::chrono::microseconds>(currentTime - lastTime));
+    if (std::abs(frameDuration.count() - avgFrameTime) > 
+        frameDuration.count()/TOLERANCE_FACTOR ) {
+        
+        utils::warningMsg("Current frameDuration set to " + std::to_string(avgFrameTime));
+        frameDuration = std::chrono::microseconds(avgFrameTime);
+    }
+    lastTime = currentTime;
     
     frame->setPresentationTime(std::chrono::duration_cast<std::chrono::microseconds>(
         currentTime.time_since_epoch()));
@@ -141,7 +157,7 @@ bool V4LCapture::doProcessFrame(std::map<int, Frame*> &dstFrames, int& ret)
     ret = (std::chrono::duration_cast<std::chrono::microseconds> (
             wallclock - currentTime)).count();
     
-    return frame->getConsumed();
+    return true;
 }
 
 FrameQueue* V4LCapture::allocQueue(ConnectionData cData)
@@ -482,6 +498,21 @@ bool V4LCapture::stopCapturing(void)
     return true;
 }
 
+int V4LCapture::getAvgFrameDuration(std::chrono::microseconds duration)
+{
+    if (frameCount <= FRAME_AVG_COUNT){
+        if (frameCount > 0){
+            durationCount += duration;
+        }
+        frameCount++;
+        return frameDuration.count();
+    }
+    
+    durationCount -= durationCount/FRAME_AVG_COUNT;
+    durationCount += duration;
+    return (durationCount/FRAME_AVG_COUNT).count();
+}
+
 void V4LCapture::doGetState(Jzon::Object &filterNode)
 {
     
@@ -497,7 +528,7 @@ static int xioctl(int fh, unsigned long int request, void *arg)
       return r;
 }
 
-static PixType pixelType(int pixelFormat)
+static PixType pixelType(unsigned pixelFormat)
 {
     switch(pixelFormat){
         case V4L2_PIX_FMT_YUYV:
@@ -513,13 +544,13 @@ static PixType pixelType(int pixelFormat)
     }
 }
 
-static VCodecType codecType(int pixelFormat)
+static VCodecType codecType(unsigned pixelFormat)
 {
     switch(pixelFormat){
         case V4L2_PIX_FMT_H264:
             return H264;
             break;
-        case V4L2_PIX_FMT_MPEG:
+        case V4L2_PIX_FMT_MJPEG:
             return MJPEG;
             break;
         default:
@@ -551,7 +582,7 @@ static unsigned getFormatFromString(std::string format)
             return V4L2_PIX_FMT_H264;
             break;
         case MJPEG:
-            return V4L2_PIX_FMT_MPEG;
+            return V4L2_PIX_FMT_MJPEG;
             break;
         default:
             //default format

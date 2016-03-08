@@ -134,12 +134,22 @@ bool V4LCapture::doProcessFrame(std::map<int, Frame*> &dstFrames, int& ret)
     
     if (!getFrame(frameDuration, frame)){
         frame->setConsumed(false);
-        ret = 0;
-        return false;
-    } 
+    } else {
+        frame->setConsumed(true);
+    }
     
-    frame->setConsumed(true);
+    
     currentTime = std::chrono::high_resolution_clock::now();
+    
+    frame->setPresentationTime(std::chrono::duration_cast<std::chrono::microseconds>(
+        currentTime.time_since_epoch()));
+    
+    ret = (std::chrono::duration_cast<std::chrono::microseconds> (
+            wallclock - currentTime)).count();
+            
+    if (!frame->getConsumed()){
+        return false;
+    }
 
     int avgFrameTime =
         getAvgFrameDuration(std::chrono::duration_cast<std::chrono::microseconds>(currentTime - lastTime));
@@ -150,12 +160,6 @@ bool V4LCapture::doProcessFrame(std::map<int, Frame*> &dstFrames, int& ret)
         frameDuration = std::chrono::microseconds(avgFrameTime);
     }
     lastTime = currentTime;
-    
-    frame->setPresentationTime(std::chrono::duration_cast<std::chrono::microseconds>(
-        currentTime.time_since_epoch()));
-    
-    ret = (std::chrono::duration_cast<std::chrono::microseconds> (
-            wallclock - currentTime)).count();
     
     return true;
 }

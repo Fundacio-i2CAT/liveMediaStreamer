@@ -77,10 +77,14 @@ bool VideoEncoderX264::encodeFrame(VideoFrame* codedFrame)
     picIn.i_pts = inPts;
     success = x264_encoder_encode(encoder, &nals, &piNal, &picIn, &picOut);
 
-    if (success == 0) {
-        return false;
-    } else if (success < 0) {
+    if (success < 0) {
         utils::errorMsg("X264 Encoder: Could not encode video frame");
+        return false;
+    }
+    
+    inPts++;
+    
+    if (success == 0) {
         return false;
     }
     

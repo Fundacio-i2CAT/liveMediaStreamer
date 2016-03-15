@@ -84,7 +84,11 @@ bool VideoEncoderX265::encodeFrame(VideoFrame* codedFrame)
     if (success < 0) {
         utils::errorMsg("X265 Encoder: Could not encode video frame");
         return false;
-    } else if (success == 0) {
+    } 
+    
+    inPts++;
+    
+    if (success == 0) {
         utils::debugMsg("X265 Encoder: NAL not retrieved after encoding");
         return false;
     }

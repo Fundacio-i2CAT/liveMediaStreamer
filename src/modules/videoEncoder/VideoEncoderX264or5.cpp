@@ -70,8 +70,6 @@ bool VideoEncoderX264or5::doProcessFrame(Frame *org, Frame *dst)
         return false;
     }
     
-    inPts = org->getPresentationTime().count();
-    
     frameTP.pTime = org->getPresentationTime();
     frameTP.oTime = org->getOriginTime();
     frameTP.seqNum = org->getSequenceNumber();
@@ -86,7 +84,7 @@ bool VideoEncoderX264or5::doProcessFrame(Frame *org, Frame *dst)
     
     dst->setConsumed(true);
     dst->setPresentationTime(qFTP[outPts].pTime);
-    codedFrame->setDecodeTime(std::chrono::microseconds(dts));
+    codedFrame->setDecodeTime(qFTP[dts].pTime);
     dst->setOriginTime(qFTP[outPts].oTime);
     dst->setSequenceNumber(qFTP[outPts].seqNum);
     

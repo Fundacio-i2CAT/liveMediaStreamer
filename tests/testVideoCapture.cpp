@@ -81,7 +81,7 @@ int main(int argc, char* argv[])
         return 1;
     }
     resampler->configure(0, 0, 0, YUV420P);
-    encoder->configure(4000, 0, 25, 0, 4, true, "superfast");
+    encoder->configure(4000, 0, 25, 0, 0, 4, true, "superfast");
     
     int captureID = 1003;
     int resamplerID = 1001;

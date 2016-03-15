@@ -31,7 +31,6 @@
 VideoEncoderX265::VideoEncoderX265() :
 VideoEncoderX264or5(), encoder(NULL)
 {
-    pts = 0;
     outputStreamInfo->video.codec = H265;
     xparams = x265_param_alloc();
     picIn = x265_picture_alloc();
@@ -79,10 +78,10 @@ bool VideoEncoderX265::encodeFrame(VideoFrame* codedFrame)
         picIn->sliceType = X265_TYPE_AUTO;
     }
 
-    picIn->pts = pts;
+    picIn->pts = inPts;
     success = x265_encoder_encode(encoder, &nals, &piNal, picIn, picOut);
 
-    pts++;
+    inPts++;
 
     if (success < 0) {
         utils::errorMsg("X265 Encoder: Could not encode video frame");
@@ -92,6 +91,8 @@ bool VideoEncoderX265::encodeFrame(VideoFrame* codedFrame)
         return false;
     }
 
+    outPts = picOut->pts;
+    
     for (unsigned i = 0; i < piNal; i++) {
         if (!slicedFrame->setSlice(nals[i].payload, nals[i].sizeBytes)) {
             utils::errorMsg("X265 Encoder: too many NALs for one slicedFrame");
@@ -173,7 +174,7 @@ bool VideoEncoderX265::reconfigure(VideoFrame* orgFrame, VideoFrame* dstFrame)
     x265_param_parse(xparams, "frame-threads", std::to_string(threads).c_str());
     x265_param_parse(xparams, "aud", std::to_string(1).c_str());
     x265_param_parse(xparams, "bitrate", std::to_string(bitrate).c_str());
-    x265_param_parse(xparams, "bframes", std::to_string(0).c_str());
+    x265_param_parse(xparams, "bframes", std::to_string(bFrames).c_str());
     x265_param_parse(xparams, "repeat-headers", std::to_string(0).c_str());
     x265_param_parse(xparams, "vbv-maxrate", std::to_string(bitrate*1.05).c_str());
     x265_param_parse(xparams, "vbv-bufsize", std::to_string(bitrate*2).c_str());

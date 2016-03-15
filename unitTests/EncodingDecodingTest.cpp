@@ -104,10 +104,10 @@ void VideoEncoderDecoderFunctionalTest::test500()
     bool milestone = false;
     size_t fileSize;
     
-    CPPUNIT_ASSERT(x264encoder->configure(500, 0, DEFAULT_GOP, 0, 
-                       DEFAULT_THREADS, DEFAULT_ANNEXB, DEFAULT_PRESET));
-    CPPUNIT_ASSERT(x265encoder->configure(500, 0, DEFAULT_GOP, 0, 
-                       DEFAULT_THREADS, DEFAULT_ANNEXB, DEFAULT_PRESET));
+    CPPUNIT_ASSERT(x264encoder->configure(500, 0, DEFAULT_GOP, 0, 0, DEFAULT_THREADS, 
+                                          DEFAULT_ANNEXB, DEFAULT_PRESET));
+    CPPUNIT_ASSERT(x265encoder->configure(500, 0, DEFAULT_GOP, 0, 0, DEFAULT_THREADS, 
+                                          DEFAULT_ANNEXB, DEFAULT_PRESET));
     
     CPPUNIT_ASSERT(reader->openFile("testsData/videoVectorTest.h264", H264));
     CPPUNIT_ASSERT(writer->openFile("testsData/videoVectorTest_out_500kbps.h264"));
@@ -179,10 +179,10 @@ void VideoEncoderDecoderFunctionalTest::test2000()
     size_t fileSize;
     
     //TODO test with lookahead = 2xDEFAULT_GOP --> to implement flush encoder method!
-    CPPUNIT_ASSERT(x264encoder->configure(2000, 0, DEFAULT_GOP, DEFAULT_GOP, 
-                       DEFAULT_THREADS, DEFAULT_ANNEXB, DEFAULT_PRESET));
-    CPPUNIT_ASSERT(x265encoder->configure(2000, 0, DEFAULT_GOP, DEFAULT_GOP, 
-                       DEFAULT_THREADS, DEFAULT_ANNEXB, DEFAULT_PRESET));
+    CPPUNIT_ASSERT(x264encoder->configure(2000, 0, DEFAULT_GOP, 0, 0, DEFAULT_THREADS, 
+                                          DEFAULT_ANNEXB, DEFAULT_PRESET));
+    CPPUNIT_ASSERT(x265encoder->configure(2000, 0, DEFAULT_GOP, 0, 0, DEFAULT_THREADS, 
+                                          DEFAULT_ANNEXB, DEFAULT_PRESET));
     
     CPPUNIT_ASSERT(reader->openFile("testsData/videoVectorTest.hevc", H265));
     CPPUNIT_ASSERT(writer->openFile("testsData/videoVectorTest_out_2000kbps.h264"));
@@ -252,10 +252,10 @@ void VideoEncoderDecoderFunctionalTest::test4000()
     bool milestone = false;
     size_t fileSize;
     
-    CPPUNIT_ASSERT(x264encoder->configure(4000, 0, DEFAULT_GOP, DEFAULT_GOP, 
-                       DEFAULT_THREADS, DEFAULT_ANNEXB, DEFAULT_PRESET));
-    CPPUNIT_ASSERT(x265encoder->configure(4000, 0, DEFAULT_GOP, DEFAULT_GOP, 
-                       DEFAULT_THREADS, DEFAULT_ANNEXB, DEFAULT_PRESET));
+    CPPUNIT_ASSERT(x264encoder->configure(4000, 0, DEFAULT_GOP, 0, 0, DEFAULT_THREADS, 
+                                          DEFAULT_ANNEXB, DEFAULT_PRESET));
+    CPPUNIT_ASSERT(x265encoder->configure(4000, 0, DEFAULT_GOP, 0, 0, DEFAULT_THREADS, 
+                                          DEFAULT_ANNEXB, DEFAULT_PRESET));
     
     CPPUNIT_ASSERT(reader->openFile("testsData/videoVectorTest.h264", H264));
     CPPUNIT_ASSERT(writer->openFile("testsData/videoVectorTest_out_4000kbps.h264"));

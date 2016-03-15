@@ -53,7 +53,7 @@ bool addVideoPath(int vWId, int receiverID, int transmitterID)
     pipe->addFilter(encId, encoder);
 
     //bitrate, fps, gop, lookahead, threads, annexB, preset
-    encoder->configure(4000, 25, 25, 0, 4, true, "superfast");
+    encoder->configure(4000, 25, 25, 25, 4, 4, true, "superfast");
        
     if (!pipe->createPath(vWId, receiverID, transmitterID, vWId, -1, ids)) {
         utils::errorMsg("Error creating video path");

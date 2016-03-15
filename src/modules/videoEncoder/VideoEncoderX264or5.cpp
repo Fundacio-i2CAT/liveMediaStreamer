@@ -24,7 +24,8 @@
 #include "VideoEncoderX264or5.hh"
 
 VideoEncoderX264or5::VideoEncoderX264or5() :
-OneToOneFilter(), inPixFmt(P_NONE), forceIntra(false), fps(0), bitrate(0), gop(0), threads(0), needsConfig(false)
+OneToOneFilter(), inPixFmt(P_NONE), forceIntra(false), fps(0), bitrate(0), gop(0), 
+    threads(0), bFrames(0), needsConfig(false), inPts(0), outPts(0)
 {
     fType = VIDEO_ENCODER;
     midFrame = av_frame_alloc();
@@ -32,7 +33,7 @@ OneToOneFilter(), inPixFmt(P_NONE), forceIntra(false), fps(0), bitrate(0), gop(0
     outputStreamInfo->video.h264or5.annexb = true;
     initializeEventMap();
     configure0(DEFAULT_BITRATE, VIDEO_DEFAULT_FRAMERATE, DEFAULT_GOP, 
-              DEFAULT_LOOKAHEAD, DEFAULT_THREADS, DEFAULT_ANNEXB, DEFAULT_PRESET);
+              DEFAULT_LOOKAHEAD, DEFAULT_B_FRAMES, DEFAULT_THREADS, DEFAULT_ANNEXB, DEFAULT_PRESET);
 }
 
 VideoEncoderX264or5::~VideoEncoderX264or5()
@@ -69,15 +70,10 @@ bool VideoEncoderX264or5::doProcessFrame(Frame *org, Frame *dst)
         return false;
     }
     
-    /*NOTE: lookahead is multiplied by 2 beacuse the buffered frames might be 
-    * higher than lookahead plus the threads number depending on the configuration. 
-    */
-    if (qFTP.size() == 0 || qFTP.size() <= (lookahead + threads)* 2){
-        frameTP.pTime = org->getPresentationTime();
-        frameTP.oTime = org->getOriginTime();
-        frameTP.seqNum = org->getSequenceNumber();
-        qFTP.push(frameTP);
-    }
+    frameTP.pTime = org->getPresentationTime();
+    frameTP.oTime = org->getOriginTime();
+    frameTP.seqNum = org->getSequenceNumber();
+    qFTP[inPts] = frameTP;
     
     if (!encodeFrame(codedFrame)) {
         utils::warningMsg("Could not encode video frame");
@@ -87,11 +83,11 @@ bool VideoEncoderX264or5::doProcessFrame(Frame *org, Frame *dst)
     codedFrame->setSize(rawFrame->getWidth(), rawFrame->getHeight());
     
     dst->setConsumed(true);
-    dst->setPresentationTime(qFTP.front().pTime);
-    dst->setOriginTime(qFTP.front().oTime);
-    dst->setSequenceNumber(qFTP.front().seqNum);
+    dst->setPresentationTime(qFTP[outPts].pTime);
+    dst->setOriginTime(qFTP[outPts].oTime);
+    dst->setSequenceNumber(qFTP[outPts].seqNum);
     
-    qFTP.pop();
+    qFTP.erase(outPts);
     
     return true;
 }
@@ -113,7 +109,9 @@ bool VideoEncoderX264or5::fill_x264or5_picture(VideoFrame* videoFrame)
     return true;
 }
 
-bool VideoEncoderX264or5::configure0(unsigned bitrate_, unsigned fps_, unsigned gop_, unsigned lookahead_, unsigned threads_, bool annexB_, std::string preset_)
+bool VideoEncoderX264or5::configure0(unsigned bitrate_, unsigned fps_, unsigned gop_, 
+                                     unsigned lookahead_, unsigned bFrames_, unsigned threads_, 
+                                     bool annexB_, std::string preset_)
 {
     if (bitrate_ <= 0 || gop_ <= 0 || lookahead_ < 0 || threads_ <= 0 || preset_.empty()) {
         utils::errorMsg("Error configuring VideoEncoderX264or5: invalid configuration values");
@@ -124,6 +122,7 @@ bool VideoEncoderX264or5::configure0(unsigned bitrate_, unsigned fps_, unsigned 
     gop = gop_;
     lookahead = lookahead_;
     threads = threads_;
+    bFrames = bFrames_;
 
     outputStreamInfo->video.h264or5.annexb = annexB_;
     preset = preset_;
@@ -147,6 +146,7 @@ bool VideoEncoderX264or5::configEvent(Jzon::Node* params)
     unsigned tmpGop;
     unsigned tmpLookahead;
     unsigned tmpThreads;
+    unsigned tmpBFrames;
     bool tmpAnnexB;
     std::string tmpPreset;
 
@@ -161,6 +161,7 @@ bool VideoEncoderX264or5::configEvent(Jzon::Node* params)
     tmpThreads = threads;
     tmpAnnexB = outputStreamInfo->video.h264or5.annexb;
     tmpPreset = preset;
+    tmpBFrames = bFrames;
 
     if (params->Has("bitrate")) {
         tmpBitrate = params->Get("bitrate").ToInt();
@@ -177,6 +178,10 @@ bool VideoEncoderX264or5::configEvent(Jzon::Node* params)
     if (params->Has("lookahead")) {
         tmpLookahead = params->Get("lookahead").ToInt();
     }
+    
+    if (params->Has("bframes")) {
+        tmpBFrames = params->Get("bframes").ToInt();
+    }
 
     if (params->Has("threads")) {
         tmpThreads = params->Get("threads").ToInt();
@@ -190,7 +195,7 @@ bool VideoEncoderX264or5::configEvent(Jzon::Node* params)
         tmpPreset = params->Get("preset").ToString();
     }
 
-    return configure0(tmpBitrate, tmpFps, tmpGop, tmpLookahead, tmpThreads, tmpAnnexB, tmpPreset);
+    return configure0(tmpBitrate, tmpFps, tmpGop, tmpLookahead, tmpBFrames, tmpThreads, tmpAnnexB, tmpPreset);
 }
 
 bool VideoEncoderX264or5::forceIntraEvent(Jzon::Node*)
@@ -216,7 +221,7 @@ void VideoEncoderX264or5::doGetState(Jzon::Object &filterNode)
     filterNode.Add("preset", preset);
 }
 
-bool VideoEncoderX264or5::configure(int bitrate, int fps, int gop, int lookahead, int threads, bool annexB, std::string preset)
+bool VideoEncoderX264or5::configure(int bitrate, int fps, int gop, int lookahead, int bFrames, int threads, bool annexB, std::string preset)
 {
     Jzon::Object root, params;
     root.Add("action", "configure");
@@ -224,6 +229,7 @@ bool VideoEncoderX264or5::configure(int bitrate, int fps, int gop, int lookahead
     params.Add("fps", fps);
     params.Add("gop", gop);
     params.Add("lookahead", lookahead);
+    params.Add("bframes", bFrames);
     params.Add("threads", threads);
     params.Add("annexb", annexB);
     params.Add("preset", preset);

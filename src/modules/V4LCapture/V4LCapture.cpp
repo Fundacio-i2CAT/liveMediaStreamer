@@ -73,25 +73,29 @@ bool V4LCapture::configure(std::string device, unsigned width, unsigned height, 
                 releaseDevice();
                 return false;
             }
+            break;
         case CAPTURE:
-            if ((width != fmt.fmt.pix.width || 
-                height != fmt.fmt.pix.height)){
-                if (stopCapturing() && uninitDevice()){
-                    return configure(device, width, height, fFormat);
-                }
-                return false;
+            if (stopCapturing() && uninitDevice()){
+                return configure(device, width, height, fFormat);
             }
             break;
     }
     
-    if (fps > 0){
-        frameDuration = std::chrono::microseconds((int)(std::micro::den/fps));
-    } else {
-        frameDuration = std::chrono::microseconds((int)(std::micro::den/VIDEO_DEFAULT_FRAMERATE));
-    }
+    frameDuration = std::chrono::microseconds((int)(std::micro::den/fps));
     
     return true;
 }
+
+bool V4LCapture::specificWriterConfig(int /*writerID*/) 
+{
+    if (status == CAPTURE){
+        return true;
+    }
+    
+    utils::warningMsg("The device is not capturing yet! No possible connection");
+    
+    return false;
+};
 
 bool V4LCapture::releaseDevice()
 {
@@ -151,12 +155,13 @@ bool V4LCapture::doProcessFrame(std::map<int, Frame*> &dstFrames, int& ret)
         return false;
     }
 
+    //NOTE: this is due to buggy driver paranoia, we set the frameDuration to the experimented frameDuration
     int avgFrameTime =
         getAvgFrameDuration(std::chrono::duration_cast<std::chrono::microseconds>(currentTime - lastTime));
     if (std::abs(frameDuration.count() - avgFrameTime) > 
-        frameDuration.count()/TOLERANCE_FACTOR ) {
+        frameDuration.count()/(TOLERANCE_FACTOR*2)) {
         
-        utils::warningMsg("Current frameDuration set to " + std::to_string(avgFrameTime));
+        utils::warningMsg("Current fps set to " + std::to_string((float) std::micro::den/avgFrameTime));
         frameDuration = std::chrono::microseconds(avgFrameTime);
     }
     lastTime = currentTime;
@@ -166,7 +171,11 @@ bool V4LCapture::doProcessFrame(std::map<int, Frame*> &dstFrames, int& ret)
 
 FrameQueue* V4LCapture::allocQueue(ConnectionData cData)
 {
-    return VideoFrameQueue::createNew(cData, oStreamInfo, DEFAULT_RAW_VIDEO_FRAMES);
+    if (pixelType(fmt.fmt.pix.pixelformat) == P_NONE){
+        return VideoFrameQueue::createNew(cData, oStreamInfo, DEFAULT_VIDEO_FRAMES);
+    } else {
+        return VideoFrameQueue::createNew(cData, oStreamInfo, DEFAULT_RAW_VIDEO_FRAMES);
+    }
 }
 
 const bool V4LCapture::getFrame(std::chrono::microseconds timeout, VideoFrame *dstFrame)

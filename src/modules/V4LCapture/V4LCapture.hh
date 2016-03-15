@@ -33,7 +33,7 @@
 #include "../../StreamInfo.hh"
 #include "../../Filter.hh"
 
-#define TOLERANCE_FACTOR 100
+#define TOLERANCE_FACTOR 64
 #define FRAME_AVG_COUNT 128
 
 struct buffer {
@@ -62,7 +62,7 @@ private:
     bool releaseEvent(Jzon::Node* /*params*/);
     
     //NOTE: There is no need of specific writer configuration
-    bool specificWriterConfig(int /*writerID*/) {return true;};
+    bool specificWriterConfig(int /*writerID*/);
     bool specificWriterDelete(int /*writerID*/) {return true;};
     
     const bool getFrame(std::chrono::microseconds timeout, VideoFrame *dstFrame);

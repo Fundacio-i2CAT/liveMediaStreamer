@@ -163,13 +163,13 @@ void addVideoPath(unsigned port, Dasher* dasher, int dasherId, int receiverID,
         case H264:
             encoderX264 = new VideoEncoderX264();
             pipe->addFilter(encId, encoderX264);
-            encoderX264->configure(config[0].bitrate, FRAME_RATE, 25, 25, 4, 4, true, "superfast");
+            encoderX264->configure(config[0].bitrate, FRAME_RATE, 25, 25, 0, 4, true, "superfast");
             utils::infoMsg("Master reader: " + std::to_string(dstReader));
             break;
         case H265:
             encoderX265 = new VideoEncoderX265();
             pipe->addFilter(encId, encoderX265);
-            encoderX265->configure(config[0].bitrate, FRAME_RATE, 25, 25, 4, 4, true, "superfast");
+            encoderX265->configure(config[0].bitrate, FRAME_RATE, 25, 25, 0, 4, true, "superfast");
             utils::infoMsg("Master reader: " + std::to_string(dstReader));
             break;
         default:
@@ -208,12 +208,12 @@ void addVideoPath(unsigned port, Dasher* dasher, int dasherId, int receiverID,
             case H264:
                 encoderX264 = new VideoEncoderX264();
                 pipe->addFilter(encId, encoderX264);
-                encoderX264->configure(config[n].bitrate, 25, 25, 25, 4, 4, true, "superfast");
+                encoderX264->configure(config[n].bitrate, 25, 25, 25, 0, 4, true, "superfast");
                 break;
             case H265:
                 encoderX265 = new VideoEncoderX265();
                 pipe->addFilter(encId, encoderX265);
-                encoderX265->configure(config[n].bitrate, 25, 25, 25, 4, 4, true, "superfast");
+                encoderX265->configure(config[n].bitrate, 25, 25, 25, 0, 4, true, "superfast");
                 break;
             default:
                 utils::errorMsg("Only H264 and H265 are supported... exiting...");

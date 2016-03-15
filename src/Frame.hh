@@ -42,7 +42,7 @@ public:
 
     /**
     * Set frame presentation time
-    * @param system_clock::time_point to set as presentation time
+    * @param std::chrono::microseconds to set as presentation time
     */
     void setPresentationTime(std::chrono::microseconds pTime);
 
@@ -58,6 +58,10 @@ public:
     */
     void setSequenceNumber(size_t seqNum);
 
+    /**
+    * Get frame presentation time
+    * @return presentation time of the frame.
+    */
     std::chrono::microseconds getPresentationTime() const {return presentationTime;};
 
     /**

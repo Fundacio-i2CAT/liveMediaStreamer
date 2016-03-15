@@ -77,8 +77,6 @@ bool VideoEncoderX264::encodeFrame(VideoFrame* codedFrame)
     picIn.i_pts = inPts;
     success = x264_encoder_encode(encoder, &nals, &piNal, &picIn, &picOut);
 
-    inPts++;
-
     if (success == 0) {
         return false;
     } else if (success < 0) {
@@ -87,6 +85,7 @@ bool VideoEncoderX264::encodeFrame(VideoFrame* codedFrame)
     }
     
     outPts = picOut.i_pts;
+    dts = picOut.i_dts;
 
     for (int i = 0; i < piNal; i++) {
 

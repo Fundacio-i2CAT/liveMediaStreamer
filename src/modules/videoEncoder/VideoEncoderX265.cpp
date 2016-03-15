@@ -81,8 +81,6 @@ bool VideoEncoderX265::encodeFrame(VideoFrame* codedFrame)
     picIn->pts = inPts;
     success = x265_encoder_encode(encoder, &nals, &piNal, picIn, picOut);
 
-    inPts++;
-
     if (success < 0) {
         utils::errorMsg("X265 Encoder: Could not encode video frame");
         return false;
@@ -92,6 +90,7 @@ bool VideoEncoderX265::encodeFrame(VideoFrame* codedFrame)
     }
 
     outPts = picOut->pts;
+    dts = picOut->dts;
     
     for (unsigned i = 0; i < piNal; i++) {
         if (!slicedFrame->setSlice(nals[i].payload, nals[i].sizeBytes)) {

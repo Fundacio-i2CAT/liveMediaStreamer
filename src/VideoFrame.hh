@@ -30,6 +30,7 @@
 
 #define MAX_COPIED_SLICES 8
 #define MAX_SLICES 16
+#define NO_DTS -1
 
 class VideoFrame : public Frame {
 
@@ -38,8 +39,31 @@ public:
     VideoFrame(VCodecType codec_, int width_, int height_, PixType pixFormat);
     virtual ~VideoFrame();
 
+    /**
+    * Set frame presentation time
+    * @param std::chrono::microseconds to set as presentation time
+    */
+    void setDecodeTime(std::chrono::microseconds dTime);
+    
+    /**
+    * Set frame width and height
+    * @param width horizontal number of pixels
+    * @param height vertial number of pixels
+    */
     void setSize(int width, int height);
+    
+    /**
+    * Set the pixel format
+    * @param pixelFormat PixType of the frame
+    */
     void setPixelFormat(PixType pixelFormat);
+    
+    /**
+    * Get frame presentation time
+    * @return presentation time of the frame.
+    */
+    std::chrono::microseconds getDecodeTime() const {return decodeTime;};
+    
     
     VCodecType getCodec() {return codec;};
     int getWidth() {return width;};
@@ -47,6 +71,7 @@ public:
     PixType getPixelFormat() {return pixelFormat;};
 
 protected:
+    std::chrono::microseconds decodeTime;
     VCodecType codec;
     int width, height;
     PixType pixelFormat;

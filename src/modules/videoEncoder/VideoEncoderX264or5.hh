@@ -79,6 +79,7 @@ protected:
     std::string preset;
     int64_t inPts;
     int64_t outPts;
+    int64_t dts;
 
     StreamInfo *outputStreamInfo;
     

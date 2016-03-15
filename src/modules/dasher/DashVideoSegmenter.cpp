@@ -129,16 +129,26 @@ bool DashVideoSegmenter::appendFrameToDashSegment(Frame* frame)
 {
     size_t addSampleReturn;
     size_t timeBasePts;
+    size_t timeBaseDts;
+    
+    VideoFrame* vFrame = dynamic_cast<VideoFrame*> (frame);
 
-    if (!frame || !frame->getDataBuf() || frame->getLength() <= 0 || !dashContext) {
+    if (!vFrame || !vFrame->getDataBuf() || vFrame->getLength() <= 0 || !dashContext) {
         utils::errorMsg("Error appeding frame to segment: frame not valid");
         return false;
     }
     
-    timeBasePts = microsToTimeBase(frame->getPresentationTime());
+    timeBasePts = microsToTimeBase(vFrame->getPresentationTime());
+    
+    if (vFrame->getDecodeTime().count() == NO_DTS){
+        timeBaseDts = timeBasePts;
+    } else {
+        timeBaseDts = microsToTimeBase(vFrame->getDecodeTime());
+    }
 
-    addSampleReturn = add_video_sample(frame->getDataBuf(), frame->getLength(), timeBasePts, 
-                                        timeBasePts, sequenceNumber, isPreviousFrameIntra(), &dashContext);
+    //TODO: test it with bFrames
+    addSampleReturn = add_video_sample(vFrame->getDataBuf(), vFrame->getLength(), timeBasePts, 
+                                        timeBaseDts, sequenceNumber, isPreviousFrameIntra(), &dashContext);
 
     if (addSampleReturn != I2OK) {
         utils::errorMsg("Error adding video sample. Code error: " + std::to_string(addSampleReturn));

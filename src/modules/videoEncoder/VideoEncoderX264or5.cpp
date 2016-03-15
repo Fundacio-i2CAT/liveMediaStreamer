@@ -25,7 +25,7 @@
 
 VideoEncoderX264or5::VideoEncoderX264or5() :
 OneToOneFilter(), inPixFmt(P_NONE), forceIntra(false), fps(0), bitrate(0), gop(0), 
-    threads(0), bFrames(0), needsConfig(false), inPts(0), outPts(0)
+    threads(0), bFrames(0), needsConfig(false), inPts(0), outPts(0), dts(0)
 {
     fType = VIDEO_ENCODER;
     midFrame = av_frame_alloc();
@@ -70,6 +70,8 @@ bool VideoEncoderX264or5::doProcessFrame(Frame *org, Frame *dst)
         return false;
     }
     
+    inPts = org->getPresentationTime().count();
+    
     frameTP.pTime = org->getPresentationTime();
     frameTP.oTime = org->getOriginTime();
     frameTP.seqNum = org->getSequenceNumber();
@@ -84,6 +86,7 @@ bool VideoEncoderX264or5::doProcessFrame(Frame *org, Frame *dst)
     
     dst->setConsumed(true);
     dst->setPresentationTime(qFTP[outPts].pTime);
+    rawFrame->setDecodeTime(std::chrono::microseconds(dts));
     dst->setOriginTime(qFTP[outPts].oTime);
     dst->setSequenceNumber(qFTP[outPts].seqNum);
     

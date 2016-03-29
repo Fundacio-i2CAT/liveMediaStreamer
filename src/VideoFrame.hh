@@ -40,8 +40,8 @@ public:
     virtual ~VideoFrame();
 
     /**
-    * Set frame presentation time
-    * @param std::chrono::microseconds to set as presentation time
+    * Set frame decoding time
+    * @param std::chrono::microseconds to set as decoding time
     */
     void setDecodeTime(std::chrono::microseconds dTime);
     
@@ -59,8 +59,8 @@ public:
     void setPixelFormat(PixType pixelFormat);
     
     /**
-    * Get frame presentation time
-    * @return presentation time of the frame.
+    * Get frame decoding time
+    * @return decoding time of the frame.
     */
     std::chrono::microseconds getDecodeTime() const {return decodeTime;};
     

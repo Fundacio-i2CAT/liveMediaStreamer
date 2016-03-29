@@ -550,6 +550,9 @@ static PixType pixelType(unsigned pixelFormat)
         case V4L2_PIX_FMT_YUV420:
             return YUV420P;
             break;
+        case V4L2_PIX_FMT_RGB24:
+            return RGB24;
+            break;
         default:
             utils::warningMsg("Unknown pixelFormat!");
             return P_NONE;
@@ -586,7 +589,11 @@ static unsigned getFormatFromString(std::string format)
         case YUV422P:
             return V4L2_PIX_FMT_YUV422P;
             break;
+        case RGB24:
+            return V4L2_PIX_FMT_RGB24;
+            break;
         default:
+            utils::warningMsg("Unknown pixel format, is it compressed?");
             break;
     }
     VCodecType codec =  utils::getVideoCodecFromString(format);
@@ -598,6 +605,7 @@ static unsigned getFormatFromString(std::string format)
             return V4L2_PIX_FMT_MJPEG;
             break;
         default:
+            utils::warningMsg("Unknown pixel format, is it compressed?");
             //default format
             return V4L2_PIX_FMT_YUYV; 
             break;

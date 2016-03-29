@@ -43,6 +43,7 @@ int main(int argc, char* argv[])
     std::vector<int> readers;
     std::vector<int> midFilters;
     std::string cam;
+    std::string format = "YUYV";
     int width = 0;
     int height = 0;
     unsigned fps = 0;
@@ -62,6 +63,9 @@ int main(int argc, char* argv[])
         } else if (strcmp(argv[i],"-r")==0) {
             fps = std::stoi(argv[i+1]);
             utils::infoMsg("frame rate: " + std::to_string(fps));
+        } else if (strcmp(argv[i],"-f")==0) {
+            format = argv[i+1];
+            utils::infoMsg("format: " + format);
         } 
     }
 
@@ -77,7 +81,8 @@ int main(int argc, char* argv[])
     VideoResampler *resampler = new VideoResampler();
     VideoEncoderX264 *encoder = new VideoEncoderX264();
     
-    if (!capture->configure(cam, width, height, fps, "YUYV", true)){
+    if (!capture->configure(cam, width, height, fps, format, true)){
+        utils::errorMsg("Couldn't configure the cam");
         return 1;
     }
     resampler->configure(0, 0, 0, YUV420P);

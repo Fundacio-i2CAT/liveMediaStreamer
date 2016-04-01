@@ -31,7 +31,6 @@ class RunnableMockup : public Runnable {
 public:
     RunnableMockup(int frameTime_, std::vector<int> enabledJobs_, bool periodic) : Runnable(periodic){
         frameTime = frameTime_;
-        time = std::chrono::system_clock::now();
         enabledJobs = enabledJobs_;
         first = true;
     }

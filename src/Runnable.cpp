@@ -27,7 +27,7 @@
 #include "Runnable.hh"
 
 
-Runnable::Runnable(bool periodic_) : run(false), periodic(periodic_), id(-1)
+Runnable::Runnable(bool periodic_) : run(false), time(std::chrono::system_clock::now()), periodic(periodic_), id(-1)
 {
 }
 
@@ -39,6 +39,11 @@ bool Runnable::ready()
 {
     return time < std::chrono::high_resolution_clock::now();
 }
+
+std::chrono::system_clock::time_point Runnable::getTime()  const
+{
+    return time;    
+};
 
 void Runnable::sleepUntilReady()
 {

@@ -28,11 +28,33 @@
 #include <condition_variable>
 #include <map>
 #include <set>
+#include <deque>
 
 #include "Runnable.hh"
 
 #define IDLE 10
 
+class TaskQueue {
+public:
+    TaskQueue();
+    
+    void pushBack(Runnable *run);
+    
+    Runnable* pop();
+    
+    void resetIterator();
+    
+    void clear();
+    
+    Runnable* current();
+    
+    void next();
+
+private:
+    std::set<Runnable*, RunnableLess>   sQueue;
+    std::deque<Runnable*>             queue;
+    std::deque<Runnable*>::iterator    iter;
+};
 
 class WorkersPool
 {
@@ -52,7 +74,7 @@ private:
     std::mutex                  mtx;
     std::condition_variable     qCheck;
     std::map<int, Runnable*>    runnables;
-    std::set<Runnable*, RunnableLess>        jobQueue;
+    TaskQueue                   queue;
     bool                        run;
 };
 

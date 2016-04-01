@@ -26,6 +26,47 @@
 
 #define HW_CONC_FACTOR 2
 
+TaskQueue::TaskQueue(){
+    iter = queue.begin();
+}
+
+void TaskQueue::pushBack(Runnable *run){
+    if (sQueue.find(run) != sQueue.end()){
+        return;
+    }
+    sQueue.insert(run);
+    queue.push_back(run);
+}
+
+Runnable* TaskQueue::pop(){
+    Runnable* run =  queue.front();
+    sQueue.erase(run);
+    return run;
+}
+
+void TaskQueue::resetIterator(){
+    iter = queue.begin();
+}
+
+void TaskQueue::clear(){
+    queue.clear();
+    sQueue.clear();
+}
+
+Runnable* TaskQueue::current(){
+    if (iter != queue.end()){
+        return *iter;
+    }
+    return NULL;
+}
+
+void TaskQueue::next(){
+    if (iter != queue.end()){
+        iter++;
+    }
+}
+
+
 WorkersPool::WorkersPool(size_t threads) : run(true)
 {
     if (threads == 0 || 
@@ -39,27 +80,26 @@ WorkersPool::WorkersPool(size_t threads) : run(true)
         workers.push_back(
             std::thread([this](unsigned int j){
                 Runnable* job = NULL;
-                std::set<Runnable*>::iterator iter;
                 std::vector<int> enabledJobs;
                 bool added = false;
                 
                 while(true) {
                     std::unique_lock<std::mutex> guard(mtx);
-                    iter = jobQueue.begin();
+                    queue.resetIterator();
                     while (run) {
-                        if (iter == jobQueue.end()){
+                        job = queue.current();
+                        if (!job){
                             qCheck.wait_for(guard, std::chrono::milliseconds(IDLE));
-                        } else if (!(*iter)->isRunning() && !(*iter)->ready()) {
-                            qCheck.wait_until(guard, (*iter)->getTime());
-                        } else if (!(*iter)->isRunning() && (*iter)->ready()){
-                            job = *iter;
-                            iter = jobQueue.erase(iter);
+                        } else if (!job->isRunning() && !job->ready()) {
+                            qCheck.wait_until(guard, job->getTime());
+                        } else if (!job->isRunning() && job->ready()){
+                            queue.pop();
                             break;
                         } else {
-                            iter++;
+                            queue.next();
                             continue;
                         }
-                        iter = jobQueue.begin();
+                        queue.resetIterator();
                     }
 
                     if(!run){
@@ -84,7 +124,7 @@ WorkersPool::WorkersPool(size_t threads) : run(true)
                     
                     for(auto id : enabledJobs){
                         if (runnables.count(id) > 0){
-                            jobQueue.insert(runnables[id]);
+                            queue.pushBack(runnables[id]);
                         }
                         added = true;
                     }
@@ -114,7 +154,7 @@ void WorkersPool::stop()
             worker.join();
         }
     }
-    jobQueue.clear();
+    queue.clear();
 }
 
 bool WorkersPool::addTask(Runnable* const task)
@@ -126,7 +166,7 @@ bool WorkersPool::addTask(Runnable* const task)
     std::unique_lock<std::mutex> guard(mtx);
     if (runnables.count(id) == 0){
         runnables[id] = task;
-        jobQueue.insert(task);
+        queue.pushBack(task);
         guard.unlock();
         qCheck.notify_one();
         return true;

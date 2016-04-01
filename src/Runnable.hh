@@ -60,13 +60,6 @@ public:
      * @return id of the filter, it is a unique value.
      */
     int getId() const {return id;};
-
-    /**
-    * Operator definition to make Runnable objects comparable
-    * @param pointer to left side runnable object
-    * @param pointer to right side runnable object
-    */
-    bool operator()(const Runnable* lhs, const Runnable* rhs);
     
     /**
      * Returns the value of the running flag
@@ -88,7 +81,7 @@ public:
     * Get next time point of processFrame execution
     * @return time point of the next execution of processFrame
     */
-    std::chrono::system_clock::time_point getTime() const {return time;};
+    std::chrono::system_clock::time_point getTime() const;
     
     /**
      * This method test if the runnable is periodic or not
@@ -126,11 +119,11 @@ protected:
 private:
     
 protected:
-    std::chrono::system_clock::time_point time;
     std::mutex mtx;
     bool run;
 
 private:
+    std::chrono::system_clock::time_point time;
     const bool periodic;
     int id;
 };
@@ -140,13 +133,7 @@ struct RunnableLess : public std::binary_function<Runnable*, Runnable*, bool>
 {
     bool operator()(const Runnable* lhs, const Runnable* rhs) const
     {
-        if (lhs->getId() == rhs->getId()){
-            return false;
-        }
-        if (lhs->getTime() == rhs->getTime()){
-            return lhs->getId() < rhs->getId();
-        }
-        return lhs->getTime() < rhs->getTime();
+        return lhs->getId() < rhs->getId();
     }
 };
 

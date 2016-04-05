@@ -36,11 +36,13 @@ void TaskQueue::pushBack(Runnable *run){
     }
     sQueue.insert(run);
     queue.push_back(run);
+    resetIterator();
 }
 
 Runnable* TaskQueue::pop(){
     Runnable* run =  queue.front();
     sQueue.erase(run);
+    resetIterator();
     return run;
 }
 

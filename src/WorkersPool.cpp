@@ -42,6 +42,7 @@ void TaskQueue::pushBack(Runnable *run){
 Runnable* TaskQueue::pop(){
     Runnable* run =  queue.front();
     sQueue.erase(run);
+    queue.pop_front();
     resetIterator();
     return run;
 }

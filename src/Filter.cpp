@@ -688,17 +688,17 @@ bool BaseFilter::demandOriginFramesFrameTime(std::map<int, Frame*> &oFrames, std
 
         // If the current frame is out of our processing scope, 
         // we do not consider it as a new frame (keep noFrame value)
-        if (frame->getPresentationTime() > syncTs + frameTime) {
+        if (frame->getFrameTime() > syncTs + frameTime) {
             if (outOfScopeTs.count() < 0) {
-                outOfScopeTs = frame->getPresentationTime();
+                outOfScopeTs = frame->getFrameTime();
             } else {
-                outOfScopeTs = std::min(frame->getPresentationTime(), outOfScopeTs);
+                outOfScopeTs = std::min(frame->getFrameTime(), outOfScopeTs);
             }
             ++r;
             continue;
         }
         
-        if (frame->getPresentationTime() < syncTs){
+        if (frame->getFrameTime() < syncTs){
             outDated = true;
             ++r;
             continue;

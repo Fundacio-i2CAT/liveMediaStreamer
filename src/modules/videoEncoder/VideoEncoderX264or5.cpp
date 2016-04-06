@@ -60,6 +60,7 @@ bool VideoEncoderX264or5::doProcessFrame(Frame *org, Frame *dst)
         return false;
     }
 
+    //TODO: recofigure with estimated fps
     if (!reconfigure(rawFrame, codedFrame)) {
         utils::errorMsg("Error encoding video frame: reconfigure failed");
         return false;
@@ -93,6 +94,7 @@ bool VideoEncoderX264or5::doProcessFrame(Frame *org, Frame *dst)
     return true;
 }
 
+//TODO: this should be done without libav
 bool VideoEncoderX264or5::fill_x264or5_picture(VideoFrame* videoFrame)
 {
     if (av_image_fill_arrays(midFrame->data, midFrame->linesize, videoFrame->getDataBuf(),

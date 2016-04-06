@@ -150,6 +150,7 @@ bool VideoResampler::doProcessFrame(Frame *org, Frame *dst)
 
     dst->setConsumed(true);
     dst->setPresentationTime(org->getPresentationTime());
+    dst->setDecodeTime(org->getDecodeTime());
     dst->setOriginTime(org->getOriginTime());
     dst->setSequenceNumber(org->getSequenceNumber());
     

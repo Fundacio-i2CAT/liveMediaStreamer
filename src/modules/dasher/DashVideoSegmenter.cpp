@@ -140,7 +140,7 @@ bool DashVideoSegmenter::appendFrameToDashSegment(Frame* frame)
     
     timeBasePts = microsToTimeBase(vFrame->getPresentationTime());
     
-    if (vFrame->getDecodeTime().count() == NO_DTS){
+    if (vFrame->getDecodeTime() == NO_DTS){
         timeBaseDts = timeBasePts;
     } else {
         timeBaseDts = microsToTimeBase(vFrame->getDecodeTime());

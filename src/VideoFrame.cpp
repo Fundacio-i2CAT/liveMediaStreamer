@@ -25,7 +25,7 @@
  #include <string.h>
 
 VideoFrame::VideoFrame(VCodecType codec_) : 
-Frame(), decodeTime(std::chrono::microseconds(NO_DTS)), codec(codec_), width(0), height(0), pixelFormat(P_NONE)
+Frame(), codec(codec_), width(0), height(0), pixelFormat(P_NONE)
 {
 
 }
@@ -39,11 +39,6 @@ VideoFrame::VideoFrame(VCodecType codec_, int width_, int height_, PixType pixFo
 VideoFrame::~VideoFrame()
 {
 
-}
-
-void VideoFrame::setDecodeTime(std::chrono::microseconds dTime)
-{
-    decodeTime = dTime;
 }
 
 void VideoFrame::setSize(int width, int height)

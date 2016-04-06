@@ -150,6 +150,7 @@ bool VideoSplitter::doProcessFrame(Frame *org, std::map<int, Frame *> &dstFrames
     		orgFrame(cv::Rect(xROI, yROI, widthROI, heightROI)).copyTo(cropsConfig[it.first]->getCropRect(0, 0, widthROI, heightROI));
 			it.second->setConsumed(true);
 			it.second->setPresentationTime(org->getPresentationTime());
+            it.second->setDecodeTime(org->getDecodeTime());
 			it.second->setOriginTime(org->getOriginTime());
     		it.second->setSequenceNumber(org->getSequenceNumber());
 			processFrame = true;

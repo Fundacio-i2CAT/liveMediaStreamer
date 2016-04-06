@@ -158,15 +158,15 @@ int Reader::removeFrame(int fId)
 void Reader::measureDelay()
 {
     if(lastTs.count() < 0){
-        lastTs = frame->getPresentationTime();
+        lastTs = frame->getFrameTime();
     }
 
-    if (lastTs == frame->getPresentationTime()) {
+    if (lastTs == frame->getFrameTime()) {
         return;
     }
 
-    timeCounter += frame->getPresentationTime() - lastTs;
-    lastTs = frame->getPresentationTime();
+    timeCounter += frame->getFrameTime() - lastTs;
+    lastTs = frame->getFrameTime();
 
     if(timeCounter >= windowDelay && frameCounter > 0){
         avgDelay = delay / frameCounter;
@@ -250,14 +250,14 @@ size_t Reader::getQueueElements()
 std::chrono::microseconds Reader::getCurrentTime()
 {
     if (frame){
-        return frame->getPresentationTime();
+        return frame->getFrameTime();
     }
     
     Frame *f;
     
     f = queue->getFront();
     if (f){
-        return f->getPresentationTime();
+        return f->getFrameTime();
     }
     
     return std::chrono::microseconds(0);

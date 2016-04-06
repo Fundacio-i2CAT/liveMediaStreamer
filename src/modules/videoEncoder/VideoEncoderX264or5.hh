@@ -33,6 +33,7 @@
 #include "../../Types.hh"
 #include "../../StreamInfo.hh"
 
+//TODO: this dependences shouldn't be needed
 extern "C" {
     #include <libavcodec/avcodec.h>
     #include <libavutil/imgutils.h>

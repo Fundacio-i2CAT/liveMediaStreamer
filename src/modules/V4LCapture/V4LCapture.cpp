@@ -147,6 +147,7 @@ bool V4LCapture::doProcessFrame(std::map<int, Frame*> &dstFrames, int& ret)
     
     frame->setPresentationTime(std::chrono::duration_cast<std::chrono::microseconds>(
         currentTime.time_since_epoch()));
+    frame->setDecodeTime(frame->getPresentationTime());
     
     ret = (std::chrono::duration_cast<std::chrono::microseconds> (
             wallclock - currentTime)).count();

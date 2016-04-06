@@ -152,6 +152,8 @@ bool VideoMixer::doProcessFrame(std::map<int, Frame*> &orgFrames, Frame *dst, st
     } else {
         dst->setPresentationTime(getSyncTs());
     }
+    
+    dst->setDecodeTime(dst->getPresentationTime());
 
     return true;
 }

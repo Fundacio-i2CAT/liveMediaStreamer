@@ -17,7 +17,8 @@
  *  You should have received a copy of the GNU General Public License
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- *  Authors: Xavi Artigas <xavier.artigas@i2cat.net>  
+ *  Authors: Xavi Artigas <xavier.artigas@i2cat.net>
+ *           David Cassany <david.cassany@i2cat.net>  
  */
 
 #ifndef _HEAD_DEMUXER_LIBAV_HH
@@ -70,6 +71,9 @@ class HeadDemuxerLibav : public HeadFilter {
             /* Initialized to zero, it keeps the last valid pts, in order to be used 
              * in case an AV_NOPTS_VALUE is found in av_pkt*/
             int64_t lastPTS;
+            /* Initialized to zero, it keeps the last valid dts, in order to be used 
+             * in case an AV_NODTS_VALUE is found in av_pkt*/
+            int64_t lastDTS;
         };
 
         /** URI currently being played */

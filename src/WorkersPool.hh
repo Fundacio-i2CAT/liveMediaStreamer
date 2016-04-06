@@ -40,7 +40,7 @@ public:
     
     void pushBack(Runnable *run);
     
-    Runnable* pop();
+    void pop();
     
     void resetIterator();
     

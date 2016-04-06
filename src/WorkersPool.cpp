@@ -31,20 +31,19 @@ TaskQueue::TaskQueue(){
 }
 
 void TaskQueue::pushBack(Runnable *run){
-    if (sQueue.find(run) != sQueue.end()){
-        return;
+    if (sQueue.find(run) == sQueue.end()){
+        sQueue.insert(run);
+        queue.push_back(run);
+        resetIterator();
     }
-    sQueue.insert(run);
-    queue.push_back(run);
-    resetIterator();
 }
 
-Runnable* TaskQueue::pop(){
-    Runnable* run =  queue.front();
-    sQueue.erase(run);
-    queue.pop_front();
-    resetIterator();
-    return run;
+void TaskQueue::pop(){
+    if (!queue.empty()){
+        sQueue.erase(queue.front());
+        queue.pop_front();
+        resetIterator();
+    }
 }
 
 void TaskQueue::resetIterator(){

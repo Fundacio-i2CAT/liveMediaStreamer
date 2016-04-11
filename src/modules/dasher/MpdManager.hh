@@ -233,7 +233,7 @@ protected:
     int timescale;
     std::string segTemplate;
     std::string initTemplate;
-    std::deque<std::pair<int,int> > timestamps;
+    std::deque<std::pair<int64_t,int64_t>> timestamps;
 };
 
 /*! It is used to encapsulate all the data of a video AdaptationSet. It adds specific video data to the common data

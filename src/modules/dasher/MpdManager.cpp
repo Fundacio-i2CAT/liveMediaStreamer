@@ -247,7 +247,7 @@ size_t AdaptationSet::updateTimestamp(size_t ts, size_t duration, size_t maxSeg)
         timestamps.pop_front();
     }
 
-    timestamps.push_back(std::pair<int,int>(ts, duration));
+    timestamps.push_back(std::pair<int64_t,int64_t>(ts, duration));
     return removedTimestamp;
 }
 
@@ -355,8 +355,8 @@ void VideoAdaptationSet::toMpd(tinyxml2::XMLDocument& doc, tinyxml2::XMLElement*
 
     for (auto ts : timestamps) {
         s = doc.NewElement("S");
-        s->SetAttribute("t", ts.first);
-        s->SetAttribute("d", ts.second);
+        s->SetAttribute("t", std::to_string(ts.first).c_str());
+        s->SetAttribute("d", std::to_string(ts.second).c_str());
         segmentTimeline->InsertEndChild(s);
     }
 
@@ -462,8 +462,8 @@ void AudioAdaptationSet::toMpd(tinyxml2::XMLDocument& doc, tinyxml2::XMLElement*
 
     for (auto ts : timestamps) {
         s = doc.NewElement("S");
-        s->SetAttribute("t", ts.first);
-        s->SetAttribute("d", ts.second);
+        s->SetAttribute("t", std::to_string(ts.first).c_str());
+        s->SetAttribute("d", std::to_string(ts.second).c_str());
         segmentTimeline->InsertEndChild(s);
     }
 

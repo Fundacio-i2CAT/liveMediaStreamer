@@ -95,7 +95,7 @@ void addAudioPath(unsigned port, Dasher* dasher, int dasherId, int receiverID)
 
     int decId = 5000;
     int encId = 6000;
-    int dstReader = 3010;
+    int dstReader = 7000;
     std::vector<int> ids({decId, encId});
 
     AudioDecoderLibav *decoder;

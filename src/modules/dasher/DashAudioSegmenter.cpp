@@ -59,7 +59,7 @@ Frame* DashAudioSegmenter::manageFrame(Frame* frame)
     return aFrame;
 }
 
-bool DashAudioSegmenter::setup(size_t channels, size_t sampleRate, size_t samples, size_t bitsPerSample)
+bool DashAudioSegmenter::setup(unsigned int channels, unsigned int sampleRate, unsigned int samples, unsigned int bitsPerSample)
 {
     uint8_t i2error = I2OK;
 
@@ -87,7 +87,7 @@ bool DashAudioSegmenter::setup(size_t channels, size_t sampleRate, size_t sample
 
 bool DashAudioSegmenter::generateInitSegment(DashSegment* segment)
 {
-    size_t initSize = 0;
+    unsigned int initSize = 0;
     unsigned char* data;
     unsigned dataLength;
 
@@ -130,8 +130,8 @@ unsigned DashAudioSegmenter::customGenerateSegment(unsigned char *segBuffer, std
 bool DashAudioSegmenter::appendFrameToDashSegment(Frame* frame)
 {
     unsigned char* dataWithoutADTS;
-    size_t dataLengthWithoutADTS;
-    size_t addSampleReturn;
+    unsigned int dataLengthWithoutADTS;
+    unsigned int addSampleReturn;
     uint32_t timeBasePts;
 
     if (!frame || !frame->getDataBuf() || frame->getLength() <= 0 || !dashContext) {
@@ -224,7 +224,7 @@ unsigned char DashAudioSegmenter::getExtradata2ndByte(unsigned char samplingFreq
     return (samplingFrequencyIndex<<7) | (channelConfiguration<<3);
 }
 
-size_t DashAudioSegmenter::getSampleRate()
+unsigned int DashAudioSegmenter::getSampleRate()
 {
     if (!dashContext || !dashContext->ctxaudio) {
         return 0;
@@ -233,7 +233,7 @@ size_t DashAudioSegmenter::getSampleRate()
     return dashContext->ctxaudio->sample_rate;
 }
 
-size_t DashAudioSegmenter::getChannels()
+unsigned int DashAudioSegmenter::getChannels()
 {
     if (!dashContext || !dashContext->ctxaudio) {
         return 0;

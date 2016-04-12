@@ -91,20 +91,20 @@ public:
     * Return the last stored SPS size
     * @return size in bytes
     */
-    size_t getSPSsize() {return sps.size();};
+    unsigned int getSPSsize() {return sps.size();};
 
     /**
     * Return the last stored PPS size
     * @return size in bytes
     */
-    size_t getPPSsize() {return pps.size();};
+    unsigned int getPPSsize() {return pps.size();};
 
     /**
     * Flushes segment context
     * @return true if success, false otherwise.
     */
     bool flushDashContext();
-    size_t getFrameDataSize() {return tmpFrame->getLength();};
+    unsigned int getFrameDataSize() {return tmpFrame->getLength();};
     
 
 private:

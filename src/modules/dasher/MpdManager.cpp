@@ -42,7 +42,7 @@ MpdManager::~MpdManager()
     }
 }
 
-void MpdManager::configure(size_t minBuffTime, size_t maxSegment, size_t segDurInSec)
+void MpdManager::configure(unsigned int minBuffTime, unsigned int maxSegment, unsigned int segDurInSec)
 {    
     if (maxSegment >= MIN_SEGMENT){
         maxSeg = maxSegment;
@@ -113,10 +113,10 @@ void MpdManager::writeToDisk(const char* fileName)
     doc.SaveFile(fileName);
 }
 
-size_t MpdManager::updateAdaptationSetTimestamp(std::string id, size_t ts, size_t duration)
+uint64_t MpdManager::updateAdaptationSetTimestamp(std::string id, uint64_t ts, unsigned int duration)
 {
     AdaptationSet* adSet;
-    size_t removedTimestamp;
+    uint64_t removedTimestamp;
 
     adSet = getAdaptationSet(id);
 
@@ -238,16 +238,16 @@ AdaptationSet::~AdaptationSet()
 { 
 }
 
-size_t AdaptationSet::updateTimestamp(size_t ts, size_t duration, size_t maxSeg)
+uint64_t AdaptationSet::updateTimestamp(uint64_t ts, unsigned int duration, unsigned int maxSeg)
 {
-    size_t removedTimestamp= 0;
+    uint64_t removedTimestamp= 0;
 
     while (timestamps.size() >= maxSeg) {
         removedTimestamp = timestamps.front().first;
         timestamps.pop_front();
     }
 
-    timestamps.push_back(std::pair<int64_t,int64_t>(ts, duration));
+    timestamps.push_back(std::pair<uint64_t,uint64_t>(ts, duration));
     return removedTimestamp;
 }
 

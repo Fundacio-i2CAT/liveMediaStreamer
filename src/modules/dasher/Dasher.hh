@@ -69,7 +69,7 @@ public:
     ~Dasher();
 
     //TODO: add documentation
-    bool configure(std::string dashFolder, std::string baseName_, size_t segDurInSeconds, size_t maxSeg, size_t minBuffTime);
+    bool configure(std::string dashFolder, std::string baseName_, unsigned int segDurInSeconds, unsigned int maxSeg, unsigned int minBuffTime);
 
     /**
     * Creates a segment name as a function of the input and required params
@@ -80,7 +80,7 @@ public:
     * @param ext is the file extension that indicates its file format
     * @return string of the segment name
     */
-    static std::string getSegmentName(std::string basePath, std::string baseName, size_t reprId, size_t timestamp, std::string ext);
+    static std::string getSegmentName(std::string basePath, std::string baseName, unsigned int reprId, uint64_t timestamp, std::string ext);
 
     /**
     * Creates the init segment name as a function of the input and required params
@@ -90,24 +90,24 @@ public:
     * @param ext is the file extension that indicates its file format
     * @return string of the initialization segment name
     */
-    static std::string getInitSegmentName(std::string basePath, std::string baseName, size_t reprId, std::string ext);
+    static std::string getInitSegmentName(std::string basePath, std::string baseName, unsigned int reprId, std::string ext);
 
-    bool setDashSegmenterBitrate(int id, size_t kbps);
+    bool setDashSegmenterBitrate(int id, unsigned int kbps);
 
 private:
     bool doProcessFrame(std::map<int, Frame*> &orgFrames, std::vector<int> newFrames, int& ret);
     void doGetState(Jzon::Object &filterNode);
     void initializeEventMap();
-    bool generateInitSegment(size_t id, DashSegmenter* segmenter);
-    bool generateSegment(size_t id, Frame* frame, DashSegmenter* segmenter);
-    bool appendFrameToSegment(size_t id, Frame* frame, DashSegmenter* segmenter);
-    DashSegmenter* getSegmenter(size_t id);
+    bool generateInitSegment(unsigned int id, DashSegmenter* segmenter);
+    bool generateSegment(unsigned int id, Frame* frame, DashSegmenter* segmenter);
+    bool appendFrameToSegment(unsigned int id, Frame* frame, DashSegmenter* segmenter);
+    DashSegmenter* getSegmenter(unsigned int id);
     bool forceAudioSegmentsGeneration();
     bool writeVideoSegments();
     bool writeAudioSegments();
 
-    bool writeSegmentsToDisk(std::map<int,DashSegment*> segments, size_t timestamp, std::string segExt);
-    bool cleanSegments(std::map<int,DashSegment*> segments, size_t timestamp, std::string segExt);
+    bool writeSegmentsToDisk(std::map<int,DashSegment*> segments, uint64_t timestamp, std::string segExt);
+    bool cleanSegments(std::map<int,DashSegment*> segments, uint64_t timestamp, std::string segExt);
     bool configureEvent(Jzon::Node* params);
 
     bool setBitrateEvent(Jzon::Node* params);
@@ -149,7 +149,7 @@ public:
     * @param tBase segDur timeBase
     * @param offset timestamp of the current dash session
     */
-    DashSegmenter(std::chrono::seconds segmentDuration, size_t tBase, std::chrono::microseconds offset);
+    DashSegmenter(std::chrono::seconds segmentDuration, unsigned int tBase, std::chrono::microseconds offset);
 
     /**
     * Class destructor
@@ -172,19 +172,19 @@ public:
     * Returns average frame duration
     * @return duration in time base
     */
-    size_t getFrameDuration() {return frameDuration;};
+    unsigned int getFrameDuration() {return frameDuration;};
 
     /**
     * Returns the timestamp time base of the segments
     * @return time base in ticks per second
     */
-    size_t getTimeBase() {return timeBase;};
+    unsigned int getTimeBase() {return timeBase;};
 
     /**
     * It returns the last segment timestamp
     * @return timestamp in timeBase units
     */
-    size_t getSegmentTimestamp();
+    uint64_t getSegmentTimestamp();
 
     /**
     * Sets the timestamp offset of the segmenter
@@ -196,12 +196,12 @@ public:
     * Return the segment duration
     * @return segment duration in timeBase units
     */
-    size_t getSegDurInTimeBaseUnits() {return segDurInTimeBaseUnits;};
+    unsigned int getSegDurInTimeBaseUnits() {return segDurInTimeBaseUnits;};
     
     virtual bool flushDashContext() = 0;
 
     void setBitrate(size_t bps) {bitrateInBitsPerSec = bps;};
-    size_t getBitrate() {return bitrateInBitsPerSec;};
+    unsigned int getBitrate() {return bitrateInBitsPerSec;};
 
 protected:
     virtual unsigned customGenerateSegment(unsigned char *segBuffer, std::chrono::microseconds nextFrameTs, 
@@ -209,19 +209,19 @@ protected:
     
     std::string getInitSegmentName();
     std::string getSegmentName();
-    size_t customTimestamp(std::chrono::system_clock::time_point timestamp);
-    size_t microsToTimeBase(std::chrono::microseconds microValue);
+    uint64_t customTimestamp(std::chrono::system_clock::time_point timestamp);
+    uint64_t microsToTimeBase(std::chrono::microseconds microValue);
 
     std::chrono::seconds segDur;
 
     i2ctx* dashContext;
-    size_t timeBase;
-    size_t segDurInTimeBaseUnits;
-    size_t frameDuration;
-    size_t currentTimestamp;
-    size_t sequenceNumber;
+    unsigned int timeBase;
+    unsigned int segDurInTimeBaseUnits;
+    unsigned int frameDuration;
+    uint64_t currentTimestamp;
+    unsigned int sequenceNumber;
     std::vector<unsigned char> extradata;
-    size_t bitrateInBitsPerSec;
+    unsigned int bitrateInBitsPerSec;
     
     std::chrono::microseconds tsOffset;
 };
@@ -236,7 +236,7 @@ public:
     * Class constructor
     * @param maxSize Segment data max length
     */
-    DashSegment(size_t maxSize = MAX_DAT);
+    DashSegment(unsigned int maxSize = MAX_DAT);
 
     /**
     * Class destructor
@@ -251,23 +251,23 @@ public:
     /**
     * @return Segment data length in bytes
     */
-    size_t getDataLength() {return dataLength;};
+    unsigned int getDataLength() {return dataLength;};
 
     /**
     * @params Segment data length in bytes
     */
-    void setDataLength(size_t length);
+    void setDataLength(unsigned int length);
 
     /**
     * It sets the sequence number of the segment
     * @params seqNum is the sequence number to set
     */
-    void setSeqNumber(size_t seqNum);
+    void setSeqNumber(unsigned int seqNum);
 
     /**setSegmentsOffset
     * @return Segment sequence number
     */
-    size_t getSeqNumber(){return seqNumber;};
+    unsigned int getSeqNumber(){return seqNumber;};
 
     /**
     * Increase by one the sequence number
@@ -277,24 +277,24 @@ public:
     /**
     * @return Segment segment timestamp
     */
-    size_t getTimestamp(){return timestamp;};
+    uint64_t getTimestamp(){return timestamp;};
 
     /**
     * It sets the segment timestamp
     * @params ts is the timestamp to set
     */
-    void setTimestamp(size_t ts);
+    void setTimestamp(uint64_t ts);
 
     /**
     * @return Segment segment timestamp
     */
-    size_t getDuration(){return duration;};
+    unsigned int getDuration(){return duration;};
 
     /**
     * It sets the segment timestamp
     * @params ts is the timestamp to set
     */
-    void setDuration(size_t dur);
+    void setDuration(unsigned int dur);
 
     /**
     * Writes segment to disk
@@ -318,10 +318,10 @@ public:
 
 private:
     unsigned char* data;
-    size_t dataLength;
-    size_t seqNumber;
-    size_t timestamp;
-    size_t duration;
+    unsigned int dataLength;
+    unsigned int seqNumber;
+    uint64_t timestamp;
+    unsigned int duration;
     bool complete;
 };
 

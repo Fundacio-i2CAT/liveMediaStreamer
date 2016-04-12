@@ -65,7 +65,7 @@ Frame* DashVideoSegmenter::manageFrame(Frame* frame)
     return vFrame;
 }
 
-bool DashVideoSegmenter::setup(size_t width, size_t height)
+bool DashVideoSegmenter::setup(unsigned int width, unsigned int height)
 {
     uint8_t i2error = I2OK;
 
@@ -89,7 +89,7 @@ bool DashVideoSegmenter::setup(size_t width, size_t height)
 
 bool DashVideoSegmenter::generateInitSegment(DashSegment* segment) 
 {
-    size_t initSize = 0;
+    unsigned int initSize = 0;
     unsigned char* data;
     unsigned dataLength;
 
@@ -118,7 +118,7 @@ bool DashVideoSegmenter::generateInitSegment(DashSegment* segment)
 unsigned DashVideoSegmenter::customGenerateSegment(unsigned char *segBuffer, std::chrono::microseconds nextFrameTs, 
                                                     uint64_t &segTimestamp, uint32_t &segDuration, bool force)
 {
-    size_t timeBasePts;
+    uint64_t timeBasePts;
 
     timeBasePts = microsToTimeBase(nextFrameTs);
 
@@ -127,9 +127,9 @@ unsigned DashVideoSegmenter::customGenerateSegment(unsigned char *segBuffer, std
 
 bool DashVideoSegmenter::appendFrameToDashSegment(Frame* frame)
 {
-    size_t addSampleReturn;
-    size_t timeBasePts;
-    size_t timeBaseDts;
+    unsigned int addSampleReturn;
+    uint64_t timeBasePts;
+    uint64_t timeBaseDts;
     
     VideoFrame* vFrame = dynamic_cast<VideoFrame*> (frame);
 
@@ -195,7 +195,7 @@ int DashVideoSegmenter::detectStartCode(unsigned char const* ptr)
     return 0;
 }
 
-size_t DashVideoSegmenter::getWidth()
+unsigned int DashVideoSegmenter::getWidth()
 {
     if (!dashContext || !dashContext->ctxvideo) {
         return 0;
@@ -205,7 +205,7 @@ size_t DashVideoSegmenter::getWidth()
 
 }
 
-size_t DashVideoSegmenter::getHeight()
+unsigned int DashVideoSegmenter::getHeight()
 {
     if (!dashContext || !dashContext->ctxvideo) {
         return 0;

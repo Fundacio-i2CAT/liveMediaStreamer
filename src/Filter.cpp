@@ -591,7 +591,7 @@ std::vector<int> BaseFilter::framesSync()
     bool emptyQueue = false;
     for (std::map<int, std::shared_ptr<Reader>>::iterator r = readers.begin() ; r != readers.end(); ) {
         currentFTime = r->second->getCurrentTime();
-        if (currentFTime.count() == 0){
+        if (currentFTime == NO_DTS){
             ++r;
             emptyQueue = true;
             continue;

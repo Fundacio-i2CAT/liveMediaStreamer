@@ -102,7 +102,7 @@ bool Dasher::doProcessFrame(std::map<int, Frame*> &orgFrames, std::vector<int> n
         }
         
         if (timestampOffset.count() == 0){
-            timestampOffset = orgFrames[id]->getPresentationTime();
+            timestampOffset = orgFrames[id]->getFrameTime();
             for(auto seg : segmenters){
                 seg.second->setOffset(timestampOffset);
             }

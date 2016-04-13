@@ -85,11 +85,11 @@ bool VideoEncoderX264or5::doProcessFrame(Frame *org, Frame *dst)
     
     dst->setConsumed(true);
     dst->setPresentationTime(qFTP[outPts].pTime);
-    codedFrame->setDecodeTime(qFTP[dts].pTime);
+    dst->setDecodeTime(qFTP[dts].pTime);
     dst->setOriginTime(qFTP[outPts].oTime);
     dst->setSequenceNumber(qFTP[outPts].seqNum);
     
-    qFTP.erase(outPts);
+    qFTP.erase(dts);
     
     return true;
 }

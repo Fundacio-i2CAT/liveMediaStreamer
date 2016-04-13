@@ -119,7 +119,7 @@ VideoFrame* DashVideoSegmenterHEVC::parseNal(VideoFrame* nal)
             return NULL;
     }
     
-    if (nalType == AUD_HEVC || nal->getPresentationTime() > tmpFrame->getPresentationTime()){
+    if (nalType == AUD_HEVC || nal->getFrameTime() > tmpFrame->getFrameTime()){
         std::swap(tmpFrame,vFrame);
         resetFrame();
         newFrame = true;
@@ -127,7 +127,8 @@ VideoFrame* DashVideoSegmenterHEVC::parseNal(VideoFrame* nal)
 
     if ((nalType == IDR1 || nalType == IDR2 || nalType == CRA 
         || nalType == NON_TSA_STSA_0 || nalType == NON_TSA_STSA_1) && 
-        !appendNalToFrame(tmpFrame, nalData, nalDataLength, nal->getWidth(), nal->getHeight(), nal->getPresentationTime())) {
+        !appendNalToFrame(tmpFrame, nalData, nalDataLength, nal->getWidth(), nal->getHeight(), 
+                          nal->getPresentationTime(), nal->getDecodeTime())) {
         utils::errorMsg("[DashVideoSegmenterHEVC::parseNal] Error appending NAL to frame");
     }
 

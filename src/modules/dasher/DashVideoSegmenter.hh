@@ -100,7 +100,8 @@ protected:
 
 
     bool appendNalToFrame(VideoFrame* frame, unsigned char* nalData, unsigned nalDataLength, 
-                           unsigned nalWidth, unsigned nalHeight, std::chrono::microseconds ts);
+                           unsigned nalWidth, unsigned nalHeight, std::chrono::microseconds ts,
+                           std::chrono::microseconds dts);
     int detectStartCode(unsigned char const* ptr);
     bool setup(unsigned int width, unsigned int height);
     unsigned customGenerateSegment(unsigned char *segBuffer, std::chrono::microseconds nextFrameTs, 

@@ -260,7 +260,7 @@ std::chrono::microseconds Reader::getCurrentTime()
         return f->getFrameTime();
     }
     
-    return std::chrono::microseconds(0);
+    return NO_DTS;
 }
 
 bool Reader::isFull() const

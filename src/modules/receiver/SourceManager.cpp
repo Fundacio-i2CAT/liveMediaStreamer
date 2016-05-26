@@ -125,7 +125,7 @@ SourceManager::~SourceManager()
     }
 }
 
-bool SourceManager::doProcessFrame(std::map<int, Frame*> &dFrames)
+bool SourceManager::doProcessFrame(std::map<int, Frame*> &dFrames, int& ret)
 {
     if (envir() == NULL){
         return false;
@@ -138,6 +138,8 @@ bool SourceManager::doProcessFrame(std::map<int, Frame*> &dFrames)
     }
     
     scheduler->SingleStep();
+    
+    ret = 0;
 
     return true;
 }

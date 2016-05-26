@@ -37,8 +37,18 @@ public:
     VideoFrame(VCodecType codec_);
     VideoFrame(VCodecType codec_, int width_, int height_, PixType pixFormat);
     virtual ~VideoFrame();
-
+    
+    /**
+    * Set frame width and height
+    * @param width horizontal number of pixels
+    * @param height vertial number of pixels
+    */
     void setSize(int width, int height);
+    
+    /**
+    * Set the pixel format
+    * @param pixelFormat PixType of the frame
+    */
     void setPixelFormat(PixType pixelFormat);
     
     VCodecType getCodec() {return codec;};

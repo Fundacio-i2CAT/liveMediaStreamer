@@ -29,6 +29,8 @@
 #include "Types.hh"
 #include <iostream>
 
+#define NO_DTS std::chrono::microseconds(-1)
+
 /*! Frame is an abstract class that handles byte array of a video or audio frame
     and frame related information
 */
@@ -42,9 +44,15 @@ public:
 
     /**
     * Set frame presentation time
-    * @param system_clock::time_point to set as presentation time
+    * @param std::chrono::microseconds to set as presentation time
     */
     void setPresentationTime(std::chrono::microseconds pTime);
+    
+    /**
+    * Set frame decoding time
+    * @param std::chrono::microseconds to set as decoding time
+    */
+    void setDecodeTime(std::chrono::microseconds dTime);
 
     /**
     * Sets a new origin frame time from input time point
@@ -58,7 +66,23 @@ public:
     */
     void setSequenceNumber(size_t seqNum);
 
+    /**
+    * Get frame presentation time
+    * @return presentation time of the frame.
+    */
     std::chrono::microseconds getPresentationTime() const {return presentationTime;};
+    
+    /**
+    * Get frame decoding time
+    * @return decoding time of the frame.
+    */
+    std::chrono::microseconds getDecodeTime() const {return decodeTime;};
+    
+    /**
+    * Get frame time, the time used to estimate fps and sync
+    * @return decoding time of the frame if defined, presentation time otherwise.
+    */
+    std::chrono::microseconds getFrameTime() const;
 
     /**
     * Gets origin frame time point
@@ -122,6 +146,7 @@ public:
 
 protected:
     std::chrono::microseconds presentationTime;
+    std::chrono::microseconds decodeTime;
     std::chrono::system_clock::time_point originTime;
     size_t sequenceNumber;
     bool consumed;

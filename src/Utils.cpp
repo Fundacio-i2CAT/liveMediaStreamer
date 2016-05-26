@@ -72,6 +72,26 @@ namespace utils
 
         return sampleFormat;
     }
+    
+    PixType getPixTypeFromString(std::string pixel)
+    {
+        PixType pixType;
+        if (pixel.compare("YUYV") == 0) {
+            pixType = YUYV422;
+        } else if (pixel.compare("YUV420") == 0) {
+            pixType = YUV420P;
+        } else if (pixel.compare("RGB24") == 0) {
+            pixType = RGB24;
+        }  else if (pixel.compare("YUV422") == 0) {
+            pixType = YUV422P;
+        }  else if (pixel.compare("YUVJ") == 0) {
+            pixType = YUVJ420P;
+        }  else {
+            pixType = P_NONE;
+        }
+
+        return pixType;
+    }
 
     ACodecType getAudioCodecFromString(std::string stringCodec)
     {

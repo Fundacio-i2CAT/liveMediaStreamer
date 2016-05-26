@@ -108,7 +108,7 @@ private:
     bool specificReaderConfig(int readerID, FrameQueue* queue);
     bool specificReaderDelete(int readerID);
 
-    bool doProcessFrame(std::map<int, Frame*> &oFrames, std::vector<int> newFrames);
+    bool doProcessFrame(std::map<int, Frame*> &oFrames, std::vector<int> newFrames, int& ret);
     void stop();
 
     bool addSubsessionByReader(RTSPConnection* connection, int readerId);

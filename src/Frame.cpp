@@ -23,7 +23,7 @@
 
 #include "Frame.hh"
 
-Frame::Frame()
+Frame::Frame() : decodeTime(NO_DTS)
 {
     originTime = std::chrono::system_clock::now();
     consumed = false;
@@ -42,4 +42,18 @@ void Frame::setOriginTime(std::chrono::system_clock::time_point orgTime)
 void Frame::setSequenceNumber(size_t seqNum)
 {
     sequenceNumber = seqNum;
+}
+
+void Frame::setDecodeTime(std::chrono::microseconds dTime)
+{
+    decodeTime = dTime;
+}
+
+std::chrono::microseconds Frame::getFrameTime() const
+{
+    if (decodeTime != NO_DTS && decodeTime <= presentationTime){
+        return decodeTime;
+    }
+    
+    return presentationTime;
 }

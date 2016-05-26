@@ -30,7 +30,6 @@
 VideoEncoderX264::VideoEncoderX264() :
 VideoEncoderX264or5(), encoder(NULL)
 {
-    pts = 0;
     outputStreamInfo->video.codec = H264;
     x264_picture_init(&picIn);
     x264_picture_init(&picOut);
@@ -75,17 +74,22 @@ bool VideoEncoderX264::encodeFrame(VideoFrame* codedFrame)
         picIn.i_type = X264_TYPE_AUTO;
     }
 
-    picIn.i_pts = pts;
+    picIn.i_pts = inPts;
     success = x264_encoder_encode(encoder, &nals, &piNal, &picIn, &picOut);
 
-    pts++;
-
-    if (success == 0) {
-        return false;
-    } else if (success < 0) {
+    if (success < 0) {
         utils::errorMsg("X264 Encoder: Could not encode video frame");
         return false;
     }
+    
+    inPts++;
+    
+    if (success == 0) {
+        return false;
+    }
+    
+    outPts = picOut.i_pts;
+    dts = picOut.i_dts;
 
     for (int i = 0; i < piNal; i++) {
 
@@ -162,7 +166,7 @@ bool VideoEncoderX264::reconfigure(VideoFrame* orgFrame, VideoFrame* dstFrame)
     x264_param_parse(&xparams, "threads", std::to_string(threads).c_str());
     x264_param_parse(&xparams, "aud", std::to_string(1).c_str());
     x264_param_parse(&xparams, "bitrate", std::to_string(bitrate).c_str());
-    x264_param_parse(&xparams, "bframes", std::to_string(0).c_str());
+    x264_param_parse(&xparams, "bframes", std::to_string(bFrames).c_str());
     x264_param_parse(&xparams, "repeat-headers", std::to_string(0).c_str());
     x264_param_parse(&xparams, "vbv-maxrate", std::to_string(bitrate*1.05).c_str());
     x264_param_parse(&xparams, "vbv-bufsize", std::to_string(bitrate*2).c_str());

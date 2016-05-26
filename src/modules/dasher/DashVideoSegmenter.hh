@@ -52,20 +52,20 @@ public:
     * Return the width of the last complete frame managed by manageFrame method
     * @return width in pixels
     */
-    size_t getWidth();
+    unsigned int getWidth();
 
     /**
     * Return the height of the last complete frame managed by manageFrame method
     * @return height in pixels
     */
-    size_t getHeight();
+    unsigned int getHeight();
 
     //TODO
     /**
     * Return the height of the last complete frame managed by manageFrame method
     * @return height in pixels
     */
-    size_t getFramerate(){return 0;};
+    unsigned int getFramerate(){return 0;};
 
     /**
     * Return the video format string (i.e.: avc or hevc types)
@@ -100,14 +100,15 @@ protected:
 
 
     bool appendNalToFrame(VideoFrame* frame, unsigned char* nalData, unsigned nalDataLength, 
-                           unsigned nalWidth, unsigned nalHeight, std::chrono::microseconds ts);
+                           unsigned nalWidth, unsigned nalHeight, std::chrono::microseconds ts,
+                           std::chrono::microseconds dts);
     int detectStartCode(unsigned char const* ptr);
-    bool setup(size_t width, size_t height);
+    bool setup(unsigned int width, unsigned int height);
     unsigned customGenerateSegment(unsigned char *segBuffer, std::chrono::microseconds nextFrameTs, 
                                     uint64_t &segTimestamp, uint32_t &segDuration, bool force);
 
 
-    size_t frameRate;
+    unsigned int frameRate;
     bool currentIntra;
     bool previousIntra;
     const std::string video_format;

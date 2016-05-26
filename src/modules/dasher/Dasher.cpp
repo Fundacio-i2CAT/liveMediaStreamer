@@ -50,7 +50,7 @@ Dasher::~Dasher()
     delete mpdMngr;
 }
 
-bool Dasher::configure(std::string dashFolder, std::string baseName_, size_t segDurInSec, size_t maxSeg, size_t minBuffTime)
+bool Dasher::configure(std::string dashFolder, std::string baseName_, unsigned int segDurInSec, unsigned int maxSeg, unsigned int minBuffTime)
 {
     if (access(dashFolder.c_str(), W_OK) != 0) {
         utils::errorMsg("Error configuring Dasher: provided folder is not writable");
@@ -84,7 +84,7 @@ bool Dasher::configure(std::string dashFolder, std::string baseName_, size_t seg
     return true;
 }
 
-bool Dasher::doProcessFrame(std::map<int, Frame*> &orgFrames, std::vector<int> newFrames)
+bool Dasher::doProcessFrame(std::map<int, Frame*> &orgFrames, std::vector<int> newFrames, int& ret)
 {
     DashSegmenter* segmenter;
     Frame* frame;
@@ -102,7 +102,7 @@ bool Dasher::doProcessFrame(std::map<int, Frame*> &orgFrames, std::vector<int> n
         }
         
         if (timestampOffset.count() == 0){
-            timestampOffset = orgFrames[id]->getPresentationTime();
+            timestampOffset = orgFrames[id]->getFrameTime();
             for(auto seg : segmenters){
                 seg.second->setOffset(timestampOffset);
             }
@@ -136,11 +136,13 @@ bool Dasher::doProcessFrame(std::map<int, Frame*> &orgFrames, std::vector<int> n
     if (writeAudioSegments()) {
         utils::debugMsg("[Dasher::doProcessFrame] Audio segments to disk");
     }
+    
+    ret = 0;
 
     return true;
 }
 
-bool Dasher::appendFrameToSegment(size_t id, Frame* frame, DashSegmenter* segmenter)
+bool Dasher::appendFrameToSegment(unsigned int id, Frame* frame, DashSegmenter* segmenter)
 {
     DashVideoSegmenter* vSeg;
     DashAudioSegmenter* aSeg;
@@ -169,7 +171,7 @@ bool Dasher::appendFrameToSegment(size_t id, Frame* frame, DashSegmenter* segmen
     return true;
 }
 
-bool Dasher::generateInitSegment(size_t id, DashSegmenter* segmenter)
+bool Dasher::generateInitSegment(unsigned int id, DashSegmenter* segmenter)
 {
     DashVideoSegmenter* vSeg;
     DashAudioSegmenter* aSeg;
@@ -205,7 +207,7 @@ bool Dasher::generateInitSegment(size_t id, DashSegmenter* segmenter)
     return true;
 }
 
-bool Dasher::generateSegment(size_t id, Frame* frame, DashSegmenter* segmenter)
+bool Dasher::generateSegment(unsigned int id, Frame* frame, DashSegmenter* segmenter)
 {
     DashVideoSegmenter* vSeg;
     DashAudioSegmenter* aSeg;
@@ -242,9 +244,9 @@ bool Dasher::generateSegment(size_t id, Frame* frame, DashSegmenter* segmenter)
 
 bool Dasher::writeVideoSegments()
 {
-    size_t ts;
-    size_t dur;
-    size_t rmTimestamp;
+    uint64_t ts;
+    unsigned int dur;
+    uint64_t rmTimestamp;
 
     if (vSegments.empty()) {
         return false;
@@ -287,9 +289,9 @@ bool Dasher::writeVideoSegments()
 
 bool Dasher::writeAudioSegments()
 {
-    size_t ts;
-    size_t dur;
-    size_t rmTimestamp;
+    uint64_t ts;
+    unsigned int dur;
+    uint64_t rmTimestamp;
 
     if (aSegments.empty()) {
         return false;
@@ -357,7 +359,7 @@ bool Dasher::forceAudioSegmentsGeneration()
     return true;
 }
 
-bool Dasher::writeSegmentsToDisk(std::map<int,DashSegment*> segments, size_t timestamp, std::string segExt)
+bool Dasher::writeSegmentsToDisk(std::map<int,DashSegment*> segments, uint64_t timestamp, std::string segExt)
 {
     for (auto seg : segments) {
 
@@ -373,7 +375,7 @@ bool Dasher::writeSegmentsToDisk(std::map<int,DashSegment*> segments, size_t tim
     return true;
 }
 
-bool Dasher::cleanSegments(std::map<int,DashSegment*> segments, size_t timestamp, std::string segExt)
+bool Dasher::cleanSegments(std::map<int,DashSegment*> segments, uint64_t timestamp, std::string segExt)
 {
     bool success = true;
     std::string segmentName;
@@ -419,9 +421,9 @@ bool Dasher::configureEvent(Jzon::Node* params)
 {
     std::string dashFolder = basePath;
     std::string bName = baseName;
-    size_t segDurInSec = segDur.count();
-    size_t maxSeg = 0;
-    size_t minBuffTime = 0;
+    unsigned int segDurInSec = segDur.count();
+    unsigned int maxSeg = 0;
+    unsigned int minBuffTime = 0;
 
     if (!params) {
         return false;
@@ -559,7 +561,7 @@ bool Dasher::specificReaderDelete(int readerId)
     return true;
 }
 
-std::string Dasher::getSegmentName(std::string basePath, std::string baseName, size_t reprId, size_t timestamp, std::string ext)
+std::string Dasher::getSegmentName(std::string basePath, std::string baseName, unsigned int reprId, uint64_t timestamp, std::string ext)
 {
     std::string fullName;
     fullName = basePath + baseName + "_" + std::to_string(reprId) + "_" + std::to_string(timestamp) + ext;
@@ -567,7 +569,7 @@ std::string Dasher::getSegmentName(std::string basePath, std::string baseName, s
     return fullName;
 }
 
-std::string Dasher::getInitSegmentName(std::string basePath, std::string baseName, size_t reprId, std::string ext)
+std::string Dasher::getInitSegmentName(std::string basePath, std::string baseName, unsigned int reprId, std::string ext)
 {
     std::string fullName;
     fullName = basePath + baseName + "_" + std::to_string(reprId) + "_init" + ext;
@@ -575,7 +577,7 @@ std::string Dasher::getInitSegmentName(std::string basePath, std::string baseNam
     return fullName;
 }
 
-DashSegmenter* Dasher::getSegmenter(size_t id)
+DashSegmenter* Dasher::getSegmenter(unsigned int id)
 {
     if (segmenters.count(id) <= 0) {
         return NULL;
@@ -584,7 +586,7 @@ DashSegmenter* Dasher::getSegmenter(size_t id)
     return segmenters[id];
 }
 
-bool Dasher::setDashSegmenterBitrate(int id, size_t bps)
+bool Dasher::setDashSegmenterBitrate(int id, unsigned int bps)
 {
     DashSegmenter* segmenter;
 
@@ -603,7 +605,7 @@ bool Dasher::setDashSegmenterBitrate(int id, size_t bps)
 // DashSegmenter //
 ///////////////////
 
-DashSegmenter::DashSegmenter(std::chrono::seconds segmentDuration, size_t tBase, std::chrono::microseconds offset) :
+DashSegmenter::DashSegmenter(std::chrono::seconds segmentDuration, unsigned int tBase, std::chrono::microseconds offset) :
 segDur(segmentDuration), dashContext(NULL), timeBase(tBase), frameDuration(0), currentTimestamp(0),
 sequenceNumber(0), bitrateInBitsPerSec(0), tsOffset(offset)
 {
@@ -619,7 +621,7 @@ DashSegmenter::~DashSegmenter()
 
 bool DashSegmenter::generateSegment(DashSegment* segment, Frame* frame, bool force)
 {
-    size_t segmentSize = 0;
+    unsigned int segmentSize = 0;
     uint64_t segTimestamp;
     uint32_t segDuration;
     std::chrono::microseconds frameTs = std::chrono::microseconds(0);
@@ -652,7 +654,7 @@ bool DashSegmenter::generateSegment(DashSegment* segment, Frame* frame, bool for
     return true;
 }
 
-size_t DashSegmenter::microsToTimeBase(std::chrono::microseconds microValue)
+uint64_t DashSegmenter::microsToTimeBase(std::chrono::microseconds microValue)
 {
     return (microValue-tsOffset).count()*timeBase/std::micro::den;
 }
@@ -662,7 +664,7 @@ size_t DashSegmenter::microsToTimeBase(std::chrono::microseconds microValue)
 // DashSegment //
 /////////////////
 
-DashSegment::DashSegment(size_t maxSize) : 
+DashSegment::DashSegment(unsigned int maxSize) : 
 dataLength(0), seqNumber(0), timestamp(0), duration(0), complete(false)
 {
     data = new unsigned char[maxSize];
@@ -673,12 +675,12 @@ DashSegment::~DashSegment()
     delete[] data;
 }
 
-void DashSegment::setSeqNumber(size_t seqNum)
+void DashSegment::setSeqNumber(unsigned int seqNum)
 {
     seqNumber = seqNum;
 }
 
-void DashSegment::setDataLength(size_t length)
+void DashSegment::setDataLength(unsigned int length)
 {
     dataLength = length;
 }
@@ -697,12 +699,12 @@ bool DashSegment::writeToDisk(std::string path)
     return true;
 }
 
-void DashSegment::setTimestamp(size_t ts)
+void DashSegment::setTimestamp(uint64_t ts)
 {
     timestamp = ts;
 }
 
-void DashSegment::setDuration(size_t dur)
+void DashSegment::setDuration(unsigned int dur)
 {
     duration = dur;
 }

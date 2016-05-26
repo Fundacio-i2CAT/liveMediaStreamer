@@ -60,13 +60,13 @@ public:
     * It returns the last configured sample rate
     * @return sample rate in Hz
     */
-    size_t getSampleRate();
+    unsigned int getSampleRate();
     
     /**
     * It returns the last configured audio channels number
     * @return number of audio channels
     */
-    size_t getChannels();
+    unsigned int getChannels();
 
     bool appendFrameToDashSegment(Frame* frame);
     bool flushDashContext();
@@ -78,7 +78,7 @@ private:
                                     uint64_t &segTimestamp, uint32_t &segDuration, bool force);
 
 
-    bool setup(size_t channels, size_t sampleRate, size_t samples, size_t bitsPerSample);
+    bool setup(unsigned int channels, unsigned int sampleRate, unsigned int samples, unsigned int bitsPerSample);
     unsigned char getProfileFromADTSHeader(unsigned char* adtsHeader);
     unsigned char getSamplingFreqIdxFromADTSHeader(unsigned char* adtsHeader);
     unsigned char getChannelConfFromADTSHeader(unsigned char* adtsHeader);

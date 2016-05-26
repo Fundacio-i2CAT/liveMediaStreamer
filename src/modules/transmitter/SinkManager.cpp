@@ -130,8 +130,8 @@ bool SinkManager::specificReaderDelete(int readerId)
     return false;
 }
 
-bool SinkManager::doProcessFrame(std::map<int, Frame*> &oFrames, std::vector<int> newFrames)
-{
+bool SinkManager::doProcessFrame(std::map<int, Frame*> &oFrames, std::vector<int> newFrames, int& ret)
+{   
     if (envir() == NULL){
         return false;
     }
@@ -146,6 +146,8 @@ bool SinkManager::doProcessFrame(std::map<int, Frame*> &oFrames, std::vector<int
             }
         }
     }
+    
+    ret = 0;
     
     if (pFrames == 0){
         scheduler->SingleStep();

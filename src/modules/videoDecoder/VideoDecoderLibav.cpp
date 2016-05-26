@@ -94,6 +94,7 @@ bool VideoDecoderLibav::doProcessFrame(Frame *org, Frame *dst)
                 
                 dst->setConsumed(true);
                 dst->setPresentationTime(org->getPresentationTime());
+                dst->setDecodeTime(org->getPresentationTime());
                 dst->setOriginTime(org->getOriginTime());
                 dst->setSequenceNumber(org->getSequenceNumber());
                 

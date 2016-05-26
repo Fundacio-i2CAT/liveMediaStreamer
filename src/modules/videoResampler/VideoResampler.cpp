@@ -38,8 +38,6 @@ VideoResampler::VideoResampler() : OneToOneFilter()
 
     outputWidth = 0;
     outputHeight = 0;
-    discartPeriod = 0;
-    discartCount = 1;
     libavOutPixFmt = getLibavPixFmt(outPixFmt);
 
     needsConfig = false;
@@ -117,13 +115,6 @@ bool VideoResampler::doProcessFrame(Frame *org, Frame *dst)
     if (!reconfigure(orgFrame)){
         return false;
     }
-    
-    if (discartPeriod != 0 && discartCount < discartPeriod){
-        discartCount++;
-    } else if (discartPeriod != 0 && discartCount == discartPeriod){
-        discartCount = 1;
-        return false;
-    }
 
     if (!setAVFrame(inFrame, orgFrame, libavInPixFmt)){
         return false;
@@ -159,6 +150,7 @@ bool VideoResampler::doProcessFrame(Frame *org, Frame *dst)
 
     dst->setConsumed(true);
     dst->setPresentationTime(org->getPresentationTime());
+    dst->setDecodeTime(org->getDecodeTime());
     dst->setOriginTime(org->getOriginTime());
     dst->setSequenceNumber(org->getSequenceNumber());
     
@@ -166,15 +158,20 @@ bool VideoResampler::doProcessFrame(Frame *org, Frame *dst)
 }
 
 
-bool VideoResampler::configure0(int width, int height, int period, PixType pixelFormat) 
+bool VideoResampler::configure0(int width, int height, int fps, PixType pixelFormat) 
 {
     outputWidth = width;
     outputHeight = height;
     outPixFmt = pixelFormat;
-    discartPeriod = period;
     
     libavOutPixFmt = getLibavPixFmt(outPixFmt);
     needsConfig = true;
+    
+    if (fps <= 0) {
+        setFrameTime(std::chrono::microseconds(0));
+    } else {
+        setFrameTime(std::chrono::microseconds(std::micro::den/fps));
+    }
     
     if (libavOutPixFmt == AV_PIX_FMT_NONE){
         return false;
@@ -185,7 +182,7 @@ bool VideoResampler::configure0(int width, int height, int period, PixType pixel
 
 bool VideoResampler::configEvent(Jzon::Node* params)
 {
-    int width, height, period;
+    int width, height, fps;
     PixType pixelType;
        
     if (!params) {
@@ -194,7 +191,11 @@ bool VideoResampler::configEvent(Jzon::Node* params)
     
     width = outputWidth;
     height = outputHeight;
-    period = discartPeriod;
+    if (getFrameTime().count() > 0){
+        fps = std::micro::den/getFrameTime().count();
+    } else {
+        fps = 0;
+    }
     pixelType = outPixFmt;
     
     if (params->Has("width")){
@@ -205,8 +206,8 @@ bool VideoResampler::configEvent(Jzon::Node* params)
         height = params->Get("height").ToInt();
     }
     
-    if (params->Has("discartPeriod")){
-        period = params->Get("discartPeriod").ToInt();
+    if (params->Has("fps")){
+        fps = params->Get("fps").ToInt();
     }
     
     if (params->Has("pixelFormat")){
@@ -217,7 +218,7 @@ bool VideoResampler::configEvent(Jzon::Node* params)
         pixelType = static_cast<PixType> (pixel);
     }
 
-    return configure0(width, height, period, pixelType);
+    return configure0(width, height, fps, pixelType);
 }
 
 void VideoResampler::initializeEventMap()
@@ -278,12 +279,13 @@ bool VideoResampler::setAVFrame(AVFrame *aFrame, VideoFrame* vFrame, AVPixelForm
     return true;
 }
 
-bool VideoResampler::configure(int width, int height, int period, PixType pixelFormat) 
+bool VideoResampler::configure(int width, int height, int fps, PixType pixelFormat) 
 {
     Jzon::Object root, params;
     root.Add("action", "configure");
     params.Add("width", width);
     params.Add("height", height);
+    params.Add("fps", fps);
     params.Add("pixelFormat", pixelFormat);
     root.Add("params", params);
 

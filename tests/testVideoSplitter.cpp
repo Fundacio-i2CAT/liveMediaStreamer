@@ -59,7 +59,7 @@ bool setupSplitter(int splitterId, int transmitterID)
 
         encoder = new VideoEncoderX264();
         //bitrate, fps, gop, lookahead, threads, annexB, preset
-        encoder->configure(2000, 25, 25, 0, 4, true, "superfast");
+        encoder->configure(2000, 25, 25, 25, 4, 4, true, "superfast");
         pipe->addFilter(encId + it, encoder);
 
         if (!pipe->createPath(pathId + it, splitterId, transmitterID, it, it, ids)) {

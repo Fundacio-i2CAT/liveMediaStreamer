@@ -154,6 +154,7 @@ bool VideoSplitter::doProcessFrame(Frame *org, std::map<int, Frame *> &dstFrames
 
 			it.second->setConsumed(true);
 			it.second->setPresentationTime(org->getPresentationTime());
+            it.second->setDecodeTime(org->getDecodeTime());
 			it.second->setOriginTime(org->getOriginTime());
     		it.second->setSequenceNumber(org->getSequenceNumber());
 			processFrame = true;

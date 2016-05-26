@@ -136,6 +136,7 @@ bool AudioDecoderLibav::doProcessFrame(Frame *org, Frame *dst)
 
     dst->setConsumed(true);
     dst->setPresentationTime(org->getPresentationTime());
+    dst->setDecodeTime(NO_DTS);
     dst->setOriginTime(org->getOriginTime());
     dst->setSequenceNumber(org->getSequenceNumber());
     

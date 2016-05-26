@@ -113,6 +113,7 @@ class VideoSplitter : public OneToManyFilter {
         * @param degree See CropConfig::config
         */
     	bool configCrop(int id, float width, float height, float x, float y, float degree = 0);
+
     	/**
         * Configure 
         * @param fTime Frame Time of Splitter

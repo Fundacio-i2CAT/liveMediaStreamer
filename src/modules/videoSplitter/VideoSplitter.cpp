@@ -136,6 +136,7 @@ bool VideoSplitter::doProcessFrame(Frame *org, std::map<int, Frame *> &dstFrames
 	cv::Mat orgFrame(vFrame->getHeight(), vFrame->getWidth(), CV_8UC3, vFrame->getDataBuf());
 	
 	for (auto it : dstFrames){
+
 		xROI = cropsConfig[it.first]->getX()*vFrame->getWidth();
 		yROI = cropsConfig[it.first]->getY()*vFrame->getHeight();
 		widthROI = cropsConfig[it.first]->getWidth()*vFrame->getWidth();
@@ -148,7 +149,9 @@ bool VideoSplitter::doProcessFrame(Frame *org, std::map<int, Frame *> &dstFrames
 			crop.data = vFrameDst->getDataBuf();
 			vFrameDst->setLength(crop.step * heightROI);
     		vFrameDst->setSize(widthROI, heightROI);
+
     		orgFrame(cv::Rect(xROI, yROI, widthROI, heightROI)).copyTo(crop(cv::Rect(0, 0, widthROI, heightROI)));
+
 			it.second->setConsumed(true);
 			it.second->setPresentationTime(org->getPresentationTime());
 			it.second->setOriginTime(org->getOriginTime());

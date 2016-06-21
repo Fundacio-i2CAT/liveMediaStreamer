@@ -255,7 +255,7 @@ bool BaseFilter::shareReader(BaseFilter *shared, int sharedRId, int orgRId)
         return false;
     }
     
-    if (!readers.count(orgRId) > 0) {
+    if (!(readers.count(orgRId) > 0)) {
         utils::errorMsg("The reader to share is not there");
         return false;
     }
@@ -405,7 +405,8 @@ bool BaseFilter::disconnectReader(int readerId)
     std::lock_guard<std::mutex> guard(mtx);
     
     if (readers.count(readerId) <= 0) {
-        return false;
+        utils::warningMsg("Required reader does not exist");
+        return true;
     }
 
     if (readers[readerId]->disconnect(getId())){

@@ -30,6 +30,7 @@
 #include <log4cplus/configurator.h>
 #include <sys/time.h>
 #include <random>
+#include <iostream>
 
 using namespace log4cplus;
 using namespace log4cplus::helpers;

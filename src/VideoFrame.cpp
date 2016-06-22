@@ -145,20 +145,3 @@ Slice::Slice() : data(NULL), dataSize(0)
 {
 
 }
-
-// void Slice::allocData(unsigned size)
-// {
-//     data = new unsigned char [size]();
-// }
-// 
-// void Slice::releaseData()
-// {
-//     delete data;
-// }
-// 
-// void Slice::copyData(unsigned char *p, unsigned s)
-// {
-//     memcpy(data, p, s);
-//     dataSize = s;
-// }
-

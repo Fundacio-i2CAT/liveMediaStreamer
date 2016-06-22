@@ -1,7 +1,7 @@
 ACLOCAL_AMFLAGS = -I m4
 SUBDIRS = src unitTests
 
-bin_PROGRAMS = livemediastreamer testtranscoder teststreamer testdemuxer fakelive testvideomix testaudiomix testdash testbypass testtranscoderlibav testvideosplitter profiledash
+bin_PROGRAMS = livemediastreamer testtranscoder teststreamer testdemuxer fakelive testvideomix testaudiomix testdash testbypass testtranscoderlibav testvideosplitter profiledash testvideocapture
 
 livemediastreamer_SOURCES = tests/liveMediaStreamer.cpp
 livemediastreamer_CPPFLAGS = -Isrc/ -std=c++11 -g -Wall -D__STDC_CONSTANT_MACROS
@@ -55,6 +55,11 @@ testvideosplitter_SOURCES = tests/testVideoSplitter.cpp
 testvideosplitter_CPPFLAGS = -std=c++11 -g -Wall -D__STDC_CONSTANT_MACROS
 testvideosplitter_LDFLAGS = -Lsrc -llivemediastreamer -lBasicUsageEnvironment -lUsageEnvironment -lliveMedia -lgroupsock -lavcodec -lavformat -lavutil -lswresample -lswscale
 testvideosplitter_DEPENDENCIES = src/liblivemediastreamer.la
+
+testvideocapture_SOURCES = tests/testVideoCapture.cpp
+testvideocapture_CPPFLAGS = -std=c++11 -g -Wall -D__STDC_CONSTANT_MACROS
+testvideocapture_LDFLAGS = -Lsrc -llivemediastreamer -lBasicUsageEnvironment -lUsageEnvironment -lliveMedia -lgroupsock -lavcodec -lavformat -lavutil -lswresample -lswscale
+testvideocapture_DEPENDENCIES = src/liblivemediastreamer.la
 
 profiledash_SOURCES = tests/profileDash.cpp
 profiledash_CPPFLAGS = -std=c++11 -g -Wall -D__STDC_CONSTANT_MACROS

@@ -33,6 +33,7 @@
 #include "../../Types.hh"
 #include "../../StreamInfo.hh"
 
+//TODO: this dependences shouldn't be needed
 extern "C" {
     #include <libavcodec/avcodec.h>
     #include <libavutil/imgutils.h>
@@ -43,6 +44,7 @@ extern "C" {
 #define DEFAULT_LOOKAHEAD 25
 #define DEFAULT_THREADS 4
 #define DEFAULT_ANNEXB true
+#define DEFAULT_B_FRAMES 4
 #define DEFAULT_PRESET "ultrafast"
 
 /*! Base class for VideoEncoderX264 and VideoEncoderX265. It implements common methods, basically configure and doProcessFrame */
@@ -60,7 +62,7 @@ public:
     */
     virtual ~VideoEncoderX264or5();
 
-    bool configure(int bitrate, int fps, int gop, int lookahead, int threads, bool annexB, std::string preset);
+    bool configure(int bitrate, int fps, int gop, int lookahead, int bFrames, int threads, bool annexB, std::string preset);
     
 protected:
     AVPixelFormat libavInPixFmt;
@@ -73,8 +75,12 @@ protected:
     unsigned gop;
     unsigned threads;
     unsigned lookahead;
+    unsigned bFrames;
     bool needsConfig;
     std::string preset;
+    int64_t inPts;
+    int64_t outPts;
+    int64_t dts;
 
     StreamInfo *outputStreamInfo;
     
@@ -86,7 +92,7 @@ protected:
     void setIntra(){forceIntra = true;};
     bool fill_x264or5_picture(VideoFrame* videoFrame);
 
-    bool configure0(unsigned bitrate_, unsigned fps_, unsigned gop_, unsigned lookahead_, unsigned threads_, bool annexB_, std::string preset_);
+    bool configure0(unsigned bitrate_, unsigned fps_, unsigned gop_, unsigned lookahead_, unsigned bFrames_, unsigned threads_, bool annexB_, std::string preset_);
     
 private:
     bool forceIntraEvent(Jzon::Node* params);
@@ -107,7 +113,7 @@ private:
         size_t seqNum;
     };
     
-    std::queue<FrameTimeParams> qFTP;
+    std::map<int64_t, FrameTimeParams> qFTP;
 };
 
 #endif

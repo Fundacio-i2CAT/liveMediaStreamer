@@ -96,7 +96,7 @@ Frame* AVFramedQueue::forceGetRear()
 {
     Frame *frame;
     while ((frame = getRear()) == NULL) {
-        utils::warningMsg("Frame discarted by AVFramedQueue " + std::to_string(connectionData.wFilterId) + " " + std::to_string((float)getElements()/max));
+        utils::warningMsg("Frame discarted by AVFramedQueue");
         flush();
     }
     return frame;

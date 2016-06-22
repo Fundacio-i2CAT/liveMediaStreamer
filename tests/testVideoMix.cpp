@@ -66,8 +66,8 @@ bool setupMixer(int mixerId, int transmitterId)
     resampler->configure(0, 0, 0, YUV420P);
 
     encoder = new VideoEncoderX264();
-    //bitrate, fps, gop, lookahead, threads, annexB, preset
-    encoder->configure(out_bitrate, 1000000 / out_period, 25, 25, 4, true, "superfast");
+    //bitrate, fps, gop, lookahead, bframes, threads, annexB, preset
+    encoder->configure(out_bitrate, 1000000 / out_period, 25, 25, 4, 4, true, "superfast");
     pipe->addFilter(encId, encoder);
 
     if (!pipe->createPath(pathId, mixerId, transmitterId, -1, -1, ids)) {

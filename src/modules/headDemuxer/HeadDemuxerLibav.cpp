@@ -17,7 +17,8 @@
  *  You should have received a copy of the GNU General Public License
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- *  Authors: Xavi Artigas <xavier.artigas@i2cat.net>  
+ *  Authors: Xavi Artigas <xavier.artigas@i2cat.net> 
+ *           David Cassany <david.cassany@i2cat.net>  
  */
 
 #include "HeadDemuxerLibav.hh"
@@ -102,7 +103,7 @@ static int findStartCode(uint8_t *buffer, int offs, int buffer_length)
     return -1;
 }
 
-bool HeadDemuxerLibav::doProcessFrame(std::map<int, Frame*> &dstFrames)
+bool HeadDemuxerLibav::doProcessFrame(std::map<int, Frame*> &dstFrames, int& ret)
 {
     PrivateStreamInfo *psi;
 
@@ -125,6 +126,7 @@ bool HeadDemuxerLibav::doProcessFrame(std::map<int, Frame*> &dstFrames)
         psi = privateStreamInfos[av_pkt.stream_index];
         if (av_pkt.pts != AV_NOPTS_VALUE){
             psi->lastPTS = av_pkt.pts;
+            psi->lastDTS = av_pkt.dts;
         }
         if (psi->needsFraming && !psi->isAnnexB) {
             // Convert to Annex B (adding startcodes) using temp buffer
@@ -198,18 +200,19 @@ bool HeadDemuxerLibav::doProcessFrame(std::map<int, Frame*> &dstFrames)
     }
     f->setConsumed(true);
     f->setLength(dst_size);
-    
+        
     if (av_pkt.pts == AV_NOPTS_VALUE) {
         f->setPresentationTime(
-            std::chrono::microseconds(psi->lastPTS) + psi->lastSTime);
+            std::chrono::microseconds(psi->lastPTS + av_ctx->start_time_realtime));
+        f->setDecodeTime(
+            std::chrono::microseconds(psi->lastDTS + av_ctx->start_time_realtime));
     } else {
-        if (av_pkt.pts != psi->lastPTS){
-            psi->lastSTime = std::chrono::duration_cast<std::chrono::microseconds>(
-                std::chrono::high_resolution_clock::now().time_since_epoch());
-        }
         f->setPresentationTime(
             std::chrono::microseconds(
-                (int64_t)(av_pkt.pts * psi->streamTimeBase * std::micro::den)) + psi->lastSTime);
+                (int64_t)(av_pkt.pts * psi->streamTimeBase * std::micro::den) + av_ctx->start_time_realtime));
+        f->setDecodeTime(
+            std::chrono::microseconds(
+                (int64_t)(av_pkt.dts * psi->streamTimeBase * std::micro::den) + av_ctx->start_time_realtime));
     }
 
     if (bufferOffset == -1) {
@@ -298,9 +301,8 @@ bool HeadDemuxerLibav::setURI(const std::string URI)
         StreamInfo *si = new StreamInfo();
         PrivateStreamInfo *psi = new PrivateStreamInfo();
         memset(psi, 0, sizeof(PrivateStreamInfo));
-        psi->lastSTime = std::chrono::duration_cast<std::chrono::microseconds>(
-            std::chrono::high_resolution_clock::now().time_since_epoch());
         psi->lastPTS = 0;
+        psi->lastDTS = 0;
         if (cdesc) {
             switch (cdesc->type) {
                 case AVMEDIA_TYPE_AUDIO:

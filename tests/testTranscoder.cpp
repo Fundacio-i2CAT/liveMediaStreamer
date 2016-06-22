@@ -118,8 +118,8 @@ void addVideoPath(unsigned port, int receiverID, int transmitterID)
     encoder = new VideoEncoderX264();
     pipe->addFilter(encId, encoder);
 
-    //bitrate, fps, gop, lookahead, threads, annexB, preset
-    encoder->configure(4000, 0, 25, 25, 4, true, "superfast");
+    //bitrate, fps, gop, lookahead, bframes, threads, annexB, preset
+    encoder->configure(4000, 0, 25, 25, 4, 4, true, "superfast");
         
     if (!pipe->createPath(port, receiverID, transmitterID, port, -1, ids)) {
         utils::errorMsg("Error creating video path");

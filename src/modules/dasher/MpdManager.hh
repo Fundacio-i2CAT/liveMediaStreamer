@@ -77,11 +77,11 @@ public:
     void writeToDisk(const char* fileName);
     
     //TODO: add documentation
-    size_t getMaxSeg() {return maxSeg;};
+    unsigned int getMaxSeg() {return maxSeg;};
     
-    size_t getMinBuffTime() {return minBufferTime;};
+    unsigned int getMinBuffTime() {return minBufferTime;};
 
-    void configure(size_t minBuffTime, size_t maxSegment, size_t segDurInSec);
+    void configure(unsigned int minBuffTime, unsigned int maxSegment, unsigned int segDurInSec);
 
     /**
     * Updates an existing video adaptation set. If it does not exists, it creates a new one. Each adaptation set is
@@ -107,7 +107,7 @@ public:
     * @param duration Duration of the current segment in timescale base.
     * @return true if succeeded and false if not
     */
-    size_t updateAdaptationSetTimestamp(std::string id, size_t ts, size_t duration);
+    uint64_t updateAdaptationSetTimestamp(std::string id, uint64_t ts, unsigned int duration);
 
     /**
     * Updates an existing video representation. If it does not exists, it creates a new one. Each representation is
@@ -158,8 +158,8 @@ private:
     std::string timeShiftBufferDepth;
     std::string suggestedPresentationDelay;
     std::string location;
-    size_t maxSeg;
-    size_t minBufferTime;
+    unsigned int maxSeg;
+    unsigned int minBufferTime;
     char availabilityStartTime[AVAILABILITY_START_TIME];
     bool started;
     
@@ -213,7 +213,7 @@ public:
     * Sets timestamp and duration
     * @see MpdManager::updateAdaptationSetTimestamp 
     */
-    size_t updateTimestamp(size_t ts, size_t duration, size_t maxSeg);
+    uint64_t updateTimestamp(uint64_t ts, unsigned int duration, unsigned int maxSeg);
 
     /**
     * Sets timescale, segment template and init template values
@@ -233,7 +233,7 @@ protected:
     int timescale;
     std::string segTemplate;
     std::string initTemplate;
-    std::deque<std::pair<int,int> > timestamps;
+    std::deque<std::pair<uint64_t,uint64_t>> timestamps;
 };
 
 /*! It is used to encapsulate all the data of a video AdaptationSet. It adds specific video data to the common data

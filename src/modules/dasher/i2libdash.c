@@ -451,7 +451,7 @@ uint32_t add_video_sample(byte *input_data, uint32_t input_data_length, uint64_t
         (*context)->ctxvideo->sequence_number = seqNumber;
         (*context)->ctxvideo->current_video_duration = 0;
     } else {
-        sample_duration = pts - ctxSample->mdat[samp_len-1].presentation_timestamp;
+        sample_duration = dts - ctxSample->mdat[samp_len-1].decode_timestamp;
         ctxSample->mdat[samp_len-1].duration = sample_duration;
         (*context)->ctxvideo->current_video_duration += sample_duration;
     }

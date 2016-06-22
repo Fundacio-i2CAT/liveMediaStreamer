@@ -52,8 +52,6 @@ private:
     x264_param_t xparams;
     x264_t* encoder;
 
-    int64_t pts;
-
     bool fillPicturePlanes(unsigned char** data, int* linesize);
     bool encodeFrame(VideoFrame* codedFrame);
     bool reconfigure(VideoFrame *orgFrame, VideoFrame* dstFrame);

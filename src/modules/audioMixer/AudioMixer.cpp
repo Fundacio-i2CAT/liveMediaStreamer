@@ -215,6 +215,7 @@ bool AudioMixer::extractMixedFrame(AudioFrame* frame)
 
     ts = std::chrono::microseconds(front * std::micro::den/sampleRate) + syncTs;
     frame->setPresentationTime(ts);
+    frame->setDecodeTime(NO_DTS);
     frame->setLength(outputSamples*bytesPerSample);
     frame->setSamples(outputSamples);
     frame->setChannels(channels);

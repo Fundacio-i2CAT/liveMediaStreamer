@@ -439,7 +439,6 @@ void PipelineManager::getStateEvent(Jzon::Node* params, Jzon::Object &outputNode
 {
     Jzon::Array filterList;
     Jzon::Array pathList;
-    Jzon::Array workersList;
     BaseFilter* f;
 
     for (auto it : filters) {

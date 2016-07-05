@@ -305,6 +305,9 @@ namespace utils
             case SHARED_MEMORY:
                 stringType = "sharedMemory";
                 break;  
+            case V4L_CAPTURE:
+                stringType = "v4lcapture";
+                break;
             default:
                 stringType = "";
                 break;
@@ -343,6 +346,8 @@ namespace utils
            fType = DEMUXER;
         }  else if (stringFilterType.compare("videoSplitter") == 0) {
            fType = VIDEO_SPLITTER;
+        }  else if (stringFilterType.compare("v4lcapture") == 0) {
+           fType = V4L_CAPTURE;
         }  else {
            fType = FT_NONE;
         }

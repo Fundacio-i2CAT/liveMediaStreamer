@@ -221,6 +221,7 @@ void VideoEncoderX264or5::doGetState(Jzon::Object &filterNode)
     filterNode.Add("lookahead", std::to_string(lookahead));
     filterNode.Add("threads", std::to_string(threads));
     filterNode.Add("annexb", std::to_string(outputStreamInfo->video.h264or5.annexb));
+    filterNode.Add("bframes", std::to_string(bFrames));
     filterNode.Add("preset", preset);
 }
 

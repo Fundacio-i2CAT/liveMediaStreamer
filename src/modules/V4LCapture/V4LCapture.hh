@@ -59,9 +59,7 @@ private:
     void doGetState(Jzon::Object &filterNode);
     void initializeEventMap();
     bool configureEvent(Jzon::Node* params);
-    bool releaseEvent(Jzon::Node* /*params*/);
-    
-    //NOTE: There is no need of specific writer configuration
+
     bool specificWriterConfig(int /*writerID*/);
     bool specificWriterDelete(int /*writerID*/) {return true;};
     

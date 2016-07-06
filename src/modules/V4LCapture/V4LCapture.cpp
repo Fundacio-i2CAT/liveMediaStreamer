@@ -36,6 +36,7 @@ static int xioctl(int fh, unsigned long int request, void *arg);
 static PixType pixelType(unsigned pixelFormat);
 static VCodecType codecType(unsigned pixelFormat);
 static unsigned getFormatFromString(std::string format);
+static std::string getStatusAsString(DeviceStatus status);
 
 V4LCapture::V4LCapture() : HeadFilter(1, REGULAR, true), status(CLOSE), forceFormat(true), 
     frameCount(0), durationCount(std::chrono::microseconds(0))
@@ -50,6 +51,7 @@ V4LCapture::V4LCapture() : HeadFilter(1, REGULAR, true), status(CLOSE), forceFor
     fType = V4L_CAPTURE;
     
     initializeEventMap();
+    juicy = true;
 }
 
 V4LCapture::~V4LCapture()
@@ -531,9 +533,9 @@ int V4LCapture::getAvgFrameDuration(std::chrono::microseconds duration)
 
 void V4LCapture::doGetState(Jzon::Object &filterNode)
 {
-    if (status != CAPTURE){
-        filterNode.Add("config", "the filter is not capturing");
-    } else {
+    filterNode.Add("status", getStatusAsString(status));
+    
+    if (status == CAPTURE){
         filterNode.Add("device", device);
         filterNode.Add("width", std::to_string(fmt.fmt.pix.width));
         filterNode.Add("height", std::to_string(fmt.fmt.pix.height));
@@ -548,7 +550,8 @@ void V4LCapture::doGetState(Jzon::Object &filterNode)
     }
 }
 
-bool V4LCapture::configureEvent(Jzon::Node* params){
+bool V4LCapture::configureEvent(Jzon::Node* params)
+{
     utils::infoMsg("V4LCapture configure event");
     if (!params->Has("device") || !params->Has("width") ||
         !params->Has("height") || !params->Has("fps")) {
@@ -570,7 +573,8 @@ bool V4LCapture::configureEvent(Jzon::Node* params){
               params->Has("forceformat") ? params->Get("forceformat").ToBool() : true);    
 }
 
-void V4LCapture::initializeEventMap(){
+void V4LCapture::initializeEventMap()
+{
     eventMap["configure"] = std::bind(&V4LCapture::configureEvent, this, std::placeholders::_1);
 }
 
@@ -648,9 +652,29 @@ static unsigned getFormatFromString(std::string format)
             return V4L2_PIX_FMT_MJPEG;
             break;
         default:
-            utils::warningMsg("Unknown pixel format, is it compressed?");
+            utils::warningMsg("Unknown codec format");
             //default format
             return V4L2_PIX_FMT_YUYV; 
             break;
     }
+}
+
+static std::string getStatusAsString(DeviceStatus status)
+{
+    switch (status){
+        case OPEN:
+            return "open";
+            break;
+        case INIT:
+            return "init";
+            break;
+        case CAPTURE:
+            return "capture";
+            break;
+        case CLOSE:
+            return "close";
+            break;
+    }
+    
+    return "unknown";
 }

@@ -20,12 +20,29 @@
  *  Authors:    Gerard Castillo <gerard.castillo@i2cat.net>
  */
 
+#include <random>
+
 #include "SharedMemory.hh"
 
 static unsigned char const start_code[4] = {0x00, 0x00, 0x00, 0x01};
 
 SharedMemory* SharedMemory::createNew(size_t key_, VCodecType codec)
 {
+    SharedMemory *shm = new SharedMemory(key_, codec);
+
+    if(shm->isEnabled()){
+        return shm;
+    }
+    return NULL;
+}
+
+SharedMemory* SharedMemory::createNew(VCodecType codec)
+{
+    std::default_random_engine generator(
+        std::chrono::system_clock::now().time_since_epoch().count());
+    std::uniform_int_distribution<unsigned> distribution(1,10000);
+    
+    unsigned key_ = distribution(generator);
     SharedMemory *shm = new SharedMemory(key_, codec);
 
     if(shm->isEnabled()){
@@ -46,7 +63,7 @@ SharedMemory::SharedMemory(size_t key_, VCodecType codec_):
         return;
     }
 
-    if ((SharedMemoryID = shmget(key_, SHMSIZE, (IPC_EXCL | IPC_CREAT ) | 0666)) == (size_t)-1) {
+    if ((sharedMemoryId = shmget(key_, SHMSIZE, (IPC_EXCL | IPC_CREAT ) | 0666)) == (size_t)-1) {
         utils::errorMsg("SharedMemory::shmget error - filter not created - "
                 "might be already created (Key:" + std::to_string(key_) +
                 " Codec: " + utils::getVideoCodecAsString(codec_) + ")");
@@ -54,20 +71,20 @@ SharedMemory::SharedMemory(size_t key_, VCodecType codec_):
         return;
     }
 
-    if ((SharedMemoryOrigin = (uint8_t*) shmat(SharedMemoryID, NULL, 0)) == (uint8_t *) -1) {
+    if ((SharedMemoryOrigin = (uint8_t*) shmat(sharedMemoryId, NULL, 0)) == (uint8_t *) -1) {
         utils::errorMsg("SharedMemory::shmat error - filter not created");
         enabled = false;
         return;
     }
 
     if(enabled){
-        utils::infoMsg("VERY IMPORTANT: Share following shared memory ID (from key "+ std::to_string(key_)+") with reader process: \033[1;32m"+ std::to_string(SharedMemoryID) + "\033[0m for \033[1;32m" + utils::getVideoCodecAsString(codec) + "\033[0m codec");
+        utils::infoMsg("VERY IMPORTANT: Share following shared memory ID (from key "+ std::to_string(key_)+") with reader process: \033[1;32m"+ std::to_string(sharedMemoryId) + "\033[0m for \033[1;32m" + utils::getVideoCodecAsString(codec) + "\033[0m codec");
 
         memset(SharedMemoryOrigin,0,SHMSIZE);
 
         access = SharedMemoryOrigin;
         buffer = SharedMemoryOrigin + HEADER_SIZE;
-        SharedMemorykey = key_;
+        sharedMemoryKey = key_;
 
         //init sync
         *access = CHAR_WRITING;
@@ -77,6 +94,7 @@ SharedMemory::SharedMemory(size_t key_, VCodecType codec_):
     }
     
     fType = SHARED_MEMORY;
+    initializeEventMap();
 
     streamInfo = NULL;
     maxFrames = 0;
@@ -84,7 +102,7 @@ SharedMemory::SharedMemory(size_t key_, VCodecType codec_):
 
 SharedMemory::~SharedMemory()
 {
-    if(shmctl (SharedMemoryID , IPC_RMID , 0) != 0){
+    if(shmctl (sharedMemoryId , IPC_RMID , 0) != 0){
         utils::errorMsg("SharedMemory::shmctl error - Could not set IPC_RMID flag to shared memory segment ID");
     }
     if(shmdt(SharedMemoryOrigin) != 0){
@@ -139,19 +157,16 @@ FrameQueue* SharedMemory::allocQueue(ConnectionData cData)
     return VideoFrameQueue::createNew(cData, streamInfo, maxFrames);
 }
 
-//TODO to be implemented
 void SharedMemory::initializeEventMap()
 {
 
 }
 
-//TODO to be implemented
-void SharedMemory::doGetState(Jzon::Object &/*filterNode*/)
+void SharedMemory::doGetState(Jzon::Object &filterNode)
 {
-   /* filterNode.Add("codec", utils::getAudioCodecAsString(fCodec));
-    filterNode.Add("sampleRate", sampleRate);
-    filterNode.Add("channels", channels);
-    filterNode.Add("sampleFormat", utils::getSampleFormatAsString(sampleFmt));*/
+    filterNode.Add("codec", utils::getVideoCodecAsString(codec));
+    filterNode.Add("key", (int) sharedMemoryKey);
+    filterNode.Add("memoryId", (int) sharedMemoryId);
 }
 
 void SharedMemory::copyOrgToDstFrame(InterleavedVideoFrame*org, InterleavedVideoFrame *dst)

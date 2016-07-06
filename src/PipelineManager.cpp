@@ -163,7 +163,9 @@ bool PipelineManager::createFilter(int id, FilterType type)
         case V4L_CAPTURE:
             filter = new V4LCapture();
             break;
-        //TODO include sharedMemory filter
+        case SHARED_MEMORY:
+            filter = SharedMemory::createNew();
+            break;
         default:
             utils::errorMsg("Unknown filter type");
             break;

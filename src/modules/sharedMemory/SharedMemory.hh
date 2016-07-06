@@ -38,18 +38,18 @@
 #include "../../AVFramedQueue.hh"
 #include "../../StreamInfo.hh"
 
-#define SHMSIZE   		6220824		//1920x1080x3 + 24
-#define HEADER_SIZE		24			//4B * 6 (sync.byte and frame info)
+#define SHMSIZE         6220824 //1920x1080x3 + 24
+#define HEADER_SIZE	24	//4B * 6 (sync.byte and frame info)
 #define CHAR_READING 	'1'
 #define CHAR_WRITING 	'0'
-#define MAX_SIZE 1920*1080*3
-#define KEY 1985
-#define NON_IDR 1
-#define IDR 5
-#define SEI 6
-#define SPS 7
-#define PPS 8
-#define AUD 9
+#define MAX_SIZE        1920*1080*3
+#define KEY             1985
+#define NON_IDR         1
+#define IDR             5
+#define SEI             6
+#define SPS             7
+#define PPS             8
+#define AUD             9
 #define H264_NALU_START_CODE 0x00000001
 #define SHORT_START_CODE_LENGTH 3
 #define LONG_START_CODE_LENGTH 4
@@ -71,6 +71,13 @@ public:
     */
     static SharedMemory* createNew(size_t key_, VCodecType codec);
     /**
+    * Creates new shared memory object with a random key
+    * @param VCodecType codec value defined in order to correlate type of shared frames with its shared memory space
+    * @return SharedMemory object or NULL if any error while creating
+    * @see OneToOneFilter to check the inherated input params
+    */
+    static SharedMemory* createNew(VCodecType codec = RAW);
+    /**
     * Class destructor
     */
     ~SharedMemory();
@@ -78,7 +85,7 @@ public:
     * Returns the shared memory ID of this filter
     * @return SharedMemoryID of its sharedMemory filter
     */
-    size_t getSharedMemoryID() { return SharedMemoryID;};
+    size_t getSharedMemoryID() { return sharedMemoryId;};
 
 protected:
     SharedMemory(size_t key_, VCodecType codec_);
@@ -122,8 +129,8 @@ private:
     unsigned maxFrames;
 
 private:
-    size_t      SharedMemorykey;
-    size_t      SharedMemoryID;
+    unsigned    sharedMemoryKey;
+    unsigned    sharedMemoryId;
     uint8_t     *SharedMemoryOrigin;
     uint8_t     *buffer;
     uint8_t     *access;

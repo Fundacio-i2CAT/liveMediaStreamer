@@ -536,9 +536,9 @@ void V4LCapture::doGetState(Jzon::Object &filterNode)
     
     if (status == CAPTURE){
         filterNode.Add("device", device);
-        filterNode.Add("width", std::to_string(fmt.fmt.pix.width));
-        filterNode.Add("height", std::to_string(fmt.fmt.pix.height));
-        filterNode.Add("fps", std::to_string(std::micro::den/frameDuration.count()));
+        filterNode.Add("width", (int) fmt.fmt.pix.width);
+        filterNode.Add("height", (int) fmt.fmt.pix.height);
+        filterNode.Add("fps", (int) (std::micro::den/frameDuration.count()));
         if (pixelType(fmt.fmt.pix.pixelformat) != P_NONE){
             filterNode.Add("format", utils::getPixTypeAsString(pixelType(fmt.fmt.pix.pixelformat)));
         } else if (codecType(fmt.fmt.pix.pixelformat) != VC_NONE){

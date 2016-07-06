@@ -51,7 +51,7 @@ public:
     /**
     * Class constructor
     */    
-    StreamClientState(std::string id_, SourceManager *const  manager);
+    StreamClientState(std::string id_, SourceManager *const  manager, bool keepAliveMsg);
     /**
     * Class destructor
     */
@@ -113,8 +113,11 @@ private:
 
 class Session {
 public:
-    static Session* createNewByURL(UsageEnvironment& env, std::string progName, std::string rtspURL, std::string id, SourceManager *const mngr);
-    static Session* createNew(UsageEnvironment& env, std::string sdp, std::string id, SourceManager *const mngr);
+    static Session* createNewByURL(UsageEnvironment& env, std::string progName, 
+                                   std::string rtspURL, std::string id, 
+                                   SourceManager *const mngr, bool keepAliveMsg = true);
+    static Session* createNew(UsageEnvironment& env, std::string sdp, 
+                              std::string id, SourceManager *const mngr, bool keepAliveMsg = true);
 
     ~Session();
 
@@ -125,7 +128,7 @@ public:
     bool initiateSession();
 
 protected:
-    Session(std::string id, SourceManager *const mngr);
+    Session(std::string id, SourceManager *const mngr, bool keepAliveMsg);
 
     RTSPClient* client;
     StreamClientState *scs;

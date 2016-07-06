@@ -292,10 +292,15 @@ bool SourceManager::addSessionEvent(Jzon::Node* params)
     std::string sessionId = utils::randomIdGenerator(ID_LENGTH);
     std::string sdp, medium, codec;
     int payload, bandwidth, timeStampFrequency, channels, port;
+    bool keepAlive = true;
     Session* session;
 
     if (!params) {
         return false;
+    }
+    
+    if (params->Has("keepAlive") && params->Get("keepAlive").IsBool()){
+        keepAlive = params->Get("keepAlive").ToBool();
     }
 
     if (params->Has("uri") && params->Has("progName") && params->Has("id")) {
@@ -303,7 +308,7 @@ bool SourceManager::addSessionEvent(Jzon::Node* params)
         std::string progName = params->Get("progName").ToString();
         std::string rtspURL = params->Get("uri").ToString();
         sessionId = params->Get("id").ToString();
-        session = Session::createNewByURL(*env, progName, rtspURL, sessionId, this);
+        session = Session::createNewByURL(*env, progName, rtspURL, sessionId, this, keepAlive);
 
     } else if (params->Has("subsessions") && params->Get("subsessions").IsArray()) {
 
@@ -328,7 +333,7 @@ bool SourceManager::addSessionEvent(Jzon::Node* params)
                                                 timeStampFrequency, port, channels);
         }
 
-        session = Session::createNew(*env, sdp, sessionId, this);
+        session = Session::createNew(*env, sdp, sessionId, this, keepAlive);
 
     } else {
         return false;
@@ -473,15 +478,17 @@ void SourceManager::doGetState(Jzon::Object &filterNode)
 
 // Implementation of "Session"
 
-Session::Session(std::string id, SourceManager *const mngr)
+Session::Session(std::string id, SourceManager *const mngr, bool keepAliveMsg)
   : client(NULL)
 {
-    scs = new StreamClientState(id, mngr);
+    scs = new StreamClientState(id, mngr, keepAliveMsg);
 }
 
-Session* Session::createNew(UsageEnvironment& env, std::string sdp, std::string id, SourceManager *const mngr)
+Session* Session::createNew(UsageEnvironment& env, std::string sdp, 
+                            std::string id, SourceManager *const mngr, 
+                            bool keepAliveMsg)
 {
-    Session* newSession = new Session(id, mngr);
+    Session* newSession = new Session(id, mngr, keepAliveMsg);
     MediaSession* mSession = MediaSession::createNew(env, sdp.c_str());
 
     if (mSession == NULL){
@@ -494,9 +501,9 @@ Session* Session::createNew(UsageEnvironment& env, std::string sdp, std::string 
     return newSession;
 }
 
-Session* Session::createNewByURL(UsageEnvironment& env, std::string progName, std::string rtspURL, std::string id, SourceManager *const mngr)
+Session* Session::createNewByURL(UsageEnvironment& env, std::string progName, std::string rtspURL, std::string id, SourceManager *const mngr, bool keepAliveMsg)
 {
-    Session* session = new Session(id, mngr);
+    Session* session = new Session(id, mngr, keepAliveMsg);
 
     RTSPClient* rtspClient = ExtendedRTSPClient::createNew(env, rtspURL.c_str(), session->scs, RTSP_CLIENT_VERBOSITY_LEVEL, progName.c_str());
     if (rtspClient == NULL) {
@@ -594,12 +601,12 @@ MediaSubsession* Session::getSubsessionByPort(int port)
 
 // Implementation of "StreamClientState":
 
-StreamClientState::StreamClientState(std::string id_, SourceManager *const  manager) :
+StreamClientState::StreamClientState(std::string id_, SourceManager *const  manager, bool keepAliveMsg) :
     mngr(manager), iter(NULL), session(NULL), subsession(NULL),
     streamTimerTask(NULL), duration(0.0), 
     sessionTimeoutBrokenServerTask(NULL), sessionStatsMeasurementTask(NULL),
     statsMeasurementIntervalMS(DEFAULT_STATS_TIME_INTERVAL), nextStatsMeasurementUSecs(0),
-    sendKeepAlivesToBrokenServers(True), // Send periodic 'keep-alive' requests to keep broken server sessions alive
+    sendKeepAlivesToBrokenServers(keepAliveMsg), // Send periodic 'keep-alive' requests to keep broken server sessions alive
     sessionTimeoutParameter(0), id(id_)
 {
 }

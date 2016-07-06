@@ -51,7 +51,6 @@ V4LCapture::V4LCapture() : HeadFilter(1, REGULAR, true), status(CLOSE), forceFor
     fType = V4L_CAPTURE;
     
     initializeEventMap();
-    juicy = true;
 }
 
 V4LCapture::~V4LCapture()

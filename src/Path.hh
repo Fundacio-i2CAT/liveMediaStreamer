@@ -19,7 +19,6 @@
  *
  *  Authors:  Marc Palau <marc.palau@i2cat.net>
  *            David Cassany <david.cassany@i2cat.net>
- *	          Martin German <martin.german@i2cat.net>
  */
 
 #ifndef _PATH_HH
@@ -32,13 +31,6 @@
 */
 class Path {
 public:
-    /**
-    * Creates a path object
-    * @param origin filter Id
-    * @param origin writer Id
-    */
-    Path(int originFilterID, int orgWriterID);
-
     /**
     * Creates a path object
     * @param origin filter Id
@@ -86,6 +78,12 @@ public:
     * @return middle filters Ids
     */
     std::vector<int> getFilters(){return filterIDs;};
+    
+    /**
+    * Test if the path contains the given filter ID
+    * @return true if the filter is present in path, false otherwise
+    */
+    bool hasFilter(int fId);
 
 protected:
     void addFilterID(int filterID);

@@ -239,6 +239,8 @@ void Controller::initializeEventMap()
                                             std::placeholders::_1, std::placeholders::_2);
     eventMap["createFilter"] = std::bind(&PipelineManager::createFilterEvent, pipeMngrInstance,
                                             std::placeholders::_1, std::placeholders::_2);
+    eventMap["removeFilter"] = std::bind(&PipelineManager::removeFilterEvent, pipeMngrInstance,
+                                            std::placeholders::_1, std::placeholders::_2);
     eventMap["stop"] = std::bind(&PipelineManager::stopEvent, pipeMngrInstance,
                                             std::placeholders::_1, std::placeholders::_2);
 

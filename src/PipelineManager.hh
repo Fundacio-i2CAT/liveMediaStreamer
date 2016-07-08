@@ -126,6 +126,14 @@ public:
      * @return returns true if the removal succedded, false otherwise.
      */
     bool removePath(int id);
+    
+    /**
+     * Remove the filter related to the specified id, only filter which are 
+     * not used in any path can be deleted
+     * @param int ID of the filter to delete
+     * @return returns true if the removal succedded, false otherwise.
+     */
+    bool removeFilter(int id);
 
     /**
     * Sets outputNode jzon object by getting pipeline state
@@ -149,6 +157,12 @@ public:
     * filled by incoming jzon object params
     */
     void removePathEvent(Jzon::Node* params, Jzon::Object &outputNode);
+    
+    /**
+    * Sets outputNode jzon object with the results coming from remove filter event
+    * filled by incoming jzon object params
+    */
+    void removeFilterEvent(Jzon::Node* params, Jzon::Object &outputNode);
 
     /**
     * Sets outputNode jzon object with results of pipeline stop event
@@ -163,7 +177,6 @@ private:
     
     bool handleGrouping(int orgFId, int dstFId, int orgWId, int dstRId);
     bool validCData(ConnectionData cData, int orgFId, int dstFId);
-    bool deleteRelatedPaths(int filterId);
 
     static PipelineManager* pipeMngrInstance;
     const unsigned threads;

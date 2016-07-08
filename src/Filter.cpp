@@ -283,7 +283,7 @@ bool BaseFilter::shareReader(BaseFilter *shared, int sharedRId, int orgRId)
 bool BaseFilter::setWriter(int writerID)
 {
     if (writers.size() >= maxWriters) {
-        utils::errorMsg("Too many writers!");
+        utils::warningMsg("Too many writers");
         return false;
     }
     

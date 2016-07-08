@@ -19,18 +19,11 @@
  *
  *  Authors:  Marc Palau <marc.palau@i2cat.net>
  *            David Cassany <david.cassany@i2cat.net>
- *            Martin German <martin.german@i2cat.net>
  */
 
-#include "Path.hh"
+#include <algorithm>
 
-Path::Path(int originFilterID, int orgWriterID) 
-{
-    this->originFilterID = originFilterID;
-    this->orgWriterID = orgWriterID;
-    destinationFilterID = -1;
-    dstReaderID = -1;
-}
+#include "Path.hh"
 
 Path::Path(int originFilterID, int destinationFilterID, int orgWriterID, 
             int dstReaderID, std::vector<int> midFiltersIDs)
@@ -52,4 +45,18 @@ void Path::setDestinationFilter(int destinationFilterID, int dstReaderID)
 {
     this->destinationFilterID = destinationFilterID;
     this->dstReaderID = dstReaderID;
+}
+
+bool Path::hasFilter(int fId)
+{
+    if (std::find(filterIDs.begin(), filterIDs.end(), fId) != filterIDs.end()){
+        return true;
+    }
+
+    
+    if (fId == originFilterID || fId == destinationFilterID){
+        return true;
+    }
+    
+    return false;
 }

@@ -378,7 +378,8 @@ bool PipelineManager::removePath(int id)
     path = getPath(id);
 
     if (!path) {
-        return false;
+        utils::warningMsg("Requested path not found!");
+        return true;
     }
 
     if (!deletePath(path)) {
@@ -390,6 +391,29 @@ bool PipelineManager::removePath(int id)
     return true;
 }
 
+bool PipelineManager::removeFilter(int id)
+{
+    BaseFilter* filter;
+    
+    filter = getFilter(id);
+
+    if (!filter) {
+        return false;
+    }
+
+    for (auto it : paths){
+        if (it.second->hasFilter(id)){
+            utils::warningMsg("Filters present in a path cannot be deleted");
+            utils::warningMsg("The filter is used in path " + std::to_string(it.first) + ", delete the path first");
+            return false;
+        }
+    }
+    
+    filters.erase(id);
+    delete filter;
+
+    return true;
+}
 
 bool PipelineManager::deletePath(Path* path)
 {
@@ -424,21 +448,32 @@ bool PipelineManager::deletePath(Path* path)
         delete filters[it];
         filters.erase(it);
     }
+    
+    bool deleteOrig = true;
+    bool deleteDst = true;
+    
+    for(auto it : paths){
+        if (it.second->hasFilter(path->getOriginFilterID())){
+            deleteOrig = false;
+        }
+        if (it.second->hasFilter(path->getDestinationFilterID())){
+            deleteDst = false;
+        }
+    }
+    
+    if (deleteDst){
+        delete filters[path->getDestinationFilterID()];
+        filters.erase(path->getDestinationFilterID());
+    }
+    
+    if (deleteOrig){
+        delete filters[path->getOriginFilterID()];
+        filters.erase(path->getOriginFilterID());
+    }
 
     delete path;
 
     return true;
-}
-
-bool PipelineManager::deleteRelatedPaths(int filterId)
-{
-    bool ret = true;
-    for (auto it : paths){
-        if (it.second->getOriginFilterID() == filterId){
-            ret &= deletePath(it.second);
-        }
-    }
-    return ret;
 }
 
 void PipelineManager::getStateEvent(Jzon::Node* params, Jzon::Object &outputNode)
@@ -583,7 +618,7 @@ void PipelineManager::removePathEvent(Jzon::Node* params, Jzon::Object &outputNo
         return;
     }
 
-    if (!params->Has("id")) {
+    if (!params->Has("id") || !params->Get("id").IsNumber()) {
         outputNode.Add("error", "Error removing path. Invalid JSON format...");
         return;
     }
@@ -598,6 +633,29 @@ void PipelineManager::removePathEvent(Jzon::Node* params, Jzon::Object &outputNo
     outputNode.Add("error", Jzon::null);
 }
 
+void PipelineManager::removeFilterEvent(Jzon::Node* params, Jzon::Object &outputNode)
+{
+    int id;
+
+    if(!params) {
+        outputNode.Add("error", "Error removing filter. Invalid JSON format...");
+        return;
+    }
+
+    if (!params->Has("id") || !params->Get("id").IsNumber()) {
+        outputNode.Add("error", "Error removing filter. Invalid JSON format...");
+        return;
+    }
+
+    id = params->Get("id").ToInt();
+
+    if (!removeFilter(id)) {
+        outputNode.Add("error", "Error removing filter. Internal error...");
+        return;
+    }
+
+    outputNode.Add("error", Jzon::null);
+}
 
 void PipelineManager::stopEvent(Jzon::Node* params, Jzon::Object &outputNode)
 {

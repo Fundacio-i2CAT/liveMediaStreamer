@@ -215,13 +215,13 @@ void VideoEncoderX264or5::initializeEventMap()
 
 void VideoEncoderX264or5::doGetState(Jzon::Object &filterNode)
 {
-    filterNode.Add("bitrate", std::to_string(bitrate));
-    filterNode.Add("fps", std::to_string(fps));
-    filterNode.Add("gop", std::to_string(gop));
-    filterNode.Add("lookahead", std::to_string(lookahead));
-    filterNode.Add("threads", std::to_string(threads));
-    filterNode.Add("annexb", std::to_string(outputStreamInfo->video.h264or5.annexb));
-    filterNode.Add("bframes", std::to_string(bFrames));
+    filterNode.Add("bitrate", (int) bitrate);
+    filterNode.Add("fps", (int) fps);
+    filterNode.Add("gop", (int) gop);
+    filterNode.Add("lookahead", (int) lookahead);
+    filterNode.Add("threads", (int) threads);
+    filterNode.Add("annexb", outputStreamInfo->video.h264or5.annexb);
+    filterNode.Add("bframes", (int) bFrames);
     filterNode.Add("preset", preset);
 }
 

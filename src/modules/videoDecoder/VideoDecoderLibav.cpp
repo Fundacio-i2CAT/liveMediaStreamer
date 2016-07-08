@@ -235,8 +235,8 @@ void VideoDecoderLibav::doGetState(Jzon::Object &filterNode)
     Jzon::Object jsonDecoderConfig;
 
     jsonDecoderConfig.Add("codec", utils::getVideoCodecAsString(psi.fCodec));
-    jsonDecoderConfig.Add("width", std::to_string(psi.inputWidth));
-    jsonDecoderConfig.Add("height", std::to_string(psi.inputHeight));
+    jsonDecoderConfig.Add("width", (int) psi.inputWidth);
+    jsonDecoderConfig.Add("height", (int) psi.inputHeight);
 
     filterNode.Add("inputInfo", jsonDecoderConfig);
 }

@@ -69,10 +69,10 @@ private:
     StreamInfo *outputStreamInfo;
 
     struct InputStreamInfo {
-            unsigned    inputWidth;
-            unsigned    inputHeight;
-            VCodecType  fCodec;
-        };
+        unsigned    inputWidth;
+        unsigned    inputHeight;
+        VCodecType  fCodec;
+    };
 
     InputStreamInfo          psi;   
 };

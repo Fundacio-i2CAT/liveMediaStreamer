@@ -167,12 +167,13 @@ namespace handlers
             }
             env << "...\n";
 
-            scs.sessionTimeoutBrokenServerTask = NULL;
-            unsigned sessionTimeout = scs.sessionTimeoutParameter == 0 ? 60/*default*/ : scs.sessionTimeoutParameter;
-            unsigned secondsUntilNextKeepAlive = sessionTimeout <= 5 ? 1 : sessionTimeout - 5;
-            scs.sessionTimeoutBrokenServerTask
-                        = env.taskScheduler().scheduleDelayedTask(secondsUntilNextKeepAlive*1000000,
-                    		 (TaskFunc*)checkSessionTimeoutBrokenServer, rtspClient);
+            if (scs.sendKeepAlivesToBrokenServers) {
+                unsigned sessionTimeout = scs.sessionTimeoutParameter == 0 ? 60/*default*/ : scs.sessionTimeoutParameter;
+                unsigned secondsUntilNextKeepAlive = sessionTimeout <= 5 ? 1 : sessionTimeout - 5;
+                scs.sessionTimeoutBrokenServerTask = 
+                    env.taskScheduler().scheduleDelayedTask(
+                        secondsUntilNextKeepAlive*1000000,(TaskFunc*)checkSessionTimeoutBrokenServer, rtspClient);
+            }
 
             success = True;
         } while (0);
@@ -237,12 +238,16 @@ namespace handlers
         ExtendedRTSPClient* rtspClient = (ExtendedRTSPClient*)clientData;
         UsageEnvironment& env = rtspClient->envir();
         StreamClientState& scs = *(((ExtendedRTSPClient*)rtspClient)->getScs());
+        
+        if (scs.sessionTimeoutBrokenServerTask == NULL){
+            return;
+        }
+
+        scs.sessionTimeoutBrokenServerTask = NULL;
 
         if (!scs.sendKeepAlivesToBrokenServers) return;
 
-        if (scs.sessionTimeoutBrokenServerTask != NULL) {
-            getParameterCommand(rtspClient, NULL);
-        }
+        getParameterCommand(rtspClient, NULL);
 
         unsigned sessionTimeout = scs.sessionTimeoutParameter == 0 ? DEFAULT_SESSION_TIMEOUT : scs.sessionTimeoutParameter;
         unsigned secondsUntilNextKeepAlive = sessionTimeout <= 5 ? 1 : sessionTimeout - 5;

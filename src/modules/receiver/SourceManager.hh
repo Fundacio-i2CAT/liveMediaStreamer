@@ -126,6 +126,8 @@ public:
     StreamClientState* getScs() {return scs;};
 
     bool initiateSession();
+    
+    void sendTeardown();
 
 protected:
     Session(std::string id, SourceManager *const mngr, bool keepAliveMsg);
@@ -179,11 +181,11 @@ private:
     bool specificWriterDelete(int writerID);
 
     std::map<std::string, Session*> sessionMap;
+    std::string deleteSessionId;
 
     /* StreamInfo indexed by writerID */
     std::map<int, StreamInfo *> outputStreamInfos;
     std::map<int, QueueSink*> sinks;
-    std::mutex sinksMtx;
 
     UsageEnvironment* env;
     BasicTaskScheduler0 *scheduler;

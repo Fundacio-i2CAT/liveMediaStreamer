@@ -150,10 +150,6 @@ bool SourceManager::addSession(Session* session)
         return false;
     }
 
-    if (sessionMap.count(session->getId()) > 0) {
-        return false;
-    }
-
     sessionMap[session->getId()] = session;
 
     return true;
@@ -166,21 +162,28 @@ bool SourceManager::removeSession(std::string id)
     if (sessionMap.count(id) <= 0) {
         return false;
     }
+
+    bool someSubsessionsWereActive = false;
     
-    std::lock_guard<std::mutex> guard(sinksMtx);
-    
-    for (auto it : sessionMap) {
-        it.second->getScs()->iter = new MediaSubsessionIterator(*(it.second->getScs()->session));
-        subsession = it.second->getScs()->iter->next();
-        while (subsession != NULL) {
-            if (sinks.count(subsession->clientPortNum()) > 0){
-                Medium::close(sinks[subsession->clientPortNum()]);
-                sinks.erase(subsession->clientPortNum());
-                disconnectWriter(subsession->clientPortNum());
-                it.second->getScs()->removeSubsessionStats(subsession->clientPortNum());
-            }
-            subsession = it.second->getScs()->iter->next();
+    sessionMap[id]->getScs()->iter = new MediaSubsessionIterator(*(sessionMap[id]->getScs()->session));
+    subsession = sessionMap[id]->getScs()->iter->next();
+    while (subsession != NULL) {
+        if (sinks.count(subsession->clientPortNum()) > 0){
+            Medium::close(sinks[subsession->clientPortNum()]);
+            sinks.erase(subsession->clientPortNum());
+            disconnectWriter(subsession->clientPortNum());
+            sessionMap[id]->getScs()->removeSubsessionStats(subsession->clientPortNum());
         }
+        subsession->sink = NULL;
+        if (subsession->rtcpInstance() != NULL) {
+            subsession->rtcpInstance()->setByeHandler(NULL, NULL);
+        }
+        subsession = sessionMap[id]->getScs()->iter->next();
+        someSubsessionsWereActive = true;
+    }
+    
+    if (someSubsessionsWereActive) {
+        sessionMap[id]->sendTeardown();
     }
 
     delete sessionMap[id];
@@ -200,7 +203,6 @@ Session* SourceManager::getSession(std::string id)
 
 bool SourceManager::addSink(unsigned port, QueueSink *sink)
 {
-    std::lock_guard<std::mutex> guard(sinksMtx);
     if(sinks.count(port) > 0){
         utils::warningMsg("sink id must be unique!");
         return false;
@@ -302,12 +304,22 @@ bool SourceManager::addSessionEvent(Jzon::Node* params)
     if (params->Has("keepAlive") && params->Get("keepAlive").IsBool()){
         keepAlive = params->Get("keepAlive").ToBool();
     }
+    
+    if (params->Has("id") && params->Get("id").IsString()){
+        sessionId = params->Get("id").ToString();
+        if (sessionMap.count(sessionId)> 0){
+            return false;
+        }
+    } else {
+        while (sessionMap.count(sessionId) > 0) {
+            sessionId = utils::randomIdGenerator(ID_LENGTH);
+        }
+    }
 
-    if (params->Has("uri") && params->Has("progName") && params->Has("id")) {
+    if (params->Has("uri") && params->Has("progName")) {
         
         std::string progName = params->Get("progName").ToString();
         std::string rtspURL = params->Get("uri").ToString();
-        sessionId = params->Get("id").ToString();
         session = Session::createNewByURL(*env, progName, rtspURL, sessionId, this, keepAlive);
 
     } else if (params->Has("subsessions") && params->Get("subsessions").IsArray()) {
@@ -566,6 +578,11 @@ bool Session::initiateSession()
     return false;
 }
 
+void Session::sendTeardown()
+{
+    client->sendTeardownCommand(*scs->session, NULL);
+}
+
 Session::~Session() {
     MediaSubsession* subsession;
     this->scs->iter = new MediaSubsessionIterator(*(this->scs->session));
@@ -575,9 +592,10 @@ Session::~Session() {
         Medium::close(subsession->sink);
         subsession = this->scs->iter->next();
     }
-
-    Medium::close(this->scs->session);
-    delete this->scs->iter;
+    
+    if (scs != NULL){
+        delete scs;
+    }
 
     if (client != NULL) {
         Medium::close(client);
@@ -617,14 +635,23 @@ StreamClientState::~StreamClientState()
     if (session != NULL) {
 
         UsageEnvironment& env = session->envir();
-
-        env.taskScheduler().unscheduleDelayedTask(streamTimerTask);
-        env.taskScheduler().unscheduleDelayedTask(sessionTimeoutBrokenServerTask);
-        env.taskScheduler().unscheduleDelayedTask(sessionStatsMeasurementTask);
+        
+        if (streamTimerTask){
+            env.taskScheduler().unscheduleDelayedTask(streamTimerTask);
+        }
+        if (sessionTimeoutBrokenServerTask){
+            env.taskScheduler().unscheduleDelayedTask(sessionTimeoutBrokenServerTask);
+        }
+        if (sessionStatsMeasurementTask){
+            env.taskScheduler().unscheduleDelayedTask(sessionStatsMeasurementTask);
+        }
+        
         Medium::close(session);
 
         for (auto it : smsStats) {
-            delete it.second;
+            if (it.second){
+                delete it.second;
+            }
         }
     }
 }
@@ -652,7 +679,9 @@ bool StreamClientState::addNewSubsessionStats(size_t port, MediaSubsession* subs
 
     smsStats[port] = new SCSSubsessionStats(port, src ,startTime);
 
-    scheduleNextStatsMeasurement(this->mngr->envir());
+    if (sessionStatsMeasurementTask == NULL){
+        scheduleNextStatsMeasurement(this->mngr->envir());
+    }
 
     return true;    
 }
@@ -684,6 +713,7 @@ static void periodicSubsessionStatsMeasurement(StreamClientState* scs)
 {
     struct timeval timeNow;
     gettimeofday(&timeNow, NULL);
+    scs->sessionStatsMeasurementTask = NULL;
 
     for (auto it : scs->getSCSSubsesionStatsMap()) {
         it.second->periodicStatMeasurement(timeNow);
@@ -694,7 +724,6 @@ static void periodicSubsessionStatsMeasurement(StreamClientState* scs)
 
 void StreamClientState::scheduleNextStatsMeasurement(UsageEnvironment* env) 
 {
-    sessionStatsMeasurementTask = NULL;
     nextStatsMeasurementUSecs += statsMeasurementIntervalMS;
     struct timeval timeNow;
     gettimeofday(&timeNow, NULL);

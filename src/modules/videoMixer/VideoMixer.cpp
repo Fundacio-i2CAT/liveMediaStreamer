@@ -118,7 +118,8 @@ bool VideoMixer::doProcessFrame(std::map<int, Frame*> &orgFrames, Frame *dst, st
 
         for (auto it : orgFrames) {
 
-            if (channelsConfig[it.first]->getLayer() != lay) {
+            if (channelsConfig.count(it.first) <= 0 || 
+                channelsConfig[it.first]->getLayer() != lay) {
                 continue;
             }
 

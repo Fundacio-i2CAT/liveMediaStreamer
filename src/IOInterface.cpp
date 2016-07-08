@@ -61,7 +61,7 @@ void Reader::addReader(int fId, int rId)
 {
     std::lock_guard<std::mutex> guard(lck);
         
-    if (queue->isConnected() && queue->addReaderCData(fId, rId)){
+    if (queue && queue->isConnected() && queue->addReaderCData(fId, rId)){
         filters[fId].first = false;
         filters[fId].second = false;
     }
@@ -89,7 +89,7 @@ Frame* Reader::getFrame(int fId, bool &newFrame)
 {
     std::lock_guard<std::mutex> guard(lck);
     
-    if (!queue->isConnected()) {
+    if (!queue || !queue->isConnected()) {
         utils::errorMsg("The queue is not connected");
         return NULL;
     }
@@ -149,7 +149,7 @@ int Reader::removeFrame(int fId)
         measureDelay();
         frame = NULL;
         ready = true;
-        return queue->removeFrame();
+        return queue ? queue->removeFrame() : -1;
     }
     
     return -1;
@@ -190,16 +190,16 @@ size_t Reader::getLostBlocs()
 { 
     std::lock_guard<std::mutex> guard(lck);
 
-    return queue->getLostBlocs(); 
+    return queue ? queue->getLostBlocs() : 0; 
 };
 
 void Reader::setConnection(FrameQueue *queue)
 {
-    if (isConnected() || !queue){
+    std::lock_guard<std::mutex> guard(lck);
+    if (isConnected()){
         return;
     }
     
-    std::lock_guard<std::mutex> guard(lck);
     ReaderData rData;
     
     this->queue = queue;
@@ -240,6 +240,8 @@ bool Reader::isConnected()
 
 size_t Reader::getQueueElements()
 {
+    std::lock_guard<std::mutex> guard(lck);
+    
     if (!queue) {
         return 0;
     }

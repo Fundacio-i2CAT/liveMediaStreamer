@@ -172,7 +172,7 @@ public:
 private:
     PipelineManager(unsigned threads = 0);
     ~PipelineManager();
-    bool deletePath(Path* path);
+    bool deletePath(int id);
     bool createFilter(int id, FilterType type);
     
     bool handleGrouping(int orgFId, int dstFId, int orgWId, int dstRId);

@@ -80,7 +80,8 @@ bool PipelineManager::stop()
     utils::infoMsg("All threads stopped");
     
     for (auto it : paths) {
-        if (!deletePath(it.second)) {
+        if (!deletePath(it.first)) {
+            utils::errorMsg("Failed deleting path " + std::to_string(it.first));
             return false;
         }
     }
@@ -373,16 +374,12 @@ bool PipelineManager::validCData(ConnectionData cData, int orgFId, int dstFId)
 
 bool PipelineManager::removePath(int id)
 {
-    Path* path;
-
-    path = getPath(id);
-
-    if (!path) {
+    if (paths.count(id) <= 0) {
         utils::warningMsg("Requested path not found!");
         return true;
     }
 
-    if (!deletePath(path)) {
+    if (!deletePath(id)) {
         return false;
     }
 
@@ -415,8 +412,13 @@ bool PipelineManager::removeFilter(int id)
     return true;
 }
 
-bool PipelineManager::deletePath(Path* path)
+bool PipelineManager::deletePath(int id)
 {
+    Path* path = getPath(id);
+    if (!path){
+        return false;
+    }
+    
     std::vector<int> pathFilters = path->getFilters();
     int orgFilterId = path->getOriginFilterID();
     int dstFilterId = path->getDestinationFilterID();
@@ -453,6 +455,9 @@ bool PipelineManager::deletePath(Path* path)
     bool deleteDst = true;
     
     for(auto it : paths){
+        if (it.first == id){
+            continue;
+        }
         if (it.second->hasFilter(path->getOriginFilterID())){
             deleteOrig = false;
         }

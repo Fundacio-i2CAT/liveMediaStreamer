@@ -170,12 +170,6 @@ public:
     * @param int the reader Id that will use the filter.
     */
     void addReader(int fId, int rId);
-    
-    /**
-    * Decreases the number of filters that make use of this reader. It disconnects if filters number is zero.
-    * @param int the id of the filter requesting the removal
-    */
-    void removeReader(int id);
 
     /**
     * Get FrameQueue elements number

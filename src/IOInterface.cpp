@@ -67,24 +67,6 @@ void Reader::addReader(int fId, int rId)
     }
 }
 
-void Reader::removeReader(int id)
-{
-    std::unique_lock<std::mutex> guard(lck);
-    
-    if (queue){
-        queue->removeReaderCData(id);
-    }
-    
-    if (filters.count(id) > 0){
-        filters.erase(id);
-    }
-    
-    if (filters.size() == 0){
-        guard.unlock();
-        disconnectQueue();
-    }
-}
-
 Frame* Reader::getFrame(int fId, bool &newFrame)
 {
     std::lock_guard<std::mutex> guard(lck);
@@ -196,7 +178,7 @@ size_t Reader::getLostBlocs()
 void Reader::setConnection(FrameQueue *queue)
 {
     std::lock_guard<std::mutex> guard(lck);
-    if (isConnected()){
+    if (!queue || isConnected()){
         return;
     }
     
@@ -222,7 +204,7 @@ bool Reader::disconnect(int id)
         queue->removeReaderCData(id);
     }
     
-    if (filters.size() > 1){
+    if (filters.size() > 0){
         return true;
     }
     

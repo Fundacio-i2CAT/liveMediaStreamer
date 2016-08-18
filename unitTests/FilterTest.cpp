@@ -73,7 +73,7 @@ void FilterUnitTest::connectOneToOne()
     BaseFilter* satelliteFilter = new BaseFilterMockup(1,1);
 
     CPPUNIT_ASSERT(filterToTest->disconnectWriter(1));
-    CPPUNIT_ASSERT(!satelliteFilter->disconnectReader(1));
+    CPPUNIT_ASSERT(satelliteFilter->disconnectReader(1));
     CPPUNIT_ASSERT(filterToTest->connectOneToOne(satelliteFilter));
     CPPUNIT_ASSERT(filterToTest->disconnectWriter(1));
     CPPUNIT_ASSERT(satelliteFilter->disconnectReader(1));

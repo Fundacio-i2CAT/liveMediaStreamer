@@ -435,20 +435,17 @@ bool PipelineManager::deletePath(int id)
         }
     }
 
-    if(!filters[orgFilterId]->disconnectWriter(path->getOrgWriterID())) {
-        utils::errorMsg("Error disconnecting path head!");
-        return false;
-    }
-
     if(!filters[dstFilterId]->disconnectReader(path->getDstReaderID())) {
         utils::errorMsg("Error disconnecting path tail!");
         return false;
     }
-
-    for (auto it : pathFilters) {
-        pool->removeTask(it);
-        delete filters[it];
-        filters.erase(it);
+    
+    std::vector<int>::reverse_iterator rit = pathFilters.rbegin();
+    for (; rit!= pathFilters.rend(); ++rit){
+        filters[*rit]->disconnectReader(DEFAULT_ID);
+        pool->removeTask(*rit);
+        delete filters[*rit];
+        filters.erase(*rit);
     }
     
     bool deleteOrig = true;
@@ -458,22 +455,24 @@ bool PipelineManager::deletePath(int id)
         if (it.first == id){
             continue;
         }
-        if (it.second->hasFilter(path->getOriginFilterID())){
+        if (it.second->hasFilter(orgFilterId)){
             deleteOrig = false;
         }
-        if (it.second->hasFilter(path->getDestinationFilterID())){
+        if (it.second->hasFilter(dstFilterId)){
             deleteDst = false;
         }
     }
     
     if (deleteDst){
-        delete filters[path->getDestinationFilterID()];
-        filters.erase(path->getDestinationFilterID());
+        pool->removeTask(dstFilterId);
+        delete filters[dstFilterId];
+        filters.erase(dstFilterId);
     }
     
     if (deleteOrig){
-        delete filters[path->getOriginFilterID()];
-        filters.erase(path->getOriginFilterID());
+        pool->removeTask(orgFilterId);
+        delete filters[orgFilterId];
+        filters.erase(orgFilterId);
     }
 
     delete path;

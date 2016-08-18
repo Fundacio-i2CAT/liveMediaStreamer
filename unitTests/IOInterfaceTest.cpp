@@ -219,7 +219,7 @@ void IOInterfaceTest::readerTest()
     reader->removeFrame(3);
     reader->removeFrame(4);
     
-    reader->removeReader(4);
+    reader->disconnect(4);
     
     queue->addFrame();
     queue->addFrame();
@@ -231,7 +231,7 @@ void IOInterfaceTest::readerTest()
     reader->getFrame(3, gotFrame);
     CPPUNIT_ASSERT(gotFrame == true);
     
-    reader->removeReader(3);
+    reader->disconnect(3);
     reader->removeFrame(2);
     
     reader->getFrame(2, gotFrame);
@@ -245,7 +245,7 @@ void IOInterfaceTest::readerTest()
     reader->getFrame(2, gotFrame);
     CPPUNIT_ASSERT(gotFrame == false);
     
-    reader->removeReader(2);
+    reader->disconnect(2);
     
     CPPUNIT_ASSERT(!reader->isConnected());
     CPPUNIT_ASSERT(!queue->isConnected());

@@ -40,7 +40,7 @@ BaseFilter::~BaseFilter()
     std::lock_guard<std::mutex> guard(mtx);
     for (auto it : readers) {
         if (it.second && it.first >= 0){
-            it.second->removeReader(getId());
+            it.second->disconnect(getId());
         }
     }
 
@@ -615,7 +615,7 @@ std::vector<int> BaseFilter::framesSync()
 bool BaseFilter::deleteReader(int readerId)
 {
     if (readers.count(readerId) > 0){
-        readers[readerId]->removeReader(getId());
+        readers[readerId]->disconnect(getId());
         readers.erase(readerId);
         return specificReaderDelete(readerId);
     }

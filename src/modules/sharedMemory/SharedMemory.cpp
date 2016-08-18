@@ -141,7 +141,7 @@ bool SharedMemory::doProcessFrame(Frame *org, Frame *dst)
             writeSharedMemoryRAW(vframe->getDataBuf(), vframe->getLength());
             break;
         default:
-            utils::errorMsg("SharedMemory::error - only RAW and H264 frames are shareable");
+            utils::errorMsg("Only RAW and H264 frames are shareable");
             break;
     }
 

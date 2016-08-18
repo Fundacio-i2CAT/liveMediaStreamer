@@ -83,7 +83,7 @@ void PipelineManagerTest::createAndConnectPath()
     
     CPPUNIT_ASSERT(pipe->connectPath(1));
     CPPUNIT_ASSERT(pipe->removePath(1));
-    CPPUNIT_ASSERT(!pipe->removePath(2));
+    CPPUNIT_ASSERT(pipe->removePath(2));
 }
 
 class PipelineManagerFunctionalTest : public CppUnit::TestFixture

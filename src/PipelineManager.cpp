@@ -670,3 +670,59 @@ void PipelineManager::stopEvent(Jzon::Node* params, Jzon::Object &outputNode)
 
     outputNode.Add("error", Jzon::null);
 }
+
+void PipelineManager::processEvent(Jzon::Object event, Jzon::Object &outputNode)
+{
+    int filterId;
+    int delay = -1;
+    
+    if (!event.Has("action") || !event.Has("params")) {
+        outputNode.Add("error", "Error processing filter event. Invalid JSON format...");
+        return;
+    }
+
+    if ((event.Has("filterId") && event.Get("filterId").IsNumber())) {
+        filterId = event.Get("filterId").ToInt();
+        if (event.Has("delay") && event.Get("delay").IsNumber()) {
+            delay = event.Get("delay").ToInt();
+        }
+        
+        Event e(event, std::chrono::system_clock::now(), delay);
+        
+        if (processFilterEvent(e, filterId)){
+            outputNode.Add("error", Jzon::null);
+        } else {
+            outputNode.Add("error", "Error while processing event. There is no filter with this ID...");
+        }
+
+    } else {
+        std::string action = event.Get("action").ToString();
+        Jzon::Object params = event.Get("params");
+
+        if (action == "getState"){
+            getStateEvent(&params, outputNode);
+        } else if (action == "createPath") {
+            createPathEvent(&params, outputNode);
+        } else if (action == "removePath") {
+            removePathEvent(&params, outputNode);
+        } else if (action == "createFilter") {
+            createFilterEvent(&params, outputNode);
+        } else if (action == "removeFilter") {
+            removeFilterEvent(&params, outputNode);
+        } else if (action == "stop") {
+            stopEvent(&params, outputNode);
+        } else {
+            outputNode.Add("error", "Error processing internal event. Invalid action...");
+        }
+    }
+}
+
+bool PipelineManager::processFilterEvent(Event event, int filterId)
+{
+    if (filters.count(filterId) <= 0){
+        return false;
+    }
+
+    filters[filterId]->pushEvent(event);
+    return true;
+}

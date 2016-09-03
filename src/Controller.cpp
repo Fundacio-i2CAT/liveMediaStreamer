@@ -40,7 +40,6 @@ Controller::Controller()
     pipeMngrInstance = PipelineManager::getInstance();
     inputRootNode = new Jzon::Object();
     parser = new Jzon::Parser(*inputRootNode);
-    initializeEventMap();
     runFlag = true;
 }
 
@@ -173,77 +172,10 @@ void Controller::processRequest()
     const Jzon::Array &events = inputRootNode->Get("events").AsArray();
 
     for (Jzon::Array::const_iterator it = events.begin(); it != events.end(); ++it) {
-        if ((*it).Has("filterId")) {
-            processFilterEvent(*it, outputNode);
-        } else {
-            processInternalEvent(*it, outputNode);
-        }
+        pipeMngrInstance->processEvent(*it, outputNode);
     }
 
     sendAndClose(outputNode, connectionSocket);
-}
-
-void Controller::processFilterEvent(Jzon::Object event, Jzon::Object &outputNode)
-{
-    int filterId;
-    int delay = -1;
-    BaseFilter *filter = NULL;
-
-    if (!event.Has("action") || !event.Has("params")) {
-        outputNode.Add("error", "Error processing filter event. Invalid JSON format...");
-        return ;
-    }
-
-    filterId = event.Get("filterId").ToInt();
-    filter = pipeMngrInstance->getFilter(filterId);
-
-    if (!filter) {
-        outputNode.Add("error", "Error while processing event. There is no filter with this ID...");
-        return;
-    }
-
-    if (event.Has("delay")) {
-        delay = event.Get("delay").ToInt();
-    }
-
-    Event e(event, std::chrono::system_clock::now(), delay);
-    filter->pushEvent(e);
-    outputNode.Add("error", Jzon::null);
-}
-
-void Controller::processInternalEvent(Jzon::Object event, Jzon::Object &outputNode)
-{
-    if (!event.Has("action") || !event.Has("params")) {
-        outputNode.Add("error", "Error processing internal event. Invalid JSON format...");
-        return;
-    }
-
-    std::string action = event.Get("action").ToString();
-    Jzon::Object params = event.Get("params");
-
-    if (eventMap.count(action) <= 0) {
-        outputNode.Add("error", "Error processing internal event. Invalid action...");
-        return;
-    }
-
-    eventMap[action](&params, outputNode);
-}
-
-void Controller::initializeEventMap()
-{
-    eventMap["getState"] = std::bind(&PipelineManager::getStateEvent, pipeMngrInstance,
-                                            std::placeholders::_1, std::placeholders::_2);
-    eventMap["createPath"] = std::bind(&PipelineManager::createPathEvent, pipeMngrInstance,
-                                            std::placeholders::_1, std::placeholders::_2);
-    eventMap["removePath"] = std::bind(&PipelineManager::removePathEvent, pipeMngrInstance,
-                                            std::placeholders::_1, std::placeholders::_2);
-    eventMap["createFilter"] = std::bind(&PipelineManager::createFilterEvent, pipeMngrInstance,
-                                            std::placeholders::_1, std::placeholders::_2);
-    eventMap["removeFilter"] = std::bind(&PipelineManager::removeFilterEvent, pipeMngrInstance,
-                                            std::placeholders::_1, std::placeholders::_2);
-    eventMap["stop"] = std::bind(&PipelineManager::stopEvent, pipeMngrInstance,
-                                            std::placeholders::_1, std::placeholders::_2);
-
 }
 
 void Controller::sendAndClose(Jzon::Object outputNode, int socket)

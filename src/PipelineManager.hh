@@ -168,6 +168,19 @@ public:
     * Sets outputNode jzon object with results of pipeline stop event
     */
     void stopEvent(Jzon::Node* params, Jzon::Object &outputNode);
+    
+    /**
+     * Process a json event
+     * @param event it is a Jzon::Object that represents a single event
+     */
+    void processEvent(Jzon::Object event, Jzon::Object &outputNode);
+    /**
+     * Sends event to the given filter, does nothing if filter is not found
+     * @param event an Event instance to forward to filterId
+     * @param filterId the ID of the receiver of the event
+     * @return true if the given filterId is found in pipe filters
+     */
+    bool processFilterEvent(Event event, int filterId);
 
 private:
     PipelineManager(unsigned threads = 0);

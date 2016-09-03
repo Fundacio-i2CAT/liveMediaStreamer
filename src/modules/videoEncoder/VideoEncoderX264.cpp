@@ -68,7 +68,7 @@ bool VideoEncoderX264::encodeFrame(VideoFrame* codedFrame)
     }
 
     if (forceIntra) {
-        picIn.i_type = X264_TYPE_I;
+        picIn.i_type = X264_TYPE_IDR;
         forceIntra = false;
     } else {
         picIn.i_type = X264_TYPE_AUTO;
@@ -162,16 +162,17 @@ bool VideoEncoderX264::reconfigure(VideoFrame* orgFrame, VideoFrame* dstFrame)
 
     x264_param_parse(&xparams, "keyint", std::to_string(gop).c_str());
     x264_param_parse(&xparams, "fps", std::to_string(fps).c_str());
-    x264_param_parse(&xparams, "intra-refresh", std::to_string(0).c_str());
+    //x264_param_parse(&xparams, "intra-refresh", std::to_string(0).c_str());
     x264_param_parse(&xparams, "threads", std::to_string(threads).c_str());
     x264_param_parse(&xparams, "aud", std::to_string(1).c_str());
     x264_param_parse(&xparams, "bitrate", std::to_string(bitrate).c_str());
     x264_param_parse(&xparams, "bframes", std::to_string(bFrames).c_str());
+    x264_param_parse(&xparams, "open-gop", std::to_string(1).c_str());
     x264_param_parse(&xparams, "repeat-headers", std::to_string(0).c_str());
     x264_param_parse(&xparams, "vbv-maxrate", std::to_string(bitrate*1.05).c_str());
     x264_param_parse(&xparams, "vbv-bufsize", std::to_string(bitrate*2).c_str());
     x264_param_parse(&xparams, "rc-lookahead", std::to_string(lookahead).c_str());
-    x264_param_parse(&xparams, "scenecut", std::to_string(0).c_str());
+    //x264_param_parse(&xparams, "scenecut", std::to_string(0).c_str());
 
     if (outputStreamInfo->video.h264or5.annexb) {
         x264_param_parse(&xparams, "repeat-headers", std::to_string(1).c_str());

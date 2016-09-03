@@ -190,6 +190,12 @@ public:
      * @return the losts blocs of the reader
      */
     size_t getLostBlocs (int rId);
+    /**
+     * Sends an event to the preceding filter in path
+     * @param event a filter Event object
+     * @param readerId ID of the reader
+     */
+    void sendEvent(Event e, int readerId = DEFAULT_ID);
 
 protected:
     BaseFilter(unsigned readersNum = MAX_READERS, unsigned writersNum = MAX_WRITERS, FilterRole fRole_ = REGULAR, bool periodic = false);

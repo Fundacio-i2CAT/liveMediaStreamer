@@ -24,6 +24,7 @@
 
 #include "Filter.hh"
 #include "Utils.hh"
+#include "PipelineManager.hh"
 
 #include <thread>
 #include <algorithm>
@@ -238,6 +239,8 @@ bool BaseFilter::removeFrames(std::vector<int> framesToRemove)
 
 bool BaseFilter::pendingJobs()
 {
+    std::lock_guard<std::mutex> guard(mtx);
+    
     for (auto it : readers){
         if (it.second && it.second->getQueueElements() > 0){
             return true;
@@ -544,6 +547,8 @@ std::vector<int> BaseFilter::serverProcessFrame(int& ret)
 
 bool BaseFilter::demandOriginFrames(std::map<int, Frame*> &oFrames, std::vector<int> &newFrames)
 {
+    std::lock_guard<std::mutex> guard(mtx);
+    
     if (maxReaders == 0) {
         return true;
     }
@@ -726,6 +731,20 @@ bool BaseFilter::demandOriginFramesFrameTime(std::map<int, Frame*> &oFrames, std
     // Finally set syncTs
     syncTs += frameTime;
     return true;
+}
+
+void BaseFilter::sendEvent(Event e, int readerId)
+{
+    std::lock_guard<std::mutex> guard(mtx);
+    ConnectionData cData;
+    
+    if (readers.count(readerId)<= 0){
+        return;
+    }
+    if (readers[readerId]->isConnected()){
+        cData = readers[readerId]->getQueue()->getCData();
+        PipelineManager::getInstance()->processFilterEvent(e, cData.wFilterId);
+    }
 }
 
 OneToOneFilter::OneToOneFilter(FilterRole fRole_, bool periodic) :

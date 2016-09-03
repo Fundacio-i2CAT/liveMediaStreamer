@@ -90,21 +90,15 @@ public:
     */
     void processRequest();
 
-protected:
-    void initializeEventMap();
-
 private:
     Controller();
     bool processEvent(Jzon::Object event);
-    void processFilterEvent(Jzon::Object event, Jzon::Object &outputNode);
-    void processInternalEvent(Jzon::Object event, Jzon::Object &outputNode);
     void sendAndClose(Jzon::Object outputNode, int socket);
 
     int listeningSocket, connectionSocket;
     char inBuffer[MSG_BUFFER_MAX_LENGTH];
     Jzon::Object* inputRootNode;
     Jzon::Parser* parser;
-    std::map<std::string, std::function<void(Jzon::Node* params, Jzon::Object &outputNode)> > eventMap;
     bool runFlag;
 
     static Controller* ctrlInstance;

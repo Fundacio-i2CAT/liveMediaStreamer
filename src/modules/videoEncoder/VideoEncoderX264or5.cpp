@@ -25,7 +25,8 @@
 
 VideoEncoderX264or5::VideoEncoderX264or5() :
 OneToOneFilter(), inPixFmt(P_NONE), forceIntra(false), fps(0), bitrate(0), gop(0), 
-    threads(0), bFrames(0), needsConfig(false), inPts(0), outPts(0), dts(0)
+    gopTime(0), refTime(std::chrono::microseconds(0)), threads(0), bFrames(0),
+    needsConfig(false), inPts(0), outPts(0), dts(0)
 {
     fType = VIDEO_ENCODER;
     midFrame = av_frame_alloc();
@@ -33,7 +34,7 @@ OneToOneFilter(), inPixFmt(P_NONE), forceIntra(false), fps(0), bitrate(0), gop(0
     outputStreamInfo->video.h264or5.annexb = true;
     initializeEventMap();
     configure0(DEFAULT_BITRATE, VIDEO_DEFAULT_FRAMERATE, DEFAULT_GOP, 
-              DEFAULT_LOOKAHEAD, DEFAULT_B_FRAMES, DEFAULT_THREADS, DEFAULT_ANNEXB, DEFAULT_PRESET);
+              DEFAULT_LOOKAHEAD, DEFAULT_B_FRAMES, DEFAULT_THREADS, DEFAULT_ANNEXB, DEFAULT_PRESET, 0);
 }
 
 VideoEncoderX264or5::~VideoEncoderX264or5()
@@ -69,6 +70,20 @@ bool VideoEncoderX264or5::doProcessFrame(Frame *org, Frame *dst)
     if (!fill_x264or5_picture(rawFrame)){
         utils::errorMsg("Could not fill x264_picture_t from frame");
         return false;
+    }
+    
+    if (gopTime > 0) { 
+        if (refTime.count() == 0){
+            refTime = org->getPresentationTime();
+        }
+        
+        std::chrono::microseconds diff = 
+            std::chrono::duration_cast<std::chrono::microseconds>(org->getPresentationTime() - refTime);
+        
+        if (diff.count() >= gopTime){
+            forceIntra = true;
+            refTime += std::chrono::microseconds(gopTime);
+        }
     }
     
     frameTP.pTime = org->getPresentationTime();
@@ -114,7 +129,7 @@ bool VideoEncoderX264or5::fill_x264or5_picture(VideoFrame* videoFrame)
 
 bool VideoEncoderX264or5::configure0(unsigned bitrate_, unsigned fps_, unsigned gop_, 
                                      unsigned lookahead_, unsigned bFrames_, unsigned threads_, 
-                                     bool annexB_, std::string preset_)
+                                     bool annexB_, std::string preset_, unsigned gopTime_)
 {
     if (bitrate_ <= 0 || gop_ <= 0 || lookahead_ < 0 || threads_ <= 0 || preset_.empty()) {
         utils::errorMsg("Error configuring VideoEncoderX264or5: invalid configuration values");
@@ -137,6 +152,16 @@ bool VideoEncoderX264or5::configure0(unsigned bitrate_, unsigned fps_, unsigned 
         fps = fps_;
         setFrameTime(std::chrono::microseconds(std::micro::den/fps));
     }
+    
+    if (gopTime_ > 0){
+        if (gopTime_ < MIN_GOP_TIME){
+            gopTime = MIN_GOP_TIME;
+        } else {
+            gopTime = gopTime_;
+        }
+    } else {
+        gopTime = 0; 
+    }
 
     needsConfig = true;
     return true;
@@ -147,6 +172,7 @@ bool VideoEncoderX264or5::configEvent(Jzon::Node* params)
     unsigned tmpBitrate;
     unsigned tmpFps;
     unsigned tmpGop;
+    unsigned tmpGopTime;
     unsigned tmpLookahead;
     unsigned tmpThreads;
     unsigned tmpBFrames;
@@ -160,45 +186,51 @@ bool VideoEncoderX264or5::configEvent(Jzon::Node* params)
     tmpBitrate = bitrate;
     tmpFps = fps;
     tmpGop = gop;
+    tmpGopTime = gopTime;
     tmpLookahead = lookahead;
     tmpThreads = threads;
     tmpAnnexB = outputStreamInfo->video.h264or5.annexb;
     tmpPreset = preset;
     tmpBFrames = bFrames;
 
-    if (params->Has("bitrate")) {
+    if (params->Has("bitrate") && params->Get("bitrate").IsNumber()) {
         tmpBitrate = params->Get("bitrate").ToInt();
     }
 
-    if (params->Has("fps")) {
+    if (params->Has("fps") && params->Get("fps").IsNumber()) {
         tmpFps = params->Get("fps").ToInt();
     }
 
-    if (params->Has("gop")) {
+    if (params->Has("gop") && params->Get("gop").IsNumber()) {
         tmpGop = params->Get("gop").ToInt();
     }
 
-    if (params->Has("lookahead")) {
+    if (params->Has("lookahead") && params->Get("lookahead").IsNumber()) {
         tmpLookahead = params->Get("lookahead").ToInt();
     }
     
-    if (params->Has("bframes")) {
+    if (params->Has("bframes") && params->Get("bframes").IsNumber()) {
         tmpBFrames = params->Get("bframes").ToInt();
     }
 
-    if (params->Has("threads")) {
+    if (params->Has("threads") && params->Get("threads").IsNumber()) {
         tmpThreads = params->Get("threads").ToInt();
     }
 
-    if (params->Has("annexb")) {
+    if (params->Has("annexb") && params->Get("annexb").IsBool()) {
         tmpAnnexB = params->Get("annexb").ToBool();
     }
 
     if (params->Has("preset")) {
         tmpPreset = params->Get("preset").ToString();
     }
+    
+    if (params->Has("gopTime") && params->Get("gopTime").IsNumber()) {
+        tmpGopTime = params->Get("gopTime").ToInt();
+    }
 
-    return configure0(tmpBitrate, tmpFps, tmpGop, tmpLookahead, tmpBFrames, tmpThreads, tmpAnnexB, tmpPreset);
+    return configure0(tmpBitrate, tmpFps, tmpGop, tmpLookahead, tmpBFrames,
+                      tmpThreads, tmpAnnexB, tmpPreset, tmpGopTime);
 }
 
 bool VideoEncoderX264or5::forceIntraEvent(Jzon::Node*)
@@ -207,9 +239,21 @@ bool VideoEncoderX264or5::forceIntraEvent(Jzon::Node*)
     return true;
 }
 
+bool VideoEncoderX264or5::setGopReferenceTimeEvent(Jzon::Node* params)
+{
+    if (params->Has("referenceTime") && params->Get("referenceTime").IsString()) {
+        std::string refTime_str = params->Get("referenceTime").ToString();
+        refTime = std::chrono::microseconds(std::stoull(refTime_str));
+        utils::infoMsg("Setting encoder " + std::to_string(refTime.count()));
+        return true;
+    }
+    return false;
+}
+
 void VideoEncoderX264or5::initializeEventMap()
 {
     eventMap["forceIntra"] = std::bind(&VideoEncoderX264or5::forceIntraEvent, this, std::placeholders::_1);
+    eventMap["gopReferenceTime"] = std::bind(&VideoEncoderX264or5::setGopReferenceTimeEvent, this, std::placeholders::_1);
     eventMap["configure"] = std::bind(&VideoEncoderX264or5::configEvent, this, std::placeholders::_1);
 }
 
@@ -218,6 +262,9 @@ void VideoEncoderX264or5::doGetState(Jzon::Object &filterNode)
     filterNode.Add("bitrate", (int) bitrate);
     filterNode.Add("fps", (int) fps);
     filterNode.Add("gop", (int) gop);
+    filterNode.Add("gopTime", (int) gopTime);
+    //Jzon has no long types, only int, so using string
+    filterNode.Add("refTime", std::to_string(refTime.count()));
     filterNode.Add("lookahead", (int) lookahead);
     filterNode.Add("threads", (int) threads);
     filterNode.Add("annexb", outputStreamInfo->video.h264or5.annexb);
@@ -225,13 +272,16 @@ void VideoEncoderX264or5::doGetState(Jzon::Object &filterNode)
     filterNode.Add("preset", preset);
 }
 
-bool VideoEncoderX264or5::configure(int bitrate, int fps, int gop, int lookahead, int bFrames, int threads, bool annexB, std::string preset)
+bool VideoEncoderX264or5::configure(int bitrate, int fps, int gop,
+                                    int lookahead, int bFrames, int threads,
+                                    bool annexB, std::string preset, int gopTime)
 {
     Jzon::Object root, params;
     root.Add("action", "configure");
     params.Add("bitrate", bitrate);
     params.Add("fps", fps);
     params.Add("gop", gop);
+    params.Add("gopTime", gopTime);
     params.Add("lookahead", lookahead);
     params.Add("bframes", bFrames);
     params.Add("threads", threads);

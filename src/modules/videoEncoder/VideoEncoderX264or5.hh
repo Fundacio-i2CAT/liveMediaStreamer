@@ -46,6 +46,7 @@ extern "C" {
 #define DEFAULT_ANNEXB true
 #define DEFAULT_B_FRAMES 4
 #define DEFAULT_PRESET "ultrafast"
+#define MIN_GOP_TIME 1000000 //usec
 
 /*! Base class for VideoEncoderX264 and VideoEncoderX265. It implements common methods, basically configure and doProcessFrame */
 
@@ -62,7 +63,8 @@ public:
     */
     virtual ~VideoEncoderX264or5();
 
-    bool configure(int bitrate, int fps, int gop, int lookahead, int bFrames, int threads, bool annexB, std::string preset);
+    bool configure(int bitrate, int fps, int gop, int lookahead, int bFrames,
+                   int threads, bool annexB, std::string preset, int gopTime = 0);
     
 protected:
     AVPixelFormat libavInPixFmt;
@@ -73,6 +75,8 @@ protected:
     unsigned fps;
     unsigned bitrate;
     unsigned gop;
+    unsigned gopTime;
+    std::chrono::microseconds refTime;
     unsigned threads;
     unsigned lookahead;
     unsigned bFrames;
@@ -92,9 +96,12 @@ protected:
     void setIntra(){forceIntra = true;};
     bool fill_x264or5_picture(VideoFrame* videoFrame);
 
-    bool configure0(unsigned bitrate_, unsigned fps_, unsigned gop_, unsigned lookahead_, unsigned bFrames_, unsigned threads_, bool annexB_, std::string preset_);
+    bool configure0(unsigned bitrate_, unsigned fps_, unsigned gop_, 
+                    unsigned lookahead_, unsigned bFrames_, unsigned threads_,
+                    bool annexB_, std::string preset_, unsigned gopTime);
     
 private:
+    bool setGopReferenceTimeEvent(Jzon::Node* params);
     bool forceIntraEvent(Jzon::Node* params);
     bool configEvent(Jzon::Node* params);
     void doGetState(Jzon::Object &filterNode);

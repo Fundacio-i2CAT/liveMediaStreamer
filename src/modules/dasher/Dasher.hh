@@ -114,6 +114,7 @@ private:
     
     bool specificReaderConfig(int readerID, FrameQueue* queue);
     bool specificReaderDelete(int readerID);
+    void sendSetReferenceEvent(uint64_t refTime);
 
     std::map<int, DashSegmenter*> segmenters;
     std::map<int, DashSegment*> vSegments;
@@ -273,17 +274,28 @@ public:
     * Increase by one the sequence number
     */
     void incrSeqNumber(){seqNumber++;};
-
+    
     /**
     * @return Segment segment timestamp
     */
     uint64_t getTimestamp(){return timestamp;};
-
+    
     /**
     * It sets the segment timestamp
-    * @params ts is the timestamp to set
+    * @param ts is the timestamp to set
     */
     void setTimestamp(uint64_t ts);
+    
+    /**
+     * @return Original timestamp of the last frame
+     */
+    uint64_t getLastFrameTimestamp(){return lastFrameTimestamp;};
+    
+    /**
+     * Sets last frame timestamp
+     * @param lastFrameTimestamp time stamp if the last frame in segment
+     */
+    void setLastFrameTimestamp(uint64_t ts);
 
     /**
     * @return Segment segment timestamp
@@ -323,6 +335,7 @@ private:
     uint64_t timestamp;
     unsigned int duration;
     bool complete;
+    uint64_t lastFrameTimestamp;
 };
 
 #endif

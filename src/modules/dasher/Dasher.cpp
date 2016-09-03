@@ -247,6 +247,7 @@ bool Dasher::writeVideoSegments()
     uint64_t ts;
     unsigned int dur;
     uint64_t rmTimestamp;
+    bool needEncoderConfig = false;
 
     if (vSegments.empty()) {
         return false;
@@ -262,15 +263,21 @@ bool Dasher::writeVideoSegments()
         utils::warningMsg("Forcing the generation of audio segments. This may cause errors!");
     }
 
-    ts = vSegments.begin()->second->getTimestamp();
+    ts = vSegments.begin()->second->getLastFrameTimestamp();
     dur = vSegments.begin()->second->getDuration();
 
     for (auto seg : vSegments) {
-        if (seg.second->getTimestamp() != ts || seg.second->getDuration() != dur) {
+        if (seg.second->getLastFrameTimestamp() != ts) {
             utils::warningMsg("Segments of the same adaptation set have different timestamps");
+            needEncoderConfig = true;
+            break;
         }
     }
-
+    
+    if (needEncoderConfig){
+        sendSetReferenceEvent(ts + std::chrono::microseconds(segDur).count());
+    }
+    
     if (!writeSegmentsToDisk(vSegments, ts, V_EXT)) {
         utils::errorMsg("Error writing DASH video segment to disk");
         return false;
@@ -285,6 +292,18 @@ bool Dasher::writeVideoSegments()
     }
 
     return true;
+}
+
+void Dasher::sendSetReferenceEvent(uint64_t refTime)
+{
+    Jzon::Object event, params;
+    event.Add("action", "gopReferenceTime");
+    params.Add("referenceTime", std::to_string(refTime));
+    event.Add("params", params);
+    Event e(event, std::chrono::system_clock::now(), 0);
+    for (auto seg : vSegments) {
+        sendEvent(e, seg.first);
+    }
 }
 
 bool Dasher::writeAudioSegments()
@@ -406,9 +425,11 @@ void Dasher::doGetState(Jzon::Object &filterNode)
     filterNode.Add("folder", basePath);
     filterNode.Add("baseName", baseName);
     filterNode.Add("mpdURI", mpdPath);
-    filterNode.Add("segDurInSec", std::to_string(segDur.count()));
-    filterNode.Add("maxSegments", std::to_string(mpdMngr->getMaxSeg()));
-    filterNode.Add("minBufferTime", std::to_string(mpdMngr->getMinBuffTime()));
+    filterNode.Add("segDurInSec", (int) segDur.count());
+    if (mpdMngr){
+        filterNode.Add("maxSegments", (int) mpdMngr->getMaxSeg());
+        filterNode.Add("minBufferTime", (int) mpdMngr->getMinBuffTime());
+    }
     
     for (auto it : segmenters) {
         readersList.Add(it.first);
@@ -637,6 +658,7 @@ bool DashSegmenter::generateSegment(DashSegment* segment, Frame* frame, bool for
     segmentSize = customGenerateSegment(segment->getDataBuffer(), frameTs, segTimestamp, segDuration, force);
 
     if (segmentSize <= I2ERROR_MAX) {
+        segment->setLastFrameTimestamp(frameTs.count());
         return false;
     }
     
@@ -665,7 +687,8 @@ uint64_t DashSegmenter::microsToTimeBase(std::chrono::microseconds microValue)
 /////////////////
 
 DashSegment::DashSegment(unsigned int maxSize) : 
-dataLength(0), seqNumber(0), timestamp(0), duration(0), complete(false)
+dataLength(0), seqNumber(0), timestamp(0), duration(0), 
+complete(false), lastFrameTimestamp(0)
 {
     data = new unsigned char[maxSize];
 }
@@ -702,6 +725,11 @@ bool DashSegment::writeToDisk(std::string path)
 void DashSegment::setTimestamp(uint64_t ts)
 {
     timestamp = ts;
+}
+
+void DashSegment::setLastFrameTimestamp(uint64_t ts)
+{
+    lastFrameTimestamp = ts;
 }
 
 void DashSegment::setDuration(unsigned int dur)

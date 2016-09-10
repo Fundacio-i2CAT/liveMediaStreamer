@@ -263,11 +263,12 @@ bool Dasher::writeVideoSegments()
         utils::warningMsg("Forcing the generation of audio segments. This may cause errors!");
     }
 
-    ts = vSegments.begin()->second->getLastFrameTimestamp();
+    ts = vSegments.begin()->second->getTimestamp();
+    uint64_t lastTs = vSegments.begin()->second->getLastFrameTimestamp();
     dur = vSegments.begin()->second->getDuration();
 
     for (auto seg : vSegments) {
-        if (seg.second->getLastFrameTimestamp() != ts) {
+        if (seg.second->getLastFrameTimestamp() != lastTs) {
             utils::warningMsg("Segments of the same adaptation set have different timestamps");
             needEncoderConfig = true;
             break;
@@ -275,7 +276,7 @@ bool Dasher::writeVideoSegments()
     }
     
     if (needEncoderConfig){
-        sendSetReferenceEvent(ts + std::chrono::microseconds(segDur).count());
+        sendSetReferenceEvent(lastTs + std::chrono::microseconds(segDur).count());
     }
     
     if (!writeSegmentsToDisk(vSegments, ts, V_EXT)) {

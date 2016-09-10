@@ -79,7 +79,7 @@ protected:
     std::chrono::microseconds refTime;
     unsigned threads;
     unsigned lookahead;
-    unsigned bFrames;
+    int bFrames;
     bool needsConfig;
     std::string preset;
     int64_t inPts;
@@ -97,7 +97,7 @@ protected:
     bool fill_x264or5_picture(VideoFrame* videoFrame);
 
     bool configure0(unsigned bitrate_, unsigned fps_, unsigned gop_, 
-                    unsigned lookahead_, unsigned bFrames_, unsigned threads_,
+                    unsigned lookahead_, int bFrames_, unsigned threads_,
                     bool annexB_, std::string preset_, unsigned gopTime);
     
 private:

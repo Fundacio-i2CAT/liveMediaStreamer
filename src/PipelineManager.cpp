@@ -406,6 +406,7 @@ bool PipelineManager::removeFilter(int id)
         }
     }
     
+    pool->removeTask(id);
     filters.erase(id);
     delete filter;
 

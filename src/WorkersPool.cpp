@@ -180,9 +180,14 @@ bool WorkersPool::removeTask(const int id)
 {
     std::unique_lock<std::mutex> guard(mtx);
     if (runnables.count(id) > 0){
+        Runnable *runnable = runnables[id];
         runnables.erase(id);
         guard.unlock();
         qCheck.notify_one();
+        while(runnable->isRunning()){
+            utils::warningMsg("awaiting task to finish " + std::to_string(id));
+            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        }
         return true;
     }
     
